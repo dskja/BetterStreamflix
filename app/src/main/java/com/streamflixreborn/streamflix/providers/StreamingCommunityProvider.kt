@@ -42,7 +42,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
-    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.bz"
+    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.lu"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String

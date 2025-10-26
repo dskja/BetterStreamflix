@@ -338,7 +338,7 @@ object PelisplustoProvider : Provider {
                 } catch (e: Exception) {
                     Log.e(TAG, "Fallo procesando un servidor individual: ${e.message}")
                 }
-                delay(1500L)
+                delay(4000L)
             }
             return servers
 
