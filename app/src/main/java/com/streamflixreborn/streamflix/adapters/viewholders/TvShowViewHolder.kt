@@ -201,6 +201,9 @@ class TvShowViewHolder(
                         is TvShowsTvFragment -> findNavController().navigate(TvShowsTvFragmentDirections.actionTvShowsToTvShow(id = tvShow.id))
                         is GenreTvFragment -> findNavController().navigate(GenreTvFragmentDirections.actionGenreToTvShow(id = tvShow.id))
                         is SearchTvFragment -> findNavController().navigate(SearchTvFragmentDirections.actionSearchToTvShow(id = tvShow.id))
+                        is MovieTvFragment -> findNavController().navigate(MovieTvFragmentDirections.actionMovieToTvShow(id = tvShow.id))
+                        is TvShowTvFragment -> findNavController().navigate(TvShowTvFragmentDirections.actionTvShowToTvShow(id = tvShow.id))
+                        is PeopleTvFragment -> findNavController().navigate(PeopleTvFragmentDirections.actionPeopleToTvShow(id = tvShow.id))
                     }
                 }
             }
@@ -320,6 +323,7 @@ class TvShowViewHolder(
                         is TvShowsTvFragment -> findNavController().navigate(TvShowsTvFragmentDirections.actionTvShowsToTvShow(id = tvShow.id))
                         is GenreTvFragment -> findNavController().navigate(GenreTvFragmentDirections.actionGenreToTvShow(id = tvShow.id))
                         is SearchTvFragment -> findNavController().navigate(SearchTvFragmentDirections.actionSearchToTvShow(id = tvShow.id))
+                        is PeopleTvFragment -> findNavController().navigate(PeopleTvFragmentDirections.actionPeopleToTvShow(id = tvShow.id))
                     }
                 }
             }

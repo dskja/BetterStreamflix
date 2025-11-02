@@ -79,6 +79,7 @@ interface Provider {
             GuardaFlixProvider to ProviderSupport(movies = true, tvShows = false),
             CB01Provider to ProviderSupport(movies = true, tvShows = true),
             AnimeUnityProvider to ProviderSupport(movies = true, tvShows = true),
+            AnimeSaturnProvider to ProviderSupport(movies = false, tvShows = true),
         )
 
         // Helper functions to check support

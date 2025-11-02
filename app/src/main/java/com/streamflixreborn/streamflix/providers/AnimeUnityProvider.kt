@@ -44,7 +44,88 @@ object AnimeUnityProvider : Provider {
         return AnimeUnityService.getImageUrl(imageurl, baseUrl)
     }
     
-   
+    private interface KitsuService {
+        @POST("graphql")
+        suspend fun getEpisodes(@Body body: RequestBody): ResponseBody
+    }
+    
+    private val kitsuService by lazy {
+        val client = OkHttpClient.Builder()
+            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .build()
+            
+        Retrofit.Builder()
+            .baseUrl("https://kitsu.io/api/")
+            .client(client)
+            .build()
+            .create(KitsuService::class.java)
+    }
+    
+    private suspend fun fetchEpisodeThumbnails(anilistId: Int): Map<Int, String> {
+        return try {
+            val query = """
+                query {
+                  lookupMapping(externalId: $anilistId, externalSite: ANILIST_ANIME) {
+                    __typename
+                    ... on Anime {
+                      id
+                      episodes(first: 2000) {
+                        nodes {
+                          number
+                          thumbnail {
+                            original {
+                              url
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent()
+            
+            val requestBody = JSONObject().apply {
+                put("query", query)
+            }.toString().toRequestBody("application/json".toMediaType())
+            
+            val response = kitsuService.getEpisodes(requestBody)
+            val responseString = response.string()
+            val jsonResponse = JSONObject(responseString)
+            
+            val episodes = jsonResponse
+                .optJSONObject("data")
+                ?.optJSONObject("lookupMapping")
+                ?.optJSONObject("episodes")
+                ?.optJSONArray("nodes")
+                ?: return emptyMap()
+            
+            val thumbnails = mutableMapOf<Int, String>()
+            for (i in 0 until episodes.length()) {
+                try {
+                    val episode = episodes.optJSONObject(i) ?: continue
+                    val number = episode.optInt("number", 0)
+                    val thumbnail = episode
+                        .optJSONObject("thumbnail")
+                        ?.optJSONObject("original")
+                        ?.optString("url", "")
+                        ?: ""
+                    
+                    if (number > 0 && thumbnail.isNotEmpty()) {
+                        thumbnails[number] = thumbnail
+                    }
+                } catch (e: Exception) {
+                    // Skip invalid episodes
+                    continue
+                }
+            }
+            thumbnails
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+    
+
     private var savedCookieHeader = ""
     private var savedCsrfToken = ""
 
@@ -181,7 +262,7 @@ object AnimeUnityProvider : Provider {
             if (featuredAnime.isNotEmpty()) {
                 categories.add(
                     Category(
-                        name = "Featured",
+                        name = Category.FEATURED,
                         list = featuredAnime
                     )
                 )
@@ -314,7 +395,7 @@ object AnimeUnityProvider : Provider {
                     val animeId = animeData.getInt("id")
                     val slug = animeData.getString("slug")
                     val titleEng = animeData.optString("title_eng", "")
-                    val imageurl = animeData.optString("imageurl", "")
+                    val imageurl_cover = animeData.optString("imageurl_cover", "")
                     val plot = animeData.optString("plot", "")
                     val date = animeData.optString("date", "")
                     val typeInfo = animeData.optString("type", "")
@@ -323,7 +404,6 @@ object AnimeUnityProvider : Provider {
                     val Title = if (titleEng.isNotEmpty()) titleEng else animeData.optString("title", "")
                     
                     if (animeId > 0 && slug.isNotEmpty() && Title.isNotEmpty()) {
-                        val bannerUrl = getImageUrl(imageurl)
                         
                         val isMovie = typeInfo == "Movie"
                         
@@ -331,7 +411,7 @@ object AnimeUnityProvider : Provider {
                             Movie(
                                 id = "$animeId-$slug",
                                 title = Title,
-                                banner = bannerUrl,
+                                banner = getImageUrl(imageurl_cover),
                                 overview = plot,
                                 rating = score,
                                 released = date
@@ -340,7 +420,7 @@ object AnimeUnityProvider : Provider {
                             TvShow(
                                 id = "$animeId-$slug",
                                 title = Title,
-                                banner = bannerUrl,
+                                banner = getImageUrl(imageurl_cover),
                                 overview = plot,
                                 rating = score,
                                 released = date
@@ -492,7 +572,6 @@ object AnimeUnityProvider : Provider {
             }
 
             val requestBody = payload.toString().toRequestBody("application/json".toMediaType())
-
             val response = service.getAnimes(requestBody)
 
             val responseString = response.string()
@@ -701,7 +780,6 @@ object AnimeUnityProvider : Provider {
             }
             
             val recommendations = relatedMovies + relatedTvShows
-
             Movie(
                 id = id,
                 title = title,
@@ -823,7 +901,6 @@ object AnimeUnityProvider : Provider {
                     )
                 )
             }
-
             TvShow(
                 id = id,
                 title = title,
@@ -886,6 +963,20 @@ object AnimeUnityProvider : Provider {
             if (episodesData.isEmpty()) {
                 return emptyList()
             }
+
+            val animeJson = videoPlayer.attr("anime")
+            val anilistId = try {
+                val animeObject = JSONObject(animeJson)
+                animeObject.optInt("anilist_id", 0).takeIf { it > 0 }
+            } catch (e: Exception) {
+                null
+            }
+            
+            val thumbnails = if (anilistId != null) {
+                fetchEpisodeThumbnails(anilistId)
+            } else {
+                emptyMap()
+            }
             
             val decodedEpisodes = java.net.URLDecoder.decode(episodesData, "UTF-8")
             val episodesJson = org.json.JSONArray(decodedEpisodes)
@@ -905,11 +996,13 @@ object AnimeUnityProvider : Provider {
                     }
                     
                     val episodeId = episodeData.optString("id", "")
+                    val thumbnail = thumbnails[episodeNumber]
                     
                 Episode(
                     id = "$seasonId/$episodeId",
                         number = episodeNumber,
                     title = episodeTitle,
+                    poster = thumbnail
                 )
                 }
         } catch (e: Exception) {
@@ -940,13 +1033,30 @@ object AnimeUnityProvider : Provider {
     
     private suspend fun getEpisodesFromApiRange(animeId: String, animeIdFull: String, startRange: Int, endRange: Int): List<Episode> {
         return try {
+            val document = service.getAnime(animeIdFull)
+            val videoPlayer = document.selectFirst("video-player")
+            
+            val animeJson = videoPlayer?.attr("anime") ?: ""
+            val anilistId = try {
+                if (animeJson.isNotEmpty()) {
+                    val animeObject = JSONObject(animeJson)
+                    animeObject.optInt("anilist_id", 0).takeIf { it > 0 }
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+            
+            val thumbnails = if (anilistId != null) {
+                fetchEpisodeThumbnails(anilistId)
+            } else {
+                emptyMap()
+            }
             
             val response = service.getEpisodesByRange(animeId, startRange, endRange)
             val responseBody = response.string()
             val jsonObject = JSONObject(responseBody)
             
             val episodesData = jsonObject.optJSONArray("episodes") ?: return emptyList()
-
             (0 until episodesData.length()).map { i ->
                     val episodeData = episodesData.getJSONObject(i)
                     
@@ -975,11 +1085,13 @@ object AnimeUnityProvider : Provider {
                         }
                     }
                     val episodeId = episodeData.optString("id", "")
+                    val thumbnail = thumbnails[episodeNumber]
                     
                 Episode(
                     id = "$animeIdFull/$episodeId",
                         number = episodeNumber,
                     title = episodeTitle,
+                    poster = thumbnail
                 )
                 }
         } catch (e: Exception) {
