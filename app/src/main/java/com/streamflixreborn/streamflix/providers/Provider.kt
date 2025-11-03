@@ -80,6 +80,7 @@ interface Provider {
             CB01Provider to ProviderSupport(movies = true, tvShows = true),
             AnimeUnityProvider to ProviderSupport(movies = true, tvShows = true),
             AnimeSaturnProvider to ProviderSupport(movies = false, tvShows = true),
+            FrenchStreamProvider to ProviderSupport(movies = true, tvShows = true),
         )
 
         // Helper functions to check support
