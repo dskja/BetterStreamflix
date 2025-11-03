@@ -30,7 +30,7 @@ object WiflixProvider : Provider {
     private var URL = "https://wiflix-hd.vip/"
     override val baseUrl = URL
     override val name = "Wiflix"
-    override val logo get() = "$URL/templates/wiflixnew/images/logo.png"
+    override val logo get() = if (serviceInitialized == false) "" else "$URL/templates/flemmixnew/dleimages/logo-ogp.png"
     override val language = "fr"
 
     private lateinit var service: Service
@@ -49,7 +49,7 @@ object WiflixProvider : Provider {
 
         categories.add(
             Category(
-                name = "TOP Séries 2024",
+                name = "TOP Séries",
                 list = document.select("div.block-main").getOrNull(0)?.select("div.mov")?.map {
                     TvShow(
                         id = it.selectFirst("a.mov-t")
@@ -68,7 +68,7 @@ object WiflixProvider : Provider {
 
         categories.add(
             Category(
-                name = "TOP Films 2024",
+                name = "TOP Films",
                 list = document.select("div.block-main").getOrNull(1)?.select("div.mov")?.map {
                     Movie(
                         id = it.selectFirst("a.mov-t")

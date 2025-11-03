@@ -53,6 +53,7 @@ class SeasonViewHolder(
             clipToOutline = true
             Glide.with(context)
                 .load(season.poster)
+                .error(R.drawable.glide_fallback_cover)
                 .fallback(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())
@@ -94,6 +95,7 @@ class SeasonViewHolder(
             clipToOutline = true
             Glide.with(context)
                 .load(season.poster)
+                .error(R.drawable.glide_fallback_cover)
                 .fallback(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())

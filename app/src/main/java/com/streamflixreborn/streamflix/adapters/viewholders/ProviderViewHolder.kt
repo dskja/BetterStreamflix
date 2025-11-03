@@ -46,6 +46,7 @@ class ProviderViewHolder(
         Glide.with(context)
             .load(provider.logo.takeIf { it.isNotEmpty() }
                 ?: R.drawable.ic_provider_default_logo)
+            .error(R.drawable.ic_provider_default_logo)
             .fitCenter()
             .transition(DrawableTransitionOptions.withCrossFade())
             .into(binding.ivProviderLogo)
@@ -71,6 +72,7 @@ class ProviderViewHolder(
         Glide.with(context)
             .load(provider.logo.takeIf { it.isNotEmpty() }
                 ?: R.drawable.ic_provider_default_logo)
+            .error(R.drawable.ic_provider_default_logo)
             .transition(DrawableTransitionOptions.withCrossFade())
             .into(binding.ivProviderLogo)
 
