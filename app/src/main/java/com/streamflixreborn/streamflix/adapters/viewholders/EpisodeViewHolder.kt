@@ -104,6 +104,7 @@ class EpisodeViewHolder(
             clipToOutline = true
             Glide.with(context)
                 .load(episode.poster)
+                .error(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())
                 .into(this)
@@ -206,6 +207,7 @@ class EpisodeViewHolder(
             clipToOutline = true
             Glide.with(context)
                 .load(episode.poster)
+                .error(R.drawable.glide_fallback_cover)
                 .fallback(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())
@@ -306,6 +308,7 @@ class EpisodeViewHolder(
             clipToOutline = true
             Glide.with(context)
                 .load(episode.tvShow?.poster ?: episode.tvShow?.banner ?: episode.poster)
+                .error(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())
                 .into(this)
@@ -420,6 +423,7 @@ class EpisodeViewHolder(
             clipToOutline = true
             Glide.with(context)
                 .load(episode.tvShow?.poster ?: episode.tvShow?.banner ?: episode.poster)
+                .error(R.drawable.glide_fallback_cover)
                 .fallback(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())
