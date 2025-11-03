@@ -104,6 +104,12 @@ object WiflixProvider : Provider {
         return categories
     }
 
+    suspend fun ignoreSource(source: String): Boolean {
+        if (arrayOf("VOE", "DdStream", "netu", "filelions", "vudeo").any { it.equals(source, true)})
+            return true
+        return false
+    }
+
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         initializeService()
 
@@ -495,16 +501,18 @@ object WiflixProvider : Provider {
 
                 val document = service.getTvShow(tvShowId)
 
-                document.select("div.$rel a").mapIndexed { index, it ->
-                    Video.Server(
-                        id = it.selectFirst("span")
-                            ?.text()
-                            ?: index.toString(),
-                        name = it.selectFirst("span")
-                            ?.text()
-                            ?: "",
-                        src = it.attr("onclick")
-                            .substringAfter("loadVideo('").substringBeforeLast("')"),
+                document.select("div.$rel a").
+                    filter { ignoreSource(it.text().trim() ) == false }.
+                    mapIndexed { index, it ->
+                        Video.Server(
+                            id = it.selectFirst("span")
+                                ?.text()
+                                ?: index.toString(),
+                            name = it.selectFirst("span")
+                                ?.text()
+                                ?: "",
+                            src = it.attr("onclick")
+                                .substringAfter("loadVideo('").substringBeforeLast("')"),
                     )
                 }
             }
@@ -512,16 +520,18 @@ object WiflixProvider : Provider {
             is Video.Type.Movie -> {
                 val document = service.getMovie(id)
 
-                document.select("div.tabs-sel a").mapIndexed { index, it ->
-                    Video.Server(
-                        id = it.selectFirst("span")
-                            ?.text()
-                            ?: index.toString(),
-                        name = it.selectFirst("span")
-                            ?.text()
-                            ?: "",
-                        src = it.attr("onclick")
-                            .substringAfter("loadVideo('").substringBeforeLast("')"),
+                document.select("div.tabs-sel a").
+                    filter { ignoreSource(it.text().trim() ) == false }.
+                    mapIndexed { index, it ->
+                        Video.Server(
+                            id = it.selectFirst("span")
+                                ?.text()
+                                ?: index.toString(),
+                            name = it.selectFirst("span")
+                                ?.text()
+                                ?: "",
+                            src = it.attr("onclick")
+                                .substringAfter("loadVideo('").substringBeforeLast("')"),
                     )
                 }
             }
@@ -543,6 +553,8 @@ object WiflixProvider : Provider {
      */
     private suspend fun initializeService() {
         initializationMutex.withLock {
+            if (serviceInitialized) return
+
             val addressService = Service.buildAddressFetcher()
 
             try {
