@@ -1,8 +1,5 @@
 package com.streamflixreborn.streamflix.extractors
 
-import android.util.Base64
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DecryptHelper
@@ -10,6 +7,7 @@ import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Url
+import java.net.URL
 
 class VoeExtractor : Extractor() {
 
@@ -20,7 +18,12 @@ class VoeExtractor : Extractor() {
 
     override suspend fun extract(link: String): Video {
         val service = VoeExtractorService.build(mainUrl, link)
-        val source = service.getSource(link.replace(mainUrl, ""))
+        
+        // Extract path from original link (handles both mainUrl and alias URLs)
+        val parsedUrl = URL(link)
+        val originalPath = parsedUrl.path + if (parsedUrl.query != null) "?${parsedUrl.query}" else ""
+        
+        val source = service.getSource(originalPath)
         val scriptTag = source.selectFirst("script[type=application/json]")
         val encodedStringInScriptTag = scriptTag?.data()?.trim().orEmpty()
         val encodedString = DecryptHelper.findEncodedRegex(source.html())
@@ -35,7 +38,6 @@ class VoeExtractor : Extractor() {
             source = m3u8,
             subtitles = listOf()
         )
-
     }
 
 
@@ -49,8 +51,16 @@ class VoeExtractor : Extractor() {
                     .build()
                 val retrofitVOEBuiled = retrofitVOE.create(VoeExtractorService::class.java)
 
-                val retrofitVOEhtml =
-                    retrofitVOEBuiled.getSource(originalLink.replace(baseUrl, "")).html()
+                // Extract path from original link (handles both mainUrl and alias URLs)
+                val relativePath = if (originalLink.startsWith(baseUrl)) {
+                    originalLink.replace(baseUrl, "")
+                } else {
+                    // If link doesn't start with baseUrl, extract path directly (alias URL)
+                    val parsedUrl = URL(originalLink)
+                    parsedUrl.path + if (parsedUrl.query != null) "?${parsedUrl.query}" else ""
+                }
+
+                val retrofitVOEhtml = retrofitVOEBuiled.getSource(relativePath).html()
 
                 val regex = Regex("""https://([a-zA-Z0-9.-]+)(?:/[^'"]*)?""")
                 val match = regex.find(retrofitVOEhtml)

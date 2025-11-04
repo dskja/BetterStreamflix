@@ -83,6 +83,10 @@ object AnimeSaturnProvider : Provider {
         suspend fun getGenre(@Query("categories[0]") categoryId: String, @Query("page") page: Int? = null): Document
 
         @Headers(USER_AGENT)
+        @GET("filter")
+        suspend fun getTvShows(@Query("page") page: Int? = null): Document
+
+        @Headers(USER_AGENT)
         @GET("animelist")
         suspend fun getSearch(@Query("search") query: String, @Query("page") page: Int? = null): Document
     }
@@ -325,13 +329,19 @@ object AnimeSaturnProvider : Provider {
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
         return try {
-            val document = service.getFilter()
+            val document = service.getTvShows(if (page > 1) page else null)
 
-            val items = document
+            val totalPages = document.toString().substringAfter("totalPages:", "1").trim().takeWhile { it.isDigit() }.toIntOrNull() ?: 1
+
+            if (page > totalPages) {
+                return emptyList()
+            }
+
+            val results = document
                 .select("div.row.pt-4.justify-content-center .anime-card-newanime")
                 .mapNotNull { parseNewAnime(it) }
 
-            items
+            results
         } catch (e: Exception) {
             emptyList()
         }

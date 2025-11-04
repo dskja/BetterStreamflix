@@ -78,6 +78,7 @@ abstract class Extractor {
             YourUploadExtractor(),
             PlusPomlaExtractor(),
             OneuploadExtractor(),
+            FsvidExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

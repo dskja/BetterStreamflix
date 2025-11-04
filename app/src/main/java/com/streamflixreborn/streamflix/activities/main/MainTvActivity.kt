@@ -84,6 +84,7 @@ class MainTvActivity : FragmentActivity() {
                 Glide.with(context)
                     .load(UserPreferences.currentProvider?.logo?.takeIf { it.isNotEmpty() }
                         ?: R.drawable.ic_provider_default_logo)
+                    .error(R.drawable.ic_provider_default_logo)
                     .into(header.ivNavigationHeaderIcon)
                 header.tvNavigationHeaderTitle.text = UserPreferences.currentProvider?.name
                 header.tvNavigationHeaderSubtitle.text = getString(

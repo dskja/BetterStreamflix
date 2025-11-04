@@ -107,7 +107,7 @@ object FrenchStreamProvider : Provider {
     }
 
     suspend fun ignoreSource(source: String): Boolean {
-        if (arrayOf("Premium", "VIDZY", "Dood.Stream", "VOE", "Netu", "Filmoon").any { it.equals(source, true)})
+        if (arrayOf("VIDZY","Dood.Stream", "VOE", "Netu", "Filmoon").any { it.equals(source, true)})
             return true
         return false
     }
