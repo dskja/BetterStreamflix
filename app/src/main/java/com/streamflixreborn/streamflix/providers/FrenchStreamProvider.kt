@@ -23,16 +23,27 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
 
 object FrenchStreamProvider : Provider {
-
-    private var URL = "http://fstream.info/"
-    override val baseUrl = URL
     override val name = "FrenchStream"
-    override val logo = "$URL/favicon-96x96.png"
+
+    private var portalURL = "http://fstream.info/"
+    private var URL: String = "https://fs6.lol/"
+        get() {
+            var cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            return if (cacheURL.isEmpty()) field else cacheURL
+        }
+
+    override val baseUrl = URL
+    override val logo: String
+        get() {
+            var cacheLogo = UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_LOGO)
+            return if (cacheLogo.isEmpty()) portalURL+"favicon-96x96.png" else cacheLogo
+        }
     override val language = "fr"
 
     private lateinit var service: Service
@@ -520,17 +531,19 @@ object FrenchStreamProvider : Provider {
                     .selectFirst("a")
                     ?.attr("href")
                     ?.trim()
-                    ?.replace("http://", "http://")
 
                 if (!newUrl.isNullOrEmpty()) {
                     URL = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                    serviceInitialized = true
+
+                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, URL)
+                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_LOGO, URL + "favicon-96x96.png")
                 }
             } catch (e: Exception) {
                 // In case of failure, we'll use the default URL
                 // No need to throw as we already have a fallback URL
             }
             service = Service.build(URL)
-            serviceInitialized = true
         }
     }
 
@@ -544,7 +557,7 @@ object FrenchStreamProvider : Provider {
 
             fun buildAddressFetcher(): Service {
                 val addressRetrofit = Retrofit.Builder()
-                    .baseUrl("http://fstream.info")
+                    .baseUrl(portalURL)
 
                     .addConverterFactory(JsoupConverterFactory.create())
                     .client(client)

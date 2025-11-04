@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsV
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Provider.Companion.providers
 import androidx.core.content.edit
+import org.json.JSONObject
 
 object UserPreferences {
 
@@ -23,6 +24,11 @@ object UserPreferences {
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingcommunityz.ch"
 
+    const val PROVIDER_URL = "URL"
+    const val PROVIDER_LOGO = "LOGO"
+
+    lateinit var providerCache: JSONObject
+
     fun setup(context: Context) {
         Log.d(TAG, "setup() called with context: $context")
         val prefsName = "${BuildConfig.APPLICATION_ID}.preferences"
@@ -33,6 +39,10 @@ object UserPreferences {
         )
         if (::prefs.isInitialized) {
             Log.d(TAG, "prefs initialized successfully in setup. Hash: ${prefs.hashCode()}")
+
+            val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
+            providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
+
         } else {
             Log.e(TAG, "prefs FAILED to initialize in setup.")
         }
@@ -46,6 +56,21 @@ object UserPreferences {
             // Notify all ViewModels that the provider has changed
             ProviderChangeNotifier.notifyProviderChanged()
         }
+
+    fun getProviderCache(provider: Provider, key: String): String {
+        return providerCache
+            .optJSONObject(provider.name)
+            ?.optString(key)
+            .orEmpty()
+    }
+
+    fun setProviderCache(key: String, value: String) {
+        val providerName = currentProvider?.name ?: return
+        val innerJson = providerCache.optJSONObject(providerName)
+            ?: JSONObject().also { providerCache.put(providerName, it) }
+        innerJson.put(key, value)
+        Key.PROVIDER_CACHE.setString(providerCache.toString())
+    }
 
     var currentLanguage: String?
         get() = Key.CURRENT_LANGUAGE.getString()
@@ -172,7 +197,8 @@ object UserPreferences {
         SUBTITLE_NAME,
         STREAMINGCOMMUNITY_DOMAIN,
         DOH_PROVIDER_URL, // Removed STREAMINGCOMMUNITY_DNS_OVER_HTTPS, added DOH_PROVIDER_URL
-        AUTOPLAY;
+        AUTOPLAY,
+        PROVIDER_CACHE;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)
