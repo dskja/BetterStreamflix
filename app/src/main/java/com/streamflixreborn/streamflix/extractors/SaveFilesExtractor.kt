@@ -5,17 +5,36 @@ import com.streamflixreborn.streamflix.models.Video
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
-import retrofit2.http.Url
+import retrofit2.http.Query
+import java.net.URL
 
 class SaveFilesExtractor: Extractor() {
 
     override val name = "Savefiles"
     override val mainUrl = "https://savefiles.com/"
-
+    override val aliasUrls = listOf("https://streamhls.to")
 
     override suspend fun extract(link: String): Video {
-        val service = SaveFilesExtractorService.build(mainUrl)
-        val source = service.getSource(link.replace(mainUrl, ""))
+        val parsedUrl = URL(link)
+        val pathParts = parsedUrl.path.split("/").filter { it.isNotEmpty() }
+        if (pathParts.isEmpty()) {
+            throw Exception("File code not found in URL")
+        }
+        
+        val fileCode = pathParts.last().split("?")[0].trim()
+        if (fileCode.isEmpty()) {
+            throw Exception("File code not found in URL")
+        }
+
+        val baseUrl = parsedUrl.protocol + "://" + parsedUrl.host
+        val service = SaveFilesExtractorService.build(baseUrl)
+        val source = service.getDl(
+            op = "embed",
+            fileCode = fileCode,
+            auto = "0",
+            referer = ""
+        )
+        
         val scriptTags = source.select("script[type=text/javascript]")
 
         var m3u8: String? = null
@@ -32,24 +51,32 @@ class SaveFilesExtractor: Extractor() {
             }
         }
 
+        if (m3u8 == null) {
+            throw Exception("Stream URL not found in script tags")
+        }
+
         return Video(
-            source = m3u8.toString(),
+            source = m3u8,
             subtitles = listOf()
         )
-
     }
 
     private interface SaveFilesExtractorService {
         companion object {
             fun build(baseUrl: String): SaveFilesExtractorService {
                 val retrofitRedirected = Retrofit.Builder()
-                    .baseUrl(baseUrl)
+                    .baseUrl("$baseUrl/")
                     .addConverterFactory(JsoupConverterFactory.create())
                     .build()
                 return retrofitRedirected.create(SaveFilesExtractorService::class.java)
             }
         }
-        @GET
-        suspend fun getSource(@Url url: String): Document
+        @GET("dl")
+        suspend fun getDl(
+            @Query("op") op: String,
+            @Query("file_code") fileCode: String,
+            @Query("auto") auto: String,
+            @Query("referer") referer: String
+        ): Document
     }
 }
