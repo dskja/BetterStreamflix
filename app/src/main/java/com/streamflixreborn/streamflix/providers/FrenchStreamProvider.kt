@@ -113,6 +113,7 @@ object FrenchStreamProvider : Provider {
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
+        if (page > 1) return emptyList()
         initializeService()
         if (query.isEmpty()) {
             val document = service.getHome()
