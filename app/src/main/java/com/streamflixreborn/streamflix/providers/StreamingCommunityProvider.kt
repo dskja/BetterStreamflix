@@ -24,6 +24,7 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 import okhttp3.logging.HttpLoggingInterceptor // Import aggiunto
 import org.json.JSONObject
+import com.google.gson.Gson
 import org.jsoup.parser.Parser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -42,7 +43,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
-    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.ch"
+    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.si"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -69,21 +70,55 @@ object StreamingCommunityProvider : Provider {
     private const val LANG = "it"
 
     override val name = "StreamingCommunity"
-    override val logo = "https://$domain/apple-touch-icon.png"
+    override val logo get() = run {
+        // If we're still on the default (likely landing) domain, try to resolve once here
+        if (domain == DEFAULT_DOMAIN) {
+            try {
+                val resolvedBase = resolveFinalBaseUrl("https://$DEFAULT_DOMAIN/")
+                val host = resolvedBase.substringAfter("https://").substringBefore("/")
+                if (host.isNotEmpty() && host != domain) {
+                    rebuildService(host)
+                    return@run "https://$host/apple-touch-icon.png"
+                } else if (host.isNotEmpty() && host == domain) {
+                    // Already on the final domain; return logo directly
+                    return@run "https://$domain/apple-touch-icon.png"
+                }
+            } catch (_: Exception) { }
+            return@run "" // fallback to local icon to avoid landing hit
+        }
+        "https://$domain/apple-touch-icon.png"
+    }
     override val language = "it"
     private const val MAX_SEARCH_RESULTS = 60
 
     private var service = StreamingCommunityService.build("https://$domain/")
+    private var currentBaseUrl: String = "https://$domain/"
 
     fun rebuildService(newDomain: String = domain) {
+        // Fast no-op if we're already built on this base
+        if (currentBaseUrl == "https://$newDomain/") {
+            return
+        }
+        
         val finalBase = resolveFinalBaseUrl("https://$newDomain/")
-        domain = finalBase.substringAfter("https://").substringBefore("/")
+        val host = finalBase.substringAfter("https://").substringBefore("/")
+        // Skip if nothing changes
+        if (finalBase == currentBaseUrl && host == domain) {
+            return
+        }
+        // Update internal state directly to avoid recursive rebuilds via setter
+        _domain = host
+        UserPreferences.streamingcommunityDomain = host
+        currentBaseUrl = finalBase
         service = StreamingCommunityService.build(finalBase)
     }
 
     private fun rebuildServiceUnsafe(newDomain: String = domain) {
         val finalBase = resolveFinalBaseUrl("https://$newDomain/")
-        domain = finalBase.substringAfter("https://").substringBefore("/")
+        val host = finalBase.substringAfter("https://").substringBefore("/")
+        _domain = host
+        UserPreferences.streamingcommunityDomain = host
+        currentBaseUrl = finalBase
         service = StreamingCommunityService.buildUnsafe(finalBase)
     }
 
@@ -93,8 +128,22 @@ object StreamingCommunityProvider : Provider {
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build()
-            val req = okhttp3.Request.Builder().url(startBaseUrl).get().build()
+            val req = okhttp3.Request.Builder()
+                .url(startBaseUrl)
+                .header("User-Agent", StreamingCommunityService.USER_AGENT)
+                .header("Referer", startBaseUrl)
+                .get()
+                .build()
             client.newCall(req).execute().use { resp ->
+                val responseBody = resp.body?.string() ?: ""
+                // If the page is a landing HTML with a button to the new domain, extract it
+                val doc = Jsoup.parse(responseBody)
+                val landingHref = doc.selectFirst("a#landing-website")?.attr("href")
+                if (!landingHref.isNullOrEmpty()) {
+                    val newDomain = landingHref.substringAfter("://").substringBefore("/")
+                    
+                    if (newDomain.isNotEmpty()) return "https://$newDomain/"
+                }
                 val finalUrl = resp.request.url
                 finalUrl.scheme + "://" + finalUrl.host + "/"
             }
@@ -117,25 +166,46 @@ object StreamingCommunityProvider : Provider {
     private var version: String = ""
         get() {
             if (field != "") return field
+            synchronized(this) {
+            if (field != "") return field
 
-            val document = runBlocking { withSslFallback { it.getHome() } }
-            val dataAttr = document.selectFirst("#app")?.attr("data-page") ?: ""
-            val decoded = Parser.unescapeEntities(dataAttr, false)
-            val dataJson = JSONObject(decoded)
-            // Update domain if app_url points to a different host (regardless of TLD)
-            try {
-                val props = dataJson.optJSONObject("props")
-                val appUrl = props?.optString("app_url") ?: ""
-                if (appUrl.startsWith("http")) {
-                    val newHost = appUrl.substringAfter("://").substringBefore("/")
-                    if (newHost.isNotEmpty() && newHost != domain) {
-                        domain = newHost
-                        rebuildService(newHost)
+                var document = runBlocking { withSslFallback { it.getHome() } }
+
+                val landingHref = document.selectFirst("a#landing-website")?.attr("href")
+                if (!landingHref.isNullOrEmpty()) {
+                    val newDomain = landingHref.substringAfter("://").substringBefore("/")
+                    
+                    if (newDomain.isNotEmpty() && newDomain != domain) {
+                        rebuildService(newDomain)
+                        document = runBlocking { withSslFallback { it.getHome() } }
                     }
                 }
-            } catch (_: Exception) { }
-            field = dataJson.getString("version")
-            return field
+
+                var dataAttr = document.selectFirst("#app")?.attr("data-page") ?: ""
+                if (dataAttr.isBlank()) {
+                    
+                    if (dataAttr.isBlank()) {
+                        
+                        field = ""
+                        return field
+                    }
+                }
+                val decoded = Parser.unescapeEntities(dataAttr, false)
+                val dataJson = JSONObject(decoded)
+                try {
+                    val props = dataJson.optJSONObject("props")
+                    val appUrl = props?.optString("app_url") ?: ""
+                    if (appUrl.startsWith("http")) {
+                        val newDomain = appUrl.substringAfter("://").substringBefore("/")
+                        if (newDomain.isNotEmpty() && newDomain != domain) {
+                        rebuildService(newDomain)
+                        }
+                    }
+                } catch (_: Exception) { }
+                field = dataJson.getString("version")
+                
+                return field
+            }
         }
 
     private fun getImageLink(filename: String?): String? {
@@ -145,8 +215,31 @@ object StreamingCommunityProvider : Provider {
     }
 
     override suspend fun getHome(): List<Category> {
-        val res = withSslFallback { it.getHome(version = version) }
-        if (version != res.version) version = res.version
+        val res: StreamingCommunityService.HomeRes = try {
+            if (version.isEmpty()) {
+                // Manual path: fetch HTML, parse Inertia JSON, decode to HomeRes
+                val doc = withSslFallback { it.getHome() }
+                val dataAttr = doc.selectFirst("#app")?.attr("data-page") ?: ""
+                val decoded = Parser.unescapeEntities(dataAttr, false)
+                val parsed = Gson().fromJson(decoded, StreamingCommunityService.HomeRes::class.java)
+                if (version != parsed.version) version = parsed.version
+                parsed
+            } else {
+                withSslFallback { it.getHome(version = version) }.also { fetched ->
+                    if (version != fetched.version) version = fetched.version
+                }
+            }
+        } catch (e: Exception) {
+            
+            // Reset version and try manual HTML extraction once
+            version = ""
+            val doc = withSslFallback { it.getHome() }
+            val dataAttr = doc.selectFirst("#app")?.attr("data-page") ?: ""
+            val decoded = Parser.unescapeEntities(dataAttr, false)
+            val parsed = Gson().fromJson(decoded, StreamingCommunityService.HomeRes::class.java)
+            if (version != parsed.version) version = parsed.version
+            parsed
+        }
 
         val mainTitles = res.props.sliders[2].titles
 
@@ -554,12 +647,9 @@ object StreamingCommunityProvider : Provider {
 
             val visited = mutableSetOf<String>()
             while (response.isRedirect) {
-                val location = response.header("Location")
-                if (location.isNullOrEmpty()) break
-
+                val location = response.header("Location") ?: break
                 val newUrl = if (location.startsWith("http")) location else {
-                    val base = request.url
-                    base.resolve(location)?.toString() ?: break
+                    request.url.resolve(location)?.toString() ?: break
                 }
 
                 // detect redirect loops
@@ -567,19 +657,17 @@ object StreamingCommunityProvider : Provider {
                     break
                 }
 
-                // Update provider domain from absolute URL
+                // Update provider domain from absolute URL, without rebuilding here
                 val host = newUrl.substringAfter("https://").substringBefore("/")
-                if (host.isNotEmpty()) {
-                    domain = host
+                if (host.isNotEmpty() && host != domain) {
+                    _domain = host
+                    UserPreferences.streamingcommunityDomain = host
                 }
 
                 response.close()
-                request = request.newBuilder()
-                    .url(newUrl)
-                    .build()
+                request = request.newBuilder().url(newUrl).build()
                 response = chain.proceed(request)
             }
-
             return response
         }
     }
@@ -587,7 +675,7 @@ object StreamingCommunityProvider : Provider {
     private interface StreamingCommunityService {
 
         companion object {
-            private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
             fun build(baseUrl: String): StreamingCommunityService {
                 val logging = HttpLoggingInterceptor()
@@ -600,6 +688,7 @@ object StreamingCommunityProvider : Provider {
                     .followSslRedirects(true)
                     .addInterceptor(RefererInterceptor(baseUrl))
                     .addInterceptor(UserAgentInterceptor(USER_AGENT))
+                    .addInterceptor(RedirectInterceptor())
                     .addInterceptor(logging) // Added HttpLoggingInterceptor
 
                 val dohProviderUrl = UserPreferences.dohProviderUrl
@@ -674,6 +763,7 @@ object StreamingCommunityProvider : Provider {
                     .followSslRedirects(true)
                     .addInterceptor(RefererInterceptor(baseUrl))
                     .addInterceptor(UserAgentInterceptor(USER_AGENT))
+                    .addInterceptor(RedirectInterceptor())
                     .addInterceptor(logging) // Added HttpLoggingInterceptor
                     .sslSocketFactory(sslContext.socketFactory, trustManager)
                     .hostnameVerifier { _, _ -> true }
@@ -760,10 +850,10 @@ object StreamingCommunityProvider : Provider {
         }
 
 
-        @GET("/$LANG")
+        @GET(".")
         suspend fun getHome(): Document
 
-        @GET("/$LANG")
+        @GET(".")
         suspend fun getHome(
             @Header("x-inertia") xInertia: String = "true",
             @Header("x-inertia-version") version: String

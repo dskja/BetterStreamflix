@@ -116,7 +116,7 @@ object WiflixProvider : Provider {
     }
 
     suspend fun ignoreSource(source: String): Boolean {
-        if (arrayOf("VOE", "DdStream", "netu", "filelions", "vudeo").any { it.equals(source, true)})
+        if (arrayOf("netu", "vudeo").any { it.equals(source, true)})
             return true
         return false
     }
