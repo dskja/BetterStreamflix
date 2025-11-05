@@ -219,7 +219,12 @@ object FrenchStreamProvider : Provider {
             id = id,
             title = document.selectFirst("meta[property=og:title]")?.attr("content")
                 ?: "",
-            overview = document.selectFirst("meta[name=description]")?.attr("content")
+            overview = document.selectFirst("div#s-desc")
+                ?.apply {
+                    selectFirst("p.desc-text")?.remove()
+                }
+                ?.text()
+                ?.trim()
                 ?: "",
             released = document.selectFirst("span.release_date")?.selectFirst("a")
                 ?.text()?.trim(),
@@ -233,7 +238,8 @@ object FrenchStreamProvider : Provider {
             quality = document.selectFirst("span[id=film_quality]")
                 ?.text(),
             poster = document.selectFirst("img.dvd-thumbnail")
-                ?.attr("src")?: "",
+                ?.attr("src")
+                ?: "",
 
             genres = document.select("span.genres")
                 .select("a").mapNotNull {
@@ -277,8 +283,9 @@ object FrenchStreamProvider : Provider {
             title = document.selectFirst("meta[property=og:title]")
                 ?.attr("content")
                 ?: "",
-            overview = document.selectFirst("meta[name=description]")
-                ?.attr("content")
+            overview = document.selectFirst("div.fdesc > p")
+                ?.text()
+                ?.trim()
                 ?: "",
             released = document.selectFirst("span.release_date")
                 ?.selectFirst("a")
