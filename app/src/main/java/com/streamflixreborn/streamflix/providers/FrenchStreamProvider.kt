@@ -23,6 +23,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import org.jsoup.nodes.Element
 import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
@@ -132,39 +133,46 @@ object FrenchStreamProvider : Provider {
             story = query,
         )
 
-        val results = document.select("div#dle-content > div.short").mapNotNull {
-            val href = it.selectFirst("a.short-poster")
-                ?.attr("href")
-                ?: ""
-            val id = href.substringAfterLast("/")
+        val results = document.select("div#dle-content > div.short")
+	        .sortedWith(
+                compareByDescending<Element> {
+                    it.selectFirst("a.short-poster")?.attr("href")?.contains("films/") == true
+                }.thenBy {
+                    it.selectFirst("div.short-title")?.text() ?: ""
+                } )
+	        .mapNotNull {
+                val href = it.selectFirst("a.short-poster")
+                    ?.attr("href")
+                    ?: ""
+                val id = href.substringAfterLast("/")
 
-            val title = it.selectFirst("div.short-title")
-                ?.text()
-                ?: ""
-            var poster = it.selectFirst("img")
-                         ?.attr("src")
-                         ?: ""
-            if (poster.contains("url=")) {
-                poster = poster.substringAfter("url=")
-            } else {
-                poster = URL + poster
-            }
+                val title = it.selectFirst("div.short-title")
+                    ?.text()
+                    ?: ""
+                var poster = it.selectFirst("img")
+                             ?.attr("src")
+                             ?: ""
+                if (poster.contains("url=")) {
+                    poster = poster.substringAfter("url=")
+                } else {
+                    poster = URL + poster
+                }
 
-            if (href.contains("films/")) {
-                Movie(
-                    id = id,
-                    title = title,
-                    poster = poster,
-                )
-            } else if (href.contains("s-tv/")) {
-                TvShow(
-                    id = id,
-                    title = title,
-                    poster = poster,
-                )
-            } else {
-                null
-            }
+                if (href.contains("films/")) {
+                    Movie(
+                        id = id,
+                        title = title,
+                        poster = poster,
+                    )
+                } else if (href.contains("s-tv/")) {
+                    TvShow(
+                        id = id,
+                        title = title,
+                        poster = poster,
+                    )
+                } else {
+                    null
+                }
         }
 
         return results
