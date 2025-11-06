@@ -341,7 +341,7 @@ object FrenchStreamProvider : Provider {
                 ?: emptyList(),
             cast = document.select("ul#s-list li")
                 .find {
-                    it.selectFirst("span")?.text()?.contains("Acteur") == true
+                    it.selectFirst("span")?.text()?.contains("Avec") == true
                 }
                 ?.select("a")?.mapNotNull {
                     People(
