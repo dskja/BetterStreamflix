@@ -130,7 +130,7 @@ object FrenchStreamProvider : Provider {
         }
 
         val document = service.search(
-            story = query,
+            story = query.replace(" ", "+"),
         )
 
         val results = document.select("div#dle-content > div.short")
