@@ -220,4 +220,6 @@
     <string name="backup_import_error">Error al importar la copia de seguridad.</string>
     <string name="backup_import_empty_file">Error: el archivo de copia de seguridad está vacío o no se puede leer.</string>
     <string name="backup_import_read_error">Error al leer o procesar el archivo de copia de seguridad.</string>
+
+    <string name="doh_provider_updated">¡Configuración de DNS over HTTPS actualizada! Reinicia la app para aplicar los cambios.</string>
 </resources>

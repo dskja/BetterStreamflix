@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -415,20 +416,11 @@ object RidomoviesProvider : Provider {
     private interface Service {
 
         companion object {
-            private const val DNS_QUERY_URL = "https://1.1.1.1/dns-query"
-
             fun build(): Service {
-                val dohClient = OkHttpClient()
-
                 val client = OkHttpClient.Builder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
-                    .dns(
-                        DnsOverHttps.Builder()
-                            .client(dohClient)
-                            .url(DNS_QUERY_URL.toHttpUrl())
-                            .build()
-                    )
+                    .dns(DnsResolver.doh)
                     .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
                             .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")

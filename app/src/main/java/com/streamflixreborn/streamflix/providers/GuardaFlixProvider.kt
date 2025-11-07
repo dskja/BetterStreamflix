@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.extractors.Extractor
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -43,15 +44,10 @@ object GuardaFlixProvider : Provider {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
 
-                val dns = DnsOverHttps.Builder()
-                    .client(clientBuilder.build())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
-                    .client(clientBuilder.dns(dns).build())
+                    .client(clientBuilder.dns(DnsResolver.doh).build())
                     .build()
                     .create(GuardaFlixService::class.java)
             }

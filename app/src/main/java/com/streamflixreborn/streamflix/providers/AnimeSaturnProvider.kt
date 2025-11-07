@@ -9,6 +9,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import okhttp3.dnsoverhttps.DnsOverHttps
@@ -46,12 +47,7 @@ object AnimeSaturnProvider : Provider {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
 
-                val doh = DnsOverHttps.Builder()
-                    .client(clientBuilder.build())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-
-                val client = clientBuilder.dns(doh).build()
+                val client = clientBuilder.dns(DnsResolver.doh).build()
 
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)

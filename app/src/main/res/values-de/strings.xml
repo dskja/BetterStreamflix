@@ -234,4 +234,6 @@
     <string name="backup_import_error">Fehler beim Import der Sicherung.</string>
     <string name="backup_import_empty_file">Fehler: Die Sicherungsdatei ist leer oder unlesbar.</string>
     <string name="backup_import_read_error">Fehler beim Lesen oder Verarbeiten der Sicherungsdatei.</string>
+
+    <string name="doh_provider_updated">DNS-over-HTTPS-Einstellungen aktualisiert! Starte die App neu, um die Änderungen anzuwenden.</string>
 </resources>

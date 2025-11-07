@@ -25,6 +25,7 @@ import java.net.UnknownHostException
 import okhttp3.logging.HttpLoggingInterceptor // Import aggiunto
 import org.json.JSONObject
 import com.google.gson.Gson
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import org.jsoup.parser.Parser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -43,7 +44,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
-    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.si"
+    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.casa"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -95,12 +96,19 @@ object StreamingCommunityProvider : Provider {
     private var currentBaseUrl: String = "https://$domain/"
 
     fun rebuildService(newDomain: String = domain) {
+        // If prefs were updated but `_domain` is still the old cached value,
+        // prefer the value from UserPreferences to reflect settings immediately
+        val prefsDomain = UserPreferences.streamingcommunityDomain
+        val desiredDomain = when {
+            !prefsDomain.isNullOrEmpty() && prefsDomain != domain -> prefsDomain
+            else -> newDomain
+        }
         // Fast no-op if we're already built on this base
-        if (currentBaseUrl == "https://$newDomain/") {
+        if (currentBaseUrl == "https://$desiredDomain/") {
             return
         }
         
-        val finalBase = resolveFinalBaseUrl("https://$newDomain/")
+        val finalBase = resolveFinalBaseUrl("https://$desiredDomain/")
         val host = finalBase.substringAfter("https://").substringBefore("/")
         // Skip if nothing changes
         if (finalBase == currentBaseUrl && host == domain) {
@@ -686,6 +694,7 @@ object StreamingCommunityProvider : Provider {
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .followRedirects(true)
                     .followSslRedirects(true)
+                    .dns(DnsResolver.doh)
                     .addInterceptor(RefererInterceptor(baseUrl))
                     .addInterceptor(UserAgentInterceptor(USER_AGENT))
                     .addInterceptor(RedirectInterceptor())

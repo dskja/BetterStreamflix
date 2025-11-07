@@ -5,6 +5,7 @@ import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.models.cuevanaeu.*
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.decodeFromString
@@ -41,10 +42,7 @@ object CuevanaEuProvider : Provider {
             .cache(appCache)
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
-        val dns = DnsOverHttps.Builder().client(clientBuilder.build())
-            .url("https://1.1.1.1/dns-query".toHttpUrl())
-            .build()
-        return clientBuilder.dns(dns).build()
+        return clientBuilder.dns(DnsResolver.doh).build()
     }
 
     private interface CuevanaEuService {

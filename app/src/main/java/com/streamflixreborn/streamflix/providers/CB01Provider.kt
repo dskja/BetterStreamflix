@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.extractors.Extractor
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -83,12 +84,7 @@ object CB01Provider : Provider {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
 
-                val doh = DnsOverHttps.Builder()
-                    .client(clientBuilder.build())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-
-                val client = clientBuilder.dns(doh).build()
+                val client = clientBuilder.dns(DnsResolver.doh).build()
 
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
@@ -119,12 +115,7 @@ object CB01Provider : Provider {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
 
-                val doh = DnsOverHttps.Builder()
-                    .client(clientBuilder.build())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-
-                val client = clientBuilder.dns(doh).build()
+                val client = clientBuilder.dns(DnsResolver.doh).build()
 
                 val retrofit = Retrofit.Builder()
                     .baseUrl("https://stayonline.pro/")

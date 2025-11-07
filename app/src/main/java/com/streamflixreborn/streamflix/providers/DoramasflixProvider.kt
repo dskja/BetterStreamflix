@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.models.doramasflix.ApiResponse
 import com.streamflixreborn.streamflix.models.doramasflix.TokenModel
 import com.streamflixreborn.streamflix.models.doramasflix.VideoToken
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
@@ -62,11 +63,7 @@ object DoramasflixProvider : Provider {
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
 
-        val dns = DnsOverHttps.Builder().client(clientBuilder.build())
-            .url("https://1.1.1.1/dns-query".toHttpUrl())
-            .build()
-
-        return clientBuilder.dns(dns).build()
+        return clientBuilder.dns(DnsResolver.doh).build()
     }
 
     private const val accessPlatform = "RxARncfg1S_MdpSrCvreoLu_SikCGMzE1NzQzODc3NjE2MQ=="
