@@ -25,6 +25,7 @@ import com.streamflixreborn.streamflix.database.dao.MovieDao
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -175,7 +176,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             setOnPreferenceChangeListener { preference, newValue ->
                 val newUrl = newValue as String
                 UserPreferences.dohProviderUrl = newUrl
-
+                DnsResolver.setDnsUrl(newUrl)
                 if (preference is ListPreference) {
                     val index = preference.findIndexOfValue(newUrl)
                     if (index >= 0 && preference.entries != null && index < preference.entries.size) {
@@ -190,6 +191,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                         finish()
                         startActivity(Intent(this, this::class.java))
                     }
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.doh_provider_updated), Toast.LENGTH_LONG).show()
                 }
                 true
             }

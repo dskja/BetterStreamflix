@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -47,10 +48,7 @@ object LaCartoonsProvider : Provider {
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
             .followRedirects(true)
-        val dns = DnsOverHttps.Builder().client(builder.build())
-            .url("https://1.1.1.1/dns-query".toHttpUrl())
-            .build()
-        return builder.dns(dns).build()
+        return builder.dns(DnsResolver.doh).build()
     }
 
     private interface Service {

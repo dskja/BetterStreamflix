@@ -235,4 +235,6 @@
     <string name="backup_import_error">Errore durante l\'importazione del backup.</string>
     <string name="backup_import_empty_file">Errore: file di backup vuoto o illeggibile.</string>
     <string name="backup_import_read_error">Errore durante la lettura o l\'elaborazione del file di backup.</string>
+
+    <string name="doh_provider_updated">Impostazioni DNS over HTTPS aggiornate! Riavvia l\'app per applicare le modifiche.</string>
 </resources>

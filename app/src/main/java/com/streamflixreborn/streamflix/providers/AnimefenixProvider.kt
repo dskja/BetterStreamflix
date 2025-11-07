@@ -4,6 +4,7 @@ import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
@@ -39,11 +40,7 @@ object AnimefenixProvider : Provider {
             .cache(Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024))
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
-            .dns(
-                DnsOverHttps.Builder().client(OkHttpClient())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-            )
+            .dns(DnsResolver.doh)
             .build()
     }
 

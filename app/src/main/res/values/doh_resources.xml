@@ -3,22 +3,26 @@
     <string name="settings_doh_provider_title">DNS over HTTPS (DoH)</string>
 
     <string-array name="doh_provider_names">
-        <item>Disabilitato</item>
+        <item>None</item>
         <item>Google</item>
         <item>Cloudflare</item>
         <item>OpenDNS</item>
         <item>Quad9</item>
         <item>CleanBrowsing (Family Filter)</item>
         <item>AdGuard</item>
+        <item>DNS4EU</item>
+        <item>FDN</item>
     </string-array>
 
     <string-array name="doh_provider_urls">
         <item></item> <!-- Disabilitato -->
         <item>https://dns.google/dns-query</item>
         <item>https://cloudflare-dns.com/dns-query</item>
-        <item>https://doh.opendns.com/dns-query</item>
+        <item>https://doh/opendns.com/dns-query</item>
         <item>https://dns.quad9.net/dns-query</item>
         <item>https://doh.cleanbrowsing.org/doh/family-filter/</item>
         <item>https://dns.adguard-dns.com/dns-query</item>
+        <item>https://unfiltered.joindns4.eu/dns-query</item>
+        <item>https://ns0.fdn.fr/dns-query</item>
     </string-array>
 </resources>

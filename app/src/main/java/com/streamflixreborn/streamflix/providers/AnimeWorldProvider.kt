@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import javax.net.ssl.SSLHandshakeException
 import java.security.cert.CertPathValidatorException
@@ -706,6 +707,7 @@ object AnimeWorldProvider : Provider {
                     .cookieJar(MyCookieJar())
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
+                    .dns(DnsResolver.doh)
                     .build()
 
                 val retrofit = Retrofit.Builder()

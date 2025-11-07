@@ -10,18 +10,19 @@
             android:title="@string/settings_category_streamingcommunity_domain"
             android:inputType="text"/>
 
-        <PreferenceCategory
-            android:key="pc_network_settings"
-            android:title="@string/settings_category_network_title">
+    </PreferenceCategory>
 
-            <ListPreference
-                android:key="p_doh_provider_url"
-                android:title="@string/settings_doh_provider_title"
-                android:summary="%s"
-                android:entries="@array/doh_provider_names"
-                android:entryValues="@array/doh_provider_urls"
-                android:defaultValue="https://cloudflare-dns.com/dns-query" />
-        </PreferenceCategory>
+    <PreferenceCategory
+        android:key="pc_network_settings"
+        android:title="@string/settings_category_network_title">
+
+        <ListPreference
+            android:key="p_doh_provider_url"
+            android:title="@string/settings_doh_provider_title"
+            android:summary="%s"
+            android:entries="@array/doh_provider_names"
+            android:entryValues="@array/doh_provider_urls"
+            android:defaultValue="https://cloudflare-dns.com/dns-query" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/autoplay_settings">
