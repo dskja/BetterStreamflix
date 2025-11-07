@@ -20,6 +20,7 @@ import org.jsoup.nodes.Document
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -28,10 +29,20 @@ import retrofit2.http.Path
 
 object WiflixProvider : Provider {
 
-    private var URL = "https://wiflix-hd.vip/"
-    override val baseUrl = URL
     override val name = "Wiflix"
-    override val logo get() = if (serviceInitialized == false) "" else "$URL/templates/flemmixnew/dleimages/logo-ogp.png"
+
+    private var portalURL = "https://ww1.wiflix-adresses.fun/"
+    private var URL = "http://flemmix.cam/"
+        get() {
+            var cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            return if (cacheURL.isEmpty()) field else cacheURL
+        }
+    override val baseUrl = URL
+    override val logo: String
+        get() {
+            var cacheLogo = UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_LOGO)
+            return if (cacheLogo.isEmpty()) "" else cacheLogo
+        }
     override val language = "fr"
 
     private lateinit var service: Service
@@ -571,6 +582,10 @@ object WiflixProvider : Provider {
 
                 if (!newUrl.isNullOrEmpty()) {
                     URL = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                    serviceInitialized = true
+
+                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, URL)
+                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_LOGO, URL + "templates/flemmixnew/images/favicon.png")
                 }
             } catch (e: Exception) {
                 // In case of failure, we'll use the default URL
@@ -578,7 +593,6 @@ object WiflixProvider : Provider {
             }
 
             service = Service.build(URL)
-            serviceInitialized = true
         }
     }
 
@@ -593,7 +607,7 @@ object WiflixProvider : Provider {
 
             fun buildAddressFetcher(): Service {
                 val addressRetrofit = Retrofit.Builder()
-                    .baseUrl("https://ww1.wiflix-adresses.fun/")
+                    .baseUrl(portalURL)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .client(client)
                     .build()
