@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.extractors.VixcloudExtractor
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -175,13 +176,8 @@ object AnimeUnityProvider : Provider {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
 
-                val doh = DnsOverHttps.Builder()
-                    .client(clientBuilder.build())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-
                 val client = clientBuilder
-                    .dns(doh)
+                    .dns(DnsResolver.doh)
                     .addInterceptor { chain ->
                         val originalRequest = chain.request()
                         val requestBuilder = originalRequest.newBuilder()

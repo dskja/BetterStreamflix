@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -976,6 +977,7 @@ object AnyMovieProvider : Provider {
         companion object {
             fun build(): AllMoviesForYouService {
                 val client = OkHttpClient.Builder()
+                    .dns(DnsResolver.doh)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .build()

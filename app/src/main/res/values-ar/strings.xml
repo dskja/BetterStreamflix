@@ -146,5 +146,7 @@
 	<string name="backup_import_error">حدث خطأ أثناء استيراد النسخة الاحتياطية.</string>
 	<string name="backup_import_empty_file">خطأ: ملف النسخة الاحتياطية فارغ أو غير قابل للقراءة.</string>
 	<string name="backup_import_read_error">حدث خطأ أثناء قراءة أو معالجة ملف النسخة الاحتياطية.</string>
+
+	<string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
 </resources>
 

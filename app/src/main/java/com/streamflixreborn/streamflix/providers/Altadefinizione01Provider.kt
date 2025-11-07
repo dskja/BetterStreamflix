@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Season
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -41,12 +42,7 @@ object Altadefinizione01Provider : Provider {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
 
-                val doh = DnsOverHttps.Builder()
-                    .client(clientBuilder.build())
-                    .url("https://1.1.1.1/dns-query".toHttpUrl())
-                    .build()
-
-                val client = clientBuilder.dns(doh).build()
+                val client = clientBuilder.dns(DnsResolver.doh).build()
 
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)

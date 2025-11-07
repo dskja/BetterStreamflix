@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.Video.Server
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -321,8 +322,6 @@ object MStreamProvider : Provider {
 
     interface MStreamService {
         companion object {
-            private const val DNS_QUERY_URL = "https://1.1.1.1/dns-query"
-
             private fun getOkHttpClient(): OkHttpClient {
                 val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
                 val clientBuilder = Builder().cache(appCache).readTimeout(30, TimeUnit.SECONDS)
@@ -332,13 +331,7 @@ object MStreamProvider : Provider {
                     val requestWithHeaders = original.newBuilder().header("Referer", URL).build()
                     chain.proceed(requestWithHeaders)
                 }
-                val client = clientBuilder.addNetworkInterceptor(
-                    HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
-                ).build()
-
-                val dns =
-                    DnsOverHttps.Builder().client(client).url(DNS_QUERY_URL.toHttpUrl()).build()
-                val clientToReturn = clientBuilder.dns(dns).build()
+                val clientToReturn = clientBuilder.dns(DnsResolver.doh).build()
                 return clientToReturn
             }
 

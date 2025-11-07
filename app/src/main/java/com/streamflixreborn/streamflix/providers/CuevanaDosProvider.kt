@@ -35,6 +35,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.models.Show
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 
 object CuevanaDosProvider : Provider {
@@ -543,17 +544,13 @@ object CuevanaDosProvider : Provider {
 
     private interface CuevanaDosService {
         companion object {
-            private const val DNS_QUERY_URL = "https://1.1.1.1/dns-query"
-
             private fun getOkHttpClient(): OkHttpClient {
                 val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
                 val clientBuilder = Builder().cache(appCache).readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
                 val client = clientBuilder.build()
 
-                val dns =
-                    DnsOverHttps.Builder().client(client).url(DNS_QUERY_URL.toHttpUrl()).build()
-                val clientToReturn = clientBuilder.dns(dns).build()
+                val clientToReturn = clientBuilder.dns(DnsResolver.doh).build()
                 return clientToReturn
             }
 

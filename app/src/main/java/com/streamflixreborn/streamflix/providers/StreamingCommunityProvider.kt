@@ -25,6 +25,7 @@ import java.net.UnknownHostException
 import okhttp3.logging.HttpLoggingInterceptor // Import aggiunto
 import org.json.JSONObject
 import com.google.gson.Gson
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import org.jsoup.parser.Parser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -686,6 +687,7 @@ object StreamingCommunityProvider : Provider {
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .followRedirects(true)
                     .followSslRedirects(true)
+                    .dns(DnsResolver.doh)
                     .addInterceptor(RefererInterceptor(baseUrl))
                     .addInterceptor(UserAgentInterceptor(USER_AGENT))
                     .addInterceptor(RedirectInterceptor())

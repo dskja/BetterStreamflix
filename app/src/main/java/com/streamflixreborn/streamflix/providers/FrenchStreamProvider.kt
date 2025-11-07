@@ -23,6 +23,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import retrofit2.http.Query
 import kotlin.collections.map
@@ -553,6 +554,7 @@ object FrenchStreamProvider : Provider {
             private val client = OkHttpClient.Builder()
                 .readTimeout(30, TimeUnit.SECONDS)
                 .connectTimeout(30, TimeUnit.SECONDS)
+                .dns(DnsResolver.doh)
                 .build()
 
             fun buildAddressFetcher(): Service {

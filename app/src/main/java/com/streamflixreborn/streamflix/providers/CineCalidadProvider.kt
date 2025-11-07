@@ -4,6 +4,7 @@ import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -32,11 +33,7 @@ object CineCalidadProvider : Provider {
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
 
-        val dns = DnsOverHttps.Builder().client(clientBuilder.build())
-            .url("https://1.1.1.1/dns-query".toHttpUrl())
-            .build()
-
-        return clientBuilder.dns(dns).build()
+        return clientBuilder.dns(DnsResolver.doh).build()
     }
 
     private interface CineCalidadService {

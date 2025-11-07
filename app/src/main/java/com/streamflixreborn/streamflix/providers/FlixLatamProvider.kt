@@ -9,6 +9,7 @@ import com.streamflixreborn.streamflix.models.flixlatam.DataLinkItem
 import com.streamflixreborn.streamflix.models.flixlatam.PlayerResponse
 // import com.streamflixreborn.streamflix.utils.CryptoAES
 import android.util.Base64
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import okhttp3.*
@@ -350,12 +351,7 @@ object FlixLatamProvider : Provider {
                     .cache(Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024))
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
-                    .apply {
-                        val dns = DnsOverHttps.Builder().client(build())
-                            .url("https://1.1.1.1/dns-query".toHttpUrl())
-                            .build()
-                        dns(dns)
-                    }
+                    .dns(DnsResolver.doh)
                     .build()
 
                 return Retrofit.Builder()

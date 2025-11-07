@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import retrofit2.Retrofit
@@ -651,7 +652,7 @@ object SuperStreamProvider : Provider {
 
         companion object {
             fun build(): SuperStreamApiService {
-                val client = OkHttpClient.Builder().addInterceptor { chain ->
+                val client = OkHttpClient.Builder().dns(DnsResolver.doh).addInterceptor { chain ->
                     val requestBuilder = chain.request().newBuilder()
                         .addHeader("Accept", "charset=utf-8")
                         .addHeader("Platform", "android")

@@ -5,6 +5,7 @@ import android.content.Context
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.providers.AniWorldProvider
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences // <-- IMPORT AGGIUNTO
 
@@ -21,6 +22,7 @@ class StreamFlixApp : Application() {
         instance = this
 
         UserPreferences.setup(this)
+        DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
 
         SerienStreamProvider.initialize(this)
         AniWorldProvider.initialize(this)

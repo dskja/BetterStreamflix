@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -542,17 +543,12 @@ object FilmPalastProvider : Provider {
     interface FilmpalastService {
 
         companion object {
-            private const val DNS_QUERY_URL = "https://1.1.1.1/dns-query"
-
             private fun getOkHttpClient(): OkHttpClient {
                 val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
                 val clientBuilder = Builder().cache(appCache).readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
-                val client = clientBuilder.build()
 
-                val dns =
-                    DnsOverHttps.Builder().client(client).url(DNS_QUERY_URL.toHttpUrl()).build()
-                val clientToReturn = clientBuilder.dns(dns).build()
+                val clientToReturn = clientBuilder.dns(DnsResolver.doh).build()
                 return clientToReturn
             }
 

@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.extractors.Extractor
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -48,12 +49,7 @@ object StreamingItaProvider : Provider {
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
         
-        val dns = DnsOverHttps.Builder()
-            .client(clientBuilder.build())
-            .url("https://1.1.1.1/dns-query".toHttpUrl())
-            .build()
-        
-        return clientBuilder.dns(dns).build()
+        return clientBuilder.dns(DnsResolver.doh).build()
     }
 
     private val retrofit = Retrofit.Builder()
