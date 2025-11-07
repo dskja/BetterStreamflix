@@ -371,9 +371,9 @@ object Altadefinizione01Provider : Provider {
             } ?: emptyList()
             
             val episodePoster = episodeMirrors.firstOrNull()?.attr("data-link")?.let { link ->
-                val droploadId = link.substringAfter("embed-").substringBefore(".html")
+                val droploadId = link.substringAfter("/e/")
                 "https://img.dropcdn.io/$droploadId.jpg"
-            } 
+            }
             episodes.add(
                 Episode(
                     id = "$showUrl#s${seasonNumber}e$epNum",

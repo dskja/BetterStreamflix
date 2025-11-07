@@ -3,9 +3,11 @@ package com.streamflixreborn.streamflix.providers
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.models.Category
+import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Genre
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.People
+import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
@@ -136,7 +138,7 @@ object StreamingItaProvider : Provider {
                         val text = a.text().trim()
                         if (href.isBlank() || text.isBlank()) return@mapNotNull null
                         if (!href.contains("/genere/")) return@mapNotNull null
-                        com.streamflixreborn.streamflix.models.Genre(
+                        Genre(
                             id = if (href.startsWith("http")) href else baseUrl + href.removePrefix("/"),
                             name = text
                         )
@@ -313,12 +315,12 @@ object StreamingItaProvider : Provider {
         }
         val seasons = document.select("#serie_contenido #seasons .se-c").map { seasonEl ->
             val seasonNumber = seasonEl.selectFirst(".se-q .se-t")?.text()?.trim()?.toIntOrNull() ?: 1
-            com.streamflixreborn.streamflix.models.Season(
+            Season(
                 id = "$id?season=$seasonNumber",
                 number = seasonNumber,
                 title = "Stagione $seasonNumber",
             )
-        }
+        }.sortedBy { it.number }
 
         return TvShow(
             id = id,
@@ -334,7 +336,7 @@ object StreamingItaProvider : Provider {
         )
     }
 
-    override suspend fun getEpisodesBySeason(seasonId: String): List<com.streamflixreborn.streamflix.models.Episode> {
+    override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val seasonNumber = seasonId.substringAfter("?season=").toIntOrNull()
         val pageUrl = seasonId.substringBefore("?season=")
         val document = service.getPage(pageUrl)
@@ -345,7 +347,7 @@ object StreamingItaProvider : Provider {
             val epNumber = numText.substringAfter("-").trim().toIntOrNull() ?: 0
             val epLink = epEl.selectFirst(".episodiotitle a")?.attr("href").orEmpty()
             val epTitle = epEl.selectFirst(".episodiotitle a")?.text()
-            com.streamflixreborn.streamflix.models.Episode(
+            Episode(
                 id = epLink,
                 number = epNumber,
                 title = epTitle,
@@ -377,13 +379,13 @@ object StreamingItaProvider : Provider {
                 } else null
             }
 
-            com.streamflixreborn.streamflix.models.Genre(
+            Genre(
                 id = id,
                 name = name,
                 shows = shows
             )
         } catch (e: Exception) {
-            com.streamflixreborn.streamflix.models.Genre(id = id, name = "", shows = emptyList())
+            Genre(id = id, name = "", shows = emptyList())
         }
     }
 
