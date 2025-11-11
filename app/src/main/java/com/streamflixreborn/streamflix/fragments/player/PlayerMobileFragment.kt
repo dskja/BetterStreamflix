@@ -62,6 +62,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.media3.common.TrackSelectionParameters
 import androidx.navigation.NavOptions
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 
@@ -253,6 +254,7 @@ class PlayerMobileFragment : Fragment() {
                         )
                         UserPreferences.subtitleName =
                             (state.subtitle.languageName ?: fileName).substringBefore(" ")
+
                         player.seekTo(currentPosition)
                         player.play()
                     }
@@ -348,6 +350,8 @@ class PlayerMobileFragment : Fragment() {
             }
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
         }
+
+        val subtitleName = UserPreferences.subtitleName
         httpDataSource = DefaultHttpDataSource.Factory()
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
         player = ExoPlayer.Builder(requireContext())
@@ -362,6 +366,10 @@ class PlayerMobileFragment : Fragment() {
                         .build(),
                     true,
                 )
+                player.trackSelectionParameters = TrackSelectionParameters.Builder(requireContext())
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, subtitleName.isNullOrBlank())
+                    .setPreferredTextLanguage(subtitleName)
+                    .build()
 
                 mediaSession = MediaSession.Builder(requireContext(), player)
                     .build()
