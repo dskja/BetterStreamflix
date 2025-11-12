@@ -26,7 +26,6 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -315,7 +314,6 @@ class PlayerTvFragment : Fragment() {
 
 
     private fun initializeVideo() {
-        val subtitleName = UserPreferences.subtitleName
         httpDataSource = DefaultHttpDataSource.Factory()
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
         player = ExoPlayer.Builder(requireContext())
@@ -328,10 +326,6 @@ class PlayerTvFragment : Fragment() {
                         .build(),
                     true,
                 )
-                player.trackSelectionParameters = TrackSelectionParameters.Builder(requireContext())
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, subtitleName.isNullOrBlank())
-                    .setPreferredTextLanguage(subtitleName)
-                    .build()
 
                 mediaSession = MediaSession.Builder(requireContext(), player)
                     .build()
