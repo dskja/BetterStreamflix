@@ -81,6 +81,8 @@ interface Provider {
             AnimeUnityProvider to ProviderSupport(movies = true, tvShows = true),
             AnimeSaturnProvider to ProviderSupport(movies = false, tvShows = true),
             FrenchStreamProvider to ProviderSupport(movies = true, tvShows = true),
+            GuardaSerieProvider to ProviderSupport(movies = true, tvShows = true),
+            EinschaltenProvider to ProviderSupport(movies = true, tvShows = false),
         )
 
         // Helper functions to check support

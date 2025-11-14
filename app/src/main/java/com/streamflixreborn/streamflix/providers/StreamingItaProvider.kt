@@ -158,7 +158,7 @@ object StreamingItaProvider : Provider {
                 val href = titleAnchor.attr("href").orEmpty()
                 if (href.isBlank()) return@mapNotNull null
                 val title = titleAnchor.text().trim()
-                val img = el.selectFirst(".thumbnail img")?.attr("src")
+                val img = el.selectFirst(".thumbnail img")?.attr("src")?.replace("-150x150", "")
                 when {
                     href.contains("/film/") -> Movie(id = href, title = title, poster = img)
                     href.contains("/tv/") -> TvShow(id = href, title = title, poster = img)
@@ -174,8 +174,16 @@ object StreamingItaProvider : Provider {
         return try {
             val url = if (page > 1) "$baseUrl/film/page/$page/" else "$baseUrl/film/"
             val document = service.getPage(url)
-            // Parse all items as in home, but flatten into a single list
-            document.select("article.item").mapNotNull { el ->
+            
+            // For pagination (page > 1), only use items from "Aggiunto recentemente" section
+            // For page 1, include both "In Sala" and "Aggiunto recentemente"
+            val itemsSelector = if (page > 1) {
+                "#archive-content article.item"
+            } else {
+                "article.item"
+            }
+            
+            document.select(itemsSelector).mapNotNull { el ->
                 val href = el.selectFirst("a")?.attr("href").orEmpty()
                 if (href.isBlank() || !href.contains("/film/")) return@mapNotNull null
                 val img = el.selectFirst(".poster img, .image img, img")?.attr("src")
@@ -197,7 +205,16 @@ object StreamingItaProvider : Provider {
         return try {
             val url = if (page > 1) "$baseUrl/tv/page/$page/" else "$baseUrl/tv/"
             val document = service.getPage(url)
-            document.select("article.item").mapNotNull { el ->
+            
+            // For pagination (page > 1), only use items from "Aggiunto recentemente" section
+            // For page 1, include both "Hot" and "Aggiunto recentemente"
+            val itemsSelector = if (page > 1) {
+                "#archive-content article.item"
+            } else {
+                "article.item"
+            }
+            
+            document.select(itemsSelector).mapNotNull { el ->
                 val href = el.selectFirst("a")?.attr("href").orEmpty()
                 if (href.isBlank() || !href.contains("/tv/")) return@mapNotNull null
                 val img = el.selectFirst(".poster img, .image img, img")?.attr("src")
