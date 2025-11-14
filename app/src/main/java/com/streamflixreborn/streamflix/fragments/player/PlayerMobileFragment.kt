@@ -253,6 +253,7 @@ class PlayerMobileFragment : Fragment() {
                         )
                         UserPreferences.subtitleName =
                             (state.subtitle.languageName ?: fileName).substringBefore(" ")
+
                         player.seekTo(currentPosition)
                         player.play()
                     }
@@ -348,6 +349,7 @@ class PlayerMobileFragment : Fragment() {
             }
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
         }
+
         httpDataSource = DefaultHttpDataSource.Factory()
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
         player = ExoPlayer.Builder(requireContext())
