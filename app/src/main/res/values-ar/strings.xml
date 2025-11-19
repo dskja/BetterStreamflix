@@ -147,6 +147,12 @@
 	<string name="backup_import_empty_file">خطأ: ملف النسخة الاحتياطية فارغ أو غير قابل للقراءة.</string>
 	<string name="backup_import_read_error">حدث خطأ أثناء قراءة أو معالجة ملف النسخة الاحتياطية.</string>
 
+        <string name="screen_scale_category_title">حشوة الشاشة</string>
+        <string name="screen_scale_x_title">الحشوة الأفقية</string>
+        <string name="screen_scale_x_summary">ضبط الحشوة اليمنى واليسرى للشاشة</string>
+        <string name="screen_scale_y_title">الحشوة العمودية</string>
+        <string name="screen_scale_y_summary">ضبط الحشوة العلوية والسفلية للشاشة</string>
+
 	<string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
 </resources>
 

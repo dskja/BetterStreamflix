@@ -235,5 +235,11 @@
     <string name="backup_import_empty_file">Fehler: Die Sicherungsdatei ist leer oder unlesbar.</string>
     <string name="backup_import_read_error">Fehler beim Lesen oder Verarbeiten der Sicherungsdatei.</string>
 
+    <string name="screen_scale_category_title">Bildschirmabstand</string>
+    <string name="screen_scale_x_title">Horizontaler Abstand</string>
+    <string name="screen_scale_x_summary">Passe den linken und rechten Bildschirmabstand an</string>
+    <string name="screen_scale_y_title">Vertikaler Abstand</string>
+    <string name="screen_scale_y_summary">Passe den oberen und unteren Bildschirmabstand an</string>
+
     <string name="doh_provider_updated">DNS-over-HTTPS-Einstellungen aktualisiert! Starte die App neu, um die Änderungen anzuwenden.</string>
 </resources>

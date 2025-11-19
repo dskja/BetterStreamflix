@@ -13,7 +13,9 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreference
+import androidx.preference.SeekBarPreference
 import com.streamflixreborn.streamflix.R
+import com.streamflixreborn.streamflix.activities.main.MainTvActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
 import com.streamflixreborn.streamflix.backup.ProviderBackupContext
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -182,6 +184,26 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<Preference>("key_backup_import_tv")?.setOnPreferenceClickListener {
             importBackupLauncher.launch(arrayOf("application/json"))
             true
+        }
+
+        findPreference<SeekBarPreference>("scale_x")?.apply {
+            seekBarIncrement = 1
+            value = UserPreferences.paddingX
+            setOnPreferenceChangeListener { preference, newValue ->
+                UserPreferences.paddingX = newValue as Int
+                (activity as? MainTvActivity)?.adjustLayoutDelta(UserPreferences.paddingX, null)
+                true
+            }
+        }
+
+        findPreference<SeekBarPreference>("scale_y")?.apply {
+            seekBarIncrement = 1
+            value = UserPreferences.paddingY
+            setOnPreferenceChangeListener { preference, newValue ->
+                UserPreferences.paddingY = newValue as Int
+                (activity as? MainTvActivity)?.adjustLayoutDelta(null, UserPreferences.paddingY)
+                true
+            }
         }
     }
 

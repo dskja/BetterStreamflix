@@ -239,5 +239,11 @@
     <string name="backup_import_empty_file">Error: backup file is empty or unreadable.</string>
     <string name="backup_import_read_error">Error while reading or processing the backup file.</string>
 
+    <string name="screen_scale_category_title">Screen Padding</string>
+    <string name="screen_scale_x_title">Horizontal padding</string>
+    <string name="screen_scale_x_summary">Adjust left and right screen padding</string>
+    <string name="screen_scale_y_title">Vertical padding</string>
+    <string name="screen_scale_y_summary">Adjust top and bottom screen padding</string>
+
     <string name="doh_provider_updated">DNS over HttPS settings updated! Restart the app to apply changes.</string>
 </resources>

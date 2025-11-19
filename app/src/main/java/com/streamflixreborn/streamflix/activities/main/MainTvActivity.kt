@@ -50,6 +50,8 @@ class MainTvActivity : FragmentActivity() {
         UserPreferences.setup(this)
         AppDatabase.setup(this)
 
+        adjustLayoutDelta(null, null)
+
         when (BuildConfig.APP_LAYOUT) {
             "mobile" -> {
                 finish()
@@ -198,5 +200,11 @@ class MainTvActivity : FragmentActivity() {
             binding.navMain.findViewById<View>(R.id.tv_shows)?.visibility = 
                 if (Provider.supportsTvShows(provider)) View.VISIBLE else View.GONE
         }
+    }
+
+    fun adjustLayoutDelta(deltaX: Int?, deltaY: Int?) {
+        val uDeltaX = deltaX?:UserPreferences.paddingX
+        val uDeltaY = deltaY?:UserPreferences.paddingY
+        binding.root.setPadding(uDeltaX,uDeltaY,uDeltaX,uDeltaY)
     }
 }
