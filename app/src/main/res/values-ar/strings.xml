@@ -67,6 +67,7 @@
 	<string name="tv_show_trailer">الإعلان الترويجي</string>
 	<string name="tv_show_seasons">المواسم</string>
 	<string name="tv_show_cast">طاقم العمل</string>
+	<string name="tv_show_directors">مخرج</string>
 	<string name="tv_show_you_may_also_like">قد يعجبك أيضًا</string>
 
 	<string name="movie_item_type">فيلم</string>
@@ -75,6 +76,7 @@
 	<string name="movie_watch_now">شاهد الآن</string>
 	<string name="movie_trailer">الإعلان الترويجي</string>
 	<string name="movie_cast">طاقم العمل</string>
+	<string name="movie_directors">مخرج</string>
 	<string name="movie_you_may_also_like">قد يعجبك أيضًا</string>
 
 	<string name="season_number">الموسم %d</string>

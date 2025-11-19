@@ -32,7 +32,7 @@ object WiflixProvider : Provider {
     override val name = "Wiflix"
 
     private var portalURL = "https://ww1.wiflix-adresses.fun/"
-    private var URL = "http://flemmix.cam/"
+    private var URL = "http://flemmix.club/"
         get() {
             var cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
             return if (cacheURL.isEmpty()) field else cacheURL
@@ -280,6 +280,20 @@ object WiflixProvider : Provider {
                     )
                 }
                 ?: emptyList(),
+            directors = document.select("ul.mov-list li")
+                .find { it.selectFirst("div.mov-label")?.text()?.contains("ALISATEUR") == true }
+                ?.selectFirst("div.mov-desc span")
+                ?.let { element ->
+                    element.text()
+                        .split(", ")
+                        .mapIndexed { index, name ->
+                            People(
+                                id = "director$index",
+                                name = name,
+                            )
+                        }
+                }
+                ?: emptyList(),
             cast = document.select("ul.mov-list li")
                 .find { it.selectFirst("div.mov-label")?.text()?.contains("ACTEURS") == true }
                 ?.select("div.mov-desc a")?.map {
@@ -366,6 +380,20 @@ object WiflixProvider : Provider {
                     title = "Épisodes - VF",
                 ).takeIf { document.select("div.blocfr ul.eplist li").size > 0 },
             ),
+            directors = document.select("ul.mov-list li")
+                .find { it.selectFirst("div.mov-label")?.text()?.contains("ALISATEUR") == true }
+                ?.selectFirst("div.mov-desc span")
+                ?.let { element ->
+                    element.text()
+                        .split(", ")
+                        .mapIndexed { index, name ->
+                            People(
+                                id = "director$index",
+                                name = name,
+                            )
+                        }
+                }
+                ?: emptyList(),
             cast = document.select("ul.mov-list li")
                 .find { it.selectFirst("div.mov-label")?.text()?.contains("ACTEURS") == true }
                 ?.select("div.mov-desc a")?.map {

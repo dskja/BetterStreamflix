@@ -79,6 +79,8 @@ abstract class Extractor {
             PlusPomlaExtractor(),
             OneuploadExtractor(),
             FsvidExtractor(),
+            FsVoeExtractor(),
+            DoodLaExtractor.DoodStreamExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

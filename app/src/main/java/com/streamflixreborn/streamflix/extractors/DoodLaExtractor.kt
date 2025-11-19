@@ -2,9 +2,12 @@ package com.streamflixreborn.streamflix.extractors
 
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.StringConverterFactory
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody
 import org.jsoup.nodes.Document
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -17,12 +20,19 @@ open class DoodLaExtractor : Extractor() {
     override val mainUrl = "https://dood.la"
     override val aliasUrls = listOf("https://dsvplay.com")
 
+    protected open val followUrls = false
     private val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    private lateinit var service: Service
 
     override suspend fun extract(link: String): Video {
-        val service = Service.build(mainUrl)
+        service = Service.build(mainUrl)
 
-        val embedUrl = link.replace("/d/", "/e/")
+        val embedUrl = ( if (followUrls)
+                             service.getResponse(link, link).raw().request.url.toString()
+                         else
+                             link
+                       ).replace("/d/", "/e/")
+
         val document = service.get(embedUrl, link)
 
         val md5 = getBaseUrl(embedUrl) +
@@ -53,7 +63,6 @@ open class DoodLaExtractor : Extractor() {
 
     private fun getBaseUrl(url: String) = URI(url).let { "${it.scheme}://${it.host}" }
 
-
     class DoodLiExtractor : DoodLaExtractor() {
         override var mainUrl = "https://dood.li"
     }
@@ -62,12 +71,18 @@ open class DoodLaExtractor : Extractor() {
         override val mainUrl = "https://vide0.net"
     }
 
+    class DoodStreamExtractor: DoodLaExtractor() {
+        override val mainUrl = "https://doodstream.com"
+        override val aliasUrls = listOf("https://kakaflix.lol", )
+        override val followUrls = true
+    }
 
     private interface Service {
 
         companion object {
             fun build(baseUrl: String): Service {
                 val client = OkHttpClient.Builder()
+                    .dns(DnsResolver.doh)
                     .build()
 
                 val retrofit = Retrofit.Builder()
@@ -93,5 +108,11 @@ open class DoodLaExtractor : Extractor() {
             @Url url: String,
             @Header("Referer") referer: String,
         ): String
+
+        @GET
+        suspend fun getResponse(
+            @Url url: String,
+            @Header("Referer") referer: String
+        ): Response<ResponseBody>
     }
 }

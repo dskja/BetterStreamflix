@@ -74,6 +74,8 @@ import java.util.Locale
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.providers.Provider
 import android.view.KeyEvent
+import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsMobileBinding
+import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsTvBinding
 
 class MovieViewHolder(
     private val _binding: ViewBinding
@@ -114,6 +116,8 @@ class MovieViewHolder(
 
             is ContentMovieMobileBinding -> displayMovieMobile(_binding)
             is ContentMovieTvBinding -> displayMovieTv(_binding)
+            is ContentMovieDirectorsMobileBinding -> displayDirectorsMobile(_binding)
+            is ContentMovieDirectorsTvBinding -> displayDirectorsTv(_binding)
             is ContentMovieCastMobileBinding -> displayCastMobile(_binding)
             is ContentMovieCastTvBinding -> displayCastTv(_binding)
             is ContentMovieRecommendationsMobileBinding -> displayRecommendationsMobile(_binding)
@@ -852,6 +856,13 @@ class MovieViewHolder(
             }
             setItemSpacing(80)
         }
+    }
+
+    private fun displayDirectorsMobile(binding: ContentMovieDirectorsMobileBinding) {
+        binding.rvMovieDirectors.text = movie.directors.joinToString (separator =", ") { it.name }
+    }
+    private fun displayDirectorsTv(binding: ContentMovieDirectorsTvBinding) {
+        binding.rvMovieDirectors.text = movie.directors.joinToString (separator =", ") { it.name }
     }
 
     private fun displayRecommendationsMobile(binding: ContentMovieRecommendationsMobileBinding) {
