@@ -181,6 +181,13 @@ object UserPreferences {
         get() = Key.DOH_PROVIDER_URL.getString() ?: DEFAULT_DOH_PROVIDER_URL
         set(value) = Key.DOH_PROVIDER_URL.setString(value)
 
+    var paddingX: Int
+        get() = Key.SCREEN_PADDING_X.getInt() ?: 0
+        set(value) = Key.SCREEN_PADDING_X.setInt(value)
+
+    var paddingY: Int
+        get() = Key.SCREEN_PADDING_Y.getInt() ?: 0
+        set(value) = Key.SCREEN_PADDING_Y.setInt(value)
 
     private enum class Key {
         APP_LAYOUT,
@@ -193,6 +200,8 @@ object UserPreferences {
         CAPTION_STYLE_WINDOW_COLOR,
         CAPTION_STYLE_EDGE_TYPE,
         CAPTION_STYLE_EDGE_COLOR,
+        SCREEN_PADDING_X,
+        SCREEN_PADDING_Y,
         QUALITY_HEIGHT,
         SUBTITLE_NAME,
         STREAMINGCOMMUNITY_DOMAIN,

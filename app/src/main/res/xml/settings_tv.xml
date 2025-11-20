@@ -49,6 +49,25 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+       android:title="@string/screen_scale_category_title">
+
+       <SeekBarPreference
+            android:key="scale_x"
+            android:title="@string/screen_scale_x_title"
+            android:summary="@string/screen_scale_x_summary"
+            android:defaultValue="0"
+            android:min="-250"
+            android:max="250"/>
+       <SeekBarPreference
+            android:key="scale_y"
+            android:title="@string/screen_scale_y_title"
+            android:summary="@string/screen_scale_y_summary"
+            android:defaultValue="0"
+            android:min="-250"
+            android:max="250"/>
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/miscelaneous_title">
         <Preference
             android:icon="@drawable/ic_settings_about"
