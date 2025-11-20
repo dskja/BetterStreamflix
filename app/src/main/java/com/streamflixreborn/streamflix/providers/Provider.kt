@@ -8,6 +8,19 @@ import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import kotlinx.coroutines.sync.Mutex
+
+interface ProviderPortalUrl {
+    val portalUrl: String
+    val defaultPortalUrl: String
+}
+
+interface ProviderConfigUrl {
+    val defaultBaseUrl: String
+
+    suspend fun onChangeUrl(forceRefresh: Boolean = false): String
+    val changeUrlMutex: Mutex
+}
 
 interface Provider {
 
