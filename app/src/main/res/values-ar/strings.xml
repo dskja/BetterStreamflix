@@ -67,6 +67,7 @@
 	<string name="tv_show_trailer">الإعلان الترويجي</string>
 	<string name="tv_show_seasons">المواسم</string>
 	<string name="tv_show_cast">طاقم العمل</string>
+	<string name="tv_show_directors">مخرج</string>
 	<string name="tv_show_you_may_also_like">قد يعجبك أيضًا</string>
 
 	<string name="movie_item_type">فيلم</string>
@@ -75,6 +76,7 @@
 	<string name="movie_watch_now">شاهد الآن</string>
 	<string name="movie_trailer">الإعلان الترويجي</string>
 	<string name="movie_cast">طاقم العمل</string>
+	<string name="movie_directors">مخرج</string>
 	<string name="movie_you_may_also_like">قد يعجبك أيضًا</string>
 
 	<string name="season_number">الموسم %d</string>
@@ -153,6 +155,12 @@
 	<string name="backup_import_error">حدث خطأ أثناء استيراد النسخة الاحتياطية.</string>
 	<string name="backup_import_empty_file">خطأ: ملف النسخة الاحتياطية فارغ أو غير قابل للقراءة.</string>
 	<string name="backup_import_read_error">حدث خطأ أثناء قراءة أو معالجة ملف النسخة الاحتياطية.</string>
+
+        <string name="screen_scale_category_title">حشوة الشاشة</string>
+        <string name="screen_scale_x_title">الحشوة الأفقية</string>
+        <string name="screen_scale_x_summary">ضبط الحشوة اليمنى واليسرى للشاشة</string>
+        <string name="screen_scale_y_title">الحشوة العمودية</string>
+        <string name="screen_scale_y_summary">ضبط الحشوة العلوية والسفلية للشاشة</string>
 
 	<string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
 </resources>

@@ -15,7 +15,7 @@ open class DoodLaExtractor : Extractor() {
 
     override val name = "DoodStream"
     override val mainUrl = "https://dood.la"
-    override val aliasUrls = listOf("https://dsvplay.com")
+    override val aliasUrls = listOf("https://dsvplay.com", "https://mikaylaarealike.com")
 
     private val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 

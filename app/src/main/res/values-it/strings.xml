@@ -66,6 +66,7 @@
     <string name="tv_show_trailer">Trailer</string>
     <string name="tv_show_seasons">Stagioni</string>
     <string name="tv_show_cast">Cast</string>
+    <string name="tv_show_directors">Regista</string>
     <string name="tv_show_you_may_also_like">Ti potrebbe interessare anche</string>
 
     <string name="movie_item_type">Film</string>
@@ -74,6 +75,7 @@
     <string name="movie_watch_now">Guarda Ora</string>
     <string name="movie_trailer">Trailer</string>
     <string name="movie_cast">Cast</string>
+    <string name="movie_directors">Regista</string>
     <string name="movie_you_may_also_like">Ti potrebbe interessare anche</string>
 
     <string name="season_number">Stagione %d</string>
@@ -241,7 +243,16 @@
     <string name="backup_import_success">Backup importato con successo! Riavvia l\'app per applicare le modifiche.</string>
     <string name="backup_import_error">Errore durante l\'importazione del backup.</string>
     <string name="backup_import_empty_file">Errore: file di backup vuoto o illeggibile.</string>
+
+    <string name="screen_scale_category_title">Padding dello schermo</string>
+    <string name="screen_scale_x_title">Padding orizzontale</string>
+    <string name="screen_scale_x_summary">Regola il padding a sinistra e a destra dello schermo</string>
+    <string name="screen_scale_y_title">Padding verticale</string>
+    <string name="screen_scale_y_summary">Regola il padding in alto e in basso dello schermo</string>
+
     <string name="backup_import_read_error">Errore durante la lettura o l\'elaborazione del file di backup.</string>
+
+
 
     <string name="doh_provider_updated">Impostazioni DNS over HTTPS aggiornate! Riavvia l\'app per applicare le modifiche.</string>
 </resources>
