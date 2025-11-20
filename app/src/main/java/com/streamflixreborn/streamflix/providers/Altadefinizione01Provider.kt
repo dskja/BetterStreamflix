@@ -29,7 +29,7 @@ import retrofit2.http.Query
 object Altadefinizione01Provider : Provider {
 
     override val name: String = "Altadefinizione01"
-    override val baseUrl: String = "https://altadefinizione01.racing"
+    override val baseUrl: String = "https://altadefinizione01.mov"
     override val logo: String get() = "$baseUrl/templates/Darktemplate_pagespeed/images/logo.png"
     override val language: String = "it"
 
