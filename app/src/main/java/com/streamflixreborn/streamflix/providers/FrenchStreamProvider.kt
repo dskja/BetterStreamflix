@@ -22,6 +22,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Url
+import retrofit2.Response
+import okhttp3.ResponseBody
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.streamflixreborn.streamflix.utils.DnsResolver
@@ -125,7 +128,7 @@ object FrenchStreamProvider : Provider {
     }
 
     suspend fun ignoreSource(source: String, href: String): Boolean {
-        if (arrayOf("VIDZY", "Netu", "Filmoon").any {
+        if (arrayOf("VIDZY", "Netu").any {
                 it.equals(
                     source.trim(),
                     true
@@ -588,7 +591,15 @@ object FrenchStreamProvider : Provider {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val video = Extractor.extract(server.src)
+        val finalUrl = if (server.src.contains("newplayer", ignoreCase = true)) {
+            val response = service.getRedirectLink(server.src)
+                .let { response -> response.raw() as okhttp3.Response }
+            response.request.url.toString()
+        } else {
+            server.src
+        }
+        
+        val video = Extractor.extract(finalUrl)
 
         return video
     }
@@ -690,5 +701,8 @@ object FrenchStreamProvider : Provider {
         suspend fun getPeople(
             @Path("id") id: String,
         ): Document
+
+        @GET
+        suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
     }
 }
