@@ -3,7 +3,9 @@ package com.streamflixreborn.streamflix.fragments.settings
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
 import android.util.Log
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
@@ -21,6 +23,8 @@ import com.streamflixreborn.streamflix.database.dao.EpisodeDao
 import com.streamflixreborn.streamflix.database.dao.MovieDao
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
 import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
+import com.streamflixreborn.streamflix.providers.ProviderPortalUrl
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -130,6 +134,115 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.autoplay = newValue as Boolean
                 true
+            }
+        }
+
+        val HasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
+        findPreference<PreferenceCategory>("pc_provider_settings")?.apply {
+            isVisible = HasConfigProvider
+        }
+
+        if (HasConfigProvider) {
+            val provider = UserPreferences.currentProvider
+            val configProvider = provider as? ProviderConfigUrl
+            val portalProvider = provider as? ProviderPortalUrl
+            var autoUpdateVal = false
+
+            findPreference<SwitchPreference>("provider_autoupdate")?.apply {
+                isVisible = portalProvider != null
+                if (isVisible) {
+                    autoUpdateVal = UserPreferences
+                        .getProviderCache(
+                            provider!!, UserPreferences
+                                .PROVIDER_AUTOUPDATE
+                        ) != "false"
+                    isChecked = autoUpdateVal
+                    setOnPreferenceChangeListener { _, newValue ->
+                        val newState = newValue as Boolean
+                        UserPreferences.setProviderCache(
+                            UserPreferences.PROVIDER_AUTOUPDATE,
+                            newState.toString()
+                        )
+                        findPreference<EditTextPreference>("provider_url")?.isEnabled = newState == false
+                        true
+                    }
+                }
+            }
+
+            findPreference<EditTextPreference>("provider_url")?.apply {
+                isVisible = configProvider != null
+                isEnabled = autoUpdateVal == false
+                if (isVisible && provider != null && configProvider != null) {
+                    summary = UserPreferences
+                        .getProviderCache(
+                            provider, UserPreferences
+                                .PROVIDER_URL
+                        )
+                        .ifBlank { provider.defaultBaseUrl }
+                    setOnBindEditTextListener { editText ->
+                        editText.inputType = InputType.TYPE_CLASS_TEXT
+                        editText.imeOptions = EditorInfo.IME_ACTION_DONE
+                        editText.hint = configProvider.defaultBaseUrl
+
+                        editText.setText(summary)
+                    }
+                    setOnPreferenceChangeListener { _, newValue ->
+                        val toSave = (newValue as String)
+                            .ifBlank { configProvider.defaultBaseUrl }
+                            .trim()
+                            .removeSuffix("/") + "/"
+                        UserPreferences.setProviderCache(
+                            UserPreferences.PROVIDER_URL,
+                            toSave
+                        )
+                        summary = toSave
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            configProvider.onChangeUrl()
+                        }
+                        true
+                    }
+                }
+            }
+
+            findPreference<EditTextPreference>("provider_portal_url")?.apply {
+                isVisible = portalProvider != null
+                if (isVisible && provider != null && portalProvider != null) {
+                    summary = UserPreferences
+                        .getProviderCache(
+                            provider, UserPreferences
+                                .PROVIDER_PORTAL_URL
+                        )
+                        .ifBlank { provider.defaultPortalUrl }
+                    setOnBindEditTextListener { editText ->
+                        editText.inputType = InputType.TYPE_CLASS_TEXT
+                        editText.imeOptions = EditorInfo.IME_ACTION_DONE
+                        editText.hint = portalProvider.defaultPortalUrl
+                        editText.setText(summary)
+                    }
+                    setOnPreferenceChangeListener { _, newValue ->
+                        val toSave = (newValue as String)
+                            .ifBlank { portalProvider.defaultPortalUrl }
+                            .trim()
+                            .removeSuffix("/") + "/"
+                        summary = toSave
+                        UserPreferences.setProviderCache(
+                            UserPreferences.PROVIDER_PORTAL_URL,
+                            toSave
+                        )
+                        true
+                    }
+                }
+            }
+
+            findPreference<Preference>("provider_autoupdate_now")?.apply {
+                isVisible = portalProvider != null
+                setOnPreferenceClickListener {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        findPreference<EditTextPreference>("provider_url")?.summary =
+                            configProvider!!.onChangeUrl(true)
+                    }
+                    true
+                }
             }
         }
 

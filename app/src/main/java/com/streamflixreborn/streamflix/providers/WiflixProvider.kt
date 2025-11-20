@@ -27,23 +27,32 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-object WiflixProvider : Provider {
+object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override val name = "Wiflix"
 
-    private var portalURL = "https://ww1.wiflix-adresses.fun/"
-    private var URL = "http://flemmix.cam/"
+    override val defaultPortalUrl: String = "https://ww1.wiflix-adresses.fun/"
+    override val portalUrl: String = defaultPortalUrl
         get() {
-            var cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
-            return if (cacheURL.isEmpty()) field else cacheURL
+            val cachePortalURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_PORTAL_URL)
+            return cachePortalURL.ifEmpty{ field }
         }
-    override val baseUrl = URL
+
+    override val defaultBaseUrl: String = "http://flemmix.club/"
+    override val baseUrl: String = defaultBaseUrl
+        get() {
+            val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            return cacheURL.ifEmpty{ field }
+        }
+
     override val logo: String
         get() {
             var cacheLogo = UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_LOGO)
-            return if (cacheLogo.isEmpty()) "" else cacheLogo
+            return cacheLogo.ifEmpty { "" }
         }
+
     override val language = "fr"
+    override val changeUrlMutex = Mutex()
 
     private lateinit var service: Service
     private var serviceInitialized = false
@@ -72,7 +81,7 @@ object WiflixProvider : Provider {
                             it.selectFirst("span.block-sai")?.text(),
                         ).joinToString(" - "),
                         poster = it.selectFirst("img")
-                            ?.attr("src")?.let { src -> URL + src },
+                            ?.attr("src")?.let { src -> baseUrl + src },
                     )
                 } ?: emptyList(),
             )
@@ -90,7 +99,7 @@ object WiflixProvider : Provider {
                             ?.text()
                             ?: "",
                         poster = it.selectFirst("img")
-                            ?.attr("src")?.let { src -> URL + src },
+                            ?.attr("src")?.let { src -> baseUrl + src },
                     )
                 } ?: emptyList(),
             )
@@ -107,7 +116,7 @@ object WiflixProvider : Provider {
                             ?.text()
                             ?: "",
                         poster = it.selectFirst("img")
-                            ?.attr("src")?.let { src -> URL + src },
+                            ?.attr("src")?.let { src -> baseUrl + src },
                     )
                 } ?: emptyList(),
             )
@@ -165,7 +174,7 @@ object WiflixProvider : Provider {
                 ?.attr("href")?.substringAfterLast("/")
                 ?: ""
             val showPoster = it.selectFirst("img")
-                ?.attr("src")?.let { src -> URL + src }
+                ?.attr("src")?.let { src -> baseUrl + src }
 
             val href = it.selectFirst("a.mov-t")
                 ?.attr("href")
@@ -208,7 +217,7 @@ object WiflixProvider : Provider {
                     ?.text()
                     ?: "",
                 poster = it.selectFirst("img")
-                    ?.attr("src")?.let { src -> URL + src },
+                    ?.attr("src")?.let { src -> baseUrl + src },
             )
         }
 
@@ -229,7 +238,7 @@ object WiflixProvider : Provider {
                     it.selectFirst("span.block-sai")?.text(),
                 ).joinToString(" - "),
                 poster = it.selectFirst("img")
-                    ?.attr("src")?.let { src -> URL + src },
+                    ?.attr("src")?.let { src -> baseUrl + src },
             )
         }
 
@@ -267,7 +276,7 @@ object WiflixProvider : Provider {
                 ?.selectFirst("div.mov-desc")
                 ?.text(),
             poster = document.selectFirst("img#posterimg")
-                ?.attr("src")?.let { URL + it },
+                ?.attr("src")?.let { baseUrl + it },
 
             genres = document.select("ul.mov-list li")
                 .find { it.selectFirst("div.mov-label")?.text()?.contains("GENRE") == true }
@@ -299,7 +308,7 @@ object WiflixProvider : Provider {
                     ?.text()
                     ?: ""
                 val showPoster = it.selectFirst("img")
-                    ?.attr("src")?.let { src -> URL + src }
+                    ?.attr("src")?.let { src -> baseUrl + src }
 
                 val href = it.selectFirst("a")
                     ?.attr("href")
@@ -354,7 +363,7 @@ object WiflixProvider : Provider {
                     hours * 60 + minutes
                 }?.takeIf { it != 0 },
             poster = document.selectFirst("img#posterimg")
-                ?.attr("src")?.let { URL + it },
+                ?.attr("src")?.let { baseUrl + it },
 
             seasons = listOfNotNull(
                 Season(
@@ -385,7 +394,7 @@ object WiflixProvider : Provider {
                     ?.text()
                     ?: ""
                 val showPoster = it.selectFirst("img")
-                    ?.attr("src")?.let { src -> URL + src }
+                    ?.attr("src")?.let { src -> baseUrl + src }
 
                 val href = it.selectFirst("a")
                     ?.attr("href")
@@ -445,7 +454,7 @@ object WiflixProvider : Provider {
                         ?.text()
                         ?: "",
                     poster = it.selectFirst("img")
-                        ?.attr("src")?.let { src -> URL + src },
+                        ?.attr("src")?.let { src -> baseUrl + src },
                 )
             },
         )
@@ -474,7 +483,7 @@ object WiflixProvider : Provider {
                     ?.attr("href")?.substringAfterLast("/")
                     ?: ""
                 val showPoster = it.selectFirst("img")
-                    ?.attr("src")?.let { src -> URL + src }
+                    ?.attr("src")?.let { src -> baseUrl + src }
 
                 val href = it.selectFirst("a.mov-t")
                     ?.attr("href")
@@ -563,36 +572,47 @@ object WiflixProvider : Provider {
      * This function is necessary because the provider's domain frequently changes.
      * We fetch the latest URL from a dedicated website that tracks these changes.
      */
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String {
+        changeUrlMutex.withLock {
+            if (forceRefresh || UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_AUTOUPDATE) != "false") {
+                val addressService = Service.buildAddressFetcher()
+
+                try {
+                    val document = addressService.getHome()
+
+                    val newUrl = document.select("div.alert-success")
+                        .firstOrNull {
+                            it.text().contains("Nom de domaine principal") ||
+                                    it.text().contains("Nouveau site")
+                        }
+                        ?.selectFirst("a")?.attr("href")?.trim()
+                        ?.replace("http://", "https://")
+
+                    if (!newUrl.isNullOrEmpty()) {
+                        val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                        UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, newUrl)
+                        UserPreferences.setProviderCache(
+                            UserPreferences.PROVIDER_LOGO,
+                            newUrl + "templates/flemmixnew/images/favicon.png"
+                        )
+                    }
+                } catch (e: Exception) {
+                    // In case of failure, we'll use the default URL
+                    // No need to throw as we already have a fallback URL
+                }
+            }
+            service = Service.build(baseUrl)
+            serviceInitialized = true
+        }
+
+        return baseUrl
+    }
+
     private suspend fun initializeService() {
         initializationMutex.withLock {
             if (serviceInitialized) return
 
-            val addressService = Service.buildAddressFetcher()
-
-            try {
-                val document = addressService.getHome()
-
-                val newUrl = document.select("div.alert-success")
-                    .firstOrNull {
-                        it.text().contains("Nom de domaine principal") ||
-                            it.text().contains("Nouveau site")
-                    }
-                    ?.selectFirst("a")?.attr("href")?.trim()
-                    ?.replace("http://", "https://")
-
-                if (!newUrl.isNullOrEmpty()) {
-                    URL = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-                    serviceInitialized = true
-
-                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, URL)
-                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_LOGO, URL + "templates/flemmixnew/images/favicon.png")
-                }
-            } catch (e: Exception) {
-                // In case of failure, we'll use the default URL
-                // No need to throw as we already have a fallback URL
-            }
-
-            service = Service.build(URL)
+            onChangeUrl()
         }
     }
 
@@ -607,7 +627,7 @@ object WiflixProvider : Provider {
 
             fun buildAddressFetcher(): Service {
                 val addressRetrofit = Retrofit.Builder()
-                    .baseUrl(portalURL)
+                    .baseUrl(portalUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .client(client)
                     .build()

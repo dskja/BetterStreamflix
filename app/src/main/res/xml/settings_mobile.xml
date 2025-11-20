@@ -21,6 +21,33 @@
             android:entries="@array/doh_provider_names"
             android:entryValues="@array/doh_provider_urls"
             android:defaultValue="https://cloudflare-dns.com/dns-query" />
+     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pc_provider_settings"
+        android:title="@string/settings_category_provider_title">
+
+        <EditTextPreference
+            android:key="provider_url"
+            android:title="@string/settings_category_provider_url"
+            android:inputType="textUri"/>
+
+        <EditTextPreference
+            android:key="provider_portal_url"
+            android:title="@string/settings_category_provider_update_url"
+            android:inputType="textUri"/>
+
+        <SwitchPreference
+            android:key="provider_autoupdate"
+            android:title="@string/settings_autoupdate"
+            android:defaultValue="true"
+            android:summaryOn="@string/settings_autoupdate_on"
+            android:summaryOff="@string/settings_autoupdate_off" />
+
+        <Preference
+            android:icon="@drawable/ic_refresh"
+            android:key="provider_autoupdate_now"
+            android:title="@string/settings_autoupdate_now" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/autoplay_settings">

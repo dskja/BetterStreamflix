@@ -12,9 +12,12 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
@@ -28,15 +31,21 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-object FrenchAnimeProvider : Provider {
-
-    private const val URL = "https://french-anime.com/"
-    override val baseUrl = URL
+object FrenchAnimeProvider : Provider, ProviderConfigUrl {
+    override val defaultBaseUrl: String = "https://french-anime.com/"
+    override val baseUrl: String = FrenchAnimeProvider.defaultBaseUrl
+        get() {
+            val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            return cacheURL.ifEmpty { field }
+        }
     override val name = "FrenchAnime"
-    override val logo = "$URL/templates/franime/images/favicon3.png"
-    override val language = "fr"
+    override val logo: String
+        get() = "$baseUrl/templates/franime/images/favicon3.png"
 
-    private val service = FrenchAnimeService.build()
+    override val language = "fr"
+    override val changeUrlMutex = Mutex()
+
+    private var service = FrenchAnimeService.build()
 
     // Flag to track if more search results are available. Set to false when API returns fewer items than requested.
     // This prevents querying non-existent pages that could return random/incorrect results.
@@ -486,7 +495,7 @@ object FrenchAnimeProvider : Provider {
         hasMore = receivedItems < totalResults
     }
 
-    private fun String.toUrl(): String = if (startsWith("/")) URL.dropLast(1).plus(this) else this
+    private fun String.toUrl(): String = if (startsWith("/")) baseUrl.dropLast(1).plus(this) else this
 
     private fun String?.isFrench(): Boolean = this?.contains("FRENCH", ignoreCase = true) ?: false
 
@@ -525,6 +534,13 @@ object FrenchAnimeProvider : Provider {
         else -> null
     }
 
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String {
+        changeUrlMutex.withLock {
+            service = FrenchAnimeService.build()
+        }
+        return baseUrl
+    }
+
     private interface FrenchAnimeService {
         companion object {
             fun build(): FrenchAnimeService {
@@ -535,7 +551,7 @@ object FrenchAnimeProvider : Provider {
                     .build()
 
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(URL)
+                    .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)

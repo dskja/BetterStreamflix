@@ -202,6 +202,13 @@
     <string name="settings_close_app">Chiudi applicazione</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Usa DNS sicuro</string>
     <string name="settings_category_network_title">Impostazioni di rete</string>
+    <string name="settings_category_provider_title">Impostazioni del provider</string>
+    <string name="settings_category_provider_url">URL principale</string>
+    <string name="settings_category_provider_update_url">URL del portale</string>
+    <string name="settings_autoupdate">Aggiorna l\'URL principale all\'avvio</string>
+    <string name="settings_autoupdate_on">Attivato</string>
+    <string name="settings_autoupdate_off">Disattivato</string>
+    <string name="settings_autoupdate_now">Aggiorna subito l\'URL principale</string>
     <string name="settings_autoplay">Riproduzione automatica del prossimo episodio</string>
     <string name="settings_autoplay_on">Attiva</string>
     <string name="settings_autoplay_off">Disattiva</string>

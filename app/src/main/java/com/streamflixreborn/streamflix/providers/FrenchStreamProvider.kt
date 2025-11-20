@@ -30,23 +30,31 @@ import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
 
-object FrenchStreamProvider : Provider {
+object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override val name = "FrenchStream"
 
-    private var portalURL = "http://fstream.info/"
-    private var URL: String = "https://fs6.lol/"
+    override val defaultPortalUrl: String = "http://fstream.info/"
+
+    override val portalUrl: String = defaultPortalUrl
         get() {
-            var cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
-            return if (cacheURL.isEmpty()) field else cacheURL
+            val cachePortalURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_PORTAL_URL)
+            return cachePortalURL.ifEmpty { field }
         }
 
-    override val baseUrl = URL
+    override val defaultBaseUrl: String = "https://fs8.lol/"
+    override val baseUrl: String = defaultBaseUrl
+        get() {
+            val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            return cacheURL.ifEmpty { field }
+        }
+
     override val logo: String
         get() {
-            var cacheLogo = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_LOGO)
-            return if (cacheLogo.isEmpty()) portalURL + "favicon-96x96.png" else cacheLogo
+            val cacheLogo = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_LOGO)
+            return cacheLogo.ifEmpty { portalUrl + "favicon-96x96.png" }
         }
     override val language = "fr"
+    override val changeUrlMutex = Mutex()
 
     private lateinit var service: Service
     private var serviceInitialized = false
@@ -175,7 +183,7 @@ object FrenchStreamProvider : Provider {
                 if (poster.contains("url=")) {
                     poster = poster.substringAfter("url=")
                 } else {
-                    poster = URL + poster
+                    poster = baseUrl + poster
                 }
 
                 if (href.contains("films/")) {
@@ -575,31 +583,41 @@ object FrenchStreamProvider : Provider {
      * This function is necessary because the provider's domain frequently changes.
      * We fetch the latest URL from a dedicated website that tracks these changes.
      */
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String {
+        changeUrlMutex.withLock {
+            if (forceRefresh || UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_AUTOUPDATE) != "false") {
+                val addressService = Service.buildAddressFetcher()
+                try {
+                    val document = addressService.getHome()
+
+                    val newUrl = document.select("div.current-url-container")
+                        .selectFirst("a")
+                        ?.attr("href")
+                        ?.trim()
+
+                    if (!newUrl.isNullOrEmpty()) {
+                        val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                        UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, newUrl)
+                        UserPreferences.setProviderCache(
+                            UserPreferences.PROVIDER_LOGO,
+                            newUrl + "favicon-96x96.png"
+                        )
+                    }
+                } catch (e: Exception) {
+                    // In case of failure, we'll use the default URL
+                    // No need to throw as we already have a fallback URL
+                }
+            }
+            service = Service.build(baseUrl)
+            serviceInitialized = true
+        }
+        return baseUrl
+    }
+
     private suspend fun initializeService() {
         initializationMutex.withLock {
             if (serviceInitialized) return
-
-            val addressService = Service.buildAddressFetcher()
-            try {
-                val document = addressService.getHome()
-
-                val newUrl = document.select("div.current-url-container")
-                    .selectFirst("a")
-                    ?.attr("href")
-                    ?.trim()
-
-                if (!newUrl.isNullOrEmpty()) {
-                    URL = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-                    serviceInitialized = true
-
-                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, URL)
-                    UserPreferences.setProviderCache(UserPreferences.PROVIDER_LOGO, URL + "favicon-96x96.png")
-                }
-            } catch (e: Exception) {
-                // In case of failure, we'll use the default URL
-                // No need to throw as we already have a fallback URL
-            }
-            service = Service.build(URL)
+            onChangeUrl()
         }
     }
 
@@ -614,7 +632,7 @@ object FrenchStreamProvider : Provider {
 
             fun buildAddressFetcher(): Service {
                 val addressRetrofit = Retrofit.Builder()
-                    .baseUrl(portalURL)
+                    .baseUrl(portalUrl)
 
                     .addConverterFactory(JsoupConverterFactory.create())
                     .client(client)
@@ -635,7 +653,6 @@ object FrenchStreamProvider : Provider {
                 return retrofit.create(Service::class.java)
             }
         }
-
 
         @GET(".")
         suspend fun getHome(): Document
