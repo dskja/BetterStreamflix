@@ -74,6 +74,8 @@ import java.util.Locale
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.providers.Provider
 import android.view.KeyEvent
+import com.streamflixreborn.streamflix.databinding.ContentTvShowDirectorsMobileBinding
+import com.streamflixreborn.streamflix.databinding.ContentTvShowDirectorsTvBinding
 class TvShowViewHolder(
     private val _binding: ViewBinding
 ) : RecyclerView.ViewHolder(
@@ -117,6 +119,8 @@ class TvShowViewHolder(
             is ContentTvShowTvBinding -> displayTvShowTv(_binding)
             is ContentTvShowSeasonsMobileBinding -> displaySeasonsMobile(_binding)
             is ContentTvShowSeasonsTvBinding -> displaySeasonsTv(_binding)
+            is ContentTvShowDirectorsMobileBinding -> displayDirectorsMobile(_binding)
+            is ContentTvShowDirectorsTvBinding -> displayDirectorsTv(_binding)
             is ContentTvShowCastMobileBinding -> displayCastMobile(_binding)
             is ContentTvShowCastTvBinding -> displayCastTv(_binding)
             is ContentTvShowRecommendationsMobileBinding -> displayRecommendationsMobile(_binding)
@@ -1001,6 +1005,13 @@ class TvShowViewHolder(
             }
             setItemSpacing(80)
         }
+    }
+
+    private fun displayDirectorsMobile(binding: ContentTvShowDirectorsMobileBinding) {
+        binding.rvTvShowDirectors.text = tvShow.directors.joinToString (separator =", ") { it.name }
+    }
+    private fun displayDirectorsTv(binding: ContentTvShowDirectorsTvBinding) {
+        binding.hgvTvShowDirectors.text = tvShow.directors.joinToString (separator =", ") { it.name }
     }
 
     private fun displayRecommendationsMobile(binding: ContentTvShowRecommendationsMobileBinding) {

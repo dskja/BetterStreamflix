@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.providers
 
+import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
@@ -21,6 +22,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Url
+import retrofit2.Response
+import okhttp3.ResponseBody
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.streamflixreborn.streamflix.utils.DnsResolver
@@ -29,6 +33,7 @@ import org.jsoup.nodes.Element
 import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
+import kotlin.collections.mapIndexed
 
 object FrenchStreamProvider : Provider {
     override val name = "FrenchStream"
@@ -122,15 +127,23 @@ object FrenchStreamProvider : Provider {
         return categories
     }
 
-    suspend fun ignoreSource(source: String): Boolean {
-        if (arrayOf("VIDZY", "Dood.Stream", "VOE", "Netu", "Filmoon").any {
+    suspend fun ignoreSource(source: String, href: String): Boolean {
+        if (arrayOf("VIDZY", "Netu").any {
                 it.equals(
-                    source,
+                    source.trim(),
                     true
                 )
             })
             return true
+        if (source.trim() == "Dood.Stream" && href.contains("/bigwar5/")) return true
         return false
+    }
+
+    fun encodeAllExceptPlus(input: String): String {
+        return if (input.contains('+'))
+                    input.trim()
+               else "\""+(input.replace(' ', '+').trim())+"\""
+
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -150,7 +163,7 @@ object FrenchStreamProvider : Provider {
         }
 
         val document = service.search(
-            story = query.replace(" ", "+"),
+            story = encodeAllExceptPlus(query)
         )
 
         val results = document.select("div#dle-content > div.short")
@@ -281,9 +294,9 @@ object FrenchStreamProvider : Provider {
                 .find {
                     it.selectFirst("span")?.text()?.contains("alisateur") == true
                 }
-                ?.select("a")?.mapNotNull {
+                ?.select("a")?.mapIndexedNotNull { index, it ->
                     People(
-                        id = it.attr("href").substringBeforeLast("/").substringAfterLast("/"),
+                        id = "director$index",
                         name = it.text(),
                     )
                 }
@@ -361,9 +374,9 @@ object FrenchStreamProvider : Provider {
                 .find {
                     it.selectFirst("span")?.text()?.contains("alisateur") == true
                 }
-                ?.select("a")?.mapNotNull {
+                ?.select("a")?.mapIndexedNotNull { index, it ->
                     People(
-                        id = it.attr("href").substringBeforeLast("/").substringAfterLast("/"),
+                        id = "director$index",
                         name = it.text(),
                     )
                 }
@@ -524,7 +537,7 @@ object FrenchStreamProvider : Provider {
                                 getOrNull(tvShowNumber.toInt()-1)
                                 ?.select("li > a")
                                 ?.filter {
-                                    it.text().isNotBlank() && ignoreSource(it.text().trim() ) == false
+                                    it.text().isNotBlank() && ignoreSource(it.text(), it.attr("href") ) == false
                                 }
                                 ?.mapIndexed { index, it ->
                                     Video.Server(
@@ -539,25 +552,38 @@ object FrenchStreamProvider : Provider {
 
             is Video.Type.Movie -> {
                 val document = service.getMovie(id)
+                /* Display all available languages in above order, do not display ‘Default’ language if
+                 * its href is identical to that of another language
+                 */
+                val priority = listOf("Default", "VFF", "VFQ", "VOSTFR")
 
-                extractServersDefinition(document)?.map { (index, it) ->
-                    if (ignoreSource(index.trim() ))
-                        null
-                    else {
-                        if (it is Map<*, *>) {
-                            val url = it["Default"] as? String
-                                      ?: ""
-
-                            if (url.isEmpty())
-                                null
-                            else Video.Server(
-                                    id = index,
-                                    name = index,
-                                    src = url,
-                                )
-                        } else null
+                extractServersDefinition(document)?.entries?.flatMap { (source, it) ->
+                    val map = it as? Map<*, *> ?: return@flatMap emptyList()
+                    val defaultValue = map["Default"] as? String
+                    val defaultIsDuplicate = map.entries.any { (lang, href) ->
+                        lang != "Default" && href == defaultValue
                     }
-                }?.filterNotNull() ?: emptyList()
+                    map.entries
+                        .filter { (lang, href) ->
+                            (lang is String
+                                    && href is String && href.isNotBlank())
+                                    && !(lang == "Default" && defaultIsDuplicate)
+                                    && !ignoreSource(source, href )
+                        }
+                        .sortedWith(
+                            compareBy< Map.Entry<*, *> > { e ->
+                                val idx = priority.indexOf(e.key as String)
+                                if (idx == -1) Int.MAX_VALUE else idx
+                            }.thenBy { e -> e.key as String }
+                        )
+                        .map { (lang, url) ->
+                            Video.Server(
+                                id = "SRV$source$lang",
+                                name = if (lang == "Default") source else "$source ($lang)",
+                                src = url as String
+                            )
+                        }
+                } ?: emptyList()
             }
         }
 
@@ -565,7 +591,15 @@ object FrenchStreamProvider : Provider {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val video = Extractor.extract(server.src)
+        val finalUrl = if (server.src.contains("newplayer", ignoreCase = true)) {
+            val response = service.getRedirectLink(server.src)
+                .let { response -> response.raw() as okhttp3.Response }
+            response.request.url.toString()
+        } else {
+            server.src
+        }
+        
+        val video = Extractor.extract(finalUrl)
 
         return video
     }
@@ -642,7 +676,7 @@ object FrenchStreamProvider : Provider {
 
         @GET("index.php?do=search&subaction=search")
         suspend fun search(
-            @Query("story") story: String,
+            @Query("story", encoded = true) story: String,
         ): Document
 
         @GET("films/page/{page}/")
@@ -667,5 +701,8 @@ object FrenchStreamProvider : Provider {
         suspend fun getPeople(
             @Path("id") id: String,
         ): Document
+
+        @GET
+        suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
     }
 }

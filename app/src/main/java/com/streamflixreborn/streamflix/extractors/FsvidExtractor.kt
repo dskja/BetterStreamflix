@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.extractors
 
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.JsUnpacker
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
@@ -22,6 +23,9 @@ class FsvidExtractor : Extractor() {
             val newRequest = chain.request()
                 .newBuilder()
                 .header("User-Agent", DEFAULT_USER_AGENT)
+                .apply {
+                    UserPreferences.currentProvider?.baseUrl?.let { header("Referer", it) }
+                }
                 .build()
             chain.proceed(newRequest)
         }

@@ -120,6 +120,10 @@ class TvShowTvFragment : Fragment() {
                 ?.copy()
                 ?.apply { itemType = AppAdapter.Type.TV_SHOW_SEASONS_TV },
 
+            tvShow.takeIf { it.directors.isNotEmpty() }
+                ?.copy()
+                ?.apply { itemType = AppAdapter.Type.TV_SHOW_DIRECTORS_TV },
+
             tvShow.takeIf { it.cast.isNotEmpty() }
                 ?.copy()
                 ?.apply { itemType = AppAdapter.Type.TV_SHOW_CAST_TV },
