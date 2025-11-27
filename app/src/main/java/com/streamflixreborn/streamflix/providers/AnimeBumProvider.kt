@@ -266,13 +266,17 @@ object AnimeBumProvider : Provider {
                     videoUrl = "https:$videoUrl"
                 }
 
-                val serverName = try {
-                    videoUrl.toHttpUrl().host
-                        .replaceFirst("www.", "")
-                        .substringBefore(".")
-                        .replaceFirstChar { it.titlecase() }
-                } catch (e: Exception) {
-                    "Servidor"
+                val serverName = when {
+                    videoUrl.contains("/players/hime/p/embed.php") -> "Pcloud"
+                    videoUrl.contains("/embed.php?ver=") -> "Amazon Drive"
+                    else -> try {
+                        videoUrl.toHttpUrl().host
+                            .replaceFirst("www.", "")
+                            .substringBefore(".")
+                            .replaceFirstChar { it.titlecase() }
+                    } catch (e: Exception) {
+                        "Servidor"
+                    }
                 }
 
                 Video.Server(id = videoUrl, name = serverName)
@@ -283,7 +287,33 @@ object AnimeBumProvider : Provider {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return Extractor.extract(server.id, server)
+        val videoUrl = when {
+            server.id.contains("/players/hime/p/embed.php") -> {
+                val embedDocument = service.getPage(server.id)
+                val embedScript = embedDocument.select("script").find {
+                    it.data().contains("var shareId")
+                }?.data() ?: throw Exception("No se pudo obtener shareId")
+
+                val codeMatch = Regex("""var shareId\s*=\s*["']([^"']+)["']""").find(embedScript)
+                val code = codeMatch?.groupValues?.get(1) ?: throw Exception("shareId no encontrado")
+
+                "https://u.pcloud.link/publink/show?code=$code"
+            }
+            server.id.contains("/embed.php?ver=") -> {
+                val embedDocument = service.getPage(server.id)
+                val embedScript = embedDocument.select("script").find {
+                    it.data().contains("var shareId")
+                }?.data() ?: throw Exception("No se pudo obtener shareId de Amazon")
+
+                val codeMatch = Regex("""var shareId\s*=\s*["']([^"']+)["']""").find(embedScript)
+                val shareId = codeMatch?.groupValues?.get(1) ?: throw Exception("shareId no encontrado para Amazon Drive")
+
+                "https://www.amazon.com/drive/v1/shares/$shareId"
+            }
+            else -> server.id
+        }
+
+        return Extractor.extract(videoUrl, server)
     }
 
     override suspend fun getPeople(id: String, page: Int): People {

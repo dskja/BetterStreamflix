@@ -79,6 +79,9 @@ abstract class Extractor {
             PlusPomlaExtractor(),
             OneuploadExtractor(),
             FsvidExtractor(),
+            GoogleDriveExtractor(),
+            PcloudExtractor(),
+            AmazonDriveExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {
