@@ -82,6 +82,7 @@ abstract class Extractor {
             GoogleDriveExtractor(),
             PcloudExtractor(),
             AmazonDriveExtractor(),
+            VidzyExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

@@ -6,7 +6,9 @@ import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
@@ -126,9 +128,13 @@ class VixSrcExtractor : Extractor() {
 
     private interface VixSrcExtractorService {
         companion object {
+            val client = OkHttpClient.Builder()
+                .dns(DnsResolver.doh)
+                .build()
             fun build(baseUrl: String): VixSrcExtractorService {
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
+                    .client(client)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .build()
                     .create(VixSrcExtractorService::class.java)

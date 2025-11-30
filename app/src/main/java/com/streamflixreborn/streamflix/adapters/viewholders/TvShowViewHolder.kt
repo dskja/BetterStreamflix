@@ -544,6 +544,7 @@ class TvShowViewHolder(
                             number = episodeToWatch.number,
                             title = episodeToWatch.title,
                             poster = episodeToWatch.poster,
+                            overview = episodeToWatch.overview,
                             tvShow = Video.Type.Episode.TvShow(
                                 id = tvShow.id,
                                 title = tvShow.title,
@@ -797,6 +798,7 @@ class TvShowViewHolder(
                             number = episodeToWatch.number,
                             title = episodeToWatch.title,
                             poster = episodeToWatch.poster,
+                            overview = episodeToWatch.overview,
                             tvShow = Video.Type.Episode.TvShow(
                                 id = tvShow.id,
                                 title = tvShow.title,

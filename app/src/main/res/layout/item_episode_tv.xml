@@ -40,7 +40,7 @@
         android:id="@+id/tv_episode_info"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="0dp"
         android:gravity="center"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -73,5 +73,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_episode_title"
         tools:text="Release date" />
+
+    <TextView
+        android:id="@+id/tv_episode_overview"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="10dp"
+        android:textSize="12sp"
+        android:ellipsize="end"
+        android:scrollHorizontally="false"
+        android:singleLine="false"
+        android:maxLines="4"
+        app:layout_constraintTop_toBottomOf="@id/tv_episode_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Overview" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

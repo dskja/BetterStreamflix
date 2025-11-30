@@ -17,6 +17,7 @@ class Episode(
     var title: String? = null,
     released: String? = null,
     var poster: String? = null,
+    var overview: String? = null,
 
     var tvShow: TvShow? = null,
     var season: Season? = null,
@@ -51,6 +52,7 @@ class Episode(
         id: String = this.id,
         number: Int = this.number,
         title: String? = this.title,
+        overview: String? = this.overview,
         released: String? = this.released?.format("yyyy-MM-dd"),
         poster: String? = this.poster,
         tvShow: TvShow? = this.tvShow,
@@ -61,6 +63,7 @@ class Episode(
         title,
         released,
         poster,
+        overview,
         tvShow,
         season,
     )
@@ -78,6 +81,7 @@ class Episode(
         if (tvShow != other.tvShow) return false
         if (season != other.season) return false
         if (released != other.released) return false
+        if (overview != other.overview) return false
         if (isWatched != other.isWatched) return false
         if (watchedDate != other.watchedDate) return false
         if (watchHistory != other.watchHistory) return false
@@ -93,6 +97,7 @@ class Episode(
         result = 31 * result + (tvShow?.hashCode() ?: 0)
         result = 31 * result + (season?.hashCode() ?: 0)
         result = 31 * result + (released?.hashCode() ?: 0)
+        result = 31 * result + (overview?.hashCode() ?: 0)
         result = 31 * result + isWatched.hashCode()
         result = 31 * result + (watchedDate?.hashCode() ?: 0)
         result = 31 * result + (watchHistory?.hashCode() ?: 0)

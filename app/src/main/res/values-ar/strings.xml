@@ -162,6 +162,9 @@
         <string name="screen_scale_y_title">الحشوة العمودية</string>
         <string name="screen_scale_y_summary">ضبط الحشوة العلوية والسفلية للشاشة</string>
 
-	<string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
+        <string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
+        <string name="settings_frenchstream_use_new_interface">استخدم الواجهة الجديدة لـ FrenchStream</string>
+        <string name="settings_frenchstream_use_new_interface_on">تشغيل</string>
+        <string name="settings_frenchstream_use_new_interface_off">إيقاف</string>
 </resources>
 

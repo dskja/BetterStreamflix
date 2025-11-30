@@ -24,11 +24,13 @@ import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.database.dao.EpisodeDao
 import com.streamflixreborn.streamflix.database.dao.MovieDao
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
+import com.streamflixreborn.streamflix.providers.FrenchStreamProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
 import com.streamflixreborn.streamflix.providers.ProviderPortalUrl
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -162,6 +164,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     setOnPreferenceChangeListener { _, newValue ->
                         val newState = newValue as Boolean
                         UserPreferences.setProviderCache(
+                            null,
                             UserPreferences.PROVIDER_AUTOUPDATE,
                             newState.toString()
                         )
@@ -194,12 +197,14 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                             .trim()
                             .removeSuffix("/") + "/"
                         UserPreferences.setProviderCache(
+                            null,
                             UserPreferences.PROVIDER_URL,
                             toSave
                         )
                         summary = toSave
                         viewLifecycleOwner.lifecycleScope.launch {
                             configProvider.onChangeUrl()
+                            ProviderChangeNotifier.notifyProviderChanged()
                         }
                         true
                     }
@@ -228,6 +233,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                             .removeSuffix("/") + "/"
                         summary = toSave
                         UserPreferences.setProviderCache(
+                            null,
                             UserPreferences.PROVIDER_PORTAL_URL,
                             toSave
                         )
@@ -273,6 +279,27 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     Toast.makeText(requireContext(), getString(R.string.doh_provider_updated), Toast.LENGTH_LONG).show()
                 }
                 true
+            }
+        }
+
+        findPreference<SwitchPreference>("pc_frenchstream_new_interface")?.apply {
+            isVisible = UserPreferences.currentProvider is FrenchStreamProvider
+            if (isVisible) {
+                val useNewInterface = UserPreferences
+                    .getProviderCache(
+                        UserPreferences.currentProvider!!, UserPreferences
+                            .PROVIDER_NEW_INTERFACE
+                    ) != "false"
+                isChecked = useNewInterface
+                setOnPreferenceChangeListener { _, newValue ->
+                    val newState = newValue as Boolean
+                    UserPreferences.setProviderCache(
+                        null,
+                        UserPreferences.PROVIDER_NEW_INTERFACE,
+                        newState.toString()
+                    )
+                    true
+                }
             }
         }
 

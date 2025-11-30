@@ -38,7 +38,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty{ field }
         }
 
-    override val defaultBaseUrl: String = "http://flemmix.club/"
+    override val defaultBaseUrl: String = "http://flemmix.one/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -255,7 +255,9 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 ?.text()
                 ?: "",
             overview = document.selectFirst("div.screenshots-full")
-                ?.ownText(),
+                ?.ownText()
+                ?.substringAfter("en Streaming Complet:")
+                ?.trim(),
             released = document.select("ul.mov-list li")
                 .find {
                     it.selectFirst("div.mov-label")?.text()?.contains("Date de sortie") == true
@@ -351,16 +353,19 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override suspend fun getTvShow(id: String): TvShow {
         initializeService()
         val document = service.getTvShow(id)
-
+        val title = document.selectFirst("header.full-title h1")
+            ?.text()
+            ?: ""
+        val seasonNumber = title.substringAfter("Saison ").trim().toIntOrNull() ?: 0
         val tvShow = TvShow(
             id = id,
-            title = document.selectFirst("header.full-title h1")
-                ?.text()
-                ?: "",
+            title = title,
             overview = document.select("ul.mov-list li")
                 .find { it.selectFirst("div.mov-label")?.text()?.contains("Synopsis") == true }
                 ?.selectFirst("div.mov-desc")
-                ?.text(),
+                ?.text()
+                ?.substringAfter("en Streaming Complet:")
+                ?.trim(),
             released = document.select("ul.mov-list li")
                 .find {
                     it.selectFirst("div.mov-label")?.text()?.contains("Date de sortie") == true
@@ -383,10 +388,12 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 Season(
                     id = "$id/blocvostfr",
                     title = "Épisodes - VOSTFR",
+                    number = seasonNumber
                 ).takeIf { document.select("div.blocvostfr ul.eplist li").size > 0 },
                 Season(
                     id = "$id/blocfr",
                     title = "Épisodes - VF",
+                    number = seasonNumber
                 ).takeIf { document.select("div.blocfr ul.eplist li").size > 0 },
             ),
             directors = document.select("ul.mov-list li")
@@ -618,8 +625,10 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
                     if (!newUrl.isNullOrEmpty()) {
                         val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-                        UserPreferences.setProviderCache(UserPreferences.PROVIDER_URL, newUrl)
+                        UserPreferences.setProviderCache(this,
+                            UserPreferences.PROVIDER_URL, newUrl)
                         UserPreferences.setProviderCache(
+                            this,
                             UserPreferences.PROVIDER_LOGO,
                             newUrl + "templates/flemmixnew/images/favicon.png"
                         )

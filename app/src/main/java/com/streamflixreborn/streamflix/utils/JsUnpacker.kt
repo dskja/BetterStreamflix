@@ -37,6 +37,7 @@ class JsUnpacker(packedJS: String?) {
             if (m.find() && m.groupCount() == 4) {
                 val payload = m.group(1).replace("\\'", "'")
                 val radixStr = m.group(2)
+
                 val countStr = m.group(3)
                 val symtab = m.group(4).split("\\|".toRegex()).toTypedArray()
                 var radix = 36
@@ -59,7 +60,11 @@ class JsUnpacker(packedJS: String?) {
                 var replaceOffset = 0
                 while (m.find()) {
                     val word = m.group(0)
-                    val x = unbase.unbase(word)
+                    val x = try {
+                        unbase.unbase(word)
+                    } catch (_: Exception) {
+                        break
+                    }
                     var value: String? = null
                     if (x < symtab.size && x >= 0) {
                         value = symtab[x]

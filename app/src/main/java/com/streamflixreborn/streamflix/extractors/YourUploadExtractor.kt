@@ -1,7 +1,9 @@
 package com.streamflixreborn.streamflix.extractors
 
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
+import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
@@ -41,8 +43,13 @@ class YourUploadExtractor : Extractor() {
 
         companion object {
             fun build(baseUrl: String): YourUploadExtractorService {
+                val client = OkHttpClient.Builder()
+                    .dns(DnsResolver.doh)
+                    .build()
+
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
+                    .client(client)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .build()
 

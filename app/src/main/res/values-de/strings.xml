@@ -251,4 +251,8 @@
     <string name="screen_scale_y_summary">Passe den oberen und unteren Bildschirmabstand an</string>
 
     <string name="doh_provider_updated">DNS-over-HTTPS-Einstellungen aktualisiert! Starte die App neu, um die Änderungen anzuwenden.</string>
+
+    <string name="settings_frenchstream_use_new_interface">Die neue FrenchStream-Oberfläche verwenden</string>
+    <string name="settings_frenchstream_use_new_interface_on">Ein</string>
+    <string name="settings_frenchstream_use_new_interface_off">Aus</string>
 </resources>

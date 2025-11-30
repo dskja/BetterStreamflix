@@ -190,8 +190,8 @@
     <string name="settings_category_provider_url">Main URL</string>
     <string name="settings_category_provider_update_url">Portal URL</string>
     <string name="settings_autoupdate">Refresh main URL on startup</string>
-    <string name="settings_autoupdate_on">On</string>
-    <string name="settings_autoupdate_off">Off</string>
+    <string name="settings_autoupdate_on">Activada</string>
+    <string name="settings_autoupdate_off">Desactivada</string>
     <string name="settings_autoupdate_now">Refresh main URL now</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Usar DNS seguro</string>
     <string name="settings_category_network_title">Ajusted de red</string>
@@ -237,4 +237,8 @@
     <string name="screen_scale_y_summary">Ajusta el relleno superior e inferior de la pantalla</string>
 
     <string name="doh_provider_updated">¡Configuración de DNS over HTTPS actualizada! Reinicia la app para aplicar los cambios.</string>
+
+    <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
+    <string name="settings_frenchstream_use_new_interface_on">Activada</string>
+    <string name="settings_frenchstream_use_new_interface_off">Desactivada</string>
 </resources>

@@ -208,12 +208,12 @@
     <string name="settings_category_provider_url">URL principale</string>
     <string name="settings_category_provider_update_url">URL del portale</string>
     <string name="settings_autoupdate">Aggiorna l\'URL principale all\'avvio</string>
-    <string name="settings_autoupdate_on">Attivato</string>
-    <string name="settings_autoupdate_off">Disattivato</string>
+    <string name="settings_autoupdate_on">Attiva</string>
+    <string name="settings_autoupdate_off">Disattivata</string>
     <string name="settings_autoupdate_now">Aggiorna subito l\'URL principale</string>
     <string name="settings_autoplay">Riproduzione automatica del prossimo episodio</string>
-    <string name="settings_autoplay_on">Attiva</string>
-    <string name="settings_autoplay_off">Disattiva</string>
+    <string name="settings_autoplay_on">Attivato</string>
+    <string name="settings_autoplay_off">Disattivato</string>
     <string name="autoplay_settings">Impostazioni di riproduzione automatica</string>
     <string name="miscelaneous_title">Varie</string>
     <string name="clear_cache_done">Cache svuotata</string>
@@ -252,7 +252,8 @@
 
     <string name="backup_import_read_error">Errore durante la lettura o l\'elaborazione del file di backup.</string>
 
-
-
     <string name="doh_provider_updated">Impostazioni DNS over HTTPS aggiornate! Riavvia l\'app per applicare le modifiche.</string>
+    <string name="settings_frenchstream_use_new_interface">Usa la nuova interfaccia FrenchStream</string>
+    <string name="settings_frenchstream_use_new_interface_on">Attiva</string>
+    <string name="settings_frenchstream_use_new_interface_off">Disattivata</string>
 </resources>

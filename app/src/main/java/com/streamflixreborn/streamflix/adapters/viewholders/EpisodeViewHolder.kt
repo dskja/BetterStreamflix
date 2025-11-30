@@ -79,6 +79,7 @@ class EpisodeViewHolder(
                             number = episode.number,
                             title = episode.title,
                             poster = episode.poster,
+                            overview = episode.overview,
                             tvShow = Video.Type.Episode.TvShow(
                                 id = episode.tvShow?.id ?: "",
                                 title = episode.tvShow?.title ?: "",
@@ -174,6 +175,7 @@ class EpisodeViewHolder(
                             number = episode.number,
                             title = episode.title,
                             poster = episode.poster,
+                            overview = episode.overview,
                             tvShow = Video.Type.Episode.TvShow(
                                 id = episode.tvShow?.id ?: "",
                                 title = episode.tvShow?.title ?: "",
@@ -246,6 +248,7 @@ class EpisodeViewHolder(
                 else -> View.VISIBLE
             }
         }
+        binding.tvEpisodeOverview.text = episode.overview ?: ""
     }
 
     private fun displayContinueWatchingMobileItem(binding: ItemEpisodeContinueWatchingMobileBinding) {
@@ -283,6 +286,7 @@ class EpisodeViewHolder(
                             number = episode.number,
                             title = episode.title,
                             poster = episode.poster,
+                            overview = episode.overview,
                             tvShow = Video.Type.Episode.TvShow(
                                 id = episode.tvShow?.id ?: "",
                                 title = episode.tvShow?.title ?: "",
@@ -384,6 +388,7 @@ class EpisodeViewHolder(
                             number = episode.number,
                             title = episode.title,
                             poster = episode.poster,
+                            overview = episode.overview,
                             tvShow = Video.Type.Episode.TvShow(
                                 id = episode.tvShow?.id ?: "",
                                 title = episode.tvShow?.title ?: "",

@@ -75,6 +75,7 @@ object EpisodeManager {
                 number = ep.number,
                 title = ep.title,
                 poster = ep.poster,
+                overview = ep.overview,
                 tvShow = Episode.TvShow(
                     id = tvShowId,
                     title = tvShowFromDb?.title ?: "",

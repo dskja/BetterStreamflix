@@ -255,4 +255,9 @@
     <string name="screen_scale_y_summary">Adjust top and bottom screen padding</string>
 
     <string name="doh_provider_updated">DNS over HttPS settings updated! Restart the app to apply changes.</string>
+
+    <string name="settings_category_frenchstream">FrenchStream settings</string>
+    <string name="settings_frenchstream_use_new_interface">Use the new FrenchStream interface</string>
+    <string name="settings_frenchstream_use_new_interface_on">On</string>
+    <string name="settings_frenchstream_use_new_interface_off">Off</string>
 </resources>

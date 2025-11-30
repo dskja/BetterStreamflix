@@ -3,7 +3,9 @@ package com.streamflixreborn.streamflix.extractors
 import android.util.Base64
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.retry
+import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -131,9 +133,13 @@ class VidsrcToExtractor : Extractor() {
     private interface Service {
 
         companion object {
+            val client = OkHttpClient.Builder()
+                .dns(DnsResolver.doh)
+                .build()
             fun build(baseUrl: String): Service {
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
+                    .client(client)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()

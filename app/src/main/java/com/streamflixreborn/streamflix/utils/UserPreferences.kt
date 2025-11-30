@@ -28,6 +28,7 @@ object UserPreferences {
     const val PROVIDER_LOGO = "LOGO"
     const val PROVIDER_PORTAL_URL = "PORTAL_URL"
     const val PROVIDER_AUTOUPDATE = "AUTOUPDATE_URL"
+    const val PROVIDER_NEW_INTERFACE = "NEW_INTERFACE"
 
     lateinit var providerCache: JSONObject
 
@@ -66,8 +67,8 @@ object UserPreferences {
             .orEmpty()
     }
 
-    fun setProviderCache(key: String, value: String) {
-        val providerName = currentProvider?.name ?: return
+    fun setProviderCache(provider: Provider?, key: String, value: String) {
+        val providerName = provider?.name ?: currentProvider?.name ?: return
         val innerJson = providerCache.optJSONObject(providerName)
             ?: JSONObject().also { providerCache.put(providerName, it) }
         innerJson.put(key, value)

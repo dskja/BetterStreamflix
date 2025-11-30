@@ -48,6 +48,7 @@ class PlayerViewModel(
             number = ep.number,
             title = ep.title,
             poster = ep.poster,
+            overview = ep.overview,
             tvShow = Video.Type.Episode.TvShow(
                 id = ep.tvShow.id,
                 title = ep.tvShow.title,

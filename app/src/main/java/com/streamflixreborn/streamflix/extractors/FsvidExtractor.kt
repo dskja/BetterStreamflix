@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.extractors
 
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.JsUnpacker
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import okhttp3.OkHttpClient
@@ -29,6 +30,7 @@ class FsvidExtractor : Extractor() {
                 .build()
             chain.proceed(newRequest)
         }
+        .dns(DnsResolver.doh)
         .build()
 
     private val service = Retrofit.Builder()
@@ -52,7 +54,6 @@ class FsvidExtractor : Extractor() {
             .let { "eval(function(p,a,c,k,e,d)$it" }
 
         if (!scriptData.startsWith("eval")) throw Exception("Packed JS not found")
-
         val unpacked = JsUnpacker(scriptData).unpack() ?: throw Exception("Unpack failed")
 
         val fileRegex = Regex("""file\s*:\s*["']([^"']+)["']""")

@@ -25,6 +25,7 @@ data class Video(
             val number: Int,
             val title: String?,
             val poster: String?,
+            val overview: String?,
             val tvShow: TvShow,
             val season: Season,
         ) : Type() {

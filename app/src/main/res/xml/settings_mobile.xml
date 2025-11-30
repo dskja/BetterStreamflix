@@ -48,11 +48,18 @@
             android:icon="@drawable/ic_refresh"
             android:key="provider_autoupdate_now"
             android:title="@string/settings_autoupdate_now" />
+
+        <SwitchPreference
+            android:key="pc_frenchstream_new_interface"
+            android:title="@string/settings_frenchstream_use_new_interface"
+            android:defaultValue="true"
+            android:summaryOn="@string/settings_frenchstream_use_new_interface_on"
+            android:summaryOff="@string/settings_frenchstream_use_new_interface_off" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/autoplay_settings">
         <SwitchPreference
-                android:key="AUTOPLAY"
+            android:key="AUTOPLAY"
             android:title="@string/settings_autoplay"
             android:defaultValue="true"
             android:summaryOn="@string/settings_autoplay_on"
