@@ -25,6 +25,7 @@ import retrofit2.http.Url
 import retrofit2.Response
 import okhttp3.ResponseBody
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -34,7 +35,6 @@ import retrofit2.http.Header
 import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
-import kotlin.collections.mapIndexed
 import kotlin.math.round
 
 object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
@@ -187,7 +187,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 )
             })
             return true
-        if (source.trim() == "Dood.Stream" && href.contains("/bigwar5/")) return true
+        if (source.trim().equals("Dood.Stream", ignoreCase = true) && href.contains("/bigwar5/")) return true
         return false
     }
 
@@ -397,6 +397,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         initializeService()
         val document = service.getTvShow(id)
         val actors = extractActors(document)
+        val versions = extractTvShowVersions(document)
         val poster = document.selectFirst("img.dvd-thumbnail")
             ?.attr("src") ?: ""
         val votes = document.selectFirst("div.fr-votes")
@@ -428,29 +429,21 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             quality = document.selectFirst("span[id=film_quality]")
                 ?.text(),
             poster = poster,
-            seasons = listOfNotNull(
+            seasons = versions.map { version ->
                 Season(
-                    id = id + "/VOSTFR/-vostfr",
+                    id = "$id/$version/-vostfr",
                     number = seasonNumber,
-                    title = "Épisodes - VOSTFR"
-                ).takeIf {
-                    document.selectFirst("div.VF-tab")?.parent()?.selectFirst("a.fstab")?.hasText()
-                        ?: false
-                },
-                Season(
-                    id = id + "/VF/-vf",
-                    number = seasonNumber,
-                    title = "Épisodes - VF"
-                ).takeIf {
-                    document.selectFirst("div.VOSTFR-tab")?.parent()?.selectFirst("a.fstab")
-                        ?.hasText() ?: false
-                },
-            ),
-            genres = document.select("span.genres")
-                .select("a").mapNotNull {
+                    title = "Épisodes - "+version.uppercase()
+                )
+            },
+            genres = document.select("span.genres").text().
+                split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .map {
                     Genre(
-                        id = it.attr("href").substringBeforeLast("/").substringAfterLast("/"),
-                        name = it.text(),
+                        id = it,
+                        name = it,
                     )
                 },
             directors = document.select("ul#s-list li")
@@ -494,7 +487,6 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             val poster = epDiv.selectFirst("img.episode-image")?.attr("src")?.takeIf { it.isNotEmpty() } ?: defaultPoster
 
             val title = epDiv.selectFirst("div.episode-details > div.episode-title")?.text()?.substringAfter(":")?.trim() ?: ""
-
 
             val url = epDiv.selectFirst("button[data-episode$='"+divFilter+"'][data-url^='h']")?.attr("data-url") ?: ""
 
@@ -584,7 +576,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return people
     }
 
-    suspend fun extractServersDefinition(document: Document): Map<String, Any>? {
+    suspend fun extractMovieServersDefinition(document: Document): Map<String, Any>? {
         val scriptContent = document.select("script").joinToString("\n") { it.data() }
 
         val regex = Regex("""var\s+playerUrls\s*=\s*(\{.*?\});""", RegexOption.DOT_MATCHES_ALL)
@@ -593,7 +585,47 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val jsonPart = match.groupValues[1]
 
         val type = object : TypeToken<Map<String, Any>>() {}.type
-        return Gson().fromJson(jsonPart, type)
+        return try {
+            Gson().fromJson(jsonPart, type)
+        } catch (e: JsonSyntaxException) {
+            null
+        }
+    }
+
+    suspend fun extractTvShowServersDefinition(document: Document, lang: String, number: Int): Map<String, Any>? {
+        var jsonPart = document.select("script").joinToString("\n") { it.data() }.substringAfter("episodesData = {").substringBefore("};")
+
+        if (jsonPart.isBlank()) return null
+
+        return try {
+            val type = object : TypeToken<Map<String, Map<String, Map<String, Any>>>>() {}.type
+            jsonPart = "{$jsonPart}".replace("\\s+".toRegex(), "")
+            jsonPart = jsonPart.replace(Regex("""(?m)(?<=\{|,)\s*([A-Za-z0-9_]+)\s*:"""), "\"$1\":")
+                .replace("},}","}}")
+
+            val data: Map<String, Map<String, Map<String, Any>>> = Gson().fromJson(jsonPart, type)
+            data[lang]?.get(number.toString())
+        } catch (e: JsonSyntaxException) {
+            null
+        }
+    }
+
+    fun extractTvShowVersions(document: Document): MutableList<String> {
+        val scriptContent = document.select("script").joinToString("\n") { it.data() }.substringAfter("episodesData = {").substringBefore("};")
+
+        val versions = listOf("vostfr", "vf")
+        val found = mutableListOf<String>()
+
+        for (version in versions) {
+            val regex = Regex("""$version:\s*\{([\s\S]*?)\}""")
+            val content = regex.find(scriptContent)?.groupValues?.get(1)
+
+            if (content != null && content.any { !it.isWhitespace() }) {
+                found.add(version)
+            }
+        }
+
+        return found
     }
 
     suspend fun extractActors(document: Document): List<List<String>> {
@@ -634,21 +666,15 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
                 val document = service.getTvShow(tvShowId)
 
-                document.select("div.fullsfeature > div.selink:has(span:contains("+tvShowLang+"))").
-                                getOrNull(tvShowNumber.toInt()-1)
-                                ?.select("li > a")
-                                ?.filter {
-                                    it.text().isNotBlank() && ignoreSource(it.text(), it.attr("href") ) == false
-                                }
-                                ?.mapIndexed { index, it ->
+                extractTvShowServersDefinition(document, tvShowLang, tvShowNumber.toInt())
+                                ?.filter { (key, value) -> ! ignoreSource(key, value.toString()) }
+                                ?.map { (key, value ) ->
                                     Video.Server(
-                                        id = index.toString(),
-                                        name = it?.text()
-                                               ?: "",
-                                        src = it.attr("href"),
+                                        id = key,
+                                        name = key.replaceFirstChar { it.uppercase() },
+                                        src = value.toString(),
                                     )
-                                }
-                                ?: emptyList()
+                                } ?: emptyList()
             }
 
             is Video.Type.Movie -> {
@@ -663,7 +689,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     "VOSTFR" to "VOSTFR"
                 )
 
-                extractServersDefinition(document)?.entries?.flatMap { (source, it) ->
+                extractMovieServersDefinition(document)?.entries?.flatMap { (source, it) ->
                     val map = it as? Map<*, *> ?: return@flatMap emptyList()
                     val defaultValue = map["Default"] as? String
                     val defaultIsDuplicate = map.entries.any { (lang, href) ->
