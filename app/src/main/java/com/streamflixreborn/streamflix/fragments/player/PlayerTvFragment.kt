@@ -30,6 +30,7 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
@@ -46,6 +47,7 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -57,6 +59,7 @@ import com.streamflixreborn.streamflix.utils.setMediaServers
 import com.streamflixreborn.streamflix.utils.toSubtitleMimeType
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import okhttp3.internal.userAgent
 import java.util.Calendar
 import kotlin.time.Duration.Companion.minutes
@@ -314,7 +317,10 @@ class PlayerTvFragment : Fragment() {
 
 
     private fun initializeVideo() {
-        httpDataSource = DefaultHttpDataSource.Factory()
+        val okHttpClient = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .build()
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
         player = ExoPlayer.Builder(requireContext())
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))

@@ -62,8 +62,12 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+
 import androidx.navigation.NavOptions
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
+import okhttp3.OkHttpClient
 
 class PlayerMobileFragment : Fragment() {
 
@@ -350,7 +354,11 @@ class PlayerMobileFragment : Fragment() {
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
         }
 
-        httpDataSource = DefaultHttpDataSource.Factory()
+        val okHttpClient = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .build()
+	    httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
         player = ExoPlayer.Builder(requireContext())
             .setSeekBackIncrementMs(10_000)
