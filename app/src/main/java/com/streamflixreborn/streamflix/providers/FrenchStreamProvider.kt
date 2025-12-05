@@ -431,7 +431,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             poster = poster,
             seasons = versions.map { version ->
                 Season(
-                    id = "$id/$version/-vostfr",
+                    id = "$id/$version/-$version",
                     number = seasonNumber,
                     title = "Épisodes - "+version.uppercase()
                 )
