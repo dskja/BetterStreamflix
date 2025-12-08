@@ -15,7 +15,7 @@
     <string name="app_layout_auto">Automático</string>
     <string name="app_layout_mobile">Diseño para móviles</string>
     <string name="app_layout_tv">Diseño para TV</string>
-    <string name="app_layout_apply">Aplcar</string> 
+    <string name="app_layout_apply">Aplicar</string> 
     <string name="providers_all_languages">Todos los idiomas</string>
     <string name="providers_choose_title">Seleccionar proveedor</string>
     <string name="main_menu_change_provider">Cambiar proveedor</string>
@@ -186,18 +186,18 @@
     <string name="settings_category_streamingcommunity">Ajustes para StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Ajustes para StreamingCommunity</string>
     <string name="settings_close_app">Cerrer aplicación</string>
-    <string name="settings_category_provider_title">Provider settings</string>
-    <string name="settings_category_provider_url">Main URL</string>
-    <string name="settings_category_provider_update_url">Portal URL</string>
-    <string name="settings_autoupdate">Refresh main URL on startup</string>
-    <string name="settings_autoupdate_on">Activada</string>
-    <string name="settings_autoupdate_off">Desactivada</string>
-    <string name="settings_autoupdate_now">Refresh main URL now</string>
+    <string name="settings_category_provider_title">Ajustes del proveedor</string>
+    <string name="settings_category_provider_url">URL principal</string>
+    <string name="settings_category_provider_update_url">URL del portal</string>
+    <string name="settings_autoupdate">Actualizar URL principal al inicio</string>
+    <string name="settings_autoupdate_on">Activado</string>
+    <string name="settings_autoupdate_off">Desactivado</string>
+    <string name="settings_autoupdate_now">Actualizar URL principal ahora</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Usar DNS seguro</string>
     <string name="settings_category_network_title">Ajusted de red</string>
     <string name="settings_autoplay">Reproducción automática del siguiente episodio</string>
-    <string name="settings_autoplay_on">Activada</string>
-    <string name="settings_autoplay_off">Desactivada</string>
+    <string name="settings_autoplay_on">Activado</string>
+    <string name="settings_autoplay_off">Desactivado</string>
     <string name="autoplay_settings">Ajustes de reproducción automatica</string>
     <string name="miscelaneous_title">Varios</string>
     <string name="clear_cache_done">Caché vaciada</string>
@@ -221,7 +221,6 @@
     <string name="backup_export_summary">Guarda tus datos (favoritos, historial de visualización) en un archivo.</string>
     <string name="backup_import_title">Importar datos de usuario</string>
     <string name="backup_import_summary">Restaura tus datos desde un archivo de copia de seguridad.</string>
-    
     <string name="backup_export_success">¡Copia de seguridad exportada correctamente!</string>
     <string name="backup_export_error_write">Error al exportar la copia de seguridad.</string>
     <string name="backup_data_not_generated">Error: datos de copia de seguridad no generados.</string>
@@ -229,16 +228,14 @@
     <string name="backup_import_error">Error al importar la copia de seguridad.</string>
     <string name="backup_import_empty_file">Error: el archivo de copia de seguridad está vacío o no se puede leer.</string>
     <string name="backup_import_read_error">Error al leer o procesar el archivo de copia de seguridad.</string>
-
     <string name="screen_scale_category_title">Relleno de pantalla</string>
     <string name="screen_scale_x_title">Relleno horizontal</string>
     <string name="screen_scale_x_summary">Ajusta el relleno izquierdo y derecho de la pantalla</string>
     <string name="screen_scale_y_title">Relleno vertical</string>
     <string name="screen_scale_y_summary">Ajusta el relleno superior e inferior de la pantalla</string>
-
-    <string name="doh_provider_updated">¡Configuración de DNS over HTTPS actualizada! Reinicia la app para aplicar los cambios.</string>
-
+    <string name="doh_provider_updated">¡Ajustes de DNS sobre HTTPS actualizada! Reinicia la app para aplicar los cambios.</string>
+    <string name="settings_category_frenchstream">Ajustes de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
-    <string name="settings_frenchstream_use_new_interface_on">Activada</string>
-    <string name="settings_frenchstream_use_new_interface_off">Desactivada</string>
+    <string name="settings_frenchstream_use_new_interface_on">Activado</string>
+    <string name="settings_frenchstream_use_new_interface_off">Desactivado</string>
 </resources>
