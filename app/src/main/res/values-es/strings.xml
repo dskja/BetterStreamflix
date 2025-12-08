@@ -233,7 +233,7 @@
     <string name="screen_scale_x_summary">Ajusta el relleno izquierdo y derecho de la pantalla</string>
     <string name="screen_scale_y_title">Relleno vertical</string>
     <string name="screen_scale_y_summary">Ajusta el relleno superior e inferior de la pantalla</string>
-    <string name="doh_provider_updated">¡Ajustes de DNS sobre HTTPS actualizada! Reinicia la app para aplicar los cambios.</string>
+    <string name="doh_provider_updated">¡Ajustes de DNS sobre HTTPS actualizado! Reinicia la app para aplicar los cambios.</string>
     <string name="settings_category_frenchstream">Ajustes de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Activado</string>
