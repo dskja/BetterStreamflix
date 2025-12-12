@@ -170,10 +170,14 @@ object Altadefinizione01Provider : Provider {
         }
     }
 
-    private fun cleanDescriptionEpisodeTitle(rawTitle: String): String? {
+    private fun parseEpisodeTitleAndOverview(rawTitle: String): Pair<String?, String?> {
         val trimmed = rawTitle.trim()
-        val leading = trimmed.substringBefore(":").trim()
-        return leading.ifBlank { null }
+        if (trimmed.contains(":")) {
+            val title = trimmed.substringBefore(":").trim().ifBlank { null }
+            val overview = trimmed.substringAfter(":").trim().ifBlank { null }
+            return Pair(title, overview)
+        }
+        return Pair(trimmed.ifBlank { null }, null)
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -321,13 +325,14 @@ object Altadefinizione01Provider : Provider {
             seasonPane?.select("ul > li > a[allowfullscreen][data-link]")?.forEach { ep ->
                 val epNum = ep.attr("data-num").substringAfter('x').toIntOrNull()
                     ?: ep.text().trim().toIntOrNull() ?: 0
-                val epTitle = cleanDescriptionEpisodeTitle(ep.attr("data-title"))
+                val (epTitle, epOverview) = parseEpisodeTitleAndOverview(ep.attr("data-title"))
                 episodes.add(
                     Episode(
                         id = "$id#s${seasonNumber}e$epNum",
                         number = epNum,
                         title = epTitle,
                         poster = null,
+                        overview = epOverview
                     )
                 )
             }
@@ -365,7 +370,7 @@ object Altadefinizione01Provider : Provider {
         seasonPane.select("ul > li > a[allowfullscreen][data-link]").forEach { ep ->
             val epNum = ep.attr("data-num").substringAfter('x').toIntOrNull()
                 ?: ep.text().trim().toIntOrNull() ?: 0
-            val epTitle = cleanDescriptionEpisodeTitle(ep.attr("data-title"))
+            val (epTitle, epOverview) = parseEpisodeTitleAndOverview(ep.attr("data-title"))
             val episodeMirrors = ep.parent()?.select("a[data-link]")?.filter { link ->
                 link.text().contains("Dropload", true)
             } ?: emptyList()
@@ -380,6 +385,7 @@ object Altadefinizione01Provider : Provider {
                     number = epNum,
                     title = epTitle,
                     poster = episodePoster,
+                    overview = epOverview
                 )
             )
         }
