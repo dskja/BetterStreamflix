@@ -8,8 +8,6 @@ on:
 jobs:
   build-and-release:
     name: Build & Release APK
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
