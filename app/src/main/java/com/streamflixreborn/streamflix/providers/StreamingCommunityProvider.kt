@@ -44,7 +44,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
-    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.media"
+    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.kim"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -531,7 +531,8 @@ object StreamingCommunityProvider : Provider {
                 id = "${seasonId.substringBefore("-")}?episode_id=${it.id}",
                 number = it.number.toIntOrNull() ?: (res.props.loadedSeason.episodes.indexOf(it) + 1),
                 title = it.name,
-                poster = getImageLink(it.images.find { image -> image.type == "cover" }?.filename)
+                poster = getImageLink(it.images.find { image -> image.type == "cover" }?.filename),
+                overview = it.plot
             )
         }
     }
@@ -967,7 +968,8 @@ object StreamingCommunityProvider : Provider {
             val id: String,
             val images: List<Image>,
             val name: String,
-            val number: String
+            val number: String,
+            val plot: String? = null
         )
         data class SeasonPropsDetails(
             val episodes: List<SeasonPropsEpisodes>

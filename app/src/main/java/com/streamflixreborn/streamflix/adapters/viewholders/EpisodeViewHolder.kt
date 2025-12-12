@@ -143,6 +143,7 @@ class EpisodeViewHolder(
                 else -> View.VISIBLE
             }
         }
+        binding.tvEpisodeOverview.text = episode.overview ?: ""
     }
 
     private fun displayTvItem(binding: ItemEpisodeTvBinding) {
