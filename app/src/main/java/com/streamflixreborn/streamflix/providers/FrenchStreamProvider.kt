@@ -31,7 +31,10 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Header
+import retrofit2.http.POST
 import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
@@ -191,13 +194,6 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return false
     }
 
-    fun encodeAllExceptPlus(input: String): String {
-        return if (input.contains('+'))
-                    input.trim()
-               else "\""+(input.replace(' ', '+').trim())+"\""
-
-    }
-
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (page > 1) return emptyList()
         initializeService()
@@ -213,51 +209,33 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
             return genres
         }
-
         val document = service.search(
-            story = encodeAllExceptPlus(query)
+            query = query
         )
-
-        val results = document.select("div#dle-content > div.short")
-            .sortedWith(
-                compareByDescending<Element> {
-                    it.selectFirst("a.short-poster")?.attr("href")?.contains("films/") == true
-                }.thenBy {
-                    it.selectFirst("div.short-title")?.text() ?: ""
-                })
+        val results = document.select("div.search-item")
             .mapNotNull {
-                val href = it.selectFirst("a.short-poster")
-                    ?.attr("href")
-                    ?: ""
-                val id = href.substringAfterLast("/")
-
-                val title = it.selectFirst("div.short-title")
-                    ?.text()
+                val id = it
+                    .attr("onclick").substringAfter("/").substringBefore("'")
+                if (id.isEmpty()) return@mapNotNull null
+                val title = it.selectFirst("div.search-title")
+                    ?.text()?.replace("\\'","'")
                     ?: ""
                 var poster = it.selectFirst("img")
                     ?.attr("src")
                     ?: ""
-                if (poster.contains("url=")) {
-                    poster = poster.substringAfter("url=")
-                } else {
-                    poster = baseUrl + poster
-                }
 
-                if (href.contains("films/")) {
-                    Movie(
-                        id = id,
-                        title = title,
-                        poster = poster,
-                    )
-                } else if (href.contains("s-tv/")) {
+                if (id.contains("-saison-"))
                     TvShow(
                         id = id,
                         title = title,
                         poster = poster,
                     )
-                } else {
-                    null
-                }
+                else
+                    Movie(
+                        id = id,
+                        title = title,
+                        poster = poster,
+                    )
             }
 
         return results
@@ -617,10 +595,9 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val found = mutableListOf<String>()
 
         for (version in versions) {
-            val regex = Regex("""$version:\s*\{([\s\S]*?)\}""")
+            val regex = Regex("""$version:\s*\{([\s\S]*?)\s\}""")
             val content = regex.find(scriptContent)?.groupValues?.get(1)
-
-            if (content != null && content.any { !it.isWhitespace() }) {
+            if (content != null && content.contains("\"http")) { //content.any { !it.isWhitespace() }) {
                 found.add(version)
             }
         }
@@ -818,9 +795,11 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Header("Cookie") cookie: String = "dle_skin=VFV1"
         ): Document
 
-        @GET("index.php?do=search&subaction=search")
+        @FormUrlEncoded
+        @POST("engine/ajax/search.php")
         suspend fun search(
-            @Query("story", encoded = true) story: String,
+            @Field("query") query: String,
+            @Field("page") page: Int = 1
         ): Document
 
         @GET("films/page/{page}/")
