@@ -68,7 +68,6 @@ interface Provider {
             AnimeWorldProvider to ProviderSupport(movies = true, tvShows = true),
             AniWorldProvider to ProviderSupport(movies = false, tvShows = true),
             RidomoviesProvider to ProviderSupport(movies = true, tvShows = true),
-            OtakufrProvider to ProviderSupport(movies = true, tvShows = true),
             WiflixProvider to ProviderSupport(movies = true, tvShows = true),
             MStreamProvider to ProviderSupport(movies = true, tvShows = true),
             FrenchAnimeProvider to ProviderSupport(movies = true, tvShows = true),
@@ -96,6 +95,7 @@ interface Provider {
             FrenchStreamProvider to ProviderSupport(movies = true, tvShows = true),
             GuardaSerieProvider to ProviderSupport(movies = true, tvShows = true),
             EinschaltenProvider to ProviderSupport(movies = true, tvShows = false),
+            HDFilmeProvider to ProviderSupport(movies = true, tvShows = true),
         )
 
         // Helper functions to check support

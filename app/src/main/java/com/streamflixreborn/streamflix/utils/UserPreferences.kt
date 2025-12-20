@@ -22,7 +22,7 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingcommunityz.kim"
+    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingcommunityz.fun"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"

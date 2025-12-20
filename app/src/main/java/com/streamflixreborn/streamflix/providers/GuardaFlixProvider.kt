@@ -31,7 +31,7 @@ import java.util.Base64
 object GuardaFlixProvider : Provider {
 
     override val name: String = "GuardaFlix"
-    override val baseUrl: String = "https://guardaflix.onl"
+    override val baseUrl: String = "https://guardaplay.bar"
     override val logo: String = "$baseUrl/wp-content/uploads/2021/05/cropped-Guarda-Flix-2.png"
     override val language: String = "it"
 
