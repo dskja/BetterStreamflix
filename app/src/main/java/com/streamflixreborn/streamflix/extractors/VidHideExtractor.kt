@@ -21,7 +21,8 @@ class VidHideExtractor: Extractor() {
         "https://mivalyo",
         "https://dinisglows",
         "https://dingtezuni.com",
-        "https://dintezuvio.com"
+        "https://dintezuvio.com",
+        "https://minochinos.com"
     )
 
     companion object {

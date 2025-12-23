@@ -31,7 +31,7 @@ import kotlinx.coroutines.coroutineScope
 object GuardaSerieProvider : Provider {
 
     override val name = "GuardaSerie"
-    override val baseUrl = "https://guardoserie.buzz"
+    override val baseUrl = "https://guardoserie.bar"
     override val logo: String = "$baseUrl/wp-content/uploads/2021/02/Guardaserie-3.png"
     override val language = "it"
 

@@ -85,10 +85,7 @@ class RpmvidExtractor : Extractor() {
         
         val (finalUrl, headers) = when {
             !hlsPath.isNullOrEmpty() -> {
-                val ttdata = json.get("ttdata")?.asString?.takeIf { it.isNotEmpty() }
-                    ?: throw Exception("Missing ttdata in response")
-                val ttdataHost = ttdata.substringBefore("::")
-                val url = "$mainLink/pproxy/${ttdataHost}${hlsPath}"
+                val url = "$mainLink${hlsPath}"
                 url to mapOf("Referer" to mainLink)
             }
             !cfPath.isNullOrEmpty() -> {

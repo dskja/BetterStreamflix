@@ -92,7 +92,8 @@ class CloseloadExtractor : Extractor() {
             decodeObfuscatedUrlRotFirst(arrayParts),
             decodeObfuscatedUrl(arrayParts),
             decodeObfuscatedUrlDecodeFirst(arrayParts),
-            decodeObfuscatedUrlReverseFirst(arrayParts) // <-- new fallback
+            decodeObfuscatedUrlDoubleB64Reverse(arrayParts),
+            decodeObfuscatedUrlReverseFirst(arrayParts)
         )
         return candidates.firstOrNull { it.startsWith("http") }
     }
@@ -168,6 +169,20 @@ class CloseloadExtractor : Extractor() {
         val finalBytes = ByteArray(rot13Bytes.size) { i ->
             val adjustment = 399_756_995 % (i + 5)
             ((rot13Bytes[i].toInt() - adjustment + 256) % 256).toByte()
+        }
+        return String(finalBytes, Charsets.UTF_8)
+    }
+
+    private fun decodeObfuscatedUrlDoubleB64Reverse(parts: List<String>): String? {
+        val joined = parts.joinToString("")
+        val reversed = joined.reversed()
+        val step1 = safeBase64Decode(reversed) ?: return null
+        val step2 = safeBase64Decode(String(step1, Charsets.ISO_8859_1)) ?: return null
+
+        val finalBytes = ByteArray(step2.size) { i ->
+            val b = step2[i]
+            val adjustment = 399_756_995 % (i + 5)
+            ((b.toInt() - adjustment + 256) % 256).toByte()
         }
         return String(finalBytes, Charsets.UTF_8)
     }

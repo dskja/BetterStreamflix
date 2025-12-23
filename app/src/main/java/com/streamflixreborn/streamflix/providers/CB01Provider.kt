@@ -204,11 +204,39 @@ object CB01Provider : Provider {
         )
     }
 
+    private fun parseLatestMovie(el: Element): Movie? {
+        val titleAnchor = el.selectFirst("h3.rpwe-title a[href]") ?: return null
+        val href = titleAnchor.attr("href").trim()
+        val rawTitle = titleAnchor.text().trim()
+        val title = cleanTitle(rawTitle)
+        val poster = el.selectFirst("img.rpwe-thumb")?.attr("src").orEmpty().replace("-60x90", "")
+        val quality = if (rawTitle.contains("[HD]", ignoreCase = true) || rawTitle.contains("[HD/3D]", ignoreCase = true)) "HD" else null
+
+        if (href.isBlank() || title.isBlank()) return null
+        return Movie(
+            id = href,
+            title = title,
+            poster = poster,
+            quality = quality,
+        )
+    }
+
     override suspend fun getHome(): List<Category> {
         val doc = service.getHome()
 
+        val categories = mutableListOf<Category>()
+
         val movies = doc.select("div.card.mp-post.horizontal").mapNotNull { parseHomeMovie(it) }
-        return if (movies.isNotEmpty()) listOf(Category(name = "Film", list = movies)) else emptyList()
+        if (movies.isNotEmpty()) {
+            categories.add(Category(name = "Film", list = movies))
+        }
+
+        val latestMovies = doc.select("#rpwe_widget-2 ul.rpwe-ul li.rpwe-li").mapNotNull { parseLatestMovie(it) }
+        if (latestMovies.isNotEmpty()) {
+            categories.add(Category(name = "Ultimi Film Aggiunti", list = latestMovies))
+        }
+
+        return categories
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {

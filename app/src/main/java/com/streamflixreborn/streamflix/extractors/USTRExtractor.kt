@@ -11,6 +11,7 @@ import retrofit2.http.Url
 class USTRExtractor: Extractor() {
     override val name = "USTR"
     override val mainUrl = "https://ups2up.fun"
+    override val aliasUrls = listOf("https://up4stream.com", "https://up4fun.top")
 
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)

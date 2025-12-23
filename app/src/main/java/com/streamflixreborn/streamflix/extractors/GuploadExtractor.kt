@@ -28,7 +28,7 @@ class GuploadExtractor : Extractor() {
     override suspend fun extract(link: String): Video {
         val html = service.get(link)
 
-        val videoUrlRegex = Regex("""const\s+videoUrl\s*=\s*['"]([^'"]+)['"]""")
+        val videoUrlRegex = Regex("""let\s+videoUrl\s*=\s*['"]([^'"]+)['"]""")
         val videoUrl = videoUrlRegex.find(html)?.groupValues?.get(1)
             ?: throw Exception("Video URL not found in script")
 
