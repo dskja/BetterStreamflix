@@ -61,7 +61,6 @@ class TvShow(
     }
 
     fun merge(tvShow: TvShow): TvShow {
-        this.isFavorite = tvShow.isFavorite
         this.isWatching = tvShow.isWatching
         return this
     }
