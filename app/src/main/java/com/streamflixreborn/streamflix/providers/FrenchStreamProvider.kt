@@ -24,9 +24,6 @@ import retrofit2.http.Path
 import retrofit2.http.Url
 import retrofit2.Response
 import okhttp3.ResponseBody
-import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
-import com.google.gson.reflect.TypeToken
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import org.jsoup.Jsoup
@@ -35,7 +32,6 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Header
 import retrofit2.http.POST
-import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
 import kotlin.math.round
@@ -51,7 +47,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://fs3.lol/"
+    override val defaultBaseUrl: String = "https://fs2.lol/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -109,7 +105,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 if (movies.isNotEmpty()) {
                     categories.add(
                         Category(
-                            name = title, //Category.FEATURED,
+                            name = title,
                             list = movies
                         )
                     )
@@ -305,7 +301,9 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         initializeService()
         val document = service.getMovie(id)
         val actors = extractActors(document)
-        val trailerURL = extractTrailerURL(document)
+        val trailerURL = document.selectFirst("div#film-data")
+                                  ?.attr("data-trailer")
+                                  ?.let { "https://www.youtube.com/watch?v=$it" }
 
         val votes = document.selectFirst("div.fr-votes")
         val rating = if (votes != null) getRating(votes) else null
@@ -346,8 +344,6 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 },
             directors = document.select("ul#s-list li")
                 .find {
-                    val votes = document.selectFirst("div.fr-votes")
-                    val rating = if (votes != null) getRating(votes) else null
                     it.selectFirst("span")?.text()?.contains("alisateur") == true
                 }
                 ?.select("a")?.mapIndexedNotNull { index, it ->
@@ -554,50 +550,21 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return people
     }
 
-    suspend fun extractMovieServersDefinition(document: Document): Map<String, Any>? {
-        val scriptContent = document.select("script").joinToString("\n") { it.data() }
-
-        val regex = Regex("""var\s+playerUrls\s*=\s*(\{.*?\});""", RegexOption.DOT_MATCHES_ALL)
-        val match = regex.find(scriptContent) ?: return null
-
-        val jsonPart = match.groupValues[1]
-
-        val type = object : TypeToken<Map<String, Any>>() {}.type
-        return try {
-            Gson().fromJson(jsonPart, type)
-        } catch (e: JsonSyntaxException) {
-            null
-        }
-    }
-
-    suspend fun extractTvShowServersDefinition(document: Document, lang: String, number: Int): Map<String, Any>? {
-        var jsonPart = document.select("script").joinToString("\n") { it.data() }.substringAfter("episodesData = {").substringBefore("};")
-
-        if (jsonPart.isBlank()) return null
-
-        return try {
-            val type = object : TypeToken<Map<String, Map<String, Map<String, Any>>>>() {}.type
-            jsonPart = "{$jsonPart}".replace("\\s+".toRegex(), "")
-            jsonPart = jsonPart.replace(Regex("""(?m)(?<=\{|,)\s*([A-Za-z0-9_]+)\s*:"""), "\"$1\":")
-                .replace("},}","}}")
-
-            val data: Map<String, Map<String, Map<String, Any>>> = Gson().fromJson(jsonPart, type)
-            data[lang]?.get(number.toString())
-        } catch (e: JsonSyntaxException) {
-            null
-        }
-    }
-
     fun extractTvShowVersions(document: Document): MutableList<String> {
-        val scriptContent = document.select("script").joinToString("\n") { it.data() }.substringAfter("episodesData = {").substringBefore("};")
-
         val versions = listOf("vostfr", "vf")
         val found = mutableListOf<String>()
 
         for (version in versions) {
-            val regex = Regex("""$version:\s*\{([\s\S]*?)\s\}""")
-            val content = regex.find(scriptContent)?.groupValues?.get(1)
-            if (content != null && content.contains("\"http")) { //content.any { !it.isWhitespace() }) {
+            val hasAtLeastOneEp = document
+                .select("div#episodes-"+version+"-data > div")
+                .any { epDiv ->
+                    epDiv.attributes()
+                        .asList()
+                        .any { attr ->
+                            attr.value.startsWith("http")
+                        }
+                }
+            if (hasAtLeastOneEp) {
                 found.add(version)
             }
         }
@@ -623,77 +590,90 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             } ?: emptyList()
     }
 
-    suspend fun extractTrailerURL(document: Document): String? {
-        val scriptContent = document.select("script").joinToString("\n") { it.data() }
-        val arrayContentRegex =
-            Regex("""const trailerUrl\s*=\s*'(.*?)'""", RegexOption.DOT_MATCHES_ALL)
-
-        return arrayContentRegex.find(scriptContent)
-            ?.groupValues?.get(1)
-            ?.let { "https://www.youtube.com/watch?v=$it" }
-    }
+    data class VideoProvider(
+        val id: Number,
+        val order: Int,
+        val name: String,
+        val lang: String,
+        val url: String
+    )
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         initializeService()
 
         val servers = when (videoType) {
             is Video.Type.Episode -> {
-
                 val (tvShowId, tvShowLang, tvShowNumber) = id.split("/")
 
                 val document = service.getTvShow(tvShowId)
 
-                extractTvShowServersDefinition(document, tvShowLang, tvShowNumber.toInt())
-                                ?.filter { (key, value) -> ! ignoreSource(key, value.toString()) }
-                                ?.map { (key, value ) ->
-                                    Video.Server(
-                                        id = key,
-                                        name = key.replaceFirstChar { it.uppercase() },
-                                        src = value.toString(),
-                                    )
-                                } ?: emptyList()
+                document.selectFirst("div#episodes-"+tvShowLang+"-data")
+                    ?.selectFirst("div[data-ep="+tvShowNumber+"]")
+                    ?.attributes()
+                    ?.asList()
+                    ?.filter { it.key.startsWith("data-") && it.value.startsWith("http") }
+                    ?.mapIndexedNotNull { id, attr ->
+                        val name = attr.key.removePrefix("data-").replaceFirstChar{ it.uppercase() }
+                        if (ignoreSource(name, attr.value)) return@mapIndexedNotNull null
+                        Video.Server(
+                            id = "vid${id}",
+                            name = name,
+                            src = attr.value
+                        )
+                    } ?: emptyList()
             }
 
             is Video.Type.Movie -> {
                 val document = service.getMovie(id)
-                /* Display all available languages in above order, do not display ‘Default’ language if
-                 * its href is identical to that of another language
-                 */
-                val priority = listOf("Default", "VFF", "VFQ", "VOSTFR")
+                val providerIndex = mutableMapOf<String, Int>()
+                var pIndex = 0
+
                 val labels = mapOf(
-                    "VFF" to "TrueFrench",
-                    "VFQ" to "French",
-                    "VOSTFR" to "VOSTFR"
+                    "vff" to "TrueFrench",
+                    "vfq" to "French",
+                    "vostfr" to "VOSTFR",
+                    "vo" to "VO"
                 )
 
-                extractMovieServersDefinition(document)?.entries?.flatMap { (source, it) ->
-                    val map = it as? Map<*, *> ?: return@flatMap emptyList()
-                    val defaultValue = map["Default"] as? String
-                    val defaultIsDuplicate = map.entries.any { (lang, href) ->
-                        lang != "Default" && href == defaultValue
-                    }
-                    map.entries
-                        .filter { (lang, href) ->
-                            (lang is String
-                                    && href is String && href.isNotBlank())
-                                    && !(lang == "Default" && defaultIsDuplicate)
-                                    && !ignoreSource(source, href )
-                        }
-                        .sortedWith(
-                            compareBy< Map.Entry<*, *> > { e ->
-                                val idx = priority.indexOf(e.key as String)
-                                if (idx == -1) Int.MAX_VALUE else idx
-                            }.thenBy { e -> e.key as String }
+                document.selectFirst("div#film-data")
+                    ?.attributes()
+                    ?.asList()
+                    ?.filter { it.key.startsWith("data-") && it.value.startsWith("http") }
+                    ?.mapIndexedNotNull { id, attr ->
+                        val name = attr.key.removePrefix("data-")
+
+                        val provider = name.removeSuffix("vo").removeSuffix("vostfr").removeSuffix("vfq").removeSuffix("vff")
+                        val lang = name.removePrefix(provider)
+
+                        if (lang.isEmpty()) return@mapIndexedNotNull null
+                        val order = providerIndex.getOrPut(provider) { pIndex++ }
+
+                        VideoProvider(
+                            id = id,
+                            name = provider,
+                            lang = lang,
+                            url = attr.value,
+                            order = order
                         )
-                        .map { (lang, url) ->
-                            Video.Server(
-                                id = "SRV$source$lang",
-                                name = if (lang == "Default") source
-                                       else "$source ("+(labels[lang] ?: lang)+")",
-                                src = url as String
-                            )
+                    }
+                    ?.sortedWith(
+                        compareBy<VideoProvider> { it.order }.thenBy {
+                            when (it.lang) {
+                                "vostfr" -> 4
+                                "vo"     -> 3
+                                "vfq"    -> 2
+                                "vff"    -> 1
+                                else     -> 0
+                            }
                         }
-                } ?: emptyList()
+                    )
+                    ?.map {
+                        Video.Server(
+                            id = "vid${it.id}",
+                            name = "${it.name.replaceFirstChar{ it.uppercase() } } ("+(labels[it.lang] ?: it.lang)+")",
+                            src = it.url
+                        )
+                    } ?: emptyList()
             }
         }
 
