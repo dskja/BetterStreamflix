@@ -21,6 +21,7 @@ class MixDropExtractor : Extractor() {
         "https://mixdrop.cv",
         "https://mxdrop.to",
         "https://mixdrop.club",
+        "https://m1xdrop.net"
     )
     override val rotatingDomain = listOf(
         Regex("^md[3bfyz][a-z0-9]*\\.[a-z0-9]+", RegexOption.IGNORE_CASE)
@@ -64,7 +65,8 @@ class MixDropExtractor : Extractor() {
             source = finalUrl,
             headers = mapOf(
                 "User-Agent" to DEFAULT_USER_AGENT
-            )
+            ),
+            extraBuffering = true
         )
     }
 

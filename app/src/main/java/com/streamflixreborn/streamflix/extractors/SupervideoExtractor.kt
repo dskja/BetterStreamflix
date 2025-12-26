@@ -78,7 +78,8 @@ class SupervideoExtractor : Extractor() {
 
         return Video(
             source = streamUrl,
-            subtitles = subtitles
+            subtitles = subtitles,
+            extraBuffering = true
         )
     }
 }

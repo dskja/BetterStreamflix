@@ -36,6 +36,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -151,6 +153,7 @@ class PlayerTvFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        initializePlayer(false)
         initializeVideo()
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -317,25 +320,6 @@ class PlayerTvFragment : Fragment() {
 
 
     private fun initializeVideo() {
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
-        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-        player = ExoPlayer.Builder(requireContext())
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .build().also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
-
-                mediaSession = MediaSession.Builder(requireContext(), player)
-                    .build()
-            }
         when (val type = args.videoType) {
             is Video.Type.Episode -> {
 
@@ -483,6 +467,20 @@ class PlayerTvFragment : Fragment() {
     }
 
     private fun displayVideo(video: Video, server: Video.Server) {
+        val needsReinit = video.extraBuffering != currentExtraBuffering
+        if (needsReinit) {
+            initializePlayer(video.extraBuffering)
+            player.playlistMetadata = MediaMetadata.Builder()
+                .setTitle(args.title)
+                .setMediaServers(servers.map {
+                    MediaServer(
+                        id = it.id,
+                        name = it.name,
+                    )
+                })
+                .build()
+        }
+        
         val videoType = args.videoType
         val currentPosition = player.currentPosition
 
@@ -632,6 +630,53 @@ class PlayerTvFragment : Fragment() {
         player.play()
     }
 
+
+
+    private var currentExtraBuffering = false
+
+    private fun initializePlayer(extraBuffering: Boolean) {
+        if (::player.isInitialized) {
+            player.release()
+            mediaSession.release()
+        }
+        currentExtraBuffering = extraBuffering
+
+        val okHttpClient = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .build()
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS, // Max buffer 5 minutes if extraBuffering
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            )
+            .build()
+
+        player = ExoPlayer.Builder(requireContext())
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
+            .build().also { player ->
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
+
+                mediaSession = MediaSession.Builder(requireContext(), player)
+                    .build()
+            }
+        
+        binding.pvPlayer.player = player
+        binding.settings.player = player
+        binding.settings.subtitleView = binding.pvPlayer.subtitleView
+    }
 
     private fun ExoPlayer.hasStarted(): Boolean {
         return (this.currentPosition > (this.duration * 0.03) || this.currentPosition > 2.minutes.inWholeMilliseconds)

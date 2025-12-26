@@ -271,20 +271,24 @@ object GuardaFlixProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val doc = service.getPage(id)
 
-        val rawIframe = doc.selectFirst("iframe[data-src]")?.attr("data-src")
-            ?: doc.selectFirst("iframe")?.attr("src")
-            ?: return emptyList()
+        return doc.select("#aa-options div[id^=options-]").mapIndexedNotNull { index, optionDiv ->
+            val rawIframe = optionDiv.selectFirst("iframe[data-src]")?.attr("data-src")
+                ?: optionDiv.selectFirst("iframe")?.attr("src")
+                ?: return@mapIndexedNotNull null
 
-        val firstUrl = rawIframe.trim()
-        val embedDoc = service.getPage(firstUrl)
-        val finalIframe = embedDoc.selectFirst(".Video iframe[src]")?.attr("src")?.trim()
-        val finalUrl = finalIframe?.takeIf { it.isNotBlank() } ?: return emptyList()
-        return listOfNotNull(
+            val firstUrl = rawIframe.trim()
             try {
-                val serverName = finalUrl.toHttpUrl().host
+                val embedDoc = service.getPage(firstUrl)
+                val finalIframe = embedDoc.selectFirst(".Video iframe[src]")?.attr("src")?.trim()
+                val finalUrl = finalIframe?.takeIf { it.isNotBlank() } ?: return@mapIndexedNotNull null
+
+                val hostName = finalUrl.toHttpUrl().host
                     .replaceFirst("www.", "")
                     .substringBefore(".")
                     .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
+
+                val serverName = "Opzione ${index + 1} - $hostName"
+
                 Video.Server(
                     id = finalUrl,
                     name = serverName,
@@ -293,7 +297,7 @@ object GuardaFlixProvider : Provider {
             } catch (_: Exception) {
                 null
             }
-        )
+        }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

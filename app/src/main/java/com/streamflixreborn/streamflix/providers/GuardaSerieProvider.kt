@@ -388,62 +388,34 @@ object GuardaSerieProvider : Provider {
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
-        return when (videoType) {
-            is Video.Type.Movie -> {
-                val doc = service.getPage(id)
+        val doc = service.getPage(id)
 
-                val iframe = doc.selectFirst("div.movieplay iframe")
-                val iframeSrc = iframe?.attr("data-src")?.takeIf { it.isNotBlank() }
-                    ?: iframe?.attr("src")?.takeIf { it.isNotBlank() }
-                    ?: return emptyList()
+        // Same logic for both Movies and Episodes as they share the HTML structure
+        return doc.select("div#player2 div[id^=tab]").mapIndexedNotNull { index, tabDiv ->
+            val iframe = tabDiv.selectFirst("div.movieplay iframe")
+            val iframeSrc = iframe?.attr("data-src")?.takeIf { it.isNotBlank() }
+                ?: iframe?.attr("src")?.takeIf { it.isNotBlank() }
+                ?: return@mapIndexedNotNull null
 
-                val finalUrl = iframeSrc.trim()
+            val finalUrl = iframeSrc.trim()
 
-                listOfNotNull(
-                    try {
-                        val serverName = finalUrl.toHttpUrl().host
-                            .replaceFirst("www.", "")
-                            .substringBefore(".")
-                            .replaceFirstChar { char ->
-                                if (char.isLowerCase()) char.titlecase() else char.toString()
-                            }
-                        Video.Server(
-                            id = finalUrl,
-                            name = serverName,
-                            src = finalUrl
-                        )
-                    } catch (_: Exception) {
-                        null
+            try {
+                val hostName = finalUrl.toHttpUrl().host
+                    .replaceFirst("www.", "")
+                    .substringBefore(".")
+                    .replaceFirstChar { char ->
+                        if (char.isLowerCase()) char.titlecase() else char.toString()
                     }
-                )
-            }
-            is Video.Type.Episode -> {
-                val doc = service.getPage(id)
                 
-                val iframe = doc.selectFirst("div.movieplay iframe")
-                val iframeSrc = iframe?.attr("data-src")?.takeIf { it.isNotBlank() }
-                    ?: iframe?.attr("src")?.takeIf { it.isNotBlank() }
-                    ?: return emptyList()
+                val serverName = "Server ${index + 1} - $hostName"
 
-                val finalUrl = iframeSrc.trim()
-                
-                listOfNotNull(
-                    try {
-                        val serverName = finalUrl.toHttpUrl().host
-                            .replaceFirst("www.", "")
-                            .substringBefore(".")
-                            .replaceFirstChar { char -> 
-                                if (char.isLowerCase()) char.titlecase() else char.toString() 
-                            }
-                        Video.Server(
-                            id = finalUrl,
-                            name = serverName,
-                            src = finalUrl
-                        )
-                    } catch (_: Exception) {
-                        null
-                    }
+                Video.Server(
+                    id = finalUrl,
+                    name = serverName,
+                    src = finalUrl
                 )
+            } catch (_: Exception) {
+                null
             }
         }
     }

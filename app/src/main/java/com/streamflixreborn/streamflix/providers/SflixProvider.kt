@@ -46,7 +46,7 @@ object SflixProvider : Provider {
                 name = Category.FEATURED,
                 list = document.select("div.swiper-wrapper > div.swiper-slide").map {
                     val id = it.selectFirst("a")
-                        ?.attr("href")?.substringAfterLast("-") ?: ""
+                        ?.attr("href")?: ""
                     val title = it.selectFirst("h2.film-title")
                         ?.text() ?: ""
                     val overview = it.selectFirst("p.sc-desc")
@@ -107,7 +107,7 @@ object SflixProvider : Provider {
 
                     Movie(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("-") ?: "",
+                            ?.attr("href")?: "",
                         title = it.selectFirst("h3.film-name")
                             ?.text() ?: "",
                         released = info.released,
@@ -128,7 +128,7 @@ object SflixProvider : Provider {
 
                     TvShow(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("-") ?: "",
+                            ?.attr("href")?: "",
                         title = it.selectFirst("h3.film-name")
                             ?.text() ?: "",
                         quality = info.quality,
@@ -167,7 +167,7 @@ object SflixProvider : Provider {
 
                         Movie(
                             id = it.selectFirst("a")
-                                ?.attr("href")?.substringAfterLast("-") ?: "",
+                                ?.attr("href")?: "",
                             title = it.selectFirst("h3.film-name")
                                 ?.text() ?: "",
                             released = info.released,
@@ -191,7 +191,7 @@ object SflixProvider : Provider {
 
                         TvShow(
                             id = it.selectFirst("a")
-                                ?.attr("href")?.substringAfterLast("-") ?: "",
+                                ?.attr("href")?: "",
                             title = it.selectFirst("h3.film-name")
                                 ?.text() ?: "",
                             quality = info.quality,
@@ -243,7 +243,7 @@ object SflixProvider : Provider {
 
         val results = document.select("div.flw-item").map {
             val id = it.selectFirst("a")
-                ?.attr("href")?.substringAfterLast("-") ?: ""
+                ?.attr("href")?: ""
             val title = it.selectFirst("h2.film-name")
                 ?.text() ?: ""
             val info = it.select("div.film-detail > div.fd-infor > span").toInfo()
@@ -297,7 +297,7 @@ object SflixProvider : Provider {
 
             Movie(
                 id = it.selectFirst("a")
-                    ?.attr("href")?.substringAfterLast("-") ?: "",
+                    ?.attr("href")?: "",
                 title = it.selectFirst("h2.film-name")
                     ?.text() ?: "",
                 released = info.released,
@@ -319,7 +319,7 @@ object SflixProvider : Provider {
 
             TvShow(
                 id = it.selectFirst("a")
-                    ?.attr("href")?.substringAfterLast("-") ?: "",
+                    ?.attr("href")?: "",
                 title = it.selectFirst("h2.film-name")
                     ?.text() ?: "",
                 quality = info.quality,
@@ -398,7 +398,7 @@ object SflixProvider : Provider {
                 if (it.isMovie()) {
                     Movie(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("-") ?: "",
+                            ?.attr("href")?: "",
                         title = it.selectFirst("h3.film-name")
                             ?.text() ?: "",
                         released = info.released,
@@ -410,7 +410,7 @@ object SflixProvider : Provider {
                 } else {
                     TvShow(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("-") ?: "",
+                            ?.attr("href")?: "",
                         title = it.selectFirst("h3.film-name")
                             ?.text() ?: "",
                         quality = info.quality,
@@ -469,7 +469,7 @@ object SflixProvider : Provider {
             banner = document.selectFirst("div.detail-container > div.cover_follow")
                 ?.attr("style")?.substringAfter("background-image: url(")?.substringBefore(");"),
 
-            seasons = service.getTvShowSeasons(id)
+            seasons = service.getTvShowSeasons(id.toNumericalId())
                 .select("div.dropdown-menu.dropdown-menu-model > a")
                 .mapIndexed { seasonNumber, seasonElement ->
                     Season(
@@ -500,7 +500,7 @@ object SflixProvider : Provider {
                 if (it.isMovie()) {
                     Movie(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("-") ?: "",
+                            ?.attr("href")?: "",
                         title = it.selectFirst("h3.film-name")
                             ?.text() ?: "",
                         released = info.released,
@@ -512,7 +512,7 @@ object SflixProvider : Provider {
                 } else {
                     TvShow(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("-") ?: "",
+                            ?.attr("href")?: "",
                         title = it.selectFirst("h3.film-name")
                             ?.text() ?: "",
                         quality = info.quality,
@@ -574,7 +574,7 @@ object SflixProvider : Provider {
 
             shows = document.select("div.flw-item").map {
                 val showId = it.selectFirst("a")
-                    ?.attr("href")?.substringAfterLast("-") ?: ""
+                    ?.attr("href")?: ""
                 val showTitle = it.selectFirst("h2.film-name")
                     ?.text() ?: ""
                 val showInfo = it.select("div.film-detail > div.fd-infor > span").toInfo()
@@ -632,7 +632,7 @@ object SflixProvider : Provider {
 
             filmography = document.select("div.flw-item").map {
                 val showId = it.selectFirst("a")
-                    ?.attr("href")?.substringAfterLast("-") ?: ""
+                    ?.attr("href") ?: ""
                 val showTitle = it.selectFirst("h2.film-name")
                     ?.text() ?: ""
                 val showInfo = it.select("div.film-detail > div.fd-infor > span").toInfo()
@@ -681,7 +681,7 @@ object SflixProvider : Provider {
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val servers = when (videoType) {
-            is Video.Type.Movie -> service.getMovieServers(id)
+            is Video.Type.Movie -> service.getMovieServers(id.toNumericalId())
             is Video.Type.Episode -> service.getEpisodeServers(id)
         }.select("a")
             .map {
@@ -699,23 +699,7 @@ object SflixProvider : Provider {
     override suspend fun getVideo(server: Video.Server): Video {
         val link = service.getLink(server.id)
 
-        val sources = service.getEmbed(
-            "${BuildConfig.RABBITSTREAM_SOURCE_API}${link.link}&referrer=${URL}"
-        )
-
-        val video = Video(
-            source = sources.sources.map { it.file }.firstOrNull() ?: "",
-            subtitles = sources.tracks
-                .filter { it.kind == "captions" }
-                .map {
-                    Video.Subtitle(
-                        label = it.label,
-                        file = it.file,
-                    )
-                }
-        )
-
-        return video
+        return Extractor.extract(link.link, server)
     }
 
 
@@ -740,6 +724,8 @@ object SflixProvider : Provider {
             }
         }
     }
+
+    private fun String.toNumericalId(): String = this.substringAfterLast("-")
 
 
     private interface SflixService {
@@ -776,23 +762,23 @@ object SflixProvider : Provider {
         suspend fun getTvShows(@Query("page") page: Int): Document
 
 
-        @GET("movie/free-{id}")
+        @GET("{id}")
         suspend fun getMovie(@Path("id") id: String): Document
 
-        @GET("ajax/movie/episodes/{id}")
+        @GET("ajax/episode/list/{id}")
         suspend fun getMovieServers(@Path("id") movieId: String): Document
 
 
-        @GET("tv/free-{id}")
+        @GET("{id}")
         suspend fun getTvShow(@Path("id") id: String): Document
 
-        @GET("ajax/v2/tv/seasons/{id}")
+        @GET("ajax/season/list/{id}")
         suspend fun getTvShowSeasons(@Path("id") tvShowId: String): Document
 
-        @GET("ajax/v2/season/episodes/{id}")
+        @GET("ajax/season/episodes/{id}")
         suspend fun getSeasonEpisodes(@Path("id") seasonId: String): Document
 
-        @GET("ajax/v2/episode/servers/{id}")
+        @GET("ajax/episode/servers/{id}")
         suspend fun getEpisodeServers(@Path("id") episodeId: String): Document
 
 

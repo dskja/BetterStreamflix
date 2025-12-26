@@ -56,6 +56,10 @@ object AnimeFlvProvider : Provider {
         return clientBuilder.dns(DnsResolver.doh).build()
     }
 
+    private fun getEpisodePoster(animeId: String, episodeNum: String): String {
+        return "https://cdn.animeflv.net/screenshots/$animeId/$episodeNum/th_3.jpg"
+    }
+
     private interface AnimeFlvService {
         @GET
         suspend fun getPage(@Url url: String): Document
@@ -271,6 +275,7 @@ object AnimeFlvProvider : Provider {
             val title = document.selectFirst("div.Ficha.fchlt div.Container .Title")?.text() ?: ""
             val overview = document.selectFirst("div.Description")?.text()?.removeSurrounding("\"")
             val poster = document.selectFirst("div.AnimeCover div.Image figure img")?.attr("src")
+            val rating = document.selectFirst("span.vtprmd#votes_prmd")?.text()?.toDoubleOrNull()
             val genres = document.select("nav.Nvgnrs a").map {
                 Genre(id = it.attr("href").substringAfterLast("/"), name = it.text())
             }
@@ -280,16 +285,19 @@ object AnimeFlvProvider : Provider {
                 ?.data() ?: ""
 
             val episodesData = script.substringAfter("var episodes = [").substringBefore("];")
-            val animeUri = script.substringAfter("var anime_info = [").substringBefore("];")
-                .split(",")[2].replace("\"", "")
+            val animeInfoJson = Regex("""var\s+anime_info\s*=\s*(\[[^\]]+])""").find(script)?.groupValues?.get(1)
+            val animeInfo = animeInfoJson?.let { json.decodeFromString<List<String>>(it) }
+            val animeId = animeInfo?.getOrNull(0) ?: ""
+            val animeUri = animeInfo?.getOrNull(2) ?: ""
 
             val episodes = episodesData.split("],[").mapNotNull {
                 val episodeNum = it.replace("[", "").replace("]", "").split(",")[0]
-                if (episodeNum.isNotBlank()) {
+                if (episodeNum.isNotBlank() && animeId.isNotBlank()) {
                     Episode(
                         id = "ver/$animeUri-$episodeNum",
                         number = episodeNum.toIntOrNull() ?: 0,
-                        title = "Episodio $episodeNum"
+                        title = "Episodio $episodeNum",
+                        poster = "https://cdn.animeflv.net/screenshots/$animeId/$episodeNum/th_3.jpg"
                     )
                 } else {
                     null
@@ -310,6 +318,7 @@ object AnimeFlvProvider : Provider {
                 title = title,
                 overview = overview,
                 poster = poster?.let { "$baseUrl$it" },
+                rating = rating,
                 genres = genres,
                 seasons = seasons
             )
@@ -325,6 +334,7 @@ object AnimeFlvProvider : Provider {
             title = show.title,
             overview = show.overview,
             poster = show.poster,
+            rating = show.rating,
             genres = show.genres,
             cast = emptyList(),
             recommendations = emptyList()
@@ -373,7 +383,8 @@ object AnimeFlvProvider : Provider {
                 is Video.Type.Movie -> {
                     val movieDetailsPage = service.getPage("$baseUrl/anime/$id")
                     val script = movieDetailsPage.selectFirst("script:containsData(var episodes =)")?.data() ?: return emptyList()
-                    val animeUri = script.substringAfter("var anime_info = [").substringBefore("];").split(",")[2].replace("\"", "")
+                    val animeInfoJson = Regex("""var\s+anime_info\s*=\s*(\[[^\]]+])""").find(script)?.groupValues?.get(1)
+                    val animeUri = animeInfoJson?.let { json.decodeFromString<List<String>>(it).getOrNull(2) } ?: ""
                     "$baseUrl/ver/$animeUri-1"
                 }
                 is Video.Type.Episode -> "$baseUrl/$id"

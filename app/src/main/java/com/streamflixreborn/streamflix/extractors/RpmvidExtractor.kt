@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.extractors
 
 import com.streamflixreborn.streamflix.models.Video
+import androidx.media3.common.MimeTypes
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -97,7 +98,7 @@ class RpmvidExtractor : Extractor() {
         return Video(
             source = finalUrl,
             headers = headers,
-            type = if (!cfPath.isNullOrEmpty()) "application/x-mpegURL" else null
+            type = MimeTypes.APPLICATION_M3U8
         )
     }
 

@@ -24,6 +24,7 @@ import java.util.Date
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 open class RabbitstreamExtractor : Extractor() {
 
@@ -67,17 +68,25 @@ open class RabbitstreamExtractor : Extractor() {
     class MegacloudExtractor : RabbitstreamExtractor() {
 
         override val name = "Megacloud"
-        override val mainUrl = "https://megacloud.tv"
-        override val embed = "embed-2/ajax/e-1"
+        override val mainUrl = "https://megacloud.blog"
+        override val aliasUrls = listOf("https://videostr.net")
         private val scriptUrl = "$mainUrl/js/player/a/prod/e1-player.min.js"
 
         override suspend fun extract(link: String): Video {
-            val service = Service.build(mainUrl)
+            val httpUrl = link.toHttpUrl()
+            val hostUrl = httpUrl.run { "$scheme://$host/" }
+            val embedPath = httpUrl.pathSegments.dropLast(1).joinToString("/")
+            
+            val service = Service.build(hostUrl)
+
+            val embedHtml = service.getHtml(link, hostUrl)
+            val token = getToken(embedHtml)
 
             val response = service.getSources(
-                url = "$mainUrl/$embed/getSources",
-                id = link.substringAfterLast("/").substringBefore("?"),
-                referer = mainUrl,
+                url = "$hostUrl$embedPath/getSources",
+                id = httpUrl.pathSegments.last(),
+                token = token,
+                referer = link,
             )
 
             val sources = when (response) {
@@ -91,6 +100,7 @@ open class RabbitstreamExtractor : Extractor() {
 
             val video = Video(
                 source = sources.sources.map { it.file }.firstOrNull() ?: "",
+                headers = mapOf("Referer" to hostUrl),
                 subtitles = sources.tracks
                     .filter { it.kind == "captions" }
                     .map {
@@ -98,7 +108,8 @@ open class RabbitstreamExtractor : Extractor() {
                             label = it.label,
                             file = it.file,
                         )
-                    }
+                    },
+                extraBuffering = true
             )
 
             return video
@@ -145,6 +156,31 @@ open class RabbitstreamExtractor : Extractor() {
                 }.filter { it.isNotEmpty() }
 
             return keys
+        }
+
+        private fun getToken(html: String): String? {
+            // Pattern 1: JS object with 2-3 string values
+            Regex("""\w+\s*=\s*\{[^}]*?(\w+):\s*"([^"]+)",\s*(\w+):\s*"([^"]+)"(?:,\s*(\w+):\s*"([^"]+)")?""")
+                .find(html)?.let { match ->
+                    val val1 = match.groupValues[2]
+                    val val2 = match.groupValues[4]
+                    val val3 = match.groupValues.getOrNull(6)
+                    return val1 + val2 + (val3 ?: "")
+                }
+
+            // Pattern 2: Sequence of quoted strings
+            Regex(""""([A-Za-z0-9+/=]{10,})",\s*"([A-Za-z0-9+/=]{10,})"(?:,\s*"([A-Za-z0-9+/=]{10,})")?""")
+                .find(html)?.let { match ->
+                    val val1 = match.groupValues[1]
+                    val val2 = match.groupValues[2]
+                    val val3 = match.groupValues.getOrNull(3)
+                    return val1 + val2 + (val3 ?: "")
+                }
+
+            // Pattern 3: Longest string (30+ chars) as fallback
+            return Regex("""[A-Za-z0-9+/=]{30,}""").findAll(html)
+                .map { it.value }
+                .maxByOrNull { it.length }
         }
     }
 
@@ -194,6 +230,7 @@ open class RabbitstreamExtractor : Extractor() {
         suspend fun getSources(
             @Url url: String,
             @Query("id") id: String,
+            @Query("_k") token: String?,
             @Header("referer") referer: String,
         ): SourcesResponse
 
@@ -211,6 +248,9 @@ open class RabbitstreamExtractor : Extractor() {
 
         @GET
         suspend fun getSourceEncryptedKey(@Url url: String): KeysResponse
+
+        @GET
+        suspend fun getHtml(@Url url: String, @Header("Referer") referer: String): String
 
         @GET
         suspend fun getScript(@Url url: String, @Query("v") v: Long): String
