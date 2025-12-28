@@ -33,10 +33,11 @@ class TvShow(
     val cast: List<People> = listOf(),
     @Ignore
     val recommendations: List<Show> = listOf(),
+    override var isFavorite: Boolean = false,
 ) : Show, AppAdapter.Item {
 
     var released = released?.toCalendar()
-    override var isFavorite: Boolean = false
+
     var isWatching: Boolean = true
 
     val episodeToWatch: Episode?
@@ -61,6 +62,7 @@ class TvShow(
     }
 
     fun merge(tvShow: TvShow): TvShow {
+        this.isFavorite = tvShow.isFavorite
         this.isWatching = tvShow.isWatching
         return this
     }
@@ -86,6 +88,7 @@ class TvShow(
         directors: List<People> = this.directors,
         cast: List<People> = this.cast,
         recommendations: List<Show> = this.recommendations,
+        isFavorite: Boolean = this.isFavorite
     ) = TvShow(
         id,
         title,
@@ -103,6 +106,7 @@ class TvShow(
         directors,
         cast,
         recommendations,
+        isFavorite,
     )
 
     override fun equals(other: Any?): Boolean {
@@ -128,6 +132,7 @@ class TvShow(
         if (released != other.released) return false
         if (isFavorite != other.isFavorite) return false
         if (isWatching != other.isWatching) return false
+        if (isFavorite != other.isFavorite) return false
         if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }

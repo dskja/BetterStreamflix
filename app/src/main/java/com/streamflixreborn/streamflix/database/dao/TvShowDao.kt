@@ -53,4 +53,7 @@ interface TvShowDao {
     fun save(tvShow: TvShow) = getById(tvShow.id)
         ?.let { update(tvShow.copy(id = it.id)) } // Assicurati che l'update usi l'ID corretto
         ?: insert(tvShow)
+
+    @Query("UPDATE tv_shows SET isFavorite = :favorite WHERE id = :id")
+    fun setFavorite(id: String, favorite: Boolean)
 }

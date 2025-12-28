@@ -34,10 +34,11 @@ class Movie(
     val cast: List<People> = listOf(),
     @Ignore
     val recommendations: List<Show> = listOf(),
+    override var isFavorite: Boolean = false,
 ) : Show, WatchItem, AppAdapter.Item {
 
     var released = released?.toCalendar()
-    override var isFavorite: Boolean = false
+
     override var isWatched: Boolean = false
     override var watchedDate: Calendar? = null
 
@@ -54,6 +55,7 @@ class Movie(
     }
 
     fun merge(movie: Movie): Movie {
+        this.isFavorite = movie.isFavorite
         this.isWatched = movie.isWatched
         this.watchedDate = movie.watchedDate
         this.watchHistory = movie.watchHistory
@@ -80,6 +82,7 @@ class Movie(
         directors: List<People> = this.directors,
         cast: List<People> = this.cast,
         recommendations: List<Show> = this.recommendations,
+        isFavorite: Boolean = this.isFavorite,
     ) = Movie(
         id,
         title,
@@ -96,6 +99,7 @@ class Movie(
         directors,
         cast,
         recommendations,
+        isFavorite,
     )
 
     override fun equals(other: Any?): Boolean {
@@ -117,6 +121,7 @@ class Movie(
         if (directors != other.directors) return false
         if (cast != other.cast) return false
         if (recommendations != other.recommendations) return false
+        if (isFavorite != other.isFavorite) return false
         if (released != other.released) return false
         if (isFavorite != other.isFavorite) return false
         if (isWatched != other.isWatched) return false
