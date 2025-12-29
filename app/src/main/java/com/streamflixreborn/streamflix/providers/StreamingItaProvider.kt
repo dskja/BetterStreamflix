@@ -250,12 +250,21 @@ object StreamingItaProvider : Provider {
             rating = tmdbMovie?.rating ?: document.selectFirst(".starstruck-rating .dt_rating_vgs")?.text()?.replace(',', '.')?.toDoubleOrNull(),
             trailer = tmdbMovie?.trailer ?: document.selectFirst("#trailer iframe, #trailer .embed iframe")?.attr("src")?.let { normalizeUrl(it) }?.let { mapTrailerToWatchUrl(it) },
             genres = tmdbMovie?.genres ?: document.select("div.sgeneros a[rel=tag]").map { Genre(it.text(), it.text()) },
-            cast = tmdbMovie?.cast ?: document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
+            cast = document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
                 val anchor = el.selectFirst(".data .name a")
                 val name = anchor?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
                 val img = el.selectFirst(".img img")?.attr("src")
                 val href = anchor?.attr("href")
-                People(id = href ?: name, name = name, image = img)
+                
+                val tmdbPerson = tmdbMovie?.cast?.find { it.name.equals(name, ignoreCase = true) }
+                val personId = href?.let { h ->
+                    img?.let { i -> "$h?poster=${URLEncoder.encode(i, "UTF-8")}" } ?: h
+                }
+                People(
+                    id = personId ?: name,
+                    name = name,
+                    image = tmdbPerson?.image ?: img
+                )
             },
             released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
             runtime = tmdbMovie?.runtime,
