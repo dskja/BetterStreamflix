@@ -204,7 +204,12 @@ object GuardaSerieProvider : Provider {
             runtime = tmdbMovie?.runtime ?: doc.selectFirst("div.mvici-right p:has(strong:matchesOwn((?i)^Duration:)) span")?.text()?.substringBefore(" min")?.trim()?.toIntOrNull(),
             rating = tmdbMovie?.rating ?: doc.selectFirst("div.mvici-right div.imdb_r span.imdb-r")?.text()?.toDoubleOrNull(),
             genres = tmdbMovie?.genres ?: doc.select("div.mvici-left a[rel='category tag']").map { Genre(it.text().trim(), it.text().trim()) },
-            cast = tmdbMovie?.cast ?: doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { People(it.attr("href").trim(), it.text().trim()) },
+            cast = doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { el ->
+                val href = el.attr("href").trim()
+                val name = el.text().trim()
+                val tmdbPerson = tmdbMovie?.cast?.find { it.name.equals(name, ignoreCase = true) }
+                People(id = href, name = name, image = tmdbPerson?.image)
+            },
             overview = tmdbMovie?.overview ?: doc.selectFirst("p.f-desc")?.text()?.trim() ?: "",
             trailer = tmdbMovie?.trailer ?: runCatching {
                 val scripts = doc.select("script")
@@ -259,7 +264,12 @@ object GuardaSerieProvider : Provider {
             rating = tmdbTvShow?.rating ?: doc.selectFirst("div.mvici-right div.imdb_r span.imdb-r")?.text()?.toDoubleOrNull(),
             overview = overview,
             genres = tmdbTvShow?.genres ?: doc.select("div.mvici-left a[rel='category tag']").map { Genre(it.text().trim(), it.text().trim()) },
-            cast = tmdbTvShow?.cast ?: doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { People(it.attr("href").trim(), it.text().trim()) },
+            cast = doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { el ->
+                val href = el.attr("href").trim()
+                val name = el.text().trim()
+                val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(name, ignoreCase = true) }
+                People(id = href, name = name, image = tmdbPerson?.image)
+            },
             seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
             banner = tmdbTvShow?.banner,
             imdbId = tmdbTvShow?.imdbId,
