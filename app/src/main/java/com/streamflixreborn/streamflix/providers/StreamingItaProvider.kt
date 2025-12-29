@@ -237,7 +237,7 @@ object StreamingItaProvider : Provider {
         val document = service.getPage(id)
         val title = document.selectFirst("div.data > h1")?.text() ?: ""
 
-        val tmdbMovie = TmdbUtils.getMovie(title)
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
         val poster = tmdbMovie?.poster ?: document.selectFirst("div.poster img[itemprop=image]")?.attr("src")
             ?: document.selectFirst("meta[property=og:image]")?.attr("content")
@@ -268,7 +268,7 @@ object StreamingItaProvider : Provider {
         val document = service.getPage(id)
         val title = document.selectFirst("div.data > h1")?.text() ?: ""
 
-        val tmdbTvShow = TmdbUtils.getTvShow(title)
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
 
         val poster = tmdbTvShow?.poster ?: document.selectFirst("div.poster img[itemprop=image]")?.attr("src")
 
@@ -309,8 +309,8 @@ object StreamingItaProvider : Provider {
         val pageUrl = seasonId.substringBefore("?season=")
         val document = service.getPage(pageUrl)
 
-        val tmdbTvShow = TmdbUtils.getTvShow(document.selectFirst("div.data > h1")?.text() ?: "")
-        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNumber) else emptyList()
+        val tmdbTvShow = TmdbUtils.getTvShow(document.selectFirst("div.data > h1")?.text() ?: "", language = language)
+        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNumber, language = language) else emptyList()
 
         return document.select("#serie_contenido #seasons .se-c .se-a ul.episodios > li").mapNotNull { epEl ->
             val numText = epEl.selectFirst(".numerando")?.text()?.trim() ?: ""
