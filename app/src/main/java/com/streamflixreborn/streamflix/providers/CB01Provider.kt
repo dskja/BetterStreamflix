@@ -310,7 +310,7 @@ object CB01Provider : Provider {
             ?: ""
         val title = cleanTitle(rawTitle)
 
-        val tmdbMovie = TmdbUtils.getMovie(title)
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
         val poster = tmdbMovie?.poster ?: doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
 
@@ -339,7 +339,7 @@ object CB01Provider : Provider {
             ?: ""
         val title = cleanTitle(rawTitle)
 
-        val tmdbTvShow = TmdbUtils.getTvShow(title)
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
 
         val poster = tmdbTvShow?.poster ?: doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
 
@@ -386,8 +386,8 @@ object CB01Provider : Provider {
         val showId = seasonId.substringBefore("#s")
         val seasonNum = seasonId.substringAfter("#s").toIntOrNull() ?: return emptyList()
 
-        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("h1")?.text() ?: ""))
-        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum) else emptyList()
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("h1")?.text() ?: ""), language = language)
+        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum, language = language) else emptyList()
 
         val doc = service.getPage(showId)
         val wrap = doc.select("div.sp-wrap").firstOrNull { w ->
