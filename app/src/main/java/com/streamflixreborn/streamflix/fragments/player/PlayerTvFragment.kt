@@ -35,6 +35,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -151,6 +152,7 @@ class PlayerTvFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        initializePlayer(false)
         initializeVideo()
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -319,26 +321,36 @@ class PlayerTvFragment : Fragment() {
     }
 
 
-    private fun initializeVideo() {
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
-        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-        player = ExoPlayer.Builder(requireContext())
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .build().also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
 
-                mediaSession = MediaSession.Builder(requireContext(), player)
-                    .build()
+
+    private fun updatePlayerScale() {
+        val videoSurfaceView = binding.pvPlayer.videoSurfaceView
+        val playerResize = UserPreferences.playerResize
+
+        binding.pvPlayer.resizeMode = playerResize.resizeMode
+
+        when (playerResize) {
+            UserPreferences.PlayerResize.Stretch43 -> {
+                val scale = 1.33f // 4:3 aspect ratio
+                videoSurfaceView?.scaleX = scale
+                videoSurfaceView?.scaleY = 1f
             }
+            UserPreferences.PlayerResize.StretchVertical -> {
+                videoSurfaceView?.scaleX = 1f
+                videoSurfaceView?.scaleY = 1.25f
+            }
+            UserPreferences.PlayerResize.SuperZoom -> {
+                videoSurfaceView?.scaleX = 1.5f
+                videoSurfaceView?.scaleY = 1.5f
+            }
+            else -> {
+                videoSurfaceView?.scaleX = 1f
+                videoSurfaceView?.scaleY = 1f
+            }
+        }
+    }
+
+    private fun initializeVideo() {
         when (val type = args.videoType) {
             is Video.Type.Episode -> {
 
@@ -350,12 +362,6 @@ class PlayerTvFragment : Fragment() {
             is Video.Type.Movie -> {
                 EpisodeManager.clearEpisodes()
             }
-        }
-        binding.pvPlayer.player = player
-        binding.settings.player = player
-        binding.settings.subtitleView = binding.pvPlayer.subtitleView
-        binding.settings.onSubtitlesClicked = {
-            viewModel.getSubtitles(args.videoType)
         }
         setupEpisodeNavigationButtons()
         binding.pvPlayer.resizeMode = UserPreferences.playerResize.resizeMode
@@ -424,33 +430,6 @@ class PlayerTvFragment : Fragment() {
         }
     }
 
-    private fun updatePlayerScale() {
-        val videoSurfaceView = binding.pvPlayer.videoSurfaceView
-        val playerResize = UserPreferences.playerResize
-
-        binding.pvPlayer.resizeMode = playerResize.resizeMode
-
-        when (playerResize) {
-            UserPreferences.PlayerResize.Stretch43 -> {
-                val scale = 1.33f // 4:3 aspect ratio
-                videoSurfaceView?.scaleX = scale
-                videoSurfaceView?.scaleY = 1f
-            }
-            UserPreferences.PlayerResize.StretchVertical -> {
-                videoSurfaceView?.scaleX = 1f
-                videoSurfaceView?.scaleY = 1.25f
-            }
-            UserPreferences.PlayerResize.SuperZoom -> {
-                videoSurfaceView?.scaleX = 1.5f
-                videoSurfaceView?.scaleY = 1.5f
-            }
-            else -> {
-                videoSurfaceView?.scaleX = 1f
-                videoSurfaceView?.scaleY = 1f
-            }
-        }
-    }
-
     fun setupEpisodeNavigationButtons() {
         val btnPrevious = binding.pvPlayer.controller.binding.btnCustomPrev
         val btnNext = binding.pvPlayer.controller.binding.btnCustomNext
@@ -468,7 +447,7 @@ class PlayerTvFragment : Fragment() {
             button.setOnClickListener {
                 if (!hasEpisode()) return@setOnClickListener
 
-                val watchItem = when (val videoType = args.videoType as Video.Type) {
+                val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
                     is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                     is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                 }
@@ -519,6 +498,20 @@ class PlayerTvFragment : Fragment() {
     }
 
     private fun displayVideo(video: Video, server: Video.Server) {
+        val needsReinit = video.extraBuffering != currentExtraBuffering
+        if (needsReinit) {
+            initializePlayer(video.extraBuffering)
+            player.playlistMetadata = MediaMetadata.Builder()
+                .setTitle(args.title)
+                .setMediaServers(servers.map {
+                    MediaServer(
+                        id = it.id,
+                        name = it.name,
+                    )
+                })
+                .build()
+        }
+
         val videoType = args.videoType
         val currentPosition = player.currentPosition
 
@@ -587,7 +580,7 @@ class PlayerTvFragment : Fragment() {
                     ?: false
 
                 if (!isPlaying && hasUri) {
-                    val watchItem = when (val videoType = args.videoType as Video.Type) {
+                    val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
                         is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                         is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                     }
@@ -652,7 +645,7 @@ class PlayerTvFragment : Fragment() {
         })
 
         if (currentPosition == 0L) {
-            val watchItem = when (val videoType = args.videoType as Video.Type) {
+            val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
                 is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                 is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
             }
@@ -706,6 +699,55 @@ class PlayerTvFragment : Fragment() {
             val fadeOut = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
             btnSkipIntro.startAnimation(fadeOut)
             btnSkipIntro.visibility = View.GONE
+        }
+    }
+
+    private var currentExtraBuffering = false
+
+    private fun initializePlayer(extraBuffering: Boolean) {
+        if (::player.isInitialized) {
+            player.release()
+            mediaSession.release()
+        }
+        currentExtraBuffering = extraBuffering
+
+        val okHttpClient = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .build()
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+        
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS, // Max buffer 5 minutes if extraBuffering
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            )
+            .build()
+
+        player = ExoPlayer.Builder(requireContext())
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
+            .build().also { player ->
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
+
+                mediaSession = MediaSession.Builder(requireContext(), player)
+                    .build()
+            }
+
+        binding.pvPlayer.player = player
+        binding.settings.player = player
+        binding.settings.subtitleView = binding.pvPlayer.subtitleView
+        binding.settings.onSubtitlesClicked = {
+            viewModel.getSubtitles(args.videoType)
         }
     }
 }
