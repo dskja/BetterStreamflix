@@ -35,6 +35,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.streamflixreborn.streamflix.R
@@ -159,6 +161,7 @@ class PlayerMobileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        initializePlayer(false)
         initializeVideo()
         gestureHelper = PlayerGestureHelper(requireContext(), binding.pvPlayer, binding.pbBrightness, binding.pbVolume)
 
@@ -360,32 +363,7 @@ class PlayerMobileFragment : Fragment() {
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
         }
 
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
-	    httpDataSource = OkHttpDataSource.Factory(okHttpClient)
 
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-        player = ExoPlayer.Builder(requireContext())
-            .setSeekBackIncrementMs(10_000)
-            .setSeekForwardIncrementMs(10_000)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .build().also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
-
-                mediaSession = MediaSession.Builder(requireContext(), player)
-                    .build()
-            }
-
-        binding.pvPlayer.player = player
-        binding.settings.player = player
-        binding.settings.subtitleView = binding.pvPlayer.subtitleView
         binding.settings.onSubtitlesClicked = {
             viewModel.getSubtitles(args.videoType)
         }
@@ -523,7 +501,7 @@ class PlayerMobileFragment : Fragment() {
             button.setOnClickListener {
                 if (!hasEpisode()) return@setOnClickListener
 
-                val watchItem = when (val videoType = args.videoType as Video.Type) {
+                val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
                     is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                     is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                 }
@@ -579,6 +557,20 @@ class PlayerMobileFragment : Fragment() {
 
 
     private fun displayVideo(video: Video, server: Video.Server) {
+        val needsReinit = video.extraBuffering != currentExtraBuffering
+        if (needsReinit) {
+            initializePlayer(video.extraBuffering)
+            player.playlistMetadata = MediaMetadata.Builder()
+                .setTitle(args.title)
+                .setMediaServers(servers.map {
+                    MediaServer(
+                        id = it.id,
+                        name = it.name,
+                    )
+                })
+                .build()
+        }
+
         val videoType = args.videoType
         val currentPosition = player.currentPosition
 
@@ -642,7 +634,7 @@ class PlayerMobileFragment : Fragment() {
                     ?: false
 
                 if (!isPlaying && hasUri) {
-                    val watchItem = when (val videoType = args.videoType as Video.Type) {
+                    val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
                         is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                         is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                     }
@@ -704,7 +696,7 @@ class PlayerMobileFragment : Fragment() {
         })
 
         if (currentPosition == 0L) {
-            val watchItem = when (val videoType = args.videoType as Video.Type) {
+            val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
                 is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                 is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
             }
@@ -774,8 +766,61 @@ class PlayerMobileFragment : Fragment() {
         }
     }
 
+
+
     override fun onPause() {
         super.onPause()
         stopProgressHandler()
+    }
+
+    private var currentExtraBuffering = false
+
+    private fun initializePlayer(extraBuffering: Boolean) {
+        if (::player.isInitialized) {
+            player.release()
+            mediaSession.release()
+        }
+        currentExtraBuffering = extraBuffering
+
+        val okHttpClient = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .build()
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS, // Max buffer 5 minutes if extraBuffering
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            )
+            .build()
+        
+        player = ExoPlayer.Builder(requireContext())
+            .setSeekBackIncrementMs(10_000)
+            .setSeekForwardIncrementMs(10_000)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
+            .build().also { player ->
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
+
+                mediaSession = MediaSession.Builder(requireContext(), player)
+                    .build()
+            }
+
+        binding.pvPlayer.player = player
+        binding.settings.player = player
+        binding.settings.subtitleView = binding.pvPlayer.subtitleView
+        binding.settings.onSubtitlesClicked = {
+            viewModel.getSubtitles(args.videoType)
+        }
     }
 }
