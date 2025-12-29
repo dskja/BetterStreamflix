@@ -24,6 +24,9 @@ class Movie(
     var banner: String? = null,
 
     @Ignore
+    var imdbId: String? = null,
+
+    @Ignore
     var providerName: String? = null,
 
     @Ignore
@@ -77,6 +80,7 @@ class Movie(
         rating: Double? = this.rating,
         poster: String? = this.poster,
         banner: String? = this.banner,
+        imdbId: String? = this.imdbId,
         genres: List<Genre> = this.genres,
         directors: List<People> = this.directors,
         cast: List<People> = this.cast,
@@ -92,6 +96,7 @@ class Movie(
         rating,
         poster,
         banner,
+        imdbId,
         providerName,
         genres,
         directors,
@@ -114,6 +119,7 @@ class Movie(
         if (rating != other.rating) return false
         if (poster != other.poster) return false
         if (banner != other.banner) return false
+        if (imdbId != other.imdbId) return false
         if (genres != other.genres) return false
         if (directors != other.directors) return false
         if (cast != other.cast) return false
@@ -137,6 +143,7 @@ class Movie(
         result = 31 * result + (rating?.hashCode() ?: 0)
         result = 31 * result + (poster?.hashCode() ?: 0)
         result = 31 * result + (banner?.hashCode() ?: 0)
+        result = 31 * result + (imdbId?.hashCode() ?: 0)
         result = 31 * result + genres.hashCode()
         result = 31 * result + directors.hashCode()
         result = 31 * result + cast.hashCode()

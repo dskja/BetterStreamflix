@@ -189,7 +189,6 @@ class CategoryViewHolder(
             val providerName = when(show){
                 is Movie -> show.providerName
                 is TvShow -> show.providerName
-                else -> null
             }
 
             if (!providerName.isNullOrBlank() && providerName != UserPreferences.currentProvider?.name) {

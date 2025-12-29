@@ -22,6 +22,9 @@ class TvShow(
     var banner: String? = null,
 
     @Ignore
+    var imdbId: String? = null,
+
+    @Ignore
     var providerName: String? = null,
     @Ignore
     val seasons: List<Season> = listOf(),
@@ -82,6 +85,7 @@ class TvShow(
         rating: Double? = this.rating,
         poster: String? = this.poster,
         banner: String? = this.banner,
+        imdbId: String? = this.imdbId,
         seasons: List<Season> = this.seasons,
         genres: List<Genre> = this.genres,
         directors: List<People> = this.directors,
@@ -98,6 +102,7 @@ class TvShow(
         rating,
         poster,
         banner,
+        imdbId,
         providerName,
         seasons,
         genres,
@@ -121,6 +126,7 @@ class TvShow(
         if (rating != other.rating) return false
         if (poster != other.poster) return false
         if (banner != other.banner) return false
+        if (imdbId != other.imdbId) return false
         if (seasons != other.seasons) return false
         if (genres != other.genres) return false
         if (directors != other.directors) return false
@@ -143,6 +149,7 @@ class TvShow(
         result = 31 * result + (rating?.hashCode() ?: 0)
         result = 31 * result + (poster?.hashCode() ?: 0)
         result = 31 * result + (banner?.hashCode() ?: 0)
+        result = 31 * result + (imdbId?.hashCode() ?: 0)
         result = 31 * result + seasons.hashCode()
         result = 31 * result + genres.hashCode()
         result = 31 * result + directors.hashCode()

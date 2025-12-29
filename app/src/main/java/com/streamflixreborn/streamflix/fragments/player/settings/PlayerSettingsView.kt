@@ -286,6 +286,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         this.onLocalSubtitlesClicked = onLocalSubtitlesClicked
     }
 
+    abstract var onSubtitlesClicked: (() -> Unit)?
+
     protected var onOpenSubtitleSelected: ((Settings.Subtitle.OpenSubtitles.Subtitle) -> Unit)? = null
     fun setOnOpenSubtitleSelectedListener(onOpenSubtitleSelected: (Settings.Subtitle.OpenSubtitles.Subtitle) -> Unit) {
         this.onOpenSubtitleSelected = onOpenSubtitleSelected
@@ -390,7 +392,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         val currentFormat = player.videoFormat ?: return false
                         val bitrateMatch = currentFormat.bitrate == bitrate
                         val resolutionMatch = currentFormat.height == height && currentFormat.width == width
-                        
+
                         return bitrateMatch || resolutionMatch
                     }
                 override val isSelected: Boolean

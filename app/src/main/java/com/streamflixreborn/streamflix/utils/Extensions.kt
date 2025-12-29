@@ -6,6 +6,7 @@ import android.content.Context
 import android.database.Cursor
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.provider.OpenableColumns
@@ -216,10 +217,14 @@ val MediaMetadata.mediaServerId: String?
         ?.getString("mediaServerId")
 
 val MediaMetadata.mediaServers: List<MediaServer>
-    get() = this.extras
-        ?.getParcelableArray("mediaServers")
-        ?.map { it as MediaServer }
-        ?: listOf()
+    get() = this.extras?.run {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableArray("mediaServers", MediaServer::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableArray("mediaServers")
+        }
+    }?.map { it as MediaServer } ?: listOf()
 
 fun MediaMetadata.Builder.setMediaServerId(mediaServerId: String) = this
     .setExtras((this.extras ?: Bundle()).also { bundle ->
