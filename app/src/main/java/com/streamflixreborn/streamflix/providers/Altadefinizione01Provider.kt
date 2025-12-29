@@ -234,7 +234,7 @@ object Altadefinizione01Provider : Provider {
             ?: doc.selectFirst("h1,h2,title")?.text()?.trim()
             ?: ""
 
-        val tmdbMovie = TmdbUtils.getMovie(title)
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
         val poster = tmdbMovie?.poster ?: normalizeUrl(doc.selectFirst(".fix img")?.attr("data-src") ?: "")
 
@@ -260,7 +260,7 @@ object Altadefinizione01Provider : Provider {
             ?: doc.selectFirst("h1,h2,title")?.text()?.trim()
             ?: ""
 
-        val tmdbTvShow = TmdbUtils.getTvShow(title)
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
 
         val poster = tmdbTvShow?.poster ?: normalizeUrl(doc.selectFirst(".fix img")?.attr("data-src") ?: "")
 
