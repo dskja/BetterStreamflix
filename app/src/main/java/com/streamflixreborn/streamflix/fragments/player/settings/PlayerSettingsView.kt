@@ -388,7 +388,13 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 val player: ExoPlayer,
             ) : Quality() {
                 val isCurrentlyPlayed: Boolean
-                    get() = player.videoFormat?.let { it.bitrate == bitrate } ?: false
+                    get() {
+                        val currentFormat = player.videoFormat ?: return false
+                        val bitrateMatch = currentFormat.bitrate == bitrate
+                        val resolutionMatch = currentFormat.height == height && currentFormat.width == width
+
+                        return bitrateMatch || resolutionMatch
+                    }
                 override val isSelected: Boolean
                     get() = player.trackSelectionParameters.maxVideoBitrate == bitrate
             }
@@ -480,7 +486,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     )
                     list.add(LocalSubtitles)
                     // Hide OpenSubtitles from the Subtitles submenu
-                     list.add(OpenSubtitles)
+                    // list.add(OpenSubtitles)
                 }
             }
 
