@@ -11,8 +11,8 @@ import com.streamflixreborn.streamflix.utils.TMDb3.w500
 
 object TmdbUtils {
 
-    suspend fun getMovie(title: String, year: Int? = null): Movie? {
-        val results = TMDb3.Search.multi(title).results.filterIsInstance<TMDb3.Movie>()
+    suspend fun getMovie(title: String, year: Int? = null, language: String? = null): Movie? {
+        val results = TMDb3.Search.multi(title, language = language).results.filterIsInstance<TMDb3.Movie>()
         val movie = results.find {
             it.title.equals(title, ignoreCase = true) && (year == null || it.releaseDate?.contains(year.toString()) == true)
         } ?: results.firstOrNull() ?: return null
@@ -24,7 +24,8 @@ object TmdbUtils {
                 TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
                 TMDb3.Params.AppendToResponse.Movie.VIDEOS,
                 TMDb3.Params.AppendToResponse.Movie.EXTERNAL_IDS,
-            )
+            ),
+            language = language
         )
 
         return Movie(
@@ -46,8 +47,8 @@ object TmdbUtils {
         )
     }
 
-    suspend fun getTvShow(title: String, year: Int? = null): TvShow? {
-        val results = TMDb3.Search.multi(title).results.filterIsInstance<TMDb3.Tv>()
+    suspend fun getTvShow(title: String, year: Int? = null, language: String? = null): TvShow? {
+        val results = TMDb3.Search.multi(title, language = language).results.filterIsInstance<TMDb3.Tv>()
         val tv = results.find {
             it.name.equals(title, ignoreCase = true) && (year == null || it.firstAirDate?.contains(year.toString()) == true)
         } ?: results.firstOrNull() ?: return null
@@ -59,7 +60,8 @@ object TmdbUtils {
                 TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
                 TMDb3.Params.AppendToResponse.Tv.VIDEOS,
                 TMDb3.Params.AppendToResponse.Tv.EXTERNAL_IDS,
-            )
+            ),
+            language = language
         )
 
         return TvShow(
@@ -88,10 +90,11 @@ object TmdbUtils {
         )
     }
 
-    suspend fun getEpisodesBySeason(tvShowId: String, seasonNumber: Int): List<Episode> {
+    suspend fun getEpisodesBySeason(tvShowId: String, seasonNumber: Int, language: String? = null): List<Episode> {
         return TMDb3.TvSeasons.details(
             seriesId = tvShowId.toInt(),
             seasonNumber = seasonNumber,
+            language = language
         ).episodes?.map {
             Episode(
                 id = it.id.toString(),
