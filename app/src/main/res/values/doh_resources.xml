@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="settings_doh_provider_title">DNS over HTTPS (DoH)</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="settings_doh_provider_title" tools:ignore="MissingTranslation">DNS over HTTPS (DoH)</string>
 
-    <string-array name="doh_provider_names">
+    <string-array name="doh_provider_names" tools:ignore="MissingTranslation">
         <item>None</item>
         <item>Google</item>
         <item>Cloudflare</item>
@@ -14,7 +14,7 @@
         <item>FDN</item>
     </string-array>
 
-    <string-array name="doh_provider_urls">
+    <string-array name="doh_provider_urls" translatable="false">
         <item></item> <!-- Disabilitato -->
         <item>https://dns.google/dns-query</item>
         <item>https://cloudflare-dns.com/dns-query</item>

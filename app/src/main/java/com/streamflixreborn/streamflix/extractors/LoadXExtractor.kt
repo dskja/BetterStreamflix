@@ -7,6 +7,7 @@ import com.streamflixreborn.streamflix.utils.JsUnpacker
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.ResponseBody
 import org.json.JSONObject
@@ -99,7 +100,7 @@ open class LoadXExtractor: Extractor() {
             @Header("User-Agent") userAgent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:139.0) Gecko/20100101 Firefox/139.0",
             @Header("Referer") referer: String = "https://loadx.ws",
             @Header("Cookie") cookie: String,
-            @Body body: RequestBody = RequestBody.create(null, "") // empty body
+            @Body body: RequestBody = "".toRequestBody() // empty body
         ): ResponseBody
 
         companion object {

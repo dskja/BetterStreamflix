@@ -286,6 +286,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         this.onLocalSubtitlesClicked = onLocalSubtitlesClicked
     }
 
+    abstract var onSubtitlesClicked: (() -> Unit)?
+
     protected var onOpenSubtitleSelected: ((Settings.Subtitle.OpenSubtitles.Subtitle) -> Unit)? = null
     fun setOnOpenSubtitleSelectedListener(onOpenSubtitleSelected: (Settings.Subtitle.OpenSubtitles.Subtitle) -> Unit) {
         this.onOpenSubtitleSelected = onOpenSubtitleSelected
@@ -386,13 +388,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 val player: ExoPlayer,
             ) : Quality() {
                 val isCurrentlyPlayed: Boolean
-                    get() {
-                        val currentFormat = player.videoFormat ?: return false
-                        val bitrateMatch = currentFormat.bitrate == bitrate
-                        val resolutionMatch = currentFormat.height == height && currentFormat.width == width
-                        
-                        return bitrateMatch || resolutionMatch
-                    }
+                    get() = player.videoFormat?.let { it.bitrate == bitrate } ?: false
                 override val isSelected: Boolean
                     get() = player.trackSelectionParameters.maxVideoBitrate == bitrate
             }
@@ -484,7 +480,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     )
                     list.add(LocalSubtitles)
                     // Hide OpenSubtitles from the Subtitles submenu
-                    // list.add(OpenSubtitles)
+                     list.add(OpenSubtitles)
                 }
             }
 

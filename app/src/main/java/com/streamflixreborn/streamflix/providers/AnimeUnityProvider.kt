@@ -439,23 +439,23 @@ object AnimeUnityProvider : Provider {
     private fun parseGenresFromJson(allGenresData: String): List<Genre> {
         if (allGenresData.isEmpty()) return emptyList()
         
-            val decodedJson = allGenresData.replace("&quot;", "\"")
-            val jsonArray = org.json.JSONArray(decodedJson)
-            
-            val genres = mutableListOf<Genre>()
-            for (i in 0 until jsonArray.length()) {
-                try {
-                    val genreObj = jsonArray.getJSONObject(i)
-                    val genreId = genreObj.getInt("id")
-                    val genreName = genreObj.getString("name")
-                    
-                    genres.add(Genre(
-                        id = genreId.toString(),
-                        name = genreName
-                    ))
-                } catch (e: Exception) {
-                }
+        val decodedJson = allGenresData.replace("&quot;", "\"")
+        val jsonArray = org.json.JSONArray(decodedJson)
+        
+        val genres = mutableListOf<Genre>()
+        for (i in 0 until jsonArray.length()) {
+            try {
+                val genreObj = jsonArray.getJSONObject(i)
+                val genreId = genreObj.getInt("id")
+                val genreName = genreObj.getString("name")
+                
+                genres.add(Genre(
+                    id = genreId.toString(),
+                    name = genreName
+                ))
+            } catch (e: Exception) {
             }
+        }
             
         return genres
     }

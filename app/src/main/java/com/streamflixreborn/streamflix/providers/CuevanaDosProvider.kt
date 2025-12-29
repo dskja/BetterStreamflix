@@ -300,8 +300,8 @@ object CuevanaDosProvider : Provider {
             .getJSONObject("post")
 
         val title = json.getJSONObject("titles").getString("name")
-        val overview = json.optString("overview", null)
-        val releaseDate = json.optString("releaseDate", null)?.take(10)
+        val overview = json.optString("overview", "")
+        val releaseDate = json.optString("releaseDate", "")?.take(10)
         val rating = json.optJSONObject("rate")?.optDouble("average", 0.0) ?: 0.0
 
         val poster = json.optJSONObject("images")?.optString("poster")

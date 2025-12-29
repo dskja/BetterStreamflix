@@ -29,15 +29,12 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
-import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.streamflixreborn.streamflix.R
@@ -69,6 +66,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.navigation.NavOptions
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
+import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import okhttp3.OkHttpClient
 
 class PlayerMobileFragment : Fragment() {
@@ -90,8 +88,10 @@ class PlayerMobileFragment : Fragment() {
     private lateinit var mediaSession: MediaSession
     private lateinit var progressHandler: android.os.Handler
     private lateinit var progressRunnable: Runnable
+    private lateinit var gestureHelper: PlayerGestureHelper
 
     private var servers = listOf<Video.Server>()
+    private var zoomToast: Toast? = null
 
     private val pickLocalSubtitle = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -159,10 +159,10 @@ class PlayerMobileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        initializePlayer(false)
         initializeVideo()
+        gestureHelper = PlayerGestureHelper(requireContext(), binding.pvPlayer, binding.pbBrightness, binding.pbVolume)
 
-        viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch { 
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->
                 when (state) {
                     PlayerViewModel.State.LoadingServers -> {}
@@ -210,13 +210,16 @@ class PlayerMobileFragment : Fragment() {
                     }
 
                     is PlayerViewModel.State.FailedLoadingVideo -> {
-                        Toast.makeText(
-                            requireContext(),
-                            "${state.server.name}: ${state.error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        servers.getOrNull(servers.indexOf(state.server) + 1)?.let {
-                            viewModel.getVideo(it)
+                        val nextServer = servers.getOrNull(servers.indexOf(state.server) + 1)
+                        if (nextServer != null) {
+                            viewModel.getVideo(nextServer)
+                        } else {
+                            Toast.makeText(
+                                requireContext(),
+                                "All servers failed to load the video.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            findNavController().navigateUp()
                         }
                     }
 
@@ -268,7 +271,7 @@ class PlayerMobileFragment : Fragment() {
                     is PlayerViewModel.State.FailedDownloadingOpenSubtitle -> {
                         Toast.makeText(
                             requireContext(),
-                            "${state.subtitle.subFileName}: ${state.error.message}",
+                            "${'$'}{state.subtitle.subFileName}: ${'$'}{state.error.message}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -286,7 +289,7 @@ class PlayerMobileFragment : Fragment() {
                             id = nextEpisode.id,
                             videoType = nextEpisode,
                             title = nextEpisode.tvShow.title,
-                            subtitle = "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
+                            subtitle = "S${'$'}{nextEpisode.season.number} E${'$'}{nextEpisode.number}  •  ${'$'}{nextEpisode.title}"
                         )
 
                     findNavController().navigate(
@@ -357,9 +360,35 @@ class PlayerMobileFragment : Fragment() {
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
         }
 
+        val okHttpClient = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .build()
+	    httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+        player = ExoPlayer.Builder(requireContext())
+            .setSeekBackIncrementMs(10_000)
+            .setSeekForwardIncrementMs(10_000)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .build().also { player ->
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
+
+                mediaSession = MediaSession.Builder(requireContext(), player)
+                    .build()
+            }
+
         binding.pvPlayer.player = player
         binding.settings.player = player
         binding.settings.subtitleView = binding.pvPlayer.subtitleView
+        binding.settings.onSubtitlesClicked = {
+            viewModel.getSubtitles(args.videoType)
+        }
         binding.pvPlayer.resizeMode = UserPreferences.playerResize.resizeMode
         binding.pvPlayer.subtitleView?.apply {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * UserPreferences.captionTextSize)
@@ -381,6 +410,10 @@ class PlayerMobileFragment : Fragment() {
                 requireContext().getString(R.string.player_external_player_error_video),
                 Toast.LENGTH_SHORT
             ).show()
+        }
+
+        binding.pvPlayer.controller.binding.exoReplay.setOnClickListener {
+            player.seekTo(0)
         }
 
         binding.pvPlayer.controller.binding.btnExoLock.setOnClickListener {
@@ -406,15 +439,14 @@ class PlayerMobileFragment : Fragment() {
         }
 
         binding.pvPlayer.controller.binding.btnExoAspectRatio.setOnClickListener {
-            UserPreferences.playerResize = UserPreferences.playerResize.next()
-            binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
+            val newResize = UserPreferences.playerResize.next()
+            zoomToast?.cancel()
+            zoomToast = Toast.makeText(requireContext(), newResize.stringRes, Toast.LENGTH_SHORT)
+            zoomToast?.show()
 
-            Toast.makeText(
-                requireContext(),
-                requireContext().getString(UserPreferences.playerResize.stringRes),
-                Toast.LENGTH_SHORT
-            ).show()
-            binding.pvPlayer.resizeMode = UserPreferences.playerResize.resizeMode
+            UserPreferences.playerResize = newResize
+            binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
+            updatePlayerScale()
         }
 
         binding.pvPlayer.controller.binding.exoSettings.setOnClickListener {
@@ -444,6 +476,33 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
             player.seekTo(player.currentPosition + 85000)
             it.visibility = View.GONE
+        }
+    }
+
+ private fun updatePlayerScale() {
+        val videoSurfaceView = binding.pvPlayer.videoSurfaceView
+        val playerResize = UserPreferences.playerResize
+
+        binding.pvPlayer.resizeMode = playerResize.resizeMode
+
+        when (playerResize) {
+            UserPreferences.PlayerResize.Stretch43 -> {
+                val scale = 1.33f // 4:3 aspect ratio
+                videoSurfaceView?.scaleX = scale
+                videoSurfaceView?.scaleY = 1f
+            }
+            UserPreferences.PlayerResize.StretchVertical -> {
+                videoSurfaceView?.scaleX = 1f
+                videoSurfaceView?.scaleY = 1.25f
+            }
+            UserPreferences.PlayerResize.SuperZoom -> {
+                videoSurfaceView?.scaleX = 1.5f
+                videoSurfaceView?.scaleY = 1.5f
+            }
+            else -> {
+                videoSurfaceView?.scaleX = 1f
+                videoSurfaceView?.scaleY = 1f
+            }
         }
     }
 
@@ -520,20 +579,7 @@ class PlayerMobileFragment : Fragment() {
 
 
     private fun displayVideo(video: Video, server: Video.Server) {
-        val needsReinit = video.extraBuffering != currentExtraBuffering
-        if (needsReinit) {
-            initializePlayer(video.extraBuffering)
-            player.playlistMetadata = MediaMetadata.Builder()
-                .setTitle(args.title)
-                .setMediaServers(servers.map {
-                    MediaServer(
-                        id = it.id,
-                        name = it.name,
-                    )
-                })
-                .build()
-        }
-
+        val videoType = args.videoType
         val currentPosition = player.currentPosition
 
         httpDataSource.setDefaultRequestProperties(
@@ -568,7 +614,7 @@ class PlayerMobileFragment : Fragment() {
                 putExtra(
                     "title", when (val videoType = args.videoType as Video.Type) {
                         is Video.Type.Movie -> videoType.title
-                        is Video.Type.Episode -> "${videoType.tvShow.title} • S${videoType.season.number} E${videoType.number}"
+                        is Video.Type.Episode -> "${'$'}{videoType.tvShow.title} • S${'$'}{videoType.season.number} E${'$'}{videoType.number}"
                     }
                 )
                 putExtra("position", currentPosition)
@@ -583,7 +629,7 @@ class PlayerMobileFragment : Fragment() {
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
-                binding.pvPlayer.keepScreenOn = isPlaying
+                binding.pvPlayer.keepScreenOn = isPlaying || UserPreferences.keepScreenOnWhenPaused
 
                 if (isPlaying) {
                     startProgressHandler()
@@ -731,51 +777,5 @@ class PlayerMobileFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         stopProgressHandler()
-    }
-
-    private var currentExtraBuffering = false
-
-    private fun initializePlayer(extraBuffering: Boolean) {
-        if (::player.isInitialized) {
-            player.release()
-            mediaSession.release()
-        }
-        currentExtraBuffering = extraBuffering
-
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
-        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS, // Max buffer 5 minutes if extraBuffering
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-            )
-            .build()
-
-        player = ExoPlayer.Builder(requireContext())
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .setLoadControl(loadControl)
-            .build().also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
-
-                mediaSession = MediaSession.Builder(requireContext(), player)
-                    .build()
-            }
-        
-        binding.pvPlayer.player = player
-        binding.settings.player = player
-        binding.settings.subtitleView = binding.pvPlayer.subtitleView
     }
 }

@@ -13,6 +13,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import okhttp3.OkHttpClient
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.nodes.Document
@@ -191,62 +192,33 @@ object GuardaSerieProvider : Provider {
 
         val title = doc.selectFirst("div.mvic-desc h3")?.text()?.trim() ?: ""
 
-        val poster = doc.selectFirst("div.thumb.mvic-thumb img")?.attr("data-src") ?: ""
- 
+        val tmdbMovie = TmdbUtils.getMovie(title)
 
-        val genres = doc.select("div.mvici-left a[rel='category tag']").map { a: Element ->
-            Genre(
-                id = a.text().trim(),
-                name = a.text().trim()
-            )
-        }
-
-        val cast = doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { a: Element ->
-            People(
-                id = a.attr("href").trim(),
-                name = a.text().trim()
-            )
-        }
-
-        val year: String? = doc.selectFirst("div.mvici-right a[rel='tag']")
-            ?.text()
-            ?.takeIf { it.isNotBlank() }
-        val rating: Double? = doc.selectFirst("div.mvici-right div.imdb_r span.imdb-r")
-            ?.text()
-            ?.toDoubleOrNull()
-
-        val runtime: Int? = doc.selectFirst("div.mvici-right p:has(strong:matchesOwn((?i)^Duration:)) span")
-            ?.text()
-            ?.substringBefore(" min")
-            ?.trim()
-            ?.toIntOrNull()
-
-        val overview = doc.selectFirst("p.f-desc")?.text()?.trim()
-            ?: ""
-
-        val trailer: String? = runCatching {
-            val scripts = doc.select("script")
-            scripts.firstOrNull { it.html().contains("iframe-trailer") && it.html().contains("youtube.com/embed/") }
-                ?.let { script ->
-                    val scriptContent = script.html()
-                    val embedUrl = scriptContent.substringAfter("'src', '")
-                        .substringBefore("');")
-                    embedUrl.replace("/embed/", "/watch?v=")
-                        .let { if (it.startsWith("//")) "https:$it" else it }
-                }
-        }.getOrNull()
+        val poster = tmdbMovie?.poster ?: doc.selectFirst("div.thumb.mvic-thumb img")?.attr("data-src") ?: ""
 
         return Movie(
             id = id,
             title = title,
             poster = poster,
-            released = year,
-            runtime = runtime,
-            rating = rating,
-            genres = genres,
-            cast = cast,
-            overview = overview,
-            trailer = trailer
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } ?: doc.selectFirst("div.mvici-right a[rel='tag']")?.text()?.trim(),
+            runtime = tmdbMovie?.runtime ?: doc.selectFirst("div.mvici-right p:has(strong:matchesOwn((?i)^Duration:)) span")?.text()?.substringBefore(" min")?.trim()?.toIntOrNull(),
+            rating = tmdbMovie?.rating ?: doc.selectFirst("div.mvici-right div.imdb_r span.imdb-r")?.text()?.toDoubleOrNull(),
+            genres = tmdbMovie?.genres ?: doc.select("div.mvici-left a[rel='category tag']").map { Genre(it.text().trim(), it.text().trim()) },
+            cast = tmdbMovie?.cast ?: doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { People(it.attr("href").trim(), it.text().trim()) },
+            overview = tmdbMovie?.overview ?: doc.selectFirst("p.f-desc")?.text()?.trim() ?: "",
+            trailer = tmdbMovie?.trailer ?: runCatching {
+                val scripts = doc.select("script")
+                scripts.firstOrNull { it.html().contains("iframe-trailer") && it.html().contains("youtube.com/embed/") }
+                    ?.let { script ->
+                        val scriptContent = script.html()
+                        val embedUrl = scriptContent.substringAfter("'src', '")
+                            .substringBefore("');")
+                        embedUrl.replace("/embed/", "/watch?v=")
+                            .let { if (it.startsWith("//")) "https:$it" else it }
+                    }
+            }.getOrNull(),
+            banner = tmdbMovie?.banner,
+            imdbId = tmdbMovie?.imdbId
         )
     }
 
@@ -255,40 +227,15 @@ object GuardaSerieProvider : Provider {
         
         val title = doc.selectFirst("div.mvic-desc h3")?.text()?.trim() ?: ""
         
-        val poster = doc.selectFirst("div.thumb.mvic-thumb img")?.attr("data-src") ?: ""
+        val tmdbTvShow = TmdbUtils.getTvShow(title)
+
+        val poster = tmdbTvShow?.poster ?: doc.selectFirst("div.thumb.mvic-thumb img")?.attr("data-src") ?: ""
 
         val seriesDescRaw = doc.selectFirst("p.f-desc")?.text()?.trim()
-        val overview = seriesDescRaw?.takeUnless { text ->
+        val overview = tmdbTvShow?.overview ?: seriesDescRaw?.takeUnless { text ->
             val l = text.lowercase()
             l.contains("streaming community ita su guardaserie") && l.contains("guardare serie")
         }
-
-        val genres = doc.select("div.mvici-left a[rel='category tag']").map { a: Element ->
-            Genre(
-                id = a.text().trim(),
-                name = a.text().trim()
-            )
-        }
-
-        val cast = doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { a: Element ->
-            People(
-                id = a.attr("href").trim(),
-                name = a.text().trim()
-            )
-        }
-
-        val year: String? = doc.selectFirst("div.mvici-right a[rel='tag']")
-            ?.text()
-            ?.takeIf { it.isNotBlank() }
-        val rating: Double? = doc.selectFirst("div.mvici-right div.imdb_r span.imdb-r")
-            ?.text()
-            ?.toDoubleOrNull()
-
-        val runtime: Int? = doc.selectFirst("div.mvici-right p:has(strong:matchesOwn((?i)^Duration:)) span")
-            ?.text()
-            ?.substringBefore(" min")
-            ?.trim()
-            ?.toIntOrNull()
 
         val seasons = doc.select("div#seasons div.tvseason").mapNotNull { seasonEl: Element ->
             val content = seasonEl.selectFirst("div.les-content")
@@ -307,19 +254,25 @@ object GuardaSerieProvider : Provider {
             id = id,
             title = title,
             poster = poster,
-            released = year,
-            runtime = runtime,
-            rating = rating,
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } ?: doc.selectFirst("div.mvici-right a[rel='tag']")?.text()?.trim(),
+            runtime = tmdbTvShow?.runtime ?: doc.selectFirst("div.mvici-right p:has(strong:matchesOwn((?i)^Duration:)) span")?.text()?.substringBefore(" min")?.trim()?.toIntOrNull(),
+            rating = tmdbTvShow?.rating ?: doc.selectFirst("div.mvici-right div.imdb_r span.imdb-r")?.text()?.toDoubleOrNull(),
             overview = overview,
-            genres = genres,
-            cast = cast,
-            seasons = seasons
+            genres = tmdbTvShow?.genres ?: doc.select("div.mvici-left a[rel='category tag']").map { Genre(it.text().trim(), it.text().trim()) },
+            cast = tmdbTvShow?.cast ?: doc.select("div.mvici-left p:has(strong:matchesOwn((?i)^attori:)) span a[href]").map { People(it.attr("href").trim(), it.text().trim()) },
+            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            banner = tmdbTvShow?.banner,
+            imdbId = tmdbTvShow?.imdbId,
+            trailer = tmdbTvShow?.trailer
         )
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showId = seasonId.substringBefore("#s")
         val seasonNum = seasonId.substringAfter("#s").toIntOrNull() ?: return emptyList()
+
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("div.mvic-desc h3")?.text() ?: ""))
+        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum) else emptyList()
 
         val doc = service.getPage(showId)
         val seasonEl = doc.select("div#seasons div.tvseason").firstOrNull { el ->
@@ -337,14 +290,21 @@ object GuardaSerieProvider : Provider {
 
             val epMatch = Regex("Episodio\\s+(\\d+)", RegexOption.IGNORE_CASE).find(text)
             val epNumber = epMatch?.groupValues?.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
+            
+            val tmdbEp = tmdbEpisodes.find { it.number == epNumber }
 
             Episode(
                 id = href,
                 number = epNumber,
-                title = text,
-                poster = null
+                title = tmdbEp?.title ?: text,
+                poster = tmdbEp?.poster,
+                overview = tmdbEp?.overview
             )
         }
+    }
+
+    private fun cleanTitle(title: String): String {
+        return title.replace(Regex("\\s*\\(\\d{4}\\)\\s*$"), "").trim()
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {

@@ -234,10 +234,10 @@ object MStreamProvider : Provider {
         return getTvShowObj(json)
     }
 
-    override suspend fun getEpisodesBySeason(idCombined: String): List<Episode> {
-        val seasonId = idCombined.split("_")[0]
-        val seasonNumber = idCombined.split("_")[1]
-        val document = service.getEpisodes(seasonId, seasonNumber)
+    override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
+        val titleId = seasonId.split("_")[0]
+        val seasonNumber = seasonId.split("_")[1]
+        val document = service.getEpisodes(titleId, seasonNumber)
         val json = JSONObject(document.string())
         return json.getJSONObject("pagination").getJSONArray("data").map {
             Episode(
@@ -283,11 +283,11 @@ object MStreamProvider : Provider {
             else emptyList())
     }
 
-    override suspend fun getServers(idCombined: String, videoType: Video.Type): List<Server> {
-        val isShow = idCombined.contains("_")
+    override suspend fun getServers(id: String, videoType: Video.Type): List<Server> {
+        val isShow = id.contains("_")
         var document: ResponseBody
         if (isShow) {
-            val idSplit = idCombined.split("_")
+            val idSplit = id.split("_")
             val titleId = idSplit[0]
             val seasonNumber = if (idSplit.size > 1) idSplit[1] else ""
             val episodeNumber = if (idSplit.size > 1) idSplit[2] else ""
@@ -301,7 +301,7 @@ object MStreamProvider : Provider {
                 )
             }
         } else {
-            val idSplit = idCombined.split("#")
+            val idSplit = id.split("#")
             val watchId = idSplit[1]
             document = service.getStreams(watchId)
             val json = JSONObject(document.string())

@@ -53,7 +53,7 @@ open class VeevExtractor : Extractor() {
                         "op" to "player_api",
                         "cmd" to "gi",
                         "file_code" to mediaId,
-                        "r" to URLEncoder.encode(UserPreferences.currentProvider!!.baseUrl),
+                        "r" to URLEncoder.encode(UserPreferences.currentProvider!!.baseUrl, "UTF-8"),
                         "ch" to ch,
                         "ie" to "1"
                     )

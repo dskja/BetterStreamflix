@@ -12,12 +12,11 @@ import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
 import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.util.concurrent.TimeUnit
 import java.net.URLEncoder
 import retrofit2.http.GET
@@ -234,50 +233,24 @@ object Altadefinizione01Provider : Provider {
         val title = doc.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
             ?: doc.selectFirst("h1,h2,title")?.text()?.trim()
             ?: ""
-        val dataSrc = doc.selectFirst(".fix img")?.attr("data-src") ?: ""
-        val posterRaw = if (dataSrc.isNotBlank() && !dataSrc.contains("Ошибка")) {
-            dataSrc
-        } else {
-            doc.selectFirst("#single .sbox .imagen meta[itemprop=image]")?.attr("content")
-                ?: doc.selectFirst("meta[itemprop=image]")?.attr("content")
-                ?: ""
-        }
-        val poster = normalizeUrl(posterRaw)
-        val rating = doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull()
-        val overview = doc.selectFirst(".sbox .entry-content p")
-            ?.ownText()
-            ?.trim()
-            ?.replace(Regex("Fonte:.*$"), "")
-            ?.trim()
-        val trailer = doc.selectFirst(".btn_trailer a[href]")?.attr("href")
-            ?.trim()
-            ?.takeIf { it.contains("youtube", true) }
-        val genres = doc.select("p.meta_dd b[title=Genere]")
-            .firstOrNull()?.parent()?.select("a")
-            ?.filterNot { a -> a.text().trim().equals("Prossimamente", ignoreCase = true) }
-            ?.map { a ->
-                Genre(
-                    id = a.attr("href"),
-                    name = a.text().trim()
-                )
-            } ?: emptyList()
-        val cast = doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]")
-            .mapNotNull { a ->
-                val name = a.text().trim()
-                val href = a.attr("href").trim()
-                if (name.isBlank() || href.isBlank()) return@mapNotNull null
-                People(id = href, name = name)
-            }
+
+        val tmdbMovie = TmdbUtils.getMovie(title)
+
+        val poster = tmdbMovie?.poster ?: normalizeUrl(doc.selectFirst(".fix img")?.attr("data-src") ?: "")
+
         return Movie(
             id = id,
             title = title,
+            overview = tmdbMovie?.overview ?: doc.selectFirst(".sbox .entry-content p")?.ownText()?.trim(),
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = tmdbMovie?.runtime,
+            trailer = tmdbMovie?.trailer ?: doc.selectFirst(".btn_trailer a[href]")?.attr("href")?.takeIf { it.contains("youtube", true) },
+            rating = tmdbMovie?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
             poster = poster,
-            banner = null,
-            trailer = trailer,
-            rating = rating,
-            overview = overview,
-            genres = genres,
-            cast = cast
+            banner = tmdbMovie?.banner,
+            imdbId = tmdbMovie?.imdbId,
+            genres = tmdbMovie?.genres ?: doc.select("p.meta_dd b[title=Genere]").firstOrNull()?.parent()?.select("a")?.map { Genre(it.attr("href"), it.text().trim()) } ?: emptyList(),
+            cast = tmdbMovie?.cast ?: doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { People(it.attr("href"), it.text().trim()) }
         )
     }
 
@@ -286,36 +259,11 @@ object Altadefinizione01Provider : Provider {
         val title = doc.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
             ?: doc.selectFirst("h1,h2,title")?.text()?.trim()
             ?: ""
-        val dataSrc = doc.selectFirst(".fix img")?.attr("data-src") ?: ""
-        val posterRaw = if (dataSrc.isNotBlank() && !dataSrc.contains("Ошибка")) {
-            dataSrc
-        } else {
-            doc.selectFirst("#single .sbox .imagen meta[itemprop=image]")?.attr("content")
-                ?: doc.selectFirst("meta[itemprop=image]")?.attr("content")
-                ?: ""
-        }
-        val poster = normalizeUrl(posterRaw)
-        val rating = doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull()
-        val overview = doc.selectFirst(".sbox .entry-content p")
-            ?.ownText()
-            ?.trim()
-            ?.replace(Regex("Fonte:.*$"), "")
-            ?.trim()
-        val genres = doc.select("p.meta_dd:has(b.icon-medal) a[href]")
-            .map { a ->
-                Genre(
-                    id = a.attr("href"),
-                    name = a.text().trim()
-                )
-            } ?: emptyList()
-        
-        val cast = doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]")
-            .mapNotNull { a ->
-                val name = a.text().trim()
-                val href = a.attr("href").trim()
-                if (name.isBlank() || href.isBlank()) return@mapNotNull null
-                People(id = href, name = name)
-            }
+
+        val tmdbTvShow = TmdbUtils.getTvShow(title)
+
+        val poster = tmdbTvShow?.poster ?: normalizeUrl(doc.selectFirst(".fix img")?.attr("data-src") ?: "")
+
         val seasons = mutableListOf<Season>()
         doc.select("#tt_holder .tt_season ul li a[data-toggle=tab]").forEach { a ->
             val seasonId = a.attr("href").removePrefix("#")
@@ -344,16 +292,21 @@ object Altadefinizione01Provider : Provider {
                 )
             )
         }
+
         return TvShow(
             id = id,
             title = title,
+            overview = tmdbTvShow?.overview ?: doc.selectFirst(".sbox .entry-content p")?.ownText()?.trim(),
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = tmdbTvShow?.runtime,
+            trailer = tmdbTvShow?.trailer ?: doc.selectFirst(".btn_trailer a[href]")?.attr("href")?.takeIf { it.contains("youtube", true) },
+            rating = tmdbTvShow?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
             poster = poster,
-            banner = null,
-            rating = rating,
-            overview = overview,
-            genres = genres,
-            cast = cast,
-            seasons = seasons
+            banner = tmdbTvShow?.banner,
+            imdbId = tmdbTvShow?.imdbId,
+            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            genres = tmdbTvShow?.genres ?: doc.select("p.meta_dd:has(b.icon-medal) a[href]").map { Genre(it.attr("href"), it.text().trim()) } ?: emptyList(),
+            cast = tmdbTvShow?.cast ?: doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { People(it.attr("href"), it.text().trim()) }
         )
     }
 

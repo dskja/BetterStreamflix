@@ -13,10 +13,10 @@
         android:layout_marginTop="32dp"
         android:layout_marginEnd="100dp"
         android:adjustViewBounds="true"
+        android:importantForAccessibility="no"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription"
         tools:layout_constraintDimensionRatio="2:3"
         tools:layout_height="0dp" />
 
@@ -29,10 +29,11 @@
         android:padding="10dp"
         android:src="@drawable/ic_favorite_disable"
         android:tint="@drawable/color_button_text"
+        android:importantForAccessibility="no"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription,UseAppTint" />
+        tools:ignore="UseAppTint" />
 
     <TextView
         android:id="@+id/tv_movie_title"
@@ -58,13 +59,14 @@
         android:layout_marginStart="10dp"
         android:src="@drawable/ic_star"
         android:tint="#C0C0C0"
+        android:importantForAccessibility="no"
         app:layout_constraintBottom_toBottomOf="@id/tv_movie_rating"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toStartOf="@id/tv_movie_rating"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_movie_rating"
-        tools:ignore="ContentDescription,UseAppTint" />
+        tools:ignore="UseAppTint" />
 
     <TextView
         android:id="@+id/tv_movie_rating"

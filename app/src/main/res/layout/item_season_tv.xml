@@ -5,7 +5,9 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusableInTouchMode="true"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <ImageView
         android:id="@+id/iv_season_poster"
@@ -15,6 +17,7 @@
         android:duplicateParentState="true"
         android:foreground="@drawable/fg_item_season_image_tv"
         android:scaleType="centerCrop"
+        android:stateListAnimator="@animator/item_season_tv_zoom"
         app:layout_constraintDimensionRatio="2:1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

@@ -114,7 +114,7 @@ class PlayerViewModel(
         }
     }
 
-    private fun getSubtitles(videoType: Video.Type) = viewModelScope.launch(Dispatchers.IO) {
+    fun getSubtitles(videoType: Video.Type) = viewModelScope.launch(Dispatchers.IO) {
         _state.emit(State.LoadingSubtitles)
         try {
             val subtitles = when (videoType) {
