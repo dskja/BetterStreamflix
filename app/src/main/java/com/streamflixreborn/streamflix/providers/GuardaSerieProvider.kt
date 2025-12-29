@@ -192,7 +192,7 @@ object GuardaSerieProvider : Provider {
 
         val title = doc.selectFirst("div.mvic-desc h3")?.text()?.trim() ?: ""
 
-        val tmdbMovie = TmdbUtils.getMovie(title)
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
         val poster = tmdbMovie?.poster ?: doc.selectFirst("div.thumb.mvic-thumb img")?.attr("data-src") ?: ""
 
@@ -227,7 +227,7 @@ object GuardaSerieProvider : Provider {
         
         val title = doc.selectFirst("div.mvic-desc h3")?.text()?.trim() ?: ""
         
-        val tmdbTvShow = TmdbUtils.getTvShow(title)
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
 
         val poster = tmdbTvShow?.poster ?: doc.selectFirst("div.thumb.mvic-thumb img")?.attr("data-src") ?: ""
 
@@ -271,8 +271,8 @@ object GuardaSerieProvider : Provider {
         val showId = seasonId.substringBefore("#s")
         val seasonNum = seasonId.substringAfter("#s").toIntOrNull() ?: return emptyList()
 
-        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("div.mvic-desc h3")?.text() ?: ""))
-        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum) else emptyList()
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("div.mvic-desc h3")?.text() ?: ""), language = language)
+        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum, language = language) else emptyList()
 
         val doc = service.getPage(showId)
         val seasonEl = doc.select("div#seasons div.tvseason").firstOrNull { el ->
