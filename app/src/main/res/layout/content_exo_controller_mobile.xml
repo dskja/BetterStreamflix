@@ -7,7 +7,7 @@
     android:layout_height="match_parent">
 
     <View
-        android:id="@id/exo_controls_background"
+        android:id="@+id/exo_controls_background"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="#98000000"
@@ -71,71 +71,71 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_exo_title"
         tools:ignore="ContentDescription,UseAppTint" />
-    <ImageView
-        android:id="@+id/btn_custom_prev"
-        android:layout_width="60dp"
-        android:layout_height="0dp"
-        android:layout_marginEnd="16dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_previous"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toStartOf="@id/exo_rew"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="#FFFFFF" />
-    <ImageView
-        android:id="@+id/exo_rew"
-        android:layout_width="60dp"
-        android:layout_height="0dp"
-        android:layout_marginEnd="70dp"
-        android:padding="10dp"
-        android:src="@drawable/exo_styled_controls_rewind"
-        android:tint="#FFFFFF"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toStartOf="@id/exo_play_pause"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
 
-    <ImageView
-        android:id="@+id/exo_play_pause"
-        android:layout_width="90dp"
-        android:layout_height="0dp"
-        android:padding="15dp"
-        android:src="@drawable/exo_styled_controls_play"
-        android:tint="#FFFFFF"
+    <LinearLayout
+        android:id="@+id/exo_center_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <ImageView
-        android:id="@+id/exo_ffwd"
-        android:layout_width="60dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="70dp"
-        android:padding="10dp"
-        android:src="@drawable/exo_styled_controls_fastforward"
-        android:tint="#FFFFFF"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintStart_toEndOf="@id/exo_play_pause"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
-    <ImageView
-        android:id="@+id/btn_custom_next"
-        android:layout_width="60dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="16dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_next"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintStart_toEndOf="@id/exo_ffwd"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="#FFFFFF" />
+        <ImageView
+            android:id="@+id/btn_custom_prev"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:src="@drawable/ic_previous"
+            app:tint="#FFFFFF" />
+
+        <ImageView
+            android:id="@+id/exo_rew"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:src="@drawable/exo_styled_controls_rewind"
+            android:tint="#FFFFFF"
+            tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
+
+        <ImageView
+            android:id="@+id/exo_replay"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:src="@drawable/ic_refresh"
+            app:tint="#FFFFFF"
+            tools:ignore="ContentDescription" />
+
+        <ImageView
+            android:id="@+id/exo_play_pause"
+            android:layout_width="90dp"
+            android:layout_height="match_parent"
+            android:padding="15dp"
+            android:src="@drawable/exo_styled_controls_play"
+            android:tint="#FFFFFF"
+            tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
+
+        <ImageView
+            android:id="@+id/exo_ffwd"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:src="@drawable/exo_styled_controls_fastforward"
+            android:tint="#FFFFFF"
+            tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
+
+        <ImageView
+            android:id="@+id/btn_custom_next"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:src="@drawable/ic_next"
+            app:tint="#FFFFFF" />
+
+    </LinearLayout>
+
     <androidx.media3.ui.DefaultTimeBar
         android:id="@+id/exo_progress"
         android:layout_width="0dp"
@@ -158,7 +158,7 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <TextView
-            android:id="@id/exo_position"
+            android:id="@+id/exo_position"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="#FFFFFFFF"
@@ -183,7 +183,7 @@
             tools:ignore="HardcodedText" />
 
         <TextView
-            android:id="@id/exo_duration"
+            android:id="@+id/exo_duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="#B3FFFFFF"
@@ -233,7 +233,7 @@
             tools:ignore="ContentDescription,PrivateResource,UseAppTint" />
 
         <ImageView
-            android:id="@id/exo_settings"
+            android:id="@+id/exo_settings"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="12dp"
@@ -288,6 +288,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="visible"
-        app:constraint_referenced_ids="btn_exo_back,tv_exo_title,tv_exo_subtitle,btn_exo_external_player,exo_rew,exo_play_pause,exo_ffwd,exo_progress,exo_bottom_bar" />
+        app:constraint_referenced_ids="btn_exo_back,tv_exo_title,tv_exo_subtitle,btn_exo_external_player,exo_center_controls,exo_progress,exo_bottom_bar" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

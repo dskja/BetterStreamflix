@@ -53,7 +53,7 @@ class ProviderViewHolder(
 
         binding.tvProviderName.text = provider.name
 
-        binding.tvProviderLanguage.text = Locale(provider.language)
+        binding.tvProviderLanguage.text = Locale.forLanguageTag(provider.language)
             .let { it.getDisplayLanguage(it) }
             .replaceFirstChar { it.titlecase() }
     }
@@ -78,7 +78,7 @@ class ProviderViewHolder(
 
         binding.tvProviderName.text = provider.name
 
-        binding.tvProviderLanguage.text = Locale(provider.language)
+        binding.tvProviderLanguage.text = Locale.forLanguageTag(provider.language)
             .let { it.getDisplayLanguage(it) }
             .replaceFirstChar { it.titlecase() }
     }

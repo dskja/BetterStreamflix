@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">An error occurred</string>
@@ -97,6 +97,9 @@
     <string name="player_aspect_ratio_fit">Fit to screen</string>
     <string name="player_aspect_ratio_fill">Stretch</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>
+    <string name="player_aspect_ratio_zoom_4_3">Zoom for 4:3</string>
+    <string name="player_aspect_ratio_stretch_vertical">Stretch vertically</string>
+    <string name="player_aspect_ratio_super_zoom">Super Zoom</string>
     <string name="player_settings_title">Settings</string>
     <string name="player_settings_quality_title">Quality for current video</string>
     <string name="player_settings_quality_label">Quality</string>
@@ -214,6 +217,8 @@
     <string name="settings_autoplay">Autoplay next episode</string>
     <string name="settings_autoplay_on">On</string>
     <string name="settings_autoplay_off">Off</string>
+    <string name="settings_autoplay_buffer_title">Autoplay buffer</string>
+    <string name="settings_autoplay_buffer_dialog_message">Set how many seconds before the end of the episode to switch to the next one.</string>
     <string name="autoplay_settings">Autoplay settings</string>
     <string name="miscelaneous_title">Miscellaneous</string>
     <string name="clear_cache_done">Cache cleared</string>
@@ -260,4 +265,8 @@
     <string name="settings_frenchstream_use_new_interface">Use the new FrenchStream interface</string>
     <string name="settings_frenchstream_use_new_interface_on">On</string>
     <string name="settings_frenchstream_use_new_interface_off">Off</string>
+
+    <string name="player_brightness">Brightness</string>
+    <string name="player_volume">Volume</string>
+    <string name="percentage_format">%d%%</string>
 </resources>

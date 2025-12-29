@@ -13,6 +13,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -235,101 +236,42 @@ object StreamingItaProvider : Provider {
     override suspend fun getMovie(id: String): Movie {
         val document = service.getPage(id)
         val title = document.selectFirst("div.data > h1")?.text() ?: ""
-        val poster = document.selectFirst("div.poster img[itemprop=image]")?.attr("src")
+
+        val tmdbMovie = TmdbUtils.getMovie(title)
+
+        val poster = tmdbMovie?.poster ?: document.selectFirst("div.poster img[itemprop=image]")?.attr("src")
             ?: document.selectFirst("meta[property=og:image]")?.attr("content")
-        val plot = document.selectFirst("#info .wp-content p")?.text()
-        val rating = document.selectFirst(".starstruck-rating .dt_rating_vgs")?.text()
-            ?.replace(',', '.')
-            ?.toDoubleOrNull()
-        val trailer = document.selectFirst("#trailer iframe, #trailer .embed iframe")?.attr("src")
-            ?.let { normalizeUrl(it) }
-            ?.let { mapTrailerToWatchUrl(it) }
-        val genres = document.select("div.sgeneros a[rel=tag]").map { el ->
-            Genre(
-                id = el.text(),
-                name = el.text()
-            )
-        }
-        val directors = document.select("#cast h2:matches(^Regia$) + .persons .person").map { el ->
-            val name = el.selectFirst(".data .name a")?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
-            val img = el.selectFirst(".img img")?.attr("src")
-            val href = el.selectFirst(".data .name a")?.attr("href")
-            People(
-                id = href ?: name,
-                name = name,
-                image = img
-            )
-        }
-        val cast = document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
-            val anchor = el.selectFirst(".data .name a")
-            val name = anchor?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
-            val img = el.selectFirst(".img img")?.attr("src")
-            val href = anchor?.attr("href")
-            val personId = href?.let { h ->
-                img?.let { i -> "$h?poster=${URLEncoder.encode(i, "UTF-8")}" } ?: h
-            }
-            People(
-                id = personId ?: name,
-                name = name,
-                image = img
-            )
-        }
 
         return Movie(
             id = id,
             title = title,
             poster = poster,
-            overview = plot,
-            rating = rating,
-            trailer = trailer,
-            genres = genres,
-            directors = directors,
-            cast = cast
+            overview = tmdbMovie?.overview ?: document.selectFirst("#info .wp-content p")?.text(),
+            rating = tmdbMovie?.rating ?: document.selectFirst(".starstruck-rating .dt_rating_vgs")?.text()?.replace(',', '.')?.toDoubleOrNull(),
+            trailer = tmdbMovie?.trailer ?: document.selectFirst("#trailer iframe, #trailer .embed iframe")?.attr("src")?.let { normalizeUrl(it) }?.let { mapTrailerToWatchUrl(it) },
+            genres = tmdbMovie?.genres ?: document.select("div.sgeneros a[rel=tag]").map { Genre(it.text(), it.text()) },
+            cast = tmdbMovie?.cast ?: document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
+                val anchor = el.selectFirst(".data .name a")
+                val name = anchor?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
+                val img = el.selectFirst(".img img")?.attr("src")
+                val href = anchor?.attr("href")
+                People(id = href ?: name, name = name, image = img)
+            },
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = tmdbMovie?.runtime,
+            banner = tmdbMovie?.banner,
+            imdbId = tmdbMovie?.imdbId
         )
     }
 
     override suspend fun getTvShow(id: String): TvShow {
         val document = service.getPage(id)
         val title = document.selectFirst("div.data > h1")?.text() ?: ""
-        val poster = document.selectFirst("div.poster img[itemprop=image]")?.attr("src")
-        val plot = document.selectFirst("#info .wp-content p")?.text()
-        val rating = document.selectFirst(".starstruck-rating .dt_rating_vgs")?.text()
-            ?.replace(',', '.')
-            ?.toDoubleOrNull()
-        val trailer = document.selectFirst("#trailer iframe, #trailer .embed iframe")?.attr("src")
-            ?.let { normalizeUrl(it) }
-            ?.let { mapTrailerToWatchUrl(it) }
-        val genres = document.select("div.sgeneros a[rel=tag]").map { el ->
-            Genre(
-                id = el.text(),
-                name = el.text()
-            )
-        }
-        val directors = document.select("#cast h2:matches(^Regia$) + .persons .person").map { el ->
-            val anchor = el.selectFirst(".data .name a")
-            val name = anchor?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
-            val img = el.selectFirst(".img img")?.attr("src")
-            val href = anchor?.attr("href")
-            People(
-                id = href ?: name,
-                name = name,
-                image = img
-            )
-        }
-        val castPeople = document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
-            val anchor = el.selectFirst(".data .name a")
-            val name = anchor?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
-            val img = el.selectFirst(".img img")?.attr("src")
-            val href = anchor?.attr("href")
-            val personId = href?.let { h ->
-                img?.let { i -> "$h?poster=${URLEncoder.encode(i, "UTF-8")}" } ?: h
-            }
-            People(
-                id = personId ?: name,
-                name = name,
-                image = img
-            )
-        }
+
+        val tmdbTvShow = TmdbUtils.getTvShow(title)
+
+        val poster = tmdbTvShow?.poster ?: document.selectFirst("div.poster img[itemprop=image]")?.attr("src")
+
         val seasons = document.select("#serie_contenido #seasons .se-c").map { seasonEl ->
             val seasonNumber = seasonEl.selectFirst(".se-q .se-t")?.text()?.trim()?.toIntOrNull() ?: 1
             Season(
@@ -343,32 +285,49 @@ object StreamingItaProvider : Provider {
             id = id,
             title = title,
             poster = poster,
-            overview = plot,
-            rating = rating,
-            trailer = trailer,
-            seasons = seasons,
-            genres = genres,
-            directors = directors,
-            cast = castPeople
+            overview = tmdbTvShow?.overview ?: document.selectFirst("#info .wp-content p")?.text(),
+            rating = tmdbTvShow?.rating ?: document.selectFirst(".starstruck-rating .dt_rating_vgs")?.text()?.replace(',', '.')?.toDoubleOrNull(),
+            trailer = tmdbTvShow?.trailer ?: document.selectFirst("#trailer iframe, #trailer .embed iframe")?.attr("src")?.let { normalizeUrl(it) }?.let { mapTrailerToWatchUrl(it) },
+            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            genres = tmdbTvShow?.genres ?: document.select("div.sgeneros a[rel=tag]").map { Genre(it.text(), it.text()) },
+            cast = tmdbTvShow?.cast ?: document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
+                val anchor = el.selectFirst(".data .name a")
+                val name = anchor?.text() ?: el.selectFirst("[itemprop=name]")?.attr("content") ?: ""
+                val img = el.selectFirst(".img img")?.attr("src")
+                val href = anchor?.attr("href")
+                People(id = href ?: name, name = name, image = img)
+            },
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = tmdbTvShow?.runtime,
+            banner = tmdbTvShow?.banner,
+            imdbId = tmdbTvShow?.imdbId
         )
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val seasonNumber = seasonId.substringAfter("?season=").toIntOrNull()
+        val seasonNumber = seasonId.substringAfter("?season=").toIntOrNull() ?: 1
         val pageUrl = seasonId.substringBefore("?season=")
         val document = service.getPage(pageUrl)
+
+        val tmdbTvShow = TmdbUtils.getTvShow(document.selectFirst("div.data > h1")?.text() ?: "")
+        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNumber) else emptyList()
+
         return document.select("#serie_contenido #seasons .se-c .se-a ul.episodios > li").mapNotNull { epEl ->
             val numText = epEl.selectFirst(".numerando")?.text()?.trim() ?: ""
             val seasonFromNum = numText.substringBefore("-").trim().toIntOrNull()
             if (seasonNumber != null && seasonFromNum != seasonNumber) return@mapNotNull null
             val epNumber = numText.substringAfter("-").trim().toIntOrNull() ?: 0
+            
+            val tmdbEp = tmdbEpisodes.find { it.number == epNumber }
+
             val epLink = epEl.selectFirst(".episodiotitle a")?.attr("href").orEmpty()
-            val epTitle = epEl.selectFirst(".episodiotitle a")?.text()
+            val epTitle = tmdbEp?.title ?: epEl.selectFirst(".episodiotitle a")?.text()
             Episode(
                 id = epLink,
                 number = epNumber,
                 title = epTitle,
-                poster = epEl.selectFirst(".imagen img")?.attr("src"),
+                poster = tmdbEp?.poster ?: epEl.selectFirst(".imagen img")?.attr("src"),
+                overview = tmdbEp?.overview
             )
         }
     }
@@ -517,7 +476,6 @@ object StreamingItaProvider : Provider {
                                 src = normalized
                             )
                         }
-                        .filter { it.src.isNotBlank() }
                         // deduplicate by src, prefer the entry whose name contains "hd"
                         .groupBy { it.src }
                         .map { (_, list) ->
@@ -593,5 +551,3 @@ object StreamingItaProvider : Provider {
         }
     }
 }
-
-

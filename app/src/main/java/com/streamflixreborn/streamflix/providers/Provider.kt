@@ -56,13 +56,12 @@ interface Provider {
             val movies: Boolean,
             val tvShows: Boolean
         )
-        
+
         val providers = mapOf(
             SflixProvider to ProviderSupport(movies = true, tvShows = true),
             AnyMovieProvider to ProviderSupport(movies = true, tvShows = true),
             HiAnimeProvider to ProviderSupport(movies = true, tvShows = true),
             SerienStreamProvider to ProviderSupport(movies = false, tvShows = true),
-            TmdbProvider to ProviderSupport(movies = true, tvShows = true),
             SuperStreamProvider to ProviderSupport(movies = true, tvShows = true),
             StreamingCommunityProvider to ProviderSupport(movies = true, tvShows = true),
             AnimeWorldProvider to ProviderSupport(movies = true, tvShows = true),
@@ -103,7 +102,7 @@ interface Provider {
             val support = providers[provider] ?: ProviderSupport(movies = true, tvShows = true)
             return support.movies
         }
-        
+
         fun supportsTvShows(provider: Provider): Boolean {
             val support = providers[provider] ?: ProviderSupport(movies = true, tvShows = true)
             return support.tvShows

@@ -44,6 +44,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
 
+    override var onSubtitlesClicked: (() -> Unit)? = null
+
     init {
         binding.rvSettings.addItemDecoration(SpacingItemDecoration(6.dp(context)))
     }
@@ -57,6 +59,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
     private fun displaySettings(setting: Setting) {
         currentSettings = setting
+
+        if (setting == Setting.SUBTITLES) {
+            onSubtitlesClicked?.invoke()
+        }
 
         binding.tvSettingsHeader.apply {
             text = when (setting) {

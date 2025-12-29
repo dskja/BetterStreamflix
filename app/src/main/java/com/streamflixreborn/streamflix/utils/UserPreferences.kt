@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Provider.Companion.providers
+import com.streamflixreborn.streamflix.providers.TmdbProvider
 import androidx.core.content.edit
 import org.json.JSONObject
 
@@ -22,7 +23,7 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingcommunityz.site"
+    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.so"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -34,14 +35,14 @@ object UserPreferences {
 
     fun setup(context: Context) {
         Log.d(TAG, "setup() called with context: $context")
-        val prefsName = "${BuildConfig.APPLICATION_ID}.preferences"
+        val prefsName = "${'$'}{BuildConfig.APPLICATION_ID}.preferences"
         Log.d(TAG, "SharedPreferences name: $prefsName")
         prefs = context.getSharedPreferences(
             prefsName,
             Context.MODE_PRIVATE,
         )
         if (::prefs.isInitialized) {
-            Log.d(TAG, "prefs initialized successfully in setup. Hash: ${prefs.hashCode()}")
+            Log.d(TAG, "prefs initialized successfully in setup. Hash: ${'$'}{prefs.hashCode()}")
 
             val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
@@ -53,7 +54,14 @@ object UserPreferences {
 
 
     var currentProvider: Provider?
-        get() = Provider.providers.keys.find { it.name == Key.CURRENT_PROVIDER.getString() }
+        get() {
+            val providerName = Key.CURRENT_PROVIDER.getString()
+            if (providerName?.startsWith("TMDb (") == true && providerName.endsWith(")")) {
+                val lang = providerName.substringAfter("TMDb (").substringBefore(")")
+                return TmdbProvider(lang)
+            }
+            return Provider.providers.keys.find { it.name == providerName }
+        }
         set(value) {
             Key.CURRENT_PROVIDER.setString(value?.name)
             // Notify all ViewModels that the provider has changed
@@ -91,6 +99,13 @@ object UserPreferences {
         set(value) {
             Key.AUTOPLAY.setBoolean(value)
         }
+
+    var keepScreenOnWhenPaused: Boolean
+        get() = Key.KEEP_SCREEN_ON_WHEN_PAUSED.getBoolean() ?: false
+        set(value) {
+            Key.KEEP_SCREEN_ON_WHEN_PAUSED.setBoolean(value)
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -98,13 +113,18 @@ object UserPreferences {
         Fit(R.string.player_aspect_ratio_fit, AspectRatioFrameLayout.RESIZE_MODE_FIT),
         Fill(R.string.player_aspect_ratio_fill, AspectRatioFrameLayout.RESIZE_MODE_FILL),
         Zoom(R.string.player_aspect_ratio_zoom, AspectRatioFrameLayout.RESIZE_MODE_ZOOM),
+        Stretch43(R.string.player_aspect_ratio_zoom_4_3, AspectRatioFrameLayout.RESIZE_MODE_FIT),
+        StretchVertical(R.string.player_aspect_ratio_stretch_vertical, AspectRatioFrameLayout.RESIZE_MODE_FIT),
+        SuperZoom(R.string.player_aspect_ratio_super_zoom, AspectRatioFrameLayout.RESIZE_MODE_FIT);
     }
 
     var playerResize: PlayerResize
-        get() = PlayerResize.entries.find { it.resizeMode == Key.PLAYER_RESIZE.getInt() }
+        get() = PlayerResize.entries.find { it.resizeMode == Key.PLAYER_RESIZE.getInt() && it.name == Key.PLAYER_RESIZE_NAME.getString() }
+            ?: PlayerResize.entries.find { it.resizeMode == Key.PLAYER_RESIZE.getInt() }
             ?: PlayerResize.Fit
         set(value) {
             Key.PLAYER_RESIZE.setInt(value.resizeMode)
+            Key.PLAYER_RESIZE_NAME.setString(value.name)
         }
 
     var captionStyle: CaptionStyleCompat
@@ -137,9 +157,7 @@ object UserPreferences {
 
     var subtitleName: String?
         get() = Key.SUBTITLE_NAME.getString()
-        set(value) {
-            Key.SUBTITLE_NAME.setString(value)
-        }
+        set(value) = Key.SUBTITLE_NAME.setString(value)
     var streamingcommunityDomain: String
         get() {
             Log.d(TAG, "streamingcommunityDomain GET called")
@@ -147,7 +165,7 @@ object UserPreferences {
                 Log.e(TAG, "streamingcommunityDomain GET: prefs IS NOT INITIALIZED!")
                 return "PREFS_NOT_INIT_ERROR" // Restituisce un valore di errore evidente
             }
-            Log.d(TAG, "streamingcommunityDomain GET: prefs hash: ${prefs.hashCode()}")
+            Log.d(TAG, "streamingcommunityDomain GET: prefs hash: ${'$'}{prefs.hashCode()}")
             val storedValue = prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null)
             Log.d(TAG, "streamingcommunityDomain GET: storedValue from prefs: '$storedValue'")
             val returnValue = if (storedValue.isNullOrEmpty()) {
@@ -166,13 +184,13 @@ object UserPreferences {
                 Log.e(TAG, "streamingcommunityDomain SET: prefs IS NOT INITIALIZED!")
                 return // Non fare nulla se prefs non è inizializzato
             }
-            Log.d(TAG, "streamingcommunityDomain SET: prefs hash: ${prefs.hashCode()}")
+            Log.d(TAG, "streamingcommunityDomain SET: prefs hash: ${'$'}{prefs.hashCode()}")
             with(prefs.edit()) {
                 if (value.isNullOrEmpty()) {
-                    Log.d(TAG, "streamingcommunityDomain SET: value is null or empty, REMOVING key: '${Key.STREAMINGCOMMUNITY_DOMAIN.name}'")
+                    Log.d(TAG, "streamingcommunityDomain SET: value is null or empty, REMOVING key: '${'$'}{Key.STREAMINGCOMMUNITY_DOMAIN.name}'")
                     remove(Key.STREAMINGCOMMUNITY_DOMAIN.name)
                 } else {
-                    Log.d(TAG, "streamingcommunityDomain SET: value is NOT null or empty, PUTTING STRING key: '${Key.STREAMINGCOMMUNITY_DOMAIN.name}', value: '$value'")
+                    Log.d(TAG, "streamingcommunityDomain SET: value is NOT null or empty, PUTTING STRING key: '${'$'}{Key.STREAMINGCOMMUNITY_DOMAIN.name}', value: '$value'")
                     putString(Key.STREAMINGCOMMUNITY_DOMAIN.name, value)
                 }
                 apply()
@@ -182,7 +200,10 @@ object UserPreferences {
 
     var dohProviderUrl: String
         get() = Key.DOH_PROVIDER_URL.getString() ?: DEFAULT_DOH_PROVIDER_URL
-        set(value) = Key.DOH_PROVIDER_URL.setString(value)
+        set(value) {
+            Key.DOH_PROVIDER_URL.setString(value)
+            DnsResolver.setDnsUrl(value)
+        }
 
     var paddingX: Int
         get() = Key.SCREEN_PADDING_X.getInt() ?: 0
@@ -197,6 +218,7 @@ object UserPreferences {
         CURRENT_LANGUAGE,
         CURRENT_PROVIDER,
         PLAYER_RESIZE,
+        PLAYER_RESIZE_NAME,
         CAPTION_TEXT_SIZE,
         CAPTION_STYLE_FONT_COLOR,
         CAPTION_STYLE_BACKGROUND_COLOR,
@@ -210,7 +232,8 @@ object UserPreferences {
         STREAMINGCOMMUNITY_DOMAIN,
         DOH_PROVIDER_URL, // Removed STREAMINGCOMMUNITY_DNS_OVER_HTTPS, added DOH_PROVIDER_URL
         AUTOPLAY,
-        PROVIDER_CACHE;
+        PROVIDER_CACHE,
+        KEEP_SCREEN_ON_WHEN_PAUSED;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

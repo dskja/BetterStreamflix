@@ -86,7 +86,7 @@ class SeasonViewHolder(
                     hasFocus -> AnimationUtils.loadAnimation(context, R.anim.zoom_in)
                     else -> AnimationUtils.loadAnimation(context, R.anim.zoom_out)
                 }
-                binding.root.startAnimation(animation)
+                binding.ivSeasonPoster.startAnimation(animation)
                 animation.fillAfter = true
             }
         }

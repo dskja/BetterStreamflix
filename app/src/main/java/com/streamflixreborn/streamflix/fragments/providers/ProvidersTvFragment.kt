@@ -95,7 +95,7 @@ class ProvidersTvFragment : Fragment() {
             val languages = Provider.providers.keys
                 .distinctBy { it.language }
                 .map {
-                    val locale = Locale(it.language)
+                    val locale = Locale.forLanguageTag(it.language)
 
                     Language(
                         code = it.language,

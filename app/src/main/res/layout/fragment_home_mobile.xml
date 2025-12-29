@@ -38,9 +38,9 @@
         android:layout_marginTop="16dp"
         android:duplicateParentState="true"
         android:padding="8dp"
+        android:importantForAccessibility="no"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription" />
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

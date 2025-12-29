@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -27,8 +28,6 @@ import retrofit2.http.Query
 import retrofit2.http.Url
 import okhttp3.ResponseBody
 import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
 
@@ -310,41 +309,25 @@ object CB01Provider : Provider {
             ?: doc.selectFirst("h1, h2")?.text()?.trim()
             ?: ""
         val title = cleanTitle(rawTitle)
-        val detailQuality = if (rawTitle.contains("[HD]", ignoreCase = true) || rawTitle.contains("[HD/3D]", ignoreCase = true)) "HD" else null
 
-        val poster = doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
+        val tmdbMovie = TmdbUtils.getMovie(title)
 
-        val categoryText = doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()
-        val genres = categoryText?.let { parseGenresText(it, hasDurationMarker = true) } ?: emptyList()
-
-        val overview = run {
-            val paragraphs = doc.select("div.ignore-css > p")
-            val chosen = paragraphs.firstOrNull { p ->
-                val t = p.text().trim()
-                t.isNotBlank() && !t.contains(" – DURATA", ignoreCase = true)
-            }
-            chosen?.text()
-                ?.replace(Regex("\\s*\\+?Info\\s*»\\s*$", RegexOption.IGNORE_CASE), "")
-                ?.replace(Regex("\\s*\\+?DATE\\s+USCITA\\s+EPISODI\\s*$", RegexOption.IGNORE_CASE), "")
-                ?.trim()
-        }
-
-        val trailerDataSrc = doc
-            .selectFirst("table.cbtable:has(font:matchesOwn(^Guarda il Trailer:$)) + p iframe[data-src*='youtube.com/embed/']")
-            ?.attr("data-src")
-            ?.takeIf { it.isNotBlank() }
-        val trailerWatchUrl = trailerDataSrc
-            ?.replace("/embed/", "/watch?v=")
-
+        val poster = tmdbMovie?.poster ?: doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
 
         return Movie(
             id = id,
             title = title,
             poster = poster,
-            overview = overview,
-            genres = genres,
-            trailer = trailerWatchUrl,
-            quality = detailQuality,
+            overview = tmdbMovie?.overview ?: doc.selectFirst("div.ignore-css > p")?.text()?.replace(Regex("\\s*\\+?Info\\s*»\\s*$", RegexOption.IGNORE_CASE), "")?.trim(),
+            genres = tmdbMovie?.genres ?: (doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()?.let { parseGenresText(it, hasDurationMarker = true) } ?: emptyList()),
+            trailer = tmdbMovie?.trailer ?: doc.selectFirst("table.cbtable:has(font:matchesOwn(^Guarda il Trailer:$)) + p iframe[data-src*='youtube.com/embed/']")?.attr("data-src")?.replace("/embed/", "/watch?v="),
+            quality = if (rawTitle.contains("[HD]", ignoreCase = true) || rawTitle.contains("[HD/3D]", ignoreCase = true)) "HD" else null,
+            rating = tmdbMovie?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = tmdbMovie?.runtime,
+            banner = tmdbMovie?.banner,
+            imdbId = tmdbMovie?.imdbId,
+            cast = tmdbMovie?.cast ?: emptyList()
         )
     }
 
@@ -355,30 +338,10 @@ object CB01Provider : Provider {
             ?: doc.selectFirst("h1, h2")?.text()?.trim()
             ?: ""
         val title = cleanTitle(rawTitle)
-        val poster = doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
 
-        val categoryText = doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()
-        val genres = categoryText?.let { parseGenresText(it, hasDurationMarker = false) } ?: emptyList()
+        val tmdbTvShow = TmdbUtils.getTvShow(title)
 
-        val overview = run {
-            val infoP = doc.selectFirst("div.ignore-css > p:has(strong)")
-            infoP?.let { p ->
-                p.selectFirst("strong")?.remove()
-                val text = p.text().trim()
-                    .replace(Regex("\\s*\\+?Info\\s*»\\s*$", RegexOption.IGNORE_CASE), "")
-                    .replace(Regex("\\s*\\+?DATE\\s+USCITA\\s+EPISODI\\s*$", RegexOption.IGNORE_CASE), "")
-                    .trim()
-                text.takeIf { it.isNotBlank() }
-            }
-        }
-
-        val tvTrailerIframe = doc.selectFirst(
-            "table.cbtable:has(font:matchesOwn(^Guarda il Trailer:$)) + p iframe"
-        )
-        val tvTrailerRaw = tvTrailerIframe?.attr("data-src")?.takeIf { it.isNotBlank() }
-            ?: tvTrailerIframe?.attr("src")?.takeIf { it.contains("youtube.com/embed/") }
-        val tvTrailerWatchUrl = tvTrailerRaw
-            ?.replace("/embed/", "/watch?v=")
+        val poster = tmdbTvShow?.poster ?: doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
 
         val seasons = doc.select("div.sp-wrap").mapNotNull { wrap ->
             val head = wrap.selectFirst("div.sp-head")?.text()?.trim() ?: return@mapNotNull null
@@ -406,16 +369,25 @@ object CB01Provider : Provider {
             id = id,
             title = title,
             poster = poster,
-            trailer = tvTrailerWatchUrl,
-            overview = overview,
-            genres = genres,
-            seasons = seasons,
+            trailer = tmdbTvShow?.trailer ?: doc.selectFirst("table.cbtable:has(font:matchesOwn(^Guarda il Trailer:$)) + p iframe")?.attr("data-src")?.replace("/embed/", "/watch?v="),
+            overview = tmdbTvShow?.overview ?: doc.selectFirst("div.ignore-css > p:has(strong)")?.text()?.trim(),
+            genres = tmdbTvShow?.genres ?: (doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()?.let { parseGenresText(it, hasDurationMarker = false) } ?: emptyList()),
+            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            rating = tmdbTvShow?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = tmdbTvShow?.runtime,
+            banner = tmdbTvShow?.banner,
+            imdbId = tmdbTvShow?.imdbId,
+            cast = tmdbTvShow?.cast ?: emptyList()
         )
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showId = seasonId.substringBefore("#s")
         val seasonNum = seasonId.substringAfter("#s").toIntOrNull() ?: return emptyList()
+
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("h1")?.text() ?: ""))
+        val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum) else emptyList()
 
         val doc = service.getPage(showId)
         val wrap = doc.select("div.sp-wrap").firstOrNull { w ->
@@ -429,11 +401,15 @@ object CB01Provider : Provider {
             val text = p.text().trim()
             val epNum = Regex("(\\d+)[x×](\\d+)").find(text)?.groupValues?.getOrNull(2)?.toIntOrNull()
                 ?: return@mapNotNull null
+            
+            val tmdbEp = tmdbEpisodes.find { it.number == epNum }
+
             Episode(
                 id = "$showId#s${seasonNum}-e${epNum}",
                 number = epNum,
-                title = null,
-                poster = null,
+                title = tmdbEp?.title ?: text,
+                poster = tmdbEp?.poster,
+                overview = tmdbEp?.overview
             )
         }
     }
