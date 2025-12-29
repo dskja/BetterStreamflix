@@ -250,7 +250,12 @@ object Altadefinizione01Provider : Provider {
             banner = tmdbMovie?.banner,
             imdbId = tmdbMovie?.imdbId,
             genres = tmdbMovie?.genres ?: doc.select("p.meta_dd b[title=Genere]").firstOrNull()?.parent()?.select("a")?.map { Genre(it.attr("href"), it.text().trim()) } ?: emptyList(),
-            cast = tmdbMovie?.cast ?: doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { People(it.attr("href"), it.text().trim()) }
+            cast = doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { el ->
+                val href = el.attr("href").trim()
+                val name = el.text().trim()
+                val tmdbPerson = tmdbMovie?.cast?.find { it.name.equals(name, ignoreCase = true) }
+                People(id = href, name = name, image = tmdbPerson?.image)
+            }
         )
     }
 
@@ -306,7 +311,12 @@ object Altadefinizione01Provider : Provider {
             imdbId = tmdbTvShow?.imdbId,
             seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
             genres = tmdbTvShow?.genres ?: doc.select("p.meta_dd:has(b.icon-medal) a[href]").map { Genre(it.attr("href"), it.text().trim()) } ?: emptyList(),
-            cast = tmdbTvShow?.cast ?: doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { People(it.attr("href"), it.text().trim()) }
+            cast = doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { el ->
+                val href = el.attr("href").trim()
+                val name = el.text().trim()
+                val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(name, ignoreCase = true) }
+                People(id = href, name = name, image = tmdbPerson?.image)
+            }
         )
     }
 
