@@ -76,6 +76,11 @@ import com.streamflixreborn.streamflix.providers.Provider
 import android.view.KeyEvent
 import com.streamflixreborn.streamflix.databinding.ContentTvShowDirectorsMobileBinding
 import com.streamflixreborn.streamflix.databinding.ContentTvShowDirectorsTvBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 class TvShowViewHolder(
     private val _binding: ViewBinding
 ) : RecyclerView.ViewHolder(
@@ -683,20 +688,28 @@ class TvShowViewHolder(
                 }
             }
         }
-
         binding.btnTvShowFavorite.apply {
+
             fun Boolean.drawable() = when (this) {
                 true -> R.drawable.ic_favorite_enable
                 false -> R.drawable.ic_favorite_disable
             }
 
             setOnClickListener {
-                tvShow.isFavorite = !tvShow.isFavorite
-                database.tvShowDao().update(tvShow)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = database.tvShowDao()
+                    val current = dao.getById(tvShow.id)?.isFavorite ?: false
+                    val newValue = !current
 
-                setImageDrawable(
-                    ContextCompat.getDrawable(context, tvShow.isFavorite.drawable())
-                )
+                    dao.setFavorite(tvShow.id, newValue)
+
+                    withContext(Dispatchers.Main) {
+                        tvShow.isFavorite = newValue
+                        setImageDrawable(
+                            ContextCompat.getDrawable(context, newValue.drawable())
+                        )
+                    }
+                }
             }
 
             setImageDrawable(
@@ -937,20 +950,28 @@ class TvShowViewHolder(
                 }
             }
         }
-
         binding.btnTvShowFavorite.apply {
+
             fun Boolean.drawable() = when (this) {
                 true -> R.drawable.ic_favorite_enable
                 false -> R.drawable.ic_favorite_disable
             }
 
             setOnClickListener {
-                tvShow.isFavorite = !tvShow.isFavorite
-                database.tvShowDao().update(tvShow)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = database.tvShowDao()
+                    val current = dao.getById(tvShow.id)?.isFavorite ?: false
+                    val newValue = !current
 
-                setImageDrawable(
-                    ContextCompat.getDrawable(context, tvShow.isFavorite.drawable())
-                )
+                    dao.setFavorite(tvShow.id, newValue)
+
+                    withContext(Dispatchers.Main) {
+                        tvShow.isFavorite = newValue
+                        setImageDrawable(
+                            ContextCompat.getDrawable(context, newValue.drawable())
+                        )
+                    }
+                }
             }
 
             setImageDrawable(

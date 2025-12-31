@@ -76,6 +76,10 @@ import com.streamflixreborn.streamflix.providers.Provider
 import android.view.KeyEvent
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsMobileBinding
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsTvBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MovieViewHolder(
     private val _binding: ViewBinding
@@ -619,18 +623,27 @@ class MovieViewHolder(
         }
 
         binding.btnMovieFavorite.apply {
+
             fun Boolean.drawable() = when (this) {
                 true -> R.drawable.ic_favorite_enable
                 false -> R.drawable.ic_favorite_disable
             }
 
             setOnClickListener {
-                movie.isFavorite = !movie.isFavorite
-                database.movieDao().update(movie)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = database.movieDao()
+                    val current = dao.getById(movie.id)?.isFavorite ?: false
+                    val newValue = !current
 
-                setImageDrawable(
-                    ContextCompat.getDrawable(context, movie.isFavorite.drawable())
-                )
+                    dao.setFavorite(movie.id, newValue)
+
+                    withContext(Dispatchers.Main) {
+                        movie.isFavorite = newValue
+                        setImageDrawable(
+                            ContextCompat.getDrawable(context, newValue.drawable())
+                        )
+                    }
+                }
             }
 
             setImageDrawable(
@@ -813,18 +826,27 @@ class MovieViewHolder(
         }
 
         binding.btnMovieFavorite.apply {
+
             fun Boolean.drawable() = when (this) {
                 true -> R.drawable.ic_favorite_enable
                 false -> R.drawable.ic_favorite_disable
             }
 
             setOnClickListener {
-                movie.isFavorite = !movie.isFavorite
-                database.movieDao().update(movie)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = database.movieDao()
+                    val current = dao.getById(movie.id)?.isFavorite ?: false
+                    val newValue = !current
 
-                setImageDrawable(
-                    ContextCompat.getDrawable(context, movie.isFavorite.drawable())
-                )
+                    dao.setFavorite(movie.id, newValue)
+
+                    withContext(Dispatchers.Main) {
+                        movie.isFavorite = newValue
+                        setImageDrawable(
+                            ContextCompat.getDrawable(context, newValue.drawable())
+                        )
+                    }
+                }
             }
 
             setImageDrawable(
