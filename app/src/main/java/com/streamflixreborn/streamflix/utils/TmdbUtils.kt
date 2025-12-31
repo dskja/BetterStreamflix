@@ -106,4 +106,73 @@ object TmdbUtils {
             )
         } ?: listOf()
     }
+
+    suspend fun getMovieById(id: Int, language: String? = null): Movie? {
+        val details = TMDb3.Movies.details(
+            movieId = id,
+            appendToResponse = listOf(
+                TMDb3.Params.AppendToResponse.Movie.CREDITS,
+                TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
+                TMDb3.Params.AppendToResponse.Movie.VIDEOS,
+                TMDb3.Params.AppendToResponse.Movie.EXTERNAL_IDS,
+            ),
+            language = language
+        )
+
+        return Movie(
+            id = details.id.toString(),
+            title = details.title,
+            overview = details.overview,
+            released = details.releaseDate,
+            runtime = details.runtime,
+            trailer = details.videos?.results
+                ?.sortedBy { it.publishedAt ?: "" }
+                ?.firstOrNull { it.site == TMDb3.Video.VideoSite.YOUTUBE }
+                ?.let { "https://www.youtube.com/watch?v=${it.key}" },
+            rating = details.voteAverage.toDouble(),
+            poster = details.posterPath?.original,
+            banner = details.backdropPath?.original,
+            imdbId = details.externalIds?.imdbId,
+            genres = details.genres.map { Genre(it.id.toString(), it.name) },
+            cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
+        )
+    }
+
+    suspend fun getTvShowById(id: Int, language: String? = null): TvShow? {
+        val details = TMDb3.TvSeries.details(
+            seriesId = id,
+            appendToResponse = listOf(
+                TMDb3.Params.AppendToResponse.Tv.CREDITS,
+                TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
+                TMDb3.Params.AppendToResponse.Tv.VIDEOS,
+                TMDb3.Params.AppendToResponse.Tv.EXTERNAL_IDS,
+            ),
+            language = language
+        )
+
+        return TvShow(
+            id = details.id.toString(),
+            title = details.name,
+            overview = details.overview,
+            released = details.firstAirDate,
+            trailer = details.videos?.results
+                ?.sortedBy { it.publishedAt ?: "" }
+                ?.firstOrNull { it.site == TMDb3.Video.VideoSite.YOUTUBE }
+                ?.let { "https://www.youtube.com/watch?v=${it.key}" },
+            rating = details.voteAverage.toDouble(),
+            poster = details.posterPath?.original,
+            banner = details.backdropPath?.original,
+            imdbId = details.externalIds?.imdbId,
+            seasons = details.seasons.map {
+                Season(
+                    id = "${details.id}-${it.seasonNumber}",
+                    number = it.seasonNumber,
+                    title = it.name,
+                    poster = it.posterPath?.w500,
+                )
+            },
+            genres = details.genres.map { Genre(it.id.toString(), it.name) },
+            cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
+        )
+    }
 }

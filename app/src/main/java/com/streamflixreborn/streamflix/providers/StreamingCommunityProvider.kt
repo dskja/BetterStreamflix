@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -44,7 +45,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
-    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.site"
+    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.codes"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -405,6 +406,7 @@ object StreamingCommunityProvider : Provider {
         if (version != res.version) version = res.version
 
         val title = res.props.title
+        val tmdbMovie = title.tmdbId?.let { tmdbId -> TmdbUtils.getMovieById(tmdbId, language = language) }
 
         return Movie(
             id = id,
@@ -420,9 +422,11 @@ object StreamingCommunityProvider : Provider {
                 )
             } ?: listOf(),
             cast = title.actors?.map {
-                People (
+                val tmdbPerson = tmdbMovie?.cast?.find { p -> p.name.equals(it.name, ignoreCase = true) }
+                People(
                     id = it.name,
-                    name = it.name
+                    name = it.name,
+                    image = tmdbPerson?.image
                 )
             } ?: listOf(),
             trailer = let {
@@ -462,6 +466,7 @@ object StreamingCommunityProvider : Provider {
         if (version != res.version) version = res.version
 
         val title = res.props.title
+        val tmdbShow = title.tmdbId?.let { tmdbId -> TmdbUtils.getTvShowById(tmdbId, language = language) }
 
         return TvShow(
             id = id,
@@ -477,9 +482,11 @@ object StreamingCommunityProvider : Provider {
                 )
             } ?: listOf(),
             cast = title.actors?.map {
-                People (
+                val tmdbPerson = tmdbShow?.cast?.find { p -> p.name.equals(it.name, ignoreCase = true) }
+                People(
                     id = it.name,
-                    name = it.name
+                    name = it.name,
+                    image = tmdbPerson?.image
                 )
             } ?: listOf(),
             trailer = let {
@@ -932,6 +939,7 @@ object StreamingCommunityProvider : Provider {
             val id: String,
             val name: String,
             val type: String,
+            @SerializedName("tmdb_id") val tmdbId: Int?,
             val score: Double,
             val lastAirDate: String,
             val images: List<Image>,

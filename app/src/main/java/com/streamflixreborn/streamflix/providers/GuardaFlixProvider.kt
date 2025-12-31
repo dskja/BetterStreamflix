@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Show
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
@@ -156,13 +157,16 @@ object GuardaFlixProvider : Provider {
         val doc = service.getPage(id)
         
         val title = doc.selectFirst("h1.entry-title")?.text()?.trim() ?: ""
-        val poster = doc.selectFirst(".post-thumbnail img")?.attr("src")?.let { normalizeUrl(it) } ?: ""
-        val description = doc.selectFirst(".description p")?.text()?.trim() ?: ""
-        val rating = doc.selectFirst("span.vote.fa-star .num")?.text()?.trim()
+        
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
+
+        val poster = tmdbMovie?.poster ?: doc.selectFirst(".post-thumbnail img")?.attr("src")?.let { normalizeUrl(it) } ?: ""
+        val description = tmdbMovie?.overview ?: doc.selectFirst(".description p")?.text()?.trim() ?: ""
+        val rating = tmdbMovie?.rating ?: doc.selectFirst("span.vote.fa-star .num")?.text()?.trim()
             ?.replace(',', '.')
             ?.toDoubleOrNull()
 
-        val genres = doc.select("span.genres a[href]").map { a: Element ->
+        val genres = tmdbMovie?.genres ?: doc.select("span.genres a[href]").map { a: Element ->
             Genre(
                 id = a.attr("href"),
                 name = a.text().trim()
@@ -170,14 +174,17 @@ object GuardaFlixProvider : Provider {
         }
 
         val cast = doc.select("ul.cast-lst p a[href]").map { a: Element ->
+            val name = a.text().trim()
+            val tmdbPerson = tmdbMovie?.cast?.find { it.name.equals(name, ignoreCase = true) }
             People(
                 id = a.attr("href").trim(),
-                name = a.text().trim()
+                name = name,
+                image = tmdbPerson?.image
             )
         }
 
         // Trailer: extract from inlined base64 script (funciones_public_js-js-extra)
-        val trailer: String? = runCatching {
+        val trailer: String? = tmdbMovie?.trailer ?: runCatching {
             val b64Src = doc.selectFirst("script#funciones_public_js-js-extra[src^=data:text/javascript;base64,]")
                 ?.attr("src")
                 ?.substringAfter("base64,")
@@ -199,9 +206,12 @@ object GuardaFlixProvider : Provider {
             poster = poster,
             overview = description,
             rating = rating,
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}" },
             genres = genres,
             cast = cast,
-            trailer = trailer
+            trailer = trailer,
+            banner = tmdbMovie?.banner,
+            imdbId = tmdbMovie?.imdbId
         )
     }
 
