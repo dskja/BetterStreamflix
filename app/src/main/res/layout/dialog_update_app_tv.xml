@@ -102,26 +102,34 @@
         app:layout_constraintTop_toBottomOf="@id/tv_update_new_version_label"
         tools:text="2.15.1" />
 
-    <TextView
-        android:id="@+id/tv_update_release_notes"
+    <ScrollView
+        android:id="@+id/sv_release_notes"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
-        android:gravity="center"
-        android:textSize="12sp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        app:layout_constraintHeight_max="250dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_update_arrow"
-        app:layout_constraintTop_toBottomOf="@id/tv_update_new_version"
-        tools:text="- Bug fixes" />
+        app:layout_constraintTop_toBottomOf="@id/tv_update_new_version">
+
+        <TextView
+            android:id="@+id/tv_update_release_notes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            tools:text="- Bug fixes" />
+    </ScrollView>
 
     <androidx.constraintlayout.widget.Barrier
         android:id="@+id/barrier1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:barrierDirection="bottom"
-        app:constraint_referenced_ids="tv_update_current_version,tv_update_new_version,tv_update_release_notes" />
+        app:constraint_referenced_ids="tv_update_current_version,tv_update_new_version,sv_release_notes" />
 
     <ProgressBar
         android:id="@+id/pb_update_is_loading"

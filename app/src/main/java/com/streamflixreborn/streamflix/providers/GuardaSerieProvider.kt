@@ -270,7 +270,7 @@ object GuardaSerieProvider : Provider {
                 val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(name, ignoreCase = true) }
                 People(id = href, name = name, image = tmdbPerson?.image)
             },
-            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            seasons = seasons,
             banner = tmdbTvShow?.banner,
             imdbId = tmdbTvShow?.imdbId,
             trailer = tmdbTvShow?.trailer

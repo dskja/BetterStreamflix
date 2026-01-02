@@ -19,6 +19,7 @@ import com.streamflixreborn.streamflix.databinding.FragmentTvShowMobileBinding
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.CacheUtils
+import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
@@ -85,6 +86,9 @@ class TvShowMobileFragment : Fragment() {
                                     CacheUtils.clearAppCache(requireContext())
                                     android.widget.Toast.makeText(requireContext(), getString(com.streamflixreborn.streamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
                                     doRetry()
+                                }
+                                btnIsLoadingErrorDetails.setOnClickListener {
+                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
                                 }
                         }
                     }

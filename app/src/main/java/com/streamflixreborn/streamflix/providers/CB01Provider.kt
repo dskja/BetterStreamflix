@@ -309,6 +309,8 @@ object CB01Provider : Provider {
             ?: doc.selectFirst("h1, h2")?.text()?.trim()
             ?: ""
         val title = cleanTitle(rawTitle)
+        val year = Regex("\\((\\d{4})\\)").find(rawTitle)?.groupValues?.getOrNull(1)
+        val runtime = doc.selectFirst("div.ignore-css > p > strong")?.text()?.let { Regex("DURATA\\s+(\\d+)", RegexOption.IGNORE_CASE).find(it)?.groupValues?.getOrNull(1)?.toIntOrNull() }
 
         val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
@@ -318,13 +320,13 @@ object CB01Provider : Provider {
             id = id,
             title = title,
             poster = poster,
-            overview = tmdbMovie?.overview ?: doc.selectFirst("div.ignore-css > p")?.text()?.replace(Regex("\\s*\\+?Info\\s*»\\s*$", RegexOption.IGNORE_CASE), "")?.trim(),
+            overview = tmdbMovie?.overview ?: doc.select("div.ignore-css > p").firstOrNull { !it.text().contains("DURATA", true) }?.text()?.replace(Regex("\\s*\\+?Info\\s*»\\s*$", RegexOption.IGNORE_CASE), "")?.trim(),
             genres = tmdbMovie?.genres ?: (doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()?.let { parseGenresText(it, hasDurationMarker = true) } ?: emptyList()),
             trailer = tmdbMovie?.trailer ?: doc.selectFirst("table.cbtable:has(font:matchesOwn(^Guarda il Trailer:$)) + p iframe[data-src*='youtube.com/embed/']")?.attr("data-src")?.replace("/embed/", "/watch?v="),
             quality = if (rawTitle.contains("[HD]", ignoreCase = true) || rawTitle.contains("[HD/3D]", ignoreCase = true)) "HD" else null,
             rating = tmdbMovie?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
-            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
-            runtime = tmdbMovie?.runtime,
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" } ?: year,
+            runtime = tmdbMovie?.runtime ?: runtime,
             banner = tmdbMovie?.banner,
             imdbId = tmdbMovie?.imdbId,
             cast = tmdbMovie?.cast ?: emptyList()
@@ -339,6 +341,7 @@ object CB01Provider : Provider {
             ?: ""
         val title = cleanTitle(rawTitle)
 
+        val year = doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()?.let { Regex("\\((\\d{4})\\)").findAll(it).lastOrNull()?.groupValues?.getOrNull(1) }
         val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
 
         val poster = tmdbTvShow?.poster ?: doc.selectFirst("div.sequex-featured-img.s-post img[src]")?.attr("src")
@@ -370,11 +373,11 @@ object CB01Provider : Provider {
             title = title,
             poster = poster,
             trailer = tmdbTvShow?.trailer ?: doc.selectFirst("table.cbtable:has(font:matchesOwn(^Guarda il Trailer:$)) + p iframe")?.attr("data-src")?.replace("/embed/", "/watch?v="),
-            overview = tmdbTvShow?.overview ?: doc.selectFirst("div.ignore-css > p:has(strong)")?.text()?.trim(),
+            overview = tmdbTvShow?.overview ?: doc.select("div.ignore-css > p").firstOrNull { !it.text().contains("DURATA", true) }?.clone()?.apply { select("strong, b").remove() }?.text()?.replace(Regex("\\s*\\+?Info\\s*»\\s*$", RegexOption.IGNORE_CASE), "")?.trim(),
             genres = tmdbTvShow?.genres ?: (doc.selectFirst("div.ignore-css > p > strong")?.text()?.trim()?.let { parseGenresText(it, hasDurationMarker = false) } ?: emptyList()),
-            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            seasons = seasons,
             rating = tmdbTvShow?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
-            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" } ?: year,
             runtime = tmdbTvShow?.runtime,
             banner = tmdbTvShow?.banner,
             imdbId = tmdbTvShow?.imdbId,
@@ -386,10 +389,10 @@ object CB01Provider : Provider {
         val showId = seasonId.substringBefore("#s")
         val seasonNum = seasonId.substringAfter("#s").toIntOrNull() ?: return emptyList()
 
-        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(service.getPage(showId).selectFirst("h1")?.text() ?: ""), language = language)
+        val doc = service.getPage(showId)
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanTitle(doc.selectFirst("h1")?.text() ?: ""), language = language)
         val tmdbEpisodes = if (tmdbTvShow != null) TmdbUtils.getEpisodesBySeason(tmdbTvShow.id, seasonNum, language = language) else emptyList()
 
-        val doc = service.getPage(showId)
         val wrap = doc.select("div.sp-wrap").firstOrNull { w ->
             val head = w.selectFirst("div.sp-head")?.text()?.trim().orEmpty()
             head.contains(Regex("STAGIONE\\s+$seasonNum", RegexOption.IGNORE_CASE))
@@ -407,7 +410,7 @@ object CB01Provider : Provider {
             Episode(
                 id = "$showId#s${seasonNum}-e${epNum}",
                 number = epNum,
-                title = tmdbEp?.title ?: text,
+                title = tmdbEp?.title,
                 poster = tmdbEp?.poster,
                 overview = tmdbEp?.overview
             )

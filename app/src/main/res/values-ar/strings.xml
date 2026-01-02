@@ -5,6 +5,7 @@
 	<string name="loading_error_title">حدث خطأ</string>
 	<string name="loading_error_retry">إعادة المحاولة</string>
 	<string name="loading_error_clear_cache">مسح ذاكرة التخزين المؤقت</string>
+    <string name="loading_error_details">تفاصيل الخطأ</string>
 
 	<string name="update_title">تحديث جديد متاح</string>
 	<string name="update_message">يتوفر إصدار جديد من التطبيق!</string>
@@ -166,5 +167,22 @@
         <string name="settings_frenchstream_use_new_interface">استخدم الواجهة الجديدة لـ FrenchStream</string>
         <string name="settings_frenchstream_use_new_interface_on">تشغيل</string>
         <string name="settings_frenchstream_use_new_interface_off">إيقاف</string>
+        <string name="player_settings_extra_buffer_title">خادم مع تخزين مؤقت إضافي</string>
+
+        <string name="player_settings_extra_buffer_server_label">خادم مع تخزين مؤقت إضافي</string>
+        <string name="player_settings_extra_buffer_on">مفعل</string>
+        <string name="player_settings_extra_buffer_off">معطل</string>
+        <string name="player_settings_extra_buffer_forced_on">مفعل (قسري)</string>
+        <string name="player_settings_extra_buffer_forced_off">معطل (قسري)</string>
+        <string name="player_settings_extra_buffer_auto_on">مفعل (تلقائي)</string>
+        <string name="player_settings_extra_buffer_auto_off">معطل (تلقائي)</string>
+        <string name="error_dialog_title">تفاصيل الخطأ</string>
+        <string name="error_dialog_message">رسالة الخطأ</string>
+        <string name="error_dialog_cause">السبب</string>
+        <string name="error_dialog_stack_trace">تتبع المكدس</string>
+        <string name="error_dialog_copy">نسخ</string>
+        <string name="error_dialog_copied">تم النسخ!</string>
+        <string name="error_dialog_unknown">خطأ غير معروف</string>
+        <string name="error_dialog_no_cause">لا يوجد سبب</string>
 </resources>
 

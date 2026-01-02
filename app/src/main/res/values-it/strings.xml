@@ -4,6 +4,7 @@
     <string name="loading_error_title">Si è verificato un errore</string>
     <string name="loading_error_retry">Riprova</string>
     <string name="loading_error_clear_cache">Svuota cache</string>
+    <string name="loading_error_details">Dettagli Errore</string>
 
     <string name="update_title">Nuovo Aggiornamento Disponibile</string>
     <string name="update_message">una nuova versione dell\'app è disponibile!</string>
@@ -266,4 +267,21 @@
     <string name="player_brightness">Luminosità</string>
     <string name="player_volume">Volume</string>
     <string name="percentage_format">%d%%</string>
+    <string name="player_settings_extra_buffer_title">Server con Extra Buffering</string>
+
+    <string name="player_settings_extra_buffer_server_label">Server con Extra Buffering</string>
+    <string name="player_settings_extra_buffer_on">Attivo</string>
+    <string name="player_settings_extra_buffer_off">Disattivato</string>
+    <string name="player_settings_extra_buffer_forced_on">Attivo (Forzato)</string>
+    <string name="player_settings_extra_buffer_forced_off">Disattivato (Forzato)</string>
+    <string name="player_settings_extra_buffer_auto_on">Attivo (Default)</string>
+    <string name="player_settings_extra_buffer_auto_off">Disattivato (Default)</string>
+    <string name="error_dialog_title">Dettagli Errore</string>
+    <string name="error_dialog_message">Messaggio Errore</string>
+    <string name="error_dialog_cause">Causa</string>
+    <string name="error_dialog_stack_trace">Stack Trace</string>
+    <string name="error_dialog_copy">Copia</string>
+    <string name="error_dialog_copied">Copiato negli appunti!</string>
+    <string name="error_dialog_unknown">Errore sconosciuto</string>
+    <string name="error_dialog_no_cause">Nessuna causa</string>
 </resources>

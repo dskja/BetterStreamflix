@@ -12,8 +12,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.extractors.DoodLaExtractor
 import com.streamflixreborn.streamflix.utils.DnsResolver
-import com.streamflixreborn.streamflix.utils.TMDb3
-import com.streamflixreborn.streamflix.utils.TMDb3.w500
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
@@ -87,8 +86,8 @@ object EinschaltenProvider : Provider {
         return try {
             val tmdbId = movieId.toIntOrNull()
             if (tmdbId != null) {
-                val movieDetails = TMDb3.Movies.details(movieId = tmdbId)
-                movieDetails.posterPath?.let { it.w500 } ?: ""
+                val movie = TmdbUtils.getMovieById(tmdbId, language = language)
+                movie?.poster ?: ""
             } else {
                 ""
             }
@@ -97,11 +96,11 @@ object EinschaltenProvider : Provider {
         }
     }
     
-    private suspend fun getTmdbMovieDetails(movieId: String): TMDb3.Movie.Detail? {
+    private suspend fun getTmdbMovie(movieId: String): Movie? {
         return try {
             val tmdbId = movieId.toIntOrNull()
             if (tmdbId != null) {
-                TMDb3.Movies.details(movieId = tmdbId)
+                TmdbUtils.getMovieById(tmdbId, language = language)
             } else {
                 null
             }
@@ -241,35 +240,21 @@ object EinschaltenProvider : Provider {
         val json = JSONObject(body)
 
         val title = json.optString("title", "")
-        var overview = json.optString("overview", "")
+        val overview = json.optString("overview", "")
         val posterPath = json.optString("posterPath", "")
         val releaseDate = json.optString("releaseDate", "").takeIf { it.isNotBlank() }
         val voteAverage = json.optDouble("voteAverage", 0.0).takeIf { it > 0 }
         val runtime = json.optInt("runtime", 0).takeIf { it > 0 }
         val genresArray = json.optJSONArray("genres")
 
-        val poster: String
-        if (posterPath.isNotBlank()) {
-            poster = getPosterUrl(id, posterPath)
-            if (overview.isBlank()) {
-                val tmdbDetails = getTmdbMovieDetails(id)
-                if (tmdbDetails != null) {
-                    overview = tmdbDetails.overview ?: ""
-                }
-            }
-        } else {
-            val tmdbDetails = getTmdbMovieDetails(id)
-            if (tmdbDetails != null) {
-                poster = tmdbDetails.posterPath?.let { it.w500 } ?: ""
-                if (overview.isBlank()) {
-                    overview = tmdbDetails.overview ?: ""
-                }
-            } else {
-                poster = ""
-            }
+        val tmdbMovie = getTmdbMovie(id)
+
+        val poster = when {
+            posterPath.isNotBlank() -> "$baseUrl/api/image/poster$posterPath"
+            else -> tmdbMovie?.poster ?: ""
         }
 
-        val genres = if (genresArray != null) {
+        val genres = if (genresArray != null && genresArray.length() > 0) {
             (0 until genresArray.length()).mapNotNull { i ->
                 val genreObj = genresArray.optJSONObject(i) ?: return@mapNotNull null
                 Genre(
@@ -278,18 +263,22 @@ object EinschaltenProvider : Provider {
                 )
             }
         } else {
-            emptyList()
+            tmdbMovie?.genres ?: emptyList()
         }
 
         return Movie(
             id = id,
             title = title,
-            overview = overview,
+            overview = overview.ifBlank { tmdbMovie?.overview ?: "" },
+            released = releaseDate ?: tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
+            runtime = runtime ?: tmdbMovie?.runtime,
+            rating = voteAverage ?: tmdbMovie?.rating,
             poster = poster,
-            released = releaseDate,
-            runtime = runtime,
-            rating = voteAverage,
-            genres = genres
+            banner = tmdbMovie?.banner,
+            genres = genres,
+            cast = tmdbMovie?.cast ?: emptyList(),
+            trailer = tmdbMovie?.trailer,
+            recommendations = tmdbMovie?.recommendations ?: emptyList()
         )
     }
 
@@ -344,7 +333,7 @@ object EinschaltenProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw NotImplementedError()
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

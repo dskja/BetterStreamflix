@@ -40,6 +40,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.streamflixreborn.streamflix.R
+import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.databinding.ContentExoControllerTvBinding
 import com.streamflixreborn.streamflix.databinding.FragmentPlayerTvBinding
@@ -87,6 +88,9 @@ class PlayerTvFragment : Fragment() {
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
+
+    private var currentVideo: Video? = null
+    private var currentServer: Video.Server? = null
 
     private val pickLocalSubtitle = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -199,6 +203,7 @@ class PlayerTvFragment : Fragment() {
                     }
 
                     is PlayerViewModel.State.SuccessLoadingVideo -> {
+                        PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
                         displayVideo(state.video, state.server)
                     }
 
@@ -369,6 +374,12 @@ class PlayerTvFragment : Fragment() {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * UserPreferences.captionTextSize)
             setStyle(UserPreferences.captionStyle)
         }
+        binding.settings.setOnExtraBufferingSelectedListener {
+            displayVideo(
+                currentVideo ?: return@setOnExtraBufferingSelectedListener,
+                currentServer ?: return@setOnExtraBufferingSelectedListener
+            )
+        }
 
         binding.pvPlayer.controller.binding.tvExoTitle.text = args.title
 
@@ -427,6 +438,12 @@ class PlayerTvFragment : Fragment() {
 
         binding.settings.setOnOpenSubtitleSelectedListener { subtitle ->
             viewModel.downloadSubtitle(subtitle.openSubtitle)
+        }
+        binding.settings.setOnExtraBufferingSelectedListener {
+            displayVideo(
+                currentVideo ?: return@setOnExtraBufferingSelectedListener,
+                currentServer ?: return@setOnExtraBufferingSelectedListener
+            )
         }
     }
 
@@ -498,9 +515,12 @@ class PlayerTvFragment : Fragment() {
     }
 
     private fun displayVideo(video: Video, server: Video.Server) {
-        val needsReinit = video.extraBuffering != currentExtraBuffering
+        currentVideo = video
+        currentServer = server
+        val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
+        val needsReinit = extraBuffering != currentExtraBuffering
         if (needsReinit) {
-            initializePlayer(video.extraBuffering)
+            initializePlayer(extraBuffering)
             player.playlistMetadata = MediaMetadata.Builder()
                 .setTitle(args.title)
                 .setMediaServers(servers.map {

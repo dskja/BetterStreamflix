@@ -90,6 +90,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         CAPTION_STYLE_WINDOW_OPACITY,
         OPEN_SUBTITLES,
         SPEED,
+        EXTRA_BUFFERING,
         SERVERS,
     }
 
@@ -301,6 +302,21 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 .withSpeed(speed.value)
         }
 
+    protected var onExtraBufferingListener: ((Boolean) -> Unit)? = null
+    fun setOnExtraBufferingSelectedListener(listener: (Boolean) -> Unit) {
+        this.onExtraBufferingListener = listener
+    }
+
+    protected var onExtraBufferingSelected: ((Settings.ExtraBuffering) -> Unit) =
+        fun(extraBuffering) {
+            val newValue = when (extraBuffering) {
+                is Settings.ExtraBuffering.On -> true
+                is Settings.ExtraBuffering.Off -> false
+            }
+            Settings.ExtraBuffering.selectedValue = if (newValue == Settings.ExtraBuffering.isDefaultEnabled) null else newValue
+            onExtraBufferingListener?.invoke(newValue)
+        }
+
     protected var onServerSelected: ((Settings.Server) -> Unit)? = null
     fun setOnServerSelectedListener(onServerSelected: (server: Settings.Server) -> Unit) {
         this.onServerSelected = onServerSelected
@@ -318,7 +334,50 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Subtitle,
                 Speed,
                 Server,
+                ExtraBuffering,
             )
+        }
+
+        sealed class ExtraBuffering : Item {
+            companion object : Settings() {
+                var isDefaultEnabled = false
+                var selectedValue: Boolean? = null
+
+                val isEnabled: Boolean get() = selectedValue ?: isDefaultEnabled
+
+                val list = listOf(On, Off)
+
+                val selected: ExtraBuffering
+                    get() = if (isEnabled) On else Off
+
+                fun init(defaultEnabled: Boolean) {
+                    isDefaultEnabled = defaultEnabled
+                    selectedValue = null
+                }
+            }
+
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : ExtraBuffering() {
+                override val isSelected: Boolean get() = isEnabled
+                override val stringId: Int
+                    get() = when {
+                        selectedValue == null && isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_on
+                        selectedValue == true && !isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_on
+                        else -> R.string.player_settings_extra_buffer_on
+                    }
+            }
+
+            data object Off : ExtraBuffering() {
+                override val isSelected: Boolean get() = !isEnabled
+                override val stringId: Int
+                    get() = when {
+                        selectedValue == null && !isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_off
+                        selectedValue == false && isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_off
+                        else -> R.string.player_settings_extra_buffer_off
+                    }
+            }
         }
 
         sealed class Quality : Item {

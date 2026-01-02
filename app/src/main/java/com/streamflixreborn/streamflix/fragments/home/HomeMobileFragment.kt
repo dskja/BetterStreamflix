@@ -25,6 +25,7 @@ import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import com.streamflixreborn.streamflix.utils.CacheUtils
+import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -110,6 +111,9 @@ class HomeMobileFragment : Fragment() {
                                 CacheUtils.clearAppCache(requireContext())
                                 android.widget.Toast.makeText(requireContext(), getString(com.streamflixreborn.streamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
                                 doRetry()
+                            }
+                            btnIsLoadingErrorDetails.setOnClickListener {
+                                LoggingUtils.showErrorDialog(requireContext(), state.error)
                             }
                         }
                     }

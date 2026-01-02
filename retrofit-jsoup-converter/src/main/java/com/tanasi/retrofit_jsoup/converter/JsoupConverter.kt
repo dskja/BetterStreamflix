@@ -12,13 +12,12 @@ class JsoupConverter(
 ) : Converter<ResponseBody, Document?> {
 
     override fun convert(value: ResponseBody): Document? {
-        val charset = value.contentType()?.charset() ?: Charset.forName("UTF-8")
+        val contentType = value.contentType()
+        val isXml = contentType?.subtype?.contains("xml", ignoreCase = true) == true
+        val parser = if (isXml) Parser.xmlParser() else Parser.htmlParser()
 
-        val parser = when (value.contentType().toString()) {
-            "application/xml", "text/xml" -> Parser.xmlParser()
-            else -> Parser.htmlParser()
-        }
+        val body = value.string()
 
-        return Jsoup.parse(value.byteStream(), charset.name(), baseUri, parser)
+        return Jsoup.parse(body, baseUri, parser)
     }
 }

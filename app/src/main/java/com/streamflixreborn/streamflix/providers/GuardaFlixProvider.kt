@@ -166,6 +166,12 @@ object GuardaFlixProvider : Provider {
             ?.replace(',', '.')
             ?.toDoubleOrNull()
 
+        val runtime = doc.selectFirst("span.duration.fa-clock.far")?.text()?.trim()?.let { text ->
+            val hours = Regex("(\\d+)h").find(text)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+            val minutes = Regex("(\\d+)m").find(text)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+            if (hours > 0 || minutes > 0) hours * 60 + minutes else null
+        }
+
         val genres = tmdbMovie?.genres ?: doc.select("span.genres a[href]").map { a: Element ->
             Genre(
                 id = a.attr("href"),
@@ -211,6 +217,7 @@ object GuardaFlixProvider : Provider {
             cast = cast,
             trailer = trailer,
             banner = tmdbMovie?.banner,
+            runtime = tmdbMovie?.runtime ?: runtime,
             imdbId = tmdbMovie?.imdbId
         )
     }

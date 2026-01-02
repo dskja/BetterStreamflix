@@ -3,6 +3,7 @@
     <string name="app_name">Streamflix</string>
     <string name="loading_error_title">Ha ocurrido un error</string>
     <string name="loading_error_retry">Reintentar</string>
+    <string name="loading_error_details">Detalles del Error</string>
     <string name="loading_error_clear_cache">Vaciar caché</string>
     <string name="update_title">Actualización disponible</string>
     <string name="update_message">Una nueva versión de la aplicación está disponible</string>
@@ -238,4 +239,21 @@
     <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Activado</string>
     <string name="settings_frenchstream_use_new_interface_off">Desactivado</string>
+    <string name="player_settings_extra_buffer_title">Servidor con Buffering Extra</string>
+
+    <string name="player_settings_extra_buffer_server_label">Servidor con Buffering Extra</string>
+    <string name="player_settings_extra_buffer_on">Activo</string>
+    <string name="player_settings_extra_buffer_off">Desactivado</string>
+    <string name="player_settings_extra_buffer_forced_on">Activo (Forzado)</string>
+    <string name="player_settings_extra_buffer_forced_off">Desactivado (Forzado)</string>
+    <string name="player_settings_extra_buffer_auto_on">Activo (Predeterminado)</string>
+    <string name="player_settings_extra_buffer_auto_off">Desactivado (Predeterminado)</string>
+    <string name="error_dialog_title">Detalles del Error</string>
+    <string name="error_dialog_message">Mensaje de Error</string>
+    <string name="error_dialog_cause">Causa</string>
+    <string name="error_dialog_stack_trace">Stack Trace</string>
+    <string name="error_dialog_copy">Copiar</string>
+    <string name="error_dialog_copied">¡Copiado al portapapeles!</string>
+    <string name="error_dialog_unknown">Error desconocido</string>
+    <string name="error_dialog_no_cause">Sin causa</string>
 </resources>

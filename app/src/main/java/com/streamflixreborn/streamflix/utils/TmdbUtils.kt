@@ -91,20 +91,26 @@ object TmdbUtils {
     }
 
     suspend fun getEpisodesBySeason(tvShowId: String, seasonNumber: Int, language: String? = null): List<Episode> {
-        return TMDb3.TvSeasons.details(
-            seriesId = tvShowId.toInt(),
-            seasonNumber = seasonNumber,
-            language = language
-        ).episodes?.map {
-            Episode(
-                id = it.id.toString(),
-                number = it.episodeNumber,
-                title = it.name ?: "",
-                released = it.airDate,
-                poster = it.stillPath?.w500,
-                overview = it.overview,
-            )
-        } ?: listOf()
+        return try {
+            TMDb3.TvSeasons.details(
+                seriesId = tvShowId.toInt(),
+                seasonNumber = seasonNumber,
+                language = language
+            ).episodes?.map {
+                Episode(
+                    id = it.id.toString(),
+                    number = it.episodeNumber,
+                    title = it.name ?: "",
+                    released = it.airDate,
+                    poster = it.stillPath?.w500,
+                    overview = it.overview,
+                )
+            } ?: listOf()
+        } catch (e: retrofit2.HttpException) {
+            listOf()
+        } catch (e: Exception) {
+            listOf()
+        }
     }
 
     suspend fun getMovieById(id: Int, language: String? = null): Movie? {

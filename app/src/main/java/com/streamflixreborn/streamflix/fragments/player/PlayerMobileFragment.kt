@@ -64,6 +64,7 @@ import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
 
 import androidx.navigation.NavOptions
 import com.streamflixreborn.streamflix.utils.DnsResolver
@@ -94,6 +95,9 @@ class PlayerMobileFragment : Fragment() {
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
+
+    private var currentVideo: Video? = null
+    private var currentServer: Video.Server? = null
 
     private val pickLocalSubtitle = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -209,6 +213,7 @@ class PlayerMobileFragment : Fragment() {
                     }
 
                     is PlayerViewModel.State.SuccessLoadingVideo -> {
+                        PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
                         displayVideo(state.video, state.server)
                     }
 
@@ -292,7 +297,7 @@ class PlayerMobileFragment : Fragment() {
                             id = nextEpisode.id,
                             videoType = nextEpisode,
                             title = nextEpisode.tvShow.title,
-                            subtitle = "S${'$'}{nextEpisode.season.number} E${'$'}{nextEpisode.number}  •  ${'$'}{nextEpisode.title}"
+                            subtitle = "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
                         )
 
                     findNavController().navigate(
@@ -366,6 +371,12 @@ class PlayerMobileFragment : Fragment() {
 
         binding.settings.onSubtitlesClicked = {
             viewModel.getSubtitles(args.videoType)
+        }
+        binding.settings.setOnExtraBufferingSelectedListener {
+            displayVideo(
+                currentVideo ?: return@setOnExtraBufferingSelectedListener,
+                currentServer ?: return@setOnExtraBufferingSelectedListener
+            )
         }
         binding.pvPlayer.resizeMode = UserPreferences.playerResize.resizeMode
         binding.pvPlayer.subtitleView?.apply {
@@ -451,6 +462,14 @@ class PlayerMobileFragment : Fragment() {
         binding.settings.setOnOpenSubtitleSelectedListener { subtitle ->
             viewModel.downloadSubtitle(subtitle.openSubtitle)
         }
+
+        binding.settings.setOnExtraBufferingSelectedListener {
+            displayVideo(
+                currentVideo ?: return@setOnExtraBufferingSelectedListener,
+                currentServer ?: return@setOnExtraBufferingSelectedListener
+            )
+        }
+
         binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
             player.seekTo(player.currentPosition + 85000)
             it.visibility = View.GONE
@@ -557,9 +576,14 @@ class PlayerMobileFragment : Fragment() {
 
 
     private fun displayVideo(video: Video, server: Video.Server) {
-        val needsReinit = video.extraBuffering != currentExtraBuffering
+        currentVideo = video
+        currentServer = server
+
+        val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
+
+        val needsReinit = extraBuffering != currentExtraBuffering
         if (needsReinit) {
-            initializePlayer(video.extraBuffering)
+            initializePlayer(extraBuffering)
             player.playlistMetadata = MediaMetadata.Builder()
                 .setTitle(args.title)
                 .setMediaServers(servers.map {
@@ -606,7 +630,7 @@ class PlayerMobileFragment : Fragment() {
                 putExtra(
                     "title", when (val videoType = args.videoType as Video.Type) {
                         is Video.Type.Movie -> videoType.title
-                        is Video.Type.Episode -> "${'$'}{videoType.tvShow.title} • S${'$'}{videoType.season.number} E${'$'}{videoType.number}"
+                        is Video.Type.Episode -> "${videoType.tvShow.title} • S${videoType.season.number} E${videoType.number}"
                     }
                 )
                 putExtra("position", currentPosition)

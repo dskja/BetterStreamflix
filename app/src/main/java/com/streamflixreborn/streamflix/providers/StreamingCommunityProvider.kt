@@ -414,7 +414,10 @@ object StreamingCommunityProvider : Provider {
             overview = title.plot,
             released = title.lastAirDate,
             rating = title.score,
+            quality = title.quality,
+            runtime = title.runtime,
             poster = getImageLink(title.images.find { image -> image.type == "poster" }?.filename),
+            banner = getImageLink(title.images.find { image -> image.type == "background" }?.filename),
             genres = title.genres?.map {
                 Genre(
                     id = it.id,
@@ -474,7 +477,9 @@ object StreamingCommunityProvider : Provider {
             overview = title.plot,
             released = title.lastAirDate,
             rating = title.score,
+            quality = title.quality,
             poster = getImageLink(title.images.find { image -> image.type == "poster" }?.filename),
+            banner = getImageLink(title.images.find { image -> image.type == "background" }?.filename),
             genres = title.genres?.map {
                 Genre(
                     id = it.id,
@@ -948,7 +953,9 @@ object StreamingCommunityProvider : Provider {
             val genres: List<Genre>?,
             @SerializedName("main_actors") val actors: List<Actor>?,
             val trailers: List<Trailer>?,
-            val seasons: List<Season>?
+            val seasons: List<Season>?,
+            val quality: String?,
+            val runtime: Int?
         )
         data class Slider(
             val label: String,

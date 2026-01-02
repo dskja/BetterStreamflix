@@ -42,6 +42,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
     private val windowOpacityAdapter = SettingsAdapter(this, Settings.Subtitle.Style.WindowOpacity.list)
     private val openSubtitlesAdapter = SettingsAdapter(this, Settings.Subtitle.OpenSubtitles.list)
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
+    private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
 
     override var onSubtitlesClicked: (() -> Unit)? = null
@@ -57,6 +58,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.AUDIO,
             Setting.SUBTITLES,
             Setting.SPEED,
+            Setting.EXTRA_BUFFERING,
             Setting.SERVERS -> displaySettings(Setting.MAIN)
             Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
             Setting.CAPTION_STYLE_FONT_COLOR,
@@ -110,6 +112,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                 Setting.CAPTION_STYLE_WINDOW_OPACITY -> context.getString(R.string.player_settings_caption_style_window_opacity_title)
                 Setting.OPEN_SUBTITLES -> context.getString(R.string.player_settings_open_subtitles_title)
                 Setting.SPEED -> context.getString(R.string.player_settings_speed_title)
+                Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
                 Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
             }
         }
@@ -130,6 +133,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.CAPTION_STYLE_WINDOW_OPACITY -> windowOpacityAdapter
             Setting.OPEN_SUBTITLES -> openSubtitlesAdapter
             Setting.SPEED -> speedAdapter
+            Setting.EXTRA_BUFFERING -> extraBufferingAdapter
             Setting.SERVERS -> serversAdapter
         }
         binding.rvSettings.requestFocus()
@@ -183,6 +187,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 Settings.Audio -> settingsView.displaySettings(Setting.AUDIO)
                                 Settings.Subtitle -> settingsView.displaySettings(Setting.SUBTITLES)
                                 Settings.Speed -> settingsView.displaySettings(Setting.SPEED)
+                                Settings.ExtraBuffering -> settingsView.displaySettings(Setting.EXTRA_BUFFERING)
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
                             }
                         }
@@ -304,6 +309,13 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                             settingsView.hide()
                         }
 
+
+
+                        is Settings.ExtraBuffering -> {
+                            settingsView.onExtraBufferingSelected.invoke(item)
+                            settingsView.hide()
+                        }
+
                         is Settings.Server -> {
                             settingsView.onServerSelected?.invoke(item)
                             settingsView.hide()
@@ -335,6 +347,13 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 ContextCompat.getDrawable(
                                     context,
                                     R.drawable.ic_player_settings_playback_speed
+                                )
+                                )
+
+                            Settings.ExtraBuffering -> setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.ic_player_settings_extra_buffer
                                 )
                             )
 
@@ -384,6 +403,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.Audio -> context.getString(R.string.player_settings_audio_label)
                         Settings.Subtitle -> context.getString(R.string.player_settings_subtitles_label)
                         Settings.Speed -> context.getString(R.string.player_settings_speed_label)
+                        Settings.ExtraBuffering -> context.getString(R.string.player_settings_extra_buffer_server_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
                     }
 
@@ -449,6 +469,8 @@ class PlayerSettingsTvView @JvmOverloads constructor(
 
                     is Settings.Speed -> context.getString(item.stringId)
 
+                    is Settings.ExtraBuffering -> context.getString(item.stringId)
+
                     is Settings.Server -> item.name
 
                     else -> ""
@@ -477,6 +499,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                             else -> context.getString(R.string.player_settings_subtitles_off)
                         }
                         Settings.Speed -> context.getString(Settings.Speed.selected.stringId)
+                        Settings.ExtraBuffering -> context.getString(Settings.ExtraBuffering.selected.stringId)
                         Settings.Server -> Settings.Server.selected?.name ?: ""
                     }
 
@@ -573,6 +596,11 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                     }
 
                     is Settings.Speed -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
+                    is Settings.ExtraBuffering -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
                     }

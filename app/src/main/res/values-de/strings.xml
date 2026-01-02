@@ -5,6 +5,7 @@
     <string name="loading_error_retry">Erneut versuchen</string>
     
     <string name="loading_error_clear_cache">Cache leeren</string>
+    <string name="loading_error_details">Fehlerdetails</string>
 
     <string name="update_title">Aktualisierung verfügbar</string>
     <string name="update_message">Eine neue Version der App ist verfügbar!</string>
@@ -255,4 +256,21 @@
     <string name="settings_frenchstream_use_new_interface">Die neue FrenchStream-Oberfläche verwenden</string>
     <string name="settings_frenchstream_use_new_interface_on">Ein</string>
     <string name="settings_frenchstream_use_new_interface_off">Aus</string>
+    <string name="player_settings_extra_buffer_title">Server mit Extra-Buffering</string>
+
+    <string name="player_settings_extra_buffer_server_label">Server mit Extra-Buffering</string>
+    <string name="player_settings_extra_buffer_on">Aktiv</string>
+    <string name="player_settings_extra_buffer_off">Deaktiviert</string>
+    <string name="player_settings_extra_buffer_forced_on">Aktiv (Erzwungen)</string>
+    <string name="player_settings_extra_buffer_forced_off">Deaktiviert (Erzwungen)</string>
+    <string name="player_settings_extra_buffer_auto_on">Aktiv (Standard)</string>
+    <string name="player_settings_extra_buffer_auto_off">Deaktiviert (Standard)</string>
+    <string name="error_dialog_title">Fehlerdetails</string>
+    <string name="error_dialog_message">Fehlermeldung</string>
+    <string name="error_dialog_cause">Ursache</string>
+    <string name="error_dialog_stack_trace">Stack Trace</string>
+    <string name="error_dialog_copy">Kopieren</string>
+    <string name="error_dialog_copied">In Zwischenablage kopiert!</string>
+    <string name="error_dialog_unknown">Unbekannter Fehler</string>
+    <string name="error_dialog_no_cause">Keine Ursache</string>
 </resources>

@@ -24,6 +24,7 @@ import com.streamflixreborn.streamflix.models.Genre
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.utils.CacheUtils
+import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.VoiceRecognitionHelper
 import com.streamflixreborn.streamflix.utils.hideKeyboard
@@ -130,6 +131,9 @@ class SearchTvFragment : Fragment() {
                                     CacheUtils.clearAppCache(requireContext())
                                     Toast.makeText(requireContext(), getString(R.string.clear_cache_done), Toast.LENGTH_SHORT).show()
                                     viewModel.search(viewModel.query)
+                                }
+                                btnIsLoadingErrorDetails.setOnClickListener {
+                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
                                 }
                                 binding.vgvSearch.visibility = View.INVISIBLE
                                 binding.etSearch.nextFocusDownId = binding.isLoading.btnIsLoadingRetry.id

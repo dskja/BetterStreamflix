@@ -297,7 +297,7 @@ object StreamingItaProvider : Provider {
             overview = tmdbTvShow?.overview ?: document.selectFirst("#info .wp-content p")?.text(),
             rating = tmdbTvShow?.rating ?: document.selectFirst(".starstruck-rating .dt_rating_vgs")?.text()?.replace(',', '.')?.toDoubleOrNull(),
             trailer = tmdbTvShow?.trailer ?: document.selectFirst("#trailer iframe, #trailer .embed iframe")?.attr("src")?.let { normalizeUrl(it) }?.let { mapTrailerToWatchUrl(it) },
-            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            seasons = seasons,
             genres = tmdbTvShow?.genres ?: document.select("div.sgeneros a[rel=tag]").map { Genre(it.text(), it.text()) },
             cast = tmdbTvShow?.cast ?: document.select("#cast h2:matches(^Cast$) + .persons .person").map { el ->
                 val anchor = el.selectFirst(".data .name a")
@@ -324,7 +324,7 @@ object StreamingItaProvider : Provider {
         return document.select("#serie_contenido #seasons .se-c .se-a ul.episodios > li").mapNotNull { epEl ->
             val numText = epEl.selectFirst(".numerando")?.text()?.trim() ?: ""
             val seasonFromNum = numText.substringBefore("-").trim().toIntOrNull()
-            if (seasonNumber != null && seasonFromNum != seasonNumber) return@mapNotNull null
+            if (seasonFromNum != seasonNumber) return@mapNotNull null
             val epNumber = numText.substringAfter("-").trim().toIntOrNull() ?: 0
             
             val tmdbEp = tmdbEpisodes.find { it.number == epNumber }

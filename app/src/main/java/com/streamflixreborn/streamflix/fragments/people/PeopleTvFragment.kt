@@ -21,6 +21,7 @@ import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.utils.CacheUtils
+import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
@@ -92,6 +93,9 @@ class PeopleTvFragment : Fragment() {
                                     CacheUtils.clearAppCache(requireContext())
                                     android.widget.Toast.makeText(requireContext(), getString(com.streamflixreborn.streamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
                                     viewModel.getPeople(args.id)
+                                }
+                                btnIsLoadingErrorDetails.setOnClickListener {
+                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
                                 }
                                 btnIsLoadingRetry.requestFocus()
                             }

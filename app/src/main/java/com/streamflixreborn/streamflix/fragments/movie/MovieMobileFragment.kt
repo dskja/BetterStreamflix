@@ -19,6 +19,7 @@ import com.streamflixreborn.streamflix.databinding.FragmentMovieMobileBinding
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.CacheUtils
+import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
@@ -74,6 +75,9 @@ class MovieMobileFragment : Fragment() {
                                 btnIsLoadingClearCache.setOnClickListener {
                                     CacheUtils.clearAppCache(requireContext())
                                     doRetry()
+                                }
+                                btnIsLoadingErrorDetails.setOnClickListener {
+                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
                                 }
                         }
                     }

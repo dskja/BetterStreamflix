@@ -17,6 +17,7 @@ import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.databinding.FragmentMovieTvBinding
 import com.streamflixreborn.streamflix.models.Movie
+import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 
@@ -68,6 +69,9 @@ class MovieTvFragment : Fragment() {
                             gIsLoadingRetry.visibility = View.VISIBLE
                             btnIsLoadingRetry.setOnClickListener {
                                 viewModel.getMovie(args.id)
+                            }
+                            btnIsLoadingErrorDetails.setOnClickListener {
+                                LoggingUtils.showErrorDialog(requireContext(), state.error)
                             }
                             btnIsLoadingRetry.requestFocus()
                         }

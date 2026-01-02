@@ -3,7 +3,8 @@
 
     <string name="loading_error_title">An error occurred</string>
     <string name="loading_error_retry">Retry</string>
-    <string name="loading_error_clear_cache">Clear cache</string>
+    <string name="loading_error_clear_cache">Clear Cache</string>
+    <string name="loading_error_details">Error Details</string>
 
     <string name="update_title">New Update Available</string>
     <string name="update_message">A new version of the app is available!</string>
@@ -269,4 +270,22 @@
     <string name="player_brightness">Brightness</string>
     <string name="player_volume">Volume</string>
     <string name="percentage_format">%d%%</string>
+    <string name="player_settings_extra_buffer_title">Server with Extra Buffering</string>
+
+    <string name="player_settings_extra_buffer_server_label">Server with Extra Buffering</string>
+    <string name="player_settings_extra_buffer_on">Active</string>
+    <string name="player_settings_extra_buffer_off">Disabled</string>
+    <string name="player_settings_extra_buffer_forced_on">Active (Forced)</string>
+    <string name="player_settings_extra_buffer_forced_off">Disabled (Forced)</string>
+    <string name="player_settings_extra_buffer_auto_on">Active (Default)</string>
+    <string name="player_settings_extra_buffer_auto_off">Disabled (Default)</string>
+
+    <string name="error_dialog_title">Error Details</string>
+    <string name="error_dialog_message">Error Message</string>
+    <string name="error_dialog_cause">Cause</string>
+    <string name="error_dialog_stack_trace">Stack Trace</string>
+    <string name="error_dialog_copy">Copy</string>
+    <string name="error_dialog_copied">Copied to clipboard!</string>
+    <string name="error_dialog_unknown">Unknown error</string>
+    <string name="error_dialog_no_cause">No cause</string>
 </resources>

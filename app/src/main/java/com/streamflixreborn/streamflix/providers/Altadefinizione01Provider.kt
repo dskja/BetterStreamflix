@@ -242,11 +242,12 @@ object Altadefinizione01Provider : Provider {
             id = id,
             title = title,
             overview = tmdbMovie?.overview ?: doc.selectFirst(".sbox .entry-content p")?.ownText()?.trim(),
-            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" },
-            runtime = tmdbMovie?.runtime,
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}-${it.get(java.util.Calendar.MONTH) + 1}-${it.get(java.util.Calendar.DAY_OF_MONTH)}" }?: doc.select("p.meta_dd:has(b.icon-clock)").text().replace(Regex("[^0-9]"), "").takeIf { it.isNotBlank() },
+            runtime = tmdbMovie?.runtime ?: doc.select("p.meta_dd:has(b.icon-time)").text().replace(Regex("[^0-9]"), "").toIntOrNull(),
             trailer = tmdbMovie?.trailer ?: doc.selectFirst(".btn_trailer a[href]")?.attr("href")?.takeIf { it.contains("youtube", true) },
             rating = tmdbMovie?.rating ?: doc.selectFirst("div.imdb_r [itemprop=ratingValue]")?.text()?.trim()?.toDoubleOrNull(),
             poster = poster,
+            quality = doc.select("p.meta_dd:has(b.icon-playback-play)").text().replace("Qualita", "").trim().takeIf { it.isNotBlank() },
             banner = tmdbMovie?.banner,
             imdbId = tmdbMovie?.imdbId,
             genres = tmdbMovie?.genres ?: doc.select("p.meta_dd b[title=Genere]").firstOrNull()?.parent()?.select("a")?.map { Genre(it.attr("href"), it.text().trim()) } ?: emptyList(),
@@ -309,7 +310,7 @@ object Altadefinizione01Provider : Provider {
             poster = poster,
             banner = tmdbTvShow?.banner,
             imdbId = tmdbTvShow?.imdbId,
-            seasons = if (seasons.isEmpty()) tmdbTvShow?.seasons ?: emptyList() else seasons,
+            seasons = seasons,
             genres = tmdbTvShow?.genres ?: doc.select("p.meta_dd:has(b.icon-medal) a[href]").map { Genre(it.attr("href"), it.text().trim()) } ?: emptyList(),
             cast = doc.select("p.meta_dd.limpiar:has(b.icon-male) a[href]").map { el ->
                 val href = el.attr("href").trim()
