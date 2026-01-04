@@ -12,7 +12,7 @@ import retrofit2.http.Url
 class VidsrcNetExtractor : Extractor() {
 
     override val name = "Vidsrc.net"
-    override val mainUrl = "https://vidsrc.net"
+    override val mainUrl = "https://vidsrc-embed.ru"
 
     fun server(videoType: Video.Type): Video.Server {
         return Video.Server(
@@ -53,8 +53,14 @@ class VidsrcNetExtractor : Extractor() {
             .find(script)?.groupValues?.get(1)
             ?: throw Exception("Can't retrieve encrypted source")
 
+        val decryptedData = decrypt(playerId, encryptedSource)
+        val streamUrl = decryptedData.split(" or ")
+            .firstOrNull()
+            ?.replace(Regex("\\{[a-z]\\d+\\}"), "quibblezoomfable.com")
+            ?: throw Exception("No stream found after decryption")
+
         return Video(
-            source = decrypt(playerId, encryptedSource),
+            source = streamUrl,
             subtitles = emptyList(),
             headers = mapOf(
                 "Referer" to iframedoc

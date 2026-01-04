@@ -44,6 +44,7 @@ class PlayerGestureHelper(
         })
 
         playerView.setOnTouchListener { _, event ->
+            if (!UserPreferences.playerGestures) return@setOnTouchListener false
             val consumed = gestureDetector.onTouchEvent(event)
             if (event.action == MotionEvent.ACTION_UP) {
                 hideBars()

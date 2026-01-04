@@ -14,6 +14,8 @@ import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Url
+import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.providers.TmdbProvider
 
 class VixSrcExtractor : Extractor() {
 
@@ -110,6 +112,11 @@ class VixSrcExtractor : Extractor() {
 
         if (hasBParam) masterParams["b"] = "1"
         if (canPlayFHD) masterParams["h"] = "1"
+
+        val provider = UserPreferences.currentProvider
+        if (provider is TmdbProvider && provider.language == "en") {
+            masterParams["lang"] = "en"
+        }
 
         val baseUrl = "https://vixsrc.to/playlist/${videoId}"
         val httpUrlBuilder = baseUrl.toHttpUrlOrNull()?.newBuilder()

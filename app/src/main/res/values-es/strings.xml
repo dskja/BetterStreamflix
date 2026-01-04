@@ -200,6 +200,10 @@
     <string name="settings_autoplay_on">Activado</string>
     <string name="settings_autoplay_off">Desactivado</string>
     <string name="autoplay_settings">Ajustes de reproducción automatica</string>
+    <string name="player_settings">Ajustes del reproductor</string>
+    <string name="settings_player_gestures">Gestos del reproductor</string>
+    <string name="settings_player_gestures_on">Activado</string>
+    <string name="settings_player_gestures_off">Desactivado</string>
     <string name="miscelaneous_title">Varios</string>
     <string name="clear_cache_done">Caché vaciada</string>
     <string name="clear_cache_done_409">Caché vaciada automáticamente por error HTTP 409</string>

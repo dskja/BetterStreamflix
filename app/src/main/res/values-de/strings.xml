@@ -217,6 +217,10 @@
     <string name="settings_autoplay_on">An</string>
     <string name="settings_autoplay_off">Aus</string>
     <string name="autoplay_settings">Automatische Wiedergabeeinstellungen</string>
+    <string name="player_settings">Player-Einstellungen</string>
+    <string name="settings_player_gestures">Player-Gesten</string>
+    <string name="settings_player_gestures_on">An</string>
+    <string name="settings_player_gestures_off">Aus</string>
     <string name="miscelaneous_title">Sonstiges</string>
     <string name="clear_cache_done">Cache geleert</string>
     <string name="clear_cache_done_409">Cache automatisch wegen HTTP 409 geleert</string>

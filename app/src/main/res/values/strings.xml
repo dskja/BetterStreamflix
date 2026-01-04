@@ -221,6 +221,10 @@
     <string name="settings_autoplay_buffer_title">Autoplay buffer</string>
     <string name="settings_autoplay_buffer_dialog_message">Set how many seconds before the end of the episode to switch to the next one.</string>
     <string name="autoplay_settings">Autoplay settings</string>
+    <string name="player_settings">Player settings</string>
+    <string name="settings_player_gestures">Player gestures</string>
+    <string name="settings_player_gestures_on">On</string>
+    <string name="settings_player_gestures_off">Off</string>
     <string name="miscelaneous_title">Miscellaneous</string>
     <string name="clear_cache_done">Cache cleared</string>
     <string name="clear_cache_done_409">Cache cleared automatically due to HTTP 409</string>

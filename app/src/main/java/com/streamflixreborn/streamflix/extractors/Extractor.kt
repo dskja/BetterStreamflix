@@ -85,6 +85,10 @@ abstract class Extractor {
             VidzyExtractor(),
             GuploadExtractor(),
             StreamUpExtractor(),
+            EinschaltenExtractor(),
+            VidLinkExtractor(),
+            VidsrcRuExtractor(),
+            VidflixExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

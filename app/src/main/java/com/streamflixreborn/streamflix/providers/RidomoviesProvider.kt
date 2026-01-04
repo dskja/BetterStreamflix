@@ -34,6 +34,7 @@ object RidomoviesProvider : Provider {
     override val language = "en"
 
     private val service = Service.build()
+    private var currentSlug: String? = null
 
     override suspend fun getHome(): List<Category> {
         val document = service.getHome()
@@ -217,9 +218,10 @@ object RidomoviesProvider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val document = service.getMovie(id)
+        val finalId = currentSlug ?: id
 
         val movie = Movie(
-            id = id,
+            id = finalId,
             title = document.selectFirst("h1")
                 ?.text()
                 ?: "",
@@ -273,9 +275,10 @@ object RidomoviesProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val document = service.getTv(id)
+        val finalId = currentSlug ?: id
 
         val tvShow = TvShow(
-            id = id,
+            id = finalId,
             title = document.selectFirst("h1")
                 ?.text()
                 ?: "",
@@ -299,9 +302,9 @@ object RidomoviesProvider : Provider {
             poster = document.selectFirst("div.single-poster img")
                 ?.attr("src"),
 
-            seasons = service.getSeasons(id).data.items.map {
+            seasons = service.getSeasons(finalId).data.items.map {
                 Season(
-                    id = "$id/${it.id}",
+                    id = "$finalId/${it.id}",
                     number = it.seasonNumber.toInt(),
                     title = "Season ${it.seasonNumber}",
                 )
@@ -422,6 +425,20 @@ object RidomoviesProvider : Provider {
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .dns(DnsResolver.doh)
                     .addInterceptor { chain ->
+                        val request = chain.request()
+                        val response = chain.proceed(request)
+                        
+                        val requestUrl = request.url.toString()
+                        val responseUrl = response.request.url.toString()
+
+                        if (requestUrl != responseUrl) {
+                            currentSlug = responseUrl.substringBefore("?").substringBefore("#")
+                                .trimEnd('/').substringAfterLast("/")
+                        }
+                        
+                        response
+                    }
+                    .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
                             .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .addHeader("Accept-Language", "en-US,en;q=0.5")
@@ -494,12 +511,12 @@ object RidomoviesProvider : Provider {
             @Query("page[number]") page: Int = 1,
         ): Response<DataItems<Show>>
 
-        @GET("core/api/movies/{slug}/videos")
+        @GET("api/movies/{slug}")
         suspend fun getMovieVideos(
             @Path("slug") slug: String,
         ): Response<List<Video>>
 
-        @GET("core/api/episodes/{id}/videos")
+        @GET("api/episodes/{id}")
         suspend fun getEpisodeVideos(
             @Path("id") id: String,
         ): Response<List<Video>>

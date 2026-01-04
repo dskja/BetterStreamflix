@@ -106,6 +106,12 @@ object UserPreferences {
             Key.KEEP_SCREEN_ON_WHEN_PAUSED.setBoolean(value)
         }
 
+    var playerGestures: Boolean
+        get() = Key.PLAYER_GESTURES.getBoolean() ?: true
+        set(value) {
+            Key.PLAYER_GESTURES.setBoolean(value)
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -233,7 +239,8 @@ object UserPreferences {
         DOH_PROVIDER_URL, // Removed STREAMINGCOMMUNITY_DNS_OVER_HTTPS, added DOH_PROVIDER_URL
         AUTOPLAY,
         PROVIDER_CACHE,
-        KEEP_SCREEN_ON_WHEN_PAUSED;
+        KEEP_SCREEN_ON_WHEN_PAUSED,
+        PLAYER_GESTURES;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

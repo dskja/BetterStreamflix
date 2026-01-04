@@ -106,6 +106,13 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 true
             }
         }
+        findPreference<SwitchPreference>("PLAYER_GESTURES")?.apply {
+            isChecked = UserPreferences.playerGestures
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.playerGestures = newValue as Boolean
+                true
+            }
+        }
 
         val HasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
         findPreference<PreferenceCategory>("pc_provider_settings")?.apply {
@@ -400,6 +407,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
+        findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
 
         // Aggiorna summary per provider_streamingcommunity_domain in onResume
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.summary = UserPreferences.streamingcommunityDomain

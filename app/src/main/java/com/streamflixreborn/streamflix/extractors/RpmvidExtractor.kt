@@ -21,7 +21,7 @@ import javax.crypto.spec.SecretKeySpec
 class RpmvidExtractor : Extractor() {
     override val name = "Rpmvid"
     override val mainUrl = "https://rpmvid.com"
-    override val aliasUrls = listOf("https://cubeembed.rpmvid.com","https://bummi.upns.xyz","https://loadm.cam","https://anibum.playerp2p.online","https://pelisplus.upns.pro","https://pelisplus.rpmstream.live","https://pelisplus.strp2p.com","https://flemmix.upns.pro","https://moflix.rpmplay.xyz","https://moflix.upns.xyz")
+    override val aliasUrls = listOf("https://cubeembed.rpmvid.com", "https://bummi.upns.xyz", "https://loadm.cam", "https://anibum.playerp2p.online", "https://pelisplus.upns.pro", "https://pelisplus.rpmstream.live", "https://pelisplus.strp2p.com", "https://flemmix.upns.pro", "https://moflix.rpmplay.xyz", "https://moflix.upns.xyz","https://flix2day.xyz")
 
     companion object {
         private const val DEFAULT_USER_AGENT =
@@ -82,7 +82,17 @@ class RpmvidExtractor : Extractor() {
         val json = JsonParser.parseString(decryptedJson).asJsonObject
 
         val hlsPath = json.get("hls")?.asString?.takeIf { it.isNotEmpty() }
-        val cfPath = json.get("cf")?.asString?.takeIf { it.isNotEmpty() }
+        var cfPath = json.get("cf")?.asString?.takeIf { it.isNotEmpty() }
+        val cfExpire = json.get("cfExpire")?.asString?.takeIf { it.isNotEmpty() }
+
+        if (!cfPath.isNullOrEmpty() && !cfExpire.isNullOrEmpty()) {
+            val parts = cfExpire.split("::")
+            if (parts.size >= 2) {
+                val t = parts[0]
+                val e = parts[1]
+                cfPath = "$cfPath?t=$t&e=$e"
+            }
+        }
         
         val (finalUrl, headers) = when {
             !hlsPath.isNullOrEmpty() -> {
@@ -90,7 +100,7 @@ class RpmvidExtractor : Extractor() {
                 url to mapOf("Referer" to mainLink)
             }
             !cfPath.isNullOrEmpty() -> {
-                cfPath to mapOf("Referer" to mainLink)
+                cfPath!! to mapOf("Referer" to mainLink)
             }
             else -> throw Exception("Missing both hls and cf in response")
         }
@@ -105,7 +115,7 @@ class RpmvidExtractor : Extractor() {
     private fun extractId(link: String): String? {
         val idx = link.indexOf('#')
         if (idx == -1 || idx == link.lastIndex) return null
-        return link.substring(idx + 1)
+        return link.substring(idx + 1).substringBefore("&")
     }
 
     private fun decryptHexPayload(hex: String): String {

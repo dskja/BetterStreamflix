@@ -98,6 +98,7 @@ class PlayerMobileFragment : Fragment() {
 
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
+    private var isIgnoringPip = false
 
     private val pickLocalSubtitle = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -159,6 +160,10 @@ class PlayerMobileFragment : Fragment() {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
             isSetupDone = true
+        }
+        isIgnoringPip = false
+        if (::player.isInitialized) {
+            binding.pvPlayer.useController = true
         }
     }
 
@@ -322,7 +327,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     fun onUserLeaveHint() {
-        if (::player.isInitialized && player.isPlaying) {
+        if (!isIgnoringPip && ::player.isInitialized && player.isPlaying) {
             enterPIPMode()
         }
     }
@@ -444,6 +449,7 @@ class PlayerMobileFragment : Fragment() {
         }
 
         binding.settings.setOnLocalSubtitlesClickedListener {
+            isIgnoringPip = true
             pickLocalSubtitle.launch(
                 arrayOf(
                     "text/plain",
@@ -624,6 +630,7 @@ class PlayerMobileFragment : Fragment() {
         )
 
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
+            isIgnoringPip = true
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(Uri.parse(video.source), "video/*")
 

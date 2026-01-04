@@ -220,6 +220,10 @@
     <string name="settings_autoplay_buffer_title">Buffer di riproduzione automatica</string>
     <string name="settings_autoplay_buffer_dialog_message">Imposta quanti secondi prima della fine dell\'episodio passare a quello successivo.</string>
     <string name="autoplay_settings">Impostazioni di riproduzione automatica</string>
+    <string name="player_settings">Impostazioni player</string>
+    <string name="settings_player_gestures">Gesture del player</string>
+    <string name="settings_player_gestures_on">Attivo</string>
+    <string name="settings_player_gestures_off">Disattivato</string>
     <string name="miscelaneous_title">Varie</string>
     <string name="clear_cache_done">Cache svuotata</string>
     <string name="clear_cache_done_409">Cache svuotata automaticamente per errore HTTP 409</string>

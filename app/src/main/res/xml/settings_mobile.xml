@@ -66,6 +66,15 @@
             android:summaryOff="@string/settings_autoplay_off" />
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/player_settings">
+        <SwitchPreference
+            android:key="PLAYER_GESTURES"
+            android:title="@string/settings_player_gestures"
+            android:defaultValue="true"
+            android:summaryOn="@string/settings_player_gestures_on"
+            android:summaryOff="@string/settings_player_gestures_off" />
+    </PreferenceCategory>
+
     <PreferenceCategory
         android:title="@string/backup_category_title">
 
