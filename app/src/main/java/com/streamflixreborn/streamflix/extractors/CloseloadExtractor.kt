@@ -116,11 +116,11 @@ class CloseloadExtractor : Extractor() {
     private fun decodeObfuscatedUrl(parts: List<String>): String? {
         val joined = parts.joinToString("")
         val rot = rot13(joined)
-        val reversed = rot.reversed()
-        val decoded = safeBase64Decode(reversed) ?: return null
+        val b64Decoded = safeBase64Decode(rot) ?: return null
+        val reversed = b64Decoded.reversedArray()
 
-        val finalBytes = ByteArray(decoded.size) { i ->
-            val b = decoded[i]
+        val finalBytes = ByteArray(reversed.size) { i ->
+            val b = reversed[i]
             val adjustment = 399_756_995 % (i + 5)
             ((b.toInt() - adjustment + 256) % 256).toByte()
         }

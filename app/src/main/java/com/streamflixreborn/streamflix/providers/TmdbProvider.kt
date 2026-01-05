@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.extractors.VidLinkExtractor
 import com.streamflixreborn.streamflix.extractors.VidsrcRuExtractor
 import com.streamflixreborn.streamflix.extractors.EinschaltenExtractor
 import com.streamflixreborn.streamflix.extractors.VidflixExtractor
+import com.streamflixreborn.streamflix.extractors.VidrockExtractor
 import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Genre
@@ -840,6 +841,7 @@ class TmdbProvider(override val language: String) : Provider {
             VidLinkExtractor().server(videoType),
             VidsrcRuExtractor().server(videoType),
             VidflixExtractor().server(videoType),
+            VidrockExtractor().server(videoType),
         )
 
         if (language == "de") {
