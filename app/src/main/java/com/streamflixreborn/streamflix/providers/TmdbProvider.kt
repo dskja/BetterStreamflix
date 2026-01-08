@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.extractors.VixSrcExtractor
 import com.streamflixreborn.streamflix.extractors.VidLinkExtractor
 import com.streamflixreborn.streamflix.extractors.VidsrcRuExtractor
 import com.streamflixreborn.streamflix.extractors.EinschaltenExtractor
+import com.streamflixreborn.streamflix.extractors.FrembedExtractor
 import com.streamflixreborn.streamflix.extractors.VidflixExtractor
 import com.streamflixreborn.streamflix.extractors.VidrockExtractor
 import com.streamflixreborn.streamflix.models.Category
@@ -849,6 +850,8 @@ class TmdbProvider(override val language: String) : Provider {
                 servers.add(0, EinschaltenExtractor().server(videoType))
             }
             servers.add(0, MoflixExtractor().server(videoType))
+        } else if (language == "fr") {
+            servers.addAll(0, FrembedExtractor().servers(videoType))
         } else {
             servers.add(MoflixExtractor().server(videoType))
             if (videoType is Video.Type.Movie) {
