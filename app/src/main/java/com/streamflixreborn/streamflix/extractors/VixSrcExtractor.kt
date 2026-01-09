@@ -114,7 +114,7 @@ class VixSrcExtractor : Extractor() {
         if (canPlayFHD) masterParams["h"] = "1"
 
         val provider = UserPreferences.currentProvider
-        if (provider.language == "it") {
+        if (provider?.language == "it") {
             masterParams["lang"] = "it"
         } else {
             masterParams["lang"] = "en"
