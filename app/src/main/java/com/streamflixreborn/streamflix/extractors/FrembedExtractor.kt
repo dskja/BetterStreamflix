@@ -14,7 +14,7 @@ import kotlin.text.replaceFirstChar
 class FrembedExtractor : Extractor() {
 
     override val name = "Frembed"
-    override val mainUrl = "https://frembed.life"
+    override val mainUrl = "https://frembed.buzz"
 
     data class listLinks (
         val link1: String?=null,
@@ -68,6 +68,15 @@ class FrembedExtractor : Extractor() {
                 val clientBuilder = OkHttpClient.Builder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
+                    .addNetworkInterceptor { chain ->
+                        val request = chain.request()
+                        val url = request.url
+                        val referer = "${url.scheme}://${url.host}/"
+                        val newRequest = request.newBuilder()
+                            .header("Referer", referer)
+                            .build()
+                        chain.proceed(newRequest)
+                    }
 
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
@@ -82,7 +91,6 @@ class FrembedExtractor : Extractor() {
         suspend fun getMovieLinks(
             @Query("id") id: String,
             @Query("idType") idType: String = "tmdb",
-            @Header("Referer") referer: String,
             @Header("User-Agent") userAgent: String = USER_AGENT,
             @Header("Content-Type") contentType: String = "application/json"
         ): listLinks
@@ -90,10 +98,9 @@ class FrembedExtractor : Extractor() {
         @GET("api/series")
         suspend fun getTvShowLinks(
             @Query("id") id: String,
-            @Query( "sa") sa: Int,
-            @Query( "epi") epi: Int,
+            @Query("sa") sa: Int,
+            @Query("epi") epi: Int,
             @Query("idType") idType: String = "tmdb",
-            @Header("Referer") referer: String,
             @Header("User-Agent") userAgent: String = USER_AGENT,
             @Header("Content-Type") contentType: String = "application/json"
         ): listLinks
@@ -106,9 +113,13 @@ class FrembedExtractor : Extractor() {
     }
 
     suspend fun servers(videoType: Video.Type): List<Video.Server> {
-        val ret = when(videoType) { is Video.Type.Movie -> service.getMovieLinks( videoType.id, referer = mainUrl)
-                                    is Video.Type.Episode -> service.getTvShowLinks(videoType.tvShow.id, videoType.season.number, videoType.number, referer = mainUrl) }
-        return ret.toServers()
+        return try {
+            val ret = when(videoType) { is Video.Type.Movie -> service.getMovieLinks( videoType.id)
+                                        is Video.Type.Episode -> service.getTvShowLinks(videoType.tvShow.id, videoType.season.number, videoType.number) }
+            ret.toServers()
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     suspend fun server(videoType: Video.Type): Video.Server {
