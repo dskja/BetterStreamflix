@@ -18,6 +18,7 @@ data class Video(
             val title: String,
             val releaseDate: String,
             val poster: String,
+            val imdbId: String?,
         ) : Type()
 
         @Parcelize
@@ -36,6 +37,8 @@ data class Video(
                 val title: String,
                 val poster: String?,
                 val banner: String?,
+                val releaseDate: String?,
+                val imdbId: String?,
             ) : Parcelable
 
             @Parcelize

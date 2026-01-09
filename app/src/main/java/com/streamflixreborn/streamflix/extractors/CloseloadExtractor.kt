@@ -22,14 +22,44 @@ class CloseloadExtractor : Extractor() {
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)
         val document = service.get(link, RidomoviesProvider.URL)
+        val html = document.toString()
 
-        val unpacked = JsUnpacker(document.toString()).unpack()
-            ?: error("Can't unpack JS")
+        val unpacked = JsUnpacker(html).unpack() ?: html
 
-        val source = extractDirectBase64(unpacked)
-            ?: extractDcHelloEncoded(unpacked)
-            ?: extractArrayDecoded(unpacked)
-            ?: extractArrayDecodedNew(unpacked)
+        // 1. DYNAMIC PARAMETER DETECTION
+        // Try to find the match constants used in the unmix loop: (charCode - 399756995 % (i + 5))
+        var magicNum = 399_756_995L
+        var offset = 5
+        val matchConst = Regex("""(\d+)\s*%\s*\(\s*i\s*\+\s*(\d+)\s*\)""").find(unpacked)
+        if (matchConst != null) {
+            magicNum = matchConst.groupValues[1].toLong()
+            offset = matchConst.groupValues[2].toInt()
+        }
+
+        // 2. DATA CANDIDATE COLLECTION
+        val candidates = mutableListOf<String>()
+
+        // A. Arrays of strings (usually split URLs)
+        val arrayRegex = Regex("""\[\s*((?:"[^"]+",?\s*)+)\]""")
+        arrayRegex.findAll(unpacked).forEach { match ->
+            val parts = Regex("\"([^\"]+)\"").findAll(match.groupValues[1])
+                .map { it.groupValues[1] }
+                .toList()
+            if (parts.size > 5) {
+                candidates.add(parts.joinToString(""))
+            }
+        }
+
+        // B. Long strings in function calls
+        val stringCallRegex = Regex("""\(\s*"([a-zA-Z0-9+/=]{30,})"\s*\)""")
+        stringCallRegex.findAll(unpacked).forEach { match ->
+            candidates.add(match.groupValues[1])
+        }
+
+        // 3. URL EXTRACTION
+        // Try smart brute force on all candidates, fallback to pure base64
+        val source = candidates.firstNotNullOfOrNull { smartBruteForce(it, magicNum, offset) }
+            ?: extractPureBase64(unpacked)
             ?: error("Unable to fetch video URL")
 
         return Video(
@@ -39,10 +69,101 @@ class CloseloadExtractor : Extractor() {
         )
     }
 
-    private fun safeBase64Decode(str: String): ByteArray? = try {
-        Base64.decode(str, Base64.DEFAULT)
-    } catch (e: IllegalArgumentException) {
-        null
+    /**
+     * Tries all possible combinations of Reverse, ROT13, and Base64 transformations.
+     * This makes the extractor resilient to changes in obfuscation order.
+     */
+    private fun smartBruteForce(inputData: String, magicNum: Long, offset: Int): String? {
+        val stringTransforms = listOf<(String) -> String>(
+            { it },                             // No change
+            { it.reversed() },                  // Reverse string
+            { rot13(it) },                      // ROT13
+            { rot13(it.reversed()) },           // Reverse -> ROT13
+            { rot13(it).reversed() }            // ROT13 -> Reverse
+        )
+
+        val byteTransforms = listOf<(ByteArray) -> ByteArray>(
+            { it },                             // No change
+            { it.reversedArray() },             // Reverse byte array
+            { rot13Bytes(it) },                 // ROT13 bytes
+            { rot13Bytes(it.reversedArray()) }, // Reverse -> ROT13 bytes
+            { rot13Bytes(it).reversedArray() }  // ROT13 -> Reverse bytes
+        )
+
+        for (sTrans in stringTransforms) {
+            for (bTrans in byteTransforms) {
+                try {
+                    val sRes = sTrans(inputData)
+                    val b64Res = safeBase64Decode(sRes) ?: continue
+                    val finalBytesCandidate = bTrans(b64Res)
+
+                    // Try with the decryption loop (using dynamic constants)
+                    val adjusted = unmixLoop(finalBytesCandidate, magicNum, offset)
+                    val url = String(adjusted, Charsets.UTF_8).trim()
+                    if (url.startsWith("http") && url.contains(".mp4")) {
+                        return url
+                    }
+
+                    // Try without decryption loop (some variants don't use it)
+                    val urlPlain = String(finalBytesCandidate, Charsets.UTF_8).trim()
+                    if (urlPlain.startsWith("http") && urlPlain.contains(".mp4")) {
+                        return urlPlain
+                    }
+                    
+                    // Try with unmix loop BEFORE byte transforms (rare but possible order variation)
+                    // If the order is Base64 -> Unmix -> Reverse/ROT13... unlikely given the loop nature but cheap to try
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+        }
+        return null
+    }
+
+    private fun rot13Bytes(input: ByteArray): ByteArray {
+        val output = input.clone()
+        for (i in output.indices) {
+            val b = output[i].toInt()
+            output[i] = when (b) {
+                in 'A'.code..'Z'.code -> ('A'.code + (b - 'A'.code + 13) % 26).toByte()
+                in 'a'.code..'z'.code -> ('a'.code + (b - 'a'.code + 13) % 26).toByte()
+                else -> output[i]
+            }
+        }
+        return output
+    }
+
+    private fun extractPureBase64(unpacked: String): String? {
+        val pureB64 = Regex("""["'](aHR0[a-zA-Z0-9+/=]{20,})["']""").find(unpacked)
+        if (pureB64 != null) {
+            val decoded = safeBase64Decode(pureB64.groupValues[1])
+            if (decoded != null) {
+                val urlCandidate = String(decoded, Charsets.UTF_8).trim()
+                if (urlCandidate.startsWith("http")) {
+                    return urlCandidate
+                }
+            }
+        }
+        return null
+    }
+
+    private fun unmixLoop(decodedBytes: ByteArray, magicNum: Long, offset: Int): ByteArray {
+        val finalBytes = ByteArray(decodedBytes.size)
+        for (i in decodedBytes.indices) {
+            val b = decodedBytes[i].toInt() and 0xFF
+            val adjustment = (magicNum % (i + offset)).toInt()
+            finalBytes[i] = ((b - adjustment + 255 + 1) % 256).toByte() // Using +256
+        }
+        return finalBytes
+    }
+
+    private fun safeBase64Decode(str: String): ByteArray? {
+        return try {
+            val cleaned = str.replace(Regex("[^a-zA-Z0-9+/]"), "")
+            Base64.decode(cleaned, Base64.DEFAULT)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun rot13(input: String): String = input.map {
@@ -52,140 +173,6 @@ class CloseloadExtractor : Extractor() {
             else -> it
         }
     }.joinToString("")
-
-    private fun extractDirectBase64(unpacked: String): String? {
-        val match = Regex("=\"(aHR.*?)\";").find(unpacked)?.groupValues?.get(1) ?: return null
-        val decoded = safeBase64Decode(match) ?: return null
-        val url = String(decoded, Charsets.UTF_8)
-        return url.takeIf { it.startsWith("http") }
-    }
-
-    private fun extractDcHelloEncoded(unpacked: String): String? {
-        val varName = Regex("""myPlayer\.src\(\{\s*src:\s*(\w+)\s*,""")
-            .find(unpacked)?.groupValues?.get(1) ?: return null
-
-        val encodedLink = Regex("""var\s+$varName\s*=\s*dc_hello\("([^"]+)"\)""")
-            .find(unpacked)?.groupValues?.get(1).orEmpty()
-
-        if (encodedLink.isBlank()) return null
-
-        val step1 = safeBase64Decode(encodedLink)?.toString(Charsets.UTF_8) ?: return null
-        val step2 = step1.reversed()
-        val step3 = safeBase64Decode(step2)?.toString(Charsets.UTF_8) ?: return null
-
-        return Regex("""https://[^\s"]+""").find(step3)?.value
-    }
-
-    private fun extractArrayDecoded(unpacked: String): String? {
-        val varName = Regex("""myPlayer\.src\(\{\s*src:\s*(\w+)\s*,""")
-            .find(unpacked)?.groupValues?.get(1) ?: return null
-
-        val match = Regex("""var\s+$varName\s*=\s*(\w+)\(\[((?:\s*"[^"]+",?)+)\]\)""")
-            .find(unpacked) ?: return null
-
-        val arrayParts = Regex("\"([^\"]+)\"")
-            .findAll(match.groupValues[2])
-            .map { it.groupValues[1] }
-            .toList()
-
-        val candidates = listOfNotNull(
-            decodeObfuscatedUrlRotFirst(arrayParts),
-            decodeObfuscatedUrl(arrayParts),
-            decodeObfuscatedUrlDecodeFirst(arrayParts),
-            decodeObfuscatedUrlDoubleB64Reverse(arrayParts),
-            decodeObfuscatedUrlReverseFirst(arrayParts)
-        )
-        return candidates.firstOrNull { it.startsWith("http") }
-    }
-
-    private fun extractArrayDecodedNew(unpacked: String): String? {
-        val varName = Regex("""myPlayer\.src\(\{\s*src:\s*(\w+)\s*,""")
-            .find(unpacked)?.groupValues?.get(1) ?: return null
-
-        val match = Regex("""var\s+$varName\s*=\s*(\w+)\(\[((?:\s*"[^"]+",?)+)\]\)""")
-            .find(unpacked) ?: return null
-
-        val arrayParts = Regex("\"([^\"]+)\"")
-            .findAll(match.groupValues[2])
-            .map { it.groupValues[1] }
-            .toList()
-
-        return decodeObfuscatedUrl(arrayParts)?.takeIf { it.startsWith("http") }
-    }
-
-    private fun decodeObfuscatedUrl(parts: List<String>): String? {
-        val joined = parts.joinToString("")
-        val rot = rot13(joined)
-        val b64Decoded = safeBase64Decode(rot) ?: return null
-        val reversed = b64Decoded.reversedArray()
-
-        val finalBytes = ByteArray(reversed.size) { i ->
-            val b = reversed[i]
-            val adjustment = 399_756_995 % (i + 5)
-            ((b.toInt() - adjustment + 256) % 256).toByte()
-        }
-        return String(finalBytes, Charsets.UTF_8)
-    }
-
-    private fun decodeObfuscatedUrlRotFirst(parts: List<String>): String? {
-        val rot = rot13(parts.joinToString(""))
-        val decoded = safeBase64Decode(rot) ?: return null
-
-        val finalBytes = ByteArray(decoded.size) { i ->
-            val b = decoded[i]
-            val adjustment = 399_756_995 % (i + 5)
-            ((b.toInt() - adjustment + 256) % 256).toByte()
-        }
-        return String(finalBytes, Charsets.UTF_8)
-    }
-
-    private fun decodeObfuscatedUrlDecodeFirst(parts: List<String>): String? {
-        val b64 = safeBase64Decode(parts.joinToString("")) ?: return null
-        val reversed = String(b64, Charsets.ISO_8859_1).reversed()
-        val rot = rot13(reversed)
-
-        val finalBytes = ByteArray(rot.length) { i ->
-            val code = rot[i].code and 0xFF
-            val adj = 399_756_995 % (i + 5)
-            (((code - adj) % 256 + 256) % 256).toByte()
-        }
-        return String(finalBytes, Charsets.UTF_8)
-    }
-
-    private fun decodeObfuscatedUrlReverseFirst(parts: List<String>): String? {
-        val joined = parts.joinToString("")
-        val reversed = joined.reversed()
-        val b64Decoded = safeBase64Decode(reversed) ?: return null
-
-        val rot13Bytes = b64Decoded.map { b ->
-            val c = b.toInt().toChar()
-            when (c) {
-                in 'A'..'Z' -> (((c - 'A' + 13) % 26) + 'A'.code).toByte()
-                in 'a'..'z' -> (((c - 'a' + 13) % 26) + 'a'.code).toByte()
-                else -> b
-            }
-        }.toByteArray()
-
-        val finalBytes = ByteArray(rot13Bytes.size) { i ->
-            val adjustment = 399_756_995 % (i + 5)
-            ((rot13Bytes[i].toInt() - adjustment + 256) % 256).toByte()
-        }
-        return String(finalBytes, Charsets.UTF_8)
-    }
-
-    private fun decodeObfuscatedUrlDoubleB64Reverse(parts: List<String>): String? {
-        val joined = parts.joinToString("")
-        val reversed = joined.reversed()
-        val step1 = safeBase64Decode(reversed) ?: return null
-        val step2 = safeBase64Decode(String(step1, Charsets.ISO_8859_1)) ?: return null
-
-        val finalBytes = ByteArray(step2.size) { i ->
-            val b = step2[i]
-            val adjustment = 399_756_995 % (i + 5)
-            ((b.toInt() - adjustment + 256) % 256).toByte()
-        }
-        return String(finalBytes, Charsets.UTF_8)
-    }
 
     private interface Service {
         companion object {

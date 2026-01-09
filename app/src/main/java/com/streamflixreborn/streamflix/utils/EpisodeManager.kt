@@ -6,6 +6,7 @@ import com.streamflixreborn.streamflix.database.dao.EpisodeDao
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.Video.Type.Episode
 import kotlin.collections.map
+import com.streamflixreborn.streamflix.utils.format
 
 object EpisodeManager {
     private val episodes = mutableListOf<Episode>()
@@ -80,7 +81,9 @@ object EpisodeManager {
                     id = tvShowId,
                     title = tvShowFromDb?.title ?: "",
                     poster = tvShowFromDb?.poster ?: ep.tvShow?.poster,
-                    banner = tvShowFromDb?.banner ?: ep.tvShow?.banner
+                    banner = tvShowFromDb?.banner ?: ep.tvShow?.banner,
+                    releaseDate = tvShowFromDb?.released?.format("yyyy-MM-dd") ?: ep.tvShow?.released?.format("yyyy-MM-dd"),
+                    imdbId = tvShowFromDb?.imdbId ?: ep.tvShow?.imdbId
                 ),
                 season = Episode.Season(
                     number = seasonFromDb?.number ?: seasonNumber,

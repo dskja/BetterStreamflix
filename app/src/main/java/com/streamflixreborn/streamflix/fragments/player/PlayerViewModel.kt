@@ -8,6 +8,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.format
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,7 +54,9 @@ class PlayerViewModel(
                 id = ep.tvShow.id,
                 title = ep.tvShow.title,
                 poster = ep.tvShow.poster,
-                banner = ep.tvShow.banner
+                banner = ep.tvShow.banner,
+                releaseDate = ep.tvShow.releaseDate,
+                imdbId = ep.tvShow.imdbId
             ),
             season = Video.Type.Episode.Season(
                 number = ep.season.number,

@@ -85,6 +85,8 @@ class EpisodeViewHolder(
                                 title = episode.tvShow?.title ?: "",
                                 poster = episode.tvShow?.poster,
                                 banner = episode.tvShow?.banner,
+                                releaseDate = episode.tvShow?.released?.format("yyyy-MM-dd"),
+                                imdbId = episode.tvShow?.imdbId,
                             ),
                             season = Video.Type.Episode.Season(
                                 number = episode.season?.number ?: 0,
@@ -182,6 +184,8 @@ class EpisodeViewHolder(
                                 title = episode.tvShow?.title ?: "",
                                 poster = episode.tvShow?.poster,
                                 banner = episode.tvShow?.banner,
+                                releaseDate = episode.tvShow?.released?.format("yyyy-MM-dd"),
+                                imdbId = episode.tvShow?.imdbId,
                             ),
                             season = Video.Type.Episode.Season(
                                 number = episode.season?.number ?: 0,
@@ -293,6 +297,8 @@ class EpisodeViewHolder(
                                 title = episode.tvShow?.title ?: "",
                                 poster = episode.tvShow?.poster,
                                 banner = episode.tvShow?.banner,
+                                releaseDate = episode.tvShow?.released?.format("yyyy-MM-dd"),
+                                imdbId = episode.tvShow?.imdbId,
                             ),
                             season = Video.Type.Episode.Season(
                                 number = episode.season?.number ?: 0,
@@ -395,6 +401,8 @@ class EpisodeViewHolder(
                                 title = episode.tvShow?.title ?: "",
                                 poster = episode.tvShow?.poster,
                                 banner = episode.tvShow?.banner,
+                                releaseDate = episode.tvShow?.released?.format("yyyy-MM-dd"),
+                                imdbId = episode.tvShow?.imdbId,
                             ),
                             season = Video.Type.Episode.Season(
                                 number = episode.season?.number ?: 0,

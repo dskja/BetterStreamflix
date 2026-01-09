@@ -90,6 +90,8 @@ abstract class Extractor {
             VidsrcRuExtractor(),
             VidflixExtractor(),
             VidrockExtractor(),
+            VideasyExtractor(),
+            VidzeeExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {
