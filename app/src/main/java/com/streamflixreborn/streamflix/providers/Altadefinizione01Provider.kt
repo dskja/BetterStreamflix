@@ -294,7 +294,8 @@ object Altadefinizione01Provider : Provider {
                 Season(
                     id = "$id#season-$seasonNumber",
                     number = seasonNumber,
-                    episodes = episodes
+                    episodes = episodes,
+                    poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster
                 )
             )
         }

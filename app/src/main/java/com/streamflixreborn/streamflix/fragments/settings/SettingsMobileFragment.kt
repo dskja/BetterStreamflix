@@ -17,6 +17,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import com.streamflixreborn.streamflix.R
+import com.streamflixreborn.streamflix.activities.main.MainMobileActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
 import com.streamflixreborn.streamflix.backup.ProviderBackupContext
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -110,6 +111,15 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             isChecked = UserPreferences.playerGestures
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.playerGestures = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("IMMERSIVE_MODE")?.apply {
+            isChecked = UserPreferences.immersiveMode
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.immersiveMode = newValue as Boolean
+                (activity as? MainMobileActivity)?.updateImmersiveMode()
                 true
             }
         }
@@ -408,6 +418,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             UserPreferences.currentProvider is StreamingCommunityProvider
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
+        findPreference<SwitchPreference>("IMMERSIVE_MODE")?.isChecked = UserPreferences.immersiveMode
 
         // Aggiorna summary per provider_streamingcommunity_domain in onResume
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.summary = UserPreferences.streamingcommunityDomain

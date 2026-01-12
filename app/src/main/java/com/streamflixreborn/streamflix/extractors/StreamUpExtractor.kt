@@ -6,6 +6,7 @@ import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Query
 import java.net.URL
 
@@ -15,14 +16,17 @@ class StreamUpExtractor : Extractor() {
     override val mainUrl = "https://strmup.to"
 
     override suspend fun extract(link: String): Video {
-        val fileCode = URL(link).path.removePrefix("/")
+        val fileCode = URL(link).path.split("/").last { it.isNotEmpty() }
         if (fileCode.isEmpty()) {
             throw Exception("File code not found in URL")
         }
 
         val service = Service.build(mainUrl)
         
-        val responseBody = service.getStream(fileCode)
+        val responseBody = service.getStream(
+            fileCode = fileCode,
+            referer = "$mainUrl/v/$fileCode"
+        )
         val responseString = responseBody.string()
         
         val jsonObject = try {
@@ -56,6 +60,9 @@ class StreamUpExtractor : Extractor() {
         }
 
         @GET("ajax/stream")
-        suspend fun getStream(@Query("filecode") fileCode: String): ResponseBody
+        suspend fun getStream(
+            @Query("filecode") fileCode: String,
+            @Header("Referer") referer: String
+        ): ResponseBody
     }
 }

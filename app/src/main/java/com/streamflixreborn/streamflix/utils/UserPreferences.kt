@@ -112,6 +112,12 @@ object UserPreferences {
             Key.PLAYER_GESTURES.setBoolean(value)
         }
 
+    var immersiveMode: Boolean
+        get() = Key.IMMERSIVE_MODE.getBoolean() ?: false // Default changed to false
+        set(value) {
+            Key.IMMERSIVE_MODE.setBoolean(value)
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -240,7 +246,8 @@ object UserPreferences {
         AUTOPLAY,
         PROVIDER_CACHE,
         KEEP_SCREEN_ON_WHEN_PAUSED,
-        PLAYER_GESTURES;
+        PLAYER_GESTURES,
+        IMMERSIVE_MODE;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

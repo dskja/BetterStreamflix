@@ -7,6 +7,9 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -36,6 +39,9 @@ class MainMobileActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AppTheme_Mobile)
         super.onCreate(savedInstanceState)
+        // Abilita la modalità immersiva (schermo intero)
+        updateImmersiveMode()
+
         _binding = ActivityMainMobileBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -86,6 +92,8 @@ class MainMobileActivity : FragmentActivity() {
                     binding.bnvMain.visibility = View.VISIBLE
                     // Update tab visibility based on provider
                     updateNavigationVisibility()
+                    // Riabilita la modalità immersiva nel caso fosse stata interrotta
+                    updateImmersiveMode()
                 }
                 else -> binding.bnvMain.visibility = View.GONE
             }
@@ -155,6 +163,23 @@ class MainMobileActivity : FragmentActivity() {
             // Hide TV Shows tab if provider doesn't support TV shows
             binding.bnvMain.findViewById<View>(R.id.tv_shows)?.visibility = 
                 if (Provider.supportsTvShows(provider)) View.VISIBLE else View.GONE
+        }
+    }
+
+    fun updateImmersiveMode() {
+        val window = window
+        val insetsController = WindowInsetsControllerCompat(window, window.decorView)
+
+        if (UserPreferences.immersiveMode) {
+            // Modalità immersiva attiva: nasconde le barre
+            insetsController.systemBarsBehavior = 
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insetsController.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            // Modalità immersiva disattivata: mostra le barre
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
+            insetsController.systemBarsBehavior = 
+                WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
         }
     }
 }

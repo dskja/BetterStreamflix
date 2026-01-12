@@ -15,6 +15,9 @@ import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -78,16 +81,27 @@ object StreamingItaProvider : Provider {
             val document = service.getPage(baseUrl)
 
 			// Top slider
-			val sliderItems = document.select("#slider-movies-tvshows article.item").mapNotNull { el ->
-				val href = el.selectFirst(".image a")?.attr("href").orEmpty()
-				val img = el.selectFirst(".image img")?.attr("src")
-				val title = el.selectFirst(".data h3.title, .data h3 a, h3.title")?.text()
-					?: el.selectFirst("img")?.attr("alt") ?: ""
-				when {
-					href.contains("/film/") -> Movie(id = href, title = title, poster = img, banner = img)
-					href.contains("/tv/") -> TvShow(id = href, title = title, poster = img, banner = img)
-					else -> null
-				}
+			val sliderItems = coroutineScope {
+				document.select("#slider-movies-tvshows article.item").map { el ->
+					async {
+						val href = el.selectFirst(".image a")?.attr("href").orEmpty()
+						val img = el.selectFirst(".image img")?.attr("src")
+						val title = el.selectFirst(".data h3.title, .data h3 a, h3.title")?.text()
+							?: el.selectFirst("img")?.attr("alt") ?: ""
+						
+						val tmdbRating = when {
+							href.contains("/film/") -> TmdbUtils.getMovie(title, language = language)?.rating
+							href.contains("/tv/") -> TmdbUtils.getTvShow(title, language = language)?.rating
+							else -> null
+						}
+
+						when {
+							href.contains("/film/") -> Movie(id = href, title = title, poster = img, banner = img, rating = tmdbRating)
+							href.contains("/tv/") -> TvShow(id = href, title = title, poster = img, banner = img, rating = tmdbRating)
+							else -> null
+						}
+					}
+				}.awaitAll().filterNotNull()
 			}
 
 			val categories = mutableListOf<Category>()
@@ -287,6 +301,7 @@ object StreamingItaProvider : Provider {
                 id = "$id?season=$seasonNumber",
                 number = seasonNumber,
                 title = "Stagione $seasonNumber",
+                poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster
             )
         }.sortedBy { it.number }
 

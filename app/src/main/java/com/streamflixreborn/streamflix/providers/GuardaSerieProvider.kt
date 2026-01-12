@@ -251,7 +251,8 @@ object GuardaSerieProvider : Provider {
             
             Season(
                 id = "$id#s$seasonNumber",
-                number = seasonNumber
+                number = seasonNumber,
+                poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster
             )
         }
 

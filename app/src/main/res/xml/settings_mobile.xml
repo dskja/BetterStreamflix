@@ -56,6 +56,16 @@
             android:summaryOn="@string/settings_frenchstream_use_new_interface_on"
             android:summaryOff="@string/settings_frenchstream_use_new_interface_off" />
     </PreferenceCategory>
+    
+    <PreferenceCategory android:title="@string/settings_category_interface_title">
+        <SwitchPreference
+            android:key="IMMERSIVE_MODE"
+            android:title="@string/settings_immersive_mode"
+            android:summary="@string/settings_immersive_mode_summary"
+            android:summaryOn="@string/settings_immersive_mode_on"
+            android:summaryOff="@string/settings_immersive_mode_off"
+            android:defaultValue="false"/>
+    </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/autoplay_settings">
         <SwitchPreference

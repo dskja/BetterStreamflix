@@ -21,6 +21,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Body
 import retrofit2.http.Headers
+import retrofit2.http.Query
 import okhttp3.ResponseBody
 import okhttp3.RequestBody
 import okhttp3.MediaType.Companion.toMediaType
@@ -55,10 +56,6 @@ object EinschaltenProvider : Provider {
 
         }
 
-        @Headers(USER_AGENT)
-        @GET(".")
-        suspend fun getHome(): Document
-
         @Headers(USER_AGENT, "Content-Type: application/json")
         @GET("api/movies/{id}")
         suspend fun getMovie(@Path("id") id: String): ResponseBody
@@ -74,6 +71,14 @@ object EinschaltenProvider : Provider {
         @Headers(USER_AGENT, "Content-Type: application/json")
         @POST("api/search")
         suspend fun search(@Body body: RequestBody): ResponseBody
+
+        @Headers(USER_AGENT, "Content-Type: application/json")
+        @GET("api/movies")
+        suspend fun getMovies(
+            @Query("genreId") genreId: Int?,
+            @Query("pageNumber") page: Int,
+            @Query("order") order: String = "new"
+        ): ResponseBody
     }
 
     private val service = EinschaltenService.build(baseUrl)
@@ -132,29 +137,25 @@ object EinschaltenProvider : Provider {
     }
 
     override suspend fun getHome(): List<Category> {
-        val doc = service.getHome()
         val categories = mutableListOf<Category>()
 
-        val categoryList = listOf(
-            "1714977353" to "Neue Filme",
-            "568655081" to "Zuletzt hinzugefügte Filme"
-        )
-        
         try {
-            val scriptEl = doc.selectFirst("script#ng-state[type='application/json']")
-            val jsonText = scriptEl?.data() ?: return emptyList()
-            
-            val json = JSONObject(jsonText)
-            
-            categoryList.forEach { (key, categoryName) ->
-                val categoryObj = json.optJSONObject(key) ?: return@forEach
-                val moviesArray = categoryObj.optJSONArray("b") ?: return@forEach
-                
-                val movies = parseMoviesFromJsonArray(moviesArray)
-                
-                if (movies.isNotEmpty()) {
-                    categories.add(Category(name = categoryName, list = movies))
-                }
+            // Neue Filme
+            val neueResponse = service.getMovies(genreId = 12, page = 1, order = "new")
+            val neueJson = JSONObject(neueResponse.string())
+            val neueArray = neueJson.optJSONArray("data") ?: JSONArray()
+            val neueMovies = parseMoviesFromJsonArray(neueArray)
+            if (neueMovies.isNotEmpty()) {
+                categories.add(Category(name = "Neue Filme", list = neueMovies))
+            }
+
+            // Zuletzt hinzugefügte Filme
+            val addedResponse = service.getMovies(genreId = null, page = 1, order = "added")
+            val addedJson = JSONObject(addedResponse.string())
+            val addedArray = addedJson.optJSONArray("data") ?: JSONArray()
+            val addedMovies = parseMoviesFromJsonArray(addedArray)
+            if (addedMovies.isNotEmpty()) {
+                categories.add(Category(name = "Zuletzt hinzugefügte Filme", list = addedMovies))
             }
         } catch (e: Exception) {
         }
@@ -200,7 +201,8 @@ object EinschaltenProvider : Provider {
             
             val searchResponse = service.search(requestBody)
             val searchBodyString = searchResponse.string()
-            val moviesArray = JSONArray(searchBodyString)
+            val jsonResponse = JSONObject(searchBodyString)
+            val moviesArray = jsonResponse.optJSONArray("data") ?: JSONArray()
             
             return parseMoviesFromJsonArray(moviesArray)
         } catch (e: Exception) {
@@ -210,19 +212,14 @@ object EinschaltenProvider : Provider {
 
     override suspend fun getMovies(page: Int): List<Movie> {
         try {
-            val searchBody = JSONObject().apply {
-                put("genreId", 0)
-                put("pageSize", 32)
-                put("pageNumber", page)
-                put("order", "")
-            }
-            
-            val requestBody = searchBody.toString()
-                .toRequestBody("application/json".toMediaType())
-            
-            val searchResponse = service.search(requestBody)
-            val searchBodyString = searchResponse.string()
-            val moviesArray = JSONArray(searchBodyString)
+            val moviesResponse = service.getMovies(
+                genreId = null,
+                page = page,
+                order = "new"
+            )
+            val moviesBodyString = moviesResponse.string()
+            val jsonResponse = JSONObject(moviesBodyString)
+            val moviesArray = jsonResponse.optJSONArray("data") ?: JSONArray()
             
             return parseMoviesFromJsonArray(moviesArray)
         } catch (e: Exception) {
@@ -311,19 +308,14 @@ object EinschaltenProvider : Provider {
         }
         
         try {
-            val searchBody = JSONObject().apply {
-                put("genreId", genreId)
-                put("pageSize", 32)
-                put("pageNumber", page)
-                put("order", "")
-            }
-            
-            val requestBody = searchBody.toString()
-                .toRequestBody("application/json".toMediaType())
-            
-            val searchResponse = service.search(requestBody)
-            val searchBodyString = searchResponse.string()
-            val moviesArray = JSONArray(searchBodyString)
+            val moviesResponse = service.getMovies(
+                genreId = genreId,
+                page = page,
+                order = "new"
+            )
+            val moviesBodyString = moviesResponse.string()
+            val jsonResponse = JSONObject(moviesBodyString)
+            val moviesArray = jsonResponse.optJSONArray("data") ?: JSONArray()
             val movies = parseMoviesFromJsonArray(moviesArray)
             
             return Genre(id = id, name = genreName, shows = movies)
@@ -366,4 +358,3 @@ object EinschaltenProvider : Provider {
         return DoodLaExtractor().extract(server.src)
     }
 }
-

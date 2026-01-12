@@ -45,7 +45,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
-    private const val DEFAULT_DOMAIN: String = "streamingcommunityz.win"
+    private const val DEFAULT_DOMAIN: String = "streamingunity.so"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -524,10 +524,12 @@ object StreamingCommunityProvider : Provider {
                     listOf()
             },
             seasons = title.seasons?.map {
+                val seasonNumber = it.number.toIntOrNull() ?: (title.seasons.indexOf(it) + 1)
                 Season(
                     id = "$id/season-${it.number}",
-                    number = it.number.toIntOrNull() ?: (title.seasons.indexOf(it) + 1),
-                    title = it.name
+                    number = seasonNumber,
+                    title = it.name,
+                    poster = tmdbShow?.seasons?.find { s -> s.number == seasonNumber }?.poster
                 )
             } ?: listOf()
         )

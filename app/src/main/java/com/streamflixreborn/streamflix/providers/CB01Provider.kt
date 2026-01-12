@@ -365,6 +365,7 @@ object CB01Provider : Provider {
             Season(
                 id = "$id#s$seasonNumber",
                 number = seasonNumber,
+                poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster
             )
         }
 

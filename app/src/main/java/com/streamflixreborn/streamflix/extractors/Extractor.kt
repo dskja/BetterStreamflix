@@ -92,6 +92,7 @@ abstract class Extractor {
             VidrockExtractor(),
             VideasyExtractor(),
             VidzeeExtractor(),
+            VidnestExtractor()
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

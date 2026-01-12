@@ -28,6 +28,7 @@
         android:paddingStart="70dp"
         android:paddingTop="26dp"
         android:paddingEnd="70dp"
+        android:paddingBottom="40dp"
         app:focusOutEnd="true"
         app:focusOutFront="true"
         app:layout_constraintEnd_toEndOf="parent"

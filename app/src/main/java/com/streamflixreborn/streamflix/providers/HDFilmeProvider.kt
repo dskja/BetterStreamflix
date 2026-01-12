@@ -16,6 +16,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.Jsoup
@@ -111,7 +112,11 @@ object HDFilmeProvider : Provider {
         val doc = service.getHome()
         val categories = mutableListOf<Category>()
 
-        val sliderItems = doc.select("ul.glide__slides li.glide__slide").mapNotNull { parseSliderItem(it) }
+        val sliderItems = coroutineScope {
+            doc.select("ul.glide__slides li.glide__slide").map { el ->
+                async { parseSliderItem(el) }
+            }.awaitAll().filterNotNull()
+        }
         
         if (sliderItems.isNotEmpty()) {
              categories.add(Category(name = Category.FEATURED, list = sliderItems))
@@ -140,7 +145,7 @@ object HDFilmeProvider : Provider {
         return categories
     }
 
-    private fun parseSliderItem(el: Element): Movie? {
+    private suspend fun parseSliderItem(el: Element): Movie? {
         val title = el.selectFirst("h3.title")?.text()?.trim() ?: return null
         
         val linkElement = el.selectFirst("div.actions a.watchnow") ?: return null
@@ -148,11 +153,14 @@ object HDFilmeProvider : Provider {
         
         val bannerUrl = el.selectFirst("img")?.attr("data-src") ?: ""
         val banner = normalizeUrl(bannerUrl)
+
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
         
         return Movie(
             id = href,
             title = title,
-            banner = banner
+            banner = banner,
+            rating = tmdbMovie?.rating
         )
     }
 
@@ -325,8 +333,8 @@ object HDFilmeProvider : Provider {
         val titleRaw = doc.selectFirst("h1.font-bold")?.text()?.trim() ?: ""
         val title = titleRaw.replace(Regex("\\s*hdfilme\\s*$", RegexOption.IGNORE_CASE), "").trim()
         
-        val posterUrl = doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: ""
-        val poster = normalizeUrl(posterUrl)
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
+        val poster = normalizeUrl(doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: "")
         
         val overviewDiv = doc.selectFirst("div.font-extralight.prose.max-w-none")
         val overview = overviewDiv?.select("p")?.firstOrNull()?.let { p ->
@@ -376,7 +384,8 @@ object HDFilmeProvider : Provider {
                 val actorName = a.text().trim()
                 val actorUrl = a.attr("href").trim()
                 if (actorName.isNotBlank() && actorName != "N/A") {
-                    People(id = actorUrl, name = actorName)
+                    val tmdbPerson = tmdbMovie?.cast?.find { it.name.equals(actorName, ignoreCase = true) }
+                    People(id = actorUrl, name = actorName, image = tmdbPerson?.image)
                 } else null
             }
         
@@ -384,14 +393,16 @@ object HDFilmeProvider : Provider {
             id = id,
             title = title,
             poster = poster,
+            banner = tmdbMovie?.banner,
             trailer = trailer,
-            rating = rating,
-            overview = overview,
-            released = year,
-            runtime = duration,
+            rating = tmdbMovie?.rating ?: rating,
+            overview = tmdbMovie?.overview ?: overview,
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } ?: year,
+            runtime = tmdbMovie?.runtime ?: duration,
             quality = quality,
-            genres = genres,
-            cast = cast
+            genres = tmdbMovie?.genres ?: genres,
+            cast = cast,
+            imdbId = tmdbMovie?.imdbId
         )
     }
 
@@ -401,9 +412,9 @@ object HDFilmeProvider : Provider {
         val titleRaw = doc.selectFirst("h1.font-bold")?.text()?.trim() ?: ""
         val title = titleRaw.replace(Regex("\\s*hdfilme\\s*$", RegexOption.IGNORE_CASE), "").trim()
         
-        val posterUrl = doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: ""
-        val poster = normalizeUrl(posterUrl)
-        
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
+        val poster = normalizeUrl(doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: "")
+
         val overviewDiv = doc.selectFirst("div.font-extralight.prose.max-w-none")
         val overview = overviewDiv?.select("p")?.firstOrNull()?.let { p ->
             val fullText = p.text().trim()
@@ -444,9 +455,8 @@ object HDFilmeProvider : Provider {
                 if (text.matches(Regex("^\\d{4}$")) || text.contains("min", ignoreCase = true)) null else text
             }
 
-   
         val rating = metadataDiv?.selectFirst("p.imdb-badge span.imdb-rate")?.text()?.trim()?.toDoubleOrNull()
-        
+
         val seasons = mutableListOf<Season>()
         doc.select("div#se-accordion div.su-spoiler").forEach { spoiler ->
             val seasonTitle = spoiler.selectFirst("div.su-spoiler-title")?.text()?.trim() ?: return@forEach
@@ -479,6 +489,7 @@ object HDFilmeProvider : Provider {
                 Season(
                     id = "$id#season-$seasonNumber",
                     number = seasonNumber,
+                    poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
                     episodes = episodes.distinctBy { it.number }.sortedBy { it.number }
                 )
             )
@@ -489,7 +500,8 @@ object HDFilmeProvider : Provider {
                 val actorName = a.text().trim()
                 val actorUrl = a.attr("href").trim()
                 if (actorName.isNotBlank() && actorName != "N/A") {
-                    People(id = actorUrl, name = actorName)
+                    val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(actorName, ignoreCase = true) }
+                    People(id = actorUrl, name = actorName, image = tmdbPerson?.image)
                 } else null
             }
         
@@ -497,25 +509,31 @@ object HDFilmeProvider : Provider {
             id = id,
             title = title,
             poster = poster,
-            banner = null,
-            trailer = trailer,
-            rating = rating,
-            overview = overview,
-            released = year,
-            runtime = duration,
+            banner = tmdbTvShow?.banner,
+            trailer = tmdbTvShow?.trailer ?: trailer,
+            rating = tmdbTvShow?.rating ?: rating,
+            overview = tmdbTvShow?.overview ?: overview,
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } ?: year,
+            runtime = tmdbTvShow?.runtime ?: duration,
             quality = quality,
-            genres = genres,
+            genres = tmdbTvShow?.genres ?: genres,
             cast = cast,
-            seasons = seasons
+            seasons = seasons,
+            imdbId = tmdbTvShow?.imdbId
         )
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showUrl = seasonId.substringBefore("#")
-        val seasonNumber = seasonId.substringAfter("#season-").toIntOrNull() ?: return emptyList()
+        val seasonNumber = seasonId.substringAfter("#season-").toIntOrNull() ?: return emptyValue()
         
         val doc = service.getPage(showUrl)
-        
+        val titleRaw = doc.selectFirst("h1.font-bold")?.text()?.trim() ?: ""
+        val title = titleRaw.replace(Regex("\\s*hdfilme\\s*$", RegexOption.IGNORE_CASE), "").trim()
+
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
+        val tmdbEpisodes = tmdbTvShow?.let { TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) } ?: emptyList()
+
         val episodes = mutableListOf<Episode>()
         
         doc.select("div#se-accordion div.su-spoiler").forEach { spoiler ->
@@ -533,12 +551,15 @@ object HDFilmeProvider : Provider {
                     val match = episodeRegex.find(line) ?: return@forEach
                     val epNumber = match.groupValues[2].toIntOrNull() ?: return@forEach
                     
+                    val tmdbEp = tmdbEpisodes.find { it.number == epNumber }
+
                     episodes.add(
                         Episode(
                             id = "$showUrl#s${seasonNumber}e$epNumber",
                             number = epNumber,
-                            title = "Episode $epNumber",
-                            poster = null
+                            title = tmdbEp?.title ?: "Episode $epNumber",
+                            poster = tmdbEp?.poster,
+                            overview = tmdbEp?.overview
                         )
                     )
                 }
@@ -547,6 +568,8 @@ object HDFilmeProvider : Provider {
         
         return episodes.distinctBy { it.number }.sortedBy { it.number }
     }
+    
+    private fun <T> emptyValue(): List<T> = emptyList()
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {

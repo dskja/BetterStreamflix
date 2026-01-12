@@ -22,6 +22,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider.SerienStreamService
 import com.streamflixreborn.streamflix.utils.AniWorldUpdateTvShowWorker
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -255,17 +256,19 @@ object AniWorldProvider : Provider {
 
 
             seasons = document.select("#stream > ul:nth-child(1) > li")
-                .filter { it -> it.select("a").size > 0 }
-                .map {
+                .filter { it.select("a").isNotEmpty() }
+                .mapIndexed { index, it ->
+                    val seasonText = it.selectFirst("a")?.text() ?: ""
+                    val seasonNumber = when {
+                        seasonText.contains("Filme", true) || seasonText.contains("Specials", true) -> 0
+                        else -> Regex("""\d+""").find(seasonText)?.value?.toIntOrNull() ?: (index + 1)
+                    }
                     Season(
                         id = it.selectFirst("a")
                             ?.attr("href")?.substringAfter("/anime/stream/")
                             ?: "",
-                        number = it.selectFirst("a")
-                            ?.text()?.toIntOrNull()
-                            ?: 0,
-                        title = it.selectFirst("a")
-                            ?.attr("title"),
+                        number = seasonNumber,
+                        title = it.selectFirst("a")?.attr("title") ?: seasonText,
                     )
                 },
             genres = document.select(".genres li").map {
@@ -300,7 +303,24 @@ object AniWorldProvider : Provider {
             },
         )
 
-        return tvShow
+        val tmdbTvShow = TmdbUtils.getTvShow(tvShow.title, language = language)
+
+        return tvShow.copy(
+            overview = tmdbTvShow?.overview ?: tvShow.overview,
+            rating = tmdbTvShow?.rating ?: tvShow.rating,
+            trailer = tmdbTvShow?.trailer ?: tvShow.trailer,
+            banner = tmdbTvShow?.banner ?: tvShow.banner,
+            imdbId = tmdbTvShow?.imdbId,
+            seasons = tvShow.seasons.map { season ->
+                season.copy(
+                    poster = tmdbTvShow?.seasons?.find { it.number == season.number }?.poster
+                )
+            },
+            cast = tvShow.cast.map { person ->
+                val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(person.name, ignoreCase = true) }
+                person.copy(image = tmdbPerson?.image)
+            }
+        )
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
@@ -308,16 +328,25 @@ object AniWorldProvider : Provider {
 
         val document = service.getSeason(tvShowId, season)
 
+        val tmdbTvShow = TmdbUtils.getTvShow(document.selectFirst("h1 > span")?.text() ?: "", language = language)
+        val seasonNumber = when {
+            season.contains("Filme", true) || season.contains("Specials", true) -> 0
+            else -> Regex("""\d+""").find(season)?.value?.toIntOrNull() ?: 1
+        }
+        val tmdbEpisodes = tmdbTvShow?.let { TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) } ?: emptyList()
+
         val episodes = document.select("tbody tr").map {
+            val epNumber = it.selectFirst("meta")?.attr("content")?.toIntOrNull() ?: 0
+            val tmdbEp = tmdbEpisodes.find { it.number == epNumber }
+            
             Episode(
                 id = it.selectFirst("a")
                     ?.attr("href")?.substringAfter("/anime/stream/")
                     ?: "",
-                number = it.selectFirst("meta")
-                    ?.attr("content")?.toIntOrNull()
-                    ?: 0,
-                title = it.selectFirst("strong")
-                    ?.text(),
+                number = epNumber,
+                title = tmdbEp?.title ?: it.selectFirst("strong")?.text(),
+                poster = tmdbEp?.poster,
+                overview = tmdbEp?.overview
             )
         }
 

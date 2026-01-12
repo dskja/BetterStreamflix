@@ -268,6 +268,12 @@
     <string name="settings_frenchstream_use_new_interface_on">Attiva</string>
     <string name="settings_frenchstream_use_new_interface_off">Disattivata</string>
 
+    <string name="settings_category_interface_title">Impostazioni interfaccia</string>
+    <string name="settings_immersive_mode">Modalità Immersiva</string>
+    <string name="settings_immersive_mode_summary">Nasconde le barre di stato e di navigazione</string>
+    <string name="settings_immersive_mode_on">Attiva (Barre nascoste)</string>
+    <string name="settings_immersive_mode_off">Disattivata (Barre visibili)</string>
+
     <string name="player_brightness">Luminosità</string>
     <string name="player_volume">Volume</string>
     <string name="percentage_format">%d%%</string>

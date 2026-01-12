@@ -12,6 +12,10 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.TmdbUtils
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -42,32 +46,39 @@ object FilmPalastProvider : Provider {
 
     override suspend fun getHome(): List<Category> {
         val document = service.getHome()
-        val featured = document.select("div.headerslider ul#sliderDla li").map { li ->
-            val title = li.select("span.title.rb").text()
-            val href = li.select("a.moviSliderPlay").attr("href")
-            val id = href.substringAfterLast("/")
-            val posterSrc = li.select("a img").attr("src")
-            val fullPosterUrl = if (posterSrc.startsWith("/")) {
-                "https://filmpalast.to$posterSrc"
-            } else {
-                posterSrc
-            }
-            val overview = li.select("div.moviedescription").text()
+        val featured = coroutineScope {
+            document.select("div.headerslider ul#sliderDla li").map { li ->
+                async {
+                    val title = li.select("span.title.rb").text()
+                    val href = li.select("a.moviSliderPlay").attr("href")
+                    val id = href.substringAfterLast("/")
+                    val posterSrc = li.select("a img").attr("src")
+                    val fullPosterUrl = if (posterSrc.startsWith("/")) {
+                        "https://filmpalast.to$posterSrc"
+                    } else {
+                        posterSrc
+                    }
+                    val overview = li.select("div.moviedescription").text()
 
-            val releaseYearText = li.select("span.releasedate b").text()
+                    val releaseYearText = li.select("span.releasedate b").text()
 
-            val imdbRatingText =
-                li.select("span.views b").lastOrNull()?.text()?.split("/")?.get(1)?.trim()
-            val rating = imdbRatingText?.toDoubleOrNull() ?: 0.0
+                    val imdbRatingText =
+                        li.select("span.views b").lastOrNull()?.text()?.split("/")?.get(1)?.trim()
+                    val rating = imdbRatingText?.toDoubleOrNull() ?: 0.0
 
-            Movie(
-                id = id,
-                title = title,
-                overview = overview,
-                released = releaseYearText,
-                rating = rating,
-                poster = fullPosterUrl
-            )
+                    val tmdbMovie = TmdbUtils.getMovie(title, language = language)
+
+                    Movie(
+                        id = id,
+                        title = title,
+                        overview = overview,
+                        released = releaseYearText,
+                        rating = rating,
+                        poster = fullPosterUrl,
+                        banner = tmdbMovie?.banner
+                    )
+                }
+            }.awaitAll()
         }
 
 
@@ -211,15 +222,25 @@ object FilmPalastProvider : Provider {
             document.select("ul#detail-content-list > li:has(p:matchesOwn(Schauspieler)) a")
                 .map { People(id = it.text().trim(), name = it.text().trim()) }
 
+        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
+
         return Movie(
             id = id,
             title = title,
             poster = poster,
-            genres = genres,
+            banner = tmdbMovie?.banner,
+            genres = tmdbMovie?.genres ?: genres,
             directors = directors,
-            cast = actors,
-            rating = rating,
-            overview = description
+            cast = actors.map { person ->
+                val tmdbPerson = tmdbMovie?.cast?.find { it.name.equals(person.name, ignoreCase = true) }
+                person.copy(image = tmdbPerson?.image)
+            },
+            rating = tmdbMovie?.rating ?: rating,
+            overview = tmdbMovie?.overview ?: description,
+            released = tmdbMovie?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } ?: document.selectFirst("ul#detail-content-list > li:has(p:matchesOwn(Release)) a")?.text()?.trim(),
+            runtime = tmdbMovie?.runtime,
+            trailer = tmdbMovie?.trailer,
+            imdbId = tmdbMovie?.imdbId
         )
     }
 
@@ -350,9 +371,14 @@ object FilmPalastProvider : Provider {
         // Parse seasons and episodes
         val seasons = mutableListOf<Season>()
         
+        val cleanedTitle = title.replace(Regex("""\s+S\d+E\d+.*""", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("""\s+S\d+.*""", RegexOption.IGNORE_CASE), "")
+            .trim()
+            
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanedTitle, language = language)
+
         document.select("div#staffelWrapper div.staffelWrapperLoop").forEachIndexed { seasonIndex, seasonBlock ->
             val seasonNumber = seasonIndex + 1
-            val seasonId = seasonBlock.attr("data-sid").takeIf { it.isNotEmpty() } ?: seasonNumber.toString()
             val episodes = mutableListOf<Episode>()
             
             seasonBlock.select("ul.staffelEpisodenList li a.getStaffelStream").forEachIndexed { episodeIndex, episodeLink ->
@@ -366,7 +392,7 @@ object FilmPalastProvider : Provider {
                 val epId = fullEpHref.substringAfterLast("/")
                 
                 episodes.add(
-                Episode(
+                    Episode(
                         id = epId,
                         number = episodeIndex + 1,
                         title = epTitle
@@ -375,10 +401,11 @@ object FilmPalastProvider : Provider {
             }
             
             seasons.add(
-            Season(
+                Season(
                     id = "${id}_$seasonNumber",
-                number = seasonNumber,
-                episodes = episodes
+                    number = seasonNumber,
+                    episodes = episodes,
+                    poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster
                 )
             )
         }
@@ -387,11 +414,19 @@ object FilmPalastProvider : Provider {
             id = id,
             title = title,
             poster = poster,
-            genres = genres,
+            banner = tmdbTvShow?.banner,
+            genres = tmdbTvShow?.genres ?: genres,
             directors = directors,
-            cast = actors,
-            rating = rating,
-            overview = description,
+            cast = actors.map { person ->
+                val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(person.name, ignoreCase = true) }
+                person.copy(image = tmdbPerson?.image)
+            },
+            rating = tmdbTvShow?.rating ?: rating,
+            overview = tmdbTvShow?.overview ?: description,
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } ?: document.selectFirst("ul#detail-content-list > li:has(p:matchesOwn(Release)) a")?.text()?.trim(),
+            runtime = tmdbTvShow?.runtime,
+            trailer = tmdbTvShow?.trailer,
+            imdbId = tmdbTvShow?.imdbId,
             seasons = seasons
         )
     }
@@ -440,6 +475,14 @@ object FilmPalastProvider : Provider {
         
         val relativeId = BASE_URL + "stream/" + showId
         val document = service.getTvShow(relativeId)
+        val title = document.selectFirst("h2")?.text() ?: ""
+
+        val cleanedTitle = title.replace(Regex("""\s+S\d+E\d+.*""", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("""\s+S\d+.*""", RegexOption.IGNORE_CASE), "")
+            .trim()
+
+        val tmdbTvShow = TmdbUtils.getTvShow(cleanedTitle, language = language)
+        val tmdbEpisodes = tmdbTvShow?.let { TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) } ?: emptyList()
         
         val episodes = mutableListOf<Episode>()
         
@@ -454,12 +497,17 @@ object FilmPalastProvider : Provider {
                         epHref
                     }
                     val epId = fullEpHref.substringAfterLast("/")
+                    val epNumber = episodeIndex + 1
+
+                    val tmdbEp = tmdbEpisodes.find { it.number == epNumber }
                     
                     episodes.add(
                         Episode(
                             id = epId,
-                            number = episodeIndex + 1,
-                            title = epTitle
+                            number = epNumber,
+                            title = tmdbEp?.title ?: epTitle,
+                            poster = tmdbEp?.poster,
+                            overview = tmdbEp?.overview
                         )
                     )
                 }
