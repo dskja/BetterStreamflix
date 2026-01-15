@@ -23,7 +23,8 @@ class VidHideExtractor: Extractor() {
         "https://dingtezuni.com",
         "https://dintezuvio.com",
         "https://minochinos.com",
-        "https://moflix-stream.click"
+        "https://moflix-stream.click",
+        "https://filelions.to"
     )
 
     companion object {
@@ -34,10 +35,13 @@ class VidHideExtractor: Extractor() {
     override suspend fun extract(link: String): Video {
         val mainLink = URL(link).protocol + "://" + URL(link).host
         val service = Service.build(mainLink)
+        val referer = UserPreferences.currentProvider?.baseUrl ?: mainLink
+        val origin = UserPreferences.currentProvider?.baseUrl ?: mainLink
+        
         val source = service.getSource(
             url = link,
-            referer = UserPreferences.currentProvider!!.baseUrl,
-            origin = UserPreferences.currentProvider!!.baseUrl,
+            referer = referer,
+            origin = origin,
             userAgent = DEFAULT_USER_AGENT
         )
         val packedJS = Regex("(eval\\(function\\(p,a,c,k,e,d\\)(.|\\n)*?)</script>")

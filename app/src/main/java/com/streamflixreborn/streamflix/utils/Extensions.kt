@@ -68,7 +68,8 @@ fun String.toCalendar(): Calendar? {
 
 fun Calendar.format(pattern: String): String? {
     return try {
-        SimpleDateFormat(pattern, Locale.ENGLISH).format(this.time)
+        // Usiamo Locale.getDefault() invece di Locale.ENGLISH per supportare la lingua italiana
+        SimpleDateFormat(pattern, Locale.getDefault()).format(this.time)
     } catch (e: Exception) {
         null
     }

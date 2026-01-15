@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.providers
 
+import android.util.Log
 import com.google.gson.annotations.SerializedName
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
@@ -23,7 +24,7 @@ import okhttp3.dnsoverhttps.DnsOverHttps
 import okhttp3.Dns
 import java.net.InetAddress
 import java.net.UnknownHostException
-import okhttp3.logging.HttpLoggingInterceptor // Import aggiunto
+import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
 import com.google.gson.Gson
 import com.streamflixreborn.streamflix.utils.DnsResolver
@@ -45,6 +46,7 @@ import javax.net.ssl.SSLContext
 import java.security.SecureRandom
 
 object StreamingCommunityProvider : Provider {
+    private const val TAG = "SCProviderDebug"
     private const val DEFAULT_DOMAIN: String = "streamingunity.so"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
@@ -64,6 +66,8 @@ object StreamingCommunityProvider : Provider {
         }
         set(value) {
             if (value != domain) {
+                Log.d(TAG, "Domain changed via setter from $domain to $value")
+                UserPreferences.clearProviderCache(name) // PULIZIA AUTOMATICA CACHE (Corretto: name invece di this)
                 _domain = value
                 UserPreferences.streamingcommunityDomain = value
                 rebuildService(value)
@@ -73,7 +77,6 @@ object StreamingCommunityProvider : Provider {
 
     override val name = "StreamingCommunity"
     override val logo get() = run {
-        // If we're still on the default (likely landing) domain, try to resolve once here
         if (domain == DEFAULT_DOMAIN) {
             try {
                 val resolvedBase = resolveFinalBaseUrl("https://$DEFAULT_DOMAIN/")
@@ -82,11 +85,10 @@ object StreamingCommunityProvider : Provider {
                     rebuildService(host)
                     return@run "https://$host/apple-touch-icon.png"
                 } else if (host.isNotEmpty() && host == domain) {
-                    // Already on the final domain; return logo directly
                     return@run "https://$domain/apple-touch-icon.png"
                 }
             } catch (_: Exception) { }
-            return@run "" // fallback to local icon to avoid landing hit
+            return@run ""
         }
         "https://$domain/apple-touch-icon.png"
     }
@@ -97,25 +99,20 @@ object StreamingCommunityProvider : Provider {
     private var currentBaseUrl: String = "https://$domain/"
 
     fun rebuildService(newDomain: String = domain) {
-        // If prefs were updated but `_domain` is still the old cached value,
-        // prefer the value from UserPreferences to reflect settings immediately
         val prefsDomain = UserPreferences.streamingcommunityDomain
         val desiredDomain = when {
-            !prefsDomain.isNullOrEmpty() && prefsDomain != domain -> prefsDomain
+            !prefsDomain.isNullOrEmpty() && prefsDomain != domain && prefsDomain != newDomain -> prefsDomain
             else -> newDomain
         }
-        // Fast no-op if we're already built on this base
-        if (currentBaseUrl == "https://$desiredDomain/") {
-            return
-        }
+        if (currentBaseUrl == "https://$desiredDomain/") return
         
+        Log.d(TAG, "Rebuilding service for: https://$desiredDomain/")
         val finalBase = resolveFinalBaseUrl("https://$desiredDomain/")
         val host = finalBase.substringAfter("https://").substringBefore("/")
-        // Skip if nothing changes
-        if (finalBase == currentBaseUrl && host == domain) {
-            return
-        }
-        // Update internal state directly to avoid recursive rebuilds via setter
+        
+        if (finalBase == currentBaseUrl && host == domain) return
+        
+        Log.d(TAG, "Service rebuilt with final base: $finalBase (host: $host)")
         _domain = host
         UserPreferences.streamingcommunityDomain = host
         currentBaseUrl = finalBase
@@ -132,11 +129,13 @@ object StreamingCommunityProvider : Provider {
     }
 
     private fun resolveFinalBaseUrl(startBaseUrl: String): String {
+        Log.d(TAG, "Resolving final URL for: $startBaseUrl")
         return try {
-            val client = OkHttpClient.Builder()
+            val client = StreamingCommunityService.buildBaseClient(startBaseUrl)
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build()
+            
             val req = okhttp3.Request.Builder()
                 .url(startBaseUrl)
                 .header("User-Agent", StreamingCommunityService.USER_AGENT)
@@ -144,19 +143,13 @@ object StreamingCommunityProvider : Provider {
                 .get()
                 .build()
             client.newCall(req).execute().use { resp ->
-                val responseBody = resp.body?.string() ?: ""
-                // If the page is a landing HTML with a button to the new domain, extract it
-                val doc = Jsoup.parse(responseBody)
-                val landingHref = doc.selectFirst("a#landing-website")?.attr("href")
-                if (!landingHref.isNullOrEmpty()) {
-                    val newDomain = landingHref.substringAfter("://").substringBefore("/")
-                    
-                    if (newDomain.isNotEmpty()) return "https://$newDomain/"
-                }
-                val finalUrl = resp.request.url
-                finalUrl.scheme + "://" + finalUrl.host + "/"
+                val finalUrl = resp.request.url.toString()
+                Log.d(TAG, "HTTP redirect final URL: $finalUrl")
+                val finalUri = resp.request.url
+                finalUri.scheme + "://" + finalUri.host + "/"
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error resolving final URL: ${e.message}", e)
             startBaseUrl
         }
     }
@@ -176,450 +169,249 @@ object StreamingCommunityProvider : Provider {
         get() {
             if (field != "") return field
             synchronized(this) {
-            if (field != "") return field
-
+                if (field != "") return field
                 var document = runBlocking { withSslFallback { it.getHome() } }
-
-                val landingHref = document.selectFirst("a#landing-website")?.attr("href")
-                if (!landingHref.isNullOrEmpty()) {
-                    val newDomain = landingHref.substringAfter("://").substringBefore("/")
-                    
-                    if (newDomain.isNotEmpty() && newDomain != domain) {
-                        rebuildService(newDomain)
-                        document = runBlocking { withSslFallback { it.getHome() } }
-                    }
-                }
-
                 var dataAttr = document.selectFirst("#app")?.attr("data-page") ?: ""
                 if (dataAttr.isBlank()) {
-                    
-                    if (dataAttr.isBlank()) {
-                        
-                        field = ""
-                        return field
-                    }
+                    Log.w(TAG, "No data-page attribute found in #app element")
+                    field = ""
+                    return field
                 }
                 val decoded = Parser.unescapeEntities(dataAttr, false)
                 val dataJson = JSONObject(decoded)
-                try {
-                    val props = dataJson.optJSONObject("props")
-                    val appUrl = props?.optString("app_url") ?: ""
-                    if (appUrl.startsWith("http")) {
-                        val newDomain = appUrl.substringAfter("://").substringBefore("/")
-                        if (newDomain.isNotEmpty() && newDomain != domain) {
-                        rebuildService(newDomain)
-                        }
-                    }
-                } catch (_: Exception) { }
                 field = dataJson.getString("version")
-                
+                Log.d(TAG, "Extracted Inertia version: $field")
                 return field
             }
         }
 
     private fun getImageLink(filename: String?): String? {
-        if (filename.isNullOrEmpty())
-            return null
+        if (filename.isNullOrEmpty()) return null
         return "https://cdn.$domain/images/$filename"
+    }
+
+    private fun parseInertiaData(doc: Document): JSONObject {
+        val dataAttr = doc.selectFirst("#app")?.attr("data-page") ?: ""
+        if (dataAttr.isBlank()) {
+            Log.e(TAG, "parseInertiaData: data-page is empty!")
+            return JSONObject()
+        }
+        val decoded = Parser.unescapeEntities(dataAttr, false)
+        val json = JSONObject(decoded)
+        
+        // LOG DI VERIFICA DATI CORRETTI
+        val pageUrl = json.optString("url")
+        Log.d(TAG, "Successfully loaded fresh data for URL: $pageUrl (Inertia Version: ${json.optString("version")})")
+        
+        return json
     }
 
     override suspend fun getHome(): List<Category> {
         val res: StreamingCommunityService.HomeRes = try {
             if (version.isEmpty()) {
-                // Manual path: fetch HTML, parse Inertia JSON, decode to HomeRes
-                val doc = withSslFallback { it.getHome() }
-                val dataAttr = doc.selectFirst("#app")?.attr("data-page") ?: ""
-                val decoded = Parser.unescapeEntities(dataAttr, false)
-                val parsed = Gson().fromJson(decoded, StreamingCommunityService.HomeRes::class.java)
-                if (version != parsed.version) version = parsed.version
-                parsed
+                Log.d(TAG, "Version empty, parsing HTML for home")
+                val json = parseInertiaData(withSslFallback { it.getHome() })
+                Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
+                    if (version != it.version) version = it.version
+                }
             } else {
-                withSslFallback { it.getHome(version = version) }.also { fetched ->
-                    if (version != fetched.version) version = fetched.version
+                try {
+                    withSslFallback { it.getHome(version = version) }.also { fetched ->
+                        if (version != fetched.version) version = fetched.version
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "JSON Home failed, falling back to HTML: ${e.message}")
+                    val json = parseInertiaData(withSslFallback { it.getHome() })
+                    Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
+                        if (version != it.version) version = it.version
+                    }
                 }
             }
         } catch (e: Exception) {
-            
-            // Reset version and try manual HTML extraction once
-            version = ""
-            val doc = withSslFallback { it.getHome() }
-            val dataAttr = doc.selectFirst("#app")?.attr("data-page") ?: ""
-            val decoded = Parser.unescapeEntities(dataAttr, false)
-            val parsed = Gson().fromJson(decoded, StreamingCommunityService.HomeRes::class.java)
-            if (version != parsed.version) version = parsed.version
-            parsed
+            Log.e(TAG, "Final error in getHome: ${e.message}", e)
+            throw e
         }
 
         val mainTitles = res.props.sliders[2].titles
-
         val categories = mutableListOf<Category>()
-
-        categories.add(
-            // 2: top10
-            Category(
-                name = Category.FEATURED,
-                list = mainTitles.map {
-                    if (it.type == "movie")
-                        Movie(
-                            id = it.id + "-" + it.slug,
-                            title = it.name,
-                            banner = getImageLink(it.images.find { image -> image.type == "background" }?.filename),
-                            rating = it.score
-                        )
-                    else
-                        TvShow(
-                            id = it.id + "-" + it.slug,
-                            title = it.name,
-                            banner = getImageLink(it.images.find { image -> image.type == "background" }?.filename),
-                            rating = it.score
-                        )
-                },
-            )
-        )
-
-        categories.addAll(
-            // 0: trending, 1:latest
-            listOf(0, 1).map { index ->
-                val slider = res.props.sliders[index]
-                Category(
-                    name = slider.label,
-                    list = slider.titles.map {
-                        if (it.type == "movie")
-                            Movie(
-                                id = it.id + "-" + it.slug,
-                                title = it.name,
-                                released = it.lastAirDate,
-                                rating = it.score,
-                                poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename),
-                                banner = getImageLink(it.images.find { image -> image.type == "background" }?.filename)
-                            )
-                        else
-                            TvShow(
-                                id = it.id + "-" + it.slug,
-                                title = it.name,
-                                released = it.lastAirDate,
-                                rating = it.score,
-                                poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename),
-                                banner = getImageLink(it.images.find { image -> image.type == "background" }?.filename)
-                            )
-                    }
-                )
-            }
-        )
-
+        categories.add(Category(name = Category.FEATURED, list = mainTitles.map {
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename), rating = it.score)
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename), rating = it.score)
+        }))
+        categories.addAll(listOf(0, 1).map { index ->
+            val slider = res.props.sliders[index]
+            Category(name = slider.label, list = slider.titles.map {
+                if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename))
+                else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename))
+            })
+        })
         return categories
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
-            val res = service.getHome(version = version)
+            val res = try {
+                withSslFallback { it.getHome(version = version) }
+            } catch (e: Exception) {
+                val json = parseInertiaData(withSslFallback { it.getHome() })
+                Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
+            }
             if (version != res.version) version = res.version
-
-            return res.props.genres.map {
-                Genre(
-                    id = it.id,
-                    name = it.name
-                )
-            }.sortedBy { it.name }
+            return res.props.genres.map { Genre(id = it.id, name = it.name) }.sortedBy { it.name }
         }
-
         val res = withSslFallback { it.search(query, (page - 1) * MAX_SEARCH_RESULTS) }
-        if (res.currentPage == null || res.lastPage == null || res.currentPage > res.lastPage) {
-            return listOf()
-        }
-
+        if (res.currentPage == null || res.lastPage == null || res.currentPage > res.lastPage) return listOf()
         return res.data.map {
-            val poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-
-            if (it.type == "movie")
-                Movie(
-                    id = it.id + "-" + it.slug,
-                    title = it.name,
-                    released = it.lastAirDate,
-                    rating = it.score,
-                    poster = poster
-                )
-            else
-                TvShow(
-                    id = it.id + "-" + it.slug,
-                    title = it.name,
-                    released = it.lastAirDate,
-                    rating = it.score,
-                    poster = poster
-                )
+            val poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename)
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
         }
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        if (page > 1)
-            return listOf()
-
-        val res = withSslFallback { it.getArchive(type = "movie", version = version) }
-
-        val movies = mutableListOf<Movie>()
-
-        res.titles.map { title ->
-            val poster = getImageLink(title.images.find { image -> image.type == "poster" }?.filename)
-
-            movies.add(
-                Movie(
-                    id = title.id + "-" + title.slug,
-                    title = title.name,
-                    released = title.lastAirDate,
-                    rating = title.score,
-                    poster = poster
-                )
-            )
+        if (page > 1) return listOf()
+        val res = try {
+            withSslFallback { it.getArchive(type = "movie", version = version) }
+        } catch (e: Exception) {
+            Log.w(TAG, "getMovies JSON failed")
+            throw e
         }
-
-        return movies.distinctBy { it.id }
+        return res.titles.map { title ->
+            Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
+        }.distinctBy { it.id }
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        if (page > 1)
-            return listOf()
-
-        val res = withSslFallback { it.getArchive(type = "tv", version = version) }
-
-        val tvShows = mutableListOf<TvShow>()
-
-        res.titles.map { title ->
-            val poster = getImageLink(title.images.find { image -> image.type == "poster" }?.filename)
-
-            tvShows.add(
-                TvShow(
-                    id = title.id + "-" + title.slug,
-                    title = title.name,
-                    released = title.lastAirDate,
-                    rating = title.score,
-                    poster = poster
-                )
-            )
+        if (page > 1) return listOf()
+        val res = try {
+            withSslFallback { it.getArchive(type = "tv", version = version) }
+        } catch (e: Exception) {
+            Log.w(TAG, "getTvShows JSON failed")
+            throw e
         }
-
-        return tvShows.distinctBy { it.id }
+        return res.titles.map { title ->
+            TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
+        }.distinctBy { it.id }
     }
 
-
     override suspend fun getMovie(id: String): Movie {
-        val res = withSslFallback { it.getDetails(id, version = version) }
-        if (version != res.version) version = res.version
-
-        val title = res.props.title
-        val tmdbMovie = title.tmdbId?.let { tmdbId -> TmdbUtils.getMovieById(tmdbId, language = language) }
-
-        return Movie(
-            id = id,
-            title = title.name,
-            overview = title.plot,
-            released = title.lastAirDate,
-            rating = title.score,
-            quality = title.quality,
-            runtime = title.runtime,
-            poster = getImageLink(title.images.find { image -> image.type == "poster" }?.filename),
-            banner = getImageLink(title.images.find { image -> image.type == "background" }?.filename),
-            genres = title.genres?.map {
-                Genre(
-                    id = it.id,
-                    name = it.name
-                )
-            } ?: listOf(),
-            cast = title.actors?.map {
-                val tmdbPerson = tmdbMovie?.cast?.find { p -> p.name.equals(it.name, ignoreCase = true) }
-                People(
-                    id = it.name,
-                    name = it.name,
-                    image = tmdbPerson?.image
-                )
-            } ?: listOf(),
-            trailer = let {
-                val trailerId = title.trailers?.find { trailer -> trailer.youtubeId != "" }?.youtubeId
-                if (!trailerId.isNullOrEmpty())
-                    "https://youtube.com/watch?v=$trailerId"
-                else
-                    null
-            },
-            recommendations = let {
-                if (res.props.sliders.isNotEmpty())
-                    res.props.sliders[0].titles.map {
-                        if (it.type == "movie") {
-                            Movie(
-                                id = it.id + "-" + it.slug,
-                                title = it.name,
-                                rating = it.score,
-                                poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-                            )
-                        } else {
-                            TvShow(
-                                id = it.id + "-" + it.slug,
-                                title = it.name,
-                                rating = it.score,
-                                poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-                            )
-                        }
-                    }
-                else
-                    listOf()
+        Log.d(TAG, "getMovie called for id: $id")
+        val res: StreamingCommunityService.HomeRes = try {
+            withSslFallback { it.getDetails(id, version = version) }.also {
+                if (version != it.version) version = it.version
             }
-        )
+        } catch (e: Exception) {
+            Log.w(TAG, "getMovie JSON failed for $id, trying HTML fallback. Error: ${e.message}")
+            try {
+                val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/")
+                val json = parseInertiaData(doc)
+                Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
+                    if (version != it.version) version = it.version
+                }
+            } catch (inner: Exception) {
+                Log.e(TAG, "HTML fallback failed for movie $id: ${inner.message}")
+                throw inner
+            }
+        }
+        
+        val title = res.props.title
+        val tmdbMovie = try {
+            title.tmdbId?.let { tmdbId -> TmdbUtils.getMovieById(tmdbId, language = language) }
+        } catch (e: Exception) {
+            Log.e(TAG, "TMDb request failed (possibly 401): ${e.message}")
+            null
+        }
+
+        return Movie(id = id, title = title.name, overview = title.plot, released = title.lastAirDate, rating = title.score, quality = title.quality, runtime = title.runtime, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(title.images.find { img -> img.type == "background" }?.filename), genres = title.genres?.map { Genre(id = it.id, name = it.name) } ?: listOf(), cast = title.actors?.map { actor ->
+            val tmdbPerson = tmdbMovie?.cast?.find { p -> p.name.equals(actor.name, ignoreCase = true) }
+            People(id = actor.name, name = actor.name, image = tmdbPerson?.image)
+        } ?: listOf(), trailer = title.trailers?.find { t -> t.youtubeId != "" }?.youtubeId?.let { yid -> "https://youtube.com/watch?v=$yid" }, recommendations = res.props.sliders.firstOrNull()?.titles?.map { it ->
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+        } ?: listOf())
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val res = withSslFallback { it.getDetails(id, version = version) }
-        if (version != res.version) version = res.version
+        Log.d(TAG, "getTvShow called for id: $id")
+        val res: StreamingCommunityService.HomeRes = try {
+            withSslFallback { it.getDetails(id, version = version) }.also {
+                if (version != it.version) version = it.version
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "getTvShow JSON failed for $id, trying HTML fallback. Error: ${e.message}")
+            try {
+                val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/")
+                val json = parseInertiaData(doc)
+                Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
+                    if (version != it.version) version = it.version
+                }
+            } catch (inner: Exception) {
+                Log.e(TAG, "HTML fallback failed for show $id: ${inner.message}")
+                throw inner
+            }
+        }
 
         val title = res.props.title
-        val tmdbShow = title.tmdbId?.let { tmdbId -> TmdbUtils.getTvShowById(tmdbId, language = language) }
+        val tmdbShow = try {
+            title.tmdbId?.let { tmdbId -> TmdbUtils.getTvShowById(tmdbId, language = language) }
+        } catch (e: Exception) {
+            Log.e(TAG, "TMDb request failed (possibly 401): ${e.message}")
+            null
+        }
 
-        return TvShow(
-            id = id,
-            title = title.name,
-            overview = title.plot,
-            released = title.lastAirDate,
-            rating = title.score,
-            quality = title.quality,
-            poster = getImageLink(title.images.find { image -> image.type == "poster" }?.filename),
-            banner = getImageLink(title.images.find { image -> image.type == "background" }?.filename),
-            genres = title.genres?.map {
-                Genre(
-                    id = it.id,
-                    name = it.name
-                )
-            } ?: listOf(),
-            cast = title.actors?.map {
-                val tmdbPerson = tmdbShow?.cast?.find { p -> p.name.equals(it.name, ignoreCase = true) }
-                People(
-                    id = it.name,
-                    name = it.name,
-                    image = tmdbPerson?.image
-                )
-            } ?: listOf(),
-            trailer = let {
-                val trailerId = title.trailers?.find { trailer -> trailer.youtubeId != "" }?.youtubeId
-                if (!trailerId.isNullOrEmpty())
-                    "https://youtube.com/watch?v=$trailerId"
-                else
-                    null
-            },
-            recommendations = let {
-                if (res.props.sliders.isNotEmpty())
-                    res.props.sliders[0].titles.map {
-                        if (it.type == "movie") {
-                            Movie(
-                                id = it.id + "-" + it.slug,
-                                title = it.name,
-                                rating = it.score,
-                                poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-                            )
-                        } else {
-                            TvShow(
-                                id = it.id + "-" + it.slug,
-                                title = it.name,
-                                rating = it.score,
-                                poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-                            )
-                        }
-                    }
-                else
-                    listOf()
-            },
-            seasons = title.seasons?.map {
-                val seasonNumber = it.number.toIntOrNull() ?: (title.seasons.indexOf(it) + 1)
-                Season(
-                    id = "$id/season-${it.number}",
-                    number = seasonNumber,
-                    title = it.name,
-                    poster = tmdbShow?.seasons?.find { s -> s.number == seasonNumber }?.poster
-                )
-            } ?: listOf()
-        )
+        return TvShow(id = id, title = title.name, overview = title.plot, released = title.lastAirDate, rating = title.score, quality = title.quality, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(title.images.find { img -> img.type == "background" }?.filename), genres = title.genres?.map { Genre(id = it.id, name = it.name) } ?: listOf(), cast = title.actors?.map { actor ->
+            val tmdbPerson = tmdbShow?.cast?.find { p -> p.name.equals(actor.name, ignoreCase = true) }
+            People(id = actor.name, name = actor.name, image = tmdbPerson?.image)
+        } ?: listOf(), trailer = title.trailers?.find { t -> t.youtubeId != "" }?.youtubeId?.let { yid -> "https://youtube.com/watch?v=$yid" }, recommendations = res.props.sliders.firstOrNull()?.titles?.map { it ->
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+        } ?: listOf(), seasons = title.seasons?.map { s ->
+            val seasonNumber = s.number.toIntOrNull() ?: (title.seasons.indexOf(s) + 1)
+            Season(id = "$id/season-${s.number}", number = seasonNumber, title = s.name, poster = tmdbShow?.seasons?.find { ts -> ts.number == seasonNumber }?.poster)
+        } ?: listOf())
     }
-
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val res = withSslFallback { it.getSeasonDetails(seasonId, version = version) }
-        if (version != res.version) version = res.version
-
+        val res: StreamingCommunityService.SeasonRes = try {
+            withSslFallback { it.getSeasonDetails(seasonId, version = version) }.also {
+                if (version != it.version) version = it.version
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "getEpisodesBySeason JSON failed for $seasonId, trying HTML fallback. Error: ${e.message}")
+            try {
+                val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$seasonId", "https://$domain/")
+                val json = parseInertiaData(doc)
+                Gson().fromJson(json.toString(), StreamingCommunityService.SeasonRes::class.java).also {
+                    if (version != it.version) version = it.version
+                }
+            } catch (inner: Exception) {
+                Log.e(TAG, "HTML fallback failed for season $seasonId: ${inner.message}")
+                throw inner
+            }
+        }
         return res.props.loadedSeason.episodes.map {
-            Episode(
-                id = "${seasonId.substringBefore("-")}?episode_id=${it.id}",
-                number = it.number.toIntOrNull() ?: (res.props.loadedSeason.episodes.indexOf(it) + 1),
-                title = it.name,
-                poster = getImageLink(it.images.find { image -> image.type == "cover" }?.filename),
-                overview = it.plot
-            )
+            Episode(id = "${seasonId.substringBefore("-")}?episode_id=${it.id}", number = it.number.toIntOrNull() ?: (res.props.loadedSeason.episodes.indexOf(it) + 1), title = it.name, poster = getImageLink(it.images.find { img -> img.type == "cover" }?.filename), overview = it.plot)
         }
     }
-
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         val res = withSslFallback { it.getArchive(genreId = id, offset = (page - 1) * MAX_SEARCH_RESULTS, version = version) }
-
-        val genre = Genre(
-            id = id,
-            name = "",
-
-            shows = res.titles.map {
-                val poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-
-                if (it.type == "movie")
-                    Movie(
-                        id = it.id + "-" + it.slug,
-                        title = it.name,
-                        released = it.lastAirDate,
-                        rating = it.score,
-                        poster = poster
-                    )
-                else
-                    TvShow(
-                        id = it.id + "-" + it.slug,
-                        title = it.name,
-                        released = it.lastAirDate,
-                        rating = it.score,
-                        poster = poster
-                    )
-            }
-        )
-
-        return genre
+        return Genre(id = id, name = "", shows = res.titles.map { title ->
+            val poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename)
+            if (title.type == "movie") Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = poster)
+            else TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = poster)
+        })
     }
-
 
     override suspend fun getPeople(id: String, page: Int): People {
         val res = withSslFallback { it.search(id, (page - 1) * MAX_SEARCH_RESULTS) }
-        if (res.currentPage == null || res.lastPage == null || res.currentPage > res.lastPage) {
-            return People(
-                id = id,
-                name = id
-            )
-        }
-
-        return People(
-            id = id,
-            name = id,
-            filmography = res.data.map {
-                val poster = getImageLink(it.images.find { image -> image.type == "poster" }?.filename)
-
-                if (it.type == "movie")
-                    Movie(
-                        id = it.id + "-" + it.slug,
-                        title = it.name,
-                        released = it.lastAirDate,
-                        rating = it.score,
-                        poster = poster
-                    )
-                else
-                    TvShow(
-                        id = it.id + "-" + it.slug,
-                        title = it.name,
-                        released = it.lastAirDate,
-                        rating = it.score,
-                        poster = poster
-                    )
-            }
-        )
+        if (res.currentPage == null || res.lastPage == null || res.currentPage > res.lastPage) return People(id = id, name = id)
+        return People(id = id, name = id, filmography = res.data.map {
+            val poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename)
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
+        })
     }
-
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val base = "https://$domain/"
@@ -628,65 +420,42 @@ object StreamingCommunityProvider : Provider {
             is Video.Type.Episode -> base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=") + "&next_episode=1"
         }
         val document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(iframeUrl, base)
-
         val src = document.selectFirst("iframe")?.attr("src") ?: ""
-
-        return listOf(Video.Server(
-            id = id,
-            name = "Vixcloud",
-            src = src
-        ))
+        return listOf(Video.Server(id = id, name = "Vixcloud", src = src))
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
         return VixcloudExtractor().extract(server.src)
     }
 
-
     private class UserAgentInterceptor(private val userAgent: String) : Interceptor {
-        override fun intercept(chain: Interceptor.Chain): Response {
-            val originalRequest = chain.request()
-            val requestWithUserAgent = originalRequest.newBuilder()
-                .header("User-Agent", userAgent)
-                .build()
-            return chain.proceed(requestWithUserAgent)
-        }
+        override fun intercept(chain: Interceptor.Chain): Response = chain.proceed(chain.request().newBuilder().header("User-Agent", userAgent).build())
     }
 
     private class RefererInterceptor(private val referer: String) : Interceptor {
-        override fun intercept(chain: Interceptor.Chain): Response {
-            val original = chain.request()
-            val request = original.newBuilder()
-                .header("Referer", referer)
-                .build()
-            return chain.proceed(request)
-        }
+        override fun intercept(chain: Interceptor.Chain): Response = chain.proceed(chain.request().newBuilder().header("Referer", referer).build())
     }
 
     private class RedirectInterceptor : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
             var request = chain.request()
             var response = chain.proceed(request)
-
             val visited = mutableSetOf<String>()
             while (response.isRedirect) {
                 val location = response.header("Location") ?: break
-                val newUrl = if (location.startsWith("http")) location else {
-                    request.url.resolve(location)?.toString() ?: break
-                }
-
-                // detect redirect loops
-                if (!visited.add(newUrl)) {
-                    break
-                }
-
-                // Update provider domain from absolute URL, without rebuilding here
+                val newUrl = if (location.startsWith("http")) location else request.url.resolve(location)?.toString() ?: break
+                Log.d(TAG, "RedirectInterceptor following: $newUrl")
+                if (!visited.add(newUrl)) break
                 val host = newUrl.substringAfter("https://").substringBefore("/")
                 if (host.isNotEmpty() && host != domain) {
-                    _domain = host
-                    UserPreferences.streamingcommunityDomain = host
+                    if (host.contains("streamingcommunityz.green")) {
+                        Log.d(TAG, "Blocking redirect domain update to: $host")
+                    } else {
+                        Log.d(TAG, "Domain updated from interceptor: $host")
+                        _domain = host
+                        UserPreferences.streamingcommunityDomain = host
+                    }
                 }
-
                 response.close()
                 request = request.newBuilder().url(newUrl).build()
                 response = chain.proceed(request)
@@ -696,150 +465,64 @@ object StreamingCommunityProvider : Provider {
     }
 
     private interface StreamingCommunityService {
-
         companion object {
             const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-            fun build(baseUrl: String): StreamingCommunityService {
-                val logging = HttpLoggingInterceptor()
-                logging.setLevel(HttpLoggingInterceptor.Level.BODY)
+            fun buildBaseClient(baseUrl: String): OkHttpClient.Builder {
+                val logging = HttpLoggingInterceptor { message -> Log.d(TAG, "NETWORK: $message") }
+                logging.setLevel(HttpLoggingInterceptor.Level.HEADERS)
 
                 val clientBuilder = OkHttpClient.Builder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .followRedirects(true)
                     .followSslRedirects(true)
-                    .dns(DnsResolver.doh)
                     .addInterceptor(RefererInterceptor(baseUrl))
                     .addInterceptor(UserAgentInterceptor(USER_AGENT))
                     .addInterceptor(RedirectInterceptor())
-                    .addInterceptor(logging) // Added HttpLoggingInterceptor
+                    .addInterceptor(logging)
 
                 val dohProviderUrl = UserPreferences.dohProviderUrl
                 if (dohProviderUrl.isNotEmpty() && dohProviderUrl != UserPreferences.DOH_DISABLED_VALUE) {
                     try {
-                        val bootstrap = OkHttpClient.Builder()
-                            .readTimeout(15, TimeUnit.SECONDS)
-                            .connectTimeout(15, TimeUnit.SECONDS)
-                            .build()
-
-                        val primaryDoh = DnsOverHttps.Builder().client(bootstrap)
-                            .url(dohProviderUrl.toHttpUrl())
-                            .build()
-
-                        // Google DoH as secondary fallback
-                        val googleDoh = DnsOverHttps.Builder().client(bootstrap)
-                            .url("https://dns.google/dns-query".toHttpUrl())
-                            .build()
-
-                        // Fallback: primary → Google DoH
+                        val bootstrap = OkHttpClient.Builder().readTimeout(15, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS).build()
+                        val primaryDoh = DnsOverHttps.Builder().client(bootstrap).url(dohProviderUrl.toHttpUrl()).build()
+                        val googleDoh = DnsOverHttps.Builder().client(bootstrap).url("https://dns.google/dns-query".toHttpUrl()).build()
                         clientBuilder.dns(object : Dns {
                             override fun lookup(hostname: String): List<InetAddress> {
                                 try { return primaryDoh.lookup(hostname) } catch (_: UnknownHostException) {}
                                 try { return googleDoh.lookup(hostname) } catch (_: UnknownHostException) {}
-                                throw UnknownHostException("DoH resolution failed for $hostname (primary and Google)")
+                                throw UnknownHostException("DoH resolution failed for $hostname")
                             }
                         })
-                    } catch (_: IllegalArgumentException) {
-                        // Invalid DoH URL: fallback to Google DoH only
-                        val bootstrap = OkHttpClient.Builder()
-                            .readTimeout(15, TimeUnit.SECONDS)
-                            .connectTimeout(15, TimeUnit.SECONDS)
-                            .build()
-                        val googleDoh = DnsOverHttps.Builder().client(bootstrap)
-                            .url("https://dns.google/dns-query".toHttpUrl())
-                            .build()
-                        clientBuilder.dns(googleDoh)
-                    }
-                }
+                    } catch (_: Exception) { clientBuilder.dns(DnsResolver.doh) }
+                } else { clientBuilder.dns(DnsResolver.doh) }
+                return clientBuilder
+            }
 
-                val client = clientBuilder.build()
-
-                val retrofit = Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(JsoupConverterFactory.create())
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .client(client)
-                    .build()
-
-                return retrofit.create(StreamingCommunityService::class.java)
+            fun build(baseUrl: String): StreamingCommunityService {
+                val client = buildBaseClient(baseUrl).build()
+                return Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(JsoupConverterFactory.create()).addConverterFactory(GsonConverterFactory.create()).client(client).build().create(StreamingCommunityService::class.java)
             }
 
             fun buildUnsafe(baseUrl: String): StreamingCommunityService {
-                val trustAllCerts = arrayOf<TrustManager>(
-                    object : X509TrustManager {
-                        override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                        override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-                    }
-                )
+                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                    override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+                })
                 val sslContext = SSLContext.getInstance("TLS")
                 sslContext.init(null, trustAllCerts, SecureRandom())
-                val trustManager = trustAllCerts[0] as X509TrustManager
-
-                val logging = HttpLoggingInterceptor()
-                logging.setLevel(HttpLoggingInterceptor.Level.BODY)
-
-                val client = OkHttpClient.Builder()
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .followRedirects(true)
-                    .followSslRedirects(true)
-                    .addInterceptor(RefererInterceptor(baseUrl))
-                    .addInterceptor(UserAgentInterceptor(USER_AGENT))
-                    .addInterceptor(RedirectInterceptor())
-                    .addInterceptor(logging) // Added HttpLoggingInterceptor
-                    .sslSocketFactory(sslContext.socketFactory, trustManager)
-                    .hostnameVerifier { _, _ -> true }
-                    .build()
-
-                val retrofit = Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(JsoupConverterFactory.create())
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .client(client)
-                    .build()
-
-                return retrofit.create(StreamingCommunityService::class.java)
-            }
-
-            private fun buildManualClientUnsafe(): OkHttpClient {
-                val trustAllCerts = arrayOf<TrustManager>(
-                    object : X509TrustManager {
-                        override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                        override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-                    }
-                )
-                val sslContext = SSLContext.getInstance("TLS")
-                sslContext.init(null, trustAllCerts, SecureRandom())
-                val trustManager = trustAllCerts[0] as X509TrustManager
-                return OkHttpClient.Builder()
-                    .followRedirects(false)
-                    .followSslRedirects(false)
-                    .sslSocketFactory(sslContext.socketFactory, trustManager)
-                    .hostnameVerifier { _, _ -> true }
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .build()
-            }
-
-            private fun buildManualClient(): OkHttpClient {
-                return OkHttpClient.Builder()
-                    .followRedirects(false)
-                    .followSslRedirects(false)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .build()
+                val client = buildBaseClient(baseUrl).sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager).hostnameVerifier { _, _ -> true }.build()
+                return Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(JsoupConverterFactory.create()).addConverterFactory(GsonConverterFactory.create()).client(client).build().create(StreamingCommunityService::class.java)
             }
 
             fun fetchDocumentWithRedirectsAndSslFallback(url: String, referer: String): Document {
-                return try {
-                    fetchDocumentWithRedirects(url, referer, buildManualClient())
-                } catch (e: Exception) {
-                    if (e is SSLHandshakeException || e is CertPathValidatorException) {
-                        fetchDocumentWithRedirects(url, referer, buildManualClientUnsafe())
-                    } else throw e
+                val client = buildBaseClient(referer).followRedirects(true).followSslRedirects(true).build()
+                return try { fetchDocumentWithRedirects(url, referer, client) }
+                catch (e: Exception) { 
+                    Log.e(TAG, "fetchDocument failed: ${e.message}")
+                    Jsoup.parse("") 
                 }
             }
 
@@ -847,160 +530,43 @@ object StreamingCommunityProvider : Provider {
                 var currentUrl = urlStart
                 val visited = mutableSetOf<String>()
                 while (true) {
-                    if (!visited.add(currentUrl)) {
-                        break
-                    }
-                    val req = okhttp3.Request.Builder()
-                        .url(currentUrl)
-                        .header("User-Agent", USER_AGENT)
-                        .header("Referer", referer)
-                        .get()
-                        .build()
+                    if (!visited.add(currentUrl)) break
+                    val req = okhttp3.Request.Builder().url(currentUrl).header("User-Agent", USER_AGENT).header("Referer", referer).get().build()
                     client.newCall(req).execute().use { resp ->
                         if (resp.isRedirect) {
-                            val loc = resp.header("Location")
-                            if (loc.isNullOrEmpty()) break
-                            val resolved = resp.request.url.resolve(loc)?.toString() ?: break
-                            currentUrl = resolved
+                            val loc = resp.header("Location") ?: break
+                            currentUrl = resp.request.url.resolve(loc)?.toString() ?: break
                             continue
                         }
-                        val body = resp.body?.string() ?: ""
-                        return Jsoup.parse(body)
+                        return Jsoup.parse(resp.body?.string() ?: "")
                     }
                 }
-                // fallback empty document
                 return Jsoup.parse("")
             }
         }
 
+        @GET(".") suspend fun getHome(): Document
+        @GET(".") suspend fun getHome(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String): HomeRes
+        @GET("api/search") suspend fun search(@Query("q", encoded = true) keyword: String, @Query("offset") offset: Int = 0, @Query("lang") language: String = LANG): SearchRes
+        @GET("api/archive") suspend fun getArchive(@Query("genre[]") genreId: String? = null, @Query("type") type: String? = null, @Query("offset") offset: Int = 0, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String = LANG): ArchiveRes
+        @GET("$LANG/titles/{id}") suspend fun getDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String): HomeRes
+        @GET("$LANG/titles/{id}/") suspend fun getSeasonDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String): SeasonRes
+        @GET("$LANG/iframe/{id}") suspend fun getIframe(@Path("id") id: String): Document
 
-        @GET(".")
-        suspend fun getHome(): Document
-
-        @GET(".")
-        suspend fun getHome(
-            @Header("x-inertia") xInertia: String = "true",
-            @Header("x-inertia-version") version: String
-        ): HomeRes
-
-        @GET("api/search")
-        suspend fun search(
-            @Query("q", encoded = true) keyword: String,
-            @Query("offset") offset: Int = 0,
-            @Query("lang") language: String = LANG
-        ): SearchRes
-
-        @GET("api/archive")
-        suspend fun getArchive(
-            @Query("genre[]") genreId: String? = null,
-            @Query("type") type: String? = null,
-            @Query("offset") offset: Int = 0,
-            @Header("x-inertia") xInertia: String = "true",
-            @Header("x-inertia-version") version: String,
-            @Query("lang") language: String = LANG
-        ): ArchiveRes
-
-        @GET("$LANG/titles/{id}")
-        suspend fun getDetails(
-            @Path("id") id: String,
-            @Header("x-inertia") xInertia: String = "true",
-            @Header("x-inertia-version") version: String
-        ): HomeRes
-
-        @GET("$LANG/titles/{id}/")
-        suspend fun getSeasonDetails(
-            @Path("id") id: String,
-            @Header("x-inertia") xInertia: String = "true",
-            @Header("x-inertia-version") version: String
-        ): SeasonRes
-
-        @GET("$LANG/iframe/{id}")
-        suspend fun getIframe(@Path("id") id: String): Document
-
-        @GET("$LANG/iframe/{id}")
-        suspend fun getIframe(@Path("id") id: String,
-                              @Query("episode_id") episodeId: String,
-                              @Query("next_episode") nextEpisode: Char = '1'
-        ): Document
-
-        data class Image(
-            val filename: String,
-            val type: String
-        )
-        data class Genre(
-            val id: String,
-            val name: String
-        )
-        data class Actor(
-            val id: String,
-            val name: String
-        )
-        data class Trailer(
-            @SerializedName("youtube_id") val youtubeId: String?
-        )
-        data class Season(
-            val number: String,
-            val name: String?
-        )
-        data class Show(
-            val id: String,
-            val name: String,
-            val type: String,
-            @SerializedName("tmdb_id") val tmdbId: Int?,
-            val score: Double,
-            val lastAirDate: String,
-            val images: List<Image>,
-            val slug: String,
-            val plot: String?,
-            val genres: List<Genre>?,
-            @SerializedName("main_actors") val actors: List<Actor>?,
-            val trailers: List<Trailer>?,
-            val seasons: List<Season>?,
-            val quality: String?,
-            val runtime: Int?
-        )
-        data class Slider(
-            val label: String,
-            val name: String,
-            val titles: List<Show>
-        )
-        data class Props(
-            val genres: List<Genre>,
-            val sliders: List<Slider>,
-            val title: Show
-        )
-
-        data class HomeRes(
-            val version: String,
-            val props: Props
-        )
-
-        data class SearchRes(
-            val data: List<Show>,
-            @SerializedName("current_page") val currentPage: Int?,
-            @SerializedName("last_page") val lastPage: Int?
-        )
-
-        data class SeasonPropsEpisodes(
-            val id: String,
-            val images: List<Image>,
-            val name: String,
-            val number: String,
-            val plot: String? = null
-        )
-        data class SeasonPropsDetails(
-            val episodes: List<SeasonPropsEpisodes>
-        )
-        data class SeasonProps(
-            val loadedSeason: SeasonPropsDetails
-        )
-        data class SeasonRes(
-            val version: String,
-            val props: SeasonProps
-        )
-
-        data class ArchiveRes(
-            val titles: List<Show>
-        )
+        data class Image(val filename: String, val type: String)
+        data class Genre(val id: String, val name: String)
+        data class Actor(val id: String, val name: String)
+        data class Trailer(@SerializedName("youtube_id") val youtubeId: String?)
+        data class Season(val number: String, val name: String?)
+        data class Show(val id: String, val name: String, val type: String, @SerializedName("tmdb_id") val tmdbId: Int?, val score: Double, val lastAirDate: String, val images: List<Image>, val slug: String, val plot: String?, val genres: List<Genre>?, @SerializedName("main_actors") val actors: List<Actor>?, val trailers: List<Trailer>?, val seasons: List<Season>?, val quality: String?, val runtime: Int?)
+        data class Slider(val label: String, val name: String, val titles: List<Show>)
+        data class Props(val genres: List<Genre>, val sliders: List<Slider>, val title: Show)
+        data class HomeRes(val version: String, val props: Props)
+        data class SearchRes(val data: List<Show>, @SerializedName("current_page") val currentPage: Int?, @SerializedName("last_page") val lastPage: Int?)
+        data class SeasonPropsEpisodes(val id: String, val images: List<Image>, val name: String, val number: String, val plot: String? = null)
+        data class SeasonPropsDetails(val episodes: List<SeasonPropsEpisodes>)
+        data class SeasonProps(val loadedSeason: SeasonPropsDetails)
+        data class SeasonRes(val version: String, val props: SeasonProps)
+        data class ArchiveRes(val titles: List<Show>)
     }
 }

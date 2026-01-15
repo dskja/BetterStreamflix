@@ -23,7 +23,7 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingcommunityz.win"
+    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.so"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -35,14 +35,14 @@ object UserPreferences {
 
     fun setup(context: Context) {
         Log.d(TAG, "setup() called with context: $context")
-        val prefsName = "${'$'}{BuildConfig.APPLICATION_ID}.preferences"
+        val prefsName = "${BuildConfig.APPLICATION_ID}.preferences"
         Log.d(TAG, "SharedPreferences name: $prefsName")
         prefs = context.getSharedPreferences(
             prefsName,
             Context.MODE_PRIVATE,
         )
         if (::prefs.isInitialized) {
-            Log.d(TAG, "prefs initialized successfully in setup. Hash: ${'$'}{prefs.hashCode()}")
+            Log.d(TAG, "prefs initialized successfully in setup. Hash: ${prefs.hashCode()}")
 
             val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
@@ -81,6 +81,16 @@ object UserPreferences {
             ?: JSONObject().also { providerCache.put(providerName, it) }
         innerJson.put(key, value)
         Key.PROVIDER_CACHE.setString(providerCache.toString())
+    }
+
+    fun clearProviderCache(providerName: String) {
+        if (providerCache.has(providerName)) {
+            Log.d(TAG, "CACHE: Removing stored data for $providerName")
+            providerCache.remove(providerName)
+            Key.PROVIDER_CACHE.setString(providerCache.toString())
+        } else {
+            Log.d(TAG, "CACHE: No existing data to clear for $providerName")
+        }
     }
 
     var currentLanguage: String?
@@ -177,7 +187,7 @@ object UserPreferences {
                 Log.e(TAG, "streamingcommunityDomain GET: prefs IS NOT INITIALIZED!")
                 return "PREFS_NOT_INIT_ERROR" // Restituisce un valore di errore evidente
             }
-            Log.d(TAG, "streamingcommunityDomain GET: prefs hash: ${'$'}{prefs.hashCode()}")
+            Log.d(TAG, "streamingcommunityDomain GET: prefs hash: ${prefs.hashCode()}")
             val storedValue = prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null)
             Log.d(TAG, "streamingcommunityDomain GET: storedValue from prefs: '$storedValue'")
             val returnValue = if (storedValue.isNullOrEmpty()) {
@@ -191,22 +201,26 @@ object UserPreferences {
             return returnValue
         }
         set(value) {
-            Log.d(TAG, "streamingcommunityDomain SET called with value: '$value'")
+            val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null) else null
+            Log.d(TAG, "streamingcommunityDomain SET called with value: '$value' (Old: '$oldDomain')")
+            
             if (!::prefs.isInitialized) {
                 Log.e(TAG, "streamingcommunityDomain SET: prefs IS NOT INITIALIZED!")
-                return // Non fare nulla se prefs non è inizializzato
+                return 
             }
-            Log.d(TAG, "streamingcommunityDomain SET: prefs hash: ${'$'}{prefs.hashCode()}")
+
+            // TRIGGER PULIZIA CACHE SE IL DOMINIO CAMBIA
+            if (value != oldDomain && !value.isNullOrEmpty() && !oldDomain.isNullOrEmpty()) {
+                clearProviderCache("StreamingCommunity")
+            }
+
             with(prefs.edit()) {
                 if (value.isNullOrEmpty()) {
-                    Log.d(TAG, "streamingcommunityDomain SET: value is null or empty, REMOVING key: '${'$'}{Key.STREAMINGCOMMUNITY_DOMAIN.name}'")
                     remove(Key.STREAMINGCOMMUNITY_DOMAIN.name)
                 } else {
-                    Log.d(TAG, "streamingcommunityDomain SET: value is NOT null or empty, PUTTING STRING key: '${'$'}{Key.STREAMINGCOMMUNITY_DOMAIN.name}', value: '$value'")
                     putString(Key.STREAMINGCOMMUNITY_DOMAIN.name, value)
                 }
                 apply()
-                Log.d(TAG, "streamingcommunityDomain SET: prefs.edit().apply() called")
             }
         }
 

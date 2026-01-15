@@ -1,55 +1,100 @@
 package com.streamflixreborn.streamflix.extractors
 
-import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
+import android.util.Base64
 import com.streamflixreborn.streamflix.models.Video
-import com.streamflixreborn.streamflix.utils.JsUnpacker
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.jsoup.nodes.Document
+import org.json.JSONObject
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
-import retrofit2.http.Header
+import retrofit2.http.HeaderMap
 import retrofit2.http.Url
-
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 open class FilemoonExtractor : Extractor() {
 
     override val name = "Filemoon"
     override val mainUrl = "https://filemoon.site"
-    override val aliasUrls = listOf("https://bf0skv.org")
-
+    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com")
 
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)
-        val linkJustParameter = link.replace(mainUrl, "")
+        // Regex to match /e/ or /d/ and ID
+        val matcher = Regex("""/(e|d)/([a-zA-Z0-9]+)""").find(link) 
+            ?: throw Exception("Could not extract video ID or type")
+        
+        val linkType = matcher.groupValues[1]
+        val videoId = matcher.groupValues[2]
+        
+        val currentDomain = Regex("""(https?://[^/]+)""").find(link)?.groupValues?.get(1)
+            ?: throw Exception("Could not extract Base URL")
 
-        val document = service.getSource(linkJustParameter)
-        val iframeSrc = document.selectFirst("#iframe-holder iframe")?.attr("src")
-            ?: throw Exception("Iframe not found")
+        val detailsUrl = "$currentDomain/api/videos/$videoId/embed/details"
+        val details = service.getDetails(detailsUrl)
+        val embedFrameUrl = details.embed_frame_url 
+            ?: throw Exception("embed_frame_url not found")
 
-        val iframeUrl = if (iframeSrc.startsWith("http")) iframeSrc else "https:$iframeSrc"
-        val source = service.getWithHeaders(
-            iframeUrl,
-            referer = link
-        )
-        val packedJS = Regex("(eval\\(function\\(p,a,c,k,e,d\\)(.|\\n)*?)</script>")
-            .find(source.toString())?.let { it.groupValues[1] }
-            ?: throw Exception("Packed JS not found")
-        val unPacked = JsUnpacker(packedJS).unpack()
-            ?: throw Exception("Unpacked is null")
-        val sources = Regex("""file:"(.*?)"""")
-            .findAll(
-                Regex("""sources:\[(.*?)]""")
-                    .find(unPacked)?.groupValues?.get(1)
-                    ?: throw Exception("No sources found")
-            )
-            .map { it.groupValues[1] }
-            .toList()
+        var playbackDomain = ""
+        val headers = mutableMapOf<String, String>()
+        headers["User-Agent"] = Service.DEFAULT_USER_AGENT
+        headers["Accept"] = "application/json"
 
+        if (linkType == "d") {
+            playbackDomain = currentDomain
+            headers["Referer"] = link
+        } else {
+            playbackDomain = Regex("""(https?://[^/]+)""").find(embedFrameUrl)?.groupValues?.get(1)
+                ?: throw Exception("Could not extract domain from embed_frame_url")
+            headers["Referer"] = embedFrameUrl
+            headers["X-Embed-Parent"] = link
+        }
+
+        val playbackUrl = "$playbackDomain/api/videos/$videoId/embed/playback"
+        val playbackResponse = service.getPlayback(playbackUrl, headers)
+        val playbackData = playbackResponse.playback
+            ?: throw Exception("No playback data")
+
+
+        val decryptedJson = decryptPlayback(playbackData)
+        
+        val jsonObject = JSONObject(decryptedJson)
+        val sources = jsonObject.optJSONArray("sources")
+            ?: throw Exception("No sources found in decrypted data")
+            
+        if (sources.length() == 0) throw Exception("Empty sources list")
+        
+        val sourceUrl = sources.getJSONObject(0).getString("url")
 
         return Video(
-            source = sources.firstOrNull() ?: "",
+            source = sourceUrl,
+            headers = mapOf(
+                "Referer" to "$playbackDomain/",
+                "User-Agent" to Service.DEFAULT_USER_AGENT,
+                "Origin" to playbackDomain
+            )
         )
+    }
+
+    private fun decryptPlayback(data: PlaybackData): String {
+        val iv = Base64.decode(data.iv, Base64.URL_SAFE)
+        val payload = Base64.decode(data.payload, Base64.URL_SAFE)
+        val p1 = Base64.decode(data.key_parts[0], Base64.URL_SAFE)
+        val p2 = Base64.decode(data.key_parts[1], Base64.URL_SAFE)
+        
+        val key = ByteArray(p1.size + p2.size)
+        System.arraycopy(p1, 0, key, 0, p1.size)
+        System.arraycopy(p2, 0, key, p1.size, p2.size)
+
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val spec = GCMParameterSpec(128, iv)
+        val secretKey = SecretKeySpec(key, "AES")
+        
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+        
+        val decryptedBytes = cipher.doFinal(payload)
+        return String(decryptedBytes, Charsets.UTF_8)
     }
 
     class Any(hostUrl: String) : FilemoonExtractor() {
@@ -58,30 +103,31 @@ open class FilemoonExtractor : Extractor() {
 
     private interface Service {
         @GET
-        suspend fun getSource(@Url url: String): Document
+        suspend fun getDetails(@Url url: String): DetailsResponse
 
         @GET
-        suspend fun getWithHeaders(
-            @Url url: String,
-            @Header("Referer") referer: String,
-            @Header("User-Agent") userAgent: String = DEFAULT_USER_AGENT
-        ): Document
+        suspend fun getPlayback(@Url url: String, @HeaderMap headers: Map<String, String>): PlaybackResponse
 
         companion object {
-            private const val DEFAULT_USER_AGENT =
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0"
+            const val DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
 
             fun build(baseUrl: String): Service {
-                val retrofit = Retrofit.Builder()
+                val client = OkHttpClient.Builder().build()
+                return Retrofit.Builder()
                     .baseUrl(baseUrl)
-                    .addConverterFactory(JsoupConverterFactory.create())
+                    .client(client)
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build()
-
-                return retrofit.create(Service::class.java)
+                    .create(Service::class.java)
             }
         }
     }
 
-
-
+    data class DetailsResponse(val embed_frame_url: String?)
+    data class PlaybackResponse(val playback: PlaybackData?)
+    data class PlaybackData(
+        val iv: String,
+        val payload: String,
+        val key_parts: List<String>
+    )
 }

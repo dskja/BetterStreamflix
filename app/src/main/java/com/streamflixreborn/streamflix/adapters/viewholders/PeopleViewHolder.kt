@@ -96,11 +96,12 @@ class PeopleViewHolder(
                 }
             }
             setOnFocusChangeListener { _, hasFocus ->
+                // Applichiamo l'animazione solo all'immagine, non a tutto il root (che include il testo)
                 val animation = when {
                     hasFocus -> AnimationUtils.loadAnimation(context, R.anim.zoom_in)
                     else -> AnimationUtils.loadAnimation(context, R.anim.zoom_out)
                 }
-                binding.root.startAnimation(animation)
+                binding.ivPeopleImage.startAnimation(animation)
                 animation.fillAfter = true
             }
         }

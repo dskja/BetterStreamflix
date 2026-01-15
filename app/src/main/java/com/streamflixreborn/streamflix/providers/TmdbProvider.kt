@@ -15,6 +15,7 @@ import com.streamflixreborn.streamflix.extractors.FrembedExtractor
 import com.streamflixreborn.streamflix.extractors.VidflixExtractor
 import com.streamflixreborn.streamflix.extractors.VidrockExtractor
 import com.streamflixreborn.streamflix.extractors.VideasyExtractor
+import com.streamflixreborn.streamflix.extractors.PrimeSrcExtractor
 import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Genre
@@ -839,15 +840,19 @@ class TmdbProvider(override val language: String) : Provider {
         val servers = mutableListOf<Video.Server>(
             VixSrcExtractor().server(videoType),
             TwoEmbedExtractor().server(videoType),
-            MoviesapiExtractor().server(videoType),
             VidsrcNetExtractor().server(videoType),
             VidLinkExtractor().server(videoType),
             VidsrcRuExtractor().server(videoType),
             VidflixExtractor().server(videoType),
             VidrockExtractor().server(videoType),
         )
-        
+
+        if (videoType is Video.Type.Movie) {
+            servers.add(2, MoviesapiExtractor().server(videoType))
+        }
+
         servers.addAll(VidzeeExtractor().servers(videoType))
+        servers.addAll(PrimeSrcExtractor().servers(videoType))
 
         if (language == "de") {
             if (videoType is Video.Type.Movie) {

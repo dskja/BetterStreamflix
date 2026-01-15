@@ -15,6 +15,8 @@ class StreamtapeExtractor : Extractor() {
 
     override val name = "Streamtape"
     override val mainUrl = "https://streamtape.com"
+    override val aliasUrls = listOf("https://streamta.site")
+    
 
     override suspend fun extract(link: String): Video {
         val linkJustParameter = link.replace(mainUrl, "")

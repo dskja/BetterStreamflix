@@ -21,7 +21,7 @@ import javax.crypto.spec.SecretKeySpec
 class RpmvidExtractor : Extractor() {
     override val name = "Rpmvid"
     override val mainUrl = "https://rpmvid.com"
-    override val aliasUrls = listOf("https://cubeembed.rpmvid.com", "https://bummi.upns.xyz", "https://loadm.cam", "https://anibum.playerp2p.online", "https://pelisplus.upns.pro", "https://pelisplus.rpmstream.live", "https://pelisplus.strp2p.com", "https://flemmix.upns.pro", "https://moflix.rpmplay.xyz", "https://moflix.upns.xyz","https://flix2day.xyz")
+    override val aliasUrls = listOf("https://cubeembed.rpmvid.com", "https://bummi.upns.xyz", "https://loadm.cam", "https://anibum.playerp2p.online", "https://pelisplus.upns.pro", "https://pelisplus.rpmstream.live", "https://pelisplus.strp2p.com", "https://flemmix.upns.pro", "https://moflix.rpmplay.xyz", "https://moflix.upns.xyz", "https://flix2day.xyz", "https://primevid.click")
 
     companion object {
         private const val DEFAULT_USER_AGENT =

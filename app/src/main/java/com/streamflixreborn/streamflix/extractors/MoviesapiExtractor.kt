@@ -18,8 +18,8 @@ class MoviesapiExtractor : Extractor() {
             id = name,
             name = name,
             src = when (videoType) {
-                is Video.Type.Episode -> "$mainUrl/tv/${videoType.tvShow.id}-${videoType.season.number}-${videoType.number}"
                 is Video.Type.Movie -> "$mainUrl/movie/${videoType.id}"
+                is Video.Type.Episode -> ""
             },
         )
     }
@@ -32,7 +32,7 @@ class MoviesapiExtractor : Extractor() {
             ?.attr("src")
             ?: throw Exception("Can't retrieve iframe")
 
-        return ChillxExtractor.MoviesapiExtractor().extract(iframe)
+        return VidoraExtractor().extract(iframe)
     }
 
     private interface Service {
