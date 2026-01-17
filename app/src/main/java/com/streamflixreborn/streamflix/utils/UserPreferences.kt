@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Provider.Companion.providers
 import com.streamflixreborn.streamflix.providers.TmdbProvider
 import androidx.core.content.edit
+import com.streamflixreborn.streamflix.database.AppDatabase
 import org.json.JSONObject
 
 object UserPreferences {
@@ -23,7 +24,7 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.so"
+    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.tv"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -63,6 +64,10 @@ object UserPreferences {
             return Provider.providers.keys.find { it.name == providerName }
         }
         set(value) {
+            // CRITICO: Resetta l'istanza del database prima di cambiare provider
+            // per forzare la creazione di un nuovo database file corretto.
+            AppDatabase.resetInstance()
+
             Key.CURRENT_PROVIDER.setString(value?.name)
             // Notify all ViewModels that the provider has changed
             ProviderChangeNotifier.notifyProviderChanged()

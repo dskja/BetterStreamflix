@@ -484,11 +484,11 @@ class PlayerMobileFragment : Fragment() {
 
  private fun updatePlayerScale() {
         val videoSurfaceView = binding.pvPlayer.videoSurfaceView
-        val playerResize = UserPreferences.playerResize
+        val playerResize = UserPreferences.playerResize // Corretto
 
-        binding.pvPlayer.resizeMode = playerResize.resizeMode
+        binding.pvPlayer.resizeMode = playerResize.resizeMode // Corretto
 
-        when (playerResize) {
+        when (playerResize) { // Corretto
             UserPreferences.PlayerResize.Stretch43 -> {
                 val scale = 1.33f // 4:3 aspect ratio
                 videoSurfaceView?.scaleX = scale
@@ -559,9 +559,18 @@ class PlayerMobileFragment : Fragment() {
                             (episode as Episode).tvShow?.let { tvShow ->
                                 database.tvShowDao().getById(tvShow.id)
                             }?.let { tvShow ->
+                                // Correzione: Non forzare isWatching = true se l'episodio è finito.
+                                val isWatchingValue = if (player.hasFinished()) {
+                                    // Se l'episodio è finito, controlla se ci sono altri progressi in corso nella serie
+                                    val isStillWatching = database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
+                                    isStillWatching
+                                } else {
+                                    true // Se non è finito, è in corso.
+                                }
+
                                 database.tvShowDao().save(tvShow.copy().apply {
                                     merge(tvShow)
-                                    isWatching = true
+                                    isWatching = isWatchingValue
                                 })
                             }
                         }
@@ -704,9 +713,15 @@ class PlayerMobileFragment : Fragment() {
                             episode.tvShow?.let { tvShow ->
                                 database.tvShowDao().getById(tvShow.id)
                             }?.let { tvShow ->
+                                // Correzione: Imposta isWatching in base alla presenza di progressi
+                                val episodeDao = database.episodeDao()
+                                val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
+                                
                                 database.tvShowDao().save(tvShow.copy().apply {
                                     merge(tvShow)
-                                    isWatching = true
+                                    // Se l'episodio è finito, imposta isWatching a true solo se ci sono ancora episodi con cronologia
+                                    // Se NON è finito, isWatching è true
+                                    isWatching = !player.hasReallyFinished() || isStillWatching
                                 })
                             }
                         }

@@ -24,11 +24,13 @@ import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.database.dao.EpisodeDao
 import com.streamflixreborn.streamflix.database.dao.MovieDao
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
+import com.streamflixreborn.streamflix.database.dao.SeasonDao
 import com.streamflixreborn.streamflix.providers.FrenchStreamProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
 import com.streamflixreborn.streamflix.providers.ProviderPortalUrl
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
+import com.streamflixreborn.streamflix.providers.TmdbProvider
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -40,13 +42,14 @@ import java.util.Locale
 
 class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
-    private val DEFAULT_DOMAIN_VALUE = "streamingunity.so"
+    private val DEFAULT_DOMAIN_VALUE = "streamingunity.tv"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
 
     private lateinit var db: AppDatabase
     private lateinit var movieDao: MovieDao
     private lateinit var tvShowDao: TvShowDao
     private lateinit var episodeDao: EpisodeDao
+    private lateinit var seasonDao: SeasonDao
     private lateinit var backupRestoreManager: BackupRestoreManager
 
     private val exportBackupLauncher = registerForActivityResult(
@@ -76,16 +79,26 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         movieDao = db.movieDao()
         tvShowDao = db.tvShowDao()
         episodeDao = db.episodeDao()
+        seasonDao = db.seasonDao()
+        
+        // Includiamo i provider statici + i provider TMDb dinamici (lingue principali) nel backup
+        val allProvidersToBackup = Provider.providers.keys.toMutableList().apply {
+            listOf("it", "en", "es", "de", "fr").forEach { lang ->
+                add(TmdbProvider(lang))
+            }
+        }
+
         backupRestoreManager = BackupRestoreManager(
             requireContext(),
-            Provider.providers.keys.mapNotNull { provider ->
+            allProvidersToBackup.mapNotNull { provider ->
                 try {
-                    val db = AppDatabase.getInstanceForProvider(provider.name.lowercase(), requireContext())
+                    val db = AppDatabase.getInstanceForProvider(provider.name, requireContext())
                     ProviderBackupContext(
                         name = provider.name,
                         movieDao = db.movieDao(),
                         tvShowDao = db.tvShowDao(),
-                        episodeDao = db.episodeDao()
+                        episodeDao = db.episodeDao(),
+                        seasonDao = db.seasonDao()
                     )
                 } catch (e: Exception) {
                     Log.w("BackupRestore", "Skipping ${provider.name}: ${e.message}")

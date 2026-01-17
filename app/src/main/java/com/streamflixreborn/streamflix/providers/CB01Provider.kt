@@ -34,7 +34,7 @@ import org.json.JSONObject
 object CB01Provider : Provider {
 
     override val name = "CB01"
-    override val baseUrl = "https://cb01.uno"
+    override val baseUrl = "https://cb01official.uno"
     override val logo: String get() = "$baseUrl/apple-icon-180x180px.png"
     override val language = "it"
 

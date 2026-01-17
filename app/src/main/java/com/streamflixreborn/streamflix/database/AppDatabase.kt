@@ -43,27 +43,50 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        private fun sanitizeProviderName(name: String): String {
+            // Rimuove caratteri non validi per i nomi dei file DB, 
+            // come spazi, parentesi, e li converte in lowercase.
+            return name.lowercase()
+                .replace("[^a-z0-9]".toRegex(), "_")
+                .replace("__+".toRegex(), "_") // Sostituisce doppie underscore con una singola
+                .trim('_') // Rimuove underscore iniziale/finale
+        }
+
         fun setup(context: Context) {
             if (UserPreferences.currentProvider == null) return
 
             synchronized(this) {
-                buildDatabase(UserPreferences.currentProvider!!.name, context).also { INSTANCE = it }
+                INSTANCE?.close() // Chiudi connessioni esistenti
+                INSTANCE = buildDatabase(UserPreferences.currentProvider!!.name, context)
             }
         }
 
-        fun getInstance(context: Context) =
-            INSTANCE ?: synchronized(this) {
-                buildDatabase(UserPreferences.currentProvider!!.name, context).also { INSTANCE = it }
+        fun getInstance(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = buildDatabase(UserPreferences.currentProvider!!.name, context)
+                INSTANCE = instance
+                instance
             }
+        }
+
+        // Metodo per forzare il cambio di database quando cambia il provider
+        fun resetInstance() {
+            synchronized(this) {
+                INSTANCE?.close()
+                INSTANCE = null
+            }
+        }
+
         fun getInstanceForProvider(providerName: String, context: Context): AppDatabase {
             return buildDatabase(providerName, context)
         }
 
-        private fun buildDatabase(providerName: String, context: Context) =
-            Room.databaseBuilder(
+        private fun buildDatabase(providerName: String, context: Context): AppDatabase {
+            val sanitizedName = sanitizeProviderName(providerName)
+            return Room.databaseBuilder(
                 context = context.applicationContext,
                 klass = AppDatabase::class.java,
-                name = "${providerName.lowercase()}.db"
+                name = "$sanitizedName.db"
             )
                 .allowMainThreadQueries()
                 .addMigrations(MIGRATION_1_2)
@@ -71,6 +94,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_3_4)
                 .addMigrations(MIGRATION_4_5)
                 .build()
+        }
 
 
         private val MIGRATION_1_2: Migration = object : Migration(1, 2) {
@@ -89,25 +113,21 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_2_3: Migration = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Change episodes.title to Nullable
                 db.execSQL("CREATE TABLE `episodes_temp` (`id` TEXT NOT NULL, `number` INTEGER NOT NULL, `title` TEXT, `poster` TEXT, `tvShow` TEXT, `season` TEXT, `released` TEXT, `isWatched` INTEGER NOT NULL, `watchedDate` TEXT, `lastEngagementTimeUtcMillis` INTEGER, `lastPlaybackPositionMillis` INTEGER, `durationMillis` INTEGER, PRIMARY KEY(`id`))")
                 db.execSQL("INSERT INTO episodes_temp SELECT * FROM episodes")
                 db.execSQL("DROP TABLE episodes")
                 db.execSQL("ALTER TABLE episodes_temp RENAME TO episodes")
 
-                // Change movies.overview to Nullable
                 db.execSQL("CREATE TABLE `movies_temp` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `overview` TEXT, `runtime` INTEGER, `trailer` TEXT, `quality` TEXT, `rating` REAL, `poster` TEXT, `banner` TEXT, `released` TEXT, `isFavorite` INTEGER NOT NULL, `isWatched` INTEGER NOT NULL, `watchedDate` TEXT, `lastEngagementTimeUtcMillis` INTEGER, `lastPlaybackPositionMillis` INTEGER, `durationMillis` INTEGER, PRIMARY KEY(`id`))")
                 db.execSQL("INSERT INTO movies_temp SELECT * FROM movies")
                 db.execSQL("DROP TABLE movies")
                 db.execSQL("ALTER TABLE movies_temp RENAME TO movies")
 
-                // Change seasons.title, seasons.poster to Nullable
                 db.execSQL("CREATE TABLE `seasons_temp` (`id` TEXT NOT NULL, `number` INTEGER NOT NULL, `title` TEXT, `poster` TEXT, `tvShow` TEXT, PRIMARY KEY(`id`))")
                 db.execSQL("INSERT INTO seasons_temp SELECT * FROM seasons")
                 db.execSQL("DROP TABLE seasons")
                 db.execSQL("ALTER TABLE seasons_temp RENAME TO seasons")
 
-                // Change tv_shows.overview to Nullable
                 db.execSQL("CREATE TABLE `tv_shows_temp` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `overview` TEXT, `runtime` INTEGER, `trailer` TEXT, `quality` TEXT, `rating` REAL, `poster` TEXT, `banner` TEXT, `released` TEXT, `isFavorite` INTEGER NOT NULL, PRIMARY KEY(`id`))")
                 db.execSQL("INSERT INTO tv_shows_temp SELECT * FROM tv_shows")
                 db.execSQL("DROP TABLE tv_shows")

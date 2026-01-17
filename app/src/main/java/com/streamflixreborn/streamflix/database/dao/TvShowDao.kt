@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.database.dao
 
+import android.util.Log
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -7,12 +8,14 @@ import androidx.room.Query
 import androidx.room.Update
 import com.streamflixreborn.streamflix.models.TvShow
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Transaction
+import com.streamflixreborn.streamflix.utils.UserPreferences
 
 @Dao
 interface TvShowDao {
 
     @Query("SELECT * FROM tv_shows")
-    fun getAllForBackup(): List<TvShow> // NUOVO: Sincrono per l'esportazione
+    fun getAllForBackup(): List<TvShow>
 
     @Query("SELECT * FROM tv_shows WHERE id = :id")
     fun getById(id: String): TvShow?
@@ -29,14 +32,14 @@ interface TvShowDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(tvShow: TvShow)
 
-    @Update
+    @Update(onConflict = OnConflictStrategy.REPLACE)
     fun update(tvShow: TvShow)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE) // MODIFICATO: OnConflictStrategy e rimozione suspend (se non necessario)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAll(tvShows: List<TvShow>)
 
     @Query("SELECT * FROM tv_shows")
-    fun getAll(): Flow<List<TvShow>> // Esistente, mantenuto
+    fun getAll(): Flow<List<TvShow>>
 
     @Query("SELECT * FROM tv_shows WHERE poster IS NULL or poster = ''")
     suspend fun getAllWithNullPoster(): List<TvShow>
@@ -48,11 +51,28 @@ interface TvShowDao {
     suspend fun searchTvShows(query: String, limit: Int, offset: Int): List<TvShow>
 
     @Query("DELETE FROM tv_shows")
-    fun deleteAll() // NUOVO: Per l'importazione
+    fun deleteAll()
 
-    fun save(tvShow: TvShow) = getById(tvShow.id)
-        ?.let { update(tvShow.copy(id = it.id)) } // Assicurati che l'update usi l'ID corretto
-        ?: insert(tvShow)
+    @Transaction
+    fun save(tvShow: TvShow) {
+        val provider = UserPreferences.currentProvider?.name ?: "Unknown"
+        val existing = getById(tvShow.id)
+        if (existing != null) {
+            val merged = existing.merge(tvShow)
+            update(merged)
+            Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE TV Show: ${merged.title} (Fav: ${merged.isFavorite}, Watching: ${merged.isWatching})")
+        } else {
+            insert(tvShow)
+            Log.d("DatabaseVerify", "[$provider] REAL-TIME INSERT TV Show: ${tvShow.title} (Fav: ${tvShow.isFavorite})")
+        }
+    }
+
+    @Transaction
+    fun setFavoriteWithLog(id: String, favorite: Boolean) {
+        val provider = UserPreferences.currentProvider?.name ?: "Unknown"
+        setFavorite(id, favorite)
+        Log.d("DatabaseVerify", "[$provider] REAL-TIME Favorite Toggled: ID $id -> $favorite")
+    }
 
     @Query("UPDATE tv_shows SET isFavorite = :favorite WHERE id = :id")
     fun setFavorite(id: String, favorite: Boolean)

@@ -139,6 +139,21 @@ class ShowOptionsTvDialog(
                             watchedDate = null
                         }
                     })
+
+                    // NUOVA LOGICA: Aggiorna lo stato isWatching della serie TV madre
+                    episode.tvShow?.let { tvShow ->
+                        val episodeDao = AppDatabase.getInstance(context).episodeDao()
+                        val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
+
+                        // Se l'episodio è stato marcato come VISTO E non ci sono altri
+                        // episodi con cronologia, impostiamo isWatching a false.
+                        if (episode.isWatched && !isStillWatching) {
+                            AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
+                                merge(tvShow)
+                                isWatching = false
+                            })
+                        }
+                    }
                 }
 
                 hide()
@@ -171,6 +186,28 @@ class ShowOptionsTvDialog(
                             })
                         }
                     }
+
+                    // Logica aggiuntiva per isWatching:
+                    // Se l'obiettivo era marcare come VISTO, e non ci sono cronologie, si imposta isWatching a false.
+                    if (targetState) {
+                        episode.tvShow?.let { tvShow ->
+                            if (!episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)) {
+                                AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
+                                    merge(tvShow)
+                                    isWatching = false
+                                })
+                            }
+                        }
+                    }
+                    // Se l'obiettivo era marcare come NON VISTO, impostiamo isWatching a true per farlo riapparire.
+                    if (!targetState) {
+                        episode.tvShow?.let { tvShow ->
+                            AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
+                                merge(tvShow)
+                                isWatching = true
+                            })
+                        }
+                    }
                 }
 
                 hide()
@@ -182,7 +219,6 @@ class ShowOptionsTvDialog(
             }
             visibility = View.VISIBLE
         }
-4
 
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
@@ -192,10 +228,14 @@ class ShowOptionsTvDialog(
                         watchHistory = null
                     })
                     episode.tvShow?.let { tvShow ->
-                        AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
-                            merge(tvShow)
-                            isWatching = false
-                        })
+                        // Rimuoviamo isWatching solo se NON ci sono altri episodi in corso
+                        val episodeDao = AppDatabase.getInstance(context).episodeDao()
+                        if (!episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)) {
+                            AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
+                                merge(tvShow)
+                                isWatching = false
+                            })
+                        }
                     }
                 }
 

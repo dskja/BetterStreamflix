@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.database.dao
 
+import android.util.Log
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -7,12 +8,14 @@ import androidx.room.Query
 import androidx.room.Update
 import com.streamflixreborn.streamflix.models.Episode
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Transaction
+import com.streamflixreborn.streamflix.utils.UserPreferences
 
 @Dao
 interface EpisodeDao {
 
     @Query("SELECT * FROM episodes")
-    fun getAllForBackup(): List<Episode> // NUOVO: Per l'esportazione
+    fun getAllForBackup(): List<Episode>
 
     @Query(
         """
@@ -57,10 +60,9 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE id IN (:ids)")
     fun getByIdsAsFlow(ids: List<String>): Flow<List<Episode>>
 
-    // Nota: Le query seguenti usano `tvShow = :tvShowId` e `season = :seasonId`.
-    // Questo implica che i campi `tvShow` e `season` in Episode.kt potrebbero essere
-    // usati per memorizzare ID o necessitano di TypeConverter specifici.
-    // La corretta gestione di queste relazioni è cruciale per il backup/ripristino.
+    @Query("SELECT COUNT(id) > 0 FROM episodes WHERE tvShow = :tvShowId AND lastEngagementTimeUtcMillis IS NOT NULL")
+    fun hasAnyWatchHistoryForTvShow(tvShowId: String): Boolean
+
     @Query("SELECT * FROM episodes WHERE tvShow = :tvShowId ORDER BY season, number")
     fun getByTvShowId(tvShowId: String): List<Episode>
 
@@ -77,7 +79,7 @@ interface EpisodeDao {
     fun insert(episode: Episode)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(episodes: List<Episode>) // Esistente, corretto per l'importazione
+    fun insertAll(episodes: List<Episode>)
 
     @Query("SELECT * FROM episodes WHERE tvShow = :tvShowId")
     fun getEpisodesByTvShowId(tvShowId: String): List<Episode>
@@ -86,17 +88,21 @@ interface EpisodeDao {
     fun update(episode: Episode)
 
     @Query("DELETE FROM episodes")
-    fun deleteAll() // NUOVO: Per l'importazione
+    fun deleteAll()
 
-    fun save(episode: Episode) = getById(episode.id)
-        ?.let {
-            // Per preservare l'ID esistente e unire i campi rilevanti.
-            // La logica di merge effettiva è nel modello Episode.
-            val mergedEpisode = it.copy() // Crea una copia dell'entità dal DB
-            mergedEpisode.merge(episode)  // Unisci i dati dall'episodio in input
-            update(mergedEpisode)         // Aggiorna l'entità unita
+    @Transaction
+    fun save(episode: Episode) {
+        val provider = UserPreferences.currentProvider?.name ?: "Unknown"
+        val existing = getById(episode.id)
+        if (existing != null) {
+            existing.merge(episode)
+            update(existing)
+            Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE Episode: ${existing.title} (Watched: ${existing.isWatched}, Hist: ${existing.watchHistory != null})")
+        } else {
+            insert(episode)
+            Log.d("DatabaseVerify", "[$provider] REAL-TIME INSERT Episode: ${episode.id} (Watched: ${episode.isWatched})")
         }
-        ?: insert(episode)
+    }
 
     @Query(
         """
