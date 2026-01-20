@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="trailer_player_names">
+        <item>@string/settings_trailer_player_ask</item>
+        <item>@string/youtube</item>
+        <item>@string/smarttube</item>
+    </string-array>
+
+    <string-array name="trailer_player_values">
+        <item>ask</item>
+        <item>youtube</item>
+        <item>smarttube</item>
+    </string-array>
+
+</resources>

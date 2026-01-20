@@ -8,7 +8,7 @@
     <string name="loading_error_details">Fehlerdetails</string>
 
     <string name="update_title">Aktualisierung verfügbar</string>
-    <string name="update_message">Eine neue Version der App ist verfügbar!</string>
+    <string name="update_message">Eine neue version der App ist verfügbar!</string>
     <string name="update_current_version_label">Aktuelle Version</string>
     <string name="update_new_version_label">Neue Version</string>
     <string name="update_release_notes">Versionshinweise</string>
@@ -73,7 +73,7 @@
 
     <string name="movie_item_type">Film</string>
     <string name="movie_runtime_hours_minutes">%d h %d min</string>
-    <string name="movie_runtime_minutes">%d min</string>
+    <string name="movie_runtime_minutes">%d Min</string>
     <string name="movie_watch_now">Ansehen</string>
     <string name="movie_trailer">Trailer</string>
     <string name="movie_cast">Besetzung</string>
@@ -210,7 +210,7 @@
     <string name="settings_category_provider_url">Haupt-URL</string>
     <string name="settings_category_provider_update_url">Portal-URL</string>
     <string name="settings_autoupdate">Haupt-URL beim Start aktualisieren</string>
-    <string name="settings_autoupdate_on">Ein</string>
+    <string name="settings_autoupdate_on">An</string>
     <string name="settings_autoupdate_off">Aus</string>
     <string name="settings_autoupdate_now">Haupt-URL jetzt aktualisieren</string>
     <string name="settings_autoplay">Automatisches Abspielen der nächsten Folge</string>
@@ -234,13 +234,11 @@
     <string name="voice_permission_rationale">Zugriff auf das Mikrofon ist erforderlich, um die Sprachsuche zu verwenden.</string>
     <string name="voice_error_no_result">Es wurde keine Spracheingabe erkannt.</string>
     <string name="voice_prompt">Sprich jetzt</string>
-
     <string name="backup_category_title">Backup und Wiederherstellung</string>
     <string name="backup_export_title">Benutzerdaten exportieren</string>
     <string name="backup_export_summary">Speichere deine Daten (Favoriten, Wiedergabeverlauf) in einer Datei.</string>
     <string name="backup_import_title">Benutzerdaten importieren</string>
     <string name="backup_import_summary">Stelle deine Daten aus einer Backup-Datei wieder her.</string>
-
     <string name="backup_export_success">Sicherung erfolgreich exportiert!</string>
     <string name="backup_export_error_write">Fehler beim Export der Sicherung.</string>
     <string name="backup_data_not_generated">Fehler: Sicherungsdaten wurden nicht erstellt.</string>
@@ -248,20 +246,18 @@
     <string name="backup_import_error">Fehler beim Import der Sicherung.</string>
     <string name="backup_import_empty_file">Fehler: Die Sicherungsdatei ist leer oder unlesbar.</string>
     <string name="backup_import_read_error">Fehler beim Lesen oder Verarbeiten der Sicherungsdatei.</string>
-
     <string name="screen_scale_category_title">Bildschirmabstand</string>
     <string name="screen_scale_x_title">Horizontaler Abstand</string>
     <string name="screen_scale_x_summary">Passe den linken und rechten Bildschirmabstand an</string>
     <string name="screen_scale_y_title">Vertikaler Abstand</string>
     <string name="screen_scale_y_summary">Passe den oberen und unteren Bildschirmabstand an</string>
-
     <string name="doh_provider_updated">DNS-over-HTTPS-Einstellungen aktualisiert! Starte die App neu, um die Änderungen anzuwenden.</string>
-
     <string name="settings_frenchstream_use_new_interface">Die neue FrenchStream-Oberfläche verwenden</string>
     <string name="settings_frenchstream_use_new_interface_on">Ein</string>
     <string name="settings_frenchstream_use_new_interface_off">Aus</string>
-    <string name="player_settings_extra_buffer_title">Server mit Extra-Buffering</string>
 
+
+    <string name="player_settings_extra_buffer_title">Server mit Extra-Buffering</string>
     <string name="player_settings_extra_buffer_server_label">Server mit Extra-Buffering</string>
     <string name="player_settings_extra_buffer_on">Aktiv</string>
     <string name="player_settings_extra_buffer_off">Deaktiviert</string>

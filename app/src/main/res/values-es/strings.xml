@@ -226,6 +226,14 @@
     <string name="watch_trailer_with">Ver tráiler con...</string>
     <string name="youtube">YouTube</string>
     <string name="smarttube">SmartTube</string>
+    <string name="smarttube_stable">SmartTube Estable</string>
+    <string name="smarttube_beta">SmartTube Beta</string>
+    <string name="choose_smarttube_version">Elige la versión de SmartTube</string>
+    <string name="settings_trailer_player_title">Reproductor de tráiler</string>
+    <string name="settings_trailer_player_summary">Elige tu reproductor preferido para los tráileres</string>
+    <string name="settings_trailer_player_ask">Preguntar siempre</string>
+    <string name="settings_trailer_player_reset">Restablecer versión de SmartTube</string>
+    <string name="settings_trailer_player_reset_summary">Obliga a la aplicación a preguntar de nuevo qué versión de SmartTube (Estable/Beta) usar.</string>
     <string name="backup_category_title">Copia de seguridad y restauración</string>
     <string name="backup_export_title">Exportar datos de usuario</string>
     <string name="backup_export_summary">Guarda tus datos (favoritos, historial de visualización) en un archivo.</string>
@@ -248,6 +256,8 @@
     <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Activado</string>
     <string name="settings_frenchstream_use_new_interface_off">Desactivado</string>
+
+
     <string name="player_brightness">Brillo</string>
     <string name="player_volume">Volumen</string>
     <string name="percentage_format">%d%%</string>
@@ -256,7 +266,7 @@
     <string name="player_settings_extra_buffer_on">Activado</string>
     <string name="player_settings_extra_buffer_off">Desactivado</string>
     <string name="player_settings_extra_buffer_forced_on">Activado (forzado)</string>
-    <string name="player_settings_extra_buffer_forced_off">Desactivado (forzado)</string>
+    <string name="player_settings_extra_buffer_forced_off">Desactivated (forzado)</string>
     <string name="player_settings_extra_buffer_auto_on">Activado (predeterminado)</string>
     <string name="player_settings_extra_buffer_auto_off">Desactivado (predeterminado)</string>
     <string name="error_dialog_title">Detalles del error</string>

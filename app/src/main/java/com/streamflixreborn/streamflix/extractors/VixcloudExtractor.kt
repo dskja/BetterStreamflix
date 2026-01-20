@@ -137,71 +137,78 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful && response.body != null) {
                         var playlistContent = response.body!!.string()
-                        val langCode = if (preferredLanguage == "en") "en" else "it"
-                        val altLangCode = if (langCode == "en") "eng" else "ita"
-                        
-                        Log.d("VixcloudDebug", "Aggressive Patching M3U8 for $langCode (Requested: $preferredLanguage)...")
-
-                        // 1. Resolve relative URLs to absolute URLs
+                        val langCode = preferredLanguage
+                        val altLangCode = if (langCode == "en") "eng" else if (langCode == "it") "ita" else langCode
                         val baseUri = response.request.url
-                        playlistContent = playlistContent.lines().joinToString("\n") { line ->
-                            if (line.startsWith("#") || line.isBlank()) line
-                            else baseUri.resolve(line)?.toString() ?: line
-                        }
+                        
+                        Log.d("SmartSubtitleLog", "--- Vixcloud Subtitle Processing START ($langCode) ---")
 
-                        // 2. Filter audio tracks: KEEP ONLY the target language and set it as default
-                        val lines = playlistContent.lines().toMutableList()
+                        val lines = playlistContent.lines()
                         val finalLines = mutableListOf<String>()
-                        var targetTrackFound = false
+                        val uriRegex = """URI=["']([^"']+)["']""".toRegex()
 
                         for (line in lines) {
-                            if (line.startsWith("#EXT-X-MEDIA:TYPE=AUDIO")) {
-                                // Check if this is the track we want to keep/set as default
-                                val isTarget = line.contains("LANGUAGE=\"$langCode\"", ignoreCase = true) || 
-                                               line.contains("LANGUAGE=\"$altLangCode\"", ignoreCase = true) ||
-                                               line.contains("NAME=\"$langCode\"", ignoreCase = true) ||
-                                               line.contains("NAME=\"$altLangCode\"", ignoreCase = true) ||
-                                               (langCode == "en" && line.contains("English", ignoreCase = true)) ||
-                                               (langCode == "it" && line.contains("Italian", ignoreCase = true))
-                                
-                                if (isTarget) {
-                                    // Keep this track and force it as default, removing any conflicting flags
-                                    var patchedLine = line.replace("AUTOSELECT=YES", "")
-                                                    .replace("DEFAULT=YES", "")
-                                                    .replace(",,", ",") // Clean up commas
-                                    
-                                    if (!patchedLine.contains("DEFAULT=YES")) {
-                                        // Add DEFAULT=YES ensuring it's appended correctly (often before the closing quote if present)
-                                        patchedLine = if (patchedLine.contains("\"")) {
-                                            patchedLine.substringBeforeLast("\"") + "\",DEFAULT=YES"
-                                        } else {
-                                            patchedLine + ",DEFAULT=YES"
-                                        }
-                                    }
-                                    finalLines.add(patchedLine)
-                                    targetTrackFound = true
-                                    Log.d("VixcloudDebug", "Keeping target audio track: ${line}")
-                                } else {
-                                    // Skip/Remove other languages
-                                    Log.d("VixcloudDebug", "Removing non-target audio track: ${line.substringAfter("NAME=\"").substringBefore("\"")}")
+                            var patchedLine = line
+                            
+                            if (line.startsWith("#")) {
+                                patchedLine = uriRegex.replace(line) { matchResult ->
+                                    val relative = matchResult.groupValues[1]
+                                    if (relative.startsWith("http") || relative.startsWith("data:")) matchResult.value
+                                    else "URI=\"${baseUri.resolve(relative) ?: relative}\""
                                 }
+                            } else if (line.isNotBlank() && !line.startsWith("#")) {
+                                patchedLine = baseUri.resolve(line)?.toString() ?: line
+                            }
+
+                            if (patchedLine.startsWith("#EXT-X-MEDIA:TYPE=AUDIO")) {
+                                patchedLine = patchedLine.replace(Regex("DEFAULT=YES", RegexOption.IGNORE_CASE), "DEFAULT=NO")
+                                                         .replace(Regex("AUTOSELECT=YES", RegexOption.IGNORE_CASE), "AUTOSELECT=NO")
+                                
+                                val isTargetAudio = patchedLine.contains("LANGUAGE=\"$langCode\"", ignoreCase = true) || 
+                                                    patchedLine.contains("NAME=\"$langCode\"", ignoreCase = true) ||
+                                                    (langCode == "it" && patchedLine.contains("Italian", ignoreCase = true)) ||
+                                                    (langCode == "en" && patchedLine.contains("English", ignoreCase = true))
+                                
+                                if (isTargetAudio) {
+                                    patchedLine = patchedLine.replace("DEFAULT=NO", "DEFAULT=YES")
+                                                             .replace("AUTOSELECT=NO", "AUTOSELECT=YES")
+                                }
+                                finalLines.add(patchedLine)
+                            } else if (patchedLine.startsWith("#EXT-X-MEDIA:TYPE=SUBTITLES")) {
+                                val trackName = patchedLine.substringAfter("NAME=\"", "Unknown").substringBefore("\"")
+                                val trackLang = patchedLine.substringAfter("LANGUAGE=\"", "").substringBefore("\"")
+                                
+                                // RESET SEMPRE
+                                patchedLine = patchedLine.replace(Regex("DEFAULT=YES", RegexOption.IGNORE_CASE), "DEFAULT=NO")
+                                                         .replace(Regex("AUTOSELECT=YES", RegexOption.IGNORE_CASE), "AUTOSELECT=NO")
+                                
+                                // LOGICA: Se il nome contiene "forced" E la lingua è quella giusta, ATTIVA.
+                                val isForced = trackName.contains("forced", ignoreCase = true) || trackLang.contains("forced", ignoreCase = true) || patchedLine.contains("FORCED=YES", ignoreCase = true)
+                                val isRightLanguage = trackLang.contains(langCode, ignoreCase = true) || 
+                                                      trackName.contains(langCode, ignoreCase = true) ||
+                                                      (langCode == "it" && trackName.contains("Italian", ignoreCase = true)) ||
+                                                      (langCode == "en" && trackName.contains("English", ignoreCase = true))
+
+                                if (isForced && isRightLanguage) {
+                                    patchedLine = patchedLine.replace("DEFAULT=NO", "DEFAULT=YES")
+                                                             .replace("AUTOSELECT=NO", "AUTOSELECT=YES")
+                                    Log.i("SmartSubtitleLog", "[Vixcloud] ENABLED Forced: $trackName")
+                                } else {
+                                    Log.d("SmartSubtitleLog", "[Vixcloud] Disabled: $trackName")
+                                }
+                                finalLines.add(patchedLine)
                             } else {
-                                finalLines.add(line)
+                                finalLines.add(patchedLine)
                             }
                         }
+                        Log.d("SmartSubtitleLog", "--- Vixcloud Subtitle Processing END ---")
                         
-                        if (targetTrackFound) {
-                            playlistContent = finalLines.joinToString("\n")
-                            Log.d("VixcloudDebug", "Successfully created minimalist M3U8. Creating data URI.")
-                            val base64Manifest = Base64.encodeToString(playlistContent.toByteArray(), Base64.NO_WRAP)
-                            videoSource = "data:application/vnd.apple.mpegurl;base64,$base64Manifest"
-                        } else {
-                            Log.w("VixcloudDebug", "Target language $langCode track not found in manifest. Reverting to original URL.")
-                        }
+                        val base64Manifest = Base64.encodeToString(finalLines.joinToString("\n").toByteArray(), Base64.NO_WRAP)
+                        videoSource = "data:application/vnd.apple.mpegurl;base64,$base64Manifest"
                     }
                 }
             } catch (e: Exception) {
-                Log.e("VixcloudDebug", "Error in aggressive patching: ${e.message}", e)
+                Log.e("VixcloudDebug", "Error in patching: ${e.message}")
             }
         }
 

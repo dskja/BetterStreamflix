@@ -241,6 +241,15 @@
     <string name="watch_trailer_with">Guarda il trailer con...</string>
     <string name="youtube">YouTube</string>
     <string name="smarttube">SmartTube</string>
+    <string name="smarttube_stable">SmartTube Stabile</string>
+    <string name="smarttube_beta">SmartTube Beta</string>
+    <string name="choose_smarttube_version">Scegli la versione di SmartTube</string>
+
+    <string name="settings_trailer_player_title">Lettore anteprima</string>
+    <string name="settings_trailer_player_summary">Scegli il tuo lettore preferito per le anteprime</string>
+    <string name="settings_trailer_player_ask">Chiedi ogni volta</string>
+    <string name="settings_trailer_player_reset">Reset scelta versione SmartTube</string>
+    <string name="settings_trailer_player_reset_summary">Forza l\'app a chiedere nuovamente quale versione di SmartTube (Stabile/Beta) usare.</string>
 
     <string name="backup_category_title">Backup e Ripristino</string>
     <string name="backup_export_title">Esporta dati utente</string>
@@ -273,6 +282,7 @@
     <string name="settings_immersive_mode_summary">Nasconde le barre di stato e di navigazione</string>
     <string name="settings_immersive_mode_on">Attiva (Barre nascoste)</string>
     <string name="settings_immersive_mode_off">Disattivata (Barre visibili)</string>
+
 
     <string name="player_brightness">Luminosità</string>
     <string name="player_volume">Volume</string>

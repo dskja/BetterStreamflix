@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.activities.main
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -38,8 +39,10 @@ class MainTvActivity : FragmentActivity() {
     private lateinit var updateAppDialog: UpdateAppTvDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(R.style.AppTheme_Tv)
         super.onCreate(savedInstanceState)
+        
+        window.statusBarColor = Color.TRANSPARENT
+        
         _binding = ActivityMainTvBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -47,7 +50,6 @@ class MainTvActivity : FragmentActivity() {
             .findFragmentById(binding.navMainFragment.id) as NavHostFragment
         val navController = navHostFragment.navController
 
-        UserPreferences.setup(this)
         AppDatabase.setup(this)
 
         adjustLayoutDelta(null, null)
@@ -66,13 +68,13 @@ class MainTvActivity : FragmentActivity() {
             }
         }
 
-        UserPreferences.currentProvider?.let {
-            navController.navigate(R.id.home)
+        if (savedInstanceState == null) {
+            UserPreferences.currentProvider?.let {
+                navController.navigate(R.id.home)
+            }
         }
 
         binding.navMain.setupWithNavController(navController)
-        
-        // Hide tabs not supported by the provider
         updateNavigationVisibility()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -114,7 +116,6 @@ class MainTvActivity : FragmentActivity() {
                 R.id.tv_shows,
                 R.id.settings -> {
                     binding.navMain.visibility = View.VISIBLE
-                    // Update tab visibility based on provider
                     updateNavigationVisibility()
                 }
                 else -> binding.navMain.visibility = View.GONE
@@ -192,11 +193,9 @@ class MainTvActivity : FragmentActivity() {
     
     private fun updateNavigationVisibility() {
         UserPreferences.currentProvider?.let { provider ->
-            // Hide Movies tab if provider doesn't support movies
             binding.navMain.findViewById<View>(R.id.movies)?.visibility = 
                 if (Provider.supportsMovies(provider)) View.VISIBLE else View.GONE
             
-            // Hide TV Shows tab if provider doesn't support TV shows
             binding.navMain.findViewById<View>(R.id.tv_shows)?.visibility = 
                 if (Provider.supportsTvShows(provider)) View.VISIBLE else View.GONE
         }

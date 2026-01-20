@@ -1,7 +1,11 @@
 package com.streamflixreborn.streamflix.fragments.player
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
@@ -10,6 +14,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,6 +70,10 @@ import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
+import java.util.Base64 
+import java.io.File
+import java.io.FileOutputStream
+import androidx.core.content.FileProvider
 
 import androidx.navigation.NavOptions
 import com.streamflixreborn.streamflix.utils.DnsResolver
@@ -99,6 +108,18 @@ class PlayerMobileFragment : Fragment() {
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
     private var isIgnoringPip = false
+
+    private val chooserReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val clickedComponent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT, android.content.ComponentName::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT)
+            }
+            Log.i("ExternalPlayer", "L'utente ha selezionato l'app: ${clickedComponent?.packageName ?: "Sconosciuta"}")
+        }
+    }
 
     private val pickLocalSubtitle = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -154,7 +175,12 @@ class PlayerMobileFragment : Fragment() {
         if (!isSetupDone) {
             requireActivity().requestedOrientation =
                 ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            
             val window = requireActivity().window
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+            
             val insetsController = WindowInsetsControllerCompat(window, window.decorView)
             insetsController.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -165,6 +191,15 @@ class PlayerMobileFragment : Fragment() {
         if (::player.isInitialized) {
             binding.pvPlayer.useController = true
         }
+        
+        try {
+            val filter = IntentFilter("ACTION_PLAYER_CHOSEN")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requireContext().registerReceiver(chooserReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                requireContext().registerReceiver(chooserReceiver, filter)
+            }
+        } catch (e: Exception) {}
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -284,7 +319,7 @@ class PlayerMobileFragment : Fragment() {
                     is PlayerViewModel.State.FailedDownloadingOpenSubtitle -> {
                         Toast.makeText(
                             requireContext(),
-                            "${'$'}{state.subtitle.subFileName}: ${'$'}{state.error.message}",
+                            "${state.subtitle.subFileName}: ${state.error.message}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -339,9 +374,13 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        val window = requireActivity().window
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+        }
         WindowCompat.getInsetsController(
-            requireActivity().window,
-            requireActivity().window.decorView
+            window,
+            window.decorView
         ).run {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             show(WindowInsetsCompat.Type.systemBars())
@@ -349,6 +388,9 @@ class PlayerMobileFragment : Fragment() {
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         player.release()
         mediaSession.release()
+        try {
+            requireContext().unregisterReceiver(chooserReceiver)
+        } catch (e: Exception) {}
         _binding = null
         isSetupDone = false
     }
@@ -589,6 +631,37 @@ class PlayerMobileFragment : Fragment() {
         handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, viewModel::playNextEpisode)
     }
 
+    private fun decodeBase64Uri(uri: String): String? {
+        return try {
+            val parts = uri.split(",")
+            if (parts.size == 2 && parts[0].contains(";base64")) {
+                val base64Data = parts[1]
+                val decodedBytes = Base64.getDecoder().decode(base64Data)
+                String(decodedBytes, Charsets.UTF_8)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("Base64Decoder", "Error decoding Base64 URI", e)
+            null
+        }
+    }
+
+    private fun extractUrlFromPlaylist(playlist: String): String? {
+        return try {
+            val lines = playlist.lines().map { it.trim() }
+            // Cerca riga che inizia con http
+            lines.firstOrNull { it.startsWith("http") }
+                ?: // Cerca URI="http..." (master playlist)
+                lines.firstNotNullOfOrNull { line ->
+                    val regex = """URI=["'](http[^"']+)["']""".toRegex()
+                    regex.find(line)?.groupValues?.get(1)
+                }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
 
     private fun displayVideo(video: Video, server: Video.Server) {
         currentVideo = video
@@ -640,23 +713,84 @@ class PlayerMobileFragment : Fragment() {
 
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
             isIgnoringPip = true
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.parse(video.source), "video/*")
-
-                putExtra(
-                    "title", when (val videoType = args.videoType as Video.Type) {
-                        is Video.Type.Movie -> videoType.title
-                        is Video.Type.Episode -> "${videoType.tvShow.title} • S${videoType.season.number} E${videoType.number}"
-                    }
-                )
-                putExtra("position", currentPosition)
+            
+            val videoTitle = when (val type = args.videoType as Video.Type) {
+                is Video.Type.Movie -> type.title
+                is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
             }
-            startActivity(
-                Intent.createChooser(
-                    intent,
-                    requireContext().getString(R.string.player_external_player_title)
+            
+            var sourceUri: Uri
+            var mimeType: String = "video/*"
+            
+            val initialSource = video.source
+
+            if (initialSource.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
+                // Caso Base64 (Vixcloud)
+                val playlistContent = decodeBase64Uri(initialSource)
+                val extractedUrl = if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
+                
+                if (extractedUrl != null) {
+                    sourceUri = Uri.parse(extractedUrl)
+                    Log.i("ExternalPlayer", "Link reale estratto: $sourceUri")
+                } else {
+                    try {
+                        val file = File(requireContext().cacheDir, "stream.m3u8")
+                        FileOutputStream(file).use { it.write(playlistContent?.toByteArray() ?: ByteArray(0)) }
+                        sourceUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.provider", file)
+                    } catch (e: Exception) {
+                        sourceUri = initialSource.toUri()
+                    }
+                }
+            } else {
+                sourceUri = initialSource.toUri()
+            }
+
+            Log.i("ExternalPlayer", "Avvio intent con URI: $sourceUri e MIME: $mimeType")
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(sourceUri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                
+                putExtra("title", videoTitle)
+                putExtra("position", player.currentPosition.toInt())
+                putExtra("return_result", true)
+                
+                // VLC specific
+                putExtra("extra_headers", video.headers?.map { "${it.key}: ${it.value}" }?.toTypedArray())
+                
+                if (video.headers != null) {
+                    val headersArray = video.headers.flatMap { listOf(it.key, it.value) }.toTypedArray()
+                    putExtra("headers", headersArray)
+                }
+            }
+
+            // Verifichiamo quali app vedrebbe Android
+            val activities = requireContext().packageManager.queryIntentActivities(intent, 0)
+            Log.i("ExternalPlayer", "App compatibili trovate nel sistema: ${activities.map { it.activityInfo.packageName }}")
+            
+            try {
+                // FIX ANDROID 14: Rendiamo l'intent ESPLICITO specificando il package della nostra app per il receiver
+                val receiverIntent = Intent("ACTION_PLAYER_CHOSEN").apply {
+                    setPackage(requireContext().packageName)
+                }
+                
+                val pendingIntent = PendingIntent.getBroadcast(
+                    requireContext(), 0, receiverIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
-            )
+
+                startActivity(
+                    Intent.createChooser(
+                        intent,
+                        requireContext().getString(R.string.player_external_player_title),
+                        pendingIntent.intentSender
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("ExternalPlayer", "Errore selettore app", e)
+                // Fallback senza receiver se il chooser fallisce
+                startActivity(Intent.createChooser(intent, requireContext().getString(R.string.player_external_player_title)))
+            }
         }
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {

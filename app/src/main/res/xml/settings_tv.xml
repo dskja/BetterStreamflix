@@ -68,6 +68,21 @@
             android:summaryOff="@string/settings_autoplay_off" />
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/player_settings">
+        <ListPreference
+            android:key="preferred_player"
+            android:title="@string/settings_trailer_player_title"
+            android:summary="@string/settings_trailer_player_summary"
+            android:entries="@array/trailer_player_names"
+            android:entryValues="@array/trailer_player_values"
+            android:defaultValue="ask" />
+
+        <Preference
+            android:key="preferred_player_reset"
+            android:title="@string/settings_trailer_player_reset"
+            android:summary="@string/settings_trailer_player_reset_summary" />
+    </PreferenceCategory>
+
     <PreferenceCategory
        android:title="@string/screen_scale_category_title">
 

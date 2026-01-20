@@ -15,6 +15,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainMobileActivity
@@ -109,6 +110,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     }
 
     private fun displaySettings() {
+        
         // Gestione visibilità categoria StreamingCommunity
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
             isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
@@ -381,6 +383,16 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             importBackupLauncher.launch(arrayOf("application/json"))
             true
         }
+
+        // Trailer Player Reset
+        findPreference<Preference>("preferred_player_reset")?.setOnPreferenceClickListener {
+            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .edit()
+                .remove("preferred_smarttube_package")
+                .apply()
+            Toast.makeText(requireContext(), R.string.settings_trailer_player_reset, Toast.LENGTH_SHORT).show()
+            true
+        }
     }
 
     private suspend fun performBackupExport(uri: Uri) {
@@ -427,6 +439,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
     override fun onResume() {
         super.onResume()
+        
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay

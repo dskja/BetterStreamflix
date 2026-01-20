@@ -143,9 +143,22 @@
 	<string name="voice_error_no_result">لم يتم اكتشاف أي إدخال صوتي.</string>
 	<string name="voice_prompt">تحدث الآن</string>
 
+	<string name="watch_trailer_with">شاهد الإعلان الترويجي مع...</string>
+	<string name="youtube">YouTube</string>
+	<string name="smarttube">SmartTube</string>
+	<string name="smarttube_stable">SmartTube Stable</string>
+	<string name="smarttube_beta">SmartTube Beta</string>
+	<string name="choose_smarttube_version">اختر إصدار SmartTube</string>
+
+	<string name="settings_trailer_player_title">مشغل الإعلان الترويجي</string>
+	<string name="settings_trailer_player_summary">اختر المشغل المفضل للإعلانات الترويجية</string>
+	<string name="settings_trailer_player_ask">اسأل في كل مرة</string>
+	<string name="settings_trailer_player_reset">إعادة تعيين اختيار إصدار SmartTube</string>
+	<string name="settings_trailer_player_reset_summary">إجبار التطبيق على السؤال مرة أخرى عن إصدار SmartTube (Stable/Beta) الذي سيتم استخدامه.</string>
+
 	<string name="backup_category_title">النسخ الاحتياطي والاستعادة</string>
 	<string name="backup_export_title">تصدير بيانات المستخدم</string>
-	<string name="backup_export_summary">احفظ بياناتك (المفضلة، سجل المشاهدة) في ملف.</string>
+	<string name="backup_export_summary">احفظ بياناتك (المفضلة، سجل المشاهدة) in a file.</string>
 	<string name="backup_import_title">استيراد بيانات المستخدم</string>
 	<string name="backup_import_summary">استعد بياناتك من ملف النسخ الاحتياطي.</string>
 
@@ -157,32 +170,32 @@
 	<string name="backup_import_empty_file">خطأ: ملف النسخة الاحتياطية فارغ أو غير قابل للقراءة.</string>
 	<string name="backup_import_read_error">حدث خطأ أثناء قراءة أو معالجة ملف النسخة الاحتياطية.</string>
 
-        <string name="screen_scale_category_title">حشوة الشاشة</string>
-        <string name="screen_scale_x_title">الحشوة الأفقية</string>
-        <string name="screen_scale_x_summary">ضبط الحشوة اليمنى واليسرى للشاشة</string>
-        <string name="screen_scale_y_title">الحشوة العمودية</string>
-        <string name="screen_scale_y_summary">ضبط الحشوة العلوية والسفلية للشاشة</string>
+    <string name="screen_scale_category_title">حشوة الشاشة</string>
+    <string name="screen_scale_x_title">الحشوة الأفقية</string>
+    <string name="screen_scale_x_summary">ضبط الحشوة اليمنى واليسرى للشاشة</string>
+    <string name="screen_scale_y_title">الحشوة العمودية</string>
+    <string name="screen_scale_y_summary">ضبط الحشوة العلوية والسفلية للشاشة</string>
 
-        <string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
-        <string name="settings_frenchstream_use_new_interface">استخدم الواجهة الجديدة لـ FrenchStream</string>
-        <string name="settings_frenchstream_use_new_interface_on">تشغيل</string>
-        <string name="settings_frenchstream_use_new_interface_off">إيقاف</string>
-        <string name="player_settings_extra_buffer_title">خادم مع تخزين مؤقت إضافي</string>
+    <string name="doh_provider_updated">تم تحديث إعدادات DNS عبر HTTPS! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
+    <string name="settings_frenchstream_use_new_interface">استخدم الواجهة الجديدة لـ FrenchStream</string>
+    <string name="settings_frenchstream_use_new_interface_on">تشغيل</string>
+    <string name="settings_frenchstream_use_new_interface_off">إيقاف</string>
 
-        <string name="player_settings_extra_buffer_server_label">خادم مع تخزين مؤقت إضافي</string>
-        <string name="player_settings_extra_buffer_on">مفعل</string>
-        <string name="player_settings_extra_buffer_off">معطل</string>
-        <string name="player_settings_extra_buffer_forced_on">مفعل (قسري)</string>
-        <string name="player_settings_extra_buffer_forced_off">معطل (قسري)</string>
-        <string name="player_settings_extra_buffer_auto_on">مفعل (تلقائي)</string>
-        <string name="player_settings_extra_buffer_auto_off">معطل (تلقائي)</string>
-        <string name="error_dialog_title">تفاصيل الخطأ</string>
-        <string name="error_dialog_message">رسالة الخطأ</string>
-        <string name="error_dialog_cause">السبب</string>
-        <string name="error_dialog_stack_trace">تتبع المكدس</string>
-        <string name="error_dialog_copy">نسخ</string>
-        <string name="error_dialog_copied">تم النسخ!</string>
-        <string name="error_dialog_unknown">خطأ غير معروف</string>
-        <string name="error_dialog_no_cause">لا يوجد سبب</string>
+
+    <string name="player_settings_extra_buffer_title">خادم مع تخزين مؤقت إضافي</string>
+    <string name="player_settings_extra_buffer_server_label">خادم مع تخزين مؤقت إضافي</string>
+    <string name="player_settings_extra_buffer_on">مفعل</string>
+    <string name="player_settings_extra_buffer_off">معطل</string>
+    <string name="player_settings_extra_buffer_forced_on">مفعل (قسري)</string>
+    <string name="player_settings_extra_buffer_forced_off">معطل (قسري)</string>
+    <string name="player_settings_extra_buffer_auto_on">مفعل (تلقائي)</string>
+    <string name="player_settings_extra_buffer_auto_off">معطل (تلقائي)</string>
+    <string name="error_dialog_title">تفاصيل الخطأ</string>
+    <string name="error_dialog_message">رسالة الخطأ</string>
+    <string name="error_dialog_cause">السبب</string>
+    <string name="error_dialog_stack_trace">تتبع المكدس</string>
+    <string name="error_dialog_copy">نسخ</string>
+    <string name="error_dialog_copied">تم النسخ!</string>
+    <string name="error_dialog_unknown">خطأ غير معروف</string>
+    <string name="error_dialog_no_cause">لا يوجد سبب</string>
 </resources>
-

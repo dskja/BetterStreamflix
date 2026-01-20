@@ -1,10 +1,13 @@
 package com.streamflixreborn.streamflix.fragments.settings
 
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
+import android.util.TypedValue
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +17,7 @@ import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import androidx.preference.SeekBarPreference
 import com.streamflixreborn.streamflix.R
@@ -81,7 +85,6 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         episodeDao = db.episodeDao()
         seasonDao = db.seasonDao()
         
-        // Includiamo i provider statici + i provider TMDb dinamici (lingue principali) nel backup
         val allProvidersToBackup = Provider.providers.keys.toMutableList().apply {
             listOf("it", "en", "es", "de", "fr").forEach { lang ->
                 add(TmdbProvider(lang))
@@ -111,7 +114,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         displaySettings()
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+    }
+
     private fun displaySettings() {
+        
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
             isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
         }
@@ -232,7 +240,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                             provider, UserPreferences
                                 .PROVIDER_PORTAL_URL
                         )
-                        .ifBlank { provider.defaultPortalUrl }
+                        .ifBlank { portalProvider.defaultPortalUrl }
                     setOnBindEditTextListener { editText ->
                         editText.inputType = InputType.TYPE_CLASS_TEXT
                         editText.imeOptions = EditorInfo.IME_ACTION_DONE
@@ -358,6 +366,15 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 true
             }
         }
+
+        findPreference<Preference>("preferred_player_reset")?.setOnPreferenceClickListener {
+            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .edit()
+                .remove("preferred_smarttube_package")
+                .apply()
+            Toast.makeText(requireContext(), R.string.settings_trailer_player_reset, Toast.LENGTH_SHORT).show()
+            true
+        }
     }
 
     private suspend fun performBackupExport(uri: Uri) {
@@ -404,6 +421,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     override fun onResume() {
         super.onResume()
+        
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
 
@@ -436,7 +454,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
             val value = pref.text?.toLongOrNull() ?: 3L
-            "$value s" // TODO: Estrarre "s" in strings.xml se necessario
+            "$value s"
         }
     }
 }

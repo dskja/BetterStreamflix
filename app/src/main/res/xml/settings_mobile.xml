@@ -58,6 +58,7 @@
     </PreferenceCategory>
     
     <PreferenceCategory android:title="@string/settings_category_interface_title">
+
         <SwitchPreference
             android:key="IMMERSIVE_MODE"
             android:title="@string/settings_immersive_mode"
@@ -83,6 +84,19 @@
             android:defaultValue="true"
             android:summaryOn="@string/settings_player_gestures_on"
             android:summaryOff="@string/settings_player_gestures_off" />
+
+        <ListPreference
+            android:key="preferred_player"
+            android:title="@string/settings_trailer_player_title"
+            android:summary="@string/settings_trailer_player_summary"
+            android:entries="@array/trailer_player_names"
+            android:entryValues="@array/trailer_player_values"
+            android:defaultValue="ask" />
+
+        <Preference
+            android:key="preferred_player_reset"
+            android:title="@string/settings_trailer_player_reset"
+            android:summary="@string/settings_trailer_player_reset_summary" />
     </PreferenceCategory>
 
     <PreferenceCategory

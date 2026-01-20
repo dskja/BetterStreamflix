@@ -20,7 +20,35 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
-        <package android:name="com.teamsmart.videomanager.tv" />
+        <!-- Package visibility for SmartTube (Stable & Beta) and YouTube -->
+        <package android:name="org.smarttube.stable" />
+        <package android:name="org.smarttube.beta" />
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.google.android.tv.youtube" />
+
+        <!-- Generic Video Players Visibility -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/x-mpegURL" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.apple.mpegurl" />
+        </intent>
+
+        <!-- Intent queries for YouTube links -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="www.youtube.com" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="youtu.be" />
+        </intent>
     </queries>
 
     <application

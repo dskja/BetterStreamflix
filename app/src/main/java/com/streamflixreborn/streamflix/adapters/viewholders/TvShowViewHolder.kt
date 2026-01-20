@@ -1,9 +1,9 @@
 package com.streamflixreborn.streamflix.adapters.viewholders
 
 import android.app.AlertDialog
-import android.content.Context // Added for SharedPreferences
+import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences // Added for SharedPreferences
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.util.Log
 import android.view.View
@@ -12,6 +12,7 @@ import android.view.animation.AnimationUtils
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.navigation.findNavController
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.bumptech.glide.Glide
@@ -67,6 +68,7 @@ import com.streamflixreborn.streamflix.ui.ShowOptionsMobileDialog
 import com.streamflixreborn.streamflix.ui.ShowOptionsTvDialog
 import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.dp
+import androidx.preference.Preference
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
 import com.streamflixreborn.streamflix.utils.toActivity
@@ -93,10 +95,15 @@ class TvShowViewHolder(
     private val TAG = "TrailerChoiceDebug" // Logging Tag
 
     companion object {
-        private const val PREFS_NAME = "TrailerPlayerPrefs"
         private const val KEY_PREFERRED_PLAYER = "preferred_player"
+        private const val KEY_SMARTTUBE_PACKAGE = "preferred_smarttube_package" // New key for saving the exact package
         private const val PLAYER_YOUTUBE = "youtube"
         private const val PLAYER_SMARTTUBE = "smarttube"
+        private const val PLAYER_ASK = "ask"
+        private const val SMARTTUBE_STABLE_PACKAGE = "org.smarttube.stable"
+        private const val SMARTTUBE_BETA_PACKAGE = "org.smarttube.beta"
+        private const val YOUTUBE_PACKAGE = "com.google.android.youtube"
+        private const val YOUTUBE_TV_PACKAGE = "com.google.android.tv.youtube"
     }
 
     val childRecyclerView: RecyclerView?
@@ -140,6 +147,130 @@ class TvShowViewHolder(
             }
         }
         action()
+    }
+
+    private fun isPackageInstalled(packageName: String): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
+    private fun getInstalledSmartTubePackages(): List<String> {
+        val installed = mutableListOf<String>()
+        if (isPackageInstalled(SMARTTUBE_STABLE_PACKAGE)) installed.add(SMARTTUBE_STABLE_PACKAGE)
+        if (isPackageInstalled(SMARTTUBE_BETA_PACKAGE)) installed.add(SMARTTUBE_BETA_PACKAGE)
+        return installed
+    }
+
+    private fun launchSmartTube(packageName: String, trailerUrl: String) {
+        val intent = Intent(Intent.ACTION_VIEW, trailerUrl.toUri())
+        intent.setPackage(packageName)
+        context.startActivity(intent)
+    }
+
+    private fun showSmartTubeVersionDialog(packages: List<String>, trailerUrl: String, shouldSavePreference: Boolean) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val editor = prefs.edit()
+        
+        val items = packages.map { pkg ->
+            if (pkg == SMARTTUBE_STABLE_PACKAGE) context.getString(R.string.smarttube_stable)
+            else context.getString(R.string.smarttube_beta)
+        }.toTypedArray()
+
+        AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.choose_smarttube_version))
+            .setItems(items) { _, which ->
+                val selectedPackage = packages[which]
+                
+                if (shouldSavePreference) {
+                    // Salva la scelta dell'utente se la preferenza principale è "smarttube"
+                    editor.putString(KEY_SMARTTUBE_PACKAGE, selectedPackage).apply()
+                    Log.d(TAG, "SmartTube version saved: $selectedPackage")
+                }
+                
+                launchSmartTube(selectedPackage, trailerUrl)
+            }.show()
+    }
+
+    private fun handleSmartTubeSelection(trailerUrl: String, logPrefix: String) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val savedPackage = prefs.getString(KEY_SMARTTUBE_PACKAGE, null)
+        val stPackages = getInstalledSmartTubePackages()
+
+        Log.d(TAG, "$logPrefix: SmartTube packages found: ${stPackages.size}. Saved package: $savedPackage")
+        
+        if (stPackages.isEmpty()) {
+            // Caso 1: Nessuna SmartTube installata. Fallback su YouTube.
+            Log.d(TAG, "$logPrefix: No SmartTube installed, falling back to YouTube")
+            context.startActivity(Intent(Intent.ACTION_VIEW, trailerUrl.toUri()))
+            return
+        }
+
+        if (stPackages.size == 1) {
+            // Caso 2: Una sola SmartTube installata. Avvia direttamente.
+            Log.d(TAG, "$logPrefix: Only one SmartTube installed: ${stPackages[0]}. Launching directly.")
+            launchSmartTube(stPackages[0], trailerUrl)
+            return
+        }
+        
+        // Caso 3: Stable e Beta installate.
+        if (savedPackage != null && stPackages.contains(savedPackage)) {
+            // Caso 3a: Versione preferita è installata. Avvia direttamente la versione salvata.
+            Log.d(TAG, "$logPrefix: Saved SmartTube version found: $savedPackage. Launching directly.")
+            launchSmartTube(savedPackage, trailerUrl)
+        } else {
+            // Caso 3b: Nessuna preferenza salvata O la versione salvata non è più installata. Chiedi all'utente e salva la nuova scelta.
+            Log.d(TAG, "$logPrefix: Saved version invalid or missing. Asking user which version to use.")
+            showSmartTubeVersionDialog(stPackages, trailerUrl, true)
+        }
+    }
+
+    private fun handleTrailerClick(trailer: String, logPrefix: String) {
+        Log.d(TAG, "$logPrefix: Clicked. Trailer URL: $trailer")
+
+        val youtubeIntent = Intent(Intent.ACTION_VIEW, trailer.toUri())
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val preferredPlayer = prefs.getString(KEY_PREFERRED_PLAYER, PLAYER_ASK)
+        Log.d(TAG, "$logPrefix: Preferred player from settings: $preferredPlayer")
+
+        when (preferredPlayer) {
+            PLAYER_SMARTTUBE -> {
+                handleSmartTubeSelection(trailer, logPrefix)
+            }
+            PLAYER_YOUTUBE -> {
+                Log.d(TAG, "$logPrefix: Launching YouTube (Preferred)")
+                context.startActivity(youtubeIntent)
+            }
+            else -> { // PLAYER_ASK or nothing set
+                val stPackages = getInstalledSmartTubePackages()
+                if (stPackages.isNotEmpty()) {
+                    Log.d(TAG, "$logPrefix: Showing choice dialog (Ask)")
+                    AlertDialog.Builder(context)
+                        .setTitle(context.getString(R.string.watch_trailer_with))
+                        .setItems(arrayOf(context.getString(R.string.youtube), context.getString(R.string.smarttube))) { _, which ->
+                            if (which == 0) {
+                                Log.d(TAG, "$logPrefix: Dialog (Ask): YouTube selected")
+                                context.startActivity(youtubeIntent)
+                            } else {
+                                Log.d(TAG, "$logPrefix: Dialog (Ask): SmartTube selected")
+                                // Qui, non salvare la preferenza per la versione SmartTube,
+                                // ma chiedi quale usare se ci sono due installazioni.
+                                if (stPackages.size > 1) {
+                                    showSmartTubeVersionDialog(stPackages, trailer, false)
+                                } else {
+                                    launchSmartTube(stPackages[0], trailer)
+                                }
+                            }
+                        }.show()
+                } else {
+                    Log.d(TAG, "$logPrefix: SmartTube not found, launching YouTube directly")
+                    context.startActivity(youtubeIntent)
+                }
+            }
+        }
     }
 
     private fun displayMobileItem(binding: ItemTvShowMobileBinding) {
@@ -607,88 +738,10 @@ class TvShowViewHolder(
 
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
-            Log.d(TAG, "TvShowMobile: btnTvShowTrailer.apply called. Trailer URL: $trailer")
-
             setOnClickListener {
-                Log.d(TAG, "TvShowMobile: setOnClickListener called.")
-                if (trailer == null) {
-                    Log.d(TAG, "TvShowMobile: Trailer is null, doing nothing.")
-                    return@setOnClickListener
-                }
-
-                val youtubeIntent = Intent(Intent.ACTION_VIEW, trailer.toUri())
-                val smartTubeIntent = Intent(Intent.ACTION_VIEW, trailer.toUri())
-                smartTubeIntent.setPackage("com.teamsmart.videomanager.tv")
-                Log.d(TAG, "TvShowMobile: Intents created. YouTube: $youtubeIntent, SmartTube: $smartTubeIntent")
-
-                val smartTubeInstalled = try {
-                    context.packageManager.getPackageInfo("com.teamsmart.videomanager.tv", 0)
-                    Log.d(TAG, "TvShowMobile: SmartTube package info found.")
-                    true
-                } catch (_: PackageManager.NameNotFoundException) {
-                    Log.d(TAG, "TvShowMobile: SmartTube package info NOT found.")
-                    false
-                }
-                Log.d(TAG, "TvShowMobile: smartTubeInstalled = $smartTubeInstalled")
-
-                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                val preferredPlayer = prefs.getString(KEY_PREFERRED_PLAYER, null)
-                Log.d(TAG, "TvShowMobile: Preferred player from prefs: $preferredPlayer")
-
-                if (preferredPlayer == PLAYER_SMARTTUBE && smartTubeInstalled) {
-                    Log.d(TAG, "TvShowMobile: Preferred player is SmartTube and it's installed. Launching SmartTube.")
-                    context.startActivity(smartTubeIntent)
-                } else if (preferredPlayer == PLAYER_SMARTTUBE && !smartTubeInstalled) {
-                    Log.d(TAG, "TvShowMobile: Preferred player was SmartTube, but it's not installed. Launching YouTube.")
-                    context.startActivity(youtubeIntent) // Launch YouTube but don't change preference
-                } else if (preferredPlayer == PLAYER_YOUTUBE) {
-                    Log.d(TAG, "TvShowMobile: Preferred player is YouTube. Launching YouTube.")
-                    context.startActivity(youtubeIntent)
-                } else {
-                    // No valid preference or SmartTube preferred but not installed the first time
-                    if (smartTubeInstalled) {
-                        Log.d(TAG, "TvShowMobile: No valid preference or SmartTube not installed previously. SmartTube IS installed now. Showing dialog.")
-                        AlertDialog.Builder(context)
-                            .setTitle(context.getString(R.string.watch_trailer_with))
-                            .setItems(
-                                arrayOf(
-                                    context.getString(R.string.youtube),
-                                    context.getString(R.string.smarttube)
-                                )
-                            ) { _, which ->
-                                Log.d(TAG, "TvShowMobile: AlertDialog item selected: $which")
-                                val editor = prefs.edit()
-                                when (which) {
-                                    0 -> {
-                                        Log.d(TAG, "TvShowMobile: Launching YouTube and saving preference.")
-                                        editor.putString(KEY_PREFERRED_PLAYER, PLAYER_YOUTUBE)
-                                        context.startActivity(youtubeIntent)
-                                    }
-                                    1 -> {
-                                        Log.d(TAG, "TvShowMobile: Launching SmartTube and saving preference.")
-                                        editor.putString(KEY_PREFERRED_PLAYER, PLAYER_SMARTTUBE)
-                                        context.startActivity(smartTubeIntent)
-                                    }
-                                }
-                                editor.apply()
-                            }
-                            .show()
-                    } else {
-                        Log.d(TAG, "TvShowMobile: No preference and SmartTube not installed. Launching YouTube directly.")
-                        context.startActivity(youtubeIntent)
-                        // Optionally, save YouTube as default here if desired
-                        // prefs.edit().putString(KEY_PREFERRED_PLAYER, PLAYER_YOUTUBE).apply()
-                    }
-                }
+                if (trailer != null) handleTrailerClick(trailer, "TvShowMobile")
             }
-
-            visibility = when {
-                trailer != null -> View.VISIBLE
-                else -> {
-                    Log.d(TAG, "TvShowMobile: Trailer is null, setting button visibility to GONE.")
-                    View.GONE
-                }
-            }
+            visibility = if (trailer != null) View.VISIBLE else View.GONE
         }
         binding.btnTvShowFavorite.apply {
 
@@ -871,88 +924,10 @@ class TvShowViewHolder(
 
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
-            Log.d(TAG, "TvShowTv: btnTvShowTrailer.apply called. Trailer URL: $trailer")
-
             setOnClickListener {
-                Log.d(TAG, "TvShowTv: setOnClickListener called.")
-                if (trailer == null) {
-                    Log.d(TAG, "TvShowTv: Trailer is null, doing nothing.")
-                    return@setOnClickListener
-                }
-
-                val youtubeIntent = Intent(Intent.ACTION_VIEW, trailer.toUri())
-                val smartTubeIntent = Intent(Intent.ACTION_VIEW, trailer.toUri())
-                smartTubeIntent.setPackage("com.teamsmart.videomanager.tv")
-                Log.d(TAG, "TvShowTv: Intents created. YouTube: $youtubeIntent, SmartTube: $smartTubeIntent")
-
-                val smartTubeInstalled = try {
-                    context.packageManager.getPackageInfo("com.teamsmart.videomanager.tv", 0)
-                    Log.d(TAG, "TvShowTv: SmartTube package info found.")
-                    true
-                } catch (_: PackageManager.NameNotFoundException) {
-                    Log.d(TAG, "TvShowTv: SmartTube package info NOT found.")
-                    false
-                }
-                Log.d(TAG, "TvShowTv: smartTubeInstalled = $smartTubeInstalled")
-
-                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                val preferredPlayer = prefs.getString(KEY_PREFERRED_PLAYER, null)
-                Log.d(TAG, "TvShowTv: Preferred player from prefs: $preferredPlayer")
-
-                if (preferredPlayer == PLAYER_SMARTTUBE && smartTubeInstalled) {
-                    Log.d(TAG, "TvShowTv: Preferred player is SmartTube and it's installed. Launching SmartTube.")
-                    context.startActivity(smartTubeIntent)
-                } else if (preferredPlayer == PLAYER_SMARTTUBE && !smartTubeInstalled) {
-                    Log.d(TAG, "TvShowTv: Preferred player was SmartTube, but it's not installed. Launching YouTube.")
-                    context.startActivity(youtubeIntent) // Launch YouTube but don't change preference
-                } else if (preferredPlayer == PLAYER_YOUTUBE) {
-                    Log.d(TAG, "TvShowTv: Preferred player is YouTube. Launching YouTube.")
-                    context.startActivity(youtubeIntent)
-                } else {
-                    // No valid preference or SmartTube preferred but not installed the first time
-                    if (smartTubeInstalled) {
-                        Log.d(TAG, "TvShowTv: No valid preference or SmartTube not installed previously. SmartTube IS installed now. Showing dialog.")
-                        AlertDialog.Builder(context)
-                            .setTitle(context.getString(R.string.watch_trailer_with))
-                            .setItems(
-                                arrayOf(
-                                    context.getString(R.string.youtube),
-                                    context.getString(R.string.smarttube)
-                                )
-                            ) { _, which ->
-                                Log.d(TAG, "TvShowTv: AlertDialog item selected: $which")
-                                val editor = prefs.edit()
-                                when (which) {
-                                    0 -> {
-                                        Log.d(TAG, "TvShowTv: Launching YouTube and saving preference.")
-                                        editor.putString(KEY_PREFERRED_PLAYER, PLAYER_YOUTUBE)
-                                        context.startActivity(youtubeIntent)
-                                    }
-                                    1 -> {
-                                        Log.d(TAG, "TvShowTv: Launching SmartTube and saving preference.")
-                                        editor.putString(KEY_PREFERRED_PLAYER, PLAYER_SMARTTUBE)
-                                        context.startActivity(smartTubeIntent)
-                                    }
-                                }
-                                editor.apply()
-                            }
-                            .show()
-                    } else {
-                        Log.d(TAG, "TvShowTv: No preference and SmartTube not installed. Launching YouTube directly.")
-                        context.startActivity(youtubeIntent)
-                        // Optionally, save YouTube as default here if desired
-                        // prefs.edit().putString(KEY_PREFERRED_PLAYER, PLAYER_YOUTUBE).apply()
-                    }
-                }
+                if (trailer != null) handleTrailerClick(trailer, "TvShowTv")
             }
-
-            visibility = when {
-                trailer != null -> View.VISIBLE
-                else -> {
-                    Log.d(TAG, "TvShowTv: Trailer is null, setting button visibility to GONE.")
-                    View.GONE
-                }
-            }
+            visibility = if (trailer != null) View.VISIBLE else View.GONE
         }
         binding.btnTvShowFavorite.apply {
 

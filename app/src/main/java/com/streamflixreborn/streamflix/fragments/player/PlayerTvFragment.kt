@@ -1,8 +1,13 @@
 package com.streamflixreborn.streamflix.fragments.player
 
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -65,6 +70,10 @@ import okhttp3.internal.userAgent
 import java.util.Calendar
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import java.util.Base64
+import java.io.File
+import java.io.FileOutputStream
+import androidx.core.content.FileProvider
 
 class PlayerTvFragment : Fragment() {
 
@@ -91,6 +100,18 @@ class PlayerTvFragment : Fragment() {
 
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
+
+    private val chooserReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val clickedComponent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT, android.content.ComponentName::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT)
+            }
+            Log.i("ExternalPlayer", "TV - L'utente ha selezionato l'app: ${clickedComponent?.packageName ?: "Sconosciuta"}")
+        }
+    }
 
     private val pickLocalSubtitle = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -142,6 +163,15 @@ class PlayerTvFragment : Fragment() {
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
             isSetupDone = true
         }
+
+        try {
+            val filter = IntentFilter("ACTION_PLAYER_CHOSEN_TV")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requireContext().registerReceiver(chooserReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                requireContext().registerReceiver(chooserReceiver, filter)
+            }
+        } catch (e: Exception) {}
     }
 
     override fun onCreateView(
@@ -308,6 +338,9 @@ class PlayerTvFragment : Fragment() {
         player.release()
         mediaSession.release()
         stopProgressHandler()
+        try {
+            requireContext().unregisterReceiver(chooserReceiver)
+        } catch (e: Exception) {}
         _binding = null
         isSetupDone = false
     }
@@ -523,6 +556,35 @@ class PlayerTvFragment : Fragment() {
         handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, viewModel::playNextEpisode)
     }
 
+    private fun decodeBase64Uri(uri: String): String? {
+        return try {
+            val parts = uri.split(",")
+            if (parts.size == 2 && parts[0].contains(";base64")) {
+                val base64Data = parts[1]
+                val decodedBytes = Base64.getDecoder().decode(base64Data)
+                String(decodedBytes, Charsets.UTF_8)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("Base64Decoder", "Error decoding Base64 URI", e)
+            null
+        }
+    }
+
+    private fun extractUrlFromPlaylist(playlist: String): String? {
+        return try {
+            val lines = playlist.lines().map { it.trim() }
+            lines.firstOrNull { it.startsWith("http") }
+                ?: lines.firstNotNullOfOrNull { line ->
+                    val regex = """URI=["'](http[^"']+)["']""".toRegex()
+                    regex.find(line)?.groupValues?.get(1)
+                }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun displayVideo(video: Video, server: Video.Server) {
         currentVideo = video
         currentServer = server
@@ -570,21 +632,78 @@ class PlayerTvFragment : Fragment() {
         )
 
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.parse(video.source), "video/*")
-
-                putExtra("title", when (val videoType = args.videoType as Video.Type) {
-                    is Video.Type.Movie -> videoType.title
-                    is Video.Type.Episode -> "${videoType.tvShow.title} • S${videoType.season.number} E${videoType.number}"
-                })
-                putExtra("position", currentPosition)
+            val videoTitle = when (val type = args.videoType as Video.Type) {
+                is Video.Type.Movie -> type.title
+                is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
             }
-            startActivity(
-                Intent.createChooser(
-                    intent,
-                    requireContext().getString(R.string.player_external_player_title)
+
+            var sourceUri: Uri
+            var mimeType: String = "video/*"
+            
+            val initialSource = video.source
+
+            if (initialSource.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
+                val playlistContent = decodeBase64Uri(initialSource)
+                val extractedUrl = if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
+                
+                if (extractedUrl != null) {
+                    sourceUri = Uri.parse(extractedUrl)
+                    Log.i("ExternalPlayer", "Link reale estratto TV: $sourceUri")
+                } else {
+                    try {
+                        val file = File(requireContext().cacheDir, "stream.m3u8")
+                        FileOutputStream(file).use { it.write(playlistContent?.toByteArray() ?: ByteArray(0)) }
+                        sourceUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.provider", file)
+                    } catch (e: Exception) {
+                        sourceUri = Uri.parse(initialSource)
+                    }
+                }
+            } else {
+                sourceUri = Uri.parse(initialSource)
+            }
+
+            Log.i("ExternalPlayer", "Avvio intent TV con URI: $sourceUri e MIME: $mimeType")
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(sourceUri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                
+                putExtra("title", videoTitle)
+                putExtra("position", player.currentPosition.toInt())
+                putExtra("return_result", true)
+
+                video.headers?.forEach { (key, value) ->
+                    putExtra(key, value) 
+                }
+                
+                putExtra("extra_headers", video.headers?.map { "${it.key}: ${it.value}" }?.toTypedArray())
+                
+                if (video.headers != null) {
+                    val headersArray = video.headers.flatMap { listOf(it.key, it.value) }.toTypedArray()
+                    putExtra("headers", headersArray)
+                }
+            }
+
+            try {
+                val receiverIntent = Intent("ACTION_PLAYER_CHOSEN_TV").apply {
+                    setPackage(requireContext().packageName)
+                }
+                val pendingIntent = PendingIntent.getBroadcast(
+                    requireContext(), 0, receiverIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
-            )
+
+                startActivity(
+                    Intent.createChooser(
+                        intent,
+                        requireContext().getString(R.string.player_external_player_title),
+                        pendingIntent.intentSender
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("ExternalPlayer", "Errore selettore app TV", e)
+                startActivity(Intent.createChooser(intent, requireContext().getString(R.string.player_external_player_title)))
+            }
         }
 
         player.addListener(object : Player.Listener {
