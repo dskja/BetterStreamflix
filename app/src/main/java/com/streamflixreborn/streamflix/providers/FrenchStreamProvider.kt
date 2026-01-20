@@ -635,17 +635,18 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     "vo" to "VO"
                 )
 
+                val seenUrls = mutableSetOf<String>()
+
                 document.selectFirst("div#film-data")
                     ?.attributes()
                     ?.asList()
-                    ?.filter { it.key.startsWith("data-") && it.value.startsWith("http") }
-                    ?.mapIndexedNotNull { id, attr ->
+                    ?.filter { it.key.startsWith("data-") && !it.key.startsWith("data-affiche") && it.value.startsWith("http") }
+                    ?.mapIndexed { id, attr ->
                         val name = attr.key.removePrefix("data-")
 
                         val provider = name.removeSuffix("vo").removeSuffix("vostfr").removeSuffix("vfq").removeSuffix("vff")
                         val lang = name.removePrefix(provider)
 
-                        if (lang.isEmpty()) return@mapIndexedNotNull null
                         val order = providerIndex.getOrPut(provider) { pIndex++ }
 
                         VideoProvider(
@@ -663,14 +664,15 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 "vo"     -> 3
                                 "vfq"    -> 2
                                 "vff"    -> 1
-                                else     -> 0
+                                else     -> 10
                             }
                         }
                     )
-                    ?.map {
+                    ?.mapNotNull {
+                        if (!seenUrls.add(it.url)) return@mapNotNull null
                         Video.Server(
                             id = "vid${it.id}",
-                            name = "${it.name.replaceFirstChar{ it.uppercase() } } ("+(labels[it.lang] ?: it.lang)+")",
+                            name = it.name.replaceFirstChar{ it.uppercase() } + if (it.lang.isNotBlank()) " ("+(labels[it.lang] ?: it.lang)+")" else "",
                             src = it.url
                         )
                     } ?: emptyList()
