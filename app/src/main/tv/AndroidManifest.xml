@@ -38,7 +38,7 @@
         <activity
             android:name=".activities.main.MainTvActivity"
             android:exported="true"
-            android:theme="@style/AppTheme.SplashScreen">
+            android:theme="@style/AppTheme.Tv">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

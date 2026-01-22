@@ -50,6 +50,7 @@ class MainTvActivity : FragmentActivity() {
             .findFragmentById(binding.navMainFragment.id) as NavHostFragment
         val navController = navHostFragment.navController
 
+        UserPreferences.setup(this)
         AppDatabase.setup(this)
 
         adjustLayoutDelta(null, null)

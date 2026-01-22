@@ -124,8 +124,9 @@ class ProvidersMobileFragment : Fragment() {
                 }
             }
 
+            // CORREZIONE: Usiamo il contesto dello Spinner (che ha il tema scuro) invece di requireContext()
             val spinnerAdapter = ArrayAdapter(
-                requireContext(),
+                this.context,
                 android.R.layout.simple_spinner_item,
                 languages.map { it.name }.toMutableList()
                     .also { it.add(0, context.getString(R.string.providers_all_languages)) }

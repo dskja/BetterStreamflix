@@ -837,43 +837,53 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
-        val servers = mutableListOf<Video.Server>(
-            VixSrcExtractor().server(videoType),
-            TwoEmbedExtractor().server(videoType),
-            VidsrcNetExtractor().server(videoType),
-            VidLinkExtractor().server(videoType),
-            VidsrcRuExtractor().server(videoType),
-            VidflixExtractor().server(videoType),
-            VidrockExtractor().server(videoType),
-        )
+        val servers = mutableListOf<Video.Server>()
 
-        if (videoType is Video.Type.Movie) {
-            servers.add(2, MoviesapiExtractor().server(videoType))
-        }
+        if (language == "it") {
+            // Se la lingua è italiano, includiamo solo i server noti per l'italiano.
+            // Questo esclude i server globali per evitare stream in inglese.
+            servers.add(VixSrcExtractor().server(videoType))
+            VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
 
-        servers.addAll(VidzeeExtractor().servers(videoType))
-        servers.addAll(PrimeSrcExtractor().servers(videoType))
-
-        if (language == "de") {
-            if (videoType is Video.Type.Movie) {
-                servers.add(0, EinschaltenExtractor().server(videoType))
-            }
-            servers.add(0, MoflixExtractor().server(videoType))
-            VideasyExtractor().server(videoType, language)?.let { servers.add(0, it) }
-        } else if (language == "fr") {
-            val frembedServers = FrembedExtractor().servers(videoType)
-            servers.addAll(0, frembedServers)
-            VideasyExtractor().server(videoType, language)?.let { servers.add(frembedServers.size, it) }
-        } else if (language == "it") {
-            VideasyExtractor().server(videoType, language)?.let { servers.add(1, it) }
-        } else if (language == "es") {
-            VideasyExtractor().server(videoType, language)?.let { servers.add(0, it) }
-        } else if (language == "en") {
-            servers.addAll(1, VideasyExtractor().servers(videoType, language))
         } else {
-            servers.add(MoflixExtractor().server(videoType))
+            // Logica originale per tutte le altre lingue (in, de, fr, es, en, o generica)
+
+            servers.addAll(listOf(
+                VixSrcExtractor().server(videoType),
+                TwoEmbedExtractor().server(videoType),
+                VidsrcNetExtractor().server(videoType),
+                VidLinkExtractor().server(videoType),
+                VidsrcRuExtractor().server(videoType),
+                VidflixExtractor().server(videoType),
+            ))
+
             if (videoType is Video.Type.Movie) {
-                servers.add(EinschaltenExtractor().server(videoType))
+                servers.add(2, MoviesapiExtractor().server(videoType))
+            }
+
+            servers.addAll(VidrockExtractor().servers(videoType))
+            servers.addAll(VidzeeExtractor().servers(videoType))
+            servers.addAll(PrimeSrcExtractor().servers(videoType))
+
+            if (language == "de") {
+                if (videoType is Video.Type.Movie) {
+                    servers.add(0, EinschaltenExtractor().server(videoType))
+                }
+                servers.add(0, MoflixExtractor().server(videoType))
+                VideasyExtractor().server(videoType, language)?.let { servers.add(0, it) }
+            } else if (language == "fr") {
+                val frembedServers = FrembedExtractor().servers(videoType)
+                servers.addAll(0, frembedServers)
+                VideasyExtractor().server(videoType, language)?.let { servers.add(frembedServers.size, it) }
+            } else if (language == "es") {
+                VideasyExtractor().server(videoType, language)?.let { servers.add(0, it) }
+            } else if (language == "en") {
+                servers.addAll(1, VideasyExtractor().servers(videoType, language))
+            } else {
+                servers.add(MoflixExtractor().server(videoType))
+                if (videoType is Video.Type.Movie) {
+                    servers.add(EinschaltenExtractor().server(videoType))
+                }
             }
         }
 

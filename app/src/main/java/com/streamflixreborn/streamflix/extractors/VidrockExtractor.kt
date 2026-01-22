@@ -20,36 +20,77 @@ class VidrockExtractor : Extractor() {
 
     private val passphrase = "x7k9mPqT2rWvY8zA5bC3nF6hJ2lK4mN9"
 
-    fun server(videoType: Video.Type): Video.Server {
+    suspend fun servers(videoType: Video.Type): List<Video.Server> {
         val encoded = when (videoType) {
             is Video.Type.Movie -> encryptAndEncode(videoType.id)
             is Video.Type.Episode -> encryptAndEncode("${videoType.tvShow.id}_${videoType.season.number}_${videoType.number}")
         }
 
-        return Video.Server(
-            id = name,
-            name = name,
-            src = when (videoType) {
-                is Video.Type.Episode -> "$mainUrl/api/tv/$encoded"
-                is Video.Type.Movie -> "$mainUrl/api/movie/$encoded"
+        val apiUrl = when (videoType) {
+            is Video.Type.Episode -> "$mainUrl/api/tv/$encoded"
+            is Video.Type.Movie -> "$mainUrl/api/movie/$encoded"
+        }
+
+        return try {
+            val service = Service.build(mainUrl)
+            val response = service.getStreams(apiUrl)
+
+            response.mapNotNull { (serverName, data) ->
+                val videoUrl = data["url"] ?: return@mapNotNull null
+                if (videoUrl.isEmpty()) return@mapNotNull null
+
+                Video.Server(
+                    id = "$serverName-$videoUrl (Vidrock)",
+                    name = "$serverName (Vidrock)",
+                    src = "$apiUrl#$serverName"
+                )
             }
-        )
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun server(videoType: Video.Type): Video.Server? {
+        return servers(videoType).firstOrNull()
     }
 
     override suspend fun extract(link: String): Video {
+        val serverName = link.substringAfter("#", "").takeIf { it != link }
+        val apiLink = link.substringBefore("#")
+
         val service = Service.build(mainUrl)
+        val response = service.getStreams(apiLink)
 
-        val response = service.getStreams(link)
+        val serverEntry = if (!serverName.isNullOrEmpty()) {
+            response.entries.find { it.key.equals(serverName, ignoreCase = true) }
+        } else {
+            response.entries.find { it.value["url"]?.isNotEmpty() == true }
+        } ?: error("No video sources found")
 
-        val sources = response.values.mapNotNull { it["url"] }.filter { it.isNotEmpty() }
-        val videoUrl = sources.randomOrNull() ?: error("No video sources found")
+        val actualServerName = serverEntry.key
+        var videoUrl = serverEntry.value["url"]!!
+        var type = MimeTypes.APPLICATION_M3U8
+
+        if (actualServerName.equals("Atlas", ignoreCase = true)) {
+            val qualities = try {
+                service.getAtlasQualities(videoUrl)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val highest = qualities.maxByOrNull { it.resolution }
+            if (highest != null) {
+                videoUrl = highest.url
+                type = MimeTypes.VIDEO_MP4
+            }
+        }
 
         return Video(
             source = videoUrl,
             headers = mapOf(
-                "Referer" to mainUrl
+                "Referer" to "$mainUrl/",
+                "Origin" to mainUrl
             ),
-            type = MimeTypes.APPLICATION_M3U8
+            type = type
         )
     }
 
@@ -82,5 +123,13 @@ class VidrockExtractor : Extractor() {
 
         @GET
         suspend fun getStreams(@Url url: String): Map<String, Map<String, String>>
+
+        @GET
+        suspend fun getAtlasQualities(@Url url: String): List<AtlasQuality>
     }
+
+    data class AtlasQuality(
+        val resolution: Int,
+        val url: String
+    )
 }

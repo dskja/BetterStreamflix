@@ -95,6 +95,7 @@
     <string name="player_picture_in_picture_not_supported">Il PiP non è supportato dal dispositivo in uso</string>
     <string name="player_external_player_title">Avvia con</string>
     <string name="player_external_player_error_video">Video non ancora caricato</string>
+    <string name="player_not_available_it_message">Non presente nei server italiani, cercalo su TMDB in altre lingue</string>
     <string name="player_aspect_ratio_fit">Dimensione originale</string>
     <string name="player_aspect_ratio_fill">Riempi lo schermo ritagliando il video</string>
     <string name="player_aspect_ratio_zoom">Zoom classico</string>
@@ -131,6 +132,8 @@
     <string name="player_settings_caption_style_text_size_label">Dimensione testo</string>
     <string name="player_settings_caption_style_text_size_0_5">50%</string>
     <string name="player_settings_caption_style_text_size_0_75">75%</string>
+    <string name="player_settings_caption_style_text_size_0_8">80%</string>
+    <string name="player_settings_caption_style_text_size_0_9">90%</string>
     <string name="player_settings_caption_style_text_size_1">100%</string>
     <string name="player_settings_caption_style_text_size_1_25">125%</string>
     <string name="player_settings_caption_style_text_size_1_5">150%</string>

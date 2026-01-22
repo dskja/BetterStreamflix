@@ -16,8 +16,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -74,6 +76,8 @@ import java.util.Base64
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
+import com.streamflixreborn.streamflix.providers.TmdbProvider 
 
 class PlayerTvFragment : Fragment() {
 
@@ -103,13 +107,15 @@ class PlayerTvFragment : Fragment() {
 
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val clickedComponent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT, android.content.ComponentName::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                val clickedComponent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT, android.content.ComponentName::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT)
+                }
+                Log.i("ExternalPlayer", "TV - App selezionata: ${clickedComponent?.packageName ?: "Sconosciuta"}")
             }
-            Log.i("ExternalPlayer", "TV - L'utente ha selezionato l'app: ${clickedComponent?.packageName ?: "Sconosciuta"}")
         }
     }
 
@@ -166,12 +172,13 @@ class PlayerTvFragment : Fragment() {
 
         try {
             val filter = IntentFilter("ACTION_PLAYER_CHOSEN_TV")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requireContext().registerReceiver(chooserReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                requireContext().registerReceiver(chooserReceiver, filter)
-            }
-        } catch (e: Exception) {}
+            ContextCompat.registerReceiver(
+                requireContext(),
+                chooserReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (ignored: Exception) {}
     }
 
     override fun onCreateView(
@@ -195,6 +202,21 @@ class PlayerTvFragment : Fragment() {
                     PlayerViewModel.State.LoadingServers -> {}
                     is PlayerViewModel.State.SuccessLoadingServers -> {
                         servers = state.servers
+                        
+                        val providerName = UserPreferences.currentProvider?.name ?: ""
+                        val isItTmdbi = providerName.contains("TMDb", ignoreCase = true) && providerName.contains("(it)", ignoreCase = true)
+
+                        if (servers.isEmpty()) {
+                            val message = if (isItTmdbi) {
+                                getString(R.string.player_not_available_it_message)
+                            } else {
+                                "No servers found for this content."
+                            }
+                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                            findNavController().navigateUp()
+                            return@collect
+                        }
+
                         player.playlistMetadata = MediaMetadata.Builder()
                             .setTitle(state.toString())
                             .setMediaServers(state.servers.map {
@@ -222,7 +244,7 @@ class PlayerTvFragment : Fragment() {
                     is PlayerViewModel.State.LoadingVideo -> {
                         player.setMediaItem(
                             MediaItem.Builder()
-                                .setUri(Uri.parse(""))
+                                .setUri("".toUri())
                                 .setMediaMetadata(
                                     MediaMetadata.Builder()
                                         .setMediaServerId(state.server.id)
@@ -242,9 +264,18 @@ class PlayerTvFragment : Fragment() {
                         if (nextServer != null) {
                             viewModel.getVideo(nextServer)
                         } else {
+                            val providerName = UserPreferences.currentProvider?.name ?: ""
+                            val isItTmdbi = providerName.contains("TMDb", ignoreCase = true) && providerName.contains("(it)", ignoreCase = true)
+
+                            val message = if (isItTmdbi) {
+                                getString(R.string.player_not_available_it_message)
+                            } else {
+                                "All servers failed to load the video."
+                            }
+                            
                             Toast.makeText(
                                 requireContext(),
-                                "All servers failed to load the video.",
+                                message,
                                 Toast.LENGTH_LONG
                             ).show()
                             findNavController().navigateUp()
@@ -317,7 +348,7 @@ class PlayerTvFragment : Fragment() {
                         action,
                         NavOptions.Builder()
                             .setPopUpTo(findNavController().currentDestination?.id ?: return@collect, true)
-                            .setLaunchSingleTop(false) // false so we create a new fragment
+                            .setLaunchSingleTop(false) 
                             .build()
                     )
                 }
@@ -340,7 +371,7 @@ class PlayerTvFragment : Fragment() {
         stopProgressHandler()
         try {
             requireContext().unregisterReceiver(chooserReceiver)
-        } catch (e: Exception) {}
+        } catch (ignored: Exception) {}
         _binding = null
         isSetupDone = false
     }
@@ -363,13 +394,13 @@ class PlayerTvFragment : Fragment() {
 
     private fun updatePlayerScale() {
         val videoSurfaceView = binding.pvPlayer.videoSurfaceView
-        val playerResize = UserPreferences.playerResize // Corretto
+        val playerResize = UserPreferences.playerResize 
 
-        binding.pvPlayer.resizeMode = playerResize.resizeMode // Corretto
+        binding.pvPlayer.resizeMode = playerResize.resizeMode 
 
-        when (playerResize) { // Corretto
+        when (playerResize) { 
             UserPreferences.PlayerResize.Stretch43 -> {
-                val scale = 1.33f // 4:3 aspect ratio
+                val scale = 1.33f 
                 videoSurfaceView?.scaleX = scale
                 videoSurfaceView?.scaleY = 1f
             }
@@ -421,7 +452,7 @@ class PlayerTvFragment : Fragment() {
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
             Toast.makeText(
                 requireContext(),
-                requireContext().getString(R.string.player_external_player_error_video),
+                getString(R.string.player_external_player_error_video),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -449,7 +480,7 @@ class PlayerTvFragment : Fragment() {
         }
 
         binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
-            player.seekTo(player.currentPosition + 85000) // Jump 85 seconds
+            player.seekTo(player.currentPosition + 85000) 
             it.visibility = View.GONE
         }
 
@@ -497,7 +528,8 @@ class PlayerTvFragment : Fragment() {
             button.setOnClickListener {
                 if (!hasEpisode()) return@setOnClickListener
 
-                val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
+                val videoType = args.videoType
+                val watchItem: WatchItem? = when (videoType) {
                     is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                     is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                 }
@@ -512,7 +544,7 @@ class PlayerTvFragment : Fragment() {
                     )
                 }
 
-                when (val videoType = args.videoType as Video.Type) {
+                when (videoType) {
                     is Video.Type.Movie -> {
                         watchItem?.let { database.movieDao().update(it as Movie) }
                     }
@@ -520,7 +552,7 @@ class PlayerTvFragment : Fragment() {
                         watchItem?.let { episode ->
                             if (player.hasFinished()) {
                                 episode.isWatched = true
-                                episode.watchedDate = Calendar.getInstance()
+                                (episode as Episode).watchedDate = Calendar.getInstance()
                                 episode.watchHistory = null
                                 database.episodeDao().resetProgressionFromEpisode(videoType.id)
                             }
@@ -530,13 +562,11 @@ class PlayerTvFragment : Fragment() {
                             (episode as Episode).tvShow?.let { tvShow ->
                                 database.tvShowDao().getById(tvShow.id)
                             }?.let { tvShow ->
-                                // Correzione: Non forzare isWatching = true se l'episodio è finito.
+                                
                                 val isWatchingValue = if (player.hasFinished()) {
-                                    // Se l'episodio è finito, controlla se ci sono altri progressi in corso nella serie
-                                    val isStillWatching = database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
-                                    isStillWatching
+                                    database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
                                 } else {
-                                    true // Se non è finito, è in corso.
+                                    true 
                                 }
 
                                 database.tvShowDao().save(tvShow.copy().apply {
@@ -566,8 +596,7 @@ class PlayerTvFragment : Fragment() {
             } else {
                 null
             }
-        } catch (e: Exception) {
-            Log.e("Base64Decoder", "Error decoding Base64 URI", e)
+        } catch (ignored: Exception) {
             null
         }
     }
@@ -580,7 +609,7 @@ class PlayerTvFragment : Fragment() {
                     val regex = """URI=["'](http[^"']+)["']""".toRegex()
                     regex.find(line)?.groupValues?.get(1)
                 }
-        } catch (e: Exception) {
+        } catch (ignored: Exception) {
             null
         }
     }
@@ -603,7 +632,6 @@ class PlayerTvFragment : Fragment() {
                 .build()
         }
 
-        val videoType = args.videoType
         val currentPosition = player.currentPosition
 
         httpDataSource.setDefaultRequestProperties(
@@ -614,10 +642,10 @@ class PlayerTvFragment : Fragment() {
 
         player.setMediaItem(
             MediaItem.Builder()
-                .setUri(Uri.parse(video.source))
+                .setUri(video.source.toUri())
                 .setMimeType(video.type)
                 .setSubtitleConfigurations(video.subtitles.map { subtitle ->
-                    MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitle.file))
+                    MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
                         .setMimeType(subtitle.file.toSubtitleMimeType())
                         .setLabel(subtitle.label)
                         .setSelectionFlags(if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0)
@@ -632,13 +660,13 @@ class PlayerTvFragment : Fragment() {
         )
 
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
-            val videoTitle = when (val type = args.videoType as Video.Type) {
+            val videoTitle = when (val type = args.videoType) {
                 is Video.Type.Movie -> type.title
                 is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
             }
 
             var sourceUri: Uri
-            var mimeType: String = "video/*"
+            val mimeType = "video/*"
             
             val initialSource = video.source
 
@@ -647,19 +675,19 @@ class PlayerTvFragment : Fragment() {
                 val extractedUrl = if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
                 
                 if (extractedUrl != null) {
-                    sourceUri = Uri.parse(extractedUrl)
+                    sourceUri = extractedUrl.toUri()
                     Log.i("ExternalPlayer", "Link reale estratto TV: $sourceUri")
                 } else {
                     try {
                         val file = File(requireContext().cacheDir, "stream.m3u8")
                         FileOutputStream(file).use { it.write(playlistContent?.toByteArray() ?: ByteArray(0)) }
                         sourceUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.provider", file)
-                    } catch (e: Exception) {
-                        sourceUri = Uri.parse(initialSource)
+                    } catch (ignored: Exception) {
+                        sourceUri = initialSource.toUri()
                     }
                 }
             } else {
-                sourceUri = Uri.parse(initialSource)
+                sourceUri = initialSource.toUri()
             }
 
             Log.i("ExternalPlayer", "Avvio intent TV con URI: $sourceUri e MIME: $mimeType")
@@ -693,16 +721,20 @@ class PlayerTvFragment : Fragment() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
 
-                startActivity(
-                    Intent.createChooser(
-                        intent,
-                        requireContext().getString(R.string.player_external_player_title),
-                        pendingIntent.intentSender
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    startActivity(
+                        Intent.createChooser(
+                            intent,
+                            getString(R.string.player_external_player_title),
+                            pendingIntent.intentSender
+                        )
                     )
-                )
+                } else {
+                    startActivity(Intent.createChooser(intent, getString(R.string.player_external_player_title)))
+                }
             } catch (e: Exception) {
                 Log.e("ExternalPlayer", "Errore selettore app TV", e)
-                startActivity(Intent.createChooser(intent, requireContext().getString(R.string.player_external_player_title)))
+                startActivity(Intent.createChooser(intent, getString(R.string.player_external_player_title)))
             }
         }
 
@@ -728,7 +760,8 @@ class PlayerTvFragment : Fragment() {
                     ?: false
 
                 if (!isPlaying && hasUri) {
-                    val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
+                    val videoType = args.videoType
+                    val watchItem: WatchItem? = when (videoType) {
                         is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                         is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                     }
@@ -753,7 +786,7 @@ class PlayerTvFragment : Fragment() {
                         }
                     }
 
-                    when (val videoType = args.videoType as Video.Type) {
+                    when (videoType) {
                         is Video.Type.Movie -> {
                             val movie = watchItem as Movie
                             database.movieDao().update(movie)
@@ -769,14 +802,11 @@ class PlayerTvFragment : Fragment() {
                             episode.tvShow?.let { tvShow ->
                                 database.tvShowDao().getById(tvShow.id)
                             }?.let { tvShow ->
-                                // Correzione: Imposta isWatching in base alla presenza di progressi
                                 val episodeDao = database.episodeDao()
                                 val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
                                 
                                 database.tvShowDao().save(tvShow.copy().apply {
                                     merge(tvShow)
-                                    // Se l'episodio è finito, imposta isWatching a true solo se ci sono ancora episodi con cronologia
-                                    // Se NON è finito, isWatching è true
                                     isWatching = !player.hasReallyFinished() || isStillWatching
                                 })
                             }
@@ -799,7 +829,8 @@ class PlayerTvFragment : Fragment() {
         })
 
         if (currentPosition == 0L) {
-            val watchItem: WatchItem? = when (val videoType = args.videoType as Video.Type) {
+            val videoType = args.videoType
+            val watchItem: WatchItem? = when (videoType) {
                 is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                 is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
             }
@@ -845,14 +876,14 @@ class PlayerTvFragment : Fragment() {
     }
     private fun showSkipIntroButton(show: Boolean) {
         val btnSkipIntro = binding.pvPlayer.controller.binding.btnSkipIntro
-        if (show && btnSkipIntro.visibility == View.GONE) {
+        if (show && btnSkipIntro.isGone) {
             val fadeIn = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
             btnSkipIntro.startAnimation(fadeIn)
-            btnSkipIntro.visibility = View.VISIBLE
-        } else if (!show && btnSkipIntro.visibility == View.VISIBLE) {
+            btnSkipIntro.isVisible = true
+        } else if (!show && btnSkipIntro.isVisible) {
             val fadeOut = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
             btnSkipIntro.startAnimation(fadeOut)
-            btnSkipIntro.visibility = View.GONE
+            btnSkipIntro.isGone = true
         }
     }
 
@@ -875,7 +906,7 @@ class PlayerTvFragment : Fragment() {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS, // Max buffer 5 minutes if extraBuffering
+                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
                 DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
                 DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
             )

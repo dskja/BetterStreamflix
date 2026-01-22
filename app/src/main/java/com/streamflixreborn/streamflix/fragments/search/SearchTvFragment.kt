@@ -41,6 +41,7 @@ class SearchTvFragment : Fragment() {
 
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { SearchViewModel(database) }
+    private var isGlobalSearchChecked: Boolean = false
 
     private val appAdapter by lazy {
         AppAdapter().apply {
@@ -153,13 +154,20 @@ class SearchTvFragment : Fragment() {
     }
 
     private fun initializeSearch() {
+        binding.llGlobalSearch.setOnClickListener {
+            isGlobalSearchChecked = !isGlobalSearchChecked
+            binding.ivGlobalSearchSwitch.setImageResource(
+                if (isGlobalSearchChecked) R.drawable.ic_switch_on else R.drawable.ic_switch_off
+            )
+        }
+
         binding.etSearch.apply {
             setOnEditorActionListener { _, actionId, _ ->
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                     val query = text.toString()
                     hideKeyboard()
 
-                    if (binding.swGlobalSearch.isChecked) {
+                    if (isGlobalSearchChecked) {
                         val currentLanguage = UserPreferences.currentProvider?.language ?: "es"
                         viewModel.searchGlobal(query, currentLanguage)
                     } else {
