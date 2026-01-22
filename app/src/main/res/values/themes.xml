@@ -8,6 +8,8 @@
     <style name="AppTheme.Tv" parent="Theme.Leanback">
         <!-- Attributi per Leanback Preference Fragment -->
         <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <!-- Attributes for standard Dialogs -->
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
         <!-- Colori per rendere visibile lo switch Material -->
         <item name="colorAccent">#FFFFFF</item>
         <item name="colorControlActivated">#FFFFFF</item>
