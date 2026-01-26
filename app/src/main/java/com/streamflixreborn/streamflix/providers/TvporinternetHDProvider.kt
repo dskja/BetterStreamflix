@@ -18,14 +18,14 @@ import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 import com.streamflixreborn.streamflix.utils.JsUnpacker
 
-object CableVisionHDProvider : Provider {
+object TvporinternetHDProvider : Provider {
 
-    override val name = "CableVisionHD"
-    override val baseUrl = "https://www.cablevisionhd.com"
-    override val logo = "https://i.ibb.co/4gMQkN2b/imagen-2025-09-05-212536248.png"
+    override val name = "TvporinternetHD"
+    override val baseUrl = "https://www.tvporinternet2.com"
+    override val logo = "https://i.ibb.co/yndhPSyq/imagen-2026-01-25-210504580.png"
     override val language = "es"
 
-    private const val TAG = "CableVisionHDProvider"
+    private const val TAG = "TvporinternetHDProvider"
     private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
 
     private val client = OkHttpClient.Builder()
