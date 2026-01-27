@@ -57,7 +57,17 @@
             android:summaryOff="@string/settings_frenchstream_use_new_interface_off" />
     </PreferenceCategory>
     
-    <PreferenceCategory android:title="@string/settings_category_interface_title">
+    <PreferenceCategory
+        android:key="pc_appearance_settings"
+        android:title="@string/settings_category_appearance">
+
+        <ListPreference
+            android:key="SELECTED_THEME"
+            android:title="@string/settings_theme_title"
+            android:summary="%s"
+            android:entries="@array/theme_names"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="default" />
 
         <SwitchPreference
             android:key="IMMERSIVE_MODE"

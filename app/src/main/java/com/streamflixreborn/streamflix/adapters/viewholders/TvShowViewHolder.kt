@@ -99,6 +99,8 @@ class TvShowViewHolder(
         private const val KEY_SMARTTUBE_PACKAGE = "preferred_smarttube_package" // New key for saving the exact package
         private const val PLAYER_YOUTUBE = "youtube"
         private const val PLAYER_SMARTTUBE = "smarttube"
+        private const val PLAYER_SMARTTUBE_STABLE = "smarttube_stable"
+        private const val PLAYER_SMARTTUBE_BETA = "smarttube_beta"
         private const val PLAYER_ASK = "ask"
         private const val SMARTTUBE_STABLE_PACKAGE = "org.smarttube.stable"
         private const val SMARTTUBE_BETA_PACKAGE = "org.smarttube.beta"
@@ -239,6 +241,14 @@ class TvShowViewHolder(
         when (preferredPlayer) {
             PLAYER_SMARTTUBE -> {
                 handleSmartTubeSelection(trailer, logPrefix)
+            }
+            PLAYER_SMARTTUBE_STABLE -> {
+                Log.d(TAG, "$logPrefix: Launching SmartTube Stable (Preferred)")
+                launchSmartTube(SMARTTUBE_STABLE_PACKAGE, trailer)
+            }
+            PLAYER_SMARTTUBE_BETA -> {
+                Log.d(TAG, "$logPrefix: Launching SmartTube Beta (Preferred)")
+                launchSmartTube(SMARTTUBE_BETA_PACKAGE, trailer)
             }
             PLAYER_YOUTUBE -> {
                 Log.d(TAG, "$logPrefix: Launching YouTube (Preferred)")

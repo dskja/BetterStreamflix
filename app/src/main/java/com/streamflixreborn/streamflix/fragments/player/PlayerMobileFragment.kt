@@ -57,6 +57,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
 import com.streamflixreborn.streamflix.utils.plus
@@ -459,6 +460,7 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.subtitleView?.apply {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * UserPreferences.captionTextSize)
             setStyle(UserPreferences.captionStyle)
+            setPadding(0, 0, 0, UserPreferences.captionMargin.dp(context))
         }
         setupEpisodeNavigationButtons()
 

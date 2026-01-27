@@ -25,6 +25,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.SerienStreamUpdateTvShowWorker
+import com.streamflixreborn.streamflix.utils.TmdbUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -231,76 +232,115 @@ object SerienStreamProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val document = service.getTvShow(id)
+        val title = document.selectFirst("h1 > span")?.text() ?: ""
+        
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
+        
         val imdbTitleUrl = document.selectFirst("div.series-title a.imdb-link")?.attr("href") ?: ""
         val imdbDocument = service.getCustomUrl(imdbTitleUrl)
+        
+        val localRating = imdbDocument.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
+            ?.text()?.toDoubleOrNull() ?: 0.0
+        
+        val localCast = document.select(".cast li[itemprop='actor']").map {
+            val actorName = it.selectFirst("span")?.text() ?: ""
+            val tmdbPerson = tmdbTvShow?.cast?.find { person -> person.name.equals(actorName, ignoreCase = true) }
+            People(
+                id = it.selectFirst("a")?.attr("href")?.replace("/serien/", "") ?: "",
+                name = actorName,
+                image = tmdbPerson?.image
+            )
+        }
+        
         return TvShow(id = id,
-            title = document.selectFirst("h1 > span")?.text() ?: "",
-            overview = document.selectFirst("p.seri_des")?.attr("data-full-description"),
-            released = document.selectFirst("div.series-title > small > span:nth-child(1)")?.text()
-                ?: "",
-            rating = imdbDocument.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
-                ?.text()?.toDoubleOrNull() ?: 0.0,
-
+            title = title,
+            overview = tmdbTvShow?.overview ?: document.selectFirst("p.seri_des")?.attr("data-full-description"),
+            released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } 
+                ?: document.selectFirst("div.series-title > small > span:nth-child(1)")?.text() ?: "",
+            rating = tmdbTvShow?.rating ?: localRating,
+            runtime = tmdbTvShow?.runtime,
             directors = document.select(".cast li[itemprop='director']").map {
                 People(
                     id = it.selectFirst("a")?.attr("href")?.replace("/serien/", "") ?: "",
                     name = it.selectFirst("span")?.text() ?: ""
                 )
             },
-            cast = document.select(".cast li[itemprop='actor']").map {
-                People(
-                    id = it.selectFirst("a")?.attr("href")?.replace("/serien/", "") ?: "",
-                    name = it.selectFirst("span")?.text() ?: ""
-                )
-            },
-            genres = document.select(".genres li").map {
+            cast = localCast,
+            genres = tmdbTvShow?.genres ?: document.select(".genres li").map {
                 Genre(
                     id = it.selectFirst("a")?.text()?.lowercase(Locale.getDefault()) ?: "",
                     name = it.selectFirst("a")?.text() ?: ""
                 )
             },
-            trailer = document.selectFirst("div[itemprop='trailer'] a")?.attr("href") ?: "",
-            poster = URL + document.selectFirst("div.seriesCoverBox img")?.attr("data-src"),
-            banner = URL + document.selectFirst("#series > section > div.backdrop")?.attr("style")
-                ?.replace("background-image: url(/", "")?.replace(")", ""),
+            trailer = tmdbTvShow?.trailer ?: document.selectFirst("div[itemprop='trailer'] a")?.attr("href") ?: "",
+            poster = tmdbTvShow?.poster ?: (URL + document.selectFirst("div.seriesCoverBox img")?.attr("data-src")),
+            banner = tmdbTvShow?.banner ?: (URL + document.selectFirst("#series > section > div.backdrop")?.attr("style")
+                ?.replace("background-image: url(/", "")?.replace(")", "")),
             seasons = document.select("#stream > ul:nth-child(1) > li")
                 .filter { it -> it.select("a").size > 0 }.map {
+                    val seasonNumber = it.selectFirst("a")?.text()?.toIntOrNull() ?: 0
                     Season(
                         id = it.selectFirst("a")?.attr("href")
                             ?.let { it1 -> getSeasonIdFromLink(it1) } ?: "",
-                        number = it.selectFirst("a")?.text()?.toIntOrNull() ?: 0,
+                        number = seasonNumber,
                         title = it.selectFirst("a")?.attr("title"),
+                        poster = tmdbTvShow?.seasons?.find { s -> s.number == seasonNumber }?.poster
                     )
-                })
+                },
+            imdbId = tmdbTvShow?.imdbId
+        )
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val linkWithSplitData = seasonId.split("/")
         val showName = linkWithSplitData[0]
-        val seasonNumber = linkWithSplitData[1]
+        val seasonNumber = linkWithSplitData[1].toIntOrNull() ?: 1
 
-        val document = service.getTvShowEpisodes(showName, seasonNumber)
+        val document = service.getTvShowEpisodes(showName, seasonNumber.toString())
+        
+        // Get show title for TMDB lookup
+        val showDocument = service.getTvShow(showName)
+        val showTitle = showDocument.selectFirst("h1 > span")?.text() ?: ""
+        
+        val tmdbTvShow = TmdbUtils.getTvShow(showTitle, language = language)
+        val tmdbEpisodes = tmdbTvShow?.let { 
+            TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) 
+        } ?: emptyList()
+        
         return document.select("tbody tr").map {
+            val episodeNumber = it.selectFirst("meta")?.attr("content")?.toIntOrNull() ?: 0
+            val tmdbEp = tmdbEpisodes.find { ep -> ep.number == episodeNumber }
+            
             Episode(
                 id = it.selectFirst("a")?.attr("href")?.let { it1 -> getEpisodeIdFromLink(it1) }
                     ?: "",
-                number = it.selectFirst("meta")?.attr("content")?.toIntOrNull() ?: 0,
-                title = it.selectFirst("strong")?.text(),
+                number = episodeNumber,
+                title = tmdbEp?.title ?: it.selectFirst("strong")?.text(),
+                poster = tmdbEp?.poster,
+                overview = tmdbEp?.overview
             )
         }
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
-        if (page > 1) return Genre(id, "")
-        val shows = mutableListOf<TvShow>()
-        val document = service.getGenre(id, page)
-        document.select(".seriesListContainer > div").map {
-            shows.add(TvShow(id = it.selectFirst("a")?.attr("href")
-                ?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
-                title = it.selectFirst("h3")?.text() ?: "",
-                poster = URL + it.selectFirst("img")?.attr("data-src")))
+
+        try {
+            val shows = mutableListOf<TvShow>()
+            val document = service.getGenre(id, page)
+            document.select(".seriesListContainer > div").map {
+                shows.add(
+                    TvShow(
+                        id = it.selectFirst("a")?.attr("href")
+                            ?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
+                        title = it.selectFirst("h3")?.text() ?: "",
+                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                    )
+                )
+            }
+            return Genre(id = id, name = id, shows = shows)
+        } catch (e: Exception) {
+            return Genre(id = id, name = id, shows = emptyList())
         }
-        return Genre(id = id, name = id, shows = shows)
     }
 
     override suspend fun getPeople(id: String, page: Int): People {

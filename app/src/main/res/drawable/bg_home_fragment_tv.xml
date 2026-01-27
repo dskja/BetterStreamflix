@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sfumatura Laterale dinamica per lo stacco con il menu -->
+    <!-- Utilizza il colore di sfondo dell'app anziché il nero assoluto fisso -->
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="0"
-                android:centerColor="#18181888"
-                android:endColor="#18181800"
-                android:startColor="#181818"
-                android:type="linear" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:angle="90"
-                android:centerColor="#18181800"
-                android:endColor="#181818"
-                android:startColor="#181818"
+                android:startColor="?attr/app_background_color"
+                android:centerColor="#00000000"
+                android:endColor="#00000000"
                 android:type="linear" />
         </shape>
     </item>

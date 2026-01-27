@@ -102,6 +102,17 @@
             android:max="250"/>
     </PreferenceCategory>
 
+    <!-- NUOVA POSIZIONE: Sotto Screen Padding e sopra Backup -->
+    <PreferenceCategory
+        android:title="@string/settings_category_appearance">
+        <ListPreference
+            android:key="theme_preference"
+            android:title="@string/settings_theme_title"
+            android:entries="@array/theme_names"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="default" />
+    </PreferenceCategory>
+
     <PreferenceCategory
         android:title="@string/backup_category_title">
 

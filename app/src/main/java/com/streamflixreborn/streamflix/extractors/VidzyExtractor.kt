@@ -34,7 +34,8 @@ class VidzyExtractor : Extractor() {
             ?: throw Exception("No src found")
 
         return Video(
-            source = streamUrl ?: throw Exception("Can't retrieve source")
+            source = streamUrl ?: throw Exception("Can't retrieve source"),
+            headers = mapOf("Referer" to mainUrl)
         )
     }
 

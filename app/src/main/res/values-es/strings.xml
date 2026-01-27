@@ -100,7 +100,7 @@
     <string name="player_settings_subtitles_off">Desactivado</string>
     <string name="player_settings_caption_style_title">Estilo de subtítulos</string>
     <string name="player_settings_caption_style_label">Estilo de subtítulos</string>
-    <string name="player_settings_caption_style_sub_label">Cambiar color de texto y estilo de fondo</string>
+    <string name="player_settings_caption_style_sub_label">Cambiar color de texto, estilo de fondo e margen inferior</string>
     <string name="player_settings_caption_style_reset_style_label">Restablecer estilo</string>
     <string name="player_settings_caption_style_font_color_title">Color de fuente</string>
     <string name="player_settings_caption_style_font_color_label">Color de fuente</string>
@@ -169,6 +169,8 @@
     <string name="player_settings_caption_style_window_opacity_0_5">50%</string>
     <string name="player_settings_caption_style_window_opacity_0_75">75%</string>
     <string name="player_settings_caption_style_window_opacity_1">100%</string>
+    <string name="player_settings_caption_style_margin_title">Margen inferior</string>
+    <string name="player_settings_caption_style_margin_label">Margen inferior</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
     <string name="player_settings_local_subtitles_label">Cargar desde archivo</string>

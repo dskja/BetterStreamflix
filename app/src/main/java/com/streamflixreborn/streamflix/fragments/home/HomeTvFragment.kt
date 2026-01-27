@@ -124,6 +124,17 @@ class HomeTvFragment : Fragment() {
             }
         }
     }
+    
+    override fun onStart() {
+        super.onStart()
+        // Riavvia il carosello se i dati sono già stati caricati e il fragment è visibile
+        appAdapter.items
+            .filterIsInstance<Category>()
+            .firstOrNull { it.name == Category.FEATURED }
+            ?.let {
+                resetSwiperSchedule()
+            }
+    }
 
     override fun onStop() {
         super.onStop()
@@ -163,11 +174,25 @@ class HomeTvFragment : Fragment() {
         categories
             .find { it.name == Category.FEATURED }
             ?.also {
-                it.selectedIndex = appAdapter.items
+                val index = appAdapter.items
                     .filterIsInstance<Category>()
                     .find { item -> item.name == Category.FEATURED }
                     ?.selectedIndex
                     ?: 0
+                it.selectedIndex = index
+                
+                // Initialize background with first item from featured category immediately
+                val firstItem = it.list.getOrNull(index)
+                val poster = when (firstItem) {
+                    is Movie -> firstItem.banner
+                    is TvShow -> firstItem.banner
+                    else -> null
+                }
+                // Force background update without waiting for focus
+                if (poster != null) {
+                    updateBackground(poster, null)
+                }
+                
                 resetSwiperSchedule()
             }
 
@@ -221,6 +246,19 @@ class HomeTvFragment : Fragment() {
                     .find { it.name == Category.FEATURED }
                     ?.let { category ->
                         category.selectedIndex = (category.selectedIndex + 1) % category.list.size
+                        
+                        // Update background when swiper rotates automatically
+                        val currentItem = category.list.getOrNull(category.selectedIndex)
+                        val poster = when (currentItem) {
+                            is Movie -> currentItem.banner
+                            is TvShow -> currentItem.banner
+                            else -> null
+                        }
+                        // Update background if it's not null
+                        if (poster != null) {
+                            updateBackground(poster, null)
+                        }
+
                         appAdapter.items.indexOf(category)
                     }
                     ?.takeIf { it != -1 }
@@ -231,8 +269,8 @@ class HomeTvFragment : Fragment() {
                 }
 
                 appAdapter.notifyItemChanged(position)
-                swiperHandler.postDelayed(this, 12_000)
+                swiperHandler.postDelayed(this, 8_000)
             }
-        }, 12_000)
+        }, 8_000)
     }
 }

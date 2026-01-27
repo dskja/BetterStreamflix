@@ -14,7 +14,7 @@ import kotlin.text.replaceFirstChar
 class FrembedExtractor : Extractor() {
 
     override val name = "Frembed"
-    override val mainUrl = "https://frembed.buzz"
+    override val mainUrl = "https://frembed.best"
 
     data class listLinks (
         val link1: String?=null,

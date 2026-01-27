@@ -16,6 +16,7 @@ import androidx.media3.ui.SubtitleView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.findClosest
 import com.streamflixreborn.streamflix.utils.getAlpha
 import com.streamflixreborn.streamflix.utils.getRgb
@@ -88,6 +89,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         CAPTION_STYLE_BACKGROUND_OPACITY,
         CAPTION_STYLE_WINDOW_COLOR,
         CAPTION_STYLE_WINDOW_OPACITY,
+        CAPTION_STYLE_MARGIN,
         OPEN_SUBTITLES,
         SPEED,
         EXTRA_BUFFERING,
@@ -174,6 +176,15 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
 
             UserPreferences.captionStyle = captionStyle
             subtitleView.setStyle(UserPreferences.captionStyle)
+            subtitleView.setPadding(0, 0, 0, UserPreferences.captionMargin.dp(subtitleView.context))
+        }
+
+    protected var onMarginSelected: ((Settings.Subtitle.Style.Margin) -> Unit) =
+        fun(margin) {
+            val subtitleView = subtitleView ?: return
+
+            UserPreferences.captionMargin = margin.value
+            subtitleView.setPadding(0, 0, 0, UserPreferences.captionMargin.dp(subtitleView.context))
         }
 
     protected var onFontColorSelected: ((Settings.Subtitle.Style.FontColor) -> Unit) =
@@ -323,7 +334,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
     }
 
 
-    protected interface Item
+    interface Item
 
     sealed class Settings : Item {
 
@@ -545,7 +556,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     )
                     list.add(LocalSubtitles)
                     // Hide OpenSubtitles from the Subtitles submenu
-                    // list.add(OpenSubtitles)
+                    list.add(OpenSubtitles)
                 }
             }
 
@@ -561,7 +572,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         null
                     )
 
-                    val list = listOf(
+                    val list: List<Item> = listOf(
                         ResetStyle,
                         FontColor,
                         TextSize,
@@ -571,7 +582,21 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         BackgroundOpacity,
                         WindowColor,
                         WindowOpacity,
+                        Margin,
                     )
+                }
+
+                class Margin(
+                    val value: Int,
+                ) : Item {
+                    val isSelected: Boolean
+                        get() = selected == this
+
+                    companion object : Style() {
+                        val list: List<Item> = (0..100 step 4).map { Margin(it) }
+                        val selected: Margin
+                            get() = list.filterIsInstance<Margin>().find { it.value == UserPreferences.captionMargin } ?: list.filterIsInstance<Margin>().find { it.value == 24 } ?: Margin(24)
+                    }
                 }
 
                 data object ResetStyle : Style()

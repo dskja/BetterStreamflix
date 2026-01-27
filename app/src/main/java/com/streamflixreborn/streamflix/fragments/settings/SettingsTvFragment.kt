@@ -375,6 +375,32 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             Toast.makeText(requireContext(), R.string.settings_trailer_player_reset, Toast.LENGTH_SHORT).show()
             true
         }
+
+        findPreference<ListPreference>("theme_preference")?.apply {
+            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                val selectedTheme = pref.value ?: "default"
+                when (selectedTheme) {
+                    "default" -> getString(R.string.theme_default)
+                    "nero_amoled_oled" -> getString(R.string.theme_nero_amoled_oled)
+                    else -> getString(R.string.theme_default)
+                }
+            }
+
+            setOnPreferenceChangeListener { _, newValue ->
+                val newTheme = newValue as String
+                UserPreferences.selectedTheme = newTheme
+
+                // Apply the theme and restart the activity
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainTvActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                    overridePendingTransition(0, 0) // Disable transition animation
+                }
+                true
+            }
+        }
     }
 
     private suspend fun performBackupExport(uri: Uri) {

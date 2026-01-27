@@ -18,6 +18,7 @@ import com.streamflixreborn.streamflix.databinding.ContentCategorySwiperMobileBi
 import com.streamflixreborn.streamflix.databinding.ContentCategorySwiperTvBinding
 import com.streamflixreborn.streamflix.databinding.ItemCategoryMobileBinding
 import com.streamflixreborn.streamflix.databinding.ItemCategoryTvBinding
+import com.streamflixreborn.streamflix.fragments.home.HomeMobileFragment
 import com.streamflixreborn.streamflix.fragments.home.HomeTvFragment
 import com.streamflixreborn.streamflix.fragments.home.HomeTvFragmentDirections
 import com.streamflixreborn.streamflix.models.Category
@@ -128,7 +129,6 @@ class CategoryViewHolder(
         ).flatten()
         binding.vpCategorySwiper.apply {
             adapter = AppAdapter().apply {
-                // AQUÍ ESTÁ LA MAGIA: Pasamos los listeners al adaptador interno
                 this.onMovieClickListener = onMovieClick
                 this.onTvShowClickListener = onTvShowClick
                 submitList(category.list)
@@ -159,6 +159,7 @@ class CategoryViewHolder(
                 binding.llDotsIndicator.children.forEachIndexed { index, view ->
                     view.isSelected = (indicatorPosition == index)
                 }
+
                 handler.removeCallbacksAndMessages(null)
                 handler.postDelayed(8_000) {
                     binding.vpCategorySwiper.currentItem += 1
@@ -199,10 +200,24 @@ class CategoryViewHolder(
             }
             action()
         }
+        
+        // Aggiornamento dello sfondo forzato per TV all'inizio o al cambio indice
+        val poster = when (selected) {
+            is Movie -> selected.banner
+            is TvShow -> selected.banner
+            else -> null
+        }
+        
         when (val fragment = context.toActivity()?.getCurrentFragment()) {
-            is HomeTvFragment -> when (selected) {
-                is Movie -> fragment.updateBackground(selected.banner, null)
-                is TvShow -> fragment.updateBackground(selected.banner, null)
+            is HomeTvFragment -> {
+                if (poster != null) {
+                    fragment.updateBackground(poster, false) // Imposta lo sfondo senza marcare come focalizzato
+                }
+                
+                // Se l'elemento è stato appena selezionato (indice cambiato), assicura che l'aggiornamento sia visibile
+                if (category.selectedIndex == category.list.indexOf(selected)) {
+                    fragment.resetSwiperSchedule() // Riavvia lo scheduler per assicurarsi che continui
+                }
             }
         }
 
@@ -275,9 +290,8 @@ class CategoryViewHolder(
 
 
         binding.btnSwiperWatchNow.apply {
-            // ... (onFocusChangeListener y onKeyListener sin cambios)
             setOnClickListener {
-                checkProviderAndRun(selected) { // <-- LÓGICA APLICADA
+                checkProviderAndRun(selected) {
                     findNavController().navigate(
                         when (selected) {
                             is Movie -> HomeTvFragmentDirections.actionHomeToMovie(selected.id)
@@ -306,14 +320,6 @@ class CategoryViewHolder(
                     }
                 }
                 false
-            }
-            setOnClickListener {
-                findNavController().navigate(
-                    when (selected) {
-                        is Movie -> HomeTvFragmentDirections.actionHomeToMovie(selected.id)
-                        is TvShow -> HomeTvFragmentDirections.actionHomeToTvShow(selected.id)
-                    }
-                )
             }
         }
 

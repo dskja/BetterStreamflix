@@ -1,6 +1,11 @@
 <resources>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
     <color name="ic_launcher_background">#1E2129</color>
     <color name="ic_banner_background">#1E2129</color>
+
+    <!-- Colore di sfondo dinamico per TV -->
+    <color name="app_background">#181818</color>
 
     <array name="genres">
         <item>#E13300</item>

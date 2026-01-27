@@ -111,6 +111,8 @@
 	<string name="player_settings_subtitles_title">الترجمة/التعليقات المغلقة</string>
 	<string name="player_settings_subtitles_label">الترجمة</string>
 	<string name="player_settings_subtitles_off">إيقاف</string>
+    <string name="player_settings_caption_style_margin_title">هامش سفلي</string>
+    <string name="player_settings_caption_style_margin_label">هامش سفلي</string>
 
 	<string name="settings_about">حول</string>
 	<string name="settings_about_version">الإصدار</string>

@@ -115,6 +115,19 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
             isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
         }
+
+        findPreference<ListPreference>("SELECTED_THEME")?.apply {
+            value = UserPreferences.selectedTheme
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.selectedTheme = newValue as String
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, this::class.java))
+                }
+                true
+            }
+        }
+
         findPreference<SwitchPreference>("AUTOPLAY")?.apply {
             isChecked = UserPreferences.autoplay
             setOnPreferenceChangeListener { _, newValue ->
@@ -442,6 +455,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
+        findPreference<ListPreference>("SELECTED_THEME")?.value = UserPreferences.selectedTheme
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
         findPreference<SwitchPreference>("IMMERSIVE_MODE")?.isChecked = UserPreferences.immersiveMode

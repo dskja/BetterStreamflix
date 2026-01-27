@@ -44,6 +44,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
+    private val marginAdapter = SettingsAdapter(this, Settings.Subtitle.Style.Margin.list)
 
     override var onSubtitlesClicked: (() -> Unit)? = null
 
@@ -84,6 +85,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.SPEED -> context.getString(R.string.player_settings_speed_title)
                 Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
                 Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
+                Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
             }
         }
 
@@ -105,7 +107,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     Setting.CAPTION_STYLE_BACKGROUND_COLOR,
                     Setting.CAPTION_STYLE_BACKGROUND_OPACITY,
                     Setting.CAPTION_STYLE_WINDOW_COLOR,
-                    Setting.CAPTION_STYLE_WINDOW_OPACITY -> displaySettings(Setting.CAPTION_STYLE)
+                    Setting.CAPTION_STYLE_WINDOW_OPACITY,
+                    Setting.CAPTION_STYLE_MARGIN -> displaySettings(Setting.CAPTION_STYLE)
                     Setting.OPEN_SUBTITLES -> displaySettings(Setting.SUBTITLES)
                 }
             }
@@ -138,6 +141,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.SPEED -> speedAdapter
             Setting.EXTRA_BUFFERING -> extraBufferingAdapter
             Setting.SERVERS -> serversAdapter
+            Setting.CAPTION_STYLE_MARGIN -> marginAdapter
         }
     }
 
@@ -258,6 +262,9 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 Settings.Subtitle.Style.WindowOpacity -> {
                                     settingsView.displaySettings(Setting.CAPTION_STYLE_WINDOW_OPACITY)
                                 }
+                                Settings.Subtitle.Style.Margin -> {
+                                    settingsView.displaySettings(Setting.CAPTION_STYLE_MARGIN)
+                                }
                             }
                         }
 
@@ -298,6 +305,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                         is Settings.Subtitle.Style.WindowOpacity -> {
                             settingsView.onWindowOpacitySelected.invoke(item)
+                            settingsView.displaySettings(Setting.CAPTION_STYLE)
+                        }
+
+                        is Settings.Subtitle.Style.Margin -> {
+                            settingsView.onMarginSelected.invoke(item)
                             settingsView.displaySettings(Setting.CAPTION_STYLE)
                         }
 
@@ -449,9 +461,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Subtitle.Style.BackgroundOpacity -> context.getString(R.string.player_settings_caption_style_background_opacity_label)
                         Settings.Subtitle.Style.WindowColor -> context.getString(R.string.player_settings_caption_style_window_color_label)
                         Settings.Subtitle.Style.WindowOpacity -> context.getString(R.string.player_settings_caption_style_window_opacity_label)
+                        Settings.Subtitle.Style.Margin -> context.getString(R.string.player_settings_caption_style_margin_label)
                     }
 
                     is Settings.Subtitle.Style.FontColor -> context.getString(item.stringId)
+                    is Settings.Subtitle.Style.Margin -> item.value.toString()
 
                     is Settings.Subtitle.Style.TextSize -> context.getString(item.stringId)
 
@@ -521,6 +535,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Subtitle.Style.BackgroundOpacity -> context.getString(Settings.Subtitle.Style.BackgroundOpacity.selected.stringId)
                         Settings.Subtitle.Style.WindowColor -> context.getString(Settings.Subtitle.Style.WindowColor.selected.stringId)
                         Settings.Subtitle.Style.WindowOpacity -> context.getString(Settings.Subtitle.Style.WindowOpacity.selected.stringId)
+                        Settings.Subtitle.Style.Margin -> Settings.Subtitle.Style.Margin.selected.value.toString()
                     }
 
                     is Settings.Subtitle.OpenSubtitles.Subtitle -> item.openSubtitle.languageName
@@ -593,6 +608,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     }
 
                     is Settings.Subtitle.Style.WindowOpacity -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
+                    is Settings.Subtitle.Style.Margin -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
                     }

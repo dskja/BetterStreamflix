@@ -59,6 +59,7 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
 import com.streamflixreborn.streamflix.utils.plus
@@ -437,6 +438,7 @@ class PlayerTvFragment : Fragment() {
         binding.pvPlayer.subtitleView?.apply {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * UserPreferences.captionTextSize)
             setStyle(UserPreferences.captionStyle)
+            setPadding(0, 0, 0, UserPreferences.captionMargin.dp(context))
         }
         binding.settings.setOnExtraBufferingSelectedListener {
             displayVideo(

@@ -66,10 +66,10 @@ object OpenSubtitles {
         subLanguageId: String? = null,
     ): List<Subtitle> {
         val params = mapOf(
-            Params.Key.IMDB_ID to imdbId,
-            Params.Key.QUERY to query,
-            Params.Key.SEASON to season?.toString(),
             Params.Key.EPISODE to episode?.toString(),
+            Params.Key.QUERY to query?.lowercase(),
+            Params.Key.SEASON to season?.toString(),
+            Params.Key.IMDB_ID to imdbId,
             Params.Key.SUB_LANGUAGE_ID to subLanguageId,
         )
         return service.search(

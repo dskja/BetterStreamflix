@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="theme_names">
+        <item>@string/theme_default</item>
+        <item>@string/theme_nero_amoled_oled</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>default</item>
+        <item>nero_amoled_oled</item>
+    </string-array>
+
     <string-array name="trailer_player_names">
         <item>@string/settings_trailer_player_ask</item>
         <item>@string/youtube</item>
-        <item>@string/smarttube</item>
+        <item>@string/smarttube_stable</item>
+        <item>@string/smarttube_beta</item>
     </string-array>
-
     <string-array name="trailer_player_values">
         <item>ask</item>
         <item>youtube</item>
-        <item>smarttube</item>
+        <item>smarttube_stable</item>
+        <item>smarttube_beta</item>
     </string-array>
-
 </resources>
