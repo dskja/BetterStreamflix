@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <attr name="app_background_color" format="color" />
+    <attr name="home_gradient_drawable" format="reference" />
+    <attr name="movie_banner_gradient_drawable" format="reference" />
+    <attr name="tv_show_banner_gradient_drawable" format="reference" />
+    <attr name="category_swiper_gradient_drawable" format="reference" />
 </resources>
