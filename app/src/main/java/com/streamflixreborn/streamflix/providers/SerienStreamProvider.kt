@@ -145,36 +145,33 @@ object SerienStreamProvider : Provider {
         val categories = mutableListOf<Category>()
         categories.add(
             Category(name = "Beliebte Serien",
-                list = document.select("div.container > div:nth-child(7) > div.previews div.coverListItem")
-                    .map {
-                        TvShow(
-                            id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                            title = it.selectFirst("a h3")?.text() ?: "",
-                            poster = URL + it.selectFirst("img")?.attr("data-src")
-                        )
-                    })
+                list = document.select("div.carousel:contains(Beliebt bei) div.coverListItem").map {
+                    TvShow(
+                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                        title = it.selectFirst("a h3")?.text() ?: "",
+                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                    )
+                })
         )
         categories.add(
-            Category(name = "Vorgestellte Serien",
-                list = document.select("div.container > div:nth-child(11) > div.previews div.coverListItem")
-                    .map {
-                        TvShow(
-                            id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                            title = it.selectFirst("a h3")?.text() ?: "",
-                            poster = URL + it.selectFirst("img")?.attr("data-src")
-                        )
-                    })
+            Category(name = "Neue Serien",
+                list = document.select("div.carousel:contains(Neue Fernsehserien) div.coverListItem").map {
+                    TvShow(
+                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                        title = it.selectFirst("a h3")?.text() ?: "",
+                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                    )
+                })
         )
         categories.add(
             Category(name = "Derzeit beliebte Serien",
-                list = document.select("div.container > div:nth-child(16) > div.previews div.coverListItem")
-                    .map {
-                        TvShow(
-                            id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                            title = it.selectFirst("a h3")?.text() ?: "",
-                            poster = URL + it.selectFirst("img")?.attr("data-src")
-                        )
-                    })
+                list = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem").map {
+                    TvShow(
+                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                        title = it.selectFirst("a h3")?.text() ?: "",
+                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                    )
+                })
         )
         return categories
     }
@@ -294,9 +291,10 @@ object SerienStreamProvider : Provider {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val linkWithSplitData = seasonId.split("/")
         val showName = linkWithSplitData[0]
-        val seasonNumber = linkWithSplitData[1].toIntOrNull() ?: 1
+        val seasonNumberStr = linkWithSplitData[1]
+        val seasonNumber = Regex("""\d+""").find(seasonNumberStr)!!.value.toInt()
 
-        val document = service.getTvShowEpisodes(showName, seasonNumber.toString())
+        val document = service.getTvShowEpisodes(showName, seasonNumberStr)
         
         // Get show title for TMDB lookup
         val showDocument = service.getTvShow(showName)

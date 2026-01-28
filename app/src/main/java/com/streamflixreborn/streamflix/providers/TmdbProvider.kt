@@ -28,6 +28,9 @@ import com.streamflixreborn.streamflix.utils.TMDb3
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
 import com.streamflixreborn.streamflix.utils.safeSubList
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 class TmdbProvider(override val language: String) : Provider {
     override val baseUrl: String
@@ -37,137 +40,221 @@ class TmdbProvider(override val language: String) : Provider {
     override val logo =
         "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tmdb.new.logo.svg/1280px-Tmdb.new.logo.svg.png"
 
-    override suspend fun getHome(): List<Category> {
+    override suspend fun getHome(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
         val watchRegion = if (language == "en") "US" else language.uppercase()
 
-        val trending = listOf(
-            TMDb3.Trending.all(TMDb3.Params.TimeWindow.DAY, page = 1, language = language),
-            TMDb3.Trending.all(TMDb3.Params.TimeWindow.DAY, page = 2, language = language),
-            TMDb3.Trending.all(TMDb3.Params.TimeWindow.DAY, page = 3, language = language),
-        ).flatMap { it.results }
+        val mapMulti: (TMDb3.MultiItem) -> AppAdapter.Item? = { multi ->
+            when (multi) {
+                is TMDb3.Movie -> Movie(
+                    id = multi.id.toString(),
+                    title = multi.title,
+                    overview = multi.overview,
+                    released = multi.releaseDate,
+                    rating = multi.voteAverage.toDouble(),
+                    poster = multi.posterPath?.w500,
+                    banner = multi.backdropPath?.original,
+                )
 
+                is TMDb3.Tv -> TvShow(
+                    id = multi.id.toString(),
+                    title = multi.name,
+                    overview = multi.overview,
+                    released = multi.firstAirDate,
+                    rating = multi.voteAverage.toDouble(),
+                    poster = multi.posterPath?.w500,
+                    banner = multi.backdropPath?.original,
+                )
+
+                else -> null
+            }
+        }
+
+        val trendingDeferred = async {
+            awaitAll(
+                async { TMDb3.Trending.all(TMDb3.Params.TimeWindow.DAY, page = 1, language = language) },
+                async { TMDb3.Trending.all(TMDb3.Params.TimeWindow.DAY, page = 2, language = language) },
+                async { TMDb3.Trending.all(TMDb3.Params.TimeWindow.DAY, page = 3, language = language) },
+            ).flatMap { it.results }
+        }
+
+        val popularMoviesDeferred = async {
+            awaitAll(
+                async { TMDb3.MovieLists.popular(page = 1, language = language) },
+                async { TMDb3.MovieLists.popular(page = 2, language = language) },
+                async { TMDb3.MovieLists.popular(page = 3, language = language) },
+            ).flatMap { it.results }
+        }
+
+        val popularTvShowsDeferred = async {
+            awaitAll(
+                async { TMDb3.TvSeriesLists.popular(page = 1, language = language) },
+                async { TMDb3.TvSeriesLists.popular(page = 2, language = language) },
+                async { TMDb3.TvSeriesLists.popular(page = 3, language = language) },
+            ).flatMap { it.results }
+        }
+
+        val popularAnimeDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.movie(
+                        language = language,
+                        withKeywords = TMDb3.Params.WithBuilder(TMDb3.Keyword.KeywordId.ANIME)
+                            .or(TMDb3.Keyword.KeywordId.BASED_ON_ANIME),
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withKeywords = TMDb3.Params.WithBuilder(TMDb3.Keyword.KeywordId.ANIME)
+                            .or(TMDb3.Keyword.KeywordId.BASED_ON_ANIME),
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val netflixDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.movie(
+                        language = language,
+                        watchRegion = watchRegion,
+                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.NETFLIX),
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.NETFLIX),
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val amazonDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.movie(
+                        language = language,
+                        watchRegion = watchRegion,
+                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.AMAZON_VIDEO),
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.AMAZON),
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val disneyDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.movie(
+                        language = language,
+                        watchRegion = watchRegion,
+                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.DISNEY_PLUS),
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.DISNEY_PLUS),
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val huluDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.movie(
+                        language = language,
+                        watchRegion = watchRegion,
+                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.HULU),
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HULU),
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val appleDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.movie(
+                        language = language,
+                        watchRegion = watchRegion,
+                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.APPLE_TV_PLUS),
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.APPLE_TV),
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val hboDeferred = async {
+            awaitAll(
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HBO),
+                        page = 1,
+                    )
+                },
+                async {
+                    TMDb3.Discover.tv(
+                        language = language,
+                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HBO),
+                        page = 2,
+                    )
+                },
+            ).flatMap { it.results }
+        }
+
+        val trending = trendingDeferred.await()
         categories.add(
             Category(
                 name = Category.FEATURED,
-                list = trending.safeSubList(0, 5).mapNotNull { multi ->
-                    when (multi) {
-                        is TMDb3.Movie -> Movie(
-                            id = multi.id.toString(),
-                            title = multi.title,
-                            overview = multi.overview,
-                            released = multi.releaseDate,
-                            rating = multi.voteAverage.toDouble(),
-                            poster = multi.posterPath?.w500,
-                            banner = multi.backdropPath?.original,
-                        )
-
-                        is TMDb3.Tv -> TvShow(
-                            id = multi.id.toString(),
-                            title = multi.name,
-                            overview = multi.overview,
-                            released = multi.firstAirDate,
-                            rating = multi.voteAverage.toDouble(),
-                            poster = multi.posterPath?.w500,
-                            banner = multi.backdropPath?.original,
-                        )
-
-                        else -> null
-                    }
-                }
+                list = trending.safeSubList(0, 5).mapNotNull(mapMulti)
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Trending"),
-                list = trending.safeSubList(5, trending.size).mapNotNull { multi ->
-                    when (multi) {
-                        is TMDb3.Movie -> Movie(
-                            id = multi.id.toString(),
-                            title = multi.title,
-                            overview = multi.overview,
-                            released = multi.releaseDate,
-                            rating = multi.voteAverage.toDouble(),
-                            poster = multi.posterPath?.w500,
-                            banner = multi.backdropPath?.original,
-                        )
-
-                        is TMDb3.Tv -> TvShow(
-                            id = multi.id.toString(),
-                            title = multi.name,
-                            overview = multi.overview,
-                            released = multi.firstAirDate,
-                            rating = multi.voteAverage.toDouble(),
-                            poster = multi.posterPath?.w500,
-                            banner = multi.backdropPath?.original,
-                        )
-
-                        else -> null
-                    }
-                }
+                list = trending.safeSubList(5, trending.size).mapNotNull(mapMulti)
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular Movies"),
-                list = listOf(
-                    TMDb3.MovieLists.popular(page = 1, language = language),
-                    TMDb3.MovieLists.popular(page = 2, language = language),
-                    TMDb3.MovieLists.popular(page = 3, language = language),
-                ).flatMap { it.results }
-                    .map { movie ->
-                        Movie(
-                            id = movie.id.toString(),
-                            title = movie.title,
-                            overview = movie.overview,
-                            released = movie.releaseDate,
-                            rating = movie.voteAverage.toDouble(),
-                            poster = movie.posterPath?.w500,
-                            banner = movie.backdropPath?.original,
-                        )
-                    }
+                list = popularMoviesDeferred.await().mapNotNull(mapMulti)
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular TV Shows"),
-                list = listOf(
-                    TMDb3.TvSeriesLists.popular(page = 1, language = language),
-                    TMDb3.TvSeriesLists.popular(page = 2, language = language),
-                    TMDb3.TvSeriesLists.popular(page = 3, language = language),
-                ).flatMap { it.results }
-                    .map { tv ->
-                        TvShow(
-                            id = tv.id.toString(),
-                            title = tv.name,
-                            overview = tv.overview,
-                            released = tv.firstAirDate,
-                            rating = tv.voteAverage.toDouble(),
-                            poster = tv.posterPath?.w500,
-                            banner = tv.backdropPath?.original,
-                        )
-                    }
+                list = popularTvShowsDeferred.await().mapNotNull(mapMulti)
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular Anime"),
-                list = listOf(
-                    TMDb3.Discover.movie(
-                        language = language,
-                        withKeywords = TMDb3.Params.WithBuilder(TMDb3.Keyword.KeywordId.ANIME)
-                            .or(TMDb3.Keyword.KeywordId.BASED_ON_ANIME),
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withKeywords = TMDb3.Params.WithBuilder(TMDb3.Keyword.KeywordId.ANIME)
-                            .or(TMDb3.Keyword.KeywordId.BASED_ON_ANIME),
-                    ),
-                ).flatMap { it.results }
+                list = popularAnimeDeferred.await()
                     .sortedByDescending {
                         when (it) {
                             is TMDb3.Movie -> it.popularity
@@ -175,48 +262,14 @@ class TmdbProvider(override val language: String) : Provider {
                             is TMDb3.Tv -> it.popularity
                         }
                     }
-                    .mapNotNull { multi ->
-                        when (multi) {
-                            is TMDb3.Movie -> Movie(
-                                id = multi.id.toString(),
-                                title = multi.title,
-                                overview = multi.overview,
-                                released = multi.releaseDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            is TMDb3.Tv -> TvShow(
-                                id = multi.id.toString(),
-                                title = multi.name,
-                                overview = multi.overview,
-                                released = multi.firstAirDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            else -> null
-                        }
-                    },
+                    .mapNotNull(mapMulti),
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular on Netflix"),
-                list = listOf(
-                    TMDb3.Discover.movie(
-                        language = language,
-                        watchRegion = watchRegion,
-                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.NETFLIX),
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.NETFLIX),
-                    ),
-                ).flatMap { it.results }
+                list = netflixDeferred.await()
                     .sortedByDescending {
                         when (it) {
                             is TMDb3.Movie -> it.popularity
@@ -224,48 +277,14 @@ class TmdbProvider(override val language: String) : Provider {
                             is TMDb3.Tv -> it.popularity
                         }
                     }
-                    .mapNotNull { multi ->
-                        when (multi) {
-                            is TMDb3.Movie -> Movie(
-                                id = multi.id.toString(),
-                                title = multi.title,
-                                overview = multi.overview,
-                                released = multi.releaseDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            is TMDb3.Tv -> TvShow(
-                                id = multi.id.toString(),
-                                title = multi.name,
-                                overview = multi.overview,
-                                released = multi.firstAirDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            else -> null
-                        }
-                    },
+                    .mapNotNull(mapMulti),
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular on Amazon"),
-                list = listOf(
-                    TMDb3.Discover.movie(
-                        language = language,
-                        watchRegion = watchRegion,
-                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.AMAZON_VIDEO),
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.AMAZON),
-                    ),
-                ).flatMap { it.results }
+                list = amazonDeferred.await()
                     .sortedByDescending {
                         when (it) {
                             is TMDb3.Movie -> it.popularity
@@ -273,48 +292,14 @@ class TmdbProvider(override val language: String) : Provider {
                             is TMDb3.Tv -> it.popularity
                         }
                     }
-                    .mapNotNull { multi ->
-                        when (multi) {
-                            is TMDb3.Movie -> Movie(
-                                id = multi.id.toString(),
-                                title = multi.title,
-                                overview = multi.overview,
-                                released = multi.releaseDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            is TMDb3.Tv -> TvShow(
-                                id = multi.id.toString(),
-                                title = multi.name,
-                                overview = multi.overview,
-                                released = multi.firstAirDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            else -> null
-                        }
-                    },
+                    .mapNotNull(mapMulti),
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular on Disney+"),
-                list = listOf(
-                    TMDb3.Discover.movie(
-                        language = language,
-                        watchRegion = watchRegion,
-                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.DISNEY_PLUS),
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.DISNEY_PLUS),
-                    ),
-                ).flatMap { it.results }
+                list = disneyDeferred.await()
                     .sortedByDescending {
                         when (it) {
                             is TMDb3.Movie -> it.popularity
@@ -322,48 +307,14 @@ class TmdbProvider(override val language: String) : Provider {
                             is TMDb3.Tv -> it.popularity
                         }
                     }
-                    .mapNotNull { multi ->
-                        when (multi) {
-                            is TMDb3.Movie -> Movie(
-                                id = multi.id.toString(),
-                                title = multi.title,
-                                overview = multi.overview,
-                                released = multi.releaseDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            is TMDb3.Tv -> TvShow(
-                                id = multi.id.toString(),
-                                title = multi.name,
-                                overview = multi.overview,
-                                released = multi.firstAirDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            else -> null
-                        }
-                    },
+                    .mapNotNull(mapMulti),
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular on Hulu"),
-                list = listOf(
-                    TMDb3.Discover.movie(
-                        language = language,
-                        watchRegion = watchRegion,
-                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.HULU),
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HULU),
-                    ),
-                ).flatMap { it.results }
+                list = huluDeferred.await()
                     .sortedByDescending {
                         when (it) {
                             is TMDb3.Movie -> it.popularity
@@ -371,48 +322,14 @@ class TmdbProvider(override val language: String) : Provider {
                             is TMDb3.Tv -> it.popularity
                         }
                     }
-                    .mapNotNull { multi ->
-                        when (multi) {
-                            is TMDb3.Movie -> Movie(
-                                id = multi.id.toString(),
-                                title = multi.title,
-                                overview = multi.overview,
-                                released = multi.releaseDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            is TMDb3.Tv -> TvShow(
-                                id = multi.id.toString(),
-                                title = multi.name,
-                                overview = multi.overview,
-                                released = multi.firstAirDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            else -> null
-                        }
-                    },
+                    .mapNotNull(mapMulti),
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular on Apple TV+"),
-                list = listOf(
-                    TMDb3.Discover.movie(
-                        language = language,
-                        watchRegion = watchRegion,
-                        withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.APPLE_TV_PLUS),
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.APPLE_TV),
-                    ),
-                ).flatMap { it.results }
+                list = appleDeferred.await()
                     .sortedByDescending {
                         when (it) {
                             is TMDb3.Movie -> it.popularity
@@ -420,64 +337,18 @@ class TmdbProvider(override val language: String) : Provider {
                             is TMDb3.Tv -> it.popularity
                         }
                     }
-                    .mapNotNull { multi ->
-                        when (multi) {
-                            is TMDb3.Movie -> Movie(
-                                id = multi.id.toString(),
-                                title = multi.title,
-                                overview = multi.overview,
-                                released = multi.releaseDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            is TMDb3.Tv -> TvShow(
-                                id = multi.id.toString(),
-                                title = multi.name,
-                                overview = multi.overview,
-                                released = multi.firstAirDate,
-                                rating = multi.voteAverage.toDouble(),
-                                poster = multi.posterPath?.w500,
-                                banner = multi.backdropPath?.original,
-                            )
-
-                            else -> null
-                        }
-                    },
+                    .mapNotNull(mapMulti),
             )
         )
 
         categories.add(
             Category(
                 name = getTranslation("Popular on HBO"),
-                list = listOf(
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HBO),
-                        page = 1,
-                    ),
-                    TMDb3.Discover.tv(
-                        language = language,
-                        withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HBO),
-                        page = 2,
-                    ),
-                ).flatMap { it.results }
-                    .map { tv ->
-                        TvShow(
-                            id = tv.id.toString(),
-                            title = tv.name,
-                            overview = tv.overview,
-                            released = tv.firstAirDate,
-                            rating = tv.voteAverage.toDouble(),
-                            poster = tv.posterPath?.w500,
-                            banner = tv.backdropPath?.original,
-                        )
-                    },
+                list = hboDeferred.await().mapNotNull(mapMulti),
             )
         )
 
-        return categories
+        categories
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
