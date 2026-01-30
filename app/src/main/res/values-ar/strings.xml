@@ -200,4 +200,14 @@
     <string name="error_dialog_copied">تم النسخ!</string>
     <string name="error_dialog_unknown">خطأ غير معروف</string>
     <string name="error_dialog_no_cause">لا يوجد سبب</string>
+    <string name="player_settings_gestures_title">إيماءات</string>
+    <string name="player_settings_keep_screen_on_title">إبقاء الشاشة مفعلة أثناء الإيقاف المؤقت</string>
+    <string name="settings_keep_screen_on_when_paused">إبقاء الشاشة مفعلة أثناء الإيقاف المؤقت</string>
+    <string name="settings_keep_screen_on_when_paused_summary">يمنع الشاشة من الانطفاء عند إيقاف الفيديو مؤقتًا</string>
+
+    <string name="settings_category_tmdb">إعدادات TMDb</string>
+    <string name="settings_tmdb_api_key">مفتاح API TMDb مخصص</string>
+    <string name="settings_tmdb_api_key_summary">اتركه فارغًا لاستخدام مفتاح API الافتراضي المقدم مع التطبيق</string>
+    <string name="settings_tmdb_api_key_success">تم تحديث مفتاح API بنجاح</string>
+    <string name="settings_tmdb_api_key_reset">باستخدام مفتاح TMDb API الافتراضي</string>
 </resources>

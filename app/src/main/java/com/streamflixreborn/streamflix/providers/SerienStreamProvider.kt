@@ -48,6 +48,7 @@ import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.Url
 import java.io.File
 import java.security.SecureRandom
@@ -116,14 +117,13 @@ object SerienStreamProvider : Provider {
 
 
     private fun getTvShowIdFromLink(link: String): String {
-        val linkWithoutStaticPrefix = link.replace("/serie/stream/", "")
+        val linkWithoutStaticPrefix = link.removePrefix(URL).removePrefix("/").removePrefix("serie/")
         val linkWithSplitData = linkWithoutStaticPrefix.split("/")
-        val justTvShowId = linkWithSplitData[0]
-        return justTvShowId
+        return linkWithSplitData[0]
     }
 
     private fun getSeasonIdFromLink(link: String): String {
-        val linkWithoutStaticPrefix = link.replace("/serie/stream/", "")
+        val linkWithoutStaticPrefix = link.removePrefix(URL).removePrefix("/").removePrefix("serie/")
         val linkWithSplitData = linkWithoutStaticPrefix.split("/")
         val justTvShowId = linkWithSplitData[0]
         val justTvShowSeason = linkWithSplitData[1]
@@ -131,7 +131,7 @@ object SerienStreamProvider : Provider {
     }
 
     private fun getEpisodeIdFromLink(link: String): String {
-        val linkWithoutStaticPrefix = link.replace("/serie/stream/", "")
+        val linkWithoutStaticPrefix = link.removePrefix(URL).removePrefix("/").removePrefix("serie/")
         val linkWithSplitData = linkWithoutStaticPrefix.split("/")
         val justTvShowId = linkWithSplitData[0]
         val justTvShowSeason = linkWithSplitData[1]
@@ -144,32 +144,60 @@ object SerienStreamProvider : Provider {
         val document = service.getHome()
         val categories = mutableListOf<Category>()
         categories.add(
-            Category(name = "Beliebte Serien",
-                list = document.select("div.carousel:contains(Beliebt bei) div.coverListItem").map {
+            Category(name = Category.FEATURED,
+                list = document.select(".home-hero-slide").map {
                     TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("a h3")?.text() ?: "",
-                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                        id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
+                        title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
+                        banner = it.select("picture.home-hero-bg source[type='image/webp']")
+                            .flatMap { s -> s.attr("srcset").split(",") }
+                            .find { url -> url.contains("hero-2x-desktop") }
+                            ?.trim()?.split(" ")?.firstOrNull()
                     )
                 })
         )
         categories.add(
-            Category(name = "Neue Serien",
-                list = document.select("div.carousel:contains(Neue Fernsehserien) div.coverListItem").map {
+            Category(name = "Angesagt",
+                list = document.select(".trending-widget .swiper-slide").map {
                     TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("a h3")?.text() ?: "",
-                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                        id = getTvShowIdFromLink(it.selectFirst("h3.trend-title a")?.attr("href") ?: ""),
+                        title = it.selectFirst("h3.trend-title a")?.text()?.trim() ?: "",
+                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
                     )
                 })
         )
+        categories.add(
+            Category(name = "Neu auf S.to",
+                list = document.select("div:has(h4:contains(Neu auf S.to)) + div.row > div").map {
+                    TvShow(
+                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                        title = it.selectFirst("h6 a")?.text() ?: "",
+                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
+                    )
+                })
+        )
+        document.select("#discover-blocks .col").forEach { column ->
+            val categoryName = column.selectFirst("h4")?.text()?.trim() ?: ""
+            if (categoryName.isNotEmpty()) {
+                categories.add(
+                    Category(name = categoryName,
+                        list = column.select("li").map {
+                            TvShow(
+                                id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                                title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
+                                poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
+                            )
+                        })
+                )
+            }
+        }
         categories.add(
             Category(name = "Derzeit beliebte Serien",
                 list = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem").map {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                         title = it.selectFirst("a h3")?.text() ?: "",
-                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                        poster = it.selectFirst("img")?.attr("data-src")
                     )
                 })
         )
@@ -179,8 +207,10 @@ object SerienStreamProvider : Provider {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
             val document = service.getSeriesListWithCategories()
-            return document.select("#seriesContainer h3").map {
-                Genre(id = it.text().lowercase(Locale.getDefault()), name = it.text())
+            return document.select("div[data-group='genres'] .list-inline-item a").map {
+                val name = it.text().trim()
+                val href = it.attr("href")
+                Genre(id = href.substringAfterLast("/"), name = name)
             }
         }
         val lowerQuery = query.trim().lowercase(Locale.getDefault())
@@ -229,21 +259,24 @@ object SerienStreamProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val document = service.getTvShow(id)
-        val title = document.selectFirst("h1 > span")?.text() ?: ""
+        val title = document.selectFirst("h1")?.text()?.trim() ?: ""
         
         val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
         
-        val imdbTitleUrl = document.selectFirst("div.series-title a.imdb-link")?.attr("href") ?: ""
-        val imdbDocument = service.getCustomUrl(imdbTitleUrl)
+        val localRating = if (tmdbTvShow?.rating == null) {
+            val imdbTitleUrl = document.selectFirst("a[href*='imdb.com']")?.attr("href") ?: ""
+            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { service.getCustomUrl(imdbTitleUrl) } catch (e: Exception) { null } else null
+            imdbDocument?.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
+                ?.text()?.toDoubleOrNull() ?: document.selectFirst(".text-white-50:contains(Bewertungen)")?.text()?.split(" ")?.firstOrNull()?.toDoubleOrNull() ?: 0.0
+        } else {
+            0.0
+        }
         
-        val localRating = imdbDocument.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
-            ?.text()?.toDoubleOrNull() ?: 0.0
-        
-        val localCast = document.select(".cast li[itemprop='actor']").map {
-            val actorName = it.selectFirst("span")?.text() ?: ""
+        val localCast = document.select(".series-group:contains(Besetzung) a").map {
+            val actorName = it.text()
             val tmdbPerson = tmdbTvShow?.cast?.find { person -> person.name.equals(actorName, ignoreCase = true) }
             People(
-                id = it.selectFirst("a")?.attr("href")?.replace("/serien/", "") ?: "",
+                id = it.attr("href").removePrefix(URL).removePrefix("/"),
                 name = actorName,
                 image = tmdbPerson?.image
             )
@@ -251,39 +284,37 @@ object SerienStreamProvider : Provider {
         
         return TvShow(id = id,
             title = title,
-            overview = tmdbTvShow?.overview ?: document.selectFirst("p.seri_des")?.attr("data-full-description"),
+            overview = tmdbTvShow?.overview ?: document.selectFirst("span.description-text")?.text() ?: document.selectFirst("div.series-description p")?.text(),
             released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } 
-                ?: document.selectFirst("div.series-title > small > span:nth-child(1)")?.text() ?: "",
+                ?: document.selectFirst("a.small.text-muted")?.text() ?: "",
             rating = tmdbTvShow?.rating ?: localRating,
             runtime = tmdbTvShow?.runtime,
-            directors = document.select(".cast li[itemprop='director']").map {
+            directors = document.select(".series-group:contains(Regisseur) a").map {
                 People(
-                    id = it.selectFirst("a")?.attr("href")?.replace("/serien/", "") ?: "",
-                    name = it.selectFirst("span")?.text() ?: ""
+                    id = it.attr("href").removePrefix(URL).removePrefix("/"),
+                    name = it.text()
                 )
             },
             cast = localCast,
-            genres = tmdbTvShow?.genres ?: document.select(".genres li").map {
+            genres = tmdbTvShow?.genres ?: document.select(".series-group:contains(Genre) a").map {
                 Genre(
-                    id = it.selectFirst("a")?.text()?.lowercase(Locale.getDefault()) ?: "",
-                    name = it.selectFirst("a")?.text() ?: ""
+                    id = it.text().lowercase(Locale.getDefault()),
+                    name = it.text()
                 )
             },
             trailer = tmdbTvShow?.trailer ?: document.selectFirst("div[itemprop='trailer'] a")?.attr("href") ?: "",
-            poster = tmdbTvShow?.poster ?: (URL + document.selectFirst("div.seriesCoverBox img")?.attr("data-src")),
-            banner = tmdbTvShow?.banner ?: (URL + document.selectFirst("#series > section > div.backdrop")?.attr("style")
-                ?.replace("background-image: url(/", "")?.replace(")", "")),
-            seasons = document.select("#stream > ul:nth-child(1) > li")
-                .filter { it -> it.select("a").size > 0 }.map {
-                    val seasonNumber = it.selectFirst("a")?.text()?.toIntOrNull() ?: 0
-                    Season(
-                        id = it.selectFirst("a")?.attr("href")
-                            ?.let { it1 -> getSeasonIdFromLink(it1) } ?: "",
-                        number = seasonNumber,
-                        title = it.selectFirst("a")?.attr("title"),
-                        poster = tmdbTvShow?.seasons?.find { s -> s.number == seasonNumber }?.poster
-                    )
-                },
+            poster = tmdbTvShow?.poster ?: document.selectFirst("div.show-header-wrapper img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") },
+            banner = tmdbTvShow?.banner ?: document.selectFirst("div.backdrop-picture img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") },
+            seasons = document.select("#season-nav ul li a").map {
+                val seasonText = it.text().trim()
+                val seasonNumber = seasonText.toIntOrNull() ?: 0
+                Season(
+                    id = getSeasonIdFromLink(it.attr("href")),
+                    number = seasonNumber,
+                    title = if (seasonText == "Filme") "Filme" else "Staffel $seasonNumber",
+                    poster = tmdbTvShow?.seasons?.find { s -> s.number == seasonNumber }?.poster
+                )
+            },
             imdbId = tmdbTvShow?.imdbId
         )
     }
@@ -297,23 +328,27 @@ object SerienStreamProvider : Provider {
         val document = service.getTvShowEpisodes(showName, seasonNumberStr)
         
         // Get show title for TMDB lookup
-        val showDocument = service.getTvShow(showName)
-        val showTitle = showDocument.selectFirst("h1 > span")?.text() ?: ""
+        val title = (document.selectFirst("h1")?.text()?.trim() ?: "").split(" Staffel").firstOrNull()?.trim() ?: ""
         
-        val tmdbTvShow = TmdbUtils.getTvShow(showTitle, language = language)
+        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
         val tmdbEpisodes = tmdbTvShow?.let { 
             TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) 
         } ?: emptyList()
         
-        return document.select("tbody tr").map {
-            val episodeNumber = it.selectFirst("meta")?.attr("content")?.toIntOrNull() ?: 0
+        return document.select("tr.episode-row").map {
+            val episodeNumber = it.selectFirst(".episode-number-cell")?.text()?.trim()?.toIntOrNull() ?: 0
             val tmdbEp = tmdbEpisodes.find { ep -> ep.number == episodeNumber }
             
+            val episodeLink = it.attr("onclick")
+                .substringAfter("window.location='")
+                .substringBefore("'")
+
             Episode(
-                id = it.selectFirst("a")?.attr("href")?.let { it1 -> getEpisodeIdFromLink(it1) }
-                    ?: "",
+                id = getEpisodeIdFromLink(episodeLink),
                 number = episodeNumber,
-                title = tmdbEp?.title ?: it.selectFirst("strong")?.text(),
+                title = tmdbEp?.title ?: it.selectFirst(".episode-title-ger")?.text() 
+                    ?: it.selectFirst(".episode-title-eng")?.text() 
+                    ?: "Episode $episodeNumber",
                 poster = tmdbEp?.poster,
                 overview = tmdbEp?.overview
             )
@@ -325,18 +360,19 @@ object SerienStreamProvider : Provider {
         try {
             val shows = mutableListOf<TvShow>()
             val document = service.getGenre(id, page)
-            document.select(".seriesListContainer > div").map {
+            document.select("div.row.g-3 > div").map {
                 shows.add(
                     TvShow(
                         id = it.selectFirst("a")?.attr("href")
                             ?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
-                        title = it.selectFirst("h3")?.text() ?: "",
-                        poster = URL + it.selectFirst("img")?.attr("data-src")
+                        title = it.selectFirst("h6")?.text()?.trim() ?: "",
+                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
                     )
                 )
             }
-            return Genre(id = id, name = id, shows = shows)
+            return Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = shows)
         } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "Error fetching genre $id page $page", e)
             return Genre(id = id, name = id, shows = emptyList())
         }
     }
@@ -346,11 +382,12 @@ object SerienStreamProvider : Provider {
         val document = service.getPeople(id)
         return People(id = id,
             name = document.selectFirst("h1 strong")?.text() ?: "",
-            filmography = document.select(".seriesListContainer > div").map {
-                TvShow(id = it.selectFirst("a")?.attr("href")
-                    ?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
-                    title = it.selectFirst("h3")?.text() ?: "",
-                    poster = URL + it.selectFirst("img")?.attr("data-src"))
+            filmography = document.select("div.row.g-3 > div").map {
+                TvShow(
+                    id = it.selectFirst("a")?.attr("href")?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
+                    title = it.selectFirst("h6 a")?.text() ?: "",
+                    poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
+                )
             })
     }
 
@@ -362,11 +399,16 @@ object SerienStreamProvider : Provider {
         val episodeNumber = linkWithSplitData[2]
         val document = service.getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
 
-        for (element in document.select("div.hosterSiteVideo > ul > li")) {
-            val serverName = element.selectFirst("h4")?.text() ?: "Unknown server"
-            val href = element.selectFirst("a")?.attr("href") ?: "No href"
+        val elements = document.select("button.link-box")
+        for (element in elements) {
+            val serverName = element.attr("data-provider-name")
+            val language = element.attr("data-language-label")
+            val href = element.attr("data-play-url")
+            
+            if (href.isEmpty()) continue
+
             try {
-                val redirectUrl = URL + href
+                val redirectUrl = URL + href.removePrefix("/")
 
                 val serverAfterRedirect = try {
                     service.getRedirectLink(redirectUrl)
@@ -375,18 +417,16 @@ object SerienStreamProvider : Provider {
                     unsafeOkHttpClient.getRedirectLink(redirectUrl)
                 }
                 val videoUrl = (serverAfterRedirect.raw() as okhttp3.Response).request.url
-                var videoUrlString = videoUrl.toString()
-                if (serverName == "VOE") {
-                    videoUrlString = "https://voe.sx" + videoUrl.encodedPath
-                }
+                val videoUrlString = videoUrl.toString()
+                
                 servers.add(
                     Video.Server(
                         id = videoUrlString,
-                        name = serverName
+                        name = "$serverName ($language)"
                     )
                 )
-            }catch (e: Exception) {
-                Log.e("SerienStreamProvider","Failed to process server '$serverName' with URL '$href'")
+            } catch (e: Exception) {
+                Log.e("SerienStreamProvider", "Failed to process server '$serverName' with URL '$href'")
             }
         }
         return servers
@@ -404,10 +444,10 @@ object SerienStreamProvider : Provider {
 
     private suspend fun preloadSeriesAlphabet() {
         val document = service.getSeriesListAlphabet()
-        val elements = document.select(".genre > ul > li")
+        val elements = document.select("ul.series-list > li.series-item")
 
         val loadedShows = elements.map {
-            val title = Jsoup.parse(it.text()).text()
+            val title = it.selectFirst("a")?.text()?.trim() ?: ""
             TvShow(
                 id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                 title = title,
@@ -518,29 +558,29 @@ object SerienStreamProvider : Provider {
         @FormUrlEncoded
         suspend fun search(@Field("keyword") query: String): List<SearchItem>
 
-        @GET("serien")
+        @GET("suche?tab=genres")
         suspend fun getSeriesListWithCategories(): Document
 
         @GET("serien-alphabet")
         suspend fun getSeriesListAlphabet(): Document
 
-        @GET("genre/{genreName}/{page}")
+        @GET("genre/{genreName}")
         suspend fun getGenre(
-            @Path("genreName") genreName: String, @Path("page") page: Int
+            @Path("genreName") genreName: String, @Query("page") page: Int
         ): Document
 
-        @GET("serien/{peopleId}")
+        @GET("{peopleId}")
         suspend fun getPeople(@Path("peopleId", encoded = true) peopleId: String): Document
 
-        @GET("serie/stream/{tvShowName}")
+        @GET("serie/{tvShowName}")
         suspend fun getTvShow(@Path("tvShowName") tvShowName: String): Document
 
-        @GET("serie/stream/{tvShowName}/{seasonNumber}")
+        @GET("serie/{tvShowName}/{seasonNumber}")
         suspend fun getTvShowEpisodes(
             @Path("tvShowName") showName: String, @Path("seasonNumber") seasonNumber: String
         ): Document
 
-        @GET("serie/stream/{tvShowName}/{seasonNumber}/{episodeNumber}")
+        @GET("serie/{tvShowName}/{seasonNumber}/{episodeNumber}")
         suspend fun getTvShowEpisodeServers(
             @Path("tvShowName") tvShowName: String,
             @Path("seasonNumber") seasonNumber: String,

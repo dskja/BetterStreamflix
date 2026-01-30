@@ -14,6 +14,7 @@ import com.streamflixreborn.streamflix.databinding.ViewPlayerSettingsMobileBindi
 import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.margin
+import com.streamflixreborn.streamflix.utils.UserPreferences
 
 class PlayerSettingsMobileView @JvmOverloads constructor(
     context: Context,
@@ -45,6 +46,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
     private val marginAdapter = SettingsAdapter(this, Settings.Subtitle.Style.Margin.list)
+    private val gesturesAdapter = SettingsAdapter(this, Settings.Gestures.list)
+    private val keepScreenOnAdapter = SettingsAdapter(this, Settings.KeepScreenOn.list)
 
     override var onSubtitlesClicked: (() -> Unit)? = null
 
@@ -86,6 +89,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
                 Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
                 Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
+                Setting.GESTURES -> context.getString(R.string.player_settings_gestures_title)
+                Setting.KEEP_SCREEN_ON -> context.getString(R.string.player_settings_keep_screen_on_title)
             }
         }
 
@@ -98,7 +103,9 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     Setting.SUBTITLES,
                     Setting.SPEED,
                     Setting.EXTRA_BUFFERING,
-                    Setting.SERVERS -> displaySettings(Setting.MAIN)
+                    Setting.SERVERS,
+                    Setting.GESTURES,
+                    Setting.KEEP_SCREEN_ON -> displaySettings(Setting.MAIN)
                     Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
                     Setting.CAPTION_STYLE_FONT_COLOR,
                     Setting.CAPTION_STYLE_TEXT_SIZE,
@@ -142,6 +149,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.EXTRA_BUFFERING -> extraBufferingAdapter
             Setting.SERVERS -> serversAdapter
             Setting.CAPTION_STYLE_MARGIN -> marginAdapter
+            Setting.GESTURES -> gesturesAdapter
+            Setting.KEEP_SCREEN_ON -> keepScreenOnAdapter
         }
     }
 
@@ -195,6 +204,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 Settings.Speed -> settingsView.displaySettings(Setting.SPEED)
                                 Settings.ExtraBuffering -> settingsView.displaySettings(Setting.EXTRA_BUFFERING)
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
+                                Settings.Gestures -> settingsView.displaySettings(Setting.GESTURES)
+                                Settings.KeepScreenOn -> settingsView.displaySettings(Setting.KEEP_SCREEN_ON)
                             }
                         }
 
@@ -334,6 +345,22 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                             settingsView.onServerSelected?.invoke(item)
                             settingsView.hide()
                         }
+
+                        is Settings.Gestures -> {
+                            UserPreferences.playerGestures = when (item) {
+                                is Settings.Gestures.On -> true
+                                is Settings.Gestures.Off -> false
+                            }
+                            settingsView.hide()
+                        }
+
+                        is Settings.KeepScreenOn -> {
+                            UserPreferences.keepScreenOnWhenPaused = when (item) {
+                                is Settings.KeepScreenOn.On -> true
+                                is Settings.KeepScreenOn.Off -> false
+                            }
+                            settingsView.hide()
+                        }
                     }
                 }
             }
@@ -375,6 +402,20 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 ContextCompat.getDrawable(
                                     context,
                                     R.drawable.ic_player_settings_servers
+                                )
+                            )
+
+                            Settings.Gestures -> setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.ic_player_settings_gestures
+                                )
+                            )
+
+                            Settings.KeepScreenOn -> setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.ic_player_settings_quality
                                 )
                             )
                         }
@@ -419,6 +460,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Speed -> context.getString(R.string.player_settings_speed_label)
                         Settings.ExtraBuffering -> context.getString(R.string.player_settings_extra_buffer_server_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
+                        Settings.Gestures -> context.getString(R.string.player_settings_gestures_title)
+                        Settings.KeepScreenOn -> context.getString(R.string.player_settings_keep_screen_on_title)
                     }
 
                     is Settings.Quality -> when (item) {
@@ -489,6 +532,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.Server -> item.name
 
+                    is Settings.Gestures -> context.getString(item.stringId)
+
+                    is Settings.KeepScreenOn -> context.getString(item.stringId)
+
                     else -> ""
                 }
             }
@@ -517,6 +564,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Speed -> context.getString(Settings.Speed.selected.stringId)
                         Settings.ExtraBuffering -> context.getString(Settings.ExtraBuffering.selected.stringId)
                         Settings.Server -> Settings.Server.selected?.name ?: ""
+                        Settings.Gestures -> context.getString(Settings.Gestures.selected.stringId)
+                        Settings.KeepScreenOn -> context.getString(Settings.KeepScreenOn.selected.stringId)
                     }
 
                     is Settings.Subtitle -> when (item) {
@@ -628,6 +677,16 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     }
 
                     is Settings.Server -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
+                    is Settings.Gestures -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
+                    is Settings.KeepScreenOn -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
                     }

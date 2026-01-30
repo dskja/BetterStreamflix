@@ -33,32 +33,90 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:visibility="visible" />
 
-    <ProgressBar
-        android:id="@+id/pb_brightness"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="150dp"
+    <LinearLayout
+        android:id="@+id/ll_brightness"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:rotation="270"
+        android:orientation="vertical"
+        android:gravity="center"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginStart="16dp"
-        tools:visibility="visible"
-        tools:progress="50"/>
+        android:layout_marginStart="32dp"
+        tools:visibility="visible">
 
-    <ProgressBar
-        android:id="@+id/pb_volume"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="150dp"
+        <TextView
+            android:id="@+id/tv_brightness_percentage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:shadowColor="#000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            tools:text="50%"/>
+
+        <ProgressBar
+            android:id="@+id/pb_brightness"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:rotation="270"
+            android:layout_marginTop="60dp"
+            android:layout_marginBottom="60dp"
+            tools:progress="50"/>
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_brightness"
+            app:tint="#FFFFFF" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_volume"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:rotation="270"
+        android:orientation="vertical"
+        android:gravity="center"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginEnd="16dp"
-        tools:visibility="visible"
-        tools:progress="50"/>
+        android:layout_marginEnd="32dp"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tv_volume_percentage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:shadowColor="#000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            tools:text="50%"/>
+
+        <ProgressBar
+            android:id="@+id/pb_volume"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:rotation="270"
+            android:layout_marginTop="60dp"
+            android:layout_marginBottom="60dp"
+            tools:progress="50"/>
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_player_settings_audio"
+            app:tint="#FFFFFF" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

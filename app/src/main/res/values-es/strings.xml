@@ -213,6 +213,8 @@
     <string name="settings_player_gestures">Gestos del reproductor</string>
     <string name="settings_player_gestures_on">Activado</string>
     <string name="settings_player_gestures_off">Desactivado</string>
+    <string name="settings_keep_screen_on_when_paused">Mantener pantalla encendida en pausa</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Evita che la pantalla se apague cuando el vídeo está en pausa</string>
     <string name="miscelaneous_title">Varios</string>
     <string name="clear_cache_done">Caché vaciada</string>
     <string name="clear_cache_done_409">Caché vaciada automáticamente por error HTTP 409</string>
@@ -281,4 +283,12 @@
     <string name="error_dialog_copied">¡Copiado al portapapeles!</string>
     <string name="error_dialog_unknown">Error desconocido</string>
     <string name="error_dialog_no_cause">Sin causa</string>
+    <string name="player_settings_gestures_title">Gestos</string>
+    <string name="player_settings_keep_screen_on_title">Mantener pantalla en pausa</string>
+
+    <string name="settings_category_tmdb">Ajustes de TMDb</string>
+    <string name="settings_tmdb_api_key">Clave API de TMDb personalizada</string>
+    <string name="settings_tmdb_api_key_summary">Déjalo vacío para usar la clave API predeterminada proporcionada con la aplicación</string>
+    <string name="settings_tmdb_api_key_success">Clave API actualizada correctamente</string>
+    <string name="settings_tmdb_api_key_reset">Usando la clave API de TMDb predeterminada</string>
 </resources>

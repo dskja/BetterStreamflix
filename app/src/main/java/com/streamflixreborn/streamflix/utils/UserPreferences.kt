@@ -137,6 +137,13 @@ object UserPreferences {
         get() = Key.SELECTED_THEME.getString() ?: "default"
         set(value) = Key.SELECTED_THEME.setString(value)
 
+    var tmdbApiKey: String
+        get() = Key.TMDB_API_KEY.getString() ?: ""
+        set(value) {
+            Key.TMDB_API_KEY.setString(value)
+            TMDb3.rebuildService()
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -278,6 +285,7 @@ object UserPreferences {
         KEEP_SCREEN_ON_WHEN_PAUSED,
         PLAYER_GESTURES,
         IMMERSIVE_MODE,
+        TMDB_API_KEY,
         SELECTED_THEME;
 
         fun getBoolean(): Boolean? = when {

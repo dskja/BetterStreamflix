@@ -94,6 +94,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         SPEED,
         EXTRA_BUFFERING,
         SERVERS,
+        GESTURES,
+        KEEP_SCREEN_ON,
     }
 
     protected var onQualitySelected: ((Settings.Quality) -> Unit) =
@@ -346,7 +348,45 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Speed,
                 Server,
                 ExtraBuffering,
+                Gestures,
+                KeepScreenOn,
             )
+        }
+
+        sealed class Gestures : Item {
+            companion object : Settings() {
+                val list = listOf(On, Off)
+                val selected: Gestures get() = if (UserPreferences.playerGestures) On else Off
+            }
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : Gestures() {
+                override val isSelected: Boolean get() = UserPreferences.playerGestures
+                override val stringId: Int get() = R.string.settings_player_gestures_on
+            }
+            data object Off : Gestures() {
+                override val isSelected: Boolean get() = !UserPreferences.playerGestures
+                override val stringId: Int get() = R.string.settings_player_gestures_off
+            }
+        }
+
+        sealed class KeepScreenOn : Item {
+            companion object : Settings() {
+                val list = listOf(On, Off)
+                val selected: KeepScreenOn get() = if (UserPreferences.keepScreenOnWhenPaused) On else Off
+            }
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : KeepScreenOn() {
+                override val isSelected: Boolean get() = UserPreferences.keepScreenOnWhenPaused
+                override val stringId: Int get() = R.string.settings_autoupdate_on
+            }
+            data object Off : KeepScreenOn() {
+                override val isSelected: Boolean get() = !UserPreferences.keepScreenOnWhenPaused
+                override val stringId: Int get() = R.string.settings_autoupdate_off
+            }
         }
 
         sealed class ExtraBuffering : Item {

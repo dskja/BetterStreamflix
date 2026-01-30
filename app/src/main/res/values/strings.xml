@@ -233,6 +233,8 @@
     <string name="settings_player_gestures">Player gestures</string>
     <string name="settings_player_gestures_on">On</string>
     <string name="settings_player_gestures_off">Off</string>
+    <string name="settings_keep_screen_on_when_paused">Keep screen on when paused</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Prevents the screen from turning off when a video is paused</string>
     <string name="miscelaneous_title">Miscellaneous</string>
     <string name="clear_cache_done">Cache cleared</string>
     <string name="clear_cache_done_409">Cache cleared automatically due to HTTP 409</string>
@@ -320,4 +322,12 @@
 
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_theme_title">App Theme</string>
+    <string name="player_settings_gestures_title">Gestures</string>
+    <string name="player_settings_keep_screen_on_title">Keep screen on when paused</string>
+
+    <string name="settings_category_tmdb">TMDb Settings</string>
+    <string name="settings_tmdb_api_key">Custom TMDb API Key</string>
+    <string name="settings_tmdb_api_key_summary">Leave empty to use the default API key provided with the app</string>
+    <string name="settings_tmdb_api_key_success">API Key updated successfully</string>
+    <string name="settings_tmdb_api_key_reset">Using default TMDb API Key</string>
 </resources>

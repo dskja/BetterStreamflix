@@ -169,7 +169,7 @@
     <string name="player_settings_caption_style_window_color_label">Fensterfarbe</string>
     <string name="player_settings_caption_style_window_color_black">Schwarz</string>
     <string name="player_settings_caption_style_window_color_yellow">Gelb</string>
-    <string name="player_settings_caption_style_window_color_green">Grün</string>
+    <string name="player_settings_caption_style_window_color_green">Verde</string>
     <string name="player_settings_caption_style_window_color_cyan">Cyan</string>
     <string name="player_settings_caption_style_window_color_blue">Blau</string>
     <string name="player_settings_caption_style_window_color_magenta">Magenta</string>
@@ -225,6 +225,8 @@
     <string name="settings_player_gestures">Player-Gesten</string>
     <string name="settings_player_gestures_on">An</string>
     <string name="settings_player_gestures_off">Aus</string>
+    <string name="settings_keep_screen_on_when_paused">Bildschirm im Pause-Modus anlassen</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Verhindert, dass der Bildschirm ausgeschaltet wird, wenn das Video angehalten wurde</string>
     <string name="miscelaneous_title">Sonstiges</string>
     <string name="clear_cache_done">Cache geleert</string>
     <string name="clear_cache_done_409">Cache automatisch wegen HTTP 409 geleert</string>
@@ -277,4 +279,12 @@
     <string name="error_dialog_copied">In Zwischenablage kopiert!</string>
     <string name="error_dialog_unknown">Unbekannter Fehler</string>
     <string name="error_dialog_no_cause">Keine Ursache</string>
+    <string name="player_settings_gestures_title">Gesten</string>
+    <string name="player_settings_keep_screen_on_title">Bildschirm im Pause-Modus anlassen</string>
+
+    <string name="settings_category_tmdb">TMDb-Einstellungen</string>
+    <string name="settings_tmdb_api_key">Benutzerdefinierter TMDb API-Key</string>
+    <string name="settings_tmdb_api_key_summary">Leer lassen, um den Standard-API-Key der App zu verwenden</string>
+    <string name="settings_tmdb_api_key_success">API-Key erfolgreich aktualisiert</string>
+    <string name="settings_tmdb_api_key_reset">Standard-TMDb-API-Key wird verwendet</string>
 </resources>

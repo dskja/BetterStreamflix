@@ -214,7 +214,16 @@ class PlayerMobileFragment : Fragment() {
 
         initializePlayer(false)
         initializeVideo()
-        gestureHelper = PlayerGestureHelper(requireContext(), binding.pvPlayer, binding.pbBrightness, binding.pbVolume)
+        gestureHelper = PlayerGestureHelper(
+            requireContext(), 
+            binding.pvPlayer, 
+            binding.llBrightness, 
+            binding.pbBrightness, 
+            binding.tvBrightnessPercentage,
+            binding.llVolume, 
+            binding.pbVolume, 
+            binding.tvVolumePercentage
+        )
 
         viewLifecycleOwner.lifecycleScope.launch { 
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->

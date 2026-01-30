@@ -13,6 +13,17 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pc_tmdb_settings"
+        android:title="@string/settings_category_tmdb">
+
+        <EditTextPreference
+            android:key="TMDB_API_KEY"
+            android:title="@string/settings_tmdb_api_key"
+            android:summary="@string/settings_tmdb_api_key_summary"
+            android:inputType="text"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="pc_network_settings"
         android:title="@string/settings_category_network_title">
 
@@ -102,7 +113,6 @@
             android:max="250"/>
     </PreferenceCategory>
 
-    <!-- NUOVA POSIZIONE: Sotto Screen Padding e sopra Backup -->
     <PreferenceCategory
         android:title="@string/settings_category_appearance">
         <ListPreference

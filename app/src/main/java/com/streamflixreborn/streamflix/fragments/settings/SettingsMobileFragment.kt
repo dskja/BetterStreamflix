@@ -152,6 +152,23 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
+            summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
+            text = UserPreferences.tmdbApiKey
+            setOnPreferenceChangeListener { _, newValue ->
+                val newKey = (newValue as String).trim()
+                UserPreferences.tmdbApiKey = newKey
+                summary = if (newKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else newKey
+                val message = if (newKey.isEmpty()) {
+                    getString(R.string.settings_tmdb_api_key_reset)
+                } else {
+                    getString(R.string.settings_tmdb_api_key_success)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
         val HasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
         findPreference<PreferenceCategory>("pc_provider_settings")?.apply {
             isVisible = HasConfigProvider
@@ -240,9 +257,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     }
                     setOnPreferenceChangeListener { _, newValue ->
                         val toSave = (newValue as String)
-                                .ifBlank { portalProvider.defaultPortalUrl }
-                                .trim()
-                                .removeSuffix("/") + "/"
+                            .ifBlank { portalProvider.defaultPortalUrl }
+                            .trim()
+                            .removeSuffix("/") + "/"
                         summary = toSave
                         UserPreferences.setProviderCache(
                             null,
