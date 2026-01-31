@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.providers
 
 import com.streamflixreborn.streamflix.adapters.AppAdapter
+import com.streamflixreborn.streamflix.extractors.AfterDarkExtractor
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.extractors.MoflixExtractor
 import com.streamflixreborn.streamflix.extractors.MoviesapiExtractor
@@ -745,7 +746,9 @@ class TmdbProvider(override val language: String) : Provider {
             } else if (language == "fr") {
                 val frembedServers = FrembedExtractor().servers(videoType)
                 servers.addAll(0, frembedServers)
-                VideasyExtractor().server(videoType, language)?.let { servers.add(frembedServers.size, it) }
+                val afterdarkServers = AfterDarkExtractor().servers(videoType)
+                servers.addAll(0, afterdarkServers)
+                VideasyExtractor().server(videoType, language)?.let { servers.add(frembedServers.size + afterdarkServers.size, it) }
             } else if (language == "es") {
                 VideasyExtractor().server(videoType, language)?.let { servers.add(0, it) }
             } else if (language == "en") {
