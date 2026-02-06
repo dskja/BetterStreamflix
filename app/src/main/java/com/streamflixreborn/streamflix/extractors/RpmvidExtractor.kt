@@ -6,6 +6,7 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import com.google.gson.JsonParser
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.GET
@@ -21,7 +22,8 @@ import javax.crypto.spec.SecretKeySpec
 class RpmvidExtractor : Extractor() {
     override val name = "Rpmvid"
     override val mainUrl = "https://rpmvid.com"
-    override val aliasUrls = listOf("https://cubeembed.rpmvid.com", "https://bummi.upns.xyz", "https://loadm.cam", "https://anibum.playerp2p.online", "https://pelisplus.upns.pro", "https://pelisplus.rpmstream.live", "https://pelisplus.strp2p.com", "https://flemmix.upns.pro", "https://moflix.rpmplay.xyz", "https://moflix.upns.xyz", "https://flix2day.xyz", "https://primevid.click")
+    override val aliasUrls = listOf("https://cubeembed.rpmvid.com", "https://bummi.upns.xyz", "https://loadm.cam", "https://anibum.playerp2p.online", "https://pelisplus.upns.pro", "https://pelisplus.rpmstream.live", "https://pelisplus.strp2p.com", "https://flemmix.upns.pro", "https://moflix.rpmplay.xyz", "https://moflix.upns.xyz", "https://flix2day.xyz", "https://primevid.click",
+        "https://totocoutouno.rpmlive.online", "https://dismoiceline.uns.bio", "https://doremifasol.ezplayer.me", "https://marcus.p2pstream.vip")
 
     companion object {
         private const val DEFAULT_USER_AGENT =
@@ -31,6 +33,7 @@ class RpmvidExtractor : Extractor() {
     }
 
     private val client = OkHttpClient.Builder()
+        .dns(DnsResolver.doh)
         .addInterceptor(object : Interceptor {
             override fun intercept(chain: Interceptor.Chain): Response {
                 val request = chain.request().newBuilder()
@@ -117,8 +120,30 @@ class RpmvidExtractor : Extractor() {
             else -> throw Exception("Missing hls, hlsVideoTiktok or cf in response")
         }
 
+        val defaultSub = json.getAsJsonObject("defaultSubtitle")
+                                ?.get("defaultSubtitle")?.asString?:""
+        var alreadySelect = false
+        val subtitles = json.getAsJsonObject("subtitle")
+            ?.entrySet()
+            ?.map { (label, file ) ->
+                Video.Subtitle(
+                    label = label,
+                    file = file.asString?:"",
+                    default = if (alreadySelect == false && defaultSub.isNotEmpty() && label.contains(
+                            defaultSub
+                        )
+                    ) {
+                        alreadySelect = true
+                        true
+                    } else {
+                        false
+                    }
+                )
+            } ?: emptyList()
+
         return Video(
             source = finalUrl,
+            subtitles,
             headers = headers,
             type = MimeTypes.APPLICATION_M3U8
         )

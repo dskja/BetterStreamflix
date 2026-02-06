@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.extractors
 
 import com.google.gson.JsonParser
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
@@ -38,8 +39,30 @@ class StreamUpExtractor : Extractor() {
         val streamingUrl = jsonObject.get("streaming_url")?.asString
             ?: throw Exception("Streaming URL not found in API response")
 
+        val defaultSub = jsonObject.get("default_sub_lang")?.asString?:""
+        var alreadySelect = false
+        val subtitles = jsonObject.getAsJsonArray("subtitles")
+            ?.map { elem ->
+                val obj = elem.asJsonObject
+                val label = obj.get("language")?.asString?:""
+                Video.Subtitle(
+                    label = label,
+                    file = obj.get("file_path")?.asString?:"",
+                    default = if (alreadySelect == false && defaultSub.isNotEmpty() && label.contains(
+                            defaultSub
+                        )
+                    ) {
+                        alreadySelect = true
+                        true
+                    } else {
+                        false
+                    }
+                )
+            } ?: emptyList()
+
         return Video(
-            source = streamingUrl
+            source = streamingUrl,
+            subtitles = subtitles
         )
     }
 
@@ -48,6 +71,7 @@ class StreamUpExtractor : Extractor() {
         companion object {
             fun build(baseUrl: String): Service {
                 val client = OkHttpClient.Builder()
+                    .dns(DnsResolver.doh)
                     .build()
 
                 val retrofit = Retrofit.Builder()
