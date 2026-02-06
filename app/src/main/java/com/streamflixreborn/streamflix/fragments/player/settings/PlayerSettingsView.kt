@@ -15,6 +15,7 @@ import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.SubtitleView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
+import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.findClosest
@@ -72,6 +73,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
             Settings.Subtitle.OpenSubtitles.init(value)
             field = value
         }
+    var subDLSubtitles: List<SubDL.Subtitle> = listOf()
+        set(value) {
+            Settings.Subtitle.SubDLSubtitles.init(value)
+            field = value
+        }
 
     protected var currentSettings = Setting.MAIN
 
@@ -91,6 +97,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         CAPTION_STYLE_WINDOW_OPACITY,
         CAPTION_STYLE_MARGIN,
         OPEN_SUBTITLES,
+        SUBDL,
         SPEED,
         EXTRA_BUFFERING,
         SERVERS,
@@ -305,6 +312,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
     protected var onOpenSubtitleSelected: ((Settings.Subtitle.OpenSubtitles.Subtitle) -> Unit)? = null
     fun setOnOpenSubtitleSelectedListener(onOpenSubtitleSelected: (Settings.Subtitle.OpenSubtitles.Subtitle) -> Unit) {
         this.onOpenSubtitleSelected = onOpenSubtitleSelected
+    }
+
+    protected var onSubDLSubtitleSelected: ((Settings.Subtitle.SubDLSubtitles.Subtitle) -> Unit)? = null
+    fun setOnSubDLSubtitleSelectedListener(onSubDLSubtitleSelected: (Settings.Subtitle.SubDLSubtitles.Subtitle) -> Unit) {
+        this.onSubDLSubtitleSelected = onSubDLSubtitleSelected
     }
 
     protected var onSpeedSelected: ((Settings.Speed) -> Unit) =
@@ -595,8 +607,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .sortedBy { it.language ?: it.label }
                     )
                     list.add(LocalSubtitles)
-                    // Hide OpenSubtitles from the Subtitles submenu
                     list.add(OpenSubtitles)
+                    list.add(SubDLSubtitles)
                 }
             }
 
@@ -1036,6 +1048,24 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 class Subtitle(
                     val openSubtitle: com.streamflixreborn.streamflix.utils.OpenSubtitles.Subtitle
                 ) : OpenSubtitles()
+            }
+
+            sealed class SubDLSubtitles : Item {
+
+                companion object : Settings.Subtitle() {
+                    val list = mutableListOf<Subtitle>()
+
+                    fun init(subDLSubtitles: List<com.streamflixreborn.streamflix.utils.SubDL.Subtitle>) {
+                        list.clear()
+                        list.addAll(subDLSubtitles.map {
+                            Subtitle(it)
+                        })
+                    }
+                }
+
+                class Subtitle(
+                    val subDLSubtitle: com.streamflixreborn.streamflix.utils.SubDL.Subtitle
+                ) : SubDLSubtitles()
             }
         }
 
