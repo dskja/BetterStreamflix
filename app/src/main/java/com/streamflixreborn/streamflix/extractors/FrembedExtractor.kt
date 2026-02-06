@@ -52,8 +52,10 @@ class FrembedExtractor : Extractor() {
                 val name = data.substringAfter("://")
                                .substringBefore(".")
                                .replace("crystaltreatmenteast", "voe")
+                               .replace("lauradaydo", "voe")
                                .replace("myvidplay", "dood")
                                .replaceFirstChar{ it.uppercase() }  + " (${lang})"
+
                 Video.Server ( id = "link$index",
                                     name = name,
                               src = data ) }
