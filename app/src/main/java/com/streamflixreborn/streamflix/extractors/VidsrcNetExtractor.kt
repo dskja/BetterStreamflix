@@ -1,13 +1,19 @@
 package com.streamflixreborn.streamflix.extractors
 
+import android.text.Html
 import android.util.Base64
+import androidx.core.net.toUri
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.UserPreferences
+import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Url
+import java.util.concurrent.TimeUnit
 
 class VidsrcNetExtractor : Extractor() {
 
@@ -33,8 +39,7 @@ class VidsrcNetExtractor : Extractor() {
             ?.let { if (it.startsWith("//")) "https:$it" else it }
             ?: throw Exception("Can't retrieve rcp")
 
-        val doc = service.get(iframedoc, referer = link)
-
+        val doc = service.get(iframedoc, link)
         val prorcp = Regex("src: '(/prorcp/.*?)'")
             .find(doc.toString())?.groupValues?.get(1)
             ?.let { iframedoc.substringBefore("/rcp") + it }
@@ -47,21 +52,70 @@ class VidsrcNetExtractor : Extractor() {
 
         val playerId = Regex("Playerjs.*file: ([a-zA-Z0-9]*?) ,")
             .find(script)?.groupValues?.get(1)
-            ?: throw Exception("Can't retrieve player ID")
+            ?: "";
 
-        val encryptedSource = Regex("""<div id="$playerId" style="display:none;">\s*(.*?)\s*</div>""")
-            .find(script)?.groupValues?.get(1)
-            ?: throw Exception("Can't retrieve encrypted source")
+        val decryptedData =
+            if (playerId.isNotBlank()) {
+                val encryptedSource =
+                    Regex("""<div id="$playerId" style="display:none;">\s*(.*?)\s*</div>""")
+                        .find(script)?.groupValues?.get(1)
+                        ?: throw Exception("Can't retrieve encrypted source")
 
-        val decryptedData = decrypt(playerId, encryptedSource)
+                decrypt(playerId, encryptedSource)
+            } else {
+                Regex("""Playerjs.*file: "([^"]*?)" ,""")
+                    .find(script)?.groupValues?.get(1)
+            }
+
+        if (decryptedData.isNullOrBlank())
+            throw Exception("Can't retrieve file")
+
         val streamUrl = decryptedData.split(" or ")
             .firstOrNull()
             ?.replace(Regex("\\{[a-z]\\d+\\}"), "quibblezoomfable.com")
             ?: throw Exception("No stream found after decryption")
 
+        /* Now try to extract subtitles */
+        val regex = Regex(
+                """default_subtitles\s*=\s*["']([^"']+)["']""",
+                RegexOption.DOT_MATCHES_ALL
+        )
+
+        val subtitlesRaw = regex.find(script)?.groupValues?.get(1)?:""
+        val subtitles = if (subtitlesRaw.isNotBlank()) {
+            val base = iframedoc.toUri()
+            val baseUrl = "${base.scheme}://${base.host}"
+
+            /* Subtitles are selected based on the provider's language, except when the language is English */
+            val preferredSubtitle =
+                if (subtitlesRaw.isNotEmpty() &&
+                    !UserPreferences.currentLanguage.isNullOrEmpty() && UserPreferences.currentLanguage != "en")
+                        UserPreferences.currentLanguage.orEmpty()
+                else ""
+
+            var alreadySet = false
+            @Suppress("DEPRECATION")
+            subtitlesRaw.split(",")
+                .mapNotNull { item ->
+                    val language = item.substringAfter("[")
+                        .substringBefore("]")
+                    val url = item.substringAfter("]")
+                    if (!url.startsWith("/")) return@mapNotNull null
+                    Video.Subtitle(
+                        label = Html.fromHtml(language).toString(),
+                        file = "${baseUrl}/${url}",
+                        default = if (alreadySet == false && preferredSubtitle.isNotEmpty() && language.contains(
+                                preferredSubtitle, ignoreCase = true
+                                    )) {
+                                        alreadySet = true
+                                        true
+                                    } else false
+                    )
+                }
+        } else emptyList()
         return Video(
             source = streamUrl,
-            subtitles = emptyList(),
+            subtitles = subtitles,
             headers = mapOf(
                 "Referer" to iframedoc
             ),
@@ -216,10 +270,17 @@ class VidsrcNetExtractor : Extractor() {
     private interface Service {
 
         companion object {
+            private val client = OkHttpClient.Builder()
+                .readTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .dns(DnsResolver.doh)
+                .build()
+
             fun build(baseUrl: String): Service {
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
+                    .client(client)
                     .build()
 
                 return retrofit.create(Service::class.java)
@@ -229,7 +290,7 @@ class VidsrcNetExtractor : Extractor() {
         @GET
         suspend fun get(
             @Url url: String,
-            @Header("referer") referer: String = "",
+            @Header("referer") referer: String = ""
         ): Document
     }
 }

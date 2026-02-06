@@ -42,6 +42,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val windowColorAdapter = SettingsAdapter(this, Settings.Subtitle.Style.WindowColor.list)
     private val windowOpacityAdapter = SettingsAdapter(this, Settings.Subtitle.Style.WindowOpacity.list)
     private val openSubtitlesAdapter = SettingsAdapter(this, Settings.Subtitle.OpenSubtitles.list)
+    private val subDLAdapter = SettingsAdapter(this, Settings.Subtitle.SubDLSubtitles.list)
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
@@ -85,6 +86,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.CAPTION_STYLE_WINDOW_COLOR -> context.getString(R.string.player_settings_caption_style_window_color_title)
                 Setting.CAPTION_STYLE_WINDOW_OPACITY -> context.getString(R.string.player_settings_caption_style_window_opacity_title)
                 Setting.OPEN_SUBTITLES -> context.getString(R.string.player_settings_open_subtitles_title)
+                Setting.SUBDL -> context.getString(R.string.player_settings_subdl_title)
                 Setting.SPEED -> context.getString(R.string.player_settings_speed_title)
                 Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
                 Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
@@ -117,6 +119,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     Setting.CAPTION_STYLE_WINDOW_OPACITY,
                     Setting.CAPTION_STYLE_MARGIN -> displaySettings(Setting.CAPTION_STYLE)
                     Setting.OPEN_SUBTITLES -> displaySettings(Setting.SUBTITLES)
+                    Setting.SUBDL -> displaySettings(Setting.SUBTITLES)
                 }
             }
 
@@ -145,6 +148,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.CAPTION_STYLE_WINDOW_COLOR -> windowColorAdapter
             Setting.CAPTION_STYLE_WINDOW_OPACITY -> windowOpacityAdapter
             Setting.OPEN_SUBTITLES -> openSubtitlesAdapter
+            Setting.SUBDL -> subDLAdapter
             Setting.SPEED -> speedAdapter
             Setting.EXTRA_BUFFERING -> extraBufferingAdapter
             Setting.SERVERS -> serversAdapter
@@ -239,6 +243,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 Settings.Subtitle.OpenSubtitles -> {
                                     settingsView.displaySettings(Setting.OPEN_SUBTITLES)
                                 }
+
+                                Settings.Subtitle.SubDLSubtitles -> {
+                                    settingsView.displaySettings(Setting.SUBDL)
+                                }
                             }
                         }
 
@@ -326,6 +334,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                         is Settings.Subtitle.OpenSubtitles.Subtitle -> {
                             settingsView.onOpenSubtitleSelected?.invoke(item)
+                            settingsView.hide()
+                        }
+
+                        is Settings.Subtitle.SubDLSubtitles.Subtitle -> {
+                            settingsView.onSubDLSubtitleSelected?.invoke(item)
                             settingsView.hide()
                         }
 
@@ -492,6 +505,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         is Settings.Subtitle.TextTrackInformation -> item.label
                         Settings.Subtitle.LocalSubtitles -> context.getString(R.string.player_settings_local_subtitles_label)
                         Settings.Subtitle.OpenSubtitles -> context.getString(R.string.player_settings_open_subtitles_label)
+                        Settings.Subtitle.SubDLSubtitles -> context.getString(R.string.player_settings_subdl_label)
                     }
 
                     is Settings.Subtitle.Style -> when (item) {
@@ -525,6 +539,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     is Settings.Subtitle.Style.WindowOpacity -> context.getString(item.stringId)
 
                     is Settings.Subtitle.OpenSubtitles.Subtitle -> item.openSubtitle.subFileName
+
+                    is Settings.Subtitle.SubDLSubtitles.Subtitle -> item.subDLSubtitle.releaseName ?: item.subDLSubtitle.name
 
                     is Settings.Speed -> context.getString(item.stringId)
 
@@ -588,6 +604,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     }
 
                     is Settings.Subtitle.OpenSubtitles.Subtitle -> item.openSubtitle.languageName
+
+                    is Settings.Subtitle.SubDLSubtitles.Subtitle -> item.subDLSubtitle.lang?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() } ?: ""
 
                     else -> ""
                 }
@@ -705,6 +723,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         is Settings.Subtitle.TextTrackInformation -> View.GONE
                         Settings.Subtitle.LocalSubtitles -> View.VISIBLE
                         Settings.Subtitle.OpenSubtitles -> View.VISIBLE
+                        Settings.Subtitle.SubDLSubtitles -> View.VISIBLE
                     }
 
                     is Settings.Subtitle.Style -> when (item) {

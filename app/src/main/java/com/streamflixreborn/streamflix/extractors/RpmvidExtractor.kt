@@ -85,27 +85,39 @@ class RpmvidExtractor : Extractor() {
         val json = JsonParser.parseString(decryptedJson).asJsonObject
 
         val hlsPath = json.get("hls")?.asString?.takeIf { it.isNotEmpty() }
+        val hlsTiktok = json.get("hlsVideoTiktok")?.asString?.takeIf { it.isNotEmpty() }
         var cfPath = json.get("cf")?.asString?.takeIf { it.isNotEmpty() }
         val cfExpire = json.get("cfExpire")?.asString?.takeIf { it.isNotEmpty() }
 
-        if (!cfPath.isNullOrEmpty() && !cfExpire.isNullOrEmpty()) {
-            val parts = cfExpire.split("::")
-            if (parts.size >= 2) {
-                val t = parts[0]
-                val e = parts[1]
-                cfPath = "$cfPath?t=$t&e=$e"
-            }
-        }
-        
         val (finalUrl, headers) = when {
             !hlsPath.isNullOrEmpty() -> {
-                val url = "$mainLink${hlsPath}"
-                url to mapOf("Referer" to mainLink)
+                "$mainLink$hlsPath" to mapOf("Referer" to mainLink)
+            }
+            !hlsTiktok.isNullOrEmpty() -> {
+                var v = ""
+                try {
+                    val configStr = json.get("streamingConfig")?.asString
+                    if (!configStr.isNullOrEmpty()) {
+                        val config = JsonParser.parseString(configStr).asJsonObject
+                        v = config.getAsJsonObject("adjust")
+                            ?.getAsJsonObject("Tiktok")
+                            ?.getAsJsonObject("params")
+                            ?.get("v")?.asString ?: ""
+                    }
+                } catch (e: Exception) { }
+                val query = if (v.isNotEmpty()) "?v=$v" else ""
+                "$mainLink$hlsTiktok$query" to mapOf("Referer" to mainLink)
             }
             !cfPath.isNullOrEmpty() -> {
+                if (!cfExpire.isNullOrEmpty()) {
+                    val parts = cfExpire.split("::")
+                    if (parts.size >= 2) {
+                        cfPath = "$cfPath?t=${parts[0]}&e=${parts[1]}"
+                    }
+                }
                 cfPath!! to mapOf("Referer" to mainLink)
             }
-            else -> throw Exception("Missing both hls and cf in response")
+            else -> throw Exception("Missing hls, hlsVideoTiktok or cf in response")
         }
 
         val defaultSub = json.getAsJsonObject("defaultSubtitle")

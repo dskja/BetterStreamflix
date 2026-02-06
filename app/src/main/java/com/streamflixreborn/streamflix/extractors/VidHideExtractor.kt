@@ -35,8 +35,13 @@ class VidHideExtractor: Extractor() {
     override suspend fun extract(link: String): Video {
         val mainLink = URL(link).protocol + "://" + URL(link).host
         val service = Service.build(mainLink)
-        val referer = UserPreferences.currentProvider?.baseUrl ?: mainLink
-        val origin = UserPreferences.currentProvider?.baseUrl ?: mainLink
+        val fallback = URL(link).protocol + "://" + URL(link).host
+        val referer = try {
+            UserPreferences.currentProvider?.baseUrl ?: fallback
+        } catch (_: Throwable) {
+            fallback
+        }
+        val origin = referer
         
         val source = service.getSource(
             url = link,

@@ -58,6 +58,8 @@ import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
+import com.streamflixreborn.streamflix.utils.OpenSubtitles
+import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
@@ -79,6 +81,7 @@ import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.providers.TmdbProvider 
+import java.util.Locale
 
 class PlayerTvFragment : Fragment() {
 
@@ -205,11 +208,17 @@ class PlayerTvFragment : Fragment() {
                         servers = state.servers
                         
                         val providerName = UserPreferences.currentProvider?.name ?: ""
-                        val isItTmdbi = providerName.contains("TMDb", ignoreCase = true) && providerName.contains("(it)", ignoreCase = true)
+                        val isTmdb = providerName.contains("TMDb", ignoreCase = true)
 
                         if (servers.isEmpty()) {
-                            val message = if (isItTmdbi) {
-                                getString(R.string.player_not_available_it_message)
+                            val message = if (isTmdb) {
+                                val langCode = providerName.substringAfter("(").substringBefore(")")
+                                val locale = Locale.forLanguageTag(langCode)
+                                // Usa la lingua di sistema corrente invece della lingua del provider
+                                val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
+                                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                                
+                                getString(R.string.player_not_available_lang_message, langDisplayName)
                             } else {
                                 "No servers found for this content."
                             }
@@ -266,10 +275,16 @@ class PlayerTvFragment : Fragment() {
                             viewModel.getVideo(nextServer)
                         } else {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
-                            val isItTmdbi = providerName.contains("TMDb", ignoreCase = true) && providerName.contains("(it)", ignoreCase = true)
+                            val isTmdb = providerName.contains("TMDb", ignoreCase = true)
 
-                            val message = if (isItTmdbi) {
-                                getString(R.string.player_not_available_it_message)
+                            val message = if (isTmdb) {
+                                val langCode = providerName.substringAfter("(").substringBefore(")")
+                                val locale = Locale.forLanguageTag(langCode)
+                                // Usa la lingua di sistema corrente invece della lingua del provider
+                                val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
+                                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                                
+                                getString(R.string.player_not_available_lang_message, langDisplayName)
                             } else {
                                 "All servers failed to load the video."
                             }
@@ -283,11 +298,13 @@ class PlayerTvFragment : Fragment() {
                         }
                     }
 
-                    PlayerViewModel.State.LoadingSubtitles -> {}
+                    PlayerViewModel.State.LoadingSubtitles -> {
+                    }
                     is PlayerViewModel.State.SuccessLoadingSubtitles -> {
                         binding.settings.openSubtitles = state.subtitles
                     }
-                    is PlayerViewModel.State.FailedLoadingSubtitles -> {}
+                    is PlayerViewModel.State.FailedLoadingSubtitles -> {
+                    }
 
                     PlayerViewModel.State.DownloadingOpenSubtitle -> {}
                     is PlayerViewModel.State.SuccessDownloadingOpenSubtitle -> {
@@ -328,6 +345,53 @@ class PlayerTvFragment : Fragment() {
                             Toast.LENGTH_LONG
                         ).show()
                     }
+
+                    is PlayerViewModel.State.SuccessLoadingSubDLSubtitles -> {
+                        binding.settings.subDLSubtitles = state.subtitles
+                    }
+                    is PlayerViewModel.State.FailedLoadingSubDLSubtitles -> {
+                    }
+
+                    PlayerViewModel.State.DownloadingSubDLSubtitle -> {}
+                    is PlayerViewModel.State.SuccessDownloadingSubDLSubtitle -> {
+                        val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
+
+                        val currentPosition = player.currentPosition
+                        val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
+                            MediaItem.SubtitleConfiguration.Builder(it.uri)
+                                .setMimeType(it.mimeType)
+                                .setLabel(it.label)
+                                .setLanguage(it.language)
+                                .setSelectionFlags(0)
+                                .build()
+                        } ?: listOf()
+                        player.setMediaItem(
+                            MediaItem.Builder()
+                                .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
+                                .setSubtitleConfigurations(currentSubtitleConfigurations
+                                        + MediaItem.SubtitleConfiguration.Builder(state.uri)
+                                    .setMimeType(fileName.toSubtitleMimeType())
+                                    .setLabel(state.subtitle.releaseName ?: state.subtitle.name ?: fileName)
+                                    .setLanguage(state.subtitle.lang ?: state.subtitle.language ?: "Unknown")
+                                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                                    .build()
+                                )
+                                .setMediaMetadata(player.mediaMetadata)
+                                .build()
+                        )
+                        UserPreferences.subtitleName = (state.subtitle.releaseName ?: state.subtitle.name ?: fileName).substringBefore(" ")
+                        player.seekTo(currentPosition)
+                        player.play()
+                    }
+                    is PlayerViewModel.State.FailedDownloadingSubDLSubtitle -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "${state.subtitle.name}: ${state.error.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
                 }
             }
         }
@@ -504,6 +568,9 @@ class PlayerTvFragment : Fragment() {
 
         binding.settings.setOnOpenSubtitleSelectedListener { subtitle ->
             viewModel.downloadSubtitle(subtitle.openSubtitle)
+        }
+        binding.settings.setOnSubDLSubtitleSelectedListener { subtitle ->
+            viewModel.downloadSubDLSubtitle(subtitle.subDLSubtitle)
         }
         binding.settings.setOnExtraBufferingSelectedListener {
             displayVideo(
