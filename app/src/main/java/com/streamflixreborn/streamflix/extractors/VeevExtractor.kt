@@ -8,6 +8,7 @@ import com.streamflixreborn.streamflix.utils.UserPreferences
 import okhttp3.ResponseBody
 import org.json.JSONObject
 
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -30,36 +31,58 @@ open class VeevExtractor : Extractor() {
 
     override suspend fun extract(link: String): Video {
         val match = pattern.find(link) ?: throw Exception("Invalid Veev URL")
-        val (host, mediaId) = match.destructured
+        val host = match.destructured.component1()
+        var mediaId = match.destructured.component2()
 
         val webUrl = "https://$host/e/$mediaId"
         val service = Service.build("https://$host")
 
+        val referer = try {
+            UserPreferences.currentProvider?.baseUrl ?: link
+        } catch (_: Throwable) {
+            link
+        }
+
         val headers = mapOf(
             "User-Agent" to DEFAULT_USER_AGENT,
-            "Referer" to UserPreferences.currentProvider!!.baseUrl,
-            "Origin" to UserPreferences.currentProvider!!.baseUrl
+            "Referer" to referer,
+            "Origin" to referer
         )
 
-        val response = service.getWithHeaders(webUrl, headers["Referer"]!!, headers["User-Agent"]!!, webUrl)
+        val response = service.getWithHeaders(webUrl, referer, DEFAULT_USER_AGENT, webUrl)
+        val finalUrl = response.raw().request.url.toString()
+        
+        pattern.find(finalUrl)?.let { 
+            val newMediaId = it.destructured.component2()
+            if (newMediaId != mediaId) {
+                mediaId = newMediaId
+            }
+        }
+
+        val responseBody = response.body()?.string() ?: throw Exception("Empty response from Veev")
         val itemsRegex = Regex("""[\.\s'](?:fc|_vvto\[[^\]]*)(?:['\]]*)?\s*[:=]\s*['"]([^'"]+)""")
-        val items = itemsRegex.findAll(response.string()).map { it.groupValues[1] }.toList()
+        val items = itemsRegex.findAll(responseBody).map { it.groupValues[1] }.toList()
 
         if (items.isNotEmpty()) {
             for (f in items.asReversed()) {
-                val ch = veevDecode(f)
+                val ch = try {
+                    veevDecode(f)
+                } catch (_: Exception) {
+                    f
+                }
                 if (ch != f) {
                     val params = mapOf(
                         "op" to "player_api",
                         "cmd" to "gi",
                         "file_code" to mediaId,
-                        "r" to URLEncoder.encode(UserPreferences.currentProvider!!.baseUrl, "UTF-8"),
+                        "r" to URLEncoder.encode(referer, "UTF-8"),
                         "ch" to ch,
                         "ie" to "1"
                     )
                     val mainLink = URL(link).protocol + "://" + URL(link).host
                     val downloadUrl = "$mainLink/dl?" + params.map { "${it.key}=${it.value}" }.joinToString("&")
-                    val jsonResponse = service.getWithHeaders(downloadUrl, UserPreferences.currentProvider!!.baseUrl, headers["User-Agent"]!!, mainUrl).string()
+                    val jsonResponse = service.getWithHeaders(downloadUrl, referer, DEFAULT_USER_AGENT, mainUrl).body()?.string()
+                        ?: throw Exception("Empty JSON response from Veev")
 
                     val fileJson = JSONObject(jsonResponse).optJSONObject("file")
                         ?: throw Exception("Video removed")
@@ -149,7 +172,7 @@ open class VeevExtractor : Extractor() {
             @Header("Referer") referer: String,
             @Header("User-Agent") userAgent: String,
             @Header("Origin") origin: String
-        ): ResponseBody
+        ): Response<ResponseBody>
 
         companion object {
             fun build(baseUrl: String): Service {

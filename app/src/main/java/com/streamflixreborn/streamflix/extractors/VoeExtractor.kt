@@ -15,7 +15,7 @@ class VoeExtractor : Extractor() {
 
     override val name = "VOE"
     override val mainUrl = "https://voe.sx/"
-    override val aliasUrls = listOf("https://jilliandescribecompany.com", "https://mikaylaarealike.com","https://christopheruntilpoint.com","https://walterprettytheir.com","https://crystaltreatmenteast.com")
+    override val aliasUrls = listOf("https://jilliandescribecompany.com", "https://mikaylaarealike.com","https://christopheruntilpoint.com","https://walterprettytheir.com","https://crystaltreatmenteast.com","https://lauradaydo.com")
 
 
     override suspend fun extract(link: String): Video {
@@ -34,11 +34,30 @@ class VoeExtractor : Extractor() {
         } else {
             DecryptHelper.decrypt(encodedStringInScriptTag)
         }
+
         val m3u8 = decryptedContent.get("source")?.asString.orEmpty()
 
+        val baseSubtitleScript = source.selectFirst("script")?.data()?:""
+        var baseSubtitle = ""
+        if (baseSubtitleScript.isNotBlank()) {
+            val regex = Regex("""var\s+base\s*=\s*['"]([^'"]+)['"]""")
+            baseSubtitle = regex.find(baseSubtitleScript)?.groupValues?.get(1)?:""
+        }
+
+        val subtitles = decryptedContent.getAsJsonArray("captions")
+            .map { caption ->
+                val obj = caption.asJsonObject
+                var file = obj.get("file").asString
+
+            Video.Subtitle(
+                file = if (file.startsWith("http")) file else baseSubtitle + file,
+                label = obj.get("label").asString,
+                default = obj.get("default").asBoolean
+            )
+        }
         return Video(
             source = m3u8,
-            subtitles = listOf()
+            subtitles = subtitles
         )
     }
 
