@@ -99,6 +99,7 @@
     <string name="player_external_player_title">Play using</string>
     <string name="player_external_player_error_video">Video not load yet</string>
     <string name="player_not_available_it_message">Not available on Italian servers, search for it on TMDB in other languages</string>
+    <string name="player_not_available_lang_message">Not available in %s, search for it on TMDB in other languages</string>
     <string name="player_aspect_ratio_fit">Fit to screen</string>
     <string name="player_aspect_ratio_fill">Stretch</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>
@@ -192,6 +193,8 @@
     <string name="player_settings_caption_style_margin_label">Bottom margin</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
+    <string name="player_settings_subdl_title">SubDL</string>
+    <string name="player_settings_subdl_label">SubDL</string>
     <string name="player_settings_local_subtitles_label">Load from files</string>
     <string name="player_settings_speed_title">Video speed</string>
     <string name="player_settings_speed_label">Speed</string>

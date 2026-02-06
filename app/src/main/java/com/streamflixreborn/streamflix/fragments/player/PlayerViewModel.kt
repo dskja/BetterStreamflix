@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import com.streamflixreborn.streamflix.utils.SubDL
 
 class PlayerViewModel(
     videoType: Video.Type,
@@ -119,19 +120,53 @@ class PlayerViewModel(
 
     fun getSubtitles(videoType: Video.Type) = viewModelScope.launch(Dispatchers.IO) {
         _state.emit(State.LoadingSubtitles)
-        try {
-            val subtitles = when (videoType) {
-                is Video.Type.Episode -> OpenSubtitles.search(
-                    query = videoType.tvShow.title,
-                    season = videoType.season.number,
-                    episode = videoType.number,
-                )
-                is Video.Type.Movie -> OpenSubtitles.search(query = videoType.title)
-            }.sortedWith(compareBy({ it.languageName }, { it.subDownloadsCnt }))
-            _state.emit(State.SuccessLoadingSubtitles(subtitles))
-        } catch (e: Exception) {
-            Log.e("PlayerViewModel", "getSubtitles: ", e)
-            _state.emit(State.FailedLoadingSubtitles(e))
+
+        launch {
+            try {
+                val subtitles = when (videoType) {
+                    is Video.Type.Episode -> {
+                        OpenSubtitles.search(
+                            query = videoType.tvShow.title,
+                            season = videoType.season.number,
+                            episode = videoType.number,
+                        )
+                    }
+                    is Video.Type.Movie -> {
+                        OpenSubtitles.search(query = videoType.title)
+                    }
+                }.sortedWith(compareBy({ it.languageName }, { it.subDownloadsCnt }))
+                
+                _state.emit(State.SuccessLoadingSubtitles(subtitles))
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "getSubtitles: ", e)
+                _state.emit(State.FailedLoadingSubtitles(e))
+            }
+        }
+
+        launch {
+            try {
+                val subtitles = when (videoType) {
+                    is Video.Type.Episode -> {
+                        SubDL.search(
+                            filmName = videoType.tvShow.title,
+                            seasonNumber = videoType.season.number,
+                            episodeNumber = videoType.number,
+                            type = "tv"
+                        )
+                    }
+                    is Video.Type.Movie -> {
+                        SubDL.search(
+                            filmName = videoType.title,
+                            type = "movie"
+                        )
+                    }
+                }
+                
+                _state.emit(State.SuccessLoadingSubDLSubtitles(subtitles))
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "getSubDLSubtitles: ", e)
+                _state.emit(State.FailedLoadingSubDLSubtitles(e))
+            }
         }
     }
 
@@ -143,6 +178,17 @@ class PlayerViewModel(
         } catch (e: Exception) {
             Log.e("PlayerViewModel", "downloadSubtitle: ", e)
             _state.emit(State.FailedDownloadingOpenSubtitle(e, subtitle))
+        }
+    }
+
+    fun downloadSubDLSubtitle(subtitle: SubDL.Subtitle) = viewModelScope.launch(Dispatchers.IO) {
+        _state.emit(State.DownloadingSubDLSubtitle)
+        try {
+            val uri = SubDL.download(subtitle)
+            _state.emit(State.SuccessDownloadingSubDLSubtitle(subtitle, uri))
+        } catch (e: Exception) {
+            Log.e("PlayerViewModel", "downloadSubDLSubtitle: ", e)
+            _state.emit(State.FailedDownloadingSubDLSubtitle(e, subtitle))
         }
     }
 
@@ -159,5 +205,11 @@ class PlayerViewModel(
         data object DownloadingOpenSubtitle : State()
         data class SuccessDownloadingOpenSubtitle(val subtitle: OpenSubtitles.Subtitle, val uri: Uri) : State()
         data class FailedDownloadingOpenSubtitle(val error: Exception, val subtitle: OpenSubtitles.Subtitle) : State()
+
+        data class SuccessLoadingSubDLSubtitles(val subtitles: List<SubDL.Subtitle>) : State()
+        data class FailedLoadingSubDLSubtitles(val error: Exception) : State()
+        data object DownloadingSubDLSubtitle : State()
+        data class SuccessDownloadingSubDLSubtitle(val subtitle: SubDL.Subtitle, val uri: Uri) : State()
+        data class FailedDownloadingSubDLSubtitle(val error: Exception, val subtitle: SubDL.Subtitle) : State()
     }
 }

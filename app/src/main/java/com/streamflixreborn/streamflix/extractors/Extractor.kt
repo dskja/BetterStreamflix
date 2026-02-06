@@ -97,7 +97,9 @@ abstract class Extractor {
             VidoraExtractor(),
             GxPlayerExtractor(),
             UpZurExtractor(),
-            DailymotionExtractor()
+            DailymotionExtractor(),
+            ApiVoirFilmExtractor(),
+            StreamixExtractor()
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {
