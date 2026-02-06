@@ -39,6 +39,7 @@ import okhttp3.ResponseBody
 import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -162,8 +163,7 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("h3.trend-title a")?.attr("href") ?: ""),
                         title = it.selectFirst("h3.trend-title a")?.text()?.trim() ?: "",
-                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
-                    )
+                        poster = normalizeImageUrl(it.extractPoster()))
                 })
         )
         categories.add(
@@ -172,8 +172,7 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                         title = it.selectFirst("h6 a")?.text() ?: "",
-                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
-                    )
+                        poster = normalizeImageUrl(it.extractPoster()))
                 })
         )
         document.select("#discover-blocks .col").forEach { column ->
@@ -185,8 +184,7 @@ object SerienStreamProvider : Provider {
                             TvShow(
                                 id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                                 title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
-                                poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
-                            )
+                                poster = normalizeImageUrl(it.extractPoster()))
                         })
                 )
             }
@@ -197,7 +195,7 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                         title = it.selectFirst("a h3")?.text() ?: "",
-                        poster = it.selectFirst("img")?.attr("data-src")
+                        poster = normalizeImageUrl(it.extractPoster())
                     )
                 })
         )
@@ -606,4 +604,29 @@ object SerienStreamProvider : Provider {
             val link: String,
         )
     }
+
+    fun Element.extractPoster(): String {
+        selectFirst("img[data-src]")?.attr("data-src")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        selectFirst("source[data-srcset]")?.attr("data-srcset")
+            ?.split(",")
+            ?.firstOrNull()
+            ?.trim()
+            ?.split(" ")
+            ?.firstOrNull()
+            ?.let { return it }
+        selectFirst("img[src]")?.attr("src")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        return ""
+    }
+    fun normalizeImageUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        return if (url.startsWith("http")) url
+        else "https://s.to$url"
+    }
+
+
 }

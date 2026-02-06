@@ -54,9 +54,9 @@ class SerienStreamUpdateTvShowWorker(
                             async {
                                 semaphore.withPermit {
                                     val existing = dao.getById(show.id)
-                                    if (existing != null && existing.poster == null) {
+                                    if (existing != null && needsUpdate(existing, show)) {
                                         val updated = existing.copy(
-                                            poster = show.poster,
+                                            poster = normalizeUrl(show.poster),
                                             overview = show.overview
                                         )
                                         dao.update(updated)
@@ -111,5 +111,19 @@ class SerienStreamUpdateTvShowWorker(
         }
 
     }
+
+    private fun needsUpdate(existing: TvShow, incoming: TvShow): Boolean {
+        val posterChanged = existing.poster != incoming.poster
+        val hasRelativePoster = existing.poster?.startsWith("/") == true
+        val overviewMissing = existing.overview.isNullOrBlank()
+
+        return posterChanged || hasRelativePoster || overviewMissing
+    }
+    private fun normalizeUrl(url: String?): String? =
+        url?.let {
+            if (it.startsWith("http")) it else "https://s.to$it"
+        }
+
+
 
 }
