@@ -152,9 +152,17 @@ class VideasyExtractor : Extractor() {
 
         if (sources != null && sources.length() > 0) {
             val source = sources.getJSONObject(0)
+            
+            // Find ServerConfig based on endpoint in URL
+            val config = englishServers.find { link.contains(it.endpoint) }
+            
+            // Reyna and Cypher use MP4 instead of HLS
+            val isMp4Server = config?.name == "Reyna" || config?.name == "Cypher"
+            val mimeType = if (isMp4Server) MimeTypes.VIDEO_MP4 else MimeTypes.APPLICATION_M3U8
+
             return Video(
                 source = source.optString("url"),
-                type = MimeTypes.APPLICATION_M3U8,
+                type = mimeType,
                 subtitles = subtitles,
                 headers = mapOf("Referer" to "https://videasy.net")
             )

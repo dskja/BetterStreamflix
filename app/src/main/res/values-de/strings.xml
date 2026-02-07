@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">Ein Fehler ist aufgetreten</string>
@@ -288,4 +288,9 @@
     <string name="settings_tmdb_api_key_summary">Leer lassen, um den Standard-API-Key der App zu verwenden</string>
     <string name="settings_tmdb_api_key_success">API-Key erfolgreich aktualisiert</string>
     <string name="settings_tmdb_api_key_reset">Standard-TMDb-API-Key wird verwendet</string>
+    <string name="settings_category_subdl">SubDL-Einstellungen</string>
+    <string name="settings_subdl_api_key">SubDL API-Schlüssel</string>
+    <string name="settings_subdl_api_key_summary">Geben Sie Ihren persönlichen SubDL-API-Schlüssel ein, um SubDL in den Untertiteleinstellungen des Players zu aktivieren</string>
+    <string name="settings_subdl_api_key_success">SubDL API-Schlüssel erfolgreich gespeichert</string>
+    <string name="settings_subdl_api_key_reset">SubDL API-Schlüssel entfernt</string>
 </resources>
