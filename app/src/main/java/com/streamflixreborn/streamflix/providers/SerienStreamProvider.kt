@@ -347,9 +347,8 @@ object SerienStreamProvider : Provider {
                         id = it.selectFirst("a")?.attr("href")
                             ?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
                         title = it.selectFirst("h6")?.text()?.trim() ?: "",
-                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
+                        poster =normalizeImageUrl(it.extractPoster()))
                     )
-                )
             }
             return Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = shows)
         } catch (e: Exception) {
