@@ -150,10 +150,23 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
                         title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
-                        banner = it.select("picture.home-hero-bg source[type='image/webp']")
-                            .flatMap { s -> s.attr("srcset").split(",") }
-                            .find { url -> url.contains("hero-2x-desktop") }
-                            ?.trim()?.split(" ")?.firstOrNull()
+                        banner = normalizeImageUrl(
+                            it.select("picture.home-hero-bg img")
+                                .flatMap { img -> img.attr("srcset").split(",") }
+                                .find { url -> url.contains("hero-2x-desktop") }
+                                ?.trim()?.split(" ")?.firstOrNull()
+
+                                ?: it.select("picture.home-hero-bg source[type='image/webp']")
+                                    .flatMap { s -> s.attr("srcset").split(",") }
+                                    .find { url -> url.contains("hero-2x-desktop") }
+                                    ?.trim()?.split(" ")?.firstOrNull()
+
+                                ?: it.select("picture.home-hero-bg source[type='image/avif']")
+                                    .flatMap { s -> s.attr("srcset").split(",") }
+                                    .find { url -> url.contains("hero-2x-desktop") }
+                                    ?.trim()?.split(" ")?.firstOrNull()
+                        )
+
                     )
                 })
         )
@@ -205,20 +218,30 @@ object SerienStreamProvider : Provider {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
             val document = service.getSeriesListWithCategories()
-            return document.select("div[data-group='genres'] .list-inline-item a").map {
-                val name = it.text().trim()
-                val href = it.attr("href")
-                Genre(id = href.substringAfterLast("/"), name = name)
-            }
+            return document
+                .select("div[data-group='genres'] .list-inline-item a")
+                .map {
+                    Genre(
+                        id = it.attr("href").substringAfterLast("/"),
+                        name = it.text().trim()
+                    )
+                }
         }
-        val lowerQuery = query.trim().lowercase(Locale.getDefault())
-        val limit = chunkSize
-        val offset = (page - 1) * chunkSize
-        val results = getDao().searchTvShows(lowerQuery, limit, offset)
-        return results
+        val document = service.getBySearch(query, page)
+        return document
+            .select("div.search-results-list div.card.cover-card")
+            .mapNotNull { card ->
+                val link = card.selectFirst("a[href^=/serie/]")?.attr("href")
+                    ?: return@mapNotNull null
+
+                TvShow(
+                    id = getTvShowIdFromLink(link),
+                    title = card.selectFirst("h6.show-title")?.text().orEmpty(),
+                    poster = normalizeImageUrl(card.extractPoster())
+                )
+            }
+            .distinctBy { it.id }
     }
-
-
 
     override suspend fun getMovies(page: Int): List<Movie> {
         throw Exception("Keine Filme verfügbar")
@@ -562,6 +585,13 @@ object SerienStreamProvider : Provider {
         @GET("serien-alphabet")
         suspend fun getSeriesListAlphabet(): Document
 
+        @GET("suche")
+        suspend fun getBySearch(
+            @Query("term") keyword: String,
+            @Query("page") page: Int,
+            @Query("tab") tab: String = "shows"
+        ): Document
+
         @GET("genre/{genreName}")
         suspend fun getGenre(
             @Path("genreName") genreName: String, @Query("page") page: Int
@@ -609,7 +639,19 @@ object SerienStreamProvider : Provider {
         selectFirst("img[data-src]")?.attr("data-src")
             ?.takeIf { it.isNotBlank() }
             ?.let { return it }
-        selectFirst("source[data-srcset]")?.attr("data-srcset")
+
+        select("source[data-srcset]")
+            .firstOrNull { it.attr("type") != "image/webp" }
+            ?.attr("data-srcset")
+            ?.split(",")
+            ?.firstOrNull()
+            ?.trim()
+            ?.split(" ")
+            ?.firstOrNull()
+            ?.let { return it }
+        select("source[data-srcset]")
+            .firstOrNull { it.attr("type") != "image/avif" }
+            ?.attr("data-srcset")
             ?.split(",")
             ?.firstOrNull()
             ?.trim()
@@ -622,6 +664,7 @@ object SerienStreamProvider : Provider {
 
         return ""
     }
+
     fun normalizeImageUrl(url: String?): String? {
         if (url.isNullOrBlank()) return null
         return if (url.startsWith("http")) url
