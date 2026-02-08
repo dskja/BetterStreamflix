@@ -67,11 +67,11 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         initializeService()
-        val cookie = if (UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false") "dle_skin=VFV24"
+        val cookie = if (UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false") "dle_skin=VFV25"
                      else "dle_skin=VFV1"
         val document = service.getHome(cookie)
         val categories = mutableListOf<Category>()
-        if ( cookie.contains("VFV24")) {
+        if ( cookie.contains("VFV25")) {
             document.select("section.vod-section").map { cat_item ->
                 val title = cat_item
                     .selectFirst("> div.vod-header h2.vod-title-section")
@@ -90,7 +90,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         val href = link.substringAfterLast("/")
                         val title = a.selectFirst("div.vod-name")?.text() ?: ""
                         val poster = a.selectFirst("div.vod-poster > img")?.attr("src") ?: ""
-                        if (link.startsWith("/s-tv/"))
+                        if (link.startsWith("/s-tv/") || link.contains("-saison-"))
                             TvShow(
                                 id = href,
                                 title = title,
@@ -313,7 +313,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getMovie(id: String): Movie {
         initializeService()
-        val document = service.getMovie(id)
+        val document = service.getItem(id)
         val actors = extractActors(document)
         val filmdata = document.selectFirst("div#film-data")
         val trailerURL = filmdata ?.attr("data-trailer")
@@ -384,7 +384,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getTvShow(id: String): TvShow {
         initializeService()
-        val document = service.getTvShow(id, "dle_skin=VFV24")
+        val document = service.getItem(id, "dle_skin=VFV25")
         val actors = extractActors(document)
         val versions = extractTvShowVersions(document)
         val poster = document.selectFirst("img.dvd-thumbnail")
@@ -462,7 +462,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         initializeService()
         val (tvShowId, tvShowLang, divFilter) = seasonId.split("/")
-        val document = service.getTvShow(tvShowId,"dle_skin=VFV24")
+        val document = service.getTvShow(tvShowId,"dle_skin=VFV25")
 
         val infodata = document.selectFirst("div#episodes-info-data")
         if (infodata == null) return emptyList()
@@ -555,14 +555,14 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     ?.attr("src")
                     ?: ""
 
-                if (href.contains("films/")) {
-                    Movie(
+                if (href.contains("-saison-") || href.contains("s-tv/")) {
+                    TvShow(
                         id = id,
                         title = title,
                         poster = poster,
                     )
-                } else if (href.contains("s-tv/")) {
-                    TvShow(
+                } else if (href.isNotBlank()) {
+                    Movie(
                         id = id,
                         title = title,
                         poster = poster,
@@ -631,7 +631,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             is Video.Type.Episode -> {
                 val (tvShowId, tvShowLang, tvShowNumber) = id.split("/")
 
-                val document = service.getTvShow(tvShowId, "dle_skin=VFV24")
+                val document = service.getItem(tvShowId, "dle_skin=VFV25")
 
                 document.selectFirst("div#episodes-"+tvShowLang+"-data")
                     ?.selectFirst("div[data-ep="+tvShowNumber+"]")
@@ -650,7 +650,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             }
 
             is Video.Type.Movie -> {
-                val document = service.getMovie(id, "dle_skin=VFV24")
+                val document = service.getItem(id, "dle_skin=VFV25")
                 val providerIndex = mutableMapOf<String, Int>()
                 var pIndex = 0
 
@@ -815,6 +815,12 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
         @GET("s-tv/page/{page}")
         suspend fun getTvShows(@Path("page") page: Int): Document
+
+        @GET("/{id}")
+        suspend fun getItem(
+            @Path("id") id: String,
+            @Header("Cookie") cookie: String = "dle_skin=VFV1"
+        ): Document
 
         @GET("films/{id}")
         suspend fun getMovie(
