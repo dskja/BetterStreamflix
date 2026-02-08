@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+﻿<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">An error occurred</string>
@@ -333,4 +333,10 @@
     <string name="settings_tmdb_api_key_summary">Leave empty to use the default API key provided with the app</string>
     <string name="settings_tmdb_api_key_success">API Key updated successfully</string>
     <string name="settings_tmdb_api_key_reset">Using default TMDb API Key</string>
+
+    <string name="settings_category_subdl">SubDL Settings</string>
+    <string name="settings_subdl_api_key">SubDL API Key</string>
+    <string name="settings_subdl_api_key_summary">Enter your personal SubDL API key to enable SubDL in the player\'s subtitle settings</string>
+    <string name="settings_subdl_api_key_success">SubDL API Key saved successfully</string>
+    <string name="settings_subdl_api_key_reset">SubDL API Key removed</string>
 </resources>

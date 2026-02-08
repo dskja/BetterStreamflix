@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">ستريم فليكس</string>
 
@@ -210,4 +210,9 @@
     <string name="settings_tmdb_api_key_summary">اتركه فارغًا لاستخدام مفتاح API الافتراضي المقدم مع التطبيق</string>
     <string name="settings_tmdb_api_key_success">تم تحديث مفتاح API بنجاح</string>
     <string name="settings_tmdb_api_key_reset">باستخدام مفتاح TMDb API الافتراضي</string>
+    <string name="settings_category_subdl">إعدادات SubDL</string>
+    <string name="settings_subdl_api_key">مفتاح API SubDL</string>
+    <string name="settings_subdl_api_key_summary">أدخل مفتاح API SubDL الشخصي لتمكين SubDL في إعدادات ترجمة المشغل</string>
+    <string name="settings_subdl_api_key_success">تم حفظ مفتاح API SubDL بنجاح</string>
+    <string name="settings_subdl_api_key_reset">تمت إزالة مفتاح API SubDL</string>
 </resources>

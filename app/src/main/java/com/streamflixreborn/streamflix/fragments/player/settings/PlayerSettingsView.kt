@@ -608,7 +608,10 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     )
                     list.add(LocalSubtitles)
                     list.add(OpenSubtitles)
-                    list.add(SubDLSubtitles)
+                    // Add SubDL only if an API key is configured
+                    if (UserPreferences.subdlApiKey.isNotEmpty()) {
+                        list.add(SubDLSubtitles)
+                    }
                 }
             }
 

@@ -164,6 +164,23 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
+            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
+            text = UserPreferences.subdlApiKey
+            setOnPreferenceChangeListener { _, newValue ->
+                val newKey = (newValue as String).trim()
+                UserPreferences.subdlApiKey = newKey
+                summary = if (newKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else newKey
+                val message = if (newKey.isEmpty()) {
+                    getString(R.string.settings_subdl_api_key_reset)
+                } else {
+                    getString(R.string.settings_subdl_api_key_success)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
         findPreference<Preference>("p_settings_about")?.apply {
             setOnPreferenceClickListener {
                 Toast.makeText(requireContext(), "About screen for TV not yet implemented.", Toast.LENGTH_SHORT).show()
@@ -479,6 +496,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
             summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
             text = UserPreferences.tmdbApiKey
+        }
+
+        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
+            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
+            text = UserPreferences.subdlApiKey
         }
 
         findPreference<ListPreference>("p_doh_provider_url")?.apply {

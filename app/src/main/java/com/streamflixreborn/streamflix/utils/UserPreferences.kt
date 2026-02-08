@@ -144,6 +144,12 @@ object UserPreferences {
             TMDb3.rebuildService()
         }
 
+    var subdlApiKey: String
+        get() = Key.SUBDL_API_KEY.getString() ?: ""
+        set(value) {
+            Key.SUBDL_API_KEY.setString(value)
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -286,6 +292,7 @@ object UserPreferences {
         PLAYER_GESTURES,
         IMMERSIVE_MODE,
         TMDB_API_KEY,
+        SUBDL_API_KEY,
         SELECTED_THEME;
 
         fun getBoolean(): Boolean? = when {
