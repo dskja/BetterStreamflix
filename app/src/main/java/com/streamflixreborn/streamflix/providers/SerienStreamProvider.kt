@@ -23,22 +23,16 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
-import com.streamflixreborn.streamflix.utils.EpisodeManager
-import com.streamflixreborn.streamflix.utils.SerienStreamUpdateTvShowWorker
 import com.streamflixreborn.streamflix.utils.TmdbUtils
-import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.Cache
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
-import okhttp3.dnsoverhttps.DnsOverHttps
-import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -79,7 +73,6 @@ object SerienStreamProvider : Provider {
 
 
     private var tvShowDao: TvShowDao? = null
-    private var isWorkerScheduled = false
     private lateinit var appContext: Context
 
     fun initialize(context: Context) {
@@ -89,26 +82,6 @@ object SerienStreamProvider : Provider {
             this.appContext = context.applicationContext
 
         }
-        if (!isWorkerScheduled) {
-            scheduleUpdateWorker(context)
-            isWorkerScheduled = true
-        }
-    }
-
-    private fun scheduleUpdateWorker(context: Context) {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val workRequest = OneTimeWorkRequestBuilder<SerienStreamUpdateTvShowWorker>()
-            .setConstraints(constraints)
-            .build()
-
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            "SerienStreamUpdateTvShowWorker",
-            ExistingWorkPolicy.KEEP,
-            workRequest
-        )
     }
 
     private fun getDao(): TvShowDao {
@@ -140,7 +113,6 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getHome(): List<Category> {
-        preloadSeriesAlphabet()
         val document = service.getHome()
         val categories = mutableListOf<Category>()
         categories.add(
@@ -149,10 +121,23 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
                         title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
-                        banner = it.select("picture.home-hero-bg source[type='image/webp']")
-                            .flatMap { s -> s.attr("srcset").split(",") }
-                            .find { url -> url.contains("hero-2x-desktop") }
-                            ?.trim()?.split(" ")?.firstOrNull()
+                        banner = normalizeImageUrl(
+                            it.select("picture.home-hero-bg img")
+                                .flatMap { img -> img.attr("srcset").split(",") }
+                                .find { url -> url.contains("hero-2x-desktop") }
+                                ?.trim()?.split(" ")?.firstOrNull()
+
+                                ?: it.select("picture.home-hero-bg source[type='image/webp']")
+                                    .flatMap { s -> s.attr("srcset").split(",") }
+                                    .find { url -> url.contains("hero-2x-desktop") }
+                                    ?.trim()?.split(" ")?.firstOrNull()
+
+                                ?: it.select("picture.home-hero-bg source[type='image/avif']")
+                                    .flatMap { s -> s.attr("srcset").split(",") }
+                                    .find { url -> url.contains("hero-2x-desktop") }
+                                    ?.trim()?.split(" ")?.firstOrNull()
+                        )
+
                     )
                 })
         )
@@ -162,8 +147,7 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("h3.trend-title a")?.attr("href") ?: ""),
                         title = it.selectFirst("h3.trend-title a")?.text()?.trim() ?: "",
-                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
-                    )
+                        poster = normalizeImageUrl(it.extractPoster()))
                 })
         )
         categories.add(
@@ -172,8 +156,7 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                         title = it.selectFirst("h6 a")?.text() ?: "",
-                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
-                    )
+                        poster = normalizeImageUrl(it.extractPoster()))
                 })
         )
         document.select("#discover-blocks .col").forEach { column ->
@@ -185,8 +168,7 @@ object SerienStreamProvider : Provider {
                             TvShow(
                                 id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                                 title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
-                                poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
-                            )
+                                poster = normalizeImageUrl(it.extractPoster()))
                         })
                 )
             }
@@ -197,7 +179,7 @@ object SerienStreamProvider : Provider {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
                         title = it.selectFirst("a h3")?.text() ?: "",
-                        poster = it.selectFirst("img")?.attr("data-src")
+                        poster = normalizeImageUrl(it.extractPoster())
                     )
                 })
         )
@@ -207,50 +189,49 @@ object SerienStreamProvider : Provider {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
             val document = service.getSeriesListWithCategories()
-            return document.select("div[data-group='genres'] .list-inline-item a").map {
-                val name = it.text().trim()
-                val href = it.attr("href")
-                Genre(id = href.substringAfterLast("/"), name = name)
-            }
+            return document
+                .select("div[data-group='genres'] .list-inline-item a")
+                .map {
+                    Genre(
+                        id = it.attr("href").substringAfterLast("/"),
+                        name = it.text().trim()
+                    )
+                }
         }
-        val lowerQuery = query.trim().lowercase(Locale.getDefault())
-        val limit = chunkSize
-        val offset = (page - 1) * chunkSize
-        val results = getDao().searchTvShows(lowerQuery, limit, offset)
-        return results
+        val document = service.search(query, page)
+        return document
+            .select("div.search-results-list div.card.cover-card")
+            .mapNotNull { card ->
+                val link = card.selectFirst("a[href^=/serie/]")?.attr("href")
+                    ?: return@mapNotNull null
+
+                TvShow(
+                    id = getTvShowIdFromLink(link),
+                    title = card.selectFirst("h6.show-title")?.text().orEmpty(),
+                    poster = normalizeImageUrl(card.extractPoster())
+                )
+            }
+            .distinctBy { it.id }
     }
-
-
 
     override suspend fun getMovies(page: Int): List<Movie> {
         throw Exception("Keine Filme verfügbar")
     }
 
-
-    private val cacheLock = Any()
-
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val fromIndex = (page - 1) * chunkSize
-        val toIndex = page * chunkSize
-
-        if (!isSeriesCacheLoaded) {
-            val cachedShows = getDao().getAll().first()
-            if (cachedShows.isNotEmpty()) {
-                synchronized(cacheLock) {
-                    seriesCache.clear()
-                    seriesCache.addAll(cachedShows)
-                    isSeriesCacheLoaded = true
-                }
-            } else {
-                preloadSeriesAlphabet()
+        val document = service.getAllTvShows(page)
+        return document
+            .select("div.search-results-list div.card.cover-card")
+            .mapNotNull { card ->
+                val link = card.selectFirst("a[href^=/serie/]")?.attr("href")
+                    ?: return@mapNotNull null
+                TvShow(
+                    id = getTvShowIdFromLink(link),
+                    title = card.selectFirst("h6.show-title")?.text().orEmpty(),
+                    poster = normalizeImageUrl(card.extractPoster())
+                )
             }
-        }
-        CoroutineScope(Dispatchers.IO).launch { preloadSeriesAlphabet() }
-        synchronized(cacheLock) {
-            if (fromIndex >= seriesCache.size) return emptyList()
-            val actualToIndex = minOf(toIndex, seriesCache.size)
-            return seriesCache.subList(fromIndex, actualToIndex).toList()
-        }
+            .distinctBy { it.id }
     }
 
     override suspend fun getMovie(id: String): Movie {
@@ -366,9 +347,8 @@ object SerienStreamProvider : Provider {
                         id = it.selectFirst("a")?.attr("href")
                             ?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
                         title = it.selectFirst("h6")?.text()?.trim() ?: "",
-                        poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
+                        poster =normalizeImageUrl(it.extractPoster()))
                     )
-                )
             }
             return Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = shows)
         } catch (e: Exception) {
@@ -437,49 +417,6 @@ object SerienStreamProvider : Provider {
         val link = server.id
         return Extractor.extract(link)
     }
-
-    private val seriesCache = mutableListOf<TvShow>()
-    private const val chunkSize = 25
-    private var isSeriesCacheLoaded = false
-
-    private suspend fun preloadSeriesAlphabet() {
-        val document = service.getSeriesListAlphabet()
-        val elements = document.select("ul.series-list > li.series-item")
-
-        val loadedShows = elements.map {
-            val title = it.selectFirst("a")?.text()?.trim() ?: ""
-            TvShow(
-                id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                title = title,
-                overview = "",
-            )
-        }
-        val dao = getDao()
-        val existingIds = dao.getAllIds()
-        val newShows = loadedShows.filter { it.id !in existingIds }
-
-        if (newShows.isNotEmpty()) {
-            dao.insertAll(newShows)
-        }
-        val allShows = dao.getAll().first()
-        synchronized(cacheLock) {
-            seriesCache.clear()
-            seriesCache.addAll(allShows)
-            isSeriesCacheLoaded = true
-        }
-
-        scheduleUpdateWorker(appContext)
-    }
-
-
-
-    fun invalidateCache() {
-        synchronized(cacheLock) {
-            seriesCache.clear()
-            isSeriesCacheLoaded = false
-        }
-    }
-
 
     interface SerienStreamService {
 
@@ -554,15 +491,21 @@ object SerienStreamProvider : Provider {
         @GET(".")
         suspend fun getHome(): Document
 
-        @POST("https://serienstream.to/ajax/search")
-        @FormUrlEncoded
-        suspend fun search(@Field("keyword") query: String): List<SearchItem>
-
         @GET("suche?tab=genres")
         suspend fun getSeriesListWithCategories(): Document
 
         @GET("serien-alphabet")
         suspend fun getSeriesListAlphabet(): Document
+
+        @GET("suche")
+        suspend fun search(
+            @Query("term") keyword: String,
+            @Query("page") page: Int,
+            @Query("tab") tab: String = "shows"
+        ): Document
+        @GET("suche")
+        suspend fun getAllTvShows( @Query("page") page: Int,
+                                   @Query("tab") tab: String = "shows"): Document
 
         @GET("genre/{genreName}")
         suspend fun getGenre(
@@ -599,11 +542,43 @@ object SerienStreamProvider : Provider {
             "Connection: keep-alive"
         )
         suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
-
-        data class SearchItem(
-            val title: String,
-            val description: String,
-            val link: String,
-        )
     }
+
+    fun Element.extractPoster(): String {
+        selectFirst("img[data-src]")?.attr("data-src")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        select("source[data-srcset]")
+            .firstOrNull { it.attr("type") != "image/webp" }
+            ?.attr("data-srcset")
+            ?.split(",")
+            ?.firstOrNull()
+            ?.trim()
+            ?.split(" ")
+            ?.firstOrNull()
+            ?.let { return it }
+        select("source[data-srcset]")
+            .firstOrNull { it.attr("type") != "image/avif" }
+            ?.attr("data-srcset")
+            ?.split(",")
+            ?.firstOrNull()
+            ?.trim()
+            ?.split(" ")
+            ?.firstOrNull()
+            ?.let { return it }
+        selectFirst("img[src]")?.attr("src")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        return ""
+    }
+
+    fun normalizeImageUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        return if (url.startsWith("http")) url
+        else "https://s.to$url"
+    }
+
+
 }
