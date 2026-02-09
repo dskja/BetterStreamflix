@@ -94,7 +94,8 @@ interface Provider {
             EinschaltenProvider to ProviderSupport(movies = true, tvShows = false),
             HDFilmeProvider to ProviderSupport(movies = true, tvShows = true),
             MEGAKinoProvider to ProviderSupport(movies = true, tvShows = true),
-            UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true)
+            UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true),
+            TvporinternetHDProvider to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support
