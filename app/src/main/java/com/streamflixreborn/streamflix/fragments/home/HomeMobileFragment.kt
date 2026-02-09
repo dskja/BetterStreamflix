@@ -23,11 +23,9 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
-import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import com.streamflixreborn.streamflix.utils.CacheUtils
 import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -40,7 +38,6 @@ class HomeMobileFragment : Fragment() {
     private var _binding: FragmentHomeMobileBinding? = null
     private val binding get() = _binding!!
 
-    private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel: HomeViewModel by lazy {
         val providerKey = UserPreferences.currentProvider?.name ?: "default"
         val factory = object : ViewModelProvider.Factory {
@@ -151,6 +148,9 @@ class HomeMobileFragment : Fragment() {
                 findNavController().navigate(NavMainGraphDirections.actionGlobalProviders())
             }
         }
+        
+        // Ensure background image is hidden on mobile to show theme color
+        binding.ivHomeBackground.visibility = View.GONE
     }
 
     private fun displayHome(categories: List<Category>) {

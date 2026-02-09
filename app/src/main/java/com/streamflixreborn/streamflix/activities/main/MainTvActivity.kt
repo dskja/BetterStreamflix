@@ -39,6 +39,12 @@ class MainTvActivity : FragmentActivity() {
     private lateinit var updateAppDialog: UpdateAppTvDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        UserPreferences.setup(this)
+        when (UserPreferences.selectedTheme) {
+            "nero_amoled_oled" -> setTheme(R.style.AppTheme_NeroAmoledOled)
+            else -> setTheme(R.style.AppTheme_Tv)
+        }
+        
         super.onCreate(savedInstanceState)
         
         window.statusBarColor = Color.TRANSPARENT
@@ -46,11 +52,19 @@ class MainTvActivity : FragmentActivity() {
         _binding = ActivityMainTvBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Animazione per mostrare la "S" del logo durante il caricamento
+        binding.ivSplashOverlay.animate()
+            .alpha(0f)
+            .setDuration(800)
+            .setStartDelay(400)
+            .withEndAction {
+                binding.ivSplashOverlay.visibility = View.GONE
+            }
+
         val navHostFragment = this.supportFragmentManager
             .findFragmentById(binding.navMainFragment.id) as NavHostFragment
         val navController = navHostFragment.navController
 
-        UserPreferences.setup(this)
         AppDatabase.setup(this)
 
         adjustLayoutDelta(null, null)

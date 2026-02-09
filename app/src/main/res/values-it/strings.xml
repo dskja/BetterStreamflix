@@ -1,4 +1,4 @@
-<resources>
+﻿<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">Si è verificato un errore</string>
@@ -29,6 +29,9 @@
     <string name="main_menu_movies">Film</string>
     <string name="main_menu_tv_shows">Serie TV</string>
     <string name="main_menu_settings">Impostazioni</string>
+    <string name="main_menu_theme_change">Cambia Tema</string>
+    <string name="theme_default">Predefinito</string>
+    <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
 
     <string name="search_input_hint">Cerca film, serie TV</string>
     <string name="global_search">Ricerca globale</string>
@@ -96,6 +99,7 @@
     <string name="player_external_player_title">Avvia con</string>
     <string name="player_external_player_error_video">Video non ancora caricato</string>
     <string name="player_not_available_it_message">Non presente nei server italiani, cercalo su TMDB in altre lingue</string>
+    <string name="player_not_available_lang_message">Non disponibile in %s, cercalo su TMDB in altre lingue</string>
     <string name="player_aspect_ratio_fit">Dimensione originale</string>
     <string name="player_aspect_ratio_fill">Riempi lo schermo ritagliando il video</string>
     <string name="player_aspect_ratio_zoom">Zoom classico</string>
@@ -116,7 +120,7 @@
     <string name="player_settings_subtitles_off">Off</string>
     <string name="player_settings_caption_style_title">Stile sottotitoli</string>
     <string name="player_settings_caption_style_label">Stile sottotitoli</string>
-    <string name="player_settings_caption_style_sub_label">Cambia il colore del testo e lo stile dello sfondo</string>
+    <string name="player_settings_caption_style_sub_label">Cambia il colore del testo, lo stile dello sfondo e il margine inferiore</string>
     <string name="player_settings_caption_style_reset_style_label">Reset stile</string>
     <string name="player_settings_caption_style_font_color_title">Colore del font</string>
     <string name="player_settings_caption_style_font_color_label">Colore del font</string>
@@ -185,6 +189,8 @@
     <string name="player_settings_caption_style_window_opacity_0_5">50%</string>
     <string name="player_settings_caption_style_window_opacity_0_75">75%</string>
     <string name="player_settings_caption_style_window_opacity_1">100%</string>
+    <string name="player_settings_caption_style_margin_title">Margine inferiore</string>
+    <string name="player_settings_caption_style_margin_label">Margine inferiore</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
     <string name="player_settings_local_subtitles_label">Carica da file</string>
@@ -208,11 +214,11 @@
     <string name="settings_category_streamingcommunity">Impostazioni StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Nome di dominio StreamingCommunity</string>
     <string name="settings_close_app">Chiudi applicazione</string>
-    <string name="settings_category_streamingcommunity_dnsOverHttps">Usa DNS sicuro</string>
+    <string name="settings_category_streamingcommunity_dnsOverHttps">Use secure DNS</string>
     <string name="settings_category_network_title">Impostazioni di rete</string>
     <string name="settings_category_provider_title">Impostazioni del provider</string>
-    <string name="settings_category_provider_url">URL principale</string>
-    <string name="settings_category_provider_update_url">URL del portale</string>
+    <string name="settings_category_provider_url">Main URL</string>
+    <string name="settings_category_provider_update_url">Portal URL</string>
     <string name="settings_autoupdate">Aggiorna l\'URL principale all\'avvio</string>
     <string name="settings_autoupdate_on">Attiva</string>
     <string name="settings_autoupdate_off">Disattivata</string>
@@ -227,6 +233,8 @@
     <string name="settings_player_gestures">Gesture del player</string>
     <string name="settings_player_gestures_on">Attivo</string>
     <string name="settings_player_gestures_off">Disattivato</string>
+    <string name="settings_keep_screen_on_when_paused">Mantieni lo schermo acceso in pausa</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Impedisce allo schermo di spegnersi quando il video è in pausa</string>
     <string name="miscelaneous_title">Varie</string>
     <string name="clear_cache_done">Cache svuotata</string>
     <string name="clear_cache_done_409">Cache svuotata automaticamente per errore HTTP 409</string>
@@ -244,7 +252,7 @@
     <string name="watch_trailer_with">Guarda il trailer con...</string>
     <string name="youtube">YouTube</string>
     <string name="smarttube">SmartTube</string>
-    <string name="smarttube_stable">SmartTube Stabile</string>
+    <string name="smarttube_stable">SmartTube Stable</string>
     <string name="smarttube_beta">SmartTube Beta</string>
     <string name="choose_smarttube_version">Scegli la versione di SmartTube</string>
 
@@ -307,4 +315,20 @@
     <string name="error_dialog_copied">Copiato negli appunti!</string>
     <string name="error_dialog_unknown">Errore sconosciuto</string>
     <string name="error_dialog_no_cause">Nessuna causa</string>
+
+    <string name="settings_category_appearance">Aspetto</string>
+    <string name="settings_theme_title">Tema dell\'app</string>
+    <string name="player_settings_gestures_title">Gesture</string>
+    <string name="player_settings_keep_screen_on_title">Schermo attivo in pausa</string>
+
+    <string name="settings_category_tmdb">Impostazioni TMDb</string>
+    <string name="settings_tmdb_api_key">API Key TMDb personalizzata</string>
+    <string name="settings_tmdb_api_key_summary">Lascia vuoto per usare l\'API key predefinita fornita con l\'app</string>
+    <string name="settings_tmdb_api_key_success">API Key aggiornata correttamente</string>
+    <string name="settings_tmdb_api_key_reset">API Key di default in uso</string>
+    <string name="settings_category_subdl">Impostazioni SubDL</string>
+    <string name="settings_subdl_api_key">SubDL API Key</string>
+    <string name="settings_subdl_api_key_summary">Inserisci la tua API key personale di SubDL per abilitare SubDL nelle impostazioni dei sottotitoli del player</string>
+    <string name="settings_subdl_api_key_success">SubDL API Key salvata con successo</string>
+    <string name="settings_subdl_api_key_reset">SubDL API Key rimossa</string>
 </resources>

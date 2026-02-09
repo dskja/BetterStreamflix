@@ -66,15 +66,15 @@ object OpenSubtitles {
         subLanguageId: String? = null,
     ): List<Subtitle> {
         val params = mapOf(
-            Params.Key.IMDB_ID to imdbId,
-            Params.Key.QUERY to query,
-            Params.Key.SEASON to season?.toString(),
             Params.Key.EPISODE to episode?.toString(),
+            Params.Key.QUERY to query?.lowercase(),
+            Params.Key.SEASON to season?.toString(),
+            Params.Key.IMDB_ID to imdbId,
             Params.Key.SUB_LANGUAGE_ID to subLanguageId,
         )
         return service.search(
             params = params
-                .filterNotNullValues()
+            .filterNotNullValues()
                 .map { "${it.key}-${it.value}" }
                 .joinToString("/")
         )
@@ -129,7 +129,7 @@ object OpenSubtitles {
         @SerializedName("MovieByteSize") val movieByteSize: String? = null,
         @SerializedName("MovieTimeMS") val movieTimeMS: String? = null,
         @SerializedName("IDSubtitleFile") val idSubtitleFile: String? = null,
-        @SerializedName("SubFileName") val subFileName: String = "",
+        @SerializedName("SubFileName") val subFileName: String? = null,
         @SerializedName("SubActualCD") val subActualCD: String? = null,
         @SerializedName("SubSize") val subSize: String? = null,
         @SerializedName("SubHash") val subHash: String? = null,

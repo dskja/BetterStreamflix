@@ -7,13 +7,13 @@
     android:layout_marginTop="16dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
-    android:padding="10dp">
+    android:padding="10dp"
+    android:background="?attr/app_background_color">
 
     <ImageView
         android:id="@+id/iv_navigation_header_icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:background="#000000"
         android:duplicateParentState="true"
         android:foreground="@drawable/fg_navigation_header_icon_tv"
         android:padding="2dp"

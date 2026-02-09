@@ -147,6 +147,40 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
+            summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
+            text = UserPreferences.tmdbApiKey
+            setOnPreferenceChangeListener { _, newValue ->
+                val newKey = (newValue as String).trim()
+                UserPreferences.tmdbApiKey = newKey
+                summary = if (newKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else newKey
+                val message = if (newKey.isEmpty()) {
+                    getString(R.string.settings_tmdb_api_key_reset)
+                } else {
+                    getString(R.string.settings_tmdb_api_key_success)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
+            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
+            text = UserPreferences.subdlApiKey
+            setOnPreferenceChangeListener { _, newValue ->
+                val newKey = (newValue as String).trim()
+                UserPreferences.subdlApiKey = newKey
+                summary = if (newKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else newKey
+                val message = if (newKey.isEmpty()) {
+                    getString(R.string.settings_subdl_api_key_reset)
+                } else {
+                    getString(R.string.settings_subdl_api_key_success)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
         findPreference<Preference>("p_settings_about")?.apply {
             setOnPreferenceClickListener {
                 Toast.makeText(requireContext(), "About screen for TV not yet implemented.", Toast.LENGTH_SHORT).show()
@@ -154,12 +188,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
-        findPreference<SwitchPreference>("AUTOPLAY")?.apply {
-            isChecked = UserPreferences.autoplay
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.autoplay = newValue as Boolean
-                true
-            }
+        findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
+        findPreference<SwitchPreference>("AUTOPLAY")?.setOnPreferenceChangeListener { _, newValue ->
+            UserPreferences.autoplay = newValue as Boolean
+            true
         }
 
         val HasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
@@ -375,6 +407,32 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             Toast.makeText(requireContext(), R.string.settings_trailer_player_reset, Toast.LENGTH_SHORT).show()
             true
         }
+
+        findPreference<ListPreference>("theme_preference")?.apply {
+            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                val selectedTheme = pref.value ?: "default"
+                when (selectedTheme) {
+                    "default" -> getString(R.string.theme_default)
+                    "nero_amoled_oled" -> getString(R.string.theme_nero_amoled_oled)
+                    else -> getString(R.string.theme_default)
+                }
+            }
+
+            setOnPreferenceChangeListener { _, newValue ->
+                val newTheme = newValue as String
+                UserPreferences.selectedTheme = newTheme
+
+                // Apply the theme and restart the activity
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainTvActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                    overridePendingTransition(0, 0) // Disable transition animation
+                }
+                true
+            }
+        }
     }
 
     private suspend fun performBackupExport(uri: Uri) {
@@ -433,6 +491,16 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             } else {
                 text = currentValue
             }
+        }
+
+        findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
+            summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
+            text = UserPreferences.tmdbApiKey
+        }
+
+        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
+            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
+            text = UserPreferences.subdlApiKey
         }
 
         findPreference<ListPreference>("p_doh_provider_url")?.apply {

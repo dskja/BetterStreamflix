@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Streamflix</string>
     <string name="loading_error_title">Ha ocurrido un error</string>
@@ -80,6 +80,7 @@
     <string name="player_picture_in_picture_not_supported">PIP no es compatible con tu dispositivo</string>
     <string name="player_external_player_title">Reproducir con</string>
     <string name="player_external_player_error_video">El vídeo todavía no está cargado</string>
+    <string name="player_not_available_lang_message">No disponible en %s, búscalo en TMDB en otros idiomas</string>
     <string name="player_aspect_ratio_fit">Ajustar a la pantalla</string>
     <string name="player_aspect_ratio_fill">Estirar</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>
@@ -100,7 +101,7 @@
     <string name="player_settings_subtitles_off">Desactivado</string>
     <string name="player_settings_caption_style_title">Estilo de subtítulos</string>
     <string name="player_settings_caption_style_label">Estilo de subtítulos</string>
-    <string name="player_settings_caption_style_sub_label">Cambiar color de texto y estilo de fondo</string>
+    <string name="player_settings_caption_style_sub_label">Cambiar color de texto, estilo de fondo e margen inferior</string>
     <string name="player_settings_caption_style_reset_style_label">Restablecer estilo</string>
     <string name="player_settings_caption_style_font_color_title">Color de fuente</string>
     <string name="player_settings_caption_style_font_color_label">Color de fuente</string>
@@ -169,6 +170,8 @@
     <string name="player_settings_caption_style_window_opacity_0_5">50%</string>
     <string name="player_settings_caption_style_window_opacity_0_75">75%</string>
     <string name="player_settings_caption_style_window_opacity_1">100%</string>
+    <string name="player_settings_caption_style_margin_title">Margen inferior</string>
+    <string name="player_settings_caption_style_margin_label">Margen inferior</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
     <string name="player_settings_local_subtitles_label">Cargar desde archivo</string>
@@ -211,6 +214,8 @@
     <string name="settings_player_gestures">Gestos del reproductor</string>
     <string name="settings_player_gestures_on">Activado</string>
     <string name="settings_player_gestures_off">Desactivado</string>
+    <string name="settings_keep_screen_on_when_paused">Mantener pantalla encendida en pausa</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Evita che la pantalla se apague cuando el vídeo está en pausa</string>
     <string name="miscelaneous_title">Varios</string>
     <string name="clear_cache_done">Caché vaciada</string>
     <string name="clear_cache_done_409">Caché vaciada automáticamente por error HTTP 409</string>
@@ -279,4 +284,17 @@
     <string name="error_dialog_copied">¡Copiado al portapapeles!</string>
     <string name="error_dialog_unknown">Error desconocido</string>
     <string name="error_dialog_no_cause">Sin causa</string>
+    <string name="player_settings_gestures_title">Gestos</string>
+    <string name="player_settings_keep_screen_on_title">Mantener pantalla en pausa</string>
+
+    <string name="settings_category_tmdb">Ajustes de TMDb</string>
+    <string name="settings_tmdb_api_key">Clave API de TMDb personalizada</string>
+    <string name="settings_tmdb_api_key_summary">Déjalo vacío para usar la clave API predeterminada proporcionada con la aplicación</string>
+    <string name="settings_tmdb_api_key_success">Clave API actualizada correctamente</string>
+    <string name="settings_tmdb_api_key_reset">Usando la clave API de TMDb predeterminada</string>
+    <string name="settings_category_subdl">Configuración de SubDL</string>
+    <string name="settings_subdl_api_key">Clave API de SubDL</string>
+    <string name="settings_subdl_api_key_summary">Introduce tu clave API personal de SubDL para habilitar SubDL en la configuración de subtítulos del reproductor</string>
+    <string name="settings_subdl_api_key_success">Clave API de SubDL guardada correctamente</string>
+    <string name="settings_subdl_api_key_reset">Clave API de SubDL eliminada</string>
 </resources>

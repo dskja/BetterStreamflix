@@ -9,7 +9,7 @@
         android:id="@+id/iv_swiper_background"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:foreground="@drawable/fg_category_swiper_mobile"
+        android:foreground="?attr/category_swiper_gradient_drawable"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

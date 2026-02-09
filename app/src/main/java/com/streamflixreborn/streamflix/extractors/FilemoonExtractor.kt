@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.extractors
 
 import android.util.Base64
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import retrofit2.Retrofit
@@ -17,7 +18,7 @@ open class FilemoonExtractor : Extractor() {
 
     override val name = "Filemoon"
     override val mainUrl = "https://filemoon.site"
-    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com")
+    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com","https://moflix-stream.link","https://bysezoxexe.com","https://bysebuho.com","https://filemoon.sx")
 
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)
@@ -112,7 +113,8 @@ open class FilemoonExtractor : Extractor() {
             const val DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
 
             fun build(baseUrl: String): Service {
-                val client = OkHttpClient.Builder().build()
+                val client = OkHttpClient.Builder()
+                    .dns(DnsResolver.doh).build()
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .client(client)

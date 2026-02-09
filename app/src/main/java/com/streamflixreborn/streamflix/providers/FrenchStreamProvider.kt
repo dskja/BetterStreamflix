@@ -26,7 +26,6 @@ import retrofit2.Response
 import okhttp3.ResponseBody
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
-import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -47,7 +46,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://fs2.lol/"
+    override val defaultBaseUrl: String = "https://fs9.lol/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -68,27 +67,30 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         initializeService()
-        val cookie = if (UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false") "dle_skin=VFV2"
+        val cookie = if (UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false") "dle_skin=VFV25"
                      else "dle_skin=VFV1"
         val document = service.getHome(cookie)
         val categories = mutableListOf<Category>()
-        if ( cookie.contains("VFV2")) {
-            document.select("div.pages.clearfix div.gallery-container").map { cat_item ->
-
+        if ( cookie.contains("VFV25")) {
+            document.select("section.vod-section").map { cat_item ->
                 val title = cat_item
-                    .selectFirst("div.sectionTitlesContainer a h1")
-                    ?.text()
-                    ?: ""
+                    .selectFirst("> div.vod-header h2.vod-title-section")
+                    ?.let {
+                        listOfNotNull(
+                            it.ownText().trim(),
+                            it.select("span").firstOrNull()?.text()?.trim()
+                        ).joinToString(" ")
+                    } ?: ""
 
                 val movies = cat_item
-                    .select("div.short.cinema-item, div.short.vod-item")
+                    .select("> div.vod-wrap > div.vod-slider > article.vod-card")
                     .mapNotNull { item ->
-                        val a = item.selectFirst("a.cinema-clickable-area, a.vod-clickable-area") ?: return@mapNotNull null
+                        val a = item.selectFirst("a") ?: return@mapNotNull null
                         val link = a.attr("href")
                         val href = link.substringAfterLast("/")
-                        val title = a.selectFirst("div.cinema-title, div.vod-title")?.text() ?: ""
-                        val poster = a.selectFirst("img")?.attr("data-src") ?: ""
-                        if (link.startsWith("/s-tv/"))
+                        val title = a.selectFirst("div.vod-name")?.text() ?: ""
+                        val poster = a.selectFirst("div.vod-poster > img")?.attr("src") ?: ""
+                        if (link.startsWith("/s-tv/") || link.contains("-saison-"))
                             TvShow(
                                 id = href,
                                 title = title,
@@ -111,11 +113,10 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     )
                 }
             }
-
         } else {
             categories.add(
                 Category(
-                    name = "TOP Séries",
+                    name = "Nouveautés Séries",
                     list = document.select("div.pages.clearfix").getOrNull(1)?.select("div.short")
                         ?.map {
                             TvShow(
@@ -136,7 +137,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
             categories.add(
                 Category(
-                    name = "TOP Films",
+                    name = "Nouveautés Films",
                     list = document.select("div.pages.clearfix").getOrNull(0)?.select("div.short")
                         ?.map {
                             Movie(
@@ -156,8 +157,28 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
             categories.add(
                 Category(
-                    name = "Box office",
+                    name = "Ajouts de la Commu",
                     list = document.select("div.pages.clearfix").getOrNull(2)?.select("div.short")
+                        ?.map {
+                            Movie(
+                                id = it.selectFirst("a.short-poster")
+                                    ?.attr("href")?.substringAfterLast("/")
+                                    ?: "",
+                                title = it.selectFirst("div.short-title")
+                                    ?.text()
+                                    ?: "",
+                                poster = it.selectFirst("img")
+                                    ?.attr("src")
+                                    ?: "",
+                            )
+                        } ?: emptyList(),
+                )
+            )
+
+            categories.add(
+                Category(
+                    name = "BOX OFFICE",
+                    list = document.select("div.pages.clearfix").getOrNull(3)?.select("div.short")
                         ?.map {
                             Movie(
                                 id = it.selectFirst("a.short-poster")
@@ -178,14 +199,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return categories
     }
 
-    suspend fun ignoreSource(source: String, href: String): Boolean {
-        if (arrayOf("Netu").any {
-                it.equals(
-                    source.trim(),
-                    true
-                )
-            })
-            return true
+    fun ignoreSource(source: String, href: String): Boolean {
         if (source.trim().equals("Dood.Stream", ignoreCase = true) && href.contains("/bigwar5/")) return true
         return false
     }
@@ -299,11 +313,13 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getMovie(id: String): Movie {
         initializeService()
-        val document = service.getMovie(id)
+        val document = service.getItem(id)
         val actors = extractActors(document)
-        val trailerURL = document.selectFirst("div#film-data")
-                                  ?.attr("data-trailer")
+        val filmdata = document.selectFirst("div#film-data")
+        val trailerURL = filmdata ?.attr("data-trailer")
                                   ?.let { "https://www.youtube.com/watch?v=$it" }
+        val poster = filmdata ?.attr("data-affiche")
+        val banner = filmdata ?.attr("data-affiche2")
 
         val votes = document.selectFirst("div.fr-votes")
         val rating = if (votes != null) getRating(votes) else null
@@ -331,9 +347,8 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 }.takeIf { it != 0 },
             quality = document.selectFirst("span[id=film_quality]")
                 ?.text(),
-            poster = document.selectFirst("img.dvd-thumbnail")
-                ?.attr("src")
-                ?: "",
+            poster = poster,
+            banner = banner,
             trailer = trailerURL,
             genres = document.select("span.genres")
                 .select("a").mapNotNull {
@@ -369,7 +384,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getTvShow(id: String): TvShow {
         initializeService()
-        val document = service.getTvShow(id)
+        val document = service.getItem(id, "dle_skin=VFV25")
         val actors = extractActors(document)
         val versions = extractTvShowVersions(document)
         val poster = document.selectFirst("img.dvd-thumbnail")
@@ -447,30 +462,41 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         initializeService()
         val (tvShowId, tvShowLang, divFilter) = seasonId.split("/")
+        val document = service.getTvShow(tvShowId,"dle_skin=VFV25")
 
-        val document = service.getTvShow(tvShowId, "dle_skin=VFV2")
+        val infodata = document.selectFirst("div#episodes-info-data")
+        if (infodata == null) return emptyList()
 
-        var defaultPoster = document.selectFirst("div.fposter > div.dvd-cover > img")?.attr("src") ?: ""
+        val infoep = document.selectFirst("div#episodes-${tvShowLang}-data")
 
-        val template = document.select("script#template1").first()?.data()?:""
-        val innerDoc = Jsoup.parse(template)
+        if (infoep == null) return emptyList()
 
-        val episodes = innerDoc.select("div.episode-container").mapNotNull { epDiv ->
+        val defaultPoster = document.selectFirst("img.dvd-thumbnail")
+            ?.attr("src") ?: ""
 
-            val number = epDiv.attr("id").removePrefix("episode-").toIntOrNull() ?: 0
-            val poster = epDiv.selectFirst("img.episode-image")?.attr("src")?.takeIf { it.isNotEmpty() } ?: defaultPoster
+        val episodes = infodata.select("> div").mapNotNull { epDiv ->
+            val number = epDiv.attr("data-ep").toIntOrNull() ?: 0
+            val poster = epDiv.attr("data-poster").takeIf { it.isNotBlank() } ?: defaultPoster
 
-            val title = epDiv.selectFirst("div.episode-details > div.episode-title")?.text()?.substringAfter(":")?.trim() ?: ""
+            val title = epDiv.attr("data-title").trim()
 
-            val url = epDiv.selectFirst("button[data-episode$='"+divFilter+"'][data-url^='h']")?.attr("data-url") ?: ""
+            val hasAtLeastOne = infoep
+                .selectFirst("div[data-ep=$number]")
+                ?.attributes()
+                ?.asList()
+                ?.any {
+                    it.key.startsWith("data-") && it.value.startsWith("http")
+                }
+                ?: false
 
-            if (url.isEmpty()) return@mapNotNull null
+            if (hasAtLeastOne==false) return@mapNotNull null
+
             Episode(
                 id = "$tvShowId/$tvShowLang/$number",
                 number = number,
                 poster = poster,
                 title = title,
-                overview = epDiv.selectFirst("div.episode-details > div.episode-synopsis")?.text()?: ""
+                overview = epDiv.attr("data-synopsis")
             )
         }
 
@@ -529,14 +555,14 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     ?.attr("src")
                     ?: ""
 
-                if (href.contains("films/")) {
-                    Movie(
+                if (href.contains("-saison-") || href.contains("s-tv/")) {
+                    TvShow(
                         id = id,
                         title = title,
                         poster = poster,
                     )
-                } else if (href.contains("s-tv/")) {
-                    TvShow(
+                } else if (href.isNotBlank()) {
+                    Movie(
                         id = id,
                         title = title,
                         poster = poster,
@@ -605,7 +631,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             is Video.Type.Episode -> {
                 val (tvShowId, tvShowLang, tvShowNumber) = id.split("/")
 
-                val document = service.getTvShow(tvShowId)
+                val document = service.getItem(tvShowId, "dle_skin=VFV25")
 
                 document.selectFirst("div#episodes-"+tvShowLang+"-data")
                     ?.selectFirst("div[data-ep="+tvShowNumber+"]")
@@ -624,7 +650,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             }
 
             is Video.Type.Movie -> {
-                val document = service.getMovie(id)
+                val document = service.getItem(id, "dle_skin=VFV25")
                 val providerIndex = mutableMapOf<String, Int>()
                 var pIndex = 0
 
@@ -690,7 +716,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         } else {
             server.src
         }
-        
+
         val video = Extractor.extract(finalUrl)
 
         return video
@@ -790,8 +816,17 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         @GET("s-tv/page/{page}")
         suspend fun getTvShows(@Path("page") page: Int): Document
 
+        @GET("/{id}")
+        suspend fun getItem(
+            @Path("id") id: String,
+            @Header("Cookie") cookie: String = "dle_skin=VFV1"
+        ): Document
+
         @GET("films/{id}")
-        suspend fun getMovie(@Path("id") id: String): Document
+        suspend fun getMovie(
+            @Path("id") id: String,
+            @Header("Cookie") cookie: String = "dle_skin=VFV1"
+        ): Document
 
         @GET("s-tv/{id}")
         suspend fun getTvShow(

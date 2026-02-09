@@ -21,9 +21,11 @@ import java.util.Calendar
 object TMDb3 {
 
     private const val URL = "https://api.themoviedb.org/3/"
-    private const val API_KEY = BuildConfig.TMDB_API_KEY
+    private var service = ApiService.build()
 
-    private val service = ApiService.build()
+    fun rebuildService() {
+        service = ApiService.build()
+    }
 
     object Discover {
 
@@ -920,13 +922,15 @@ object TMDb3 {
 
         companion object {
             fun build(): ApiService {
+                val apiKey = UserPreferences.tmdbApiKey.ifEmpty { BuildConfig.TMDB_API_KEY }
+
                 val client = OkHttpClient.Builder().addInterceptor { chain ->
                     val original = chain.request()
 
                     val requestBuilder = original.newBuilder()
                         .url(
                             original.url.newBuilder()
-                                .addQueryParameter("api_key", API_KEY)
+                                .addQueryParameter("api_key", apiKey)
                                 .build()
                         )
 

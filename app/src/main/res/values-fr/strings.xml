@@ -1,0 +1,334 @@
+﻿<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="app_name">Streamflix</string>
+
+    <string name="loading_error_title">Une erreur est survenue</string>
+    <string name="loading_error_retry">Réessayer</string>
+    <string name="loading_error_clear_cache">Vider le cache</string>
+    <string name="loading_error_details">Détails de l\'erreur</string>
+
+    <string name="update_title">Nouvelle mise à jour disponible</string>
+    <string name="update_message">Une nouvelle version de l\'application est disponible !</string>
+    <string name="update_current_version_label">Version actuelle</string>
+    <string name="update_new_version_label">Nouvelle version</string>
+    <string name="update_release_notes">Notes de version</string>
+    <string name="update_later">Plus tard</string>
+    <string name="update">Mettre à jour</string>
+
+    <string name="app_layout">Mise en page de l\'application</string>
+    <string name="app_layout_auto">Auto</string>
+    <string name="app_layout_mobile">Mise en page mobile</string>
+    <string name="app_layout_tv">Mise en page TV</string>
+    <string name="app_layout_apply">Appliquer</string>
+
+    <string name="providers_all_languages">Toutes les langues</string>
+    <string name="providers_choose_title">Choisir un fournisseur</string>
+
+    <string name="main_menu_change_provider">Changer de fournisseur</string>
+    <string name="main_menu_search">Rechercher</string>
+    <string name="main_menu_home">Accueil</string>
+    <string name="main_menu_movies">Films</string>
+    <string name="main_menu_tv_shows">Séries TV</string>
+    <string name="main_menu_settings">Paramètres</string>
+    <string name="main_menu_theme_change">Changer de thème</string>
+    <string name="theme_default">Par défaut</string>
+    <string name="theme_nero_amoled_oled">Noir Amoled/Oled</string>
+
+    <string name="search_input_hint">Rechercher des films, séries TV</string>
+    <string name="global_search">Recherche globale</string>
+    <string name="searching">Recherche en cours...</string>
+    <string name="search_error">Erreur</string>
+    <string name="result">Résultat</string>
+    <string name="results">Résultats</string>
+    <string name="switching_to_provider">Passage à %s</string>
+
+    <string name="home_swiper_watch_now">Regarder maintenant</string>
+    <string name="home_continue_watching">Continuer à regarder</string>
+    <string name="home_favorite_movies">Films favoris</string>
+    <string name="home_favorite_tv_shows">Séries TV favorites</string>
+
+    <string name="option_episode_open_tv_show">Aller à la série TV</string>
+    <string name="option_show_favorite">Ajouter aux favoris</string>
+    <string name="option_show_unfavorite">Retirer des favoris</string>
+    <string name="option_show_watched">Marquer comme vu</string>
+    <string name="option_show_mark_all_previous_watched">Marquer comme vu jusqu\'ici</string>
+    <string name="option_show_mark_all_previous_unwatched">Marquer comme non vu jusqu\'ici</string>
+    <string name="option_show_unwatched">Marquer comme non vu</string>
+    <string name="option_clear_program">Retirer de Continuer à regarder</string>
+    <string name="option_cancel">Annuler</string>
+
+    <string name="episode_item_info">S%d E%d • %s</string>
+    <string name="episode_item_info_episode_only">E%d • %s</string>
+
+    <string name="tv_show_item_episode_number">E%d</string>
+    <string name="tv_show_item_season_number_episode_number">S%d E%d</string>
+    <string name="tv_show_item_type">Série</string>
+
+    <string name="tv_show_runtime_hours_minutes">%d h %d min</string>
+    <string name="tv_show_runtime_minutes">%d min</string>
+    <string name="tv_show_watch_season_episode">Regarder S%d E%d</string>
+    <string name="tv_show_watch_episode">Regarder E%d</string>
+    <string name="tv_show_trailer">Bande-annonce</string>
+    <string name="tv_show_seasons">Saisons</string>
+    <string name="tv_show_cast">Casting</string>
+    <string name="tv_show_directors">Réalisateur</string>
+    <string name="tv_show_you_may_also_like">Vous pourriez aussi aimer</string>
+
+    <string name="movie_item_type">Film</string>
+    <string name="movie_runtime_hours_minutes">%d h %d min</string>
+    <string name="movie_runtime_minutes">%d min</string>
+    <string name="movie_watch_now">Regarder maintenant</string>
+    <string name="movie_trailer">Bande-annonce</string>
+    <string name="movie_cast">Casting</string>
+    <string name="movie_directors">Réalisateur</string>
+    <string name="movie_you_may_also_like">Vous pourriez aussi aimer</string>
+
+    <string name="season_number">Saison %d</string>
+    <string name="episode_number">Épisode %d</string>
+
+    <string name="people_birthday">Date de naissance</string>
+    <string name="people_deathday">Date de décès</string>
+    <string name="people_birthplace">Lieu de naissance</string>
+    <string name="people_biography">Biographie</string>
+    <string name="people_read_more">Voir plus ></string>
+
+    <string name="genre_header_name">%s Films et séries TV</string>
+
+    <string name="player_subtitle_tv_show">S%d E%d • %s</string>
+    <string name="player_subtitle_tv_show_episode_only">E%d • %s</string>
+    <string name="player_picture_in_picture_not_supported">Le PiP n\'est pas pris en charge sur cet appareil</string>
+    <string name="player_external_player_title">Lire avec</string>
+    <string name="player_external_player_error_video">Vidéo non encore chargée</string>
+    <string name="player_not_available_it_message">Non présent sur les serveurs italiens, cherchez-le sur TMDB dans d\'autres langues</string>
+    <string name="player_not_available_lang_message">Pas disponible en %s, cherchez-le sur TMDB dans d\'autres langues</string>
+    <string name="player_aspect_ratio_fit">Taille originale</string>
+    <string name="player_aspect_ratio_fill">Remplir l\'écran</string>
+    <string name="player_aspect_ratio_zoom">Zoom</string>
+    <string name="player_aspect_ratio_zoom_4_3">Zoom pour 4:3</string>
+    <string name="player_aspect_ratio_stretch_vertical">Étirer verticalement</string>
+    <string name="player_aspect_ratio_super_zoom">Super Zoom</string>
+    <string name="player_settings_title">Paramètres</string>
+    <string name="player_settings_quality_title">Qualité vidéo</string>
+    <string name="player_settings_quality_label">Qualité</string>
+    <string name="player_settings_quality_sub_label_auto">Auto (%dp)</string>
+    <string name="player_settings_quality_auto">Auto</string>
+    <string name="player_settings_quality_auto_selected">Auto • %dp</string>
+    <string name="player_settings_quality">%dp</string>
+    <string name="player_settings_audio_title">Audio</string>
+    <string name="player_settings_audio_label">Audio</string>
+    <string name="player_settings_subtitles_title">Sous-titres</string>
+    <string name="player_settings_subtitles_label">Sous-titres</string>
+    <string name="player_settings_subtitles_off">Désactivé</string>
+    <string name="player_settings_caption_style_title">Style des sous-titres</string>
+    <string name="player_settings_caption_style_label">Style des sous-titres</string>
+    <string name="player_settings_caption_style_sub_label">Changer la couleur du texte, le style de fond et la marge</string>
+    <string name="player_settings_caption_style_reset_style_label">Réinitialiser le style</string>
+    <string name="player_settings_caption_style_font_color_title">Couleur de la police</string>
+    <string name="player_settings_caption_style_font_color_label">Couleur de la police</string>
+    <string name="player_settings_caption_style_font_color_white">Blanc</string>
+    <string name="player_settings_caption_style_font_color_yellow">Jaune</string>
+    <string name="player_settings_caption_style_font_color_green">Vert</string>
+    <string name="player_settings_caption_style_font_color_cyan">Cyan</string>
+    <string name="player_settings_caption_style_font_color_blue">Bleu</string>
+    <string name="player_settings_caption_style_font_color_magenta">Magenta</string>
+    <string name="player_settings_caption_style_font_color_red">Rouge</string>
+    <string name="player_settings_caption_style_font_color_black">Noir</string>
+    <string name="player_settings_caption_style_text_size_title">Taille du texte</string>
+    <string name="player_settings_caption_style_text_size_label">Taille du texte</string>
+    <string name="player_settings_caption_style_text_size_0_5">50%</string>
+    <string name="player_settings_caption_style_text_size_0_75">75%</string>
+    <string name="player_settings_caption_style_text_size_0_8">80%</string>
+    <string name="player_settings_caption_style_text_size_0_9">90%</string>
+    <string name="player_settings_caption_style_text_size_1">100%</string>
+    <string name="player_settings_caption_style_text_size_1_25">125%</string>
+    <string name="player_settings_caption_style_text_size_1_5">150%</string>
+    <string name="player_settings_caption_style_text_size_2">200%</string>
+    <string name="player_settings_caption_style_text_size_3">300%</string>
+    <string name="player_settings_caption_style_font_opacity_title">Opacité de la police</string>
+    <string name="player_settings_caption_style_font_opacity_label">Opacité de la police</string>
+    <string name="player_settings_caption_style_font_opacity_0_5">50%</string>
+    <string name="player_settings_caption_style_font_opacity_0_75">75%</string>
+    <string name="player_settings_caption_style_font_opacity_1">100%</string>
+    <string name="player_settings_caption_style_edge_style_title">Style des bords</string>
+    <string name="player_settings_caption_style_edge_style_label">Style des bords</string>
+    <string name="player_settings_caption_style_edge_style_none">Aucun</string>
+    <string name="player_settings_caption_style_edge_style_raised">Relief</string>
+    <string name="player_settings_caption_style_edge_style_depressed">Gravé</string>
+    <string name="player_settings_caption_style_edge_style_outline">Uniforme</string>
+    <string name="player_settings_caption_style_edge_style_drop_shadow">Ombré</string>
+    <string name="player_settings_caption_style_background_color_title">Couleur de fond</string>
+    <string name="player_settings_caption_style_background_color_label">Couleur de fond</string>
+    <string name="player_settings_caption_style_background_color_black">Noir</string>
+    <string name="player_settings_caption_style_background_color_yellow">Jaune</string>
+    <string name="player_settings_caption_style_background_color_green">Vert</string>
+    <string name="player_settings_caption_style_background_color_cyan">Cyan</string>
+    <string name="player_settings_caption_style_background_color_blue">Bleu</string>
+    <string name="player_settings_caption_style_background_color_magenta">Magenta</string>
+    <string name="player_settings_caption_style_background_color_red">Rouge</string>
+    <string name="player_settings_caption_style_background_color_white">Blanc</string>
+    <string name="player_settings_caption_style_background_opacity_title">Opacité du fond</string>
+    <string name="player_settings_caption_style_background_opacity_label">Opacité du fond</string>
+    <string name="player_settings_caption_style_background_opacity_0">0%</string>
+    <string name="player_settings_caption_style_background_opacity_0_25">25%</string>
+    <string name="player_settings_caption_style_background_opacity_0_5">50%</string>
+    <string name="player_settings_caption_style_background_opacity_0_75">75%</string>
+    <string name="player_settings_caption_style_background_opacity_1">100%</string>
+    <string name="player_settings_caption_style_window_color_title">Couleur de la fenêtre</string>
+    <string name="player_settings_caption_style_window_color_label">Couleur de la fenêtre</string>
+    <string name="player_settings_caption_style_window_color_black">Noir</string>
+    <string name="player_settings_caption_style_window_color_yellow">Jaune</string>
+    <string name="player_settings_caption_style_window_color_green">Vert</string>
+    <string name="player_settings_caption_style_window_color_cyan">Cyan</string>
+    <string name="player_settings_caption_style_window_color_blue">Bleu</string>
+    <string name="player_settings_caption_style_window_color_magenta">Magenta</string>
+    <string name="player_settings_caption_style_window_color_red">Rouge</string>
+    <string name="player_settings_caption_style_window_color_white">Blanc</string>
+    <string name="player_settings_caption_style_window_opacity_title">Opacité de la fenêtre</string>
+    <string name="player_settings_caption_style_window_opacity_label">Opacité de la fenêtre</string>
+    <string name="player_settings_caption_style_window_opacity_0">0%</string>
+    <string name="player_settings_caption_style_window_opacity_0_25">25%</string>
+    <string name="player_settings_caption_style_window_opacity_0_5">50%</string>
+    <string name="player_settings_caption_style_window_opacity_0_75">75%</string>
+    <string name="player_settings_caption_style_window_opacity_1">100%</string>
+    <string name="player_settings_caption_style_margin_title">Marge inférieure</string>
+    <string name="player_settings_caption_style_margin_label">Marge inférieure</string>
+    <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
+    <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
+    <string name="player_settings_local_subtitles_label">Charger depuis fichier</string>
+    <string name="player_settings_speed_title">Vitesse vidéo</string>
+    <string name="player_settings_speed_label">Vitesse</string>
+    <string name="player_settings_speed_0_25">× 0.25</string>
+    <string name="player_settings_speed_0_5">× 0.5</string>
+    <string name="player_settings_speed_0_75">× 0.75</string>
+    <string name="player_settings_speed_1">Normale</string>
+    <string name="player_settings_speed_1_25">× 1.25</string>
+    <string name="player_settings_speed_1_5">× 1.5</string>
+    <string name="player_settings_speed_1_75">× 1.75</string>
+    <string name="player_settings_speed_2">× 2</string>
+    <string name="player_settings_servers_title">Serveurs</string>
+    <string name="player_settings_servers_label">Serveurs</string>
+
+    <string name="settings_about_version">Version</string>
+    <string name="settings_about_version_name">Version %s</string>
+    <string name="settings_help">Aide</string>
+    <string name="settings_telegram">Groupe Telegram</string>
+    <string name="settings_category_streamingcommunity">Paramètres StreamingCommunity</string>
+    <string name="settings_category_streamingcommunity_domain">Nom de domaine StreamingCommunity</string>
+    <string name="settings_close_app">Fermer l\'application</string>
+    <string name="settings_category_streamingcommunity_dnsOverHttps">Utiliser DNS sécurisé</string>
+    <string name="settings_category_network_title">Paramètres réseau</string>
+    <string name="settings_category_provider_title">Paramètres du fournisseur</string>
+    <string name="settings_category_provider_url">URL principale</string>
+    <string name="settings_category_provider_update_url">Portal URL</string>
+    <string name="settings_autoupdate">Mettre à jour l\'URL au démarrage</string>
+    <string name="settings_autoupdate_on">Activé</string>
+    <string name="settings_autoupdate_off">Désactivé</string>
+    <string name="settings_autoupdate_now">Mettre à jour l\'URL maintenant</string>
+    <string name="settings_autoplay">Lecture automatique de l\'épisode suivant</string>
+    <string name="settings_autoplay_on">Activé</string>
+    <string name="settings_autoplay_off">Désactivé</string>
+    <string name="settings_autoplay_buffer_title">Buffer de lecture automatique</string>
+    <string name="settings_autoplay_buffer_dialog_message">Réglez le nombre de secondes avant la fin de l\'épisode pour passer au suivant.</string>
+    <string name="autoplay_settings">Paramètres de lecture automatique</string>
+    <string name="player_settings">Paramètres du lecteur</string>
+    <string name="settings_player_gestures">Gestes du lecteur</string>
+    <string name="settings_player_gestures_on">Activé</string>
+    <string name="settings_player_gestures_off">Désactivé</string>
+    <string name="settings_keep_screen_on_when_paused">Garder l\'écran allumé en pause</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Empêche l\'écran de s\'éteindre lorsque la vidéo est en pause</string>
+    <string name="miscelaneous_title">Divers</string>
+    <string name="clear_cache_done">Cache vidé</string>
+    <string name="clear_cache_done_409">Cache vidé automatiquement (Erreur HTTP 409)</string>
+    <string name="voice_search">Recherche vocale</string>
+    <string name="voice_error_no_match">Aucun résultat reconnu</string>
+    <string name="voice_error_timeout">Délai dépassé</string>
+    <string name="voice_error_audio">Erreur audio</string>
+    <string name="voice_error_generic">Une erreur est survenue lors du démarrage de la reconnaissance vocale.</string>
+    <string name="voice_error_permission_denied">Autorisation micro refusée</string>
+    <string name="voice_permission_title">Autorisation requise</string>
+    <string name="voice_permission_rationale">L\'accès au micro est nécessaire pour utiliser la recherche vocale.</string>
+    <string name="voice_error_no_result">Aucune entrée vocale détectée.</string>
+    <string name="voice_prompt">Parlez maintenant</string>
+
+    <string name="watch_trailer_with">Regarder la bande-annonce avec...</string>
+    <string name="youtube">YouTube</string>
+    <string name="smarttube">SmartTube</string>
+    <string name="smarttube_stable">SmartTube Stable</string>
+    <string name="smarttube_beta">SmartTube Beta</string>
+    <string name="choose_smarttube_version">Choisir la version de SmartTube</string>
+
+    <string name="settings_trailer_player_title">Lecteur d\'aperçu</string>
+    <string name="settings_trailer_player_summary">Choisissez votre lecteur préféré pour les aperçus</string>
+    <string name="settings_trailer_player_ask">Demander à chaque fois</string>
+    <string name="settings_trailer_player_reset">Réinitialiser version SmartTube</string>
+    <string name="settings_trailer_player_reset_summary">Forcer l\'application à redemander quelle version de SmartTube utiliser.</string>
+
+    <string name="backup_category_title">Sauvegarde et Restauration</string>
+    <string name="backup_export_title">Exporter les données utilisateur</string>
+    <string name="backup_export_summary">Enregistrez vos données (favoris, historique) dans un fichier.</string>
+    <string name="backup_import_title">Importer les données utilisateur</string>
+    <string name="backup_import_summary">Restaurez vos données depuis un fichier de sauvegarde.</string>
+
+    <string name="backup_export_success">Sauvegarde exportée avec succès !</string>
+    <string name="backup_export_error_write">Erreur lors de l\'exportation.</string>
+    <string name="backup_data_not_generated">Erreur : données non générées.</string>
+    <string name="backup_import_success">Sauvegarde importée ! Redémarrez l\'app.</string>
+    <string name="backup_import_error">Erreur lors de l\'importation.</string>
+    <string name="backup_import_empty_file">Erreur : fichier vide ou illisible.</string>
+
+    <string name="screen_scale_category_title">Padding de l\'écran</string>
+    <string name="screen_scale_x_title">Padding horizontal</string>
+    <string name="screen_scale_x_summary">Réglez le padding gauche et droit</string>
+    <string name="screen_scale_y_title">Padding vertical</string>
+    <string name="screen_scale_y_summary">Réglez le padding haut et bas</string>
+
+    <string name="backup_import_read_error">Erreur lors de la lecture du fichier de sauvegarde.</string>
+
+    <string name="doh_provider_updated">Paramètres DNS over HTTPS mis à jour ! Redémarrez.</string>
+    <string name="settings_frenchstream_use_new_interface">Utiliser la nouvelle interface FrenchStream</string>
+    <string name="settings_frenchstream_use_new_interface_on">Activé</string>
+    <string name="settings_frenchstream_use_new_interface_off">Désactivé</string>
+
+    <string name="settings_category_interface_title">Paramètres d\'interface</string>
+    <string name="settings_immersive_mode">Mode Immersif</string>
+    <string name="settings_immersive_mode_summary">Cache les barres d\'état et de navigation</string>
+    <string name="settings_immersive_mode_on">Activé (Barres cachées)</string>
+    <string name="settings_immersive_mode_off">Désactivé (Barres visibles)</string>
+
+
+    <string name="player_brightness">Luminosité</string>
+    <string name="player_volume">Volume</string>
+    <string name="percentage_format">%d%%</string>
+    <string name="player_settings_extra_buffer_title">Serveur avec Extra Buffering</string>
+
+    <string name="player_settings_extra_buffer_server_label">Serveur avec Extra Buffering</string>
+    <string name="player_settings_extra_buffer_on">Activé</string>
+    <string name="player_settings_extra_buffer_off">Désactivé</string>
+    <string name="player_settings_extra_buffer_forced_on">Activé (Forcé)</string>
+    <string name="player_settings_extra_buffer_forced_off">Désactivé (Forcé)</string>
+    <string name="player_settings_extra_buffer_auto_on">Activé (Défaut)</string>
+    <string name="player_settings_extra_buffer_auto_off">Désactivé (Défaut)</string>
+    <string name="error_dialog_title">Détails de l\'erreur</string>
+    <string name="error_dialog_message">Message d\'erreur</string>
+    <string name="error_dialog_cause">Cause</string>
+    <string name="error_dialog_stack_trace">Stack Trace</string>
+    <string name="error_dialog_copy">Copier</string>
+    <string name="error_dialog_copied">Copié dans le presse-papiers !</string>
+    <string name="error_dialog_unknown">Erreur inconnue</string>
+    <string name="error_dialog_no_cause">Aucune cause</string>
+
+    <string name="settings_category_appearance">Apparence</string>
+    <string name="settings_theme_title">Thème de l\'application</string>
+    <string name="player_settings_gestures_title">Gestes</string>
+    <string name="player_settings_keep_screen_on_title">Écran actif en pause</string>
+
+    <string name="settings_category_tmdb">Paramètres TMDb</string>
+    <string name="settings_tmdb_api_key">Clé API TMDb personnalisée</string>
+    <string name="settings_tmdb_api_key_summary">Laissez vide pour utiliser la clé API par défaut fournie avec l\'application</string>
+    <string name="settings_tmdb_api_key_success">Clé API mise à jour avec succès</string>
+    <string name="settings_tmdb_api_key_reset">Clé API par défaut utilisée</string>
+    <string name="settings_category_subdl">Paramètres SubDL</string>
+    <string name="settings_subdl_api_key">Clé API SubDL</string>
+    <string name="settings_subdl_api_key_summary">Entrez votre clé API personnelle SubDL pour activer SubDL dans les paramètres de sous-titres du lecteur</string>
+    <string name="settings_subdl_api_key_success">Clé API SubDL enregistrée avec succès</string>
+    <string name="settings_subdl_api_key_reset">Clé API SubDL supprimée</string>
+</resources>

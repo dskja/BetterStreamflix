@@ -115,6 +115,19 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
             isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
         }
+
+        findPreference<ListPreference>("SELECTED_THEME")?.apply {
+            value = UserPreferences.selectedTheme
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.selectedTheme = newValue as String
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, this::class.java))
+                }
+                true
+            }
+        }
+
         findPreference<SwitchPreference>("AUTOPLAY")?.apply {
             isChecked = UserPreferences.autoplay
             setOnPreferenceChangeListener { _, newValue ->
@@ -135,6 +148,40 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.immersiveMode = newValue as Boolean
                 (activity as? MainMobileActivity)?.updateImmersiveMode()
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
+            summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
+            text = UserPreferences.tmdbApiKey
+            setOnPreferenceChangeListener { _, newValue ->
+                val newKey = (newValue as String).trim()
+                UserPreferences.tmdbApiKey = newKey
+                summary = if (newKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else newKey
+                val message = if (newKey.isEmpty()) {
+                    getString(R.string.settings_tmdb_api_key_reset)
+                } else {
+                    getString(R.string.settings_tmdb_api_key_success)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
+            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
+            text = UserPreferences.subdlApiKey
+            setOnPreferenceChangeListener { _, newValue ->
+                val newKey = (newValue as String).trim()
+                UserPreferences.subdlApiKey = newKey
+                summary = if (newKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else newKey
+                val message = if (newKey.isEmpty()) {
+                    getString(R.string.settings_subdl_api_key_reset)
+                } else {
+                    getString(R.string.settings_subdl_api_key_success)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 true
             }
         }
@@ -227,9 +274,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     }
                     setOnPreferenceChangeListener { _, newValue ->
                         val toSave = (newValue as String)
-                                .ifBlank { portalProvider.defaultPortalUrl }
-                                .trim()
-                                .removeSuffix("/") + "/"
+                            .ifBlank { portalProvider.defaultPortalUrl }
+                            .trim()
+                            .removeSuffix("/") + "/"
                         summary = toSave
                         UserPreferences.setProviderCache(
                             null,
@@ -442,6 +489,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
+        findPreference<ListPreference>("SELECTED_THEME")?.value = UserPreferences.selectedTheme
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
         findPreference<SwitchPreference>("IMMERSIVE_MODE")?.isChecked = UserPreferences.immersiveMode

@@ -39,6 +39,12 @@ class MainMobileActivity : FragmentActivity() {
     private lateinit var updateAppDialog: UpdateAppMobileDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        UserPreferences.setup(this)
+        when (UserPreferences.selectedTheme) {
+            "nero_amoled_oled" -> setTheme(R.style.AppTheme_Mobile_NeroAmoledOled)
+            else -> setTheme(R.style.AppTheme_Mobile)
+        }
+
         super.onCreate(savedInstanceState)
         
         WindowCompat.setDecorFitsSystemWindows(window, false)

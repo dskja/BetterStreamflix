@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">Ein Fehler ist aufgetreten</string>
@@ -96,6 +96,7 @@
     <string name="player_picture_in_picture_not_supported">PiP wird auf diesem Gerät nicht unterstützt</string>
     <string name="player_external_player_title">Abspielen mit</string>
     <string name="player_external_player_error_video">Video noch nicht geladen</string>
+    <string name="player_not_available_lang_message">Nicht verfügbar auf %s, suchen Sie auf TMDB in anderen Sprachen</string>
     <string name="player_aspect_ratio_fit">An Bildschirm anpassen</string>
     <string name="player_aspect_ratio_fill">Ausdehnen</string>
     <string name="player_aspect_ratio_zoom">Zoomen</string>
@@ -113,7 +114,7 @@
     <string name="player_settings_subtitles_off">Aus</string>
     <string name="player_settings_caption_style_title">Untertitelstil</string>
     <string name="player_settings_caption_style_label">Untertitelstil</string>
-    <string name="player_settings_caption_style_sub_label">Text, Farbe &amp; Hintergrundstil anpassen</string>
+    <string name="player_settings_caption_style_sub_label">Text, Farbe, Hintergrundstil und unterer Rand anpassen</string>
     <string name="player_settings_caption_style_reset_style_label">Stil Zurücksetzen</string>
     <string name="player_settings_caption_style_font_color_title">Schriftfarbe</string>
     <string name="player_settings_caption_style_font_color_label">Schriftfarbe</string>
@@ -169,7 +170,7 @@
     <string name="player_settings_caption_style_window_color_label">Fensterfarbe</string>
     <string name="player_settings_caption_style_window_color_black">Schwarz</string>
     <string name="player_settings_caption_style_window_color_yellow">Gelb</string>
-    <string name="player_settings_caption_style_window_color_green">Grün</string>
+    <string name="player_settings_caption_style_window_color_green">Verde</string>
     <string name="player_settings_caption_style_window_color_cyan">Cyan</string>
     <string name="player_settings_caption_style_window_color_blue">Blau</string>
     <string name="player_settings_caption_style_window_color_magenta">Magenta</string>
@@ -182,6 +183,8 @@
     <string name="player_settings_caption_style_window_opacity_0_5">50%</string>
     <string name="player_settings_caption_style_window_opacity_0_75">75%</string>
     <string name="player_settings_caption_style_window_opacity_1">100%</string>
+    <string name="player_settings_caption_style_margin_title">Unterer Rand</string>
+    <string name="player_settings_caption_style_margin_label">Unterer Rand</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
     <string name="player_settings_local_subtitles_label">Lade aus Dateien</string>
@@ -223,6 +226,8 @@
     <string name="settings_player_gestures">Player-Gesten</string>
     <string name="settings_player_gestures_on">An</string>
     <string name="settings_player_gestures_off">Aus</string>
+    <string name="settings_keep_screen_on_when_paused">Bildschirm im Pause-Modus anlassen</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Verhindert, dass der Bildschirm ausgeschaltet wird, wenn das Video angehalten wurde</string>
     <string name="miscelaneous_title">Sonstiges</string>
     <string name="clear_cache_done">Cache geleert</string>
     <string name="clear_cache_done_409">Cache automatisch wegen HTTP 409 geleert</string>
@@ -275,4 +280,17 @@
     <string name="error_dialog_copied">In Zwischenablage kopiert!</string>
     <string name="error_dialog_unknown">Unbekannter Fehler</string>
     <string name="error_dialog_no_cause">Keine Ursache</string>
+    <string name="player_settings_gestures_title">Gesten</string>
+    <string name="player_settings_keep_screen_on_title">Bildschirm im Pause-Modus anlassen</string>
+
+    <string name="settings_category_tmdb">TMDb-Einstellungen</string>
+    <string name="settings_tmdb_api_key">Benutzerdefinierter TMDb API-Key</string>
+    <string name="settings_tmdb_api_key_summary">Leer lassen, um den Standard-API-Key der App zu verwenden</string>
+    <string name="settings_tmdb_api_key_success">API-Key erfolgreich aktualisiert</string>
+    <string name="settings_tmdb_api_key_reset">Standard-TMDb-API-Key wird verwendet</string>
+    <string name="settings_category_subdl">SubDL-Einstellungen</string>
+    <string name="settings_subdl_api_key">SubDL API-Schlüssel</string>
+    <string name="settings_subdl_api_key_summary">Geben Sie Ihren persönlichen SubDL-API-Schlüssel ein, um SubDL in den Untertiteleinstellungen des Players zu aktivieren</string>
+    <string name="settings_subdl_api_key_success">SubDL API-Schlüssel erfolgreich gespeichert</string>
+    <string name="settings_subdl_api_key_reset">SubDL API-Schlüssel entfernt</string>
 </resources>

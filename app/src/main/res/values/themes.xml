@@ -3,19 +3,73 @@
     <style name="AppTheme.Mobile" parent="Theme.AppCompat">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <item name="app_background_color">#181818</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_default</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_default</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_default</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_default</item>
     </style>
 
+    <!-- Tema Nero Amoled/Oled per Mobile -->
+    <style name="AppTheme.Mobile.NeroAmoledOled" parent="AppTheme.Mobile">
+        <item name="app_background_color">#000000</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_amoled</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="colorAccent">#FFFFFF</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#BDBDBD</item>
+        <item name="alertDialogTheme">@style/Theme.Amoled.Dialog.Alert</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_amoled</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_amoled</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_amoled</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_amoled</item>
+    </style>
+
+    <!-- Tema di Default per TV -->
     <style name="AppTheme.Tv" parent="Theme.Leanback">
-        <!-- Attributi per Leanback Preference Fragment -->
+        <item name="app_background_color">#181818</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
-        <!-- Attributes for standard Dialogs -->
         <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
-        <!-- Colori per rendere visibile lo switch Material -->
         <item name="colorAccent">#FFFFFF</item>
         <item name="colorControlActivated">#FFFFFF</item>
         <item name="colorControlNormal">#BDBDBD</item>
-        <!-- Per la Leanback activity -->
         <item name="android:windowBackground">@drawable/bg_splash_screen</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_default</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_default</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_default</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_default</item>
+    </style>
+
+    <!-- Tema Nero Amoled/Oled per TV (Nero Puro #000000) -->
+    <style name="AppTheme.NeroAmoledOled" parent="Theme.Leanback">
+        <item name="app_background_color">#000000</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_amoled</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackgroundFallback">#000000</item>
+        <item name="colorAccent">#FFFFFF</item>
+        <item name="colorControlActivated">#FFFFFF</item>
+        <item name="colorControlNormal">#BDBDBD</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#BDBDBD</item>
+        <item name="defaultBrandColor">#000000</item>
+        <item name="defaultSearchColor">#000000</item>
+        <item name="defaultSearchBrightColor">#000000</item>
+        <item name="defaultSearchIconColor">#FFFFFF</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Leanback.Amoled</item>
+        <item name="alertDialogTheme">@style/Theme.Amoled.Dialog.Alert</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_amoled</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_amoled</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_amoled</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_amoled</item>
+    </style>
+
+    <!-- Stile Dialogo Nero Amoled/Oled -->
+    <style name="Theme.Amoled.Dialog.Alert" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#BDBDBD</item>
+        <item name="colorAccent">#FFFFFF</item>
     </style>
 
     <style name="AppTheme.SplashScreen" parent="Theme.AppCompat">

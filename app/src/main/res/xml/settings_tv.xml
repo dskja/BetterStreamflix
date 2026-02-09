@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
@@ -10,6 +10,28 @@
             android:title="@string/settings_category_streamingcommunity_domain"
             android:inputType="text"/>
 
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pc_tmdb_settings"
+        android:title="@string/settings_category_tmdb">
+
+        <EditTextPreference
+            android:key="TMDB_API_KEY"
+            android:title="@string/settings_tmdb_api_key"
+            android:summary="@string/settings_tmdb_api_key_summary"
+            android:inputType="text"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pc_subdl_settings"
+        android:title="@string/settings_category_subdl">
+
+        <EditTextPreference
+            android:key="SUBDL_API_KEY"
+            android:title="@string/settings_subdl_api_key"
+            android:summary="@string/settings_subdl_api_key_summary"
+            android:inputType="text"/>
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -100,6 +122,16 @@
             android:defaultValue="0"
             android:min="-250"
             android:max="250"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/settings_category_appearance">
+        <ListPreference
+            android:key="theme_preference"
+            android:title="@string/settings_theme_title"
+            android:entries="@array/theme_names"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="default" />
     </PreferenceCategory>
 
     <PreferenceCategory

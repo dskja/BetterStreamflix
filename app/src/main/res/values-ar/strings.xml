@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">ستريم فليكس</string>
 
@@ -111,6 +111,8 @@
 	<string name="player_settings_subtitles_title">الترجمة/التعليقات المغلقة</string>
 	<string name="player_settings_subtitles_label">الترجمة</string>
 	<string name="player_settings_subtitles_off">إيقاف</string>
+    <string name="player_settings_caption_style_margin_title">هامش سفلي</string>
+    <string name="player_settings_caption_style_margin_label">هامش سفلي</string>
 
 	<string name="settings_about">حول</string>
 	<string name="settings_about_version">الإصدار</string>
@@ -198,4 +200,19 @@
     <string name="error_dialog_copied">تم النسخ!</string>
     <string name="error_dialog_unknown">خطأ غير معروف</string>
     <string name="error_dialog_no_cause">لا يوجد سبب</string>
+    <string name="player_settings_gestures_title">إيماءات</string>
+    <string name="player_settings_keep_screen_on_title">إبقاء الشاشة مفعلة أثناء الإيقاف المؤقت</string>
+    <string name="settings_keep_screen_on_when_paused">إبقاء الشاشة مفعلة أثناء الإيقاف المؤقت</string>
+    <string name="settings_keep_screen_on_when_paused_summary">يمنع الشاشة من الانطفاء عند إيقاف الفيديو مؤقتًا</string>
+
+    <string name="settings_category_tmdb">إعدادات TMDb</string>
+    <string name="settings_tmdb_api_key">مفتاح API TMDb مخصص</string>
+    <string name="settings_tmdb_api_key_summary">اتركه فارغًا لاستخدام مفتاح API الافتراضي المقدم مع التطبيق</string>
+    <string name="settings_tmdb_api_key_success">تم تحديث مفتاح API بنجاح</string>
+    <string name="settings_tmdb_api_key_reset">باستخدام مفتاح TMDb API الافتراضي</string>
+    <string name="settings_category_subdl">إعدادات SubDL</string>
+    <string name="settings_subdl_api_key">مفتاح API SubDL</string>
+    <string name="settings_subdl_api_key_summary">أدخل مفتاح API SubDL الشخصي لتمكين SubDL في إعدادات ترجمة المشغل</string>
+    <string name="settings_subdl_api_key_success">تم حفظ مفتاح API SubDL بنجاح</string>
+    <string name="settings_subdl_api_key_reset">تمت إزالة مفتاح API SubDL</string>
 </resources>

@@ -15,7 +15,9 @@ import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.SubtitleView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
+import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.findClosest
 import com.streamflixreborn.streamflix.utils.getAlpha
 import com.streamflixreborn.streamflix.utils.getRgb
@@ -71,6 +73,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
             Settings.Subtitle.OpenSubtitles.init(value)
             field = value
         }
+    var subDLSubtitles: List<SubDL.Subtitle> = listOf()
+        set(value) {
+            Settings.Subtitle.SubDLSubtitles.init(value)
+            field = value
+        }
 
     protected var currentSettings = Setting.MAIN
 
@@ -88,10 +95,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         CAPTION_STYLE_BACKGROUND_OPACITY,
         CAPTION_STYLE_WINDOW_COLOR,
         CAPTION_STYLE_WINDOW_OPACITY,
+        CAPTION_STYLE_MARGIN,
         OPEN_SUBTITLES,
+        SUBDL,
         SPEED,
         EXTRA_BUFFERING,
         SERVERS,
+        GESTURES,
+        KEEP_SCREEN_ON,
     }
 
     protected var onQualitySelected: ((Settings.Quality) -> Unit) =
@@ -174,6 +185,15 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
 
             UserPreferences.captionStyle = captionStyle
             subtitleView.setStyle(UserPreferences.captionStyle)
+            subtitleView.setPadding(0, 0, 0, UserPreferences.captionMargin.dp(subtitleView.context))
+        }
+
+    protected var onMarginSelected: ((Settings.Subtitle.Style.Margin) -> Unit) =
+        fun(margin) {
+            val subtitleView = subtitleView ?: return
+
+            UserPreferences.captionMargin = margin.value
+            subtitleView.setPadding(0, 0, 0, UserPreferences.captionMargin.dp(subtitleView.context))
         }
 
     protected var onFontColorSelected: ((Settings.Subtitle.Style.FontColor) -> Unit) =
@@ -294,6 +314,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         this.onOpenSubtitleSelected = onOpenSubtitleSelected
     }
 
+    protected var onSubDLSubtitleSelected: ((Settings.Subtitle.SubDLSubtitles.Subtitle) -> Unit)? = null
+    fun setOnSubDLSubtitleSelectedListener(onSubDLSubtitleSelected: (Settings.Subtitle.SubDLSubtitles.Subtitle) -> Unit) {
+        this.onSubDLSubtitleSelected = onSubDLSubtitleSelected
+    }
+
     protected var onSpeedSelected: ((Settings.Speed) -> Unit) =
         fun(speed) {
             val player = player ?: return
@@ -323,7 +348,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
     }
 
 
-    protected interface Item
+    interface Item
 
     sealed class Settings : Item {
 
@@ -335,7 +360,45 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Speed,
                 Server,
                 ExtraBuffering,
+                Gestures,
+                KeepScreenOn,
             )
+        }
+
+        sealed class Gestures : Item {
+            companion object : Settings() {
+                val list = listOf(On, Off)
+                val selected: Gestures get() = if (UserPreferences.playerGestures) On else Off
+            }
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : Gestures() {
+                override val isSelected: Boolean get() = UserPreferences.playerGestures
+                override val stringId: Int get() = R.string.settings_player_gestures_on
+            }
+            data object Off : Gestures() {
+                override val isSelected: Boolean get() = !UserPreferences.playerGestures
+                override val stringId: Int get() = R.string.settings_player_gestures_off
+            }
+        }
+
+        sealed class KeepScreenOn : Item {
+            companion object : Settings() {
+                val list = listOf(On, Off)
+                val selected: KeepScreenOn get() = if (UserPreferences.keepScreenOnWhenPaused) On else Off
+            }
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : KeepScreenOn() {
+                override val isSelected: Boolean get() = UserPreferences.keepScreenOnWhenPaused
+                override val stringId: Int get() = R.string.settings_autoupdate_on
+            }
+            data object Off : KeepScreenOn() {
+                override val isSelected: Boolean get() = !UserPreferences.keepScreenOnWhenPaused
+                override val stringId: Int get() = R.string.settings_autoupdate_off
+            }
         }
 
         sealed class ExtraBuffering : Item {
@@ -544,8 +607,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .sortedBy { it.language ?: it.label }
                     )
                     list.add(LocalSubtitles)
-                    // Hide OpenSubtitles from the Subtitles submenu
-                    // list.add(OpenSubtitles)
+                    list.add(OpenSubtitles)
+                    // Add SubDL only if an API key is configured
+                    if (UserPreferences.subdlApiKey.isNotEmpty()) {
+                        list.add(SubDLSubtitles)
+                    }
                 }
             }
 
@@ -561,7 +627,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         null
                     )
 
-                    val list = listOf(
+                    val list: List<Item> = listOf(
                         ResetStyle,
                         FontColor,
                         TextSize,
@@ -571,7 +637,21 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         BackgroundOpacity,
                         WindowColor,
                         WindowOpacity,
+                        Margin,
                     )
+                }
+
+                class Margin(
+                    val value: Int,
+                ) : Item {
+                    val isSelected: Boolean
+                        get() = selected == this
+
+                    companion object : Style() {
+                        val list: List<Item> = (0..100 step 4).map { Margin(it) }
+                        val selected: Margin
+                            get() = list.filterIsInstance<Margin>().find { it.value == UserPreferences.captionMargin } ?: list.filterIsInstance<Margin>().find { it.value == 24 } ?: Margin(24)
+                    }
                 }
 
                 data object ResetStyle : Style()
@@ -971,6 +1051,24 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 class Subtitle(
                     val openSubtitle: com.streamflixreborn.streamflix.utils.OpenSubtitles.Subtitle
                 ) : OpenSubtitles()
+            }
+
+            sealed class SubDLSubtitles : Item {
+
+                companion object : Settings.Subtitle() {
+                    val list = mutableListOf<Subtitle>()
+
+                    fun init(subDLSubtitles: List<com.streamflixreborn.streamflix.utils.SubDL.Subtitle>) {
+                        list.clear()
+                        list.addAll(subDLSubtitles.map {
+                            Subtitle(it)
+                        })
+                    }
+                }
+
+                class Subtitle(
+                    val subDLSubtitle: com.streamflixreborn.streamflix.utils.SubDL.Subtitle
+                ) : SubDLSubtitles()
             }
         }
 

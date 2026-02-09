@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+﻿<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">An error occurred</string>
@@ -29,6 +29,9 @@
     <string name="main_menu_movies">Movies</string>
     <string name="main_menu_tv_shows">TV Shows</string>
     <string name="main_menu_settings">Settings</string>
+    <string name="main_menu_theme_change">Change Theme</string>
+    <string name="theme_default">Default</string>
+    <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
 
     <string name="search_input_hint">Search movies, TV shows</string>
     <string name="global_search">Global search</string>
@@ -96,6 +99,7 @@
     <string name="player_external_player_title">Play using</string>
     <string name="player_external_player_error_video">Video not load yet</string>
     <string name="player_not_available_it_message">Not available on Italian servers, search for it on TMDB in other languages</string>
+    <string name="player_not_available_lang_message">Not available in %s, search for it on TMDB in other languages</string>
     <string name="player_aspect_ratio_fit">Fit to screen</string>
     <string name="player_aspect_ratio_fill">Stretch</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>
@@ -116,7 +120,7 @@
     <string name="player_settings_subtitles_off">Off</string>
     <string name="player_settings_caption_style_title">Caption style</string>
     <string name="player_settings_caption_style_label">Caption style</string>
-    <string name="player_settings_caption_style_sub_label">Change text color and background style</string>
+    <string name="player_settings_caption_style_sub_label">Change text color, background style and bottom margin</string>
     <string name="player_settings_caption_style_reset_style_label">Reset style</string>
     <string name="player_settings_caption_style_font_color_title">Font color</string>
     <string name="player_settings_caption_style_font_color_label">Font color</string>
@@ -185,8 +189,12 @@
     <string name="player_settings_caption_style_window_opacity_0_5">50%</string>
     <string name="player_settings_caption_style_window_opacity_0_75">75%</string>
     <string name="player_settings_caption_style_window_opacity_1">100%</string>
+    <string name="player_settings_caption_style_margin_title">Bottom margin</string>
+    <string name="player_settings_caption_style_margin_label">Bottom margin</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
+    <string name="player_settings_subdl_title">SubDL</string>
+    <string name="player_settings_subdl_label">SubDL</string>
     <string name="player_settings_local_subtitles_label">Load from files</string>
     <string name="player_settings_speed_title">Video speed</string>
     <string name="player_settings_speed_label">Speed</string>
@@ -228,6 +236,8 @@
     <string name="settings_player_gestures">Player gestures</string>
     <string name="settings_player_gestures_on">On</string>
     <string name="settings_player_gestures_off">Off</string>
+    <string name="settings_keep_screen_on_when_paused">Keep screen on when paused</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Prevents the screen from turning off when a video is paused</string>
     <string name="miscelaneous_title">Miscellaneous</string>
     <string name="clear_cache_done">Cache cleared</string>
     <string name="clear_cache_done_409">Cache cleared automatically due to HTTP 409</string>
@@ -312,4 +322,21 @@
     <string name="error_dialog_copied">Copied to clipboard!</string>
     <string name="error_dialog_unknown">Unknown error</string>
     <string name="error_dialog_no_cause">No cause</string>
+
+    <string name="settings_category_appearance">Appearance</string>
+    <string name="settings_theme_title">App Theme</string>
+    <string name="player_settings_gestures_title">Gestures</string>
+    <string name="player_settings_keep_screen_on_title">Keep screen on when paused</string>
+
+    <string name="settings_category_tmdb">TMDb Settings</string>
+    <string name="settings_tmdb_api_key">Custom TMDb API Key</string>
+    <string name="settings_tmdb_api_key_summary">Leave empty to use the default API key provided with the app</string>
+    <string name="settings_tmdb_api_key_success">API Key updated successfully</string>
+    <string name="settings_tmdb_api_key_reset">Using default TMDb API Key</string>
+
+    <string name="settings_category_subdl">SubDL Settings</string>
+    <string name="settings_subdl_api_key">SubDL API Key</string>
+    <string name="settings_subdl_api_key_summary">Enter your personal SubDL API key to enable SubDL in the player\'s subtitle settings</string>
+    <string name="settings_subdl_api_key_success">SubDL API Key saved successfully</string>
+    <string name="settings_subdl_api_key_reset">SubDL API Key removed</string>
 </resources>

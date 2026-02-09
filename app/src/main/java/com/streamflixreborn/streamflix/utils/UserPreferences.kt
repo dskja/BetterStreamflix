@@ -133,6 +133,23 @@ object UserPreferences {
             Key.IMMERSIVE_MODE.setBoolean(value)
         }
 
+    var selectedTheme: String
+        get() = Key.SELECTED_THEME.getString() ?: "default"
+        set(value) = Key.SELECTED_THEME.setString(value)
+
+    var tmdbApiKey: String
+        get() = Key.TMDB_API_KEY.getString() ?: ""
+        set(value) {
+            Key.TMDB_API_KEY.setString(value)
+            TMDb3.rebuildService()
+        }
+
+    var subdlApiKey: String
+        get() = Key.SUBDL_API_KEY.getString() ?: ""
+        set(value) {
+            Key.SUBDL_API_KEY.setString(value)
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -174,6 +191,12 @@ object UserPreferences {
             Key.CAPTION_STYLE_WINDOW_COLOR.setInt(value.windowColor)
             Key.CAPTION_STYLE_EDGE_TYPE.setInt(value.edgeType)
             Key.CAPTION_STYLE_EDGE_COLOR.setInt(value.edgeColor)
+        }
+
+    var captionMargin: Int
+        get() = Key.CAPTION_STYLE_MARGIN.getInt() ?: 24
+        set(value) {
+            Key.CAPTION_STYLE_MARGIN.setInt(value)
         }
 
     var qualityHeight: Int?
@@ -256,6 +279,7 @@ object UserPreferences {
         CAPTION_STYLE_WINDOW_COLOR,
         CAPTION_STYLE_EDGE_TYPE,
         CAPTION_STYLE_EDGE_COLOR,
+        CAPTION_STYLE_MARGIN,
         SCREEN_PADDING_X,
         SCREEN_PADDING_Y,
         QUALITY_HEIGHT,
@@ -266,7 +290,10 @@ object UserPreferences {
         PROVIDER_CACHE,
         KEEP_SCREEN_ON_WHEN_PAUSED,
         PLAYER_GESTURES,
-        IMMERSIVE_MODE;
+        IMMERSIVE_MODE,
+        TMDB_API_KEY,
+        SUBDL_API_KEY,
+        SELECTED_THEME;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)
