@@ -305,7 +305,7 @@
     <string name="settings_tmdb_api_key_reset">Usar clave API de TMDb predeterminada</string>
     <string name="settings_category_subdl">Ajustes de SubDL</string>
     <string name="settings_subdl_api_key">Clave API de SubDL</string>
-    <string name="settings_subdl_api_key_summary">Introduce tu clave API personal de SubDL para habilitar SubDL en la configuración de subtítulos del reproductor</string>
+    <string name="settings_subdl_api_key_summary">Ingresa tu clave API personal de SubDL para habilitar SubDL en los ajustes de subtítulos del reproductor</string>
     <string name="settings_subdl_api_key_success">Clave API de SubDL guardada correctamente</string>
     <string name="settings_subdl_api_key_reset">Clave API de SubDL eliminada</string>
 </resources>
