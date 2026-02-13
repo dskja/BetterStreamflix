@@ -100,6 +100,7 @@
     <string name="player_external_player_error_video">Vidéo non encore chargée</string>
     <string name="player_not_available_it_message">Non présent sur les serveurs italiens, cherchez-le sur TMDB dans d\'autres langues</string>
     <string name="player_not_available_lang_message">Pas disponible en %s, cherchez-le sur TMDB dans d\'autres langues</string>
+    <string name="player_retry_later_message">Vidéo actuellement indisponible sur ce provider. Merci de réessayer plus tard</string>
     <string name="player_aspect_ratio_fit">Taille originale</string>
     <string name="player_aspect_ratio_fill">Remplir l\'écran</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>

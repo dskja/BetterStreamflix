@@ -11,10 +11,10 @@ import retrofit2.http.Header
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
-class AfterDarkExtractor : Extractor() {
-
+class AfterDarkExtractor( var newUrl: String = "" ) : Extractor() {
+    val defaultUrl = "https://afterdark.mom"
+    override var mainUrl = newUrl.ifBlank { defaultUrl }
     override val name = "AfterDark"
-    override val mainUrl = "https://afterdark.mom"
 
     data class listLinks(
         val meta: Meta,

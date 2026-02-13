@@ -81,6 +81,7 @@
     <string name="player_external_player_title">Reproducir con</string>
     <string name="player_external_player_error_video">El vídeo todavía no está cargado</string>
     <string name="player_not_available_lang_message">No disponible en %s, búscalo en TMDB en otros idiomas</string>
+    <string name="player_retry_later_message">Vídeo no disponible por el momento. Por favor, inténtelo de nuevo más tarde</string>
     <string name="player_aspect_ratio_fit">Ajustar a la pantalla</string>
     <string name="player_aspect_ratio_fill">Estirar</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>

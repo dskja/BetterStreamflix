@@ -96,6 +96,7 @@
 	<string name="player_picture_in_picture_not_supported">الوضع الصوري داخل الصورة غير مدعوم على جهازك</string>
 	<string name="player_external_player_title">تشغيل باستخدام</string>
 	<string name="player_external_player_error_video">الفيديو لم يتم تحميله بعد</string>
+        <string name="player_retry_later_message">الفيديو غير متاح حالياً. يرجى المحاولة مرة أخرى لاحقاً</string>
 	<string name="player_aspect_ratio_fit">ملاءمة الشاشة</string>
 	<string name="player_aspect_ratio_fill">تمديد</string>
 	<string name="player_aspect_ratio_zoom">تكبير</string>
