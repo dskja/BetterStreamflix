@@ -474,14 +474,8 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val defaultPoster = document.selectFirst("img.dvd-thumbnail")
             ?.attr("src") ?: ""
 
-        val episodes = infodata.select("> div").mapNotNull { epDiv ->
-            val number = epDiv.attr("data-ep").toIntOrNull() ?: 0
-            val poster = epDiv.attr("data-poster").takeIf { it.isNotBlank() } ?: defaultPoster
-
-            val title = epDiv.attr("data-title").trim()
-
-            val hasAtLeastOne = infoep
-                .selectFirst("div[data-ep=$number]")
+        val episodes = infoep.select("> div").mapNotNull { epDiv ->
+            val hasAtLeastOne = epDiv
                 ?.attributes()
                 ?.asList()
                 ?.any {
@@ -491,12 +485,23 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
             if (hasAtLeastOne==false) return@mapNotNull null
 
+            val number = epDiv.attr("data-ep").toIntOrNull() ?: 0
+
+            val ptrinfodata = infodata.selectFirst("div[data-ep=$number]")
+
+            val poster = if (ptrinfodata != null) { ptrinfodata.attr("data-poster").takeIf { it.isNotBlank() } ?: defaultPoster }
+                         else defaultPoster
+            val title = if (ptrinfodata != null) { ptrinfodata.attr("data-title").trim() }
+                         else "Episode $number"
+            val overview = if (ptrinfodata != null) { ptrinfodata.attr("data-synopsis") }
+                        else ""
+
             Episode(
                 id = "$tvShowId/$tvShowLang/$number",
                 number = number,
                 poster = poster,
                 title = title,
-                overview = epDiv.attr("data-synopsis")
+                overview = overview
             )
         }
 
