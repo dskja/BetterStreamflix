@@ -668,18 +668,19 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val addressService = Service.buildAddressFetcher()
                 try {
                     val document = addressService.getPortalHome()
+                    var html = document.body()
 
-                    val newUrl = document.select("div.container > div.url-card")
-                        .selectFirst("a")
-                        ?.attr("href")
-                        ?.trim()
+                    val urlRegex = Regex("""slug:"afterdark".*?domain:"([^"]+)"""")
+                    var matchUrl = urlRegex.find(html ?: "")
+                    val newUrl = matchUrl?.groupValues?.get(1)
+
                     if (!newUrl.isNullOrEmpty()) {
                         val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
                         UserPreferences.setProviderCache(this,UserPreferences.PROVIDER_URL, newUrl)
                         UserPreferences.setProviderCache(
                             this,
                             UserPreferences.PROVIDER_LOGO,
-                            newUrl + "favicon-96x96.png"
+                            newUrl + "logo.png"
                         )
                     }
                 } catch (e: Exception) {
@@ -720,7 +721,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             fun buildAddressFetcher(): Service {
                 val addressRetrofit = Retrofit.Builder()
                     .baseUrl(portalUrl)
-                    .addConverterFactory(JsoupConverterFactory.create())
+                    .addConverterFactory(ScalarsConverterFactory.create())
                     .client(client)
 
                     .build()
@@ -750,7 +751,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         @GET(".")
         suspend fun getPortalHome(
             @Header("user-agent") user_agent: String = "Mozilla"
-        ): Document
+        ): Response<String>
 
         @GET("api/carousel/{section}")
         suspend fun getCarousel(
