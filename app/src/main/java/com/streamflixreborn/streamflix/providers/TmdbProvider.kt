@@ -28,6 +28,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.TMDb3
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.safeSubList
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -728,7 +729,7 @@ class TmdbProvider(override val language: String) : Provider {
             }
             "fr" -> {
                 // Solo server francesi
-                servers.addAll(FrembedExtractor().servers(videoType))
+                servers.addAll(FrembedExtractor(UserPreferences.getProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL)).servers(videoType))
                 servers.addAll(AfterDarkExtractor().servers(videoType))
                 VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
             }

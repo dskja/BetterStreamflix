@@ -11,10 +11,11 @@ import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 import kotlin.text.replaceFirstChar
 
-class FrembedExtractor : Extractor() {
+class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
     override val name = "Frembed"
-    override val mainUrl = "https://frembed.best"
+    val defaultUrl = "https://frembed.beer"
+    override var mainUrl = newUrl.ifBlank { defaultUrl }
 
     data class listLinks (
         val link1: String?=null,
