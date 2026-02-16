@@ -234,15 +234,17 @@ class PlayerMobileFragment : Fragment() {
                         
                         val providerName = UserPreferences.currentProvider?.name ?: ""
                         val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                        val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
                         if (servers.isEmpty()) {
-                            val message = if (isTmdb) {
+                            val message = if (isTmdb || isAD) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                
-                                getString(R.string.player_not_available_lang_message, langDisplayName)
+
+                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
+                                else getString(R.string.player_retry_later_message)
                             } else {
                                 "No servers found for this content."
                             }
@@ -300,14 +302,15 @@ class PlayerMobileFragment : Fragment() {
                         } else {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
                             val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                            val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                            val message = if (isTmdb) {
+                            val message = if (isTmdb || isAD) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                
-                                getString(R.string.player_not_available_lang_message, langDisplayName)
+                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
+                                else getString(R.string.player_retry_later_message)
                             } else {
                                 "All servers failed to load the video."
                             }
