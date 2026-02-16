@@ -97,6 +97,7 @@
     <string name="player_external_player_title">Abspielen mit</string>
     <string name="player_external_player_error_video">Video noch nicht geladen</string>
     <string name="player_not_available_lang_message">Nicht verfügbar auf %s, suchen Sie auf TMDB in anderen Sprachen</string>
+    <string name="player_retry_later_message">Video derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.</string>
     <string name="player_aspect_ratio_fit">An Bildschirm anpassen</string>
     <string name="player_aspect_ratio_fill">Ausdehnen</string>
     <string name="player_aspect_ratio_zoom">Zoomen</string>

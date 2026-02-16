@@ -108,6 +108,12 @@ object TMDb3 {
             )
         }
 
+	suspend fun movie(params: Map<String, String>): PageResult<Movie> {
+            return service.getDiscoverMovies(
+                params = params.filterNotNullValues(),
+            )
+        }
+
         suspend fun tv(
             airDate: Params.Range<Calendar>? = null,
             firstAirDateYear: Int? = null,
@@ -173,6 +179,12 @@ object TMDb3 {
                 Params.Key.WITHOUT_WATCH_PROVIDERS to withoutWatchProviders?.toString(),
                 Params.Key.WITH_TYPE to withType?.toString(),
             )
+            return service.getDiscoverTv(
+                params = params.filterNotNullValues(),
+            )
+        }
+
+        suspend fun tv(params: Map<String, String>): PageResult<Tv> {
             return service.getDiscoverTv(
                 params = params.filterNotNullValues(),
             )
@@ -350,6 +362,11 @@ object TMDb3 {
                 Params.Key.WITHOUT_WATCH_PROVIDERS to withoutWatchProviders?.toString(),
                 Params.Key.WITH_TYPE to withType?.toString(),
             )
+            return service.getTopRatedMovies(
+                params = params.filterNotNullValues(),
+            )
+        }
+        suspend fun topRated(params: Map<String, String>): PageResult<Movie> {
             return service.getTopRatedMovies(
                 params = params.filterNotNullValues(),
             )
@@ -637,6 +654,12 @@ object TMDb3 {
                 Params.Key.WITHOUT_WATCH_PROVIDERS to withoutWatchProviders?.toString(),
                 Params.Key.WITH_TYPE to withType?.toString(),
             )
+            return service.getTopRatedTv(
+                params = params.filterNotNullValues(),
+            )
+        }
+
+	suspend fun topRated(params: Map<String, String>): PageResult<Tv> {
             return service.getTopRatedTv(
                 params = params.filterNotNullValues(),
             )

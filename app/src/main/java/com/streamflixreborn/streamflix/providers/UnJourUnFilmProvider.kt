@@ -23,9 +23,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
-import retrofit2.http.Url
-import retrofit2.Response
-import okhttp3.ResponseBody
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import org.json.JSONObject
@@ -208,7 +205,6 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val id = link
                     ?.attr("href")
                     ?: "";
-
                 if (id.contains("/films/")) {
                     Movie(
                         id = id.substringBeforeLast("/").substringAfterLast("/"),
@@ -239,13 +235,12 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val document = service.getMovies(page)
 
         var movies: List<Movie> = emptyList()
-
         if (page == 1) {
             movies = document.select("div#slider-movies").getOrNull(0)?.select("article.item")
                 ?.map {
                     Movie(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("/")
+                            ?.attr("href")?.substringBeforeLast("/")?.substringAfterLast("/")
                             ?: "",
                         title = it.selectFirst("h3.title")
                             ?.text()
@@ -311,7 +306,7 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 ?.map {
                     TvShow(
                         id = it.selectFirst("a")
-                            ?.attr("href")?.substringAfterLast("/")
+                            ?.attr("href")?.substringBeforeLast("/")?.substringAfterLast("/")
                             ?: "",
                         title = it.selectFirst("h3.title")
                             ?.text()
@@ -636,7 +631,7 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 ?: "",
                             poster = it.selectFirst("img")?.attr("src")
                         )
-                    } else if (fhref.contains("s-tv/")) {
+                    } else if (fhref.contains("tvshows/")) {
                         TvShow(
                             id = href,
                             title = link
@@ -664,7 +659,6 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 else -> throw e
             }
         }
-
         val people = People(
             id = id,
             name = "",
@@ -674,7 +668,6 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     val fhref = link
                         ?.attr("href")?:""
                     val href = fhref.substringBeforeLast("/").substringAfterLast("/")
-
                     if (fhref.contains("/films/")) {
                         Movie(
                             href,
@@ -683,7 +676,7 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 ?: "",
                             poster = it.selectFirst("img")?.attr("src")
                         )
-                    } else if (fhref.contains("/s-tv/")) {
+                    } else if (fhref.contains("/tvshows/")) {
                         TvShow(
                             id = href,
                             title = link
@@ -918,8 +911,5 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Path("page") page: Int,
             @Header("User-agent") cookie: String = USER_AGENT
         ): Document
-
-        @GET
-        suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
     }
 }

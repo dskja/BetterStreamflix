@@ -25,6 +25,9 @@
     <string name="main_menu_movies">Películas</string>
     <string name="main_menu_tv_shows">Series</string>
     <string name="main_menu_settings">Ajustes</string>
+    <string name="main_menu_theme_change">Cambiar tema</string>
+    <string name="theme_default">Predeterminado</string>
+    <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
     <string name="search_input_hint">Buscar película, serie</string>
     <string name="global_search">Búsqueda global</string>
     <string name="searching">Buscando...</string>
@@ -80,13 +83,15 @@
     <string name="player_picture_in_picture_not_supported">PIP no es compatible con tu dispositivo</string>
     <string name="player_external_player_title">Reproducir con</string>
     <string name="player_external_player_error_video">El vídeo todavía no está cargado</string>
+    <string name="player_not_available_it_message">No disponible en servidores italianos, búscalo en TMDB en otros idiomas</string>
     <string name="player_not_available_lang_message">No disponible en %s, búscalo en TMDB en otros idiomas</string>
+    <string name="player_retry_later_message">Vídeo no disponible por el momento. Por favor, inténtelo de nuevo más tarde</string>
     <string name="player_aspect_ratio_fit">Ajustar a la pantalla</string>
     <string name="player_aspect_ratio_fill">Estirar</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>
     <string name="player_aspect_ratio_zoom_4_3">Zoom para 4:3</string>
     <string name="player_aspect_ratio_stretch_vertical">Estirar verticalmente</string>
-    <string name="player_aspect_ratio_super_zoom">Super zoom</string>
+    <string name="player_aspect_ratio_super_zoom">Súper zoom</string>
     <string name="player_settings_title">Ajustes</string>
     <string name="player_settings_quality_title">Calidad para vídeo actual</string>
     <string name="player_settings_quality_label">Calidad</string>
@@ -101,7 +106,7 @@
     <string name="player_settings_subtitles_off">Desactivado</string>
     <string name="player_settings_caption_style_title">Estilo de subtítulos</string>
     <string name="player_settings_caption_style_label">Estilo de subtítulos</string>
-    <string name="player_settings_caption_style_sub_label">Cambiar color de texto, estilo de fondo e margen inferior</string>
+    <string name="player_settings_caption_style_sub_label">Cambiar color de texto, estilo de fondo y margen inferior</string>
     <string name="player_settings_caption_style_reset_style_label">Restablecer estilo</string>
     <string name="player_settings_caption_style_font_color_title">Color de fuente</string>
     <string name="player_settings_caption_style_font_color_label">Color de fuente</string>
@@ -174,6 +179,8 @@
     <string name="player_settings_caption_style_margin_label">Margen inferior</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
+    <string name="player_settings_subdl_title">SubDL</string>
+    <string name="player_settings_subdl_label">SubDL</string>
     <string name="player_settings_local_subtitles_label">Cargar desde archivo</string>
     <string name="player_settings_speed_title">Velocidad de vídeo</string>
     <string name="player_settings_speed_label">Velocidad</string>
@@ -215,7 +222,7 @@
     <string name="settings_player_gestures_on">Activado</string>
     <string name="settings_player_gestures_off">Desactivado</string>
     <string name="settings_keep_screen_on_when_paused">Mantener pantalla encendida en pausa</string>
-    <string name="settings_keep_screen_on_when_paused_summary">Evita che la pantalla se apague cuando el vídeo está en pausa</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Evita que la pantalla se apague cuando un vídeo está en pausa</string>
     <string name="miscelaneous_title">Varios</string>
     <string name="clear_cache_done">Caché vaciada</string>
     <string name="clear_cache_done_409">Caché vaciada automáticamente por error HTTP 409</string>
@@ -224,9 +231,10 @@
     <string name="voice_error_no_match">No se reconoció nada</string>
     <string name="voice_error_timeout">Tiempo de espera agotado</string>
     <string name="voice_error_audio">Error de audio</string>
+    <string name="voice_error_clear">Borrar historial de búsqueda</string>
+    <string name="voice_error_permission_denied">No se concedió el permiso de micrófono.</string>
     <string name="voice_permission_title">Permiso requerido</string>
     <string name="voice_permission_rationale">Se necesita acceso al micrófono para usar la búsqueda por voz.</string>
-    <string name="voice_error_permission_denied">No se concedió el permiso de micrófono.</string>
     <string name="voice_error_generic">Ocurrió un error al iniciar el reconocimiento de voz.</string>
     <string name="voice_error_no_result">No se detectó ninguna entrada de voz.</string>
     <string name="voice_prompt">Habla ahora</string>
@@ -237,7 +245,7 @@
     <string name="smarttube_beta">SmartTube Beta</string>
     <string name="choose_smarttube_version">Elige la versión de SmartTube</string>
     <string name="settings_trailer_player_title">Reproductor de tráiler</string>
-    <string name="settings_trailer_player_summary">Elige tu reproductor preferido para los tráileres</string>
+    <string name="settings_trailer_player_summary">Elige tu reproductor preferido para los tráilers</string>
     <string name="settings_trailer_player_ask">Preguntar siempre</string>
     <string name="settings_trailer_player_reset">Restablecer versión de SmartTube</string>
     <string name="settings_trailer_player_reset_summary">Obliga a la aplicación a preguntar de nuevo qué versión de SmartTube (Estable/Beta) usar.</string>
@@ -263,8 +271,11 @@
     <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Activado</string>
     <string name="settings_frenchstream_use_new_interface_off">Desactivado</string>
-
-
+    <string name="settings_category_interface_title">Ajustes de la interfaz</string>
+    <string name="settings_immersive_mode">Modo inmersivo</string>
+    <string name="settings_immersive_mode_summary">Oculta las barras de estado y navegación</string>
+    <string name="settings_immersive_mode_on">Activado (barras ocultas)</string>
+    <string name="settings_immersive_mode_off">Desactivado (barras visibles)</string>
     <string name="player_brightness">Brillo</string>
     <string name="player_volume">Volumen</string>
     <string name="percentage_format">%d%%</string>
@@ -273,7 +284,7 @@
     <string name="player_settings_extra_buffer_on">Activado</string>
     <string name="player_settings_extra_buffer_off">Desactivado</string>
     <string name="player_settings_extra_buffer_forced_on">Activado (forzado)</string>
-    <string name="player_settings_extra_buffer_forced_off">Desactivated (forzado)</string>
+    <string name="player_settings_extra_buffer_forced_off">Desactivado (forzado)</string>
     <string name="player_settings_extra_buffer_auto_on">Activado (predeterminado)</string>
     <string name="player_settings_extra_buffer_auto_off">Desactivado (predeterminado)</string>
     <string name="error_dialog_title">Detalles del error</string>
@@ -284,17 +295,18 @@
     <string name="error_dialog_copied">¡Copiado al portapapeles!</string>
     <string name="error_dialog_unknown">Error desconocido</string>
     <string name="error_dialog_no_cause">Sin causa</string>
+    <string name="settings_category_appearance">Apariencia</string>
+    <string name="settings_theme_title">Tema de la aplicación</string>
     <string name="player_settings_gestures_title">Gestos</string>
-    <string name="player_settings_keep_screen_on_title">Mantener pantalla en pausa</string>
-
+    <string name="player_settings_keep_screen_on_title">Mantener pantalla encendida en pausa</string>
     <string name="settings_category_tmdb">Ajustes de TMDb</string>
     <string name="settings_tmdb_api_key">Clave API de TMDb personalizada</string>
     <string name="settings_tmdb_api_key_summary">Déjalo vacío para usar la clave API predeterminada proporcionada con la aplicación</string>
     <string name="settings_tmdb_api_key_success">Clave API actualizada correctamente</string>
-    <string name="settings_tmdb_api_key_reset">Usando la clave API de TMDb predeterminada</string>
-    <string name="settings_category_subdl">Configuración de SubDL</string>
+    <string name="settings_tmdb_api_key_reset">Usar clave API de TMDb predeterminada</string>
+    <string name="settings_category_subdl">Ajustes de SubDL</string>
     <string name="settings_subdl_api_key">Clave API de SubDL</string>
-    <string name="settings_subdl_api_key_summary">Introduce tu clave API personal de SubDL para habilitar SubDL en la configuración de subtítulos del reproductor</string>
+    <string name="settings_subdl_api_key_summary">Ingresa tu clave API personal de SubDL para habilitar SubDL en los ajustes de subtítulos del reproductor</string>
     <string name="settings_subdl_api_key_success">Clave API de SubDL guardada correctamente</string>
     <string name="settings_subdl_api_key_reset">Clave API de SubDL eliminada</string>
 </resources>

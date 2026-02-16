@@ -44,7 +44,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
 import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.streamflixreborn.streamflix.R
@@ -56,8 +55,6 @@ import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.utils.MediaServer
-import com.streamflixreborn.streamflix.utils.OpenSubtitles
-import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
@@ -85,7 +82,6 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import okhttp3.OkHttpClient
-import com.streamflixreborn.streamflix.providers.TmdbProvider 
 import java.util.Locale
 
 class PlayerMobileFragment : Fragment() {
@@ -228,6 +224,7 @@ class PlayerMobileFragment : Fragment() {
             binding.tvVolumePercentage
         )
 
+        // Stato Video
         viewLifecycleOwner.lifecycleScope.launch { 
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->
                 when (state) {
@@ -237,16 +234,17 @@ class PlayerMobileFragment : Fragment() {
                         
                         val providerName = UserPreferences.currentProvider?.name ?: ""
                         val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                        val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
                         if (servers.isEmpty()) {
-                            val message = if (isTmdb) {
+                            val message = if (isTmdb || isAD) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
-                                // Usa la lingua di sistema corrente invece della lingua del provider
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                
-                                getString(R.string.player_not_available_lang_message, langDisplayName)
+
+                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
+                                else getString(R.string.player_retry_later_message)
                             } else {
                                 "No servers found for this content."
                             }
@@ -304,15 +302,15 @@ class PlayerMobileFragment : Fragment() {
                         } else {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
                             val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                            val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                            val message = if (isTmdb) {
+                            val message = if (isTmdb || isAD) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
-                                // Usa la lingua di sistema corrente invece della lingua del provider
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                
-                                getString(R.string.player_not_available_lang_message, langDisplayName)
+                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
+                                else getString(R.string.player_retry_later_message)
                             } else {
                                 "All servers failed to load the video."
                             }
@@ -325,36 +323,38 @@ class PlayerMobileFragment : Fragment() {
                             findNavController().navigateUp()
                         }
                     }
+                }
+            }
+        }
 
-                    PlayerViewModel.State.LoadingSubtitles -> {}
-                    is PlayerViewModel.State.SuccessLoadingSubtitles -> {
+        // Stato Sottotitoli
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.subtitleState.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->
+                when (state) {
+                    PlayerViewModel.SubtitleState.Loading -> {}
+                    is PlayerViewModel.SubtitleState.SuccessOpenSubtitles -> {
                         binding.settings.openSubtitles = state.subtitles
                     }
+                    is PlayerViewModel.SubtitleState.FailedOpenSubtitles -> {}
 
-                    is PlayerViewModel.State.FailedLoadingSubtitles -> {}
-
-                    PlayerViewModel.State.DownloadingOpenSubtitle -> {}
-                    is PlayerViewModel.State.SuccessDownloadingOpenSubtitle -> {
-                        val fileName =
-                            state.uri.getFileName(requireContext()) ?: state.uri.toString()
-
+                    PlayerViewModel.SubtitleState.DownloadingOpenSubtitle -> {}
+                    is PlayerViewModel.SubtitleState.SuccessDownloadingOpenSubtitle -> {
+                        val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
                         val currentPosition = player.currentPosition
-                        val currentSubtitleConfigurations =
-                            player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
-                                MediaItem.SubtitleConfiguration.Builder(it.uri)
-                                    .setMimeType(it.mimeType)
-                                    .setLabel(it.label)
-                                    .setLanguage(it.language)
-                                    .setSelectionFlags(0)
-                                    .build()
-                            } ?: listOf()
+                        val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
+                            MediaItem.SubtitleConfiguration.Builder(it.uri)
+                                .setMimeType(it.mimeType)
+                                .setLabel(it.label)
+                                .setLanguage(it.language)
+                                .setSelectionFlags(0)
+                                .build()
+                        } ?: listOf()
                         player.setMediaItem(
                             MediaItem.Builder()
                                 .setUri(player.currentMediaItem?.localConfiguration?.uri)
                                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                                 .setSubtitleConfigurations(
-                                    currentSubtitleConfigurations
-                                            + MediaItem.SubtitleConfiguration.Builder(state.uri)
+                                    currentSubtitleConfigurations + MediaItem.SubtitleConfiguration.Builder(state.uri)
                                         .setMimeType(fileName.toSubtitleMimeType())
                                         .setLabel(fileName)
                                         .setLanguage(state.subtitle.languageName)
@@ -364,50 +364,37 @@ class PlayerMobileFragment : Fragment() {
                                 .setMediaMetadata(player.mediaMetadata)
                                 .build()
                         )
-                        UserPreferences.subtitleName =
-                            (state.subtitle.languageName ?: fileName).substringBefore(" ")
-
+                        UserPreferences.subtitleName = (state.subtitle.languageName ?: fileName).substringBefore(" ")
                         player.seekTo(currentPosition)
                         player.play()
                     }
-
-                    is PlayerViewModel.State.FailedDownloadingOpenSubtitle -> {
-                        Toast.makeText(
-                            requireContext(),
-                            "${state.subtitle.subFileName}: ${state.error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    is PlayerViewModel.SubtitleState.FailedDownloadingOpenSubtitle -> {
+                        Toast.makeText(requireContext(), "${state.subtitle.subFileName}: ${state.error.message}", Toast.LENGTH_LONG).show()
                     }
 
-                    is PlayerViewModel.State.SuccessLoadingSubDLSubtitles -> {
+                    is PlayerViewModel.SubtitleState.SuccessSubDLSubtitles -> {
                         binding.settings.subDLSubtitles = state.subtitles
                     }
+                    is PlayerViewModel.SubtitleState.FailedSubDLSubtitles -> {}
 
-                    is PlayerViewModel.State.FailedLoadingSubDLSubtitles -> {
-                    }
-
-                    PlayerViewModel.State.DownloadingSubDLSubtitle -> {}
-                    is PlayerViewModel.State.SuccessDownloadingSubDLSubtitle -> {
-                        val fileName =
-                            state.uri.getFileName(requireContext()) ?: state.uri.toString()
-
+                    PlayerViewModel.SubtitleState.DownloadingSubDLSubtitle -> {}
+                    is PlayerViewModel.SubtitleState.SuccessDownloadingSubDLSubtitle -> {
+                        val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
                         val currentPosition = player.currentPosition
-                        val currentSubtitleConfigurations =
-                            player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
-                                MediaItem.SubtitleConfiguration.Builder(it.uri)
-                                    .setMimeType(it.mimeType)
-                                    .setLabel(it.label)
-                                    .setLanguage(it.language)
-                                    .setSelectionFlags(0)
-                                    .build()
-                            } ?: listOf()
+                        val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
+                            MediaItem.SubtitleConfiguration.Builder(it.uri)
+                                .setMimeType(it.mimeType)
+                                .setLabel(it.label)
+                                .setLanguage(it.language)
+                                .setSelectionFlags(0)
+                                .build()
+                        } ?: listOf()
                         player.setMediaItem(
                             MediaItem.Builder()
                                 .setUri(player.currentMediaItem?.localConfiguration?.uri)
                                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                                 .setSubtitleConfigurations(
-                                    currentSubtitleConfigurations
-                                            + MediaItem.SubtitleConfiguration.Builder(state.uri)
+                                    currentSubtitleConfigurations + MediaItem.SubtitleConfiguration.Builder(state.uri)
                                         .setMimeType(fileName.toSubtitleMimeType())
                                         .setLabel(state.subtitle.releaseName ?: state.subtitle.name ?: fileName)
                                         .setLanguage(state.subtitle.lang ?: state.subtitle.language ?: "Unknown")
@@ -417,25 +404,17 @@ class PlayerMobileFragment : Fragment() {
                                 .setMediaMetadata(player.mediaMetadata)
                                 .build()
                         )
-                        UserPreferences.subtitleName =
-                            (state.subtitle.releaseName ?: state.subtitle.name ?: fileName).substringBefore(" ")
-
+                        UserPreferences.subtitleName = (state.subtitle.releaseName ?: state.subtitle.name ?: fileName).substringBefore(" ")
                         player.seekTo(currentPosition)
                         player.play()
                     }
-
-                    is PlayerViewModel.State.FailedDownloadingSubDLSubtitle -> {
-                        Toast.makeText(
-                            requireContext(),
-                            "${state.subtitle.name}: ${state.error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    is PlayerViewModel.SubtitleState.FailedDownloadingSubDLSubtitle -> {
+                        Toast.makeText(requireContext(), "${state.subtitle.name}: ${state.error.message}", Toast.LENGTH_LONG).show()
                     }
-
-
                 }
             }
         }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
