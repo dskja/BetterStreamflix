@@ -58,8 +58,6 @@ import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
-import com.streamflixreborn.streamflix.utils.OpenSubtitles
-import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
@@ -80,7 +78,6 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
-import com.streamflixreborn.streamflix.providers.TmdbProvider 
 import java.util.Locale
 
 class PlayerTvFragment : Fragment() {
@@ -200,6 +197,7 @@ class PlayerTvFragment : Fragment() {
         initializePlayer(false)
         initializeVideo()
 
+        // Stato Video
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->
                 when (state) {
@@ -214,7 +212,6 @@ class PlayerTvFragment : Fragment() {
                             val message = if (isTmdb) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
-                                // Usa la lingua di sistema corrente invece della lingua del provider
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                                 
@@ -280,7 +277,6 @@ class PlayerTvFragment : Fragment() {
                             val message = if (isTmdb) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
-                                // Usa la lingua di sistema corrente invece della lingua del provider
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                                 
@@ -297,19 +293,23 @@ class PlayerTvFragment : Fragment() {
                             findNavController().navigateUp()
                         }
                     }
+                }
+            }
+        }
 
-                    PlayerViewModel.State.LoadingSubtitles -> {
-                    }
-                    is PlayerViewModel.State.SuccessLoadingSubtitles -> {
+        // Stato Sottotitoli
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.subtitleState.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->
+                when (state) {
+                    PlayerViewModel.SubtitleState.Loading -> {}
+                    is PlayerViewModel.SubtitleState.SuccessOpenSubtitles -> {
                         binding.settings.openSubtitles = state.subtitles
                     }
-                    is PlayerViewModel.State.FailedLoadingSubtitles -> {
-                    }
+                    is PlayerViewModel.SubtitleState.FailedOpenSubtitles -> {}
 
-                    PlayerViewModel.State.DownloadingOpenSubtitle -> {}
-                    is PlayerViewModel.State.SuccessDownloadingOpenSubtitle -> {
+                    PlayerViewModel.SubtitleState.DownloadingOpenSubtitle -> {}
+                    is PlayerViewModel.SubtitleState.SuccessDownloadingOpenSubtitle -> {
                         val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
-
                         val currentPosition = player.currentPosition
                         val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
                             MediaItem.SubtitleConfiguration.Builder(it.uri)
@@ -338,24 +338,18 @@ class PlayerTvFragment : Fragment() {
                         player.seekTo(currentPosition)
                         player.play()
                     }
-                    is PlayerViewModel.State.FailedDownloadingOpenSubtitle -> {
-                        Toast.makeText(
-                            requireContext(),
-                            "${state.subtitle.subFileName}: ${state.error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    is PlayerViewModel.SubtitleState.FailedDownloadingOpenSubtitle -> {
+                        Toast.makeText(requireContext(), "${state.subtitle.subFileName}: ${state.error.message}", Toast.LENGTH_LONG).show()
                     }
 
-                    is PlayerViewModel.State.SuccessLoadingSubDLSubtitles -> {
+                    is PlayerViewModel.SubtitleState.SuccessSubDLSubtitles -> {
                         binding.settings.subDLSubtitles = state.subtitles
                     }
-                    is PlayerViewModel.State.FailedLoadingSubDLSubtitles -> {
-                    }
+                    is PlayerViewModel.SubtitleState.FailedSubDLSubtitles -> {}
 
-                    PlayerViewModel.State.DownloadingSubDLSubtitle -> {}
-                    is PlayerViewModel.State.SuccessDownloadingSubDLSubtitle -> {
+                    PlayerViewModel.SubtitleState.DownloadingSubDLSubtitle -> {}
+                    is PlayerViewModel.SubtitleState.SuccessDownloadingSubDLSubtitle -> {
                         val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
-
                         val currentPosition = player.currentPosition
                         val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
                             MediaItem.SubtitleConfiguration.Builder(it.uri)
@@ -384,17 +378,13 @@ class PlayerTvFragment : Fragment() {
                         player.seekTo(currentPosition)
                         player.play()
                     }
-                    is PlayerViewModel.State.FailedDownloadingSubDLSubtitle -> {
-                        Toast.makeText(
-                            requireContext(),
-                            "${state.subtitle.name}: ${state.error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    is PlayerViewModel.SubtitleState.FailedDownloadingSubDLSubtitle -> {
+                        Toast.makeText(requireContext(), "${state.subtitle.name}: ${state.error.message}", Toast.LENGTH_LONG).show()
                     }
-
                 }
             }
         }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
