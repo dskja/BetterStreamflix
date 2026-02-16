@@ -730,8 +730,6 @@ class TmdbProvider(override val language: String) : Provider {
             "fr" -> {
                 // Solo server francesi
                 servers.addAll(FrembedExtractor(UserPreferences.getProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL)).servers(videoType))
-                servers.addAll(AfterDarkExtractor().servers(videoType))
-                servers.addAll(FrembedExtractor().servers(videoType))
                 servers.addAll(AfterDarkExtractor(UserPreferences.getProviderCache(AfterDarkProvider, UserPreferences.PROVIDER_URL)).servers(videoType))
                 VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
             }
