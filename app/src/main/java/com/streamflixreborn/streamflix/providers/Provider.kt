@@ -96,6 +96,7 @@ interface Provider {
             MEGAKinoProvider to ProviderSupport(movies = true, tvShows = true),
             UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true),
             TvporinternetHDProvider to ProviderSupport(movies = false, tvShows = true),
+            FrembedProvider to ProviderSupport(movies = true, tvShows = true)
             AfterDarkProvider to ProviderSupport(movies = true, tvShows = true)
         )
 
