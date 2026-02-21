@@ -99,7 +99,8 @@ abstract class Extractor {
             UpZurExtractor(),
             DailymotionExtractor(),
             ApiVoirFilmExtractor(),
-            StreamixExtractor()
+            StreamixExtractor(),
+            ShareCloudyExtractor()
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {
