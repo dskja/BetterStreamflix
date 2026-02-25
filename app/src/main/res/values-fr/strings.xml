@@ -289,6 +289,10 @@
     <string name="settings_frenchstream_use_new_interface_on">Activé</string>
     <string name="settings_frenchstream_use_new_interface_off">Désactivé</string>
 
+    <string name="settings_server_voe_category">Paramètres du serveur VOE</string>
+    <string name="settings_server_voe_title">Désactiver les sous-titres automatiques du serveur VOE</string>
+    <string name="settings_server_voe_summary">Si activé, les sous-titres du serveur VOE ne seront pas activés automatiquement même s\'ils sont disponibles et ont une valeur par défaut true</string>
+
     <string name="settings_category_interface_title">Paramètres d\'interface</string>
     <string name="settings_immersive_mode">Mode Immersif</string>
     <string name="settings_immersive_mode_summary">Cache les barres d\'état et de navigation</string>
@@ -332,4 +336,7 @@
     <string name="settings_subdl_api_key_summary">Entrez votre clé API personnelle SubDL pour activer SubDL dans les paramètres de sous-titres du lecteur</string>
     <string name="settings_subdl_api_key_success">Clé API SubDL enregistrée avec succès</string>
     <string name="settings_subdl_api_key_reset">Clé API SubDL supprimée</string>
+
+    <string name="settings_force_extra_buffer_title">Mise in mémoire tampone extra globale</string>
+    <string name="settings_force_extra_buffer_summary">Activer la mise in mémoire tampone extra pour tous les serveurs par défaut</string>
 </resources>

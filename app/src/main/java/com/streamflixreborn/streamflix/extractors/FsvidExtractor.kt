@@ -56,9 +56,9 @@ class FsvidExtractor : Extractor() {
         if (!scriptData.startsWith("eval")) throw Exception("Packed JS not found")
         val unpacked = JsUnpacker(scriptData).unpack() ?: throw Exception("Unpack failed")
 
-        val fileRegex = Regex("""file\s*:\s*["']([^"']+)["']""")
+        val fileRegex = Regex("""src\s*:\s*["']([^"']+)["']""")
         val m3u8 = fileRegex.find(unpacked)?.groupValues?.get(1)
-            ?: throw Exception("Stream URL not found in file field")
+            ?: throw Exception("Stream URL not found in src field")
 
         return Video(
             source = m3u8

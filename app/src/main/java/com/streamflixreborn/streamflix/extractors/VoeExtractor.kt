@@ -4,6 +4,7 @@ import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DecryptHelper
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
@@ -45,19 +46,20 @@ class VoeExtractor : Extractor() {
         }
 
         val subtitles = decryptedContent.getAsJsonArray("captions")
-            .map { caption ->
-                val obj = caption.asJsonObject
+        .map { caption ->
+            val obj = caption.asJsonObject
                 var file = obj.get("file").asString
 
             Video.Subtitle(
                 file = if (file.startsWith("http")) file else baseSubtitle + file,
                 label = obj.get("label").asString,
-                default = obj.get("default").asBoolean
+                default = if (UserPreferences.serverVoeAutoSubtitlesDisabled) false else obj.get("default").asBoolean
             )
         }
         return Video(
             source = m3u8,
-            subtitles = subtitles
+            subtitles = subtitles,
+            isVoe = true
         )
     }
 

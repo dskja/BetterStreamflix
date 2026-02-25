@@ -143,6 +143,22 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.apply {
+            isChecked = UserPreferences.forceExtraBuffering
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.forceExtraBuffering = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.apply {
+            isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.serverVoeAutoSubtitlesDisabled = newValue as Boolean
+                true
+            }
+        }
+
         findPreference<SwitchPreference>("IMMERSIVE_MODE")?.apply {
             isChecked = UserPreferences.immersiveMode
             setOnPreferenceChangeListener { _, newValue ->
@@ -493,6 +509,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
         findPreference<SwitchPreference>("IMMERSIVE_MODE")?.isChecked = UserPreferences.immersiveMode
+        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
+        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
 
         // Aggiorna summary per provider_streamingcommunity_domain in onResume
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.summary = UserPreferences.streamingcommunityDomain

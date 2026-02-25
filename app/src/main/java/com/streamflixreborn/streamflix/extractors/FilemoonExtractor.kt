@@ -18,7 +18,7 @@ open class FilemoonExtractor : Extractor() {
 
     override val name = "Filemoon"
     override val mainUrl = "https://filemoon.site"
-    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com","https://moflix-stream.link","https://bysezoxexe.com","https://bysebuho.com","https://filemoon.sx")
+    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com","https://moflix-stream.link","https://bysezoxexe.com","https://bysebuho.com","https://filemoon.sx","https://bysekoze.com")
 
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)

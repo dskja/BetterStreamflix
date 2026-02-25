@@ -123,6 +123,12 @@
             android:summary="@string/settings_keep_screen_on_when_paused_summary"
             android:defaultValue="false" />
 
+        <SwitchPreference
+            android:key="FORCE_EXTRA_BUFFERING"
+            android:title="@string/settings_force_extra_buffer_title"
+            android:summary="@string/settings_force_extra_buffer_summary"
+            android:defaultValue="false" />
+
         <ListPreference
             android:key="preferred_player"
             android:title="@string/settings_trailer_player_title"
@@ -135,6 +141,17 @@
             android:key="preferred_player_reset"
             android:title="@string/settings_trailer_player_reset"
             android:summary="@string/settings_trailer_player_reset_summary" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/settings_server_voe_category">
+
+        <SwitchPreference
+            android:key="SERVER_VOE_AUTO_SUBTITLES_DISABLED"
+            android:title="@string/settings_server_voe_title"
+            android:summary="@string/settings_server_voe_summary"
+            android:defaultValue="true" />
     </PreferenceCategory>
 
     <PreferenceCategory

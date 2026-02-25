@@ -114,9 +114,11 @@ class PlayerViewModel(
             val video = UserPreferences.currentProvider!!.getVideo(server)
             if (video.source.isEmpty()) throw Exception("No source found")
 
-            video.subtitles
-                .firstOrNull { it.label.startsWith(UserPreferences.subtitleName ?: "") }
-                ?.default = true
+            if (!(video.isVoe && UserPreferences.serverVoeAutoSubtitlesDisabled)) {
+                video.subtitles
+                    .firstOrNull { it.label.startsWith(UserPreferences.subtitleName ?: "") }
+                    ?.default = true
+            }
 
             Log.d("PlayerViewModel", "Estrazione video completata con successo")
             _state.emit(State.SuccessLoadingVideo(video, server))

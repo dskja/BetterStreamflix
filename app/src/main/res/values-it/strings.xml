@@ -285,9 +285,15 @@
     <string name="backup_import_read_error">Errore durante la lettura o l\'elaborazione del file di backup.</string>
 
     <string name="doh_provider_updated">Impostazioni DNS over HTTPS aggiornate! Riavvio per applicare.</string>
+    <string name="settings_category_frenchstream">Impostazioni FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface">Usa la nuova interfaccia FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Attiva</string>
     <string name="settings_frenchstream_use_new_interface_off">Disattivata</string>
+
+    <string name="settings_server_voe_category">Impostazioni server VOE</string>
+    <string name="settings_server_voe_title">Sottotitoli server VOE disattivati di default</string>
+    <string name="settings_server_voe_summary">Se attivo, i sottotitoli del server VOE non saranno abilitati in automatico se sono disponibili e hanno il valore default true</string>
+
 
     <string name="settings_category_interface_title">Impostazioni interfaccia</string>
     <string name="settings_immersive_mode">Modalità Immersiva</string>
@@ -332,4 +338,7 @@
     <string name="settings_subdl_api_key_summary">Inserisci la tua API key personale di SubDL per abilitare SubDL nelle impostazioni dei sottotitoli del player</string>
     <string name="settings_subdl_api_key_success">SubDL API Key salvata con successo</string>
     <string name="settings_subdl_api_key_reset">SubDL API Key rimossa</string>
+    
+    <string name="settings_force_extra_buffer_title">Extra Buffering Globale</string>
+    <string name="settings_force_extra_buffer_summary">Abilita l\'extra buffering per tutti i server per impostazione predefinita</string>
 </resources>

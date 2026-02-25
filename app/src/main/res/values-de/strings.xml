@@ -264,6 +264,10 @@
     <string name="settings_frenchstream_use_new_interface_on">Ein</string>
     <string name="settings_frenchstream_use_new_interface_off">Aus</string>
 
+    <string name="settings_server_voe_category">VOE-Server-Einstellungen</string>
+    <string name="settings_server_voe_title">Automatische Untertitel des VOE-Servers deaktivieren</string>
+    <string name="settings_server_voe_summary">Wenn aktiviert, werden Untertitel vom VOE-Server nicht automatisch aktiviert, auch wenn sie verfügbar sind und einen Standard-True-Wert haben</string>
+
 
     <string name="player_settings_extra_buffer_title">Server mit Extra-Buffering</string>
     <string name="player_settings_extra_buffer_server_label">Server mit Extra-Buffering</string>
@@ -294,4 +298,7 @@
     <string name="settings_subdl_api_key_summary">Geben Sie Ihren persönlichen SubDL-API-Schlüssel ein, um SubDL in den Untertiteleinstellungen des Players zu aktivieren</string>
     <string name="settings_subdl_api_key_success">SubDL API-Schlüssel erfolgreich gespeichert</string>
     <string name="settings_subdl_api_key_reset">SubDL API-Schlüssel entfernt</string>
+
+    <string name="settings_force_extra_buffer_title">Globales Extra-Buffering</string>
+    <string name="settings_force_extra_buffer_summary">Zusätzliches Buffering standardmäßig für alle Server aktivieren</string>
 </resources>

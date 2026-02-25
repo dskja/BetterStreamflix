@@ -5,6 +5,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.StringConverterFactory
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -23,24 +24,30 @@ open class DoodLaExtractor : Extractor() {
         val service = Service.build(mainUrl)
 
         val embedUrl = link.replace("/d/", "/e/")
-        val document = service.get(embedUrl, link)
+        val response = service.get(embedUrl, link)
+        val document = response.body() ?: throw Exception("Failed to load embed page")
+        
+        // Get the final URL after redirects to use the correct domain for pass_md5
+        val finalUrl = response.raw().request.url.toString()
+        val finalBaseUrl = getBaseUrl(finalUrl)
 
-        val md5 = getBaseUrl(embedUrl) +
-                (Regex("/pass_md5/[^']*").find(document.toString())?.value
-                    ?: throw Exception("Can't find md5"))
+        val md5Path = Regex("/pass_md5/[^']*").find(document.toString())?.value
+            ?: throw Exception("Could not find md5 path")
+        
+        val md5Url = finalBaseUrl + md5Path
 
-        val url = service.getString(md5, link) +
+        val videoPrefix = service.getString(md5Url, finalUrl)
+        
+        val url = videoPrefix +
                 createHashTable() +
-                "?token=${md5.substringAfterLast("/")}"
+                "?token=${md5Url.substringAfterLast("/")}"
 
-        val video = Video(
+        return Video(
             source = url,
             headers = mapOf(
-                "Referer" to mainUrl
+                "Referer" to finalBaseUrl
             )
         )
-
-        return video
     }
 
     private fun createHashTable(): String {
@@ -86,7 +93,7 @@ open class DoodLaExtractor : Extractor() {
         suspend fun get(
             @Url url: String,
             @Header("Referer") referer: String,
-        ): Document
+        ): Response<Document>
 
         @GET
         suspend fun getString(

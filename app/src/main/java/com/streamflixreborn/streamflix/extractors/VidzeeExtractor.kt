@@ -30,18 +30,19 @@ class VidzeeExtractor : Extractor() {
 
     private val servers = listOf(
         ServerConfig("Nflix", 0),
-        ServerConfig("Glory", 1),
-        ServerConfig("Nazy", 2),
-        ServerConfig("Atlas", 3),
-        ServerConfig("Drag", 4),
-        ServerConfig("Achilles", 5),
-        ServerConfig("Viet", 6),
-        ServerConfig("Hindi", 7),
-        ServerConfig("Bengali", 8),
-        ServerConfig("Tamil", 9),
-        ServerConfig("Tamil", 10),
-        ServerConfig("Telugu", 11),
-        ServerConfig("Malayalam", 12)
+        ServerConfig("Duke", 1),
+        ServerConfig("Glory", 2),
+        ServerConfig("Nazy", 3),
+        ServerConfig("Atlas", 4),
+        ServerConfig("Drag", 5),
+        ServerConfig("Achilles", 6),
+        ServerConfig("Viet", 7),
+        ServerConfig("Velocità", 8),
+        ServerConfig("Hindi", 9),
+        ServerConfig("Bengali", 10),
+        ServerConfig("Tamil", 11),
+        ServerConfig("Telugu", 12),
+        ServerConfig("Malayalam", 13)
     )
 
     fun servers(videoType: Video.Type): List<Video.Server> {
@@ -104,6 +105,9 @@ class VidzeeExtractor : Extractor() {
                 }
             }
 
+            val isDukeServer = link.contains("sr=1")
+            val mimeType = if (isDukeServer) MimeTypes.VIDEO_MP4 else MimeTypes.APPLICATION_M3U8
+
             return@coroutineScope Video(
                 source = decryptedUrl,
                 subtitles = subtitles,
@@ -112,7 +116,7 @@ class VidzeeExtractor : Extractor() {
                     "Origin" to mainUrl,
                     "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
                 ),
-                type = MimeTypes.APPLICATION_M3U8
+                type = mimeType
             )
         } catch (e: Exception) {
             throw Exception("Failed to extract video: ${e.message}")

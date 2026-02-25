@@ -43,15 +43,27 @@ class GuploadExtractor : Extractor() {
     override suspend fun extract(link: String): Video {
         val html = service.get(link)
 
-        val payloadRegex = Regex("""decodePayload\(['"]([^'"]+)['"]\)""")
-        val payload = payloadRegex.find(html)?.groupValues?.get(1)
-            ?: throw Exception("decodePayload not found in HTML")
+        // 1. Extract XOR key (_k)
+        val pRegex = Regex("""_p=\[([^\]]+)\]""")
+        val pContent = pRegex.find(html)?.groupValues?.get(1)
+            ?: throw Exception("XOR key list _p not found in HTML")
+        
+        val key = Regex("""['"]([^'"]+)['Mult'"]""").findAll(pContent)
+            .map { it.groupValues[1] }
+            .joinToString("")
 
-        val decoded = String(Base64.decode(payload, Base64.DEFAULT))
-        val jsonStr = decoded.substringAfter("|")
-        val json = JSONObject(jsonStr)
+        // 2. Extract obfuscated config (_cfg)
+        val cfgRegex = Regex("""_cfg\s*=\s*_(?:dp|xd)\(['"]([^'"]+)['"]\)""")
+        val cfgEncoded = cfgRegex.find(html)?.groupValues?.get(1)
+            ?: throw Exception("_cfg configuration not found")
+
+        // 3. XOR Decoding
+        val cfgJsonStr = xd(cfgEncoded, key)
+            ?: throw Exception("Failed to decode _cfg configuration")
+
+        val json = JSONObject(cfgJsonStr)
         val videoUrl = json.optString("videoUrl").takeIf { it.isNotBlank() }
-            ?: throw Exception("Video URL not found in payload")
+            ?: throw Exception("Video URL not found in configuration")
 
         return Video(
             source = videoUrl,
@@ -60,6 +72,24 @@ class GuploadExtractor : Extractor() {
                 "Referer" to mainUrl
             )
         )
+    }
+
+    private fun xd(encoded: String, key: String): String? {
+        return try {
+            if ("~" !in encoded) return null
+            
+            val b64Data = encoded.substringAfter("~")
+            val decodedBytes = Base64.decode(b64Data, Base64.DEFAULT)
+            
+            val result = StringBuilder()
+            for (i in decodedBytes.indices) {
+                val xorChar = decodedBytes[i].toInt() xor key[i % key.length].code
+                result.append(xorChar.toChar())
+            }
+            result.toString()
+        } catch (e: Exception) {
+            null
+        }
     }
 }
 

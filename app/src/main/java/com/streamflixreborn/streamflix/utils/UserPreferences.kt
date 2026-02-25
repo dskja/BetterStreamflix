@@ -24,7 +24,7 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.tv"
+    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.buzz"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -131,6 +131,18 @@ object UserPreferences {
         get() = Key.IMMERSIVE_MODE.getBoolean() ?: false // Default changed to false
         set(value) {
             Key.IMMERSIVE_MODE.setBoolean(value)
+        }
+
+    var forceExtraBuffering: Boolean
+        get() = Key.FORCE_EXTRA_BUFFERING.getBoolean() ?: false
+        set(value) {
+            Key.FORCE_EXTRA_BUFFERING.setBoolean(value)
+        }
+
+    var serverVoeAutoSubtitlesDisabled: Boolean
+        get() = Key.SERVER_VOE_AUTO_SUBTITLES_DISABLED.getBoolean() ?: true
+        set(value) {
+            Key.SERVER_VOE_AUTO_SUBTITLES_DISABLED.setBoolean(value)
         }
 
     var selectedTheme: String
@@ -293,6 +305,8 @@ object UserPreferences {
         IMMERSIVE_MODE,
         TMDB_API_KEY,
         SUBDL_API_KEY,
+        FORCE_EXTRA_BUFFERING,
+        SERVER_VOE_AUTO_SUBTITLES_DISABLED,
         SELECTED_THEME;
 
         fun getBoolean(): Boolean? = when {

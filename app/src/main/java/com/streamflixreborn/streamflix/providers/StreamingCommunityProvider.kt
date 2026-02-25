@@ -59,7 +59,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     private val TAG: String
         get() = "SCProviderDebug[$LANG]"
 
-    private val DEFAULT_DOMAIN: String = "streamingunity.tv"
+    private val DEFAULT_DOMAIN: String = "streamingunity.buzz"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String

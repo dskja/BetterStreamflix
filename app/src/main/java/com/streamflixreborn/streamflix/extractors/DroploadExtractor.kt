@@ -7,11 +7,12 @@ import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Url
+import java.net.URL
 
 class DroploadExtractor : Extractor() {
     override val name = "Dropload"
     override val mainUrl = "https://dropload.tv"
-    override val aliasUrls = listOf("https://dropload.io")
+    override val aliasUrls = listOf("https://dropload.io", "https://dropload.pro")
 
     private val client = OkHttpClient.Builder().build()
 
@@ -57,9 +58,14 @@ class DroploadExtractor : Extractor() {
             )
         }.toList()
 
+        val referer = URL(link).protocol + "://" + URL(link).host
+
         return Video(
             source = streamUrl,
             subtitles = subtitles,
+            headers = mapOf(
+                "Referer" to referer
+            ),
             extraBuffering = true
         )
     }

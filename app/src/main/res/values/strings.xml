@@ -294,6 +294,11 @@
     <string name="settings_frenchstream_use_new_interface">Use the new FrenchStream interface</string>
     <string name="settings_frenchstream_use_new_interface_on">On</string>
     <string name="settings_frenchstream_use_new_interface_off">Off</string>
+ 
+    <string name="settings_server_voe_category">VOE server settings</string>
+    <string name="settings_server_voe_title">Disable VOE server auto subtitles</string>
+    <string name="settings_server_voe_summary">If enabled, subtitles from VOE server will not be active by default even if they are available and have a default true value</string>
+
 
     <string name="settings_category_interface_title">Interface settings</string>
     <string name="settings_immersive_mode">Immersive Mode</string>
@@ -340,4 +345,7 @@
     <string name="settings_subdl_api_key_summary">Enter your personal SubDL API key to enable SubDL in the player\'s subtitle settings</string>
     <string name="settings_subdl_api_key_success">SubDL API Key saved successfully</string>
     <string name="settings_subdl_api_key_reset">SubDL API Key removed</string>
+
+    <string name="settings_force_extra_buffer_title">Global Extra Buffering</string>
+    <string name="settings_force_extra_buffer_summary">Enable extra buffering for all servers by default</string>
 </resources>

@@ -164,7 +164,7 @@ class VideasyExtractor : Extractor() {
                 source = source.optString("url"),
                 type = mimeType,
                 subtitles = subtitles,
-                headers = mapOf("Referer" to "https://videasy.net")
+                headers = mapOf("Referer" to "https://player.videasy.net/")
             )
         }
 

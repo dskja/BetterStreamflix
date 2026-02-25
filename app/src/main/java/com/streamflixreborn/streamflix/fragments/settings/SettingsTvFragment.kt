@@ -46,7 +46,7 @@ import java.util.Locale
 
 class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
-    private val DEFAULT_DOMAIN_VALUE = "streamingunity.tv"
+    private val DEFAULT_DOMAIN_VALUE = "streamingunity.buzz"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
 
     private lateinit var db: AppDatabase
@@ -192,6 +192,22 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<SwitchPreference>("AUTOPLAY")?.setOnPreferenceChangeListener { _, newValue ->
             UserPreferences.autoplay = newValue as Boolean
             true
+        }
+
+        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.apply {
+            isChecked = UserPreferences.forceExtraBuffering
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.forceExtraBuffering = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.apply {
+            isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.serverVoeAutoSubtitlesDisabled = newValue as Boolean
+                true
+            }
         }
 
         val HasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
@@ -518,6 +534,8 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
+        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
+        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
         
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->

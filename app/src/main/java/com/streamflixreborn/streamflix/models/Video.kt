@@ -8,7 +8,8 @@ data class Video(
     val subtitles: List<Subtitle> = listOf(),
     val headers: Map<String, String>? = null,
     val type: String? = null, // androidx.media3.common.MimeTypes - https://developer.android.com/reference/kotlin/androidx/media3/common/MimeTypes
-    val extraBuffering: Boolean = false
+    val extraBuffering: Boolean = false,
+    val isVoe: Boolean = false
 ) {
 
     sealed class Type : Parcelable {
