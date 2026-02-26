@@ -79,12 +79,16 @@ class SeasonViewModel(
 
         try {
             val episodes = UserPreferences.currentProvider!!.getEpisodesBySeason(seasonId)
-
-            database.episodeDao().getByIdsAsFlow(episodes.map { it.id }).first()
-                .forEach { episodeDb ->
-                    episodes.find { it.id == episodeDb.id }
-                        ?.merge(episodeDb)
-                }
+            val ids = episodes.map { it.id }
+            ids.chunked(900).forEach { chunk ->
+                database.episodeDao()
+                    .getByIdsAsFlow(chunk)
+                    .first()
+                    .forEach { episodeDb ->
+                        episodes.find { it.id == episodeDb.id }
+                            ?.merge(episodeDb)
+                    }
+            }
 
             val tvShow = TvShow(tvShowId)
             val season = Season(seasonId)
