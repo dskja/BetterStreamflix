@@ -14,7 +14,11 @@
     <PreferenceCategory
         android:key="pc_tmdb_settings"
         android:title="@string/settings_category_tmdb">
-
+        <SwitchPreferenceCompat
+            android:key="ENABLE_TMDB"
+            android:title="@string/settings_enable_tmdb_title"
+            android:summary="@string/settings_enable_tmdb_summary"
+            android:defaultValue="false" />
         <EditTextPreference
             android:key="TMDB_API_KEY"
             android:title="@string/settings_tmdb_api_key"

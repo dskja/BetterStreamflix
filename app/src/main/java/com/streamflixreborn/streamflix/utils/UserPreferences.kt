@@ -155,6 +155,12 @@ object UserPreferences {
             Key.TMDB_API_KEY.setString(value)
             TMDb3.rebuildService()
         }
+    var enableTmdb: Boolean
+        get() = Key.ENABLE_TMDB.getBoolean() ?: false
+        set(value) {
+            Key.ENABLE_TMDB.setBoolean(value)
+            TMDb3.rebuildService()
+        }
 
     var subdlApiKey: String
         get() = Key.SUBDL_API_KEY.getString() ?: ""
@@ -307,6 +313,7 @@ object UserPreferences {
         SUBDL_API_KEY,
         FORCE_EXTRA_BUFFERING,
         SERVER_VOE_AUTO_SUBTITLES_DISABLED,
+        ENABLE_TMDB,
         SELECTED_THEME;
 
         fun getBoolean(): Boolean? = when {

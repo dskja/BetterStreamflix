@@ -316,4 +316,8 @@
 
     <string name="settings_force_extra_buffer_title">Búfer adicional global</string>
     <string name="settings_force_extra_buffer_summary">Habilitar el almacenamiento en búfer adicional para todos los servidores por defecto</string>
+    <string name="settings_enable_tmdb_summary">Activar o desactivar el uso de TMDB</string>
+    <string name="settings_enable_tmdb_title">Activar TMDB</string>
+    <string name="settings_enable_tmdb_enabled">TMDB activado</string>
+    <string name="settings_enable_tmdb_disabled">TMDB desactivado</string>
 </resources>

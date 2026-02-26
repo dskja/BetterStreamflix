@@ -20,6 +20,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import androidx.preference.SeekBarPreference
+import androidx.preference.SwitchPreferenceCompat
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainTvActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
@@ -159,6 +160,23 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 } else {
                     getString(R.string.settings_tmdb_api_key_success)
                 }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+        findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {
+            isChecked = UserPreferences.enableTmdb
+
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                UserPreferences.enableTmdb = enabled
+
+                val message = if (enabled) {
+                    getString(R.string.settings_enable_tmdb_enabled)
+                } else {
+                    getString(R.string.settings_enable_tmdb_disabled)
+                }
+
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 true
             }

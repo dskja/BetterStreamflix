@@ -348,4 +348,8 @@
 
     <string name="settings_force_extra_buffer_title">Global Extra Buffering</string>
     <string name="settings_force_extra_buffer_summary">Enable extra buffering for all servers by default</string>
+    <string name="settings_enable_tmdb_summary">Enable or disable TMDB use</string>
+    <string name="settings_enable_tmdb_title">Enable TMDB</string>
+    <string name="settings_enable_tmdb_enabled">TMDB enabled</string>
+    <string name="settings_enable_tmdb_disabled">TMDB disabled</string>
 </resources>
