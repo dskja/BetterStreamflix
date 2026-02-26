@@ -19,7 +19,7 @@
             android:key="ENABLE_TMDB"
             android:title="@string/settings_enable_tmdb_title"
             android:summary="@string/settings_enable_tmdb_summary"
-            android:defaultValue="false" />
+            android:defaultValue="true" />
         <EditTextPreference
             android:key="TMDB_API_KEY"
             android:title="@string/settings_tmdb_api_key"

@@ -156,7 +156,7 @@ object UserPreferences {
             TMDb3.rebuildService()
         }
     var enableTmdb: Boolean
-        get() = Key.ENABLE_TMDB.getBoolean() ?: false
+        get() = Key.ENABLE_TMDB.getBoolean() ?: true
         set(value) {
             Key.ENABLE_TMDB.setBoolean(value)
             TMDb3.rebuildService()
