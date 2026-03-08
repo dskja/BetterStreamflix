@@ -339,4 +339,8 @@
 
     <string name="settings_force_extra_buffer_title">Mise in mémoire tampone extra globale</string>
     <string name="settings_force_extra_buffer_summary">Activer la mise in mémoire tampone extra pour tous les serveurs par défaut</string>
+    <string name="settings_enable_tmdb_summary">Activer ou désactiver l’utilisation de TMDB</string>
+    <string name="settings_enable_tmdb_title">Activer TMDB</string>
+    <string name="settings_enable_tmdb_enabled">TMDB activé</string>
+    <string name="settings_enable_tmdb_disabled">TMDB désactivé</string>
 </resources>

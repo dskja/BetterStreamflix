@@ -301,4 +301,8 @@
 
     <string name="settings_force_extra_buffer_title">Globales Extra-Buffering</string>
     <string name="settings_force_extra_buffer_summary">Zusätzliches Buffering standardmäßig für alle Server aktivieren</string>
+    <string name="settings_enable_tmdb_summary">TMDB-Nutzung aktivieren oder deaktivieren</string>
+    <string name="settings_enable_tmdb_title">TMDB aktivieren</string>
+    <string name="settings_enable_tmdb_enabled">TMDB aktiviert</string>
+    <string name="settings_enable_tmdb_disabled">TMDB deaktiviert</string>
 </resources>

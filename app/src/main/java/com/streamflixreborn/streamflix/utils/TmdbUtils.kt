@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.utils.TMDb3.w500
 object TmdbUtils {
 
     suspend fun getMovie(title: String, year: Int? = null, language: String? = null): Movie? {
+        if (!UserPreferences.enableTmdb) return null
         val results = TMDb3.Search.multi(title, language = language).results.filterIsInstance<TMDb3.Movie>()
         val movie = results.find {
             it.title.equals(title, ignoreCase = true) && (year == null || it.releaseDate?.contains(year.toString()) == true)
@@ -48,6 +49,7 @@ object TmdbUtils {
     }
 
     suspend fun getTvShow(title: String, year: Int? = null, language: String? = null): TvShow? {
+        if (!UserPreferences.enableTmdb) return null
         val results = TMDb3.Search.multi(title, language = language).results.filterIsInstance<TMDb3.Tv>()
         val tv = results.find {
             it.name.equals(title, ignoreCase = true) && (year == null || it.firstAirDate?.contains(year.toString()) == true)
@@ -91,6 +93,7 @@ object TmdbUtils {
     }
 
     suspend fun getEpisodesBySeason(tvShowId: String, seasonNumber: Int, language: String? = null): List<Episode> {
+        if (!UserPreferences.enableTmdb) return listOf()
         return try {
             TMDb3.TvSeasons.details(
                 seriesId = tvShowId.toInt(),
@@ -114,6 +117,7 @@ object TmdbUtils {
     }
 
     suspend fun getMovieById(id: Int, language: String? = null): Movie? {
+        if (!UserPreferences.enableTmdb) return null
         val details = TMDb3.Movies.details(
             movieId = id,
             appendToResponse = listOf(
@@ -145,6 +149,7 @@ object TmdbUtils {
     }
 
     suspend fun getTvShowById(id: Int, language: String? = null): TvShow? {
+        if (!UserPreferences.enableTmdb) return null
         val details = TMDb3.TvSeries.details(
             seriesId = id,
             appendToResponse = listOf(
