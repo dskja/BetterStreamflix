@@ -12,7 +12,7 @@ import java.net.URL
 class DroploadExtractor : Extractor() {
     override val name = "Dropload"
     override val mainUrl = "https://dropload.tv"
-    override val aliasUrls = listOf("https://dropload.io", "https://dropload.pro")
+    override val aliasUrls = listOf("https://dropload.io", "https://dropload.pro","https://dr0pstream.com")
 
     private val client = OkHttpClient.Builder().build()
 

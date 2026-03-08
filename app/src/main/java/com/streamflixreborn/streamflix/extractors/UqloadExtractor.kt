@@ -8,14 +8,17 @@ import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Url
+import java.net.URL
 
 class UqloadExtractor : Extractor() {
     override val name = "Uqload"
     override val mainUrl = "https://uqload.cx"
+    override val aliasUrls = listOf("https://uqload.is")
 
 
     override suspend fun extract(link: String): Video {
-        val service = Service.build(mainUrl)
+        val baseUrl = URL(link).protocol + "://" + URL(link).host
+        val service = Service.build(baseUrl)
         val document = service.getSource(url = link)
 
         val scripts = document.select("script[type=\"text/javascript\"]")
@@ -31,7 +34,7 @@ class UqloadExtractor : Extractor() {
         return Video(
             source = sourceUrl,
             headers = mapOf(
-                "Referer" to mainUrl
+                "Referer" to baseUrl
             )
         )
     }

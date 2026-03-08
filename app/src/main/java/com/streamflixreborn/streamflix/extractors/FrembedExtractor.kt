@@ -5,11 +5,20 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Url
+import java.net.URL
 import java.util.concurrent.TimeUnit
 import kotlin.text.replaceFirstChar
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
@@ -41,6 +50,17 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
         val link7vo: String?=null,
     )
 
+    private fun getExtractorName(url: String): String {
+        return url.substringAfter("://")
+            .substringBefore("/")
+            .substringBefore(".")
+            .replace("crystaltreatmenteast", "voe")
+            .replace("lauradaydo", "voe")
+            .replace("lancewhosedifficult", "voe")
+            .replace("myvidplay", "dood")
+            .replaceFirstChar { it.uppercase() }
+    }
+
     fun listLinks.toServers(): List<Video.Server> {
         return listOf(link1, link2, link3, link4, link5, link6, link7,
                                          link1vostfr, link2vostfr, link3vostfr, link4vostfr, link5vostfr, link6vostfr, link7vostfr,
@@ -50,16 +70,10 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                 val lang = when { index < 7 -> "French"
                                   index < 14 -> "VOSTFR"
                                   else -> "VO" }
-                val name = data.substringAfter("://")
-                               .substringBefore(".")
-                               .replace("crystaltreatmenteast", "voe")
-                               .replace("lauradaydo", "voe")
-                               .replace("myvidplay", "dood")
-                               .replaceFirstChar{ it.uppercase() }  + " (${lang})"
-
-                Video.Server ( id = "link$index",
-                                    name = name,
-                              src = data ) }
+                (if (data.startsWith("/")) mainUrl.removeSuffix("/") + data else data).let {
+                    Video.Server(id = "link$index", name = "${getExtractorName(it)} ($lang)", src = it)
+                }
+            }
     }
 
     private interface Service {
@@ -71,6 +85,8 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                 val clientBuilder = OkHttpClient.Builder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
+                    .followRedirects(false)
+                    .followSslRedirects(false)
                     .addNetworkInterceptor { chain ->
                         val request = chain.request()
                         val url = request.url
@@ -107,6 +123,12 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
             @Header("User-Agent") userAgent: String = USER_AGENT,
             @Header("Content-Type") contentType: String = "application/json"
         ): listLinks
+
+        @GET
+        suspend fun getStreamLinks(
+            @Url url: String,
+            @Header("User-Agent") userAgent: String = USER_AGENT
+        ): Response<listLinks>
     }
 
     private val service = Service.build(mainUrl)
@@ -119,7 +141,30 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
         return try {
             val ret = when(videoType) { is Video.Type.Movie -> service.getMovieLinks( videoType.id)
                                         is Video.Type.Episode -> service.getTvShowLinks(videoType.tvShow.id, videoType.season.number, videoType.number) }
-            ret.toServers()
+            val initialServers = ret.toServers()
+
+            coroutineScope {
+                initialServers.map { server ->
+                    async(Dispatchers.IO) {
+                        try {
+                            val response = service.getStreamLinks(server.src)
+                            val redirect = response.headers()["Location"]
+                            if (!redirect.isNullOrEmpty()) {
+                                val fullRedirect = if (redirect.startsWith("//")) "https:$redirect" else redirect
+                                val lang = server.name.substringAfter(" (").substringBefore(")")
+                                server.copy(
+                                    name = "${getExtractorName(fullRedirect)} ($lang)",
+                                    src = fullRedirect
+                                )
+                            } else {
+                                server
+                            }
+                        } catch (e: Exception) {
+                            server
+                        }
+                    }
+                }.awaitAll()
+            }
         } catch (e: Exception) {
             emptyList()
         }

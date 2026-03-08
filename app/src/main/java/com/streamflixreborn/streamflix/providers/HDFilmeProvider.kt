@@ -38,7 +38,7 @@ import retrofit2.http.FormUrlEncoded
 object HDFilmeProvider : Provider {
 
     override val name: String = "HDFilme"
-    override val baseUrl: String = "https://hdfilme.legal"
+    override val baseUrl: String = "https://hdfilme.press"
     override val logo: String = "$baseUrl/templates/hdfilme/images/apple-touch-icon.png"
     override val language: String = "de"
 

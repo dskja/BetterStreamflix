@@ -31,8 +31,11 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Query
 import kotlin.collections.map
 import kotlin.collections.mapNotNull
+import kotlin.collections.mapIndexedNotNull
+import kotlin.collections.toList
 import kotlin.math.round
 
 object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
@@ -386,7 +389,13 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         initializeService()
         val document = service.getItem(id, "dle_skin=VFV25")
         val actors = extractActors(document)
-        val versions = extractTvShowVersions(document)
+        val itemId = id.substringBefore("-")
+        val episodesData = try {
+            service.getEpisodesData(itemId)
+        } catch (e: Exception) {
+            null
+        }
+        val versions = extractTvShowVersions(document, episodesData)
         val poster = document.selectFirst("img.dvd-thumbnail")
             ?.attr("src") ?: ""
         val votes = document.selectFirst("div.fr-votes")
@@ -461,51 +470,36 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         initializeService()
-        val (tvShowId, tvShowLang, divFilter) = seasonId.split("/")
-        val document = service.getTvShow(tvShowId,"dle_skin=VFV25")
+        val (tvShowId, tvShowLang, _) = seasonId.split("/")
+        
+        // Extract numeric ID from tvShowId
+        val itemId = tvShowId.substringBefore("-")
+        
+        val episodesData = try {
+            service.getEpisodesData(itemId)
+        } catch (e: Exception) {
+            null
+        }
 
-        val infodata = document.selectFirst("div#episodes-info-data")
-        if (infodata == null) return emptyList()
+        val langData = when (tvShowLang) {
+            "vf" -> episodesData?.vf
+            "vostfr" -> episodesData?.vostfr
+            "vo" -> episodesData?.vo
+            else -> null
+        } ?: emptyMap()
 
-        val infoep = document.selectFirst("div#episodes-${tvShowLang}-data")
-
-        if (infoep == null) return emptyList()
-
-        val defaultPoster = document.selectFirst("img.dvd-thumbnail")
-            ?.attr("src") ?: ""
-
-        val episodes = infoep.select("> div").mapNotNull { epDiv ->
-            val hasAtLeastOne = epDiv
-                ?.attributes()
-                ?.asList()
-                ?.any {
-                    it.key.startsWith("data-") && it.value.startsWith("http")
-                }
-                ?: false
-
-            if (hasAtLeastOne==false) return@mapNotNull null
-
-            val number = epDiv.attr("data-ep").toIntOrNull() ?: 0
-
-            val ptrinfodata = infodata.selectFirst("div[data-ep=$number]")
-
-            val poster = if (ptrinfodata != null) { ptrinfodata.attr("data-poster").takeIf { it.isNotBlank() } ?: defaultPoster }
-                         else defaultPoster
-            val title = if (ptrinfodata != null) { ptrinfodata.attr("data-title").trim() }
-                         else "Episode $number"
-            val overview = if (ptrinfodata != null) { ptrinfodata.attr("data-synopsis") }
-                        else ""
-
+        return langData.keys.mapNotNull { epNumStr ->
+            val number = epNumStr.toIntOrNull() ?: return@mapNotNull null
+            val info = episodesData?.info?.get(epNumStr)
+            
             Episode(
                 id = "$tvShowId/$tvShowLang/$number",
                 number = number,
-                poster = poster,
-                title = title,
-                overview = overview
+                poster = info?.poster ?: "",
+                title = info?.title ?: "Episode $number",
+                overview = info?.synopsis ?: ""
             )
-        }
-
-        return episodes
+        }.sortedBy { it.number }
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
@@ -581,21 +575,21 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return people
     }
 
-    fun extractTvShowVersions(document: Document): MutableList<String> {
-        val versions = listOf("vostfr", "vf")
+    fun extractTvShowVersions(document: Document, episodesData: EpisodesData? = null): MutableList<String> {
+        val versions = listOf("vostfr", "vf", "vo")
         val found = mutableListOf<String>()
 
         for (version in versions) {
-            val hasAtLeastOneEp = document
-                .select("div#episodes-"+version+"-data > div")
-                .any { epDiv ->
-                    epDiv.attributes()
-                        .asList()
-                        .any { attr ->
-                            attr.value.startsWith("http")
-                        }
+            val hasAtLeastOneEpInJson = episodesData?.let {
+                when (version) {
+                    "vf" -> !it.vf.isNullOrEmpty()
+                    "vostfr" -> !it.vostfr.isNullOrEmpty()
+                    "vo" -> !it.vo.isNullOrEmpty()
+                    else -> false
                 }
-            if (hasAtLeastOneEp) {
+            } ?: false
+
+            if (hasAtLeastOneEpInJson) {
                 found.add(version)
             }
         }
@@ -629,6 +623,19 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val url: String
     )
 
+    data class EpisodesData(
+        val vf: Map<String, Map<String, String>>? = null,
+        val vostfr: Map<String, Map<String, String>>? = null,
+        val vo: Map<String, Map<String, String>>? = null,
+        val info: Map<String, EpisodeInfo>? = null
+    )
+
+    data class EpisodeInfo(
+        val title: String? = null,
+        val synopsis: String? = null,
+        val poster: String? = null
+    )
+
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         initializeService()
 
@@ -636,22 +643,29 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             is Video.Type.Episode -> {
                 val (tvShowId, tvShowLang, tvShowNumber) = id.split("/")
 
-                val document = service.getItem(tvShowId, "dle_skin=VFV25")
+                val itemId = tvShowId.substringBefore("-")
+                val episodesData = try {
+                    service.getEpisodesData(itemId)
+                } catch (e: Exception) {
+                    null
+                }
 
-                document.selectFirst("div#episodes-"+tvShowLang+"-data")
-                    ?.selectFirst("div[data-ep="+tvShowNumber+"]")
-                    ?.attributes()
-                    ?.asList()
-                    ?.filter { it.key.startsWith("data-") && it.value.startsWith("http") }
-                    ?.mapIndexedNotNull { id, attr ->
-                        val name = attr.key.removePrefix("data-").replaceFirstChar{ it.uppercase() }
-                        if (ignoreSource(name, attr.value)) return@mapIndexedNotNull null
-                        Video.Server(
-                            id = "vid${id}",
-                            name = name,
-                            src = attr.value
-                        )
-                    } ?: emptyList()
+                val langData = when (tvShowLang) {
+                    "vf" -> episodesData?.vf
+                    "vostfr" -> episodesData?.vostfr
+                    "vo" -> episodesData?.vo
+                    else -> null
+                } ?: emptyMap()
+
+                langData[tvShowNumber]?.toList()?.mapIndexedNotNull { index, pair ->
+                    val (name, src) = pair
+                    if (ignoreSource(name, src)) return@mapIndexedNotNull null
+                    Video.Server(
+                        id = "vid$index",
+                        name = name.replaceFirstChar { it.uppercase() },
+                        src = src
+                    )
+                } ?: emptyList()
             }
 
             is Video.Type.Movie -> {
@@ -714,7 +728,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val finalUrl = if (server.src.contains("newplayer", ignoreCase = true)) {
+        val finalUrl = if (server.src.contains("kokoflix.lol", ignoreCase = true)) {
             val response = service.getRedirectLink(server.src)
                 .let { response -> response.raw() as okhttp3.Response }
             response.request.url.toString()
@@ -851,6 +865,13 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Path("id") id: String,
             @Path("page") page: Int,
         ): Document
+
+        @GET("ep-data.php")
+        suspend fun getEpisodesData(
+            @Query("id") id: String,
+            @Header("Cookie") cookie: String = "dle_skin=VFV1",
+            @Header("X-Requested-With") requestedWith: String = "XMLHttpRequest"
+        ): EpisodesData
 
         @GET
         suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
