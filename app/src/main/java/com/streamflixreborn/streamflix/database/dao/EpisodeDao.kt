@@ -59,6 +59,8 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM episodes WHERE id IN (:ids)")
     fun getByIdsAsFlow(ids: List<String>): Flow<List<Episode>>
+    @Query("SELECT * FROM episodes WHERE season = :seasonId")
+    fun getBySeasonIdAsFlow(seasonId: String): Flow<List<Episode>>
 
     @Query("SELECT COUNT(id) > 0 FROM episodes WHERE tvShow = :tvShowId AND lastEngagementTimeUtcMillis IS NOT NULL")
     fun hasAnyWatchHistoryForTvShow(tvShowId: String): Boolean
