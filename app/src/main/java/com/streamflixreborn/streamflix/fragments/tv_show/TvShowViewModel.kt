@@ -194,17 +194,22 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
 
         try {
             val episodes = UserPreferences.currentProvider!!.getEpisodesBySeason(season.id)
+            val ids = episodes.map { it.id }
+            val episodeMap = episodes.associateBy { it.id }
 
+            ids.chunked(400).forEach { chunk ->
+                database.episodeDao()
+                    .getByIds(chunk)
+                    .forEach { episodeDb ->
+                        episodeMap[episodeDb.id]?.merge(episodeDb)
+                    }
+            }
 
-            database.episodeDao().getByIdsAsFlow(episodes.map { it.id }).first()
-                .forEach { episodeDb ->
-                    episodes.find { it.id == episodeDb.id }
-                        ?.merge(episodeDb)
-                }
-            episodes.onEach { episode ->
+            episodes.forEach { episode ->
                 episode.tvShow = tvShow
                 episode.season = season
             }
+
             database.episodeDao().insertAll(episodes)
 
             _seasonState.emit(SeasonState.SuccessLoading(tvShow, season, episodes))

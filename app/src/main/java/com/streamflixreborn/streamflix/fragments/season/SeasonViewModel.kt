@@ -33,11 +33,11 @@ class SeasonViewModel(
         _state.transformLatest { state ->
             when (state) {
                 is State.SuccessLoadingEpisodes -> {
-                    database.episodeDao().getByIdsAsFlow(state.episodes.map { it.id })
+                    database.episodeDao()
+                        .getBySeasonIdAsFlow(seasonId)
                         .collect { emit(it) }
                 }
-
-                else -> emit(emptyList<Episode>())
+                else -> emit(emptyList())
             }
         },
         database.tvShowDao().getByIdAsFlow(tvShowId),
@@ -45,6 +45,7 @@ class SeasonViewModel(
     ) { state, episodesDb, tvShow, season ->
         season?.number?.let { seasonNumber = it }
         tvShow?.title?.let { tvShowTitle = it }
+
         when (state) {
             is State.SuccessLoadingEpisodes -> {
                 State.SuccessLoadingEpisodes(
@@ -53,9 +54,9 @@ class SeasonViewModel(
                             ?.takeIf { !episode.isSame(it) }
                             ?.let { episode.copy().merge(it) }
                             ?: episode
-                    }.onEach { episode ->
-                        episode.tvShow = tvShow
-                        episode.season = season
+                    }.onEach {
+                        it.tvShow = tvShow
+                        it.season = season
                     }
                 )
             }
@@ -79,12 +80,16 @@ class SeasonViewModel(
 
         try {
             val episodes = UserPreferences.currentProvider!!.getEpisodesBySeason(seasonId)
+            val ids = episodes.map { it.id }
+            val episodeMap = episodes.associateBy { it.id }
 
-            database.episodeDao().getByIdsAsFlow(episodes.map { it.id }).first()
-                .forEach { episodeDb ->
-                    episodes.find { it.id == episodeDb.id }
-                        ?.merge(episodeDb)
-                }
+            ids.chunked(400).forEach { chunk ->
+                database.episodeDao()
+                    .getByIds(chunk)
+                    .forEach { episodeDb ->
+                        episodeMap[episodeDb.id]?.merge(episodeDb)
+                    }
+            }
 
             val tvShow = TvShow(tvShowId)
             val season = Season(seasonId)
