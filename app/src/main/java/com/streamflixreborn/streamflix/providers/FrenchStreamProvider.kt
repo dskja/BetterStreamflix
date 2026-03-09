@@ -70,9 +70,13 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         initializeService()
-        val cookie = if (UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false") "dle_skin=VFV25"
-                     else "dle_skin=VFV1"
-        val document = service.getHome(cookie)
+        val isNewInterface = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false"
+        val document = if (isNewInterface) {
+            service.postHome()
+        } else {
+            service.getHome("dle_skin=VFV1")
+        }
+        val cookie = if (isNewInterface) "dle_skin=VFV25" else "dle_skin=VFV1"
         val categories = mutableListOf<Category>()
         if ( cookie.contains("VFV25")) {
             document.select("section.vod-section").map { cat_item ->
@@ -636,6 +640,19 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val poster: String? = null
     )
 
+    data class FilmData(
+        val players: Map<String, Map<String, String>>? = null,
+        val meta: FilmMeta? = null
+    )
+
+    data class FilmMeta(
+        val affiche: String? = null,
+        val affiche2: String? = null,
+        val trailer: String? = null,
+        val tagz: String? = null,
+        val bkp: String? = null
+    )
+
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         initializeService()
 
@@ -669,9 +686,15 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             }
 
             is Video.Type.Movie -> {
-                val document = service.getItem(id, "dle_skin=VFV25")
+                val itemId = id.substringBefore("-")
+                val filmData = try {
+                    service.getFilmData(itemId)
+                } catch (e: Exception) {
+                    null
+                }
                 val providerIndex = mutableMapOf<String, Int>()
                 var pIndex = 0
+                var serverIndex = 0
 
                 val labels = mapOf(
                     "vff" to "TrueFrench",
@@ -680,47 +703,34 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     "vo" to "VO"
                 )
 
-                val seenUrls = mutableSetOf<String>()
+                val movieServers = mutableListOf<Video.Server>()
 
-                document.selectFirst("div#film-data")
-                    ?.attributes()
-                    ?.asList()
-                    ?.filter { it.key.startsWith("data-") && !it.key.startsWith("data-affiche") && it.value.startsWith("http") }
-                    ?.mapIndexed { id, attr ->
-                        val name = attr.key.removePrefix("data-")
-
-                        val provider = name.removeSuffix("vo").removeSuffix("vostfr").removeSuffix("vfq").removeSuffix("vff")
-                        val lang = name.removePrefix(provider)
-
-                        val order = providerIndex.getOrPut(provider) { pIndex++ }
-
-                        VideoProvider(
-                            id = id,
-                            name = provider,
-                            lang = lang,
-                            url = attr.value,
-                            order = order
-                        )
-                    }
-                    ?.sortedWith(
-                        compareBy<VideoProvider> { it.order }.thenBy {
-                            when (it.lang) {
-                                "vostfr" -> 4
-                                "vo"     -> 3
-                                "vfq"    -> 2
-                                "vff"    -> 1
-                                else     -> 10
+                if (filmData?.players != null) {
+                    val langOrder = listOf("vostfr", "vfq", "vff", "vo")
+                    filmData.players.forEach { (provider, langMap) ->
+                        val seenUrlsForProvider = mutableSetOf<String>()
+                        langMap.entries.sortedBy { langOrder.indexOf(it.key).let { i -> if (i == -1) Int.MAX_VALUE else i } }
+                            .forEach { (lang, url) ->
+                            if (lang == "default") return@forEach
+                            if (url.startsWith("http") || url.isNotBlank()) {
+                                val order = providerIndex.getOrPut(provider) { pIndex++ }
+                                if (seenUrlsForProvider.add(url) && !ignoreSource(provider, url)) {
+                                    val langLabel = labels[lang] ?: lang
+                                    val displayName = provider.replaceFirstChar{ it.uppercase() } + if (langLabel.isNotBlank()) " ($langLabel)" else ""
+                                    movieServers.add(
+                                        Video.Server(
+                                            id = "vid${serverIndex++}",
+                                            name = displayName,
+                                            src = url
+                                        )
+                                    )
+                                }
                             }
                         }
-                    )
-                    ?.mapNotNull {
-                        if (!seenUrls.add(it.url)) return@mapNotNull null
-                        Video.Server(
-                            id = "vid${it.id}",
-                            name = it.name.replaceFirstChar{ it.uppercase() } + if (it.lang.isNotBlank()) " ("+(labels[it.lang] ?: it.lang)+")" else "",
-                            src = it.url
-                        )
-                    } ?: emptyList()
+                    }
+                }
+                
+                movieServers
             }
         }
 
@@ -823,6 +833,14 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         ): Document
 
         @FormUrlEncoded
+        @POST(".")
+        suspend fun postHome(
+            @Field("skin_name") skinName: String = "VFV25",
+            @Field("action_skin_change") actionSkinChange: String = "yes",
+            @Header("Cookie") cookie: String = "dle_skin=VFV25"
+        ): Document
+
+        @FormUrlEncoded
         @POST("engine/ajax/search.php")
         suspend fun search(
             @Field("query") query: String,
@@ -872,6 +890,13 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Header("Cookie") cookie: String = "dle_skin=VFV1",
             @Header("X-Requested-With") requestedWith: String = "XMLHttpRequest"
         ): EpisodesData
+
+        @GET("engine/ajax/film_api.php")
+        suspend fun getFilmData(
+            @Query("id") id: String,
+            @Header("Cookie") cookie: String = "dle_skin=VFV1",
+            @Header("X-Requested-With") requestedWith: String = "XMLHttpRequest"
+        ): FilmData
 
         @GET
         suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
