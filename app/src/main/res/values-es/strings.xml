@@ -83,7 +83,7 @@
     <string name="player_picture_in_picture_not_supported">PIP no es compatible con tu dispositivo</string>
     <string name="player_external_player_title">Reproducir con</string>
     <string name="player_external_player_error_video">El vídeo todavía no está cargado</string>
-    <string name="player_not_available_it_message">No disponible en servidores italianos, búscalo en TMDB en otros idiomas</string>
+    <string name="player_not_available_it_message">No disponible en servidores italianos, búscalo en TMDB in otros idiomas</string>
     <string name="player_not_available_lang_message">No disponible en %s, búscalo en TMDB en otros idiomas</string>
     <string name="player_retry_later_message">Vídeo no disponible por el momento. Por favor, inténtelo de nuevo más tarde</string>
     <string name="player_aspect_ratio_fit">Ajustar a la pantalla</string>
@@ -195,12 +195,16 @@
     <string name="player_settings_servers_title">Servidores</string>
     <string name="player_settings_servers_label">Servidores</string>
     <string name="settings_about">Acerca de</string>
+    <string name="settings_version_tv">Versión TV</string>
+    <string name="settings_version_mobile">Versión Mobile</string>
     <string name="settings_about_version">Versión</string>
     <string name="settings_about_version_name">Versión %s</string>
     <string name="settings_help">Ayuda</string>
     <string name="settings_telegram">Grupo de Telegram</string>
     <string name="settings_category_streamingcommunity">Ajustes para StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Ajustes para StreamingCommunity</string>
+    <string name="settings_category_cuevana">Ajustes para Cuevana 3</string>
+    <string name="settings_category_cuevana_domain">Dominio de Cuevana 3</string>
     <string name="settings_close_app">Cerrer aplicación</string>
     <string name="settings_category_provider_title">Ajustes del proveedor</string>
     <string name="settings_category_provider_url">URL principal</string>

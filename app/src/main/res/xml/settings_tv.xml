@@ -13,6 +13,16 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pc_cuevana_settings"
+        android:title="@string/settings_category_cuevana">
+
+        <EditTextPreference
+            android:key="provider_cuevana_domain"
+            android:title="@string/settings_category_cuevana_domain"
+            android:inputType="text"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="pc_tmdb_settings"
         android:title="@string/settings_category_tmdb">
         <SwitchPreferenceCompat
@@ -92,12 +102,24 @@
             android:defaultValue="true"
             android:summaryOn="@string/settings_autoplay_on"
             android:summaryOff="@string/settings_autoplay_off" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pc_extra_buffering_settings"
+        android:title="@string/player_settings_extra_buffer_title">
 
         <SwitchPreference
             android:key="FORCE_EXTRA_BUFFERING"
             android:title="@string/settings_force_extra_buffer_title"
             android:summary="@string/settings_force_extra_buffer_summary"
             android:defaultValue="false" />
+
+        <EditTextPreference
+            android:key="p_settings_autoplay_buffer"
+            android:title="@string/settings_autoplay_buffer_title"
+            android:dialogMessage="@string/settings_autoplay_buffer_dialog_message"
+            android:defaultValue="3"
+            android:inputType="number" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/player_settings">
@@ -175,11 +197,6 @@
             android:icon="@drawable/ic_settings_about"
             android:key="p_settings_about"
             android:title="@string/settings_about" />
-
-        <Preference
-            android:icon="@drawable/ic_settings_help"
-            android:key="p_settings_help"
-            android:title="@string/settings_help" />
     </PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

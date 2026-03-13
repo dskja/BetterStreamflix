@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.databinding.FragmentGenreMobileBinding
-import com.streamflixreborn.streamflix.databinding.HeaderGenreMobileBinding
 import com.streamflixreborn.streamflix.models.Genre
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
@@ -109,17 +108,7 @@ class GenreMobileFragment : Fragment() {
 
     private fun initializeGenre() {
         binding.rvGenre.apply {
-            layoutManager = GridLayoutManager(context, 3).also {
-                it.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                    override fun getSpanSize(position: Int): Int {
-                        val viewType = appAdapter.getItemViewType(position)
-                        return when (AppAdapter.Type.entries[viewType]) {
-                            AppAdapter.Type.HEADER -> it.spanCount
-                            else -> 1
-                        }
-                    }
-                }
-            }
+            layoutManager = GridLayoutManager(context, 3)
             adapter = appAdapter.apply {
                 stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
             }
@@ -130,19 +119,6 @@ class GenreMobileFragment : Fragment() {
     }
 
     private fun displayGenre(genre: Genre, hasMore: Boolean) {
-        appAdapter.setHeader(
-            binding = { parent ->
-                HeaderGenreMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
-                )
-            },
-            bind = { binding ->
-                binding.tvGenreName.text = genre.name.takeIf { it.isNotEmpty() } ?: args.name
-            }
-        )
-
         appAdapter.submitList(genre.shows.onEach {
             when (it) {
                 is Movie -> it.itemType = AppAdapter.Type.MOVIE_GRID_MOBILE_ITEM

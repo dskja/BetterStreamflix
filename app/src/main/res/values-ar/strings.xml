@@ -116,11 +116,15 @@
     <string name="player_settings_caption_style_margin_label">هامش سفلي</string>
 
 	<string name="settings_about">حول</string>
+	<string name="settings_version_tv">إصدار التلفاز</string>
+	<string name="settings_version_mobile">إصدار الهاتف</string>
 	<string name="settings_about_version">الإصدار</string>
 	<string name="settings_about_version_name">الإصدار %s</string>
 	<string name="settings_help">مساعدة</string>
 	<string name="settings_telegram">مجموعة تيليجرام</string>
 	<string name="settings_category_network_title">إعدادات الشبكة</string>
+	<string name="settings_category_cuevana">إعدادات Cuevana 3</string>
+	<string name="settings_category_cuevana_domain">اسم نطاق Cuevana 3</string>
 	<string name="settings_category_provider_title">إعدادات المزود</string>
 	<string name="settings_category_provider_url">الرابط الرئيسي</string>
 	<string name="settings_category_provider_update_url">رابط البوابة</string>

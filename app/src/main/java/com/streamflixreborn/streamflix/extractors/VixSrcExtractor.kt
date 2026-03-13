@@ -101,7 +101,7 @@ class VixSrcExtractor : Extractor() {
                     val langCode = providerLang
                     val baseUri = response.request.url
                     
-                    Log.d("SmartSubtitleLog", "--- VixSrc Subtitle Processing START ($langCode) ---")
+                    Log.i("StreamFlixES", "[VixSrc] --- Processing START (Lang: $langCode) ---")
 
                     val lines = playlistContent.lines()
                     val finalLines = mutableListOf<String>()
@@ -126,12 +126,14 @@ class VixSrcExtractor : Extractor() {
                             
                             val isTargetAudio = patchedLine.contains("LANGUAGE=\"$langCode\"", ignoreCase = true) || 
                                                 patchedLine.contains("NAME=\"$langCode\"", ignoreCase = true) ||
-                                                (langCode == "it" && patchedLine.contains("Italian", ignoreCase = true)) ||
-                                                (langCode == "en" && patchedLine.contains("English", ignoreCase = true))
+                                                (langCode == "it" && (patchedLine.contains("Italian", true) || patchedLine.contains("ita", true))) ||
+                                                (langCode == "es" && (patchedLine.contains("Spanish", true) || patchedLine.contains("Español", true) || patchedLine.contains("Castellano", true) || patchedLine.contains("spa", true))) ||
+                                                (langCode == "en" && (patchedLine.contains("English", true) || patchedLine.contains("eng", true)))
                             
                             if (isTargetAudio) {
                                 patchedLine = patchedLine.replace("DEFAULT=NO", "DEFAULT=YES")
                                                          .replace("AUTOSELECT=NO", "AUTOSELECT=YES")
+                                Log.i("StreamFlixES", "[AUDIO] -> SET DEFAULT: $langCode")
                             }
                             finalLines.add(patchedLine)
                         } else if (patchedLine.startsWith("#EXT-X-MEDIA:TYPE=SUBTITLES")) {
@@ -142,26 +144,25 @@ class VixSrcExtractor : Extractor() {
                             patchedLine = patchedLine.replace(Regex("DEFAULT=YES", RegexOption.IGNORE_CASE), "DEFAULT=NO")
                                                      .replace(Regex("AUTOSELECT=YES", RegexOption.IGNORE_CASE), "AUTOSELECT=NO")
                             
-                            // LOGICA: Se il nome contiene "forced" E la lingua è quella giusta, ATTIVA.
+                            // LOGICA: Se il nome o la lingua contiene "forced" E la lingua è quella giusta, ATTIVA.
                             val isForced = trackName.contains("forced", ignoreCase = true) || trackLang.contains("forced", ignoreCase = true) || patchedLine.contains("FORCED=YES", ignoreCase = true)
                             val isRightLanguage = trackLang.contains(langCode, ignoreCase = true) || 
                                                   trackName.contains(langCode, ignoreCase = true) ||
-                                                  (langCode == "it" && trackName.contains("Italian", ignoreCase = true)) ||
-                                                  (langCode == "en" && trackName.contains("English", ignoreCase = true))
+                                                  (langCode == "es" && (trackName.contains("Spanish", true) || trackName.contains("Español", true) || trackName.contains("Castellano", true) || trackLang.contains("spa", true))) ||
+                                                  (langCode == "it" && (trackName.contains("Italian", true) || trackLang.contains("ita", true))) ||
+                                                  (langCode == "en" && (trackName.contains("English", true) || trackLang.contains("eng", true)))
 
                             if (isForced && isRightLanguage) {
                                 patchedLine = patchedLine.replace("DEFAULT=NO", "DEFAULT=YES")
                                                          .replace("AUTOSELECT=NO", "AUTOSELECT=YES")
-                                Log.i("SmartSubtitleLog", "[VixSrc] ENABLED Forced: $trackName")
-                            } else {
-                                Log.d("SmartSubtitleLog", "[VixSrc] Disabled: $trackName")
+                                Log.i("StreamFlixES", "[SUBTITLE] -> ENABLED FORCED: $trackName")
                             }
                             finalLines.add(patchedLine)
                         } else {
                             finalLines.add(patchedLine)
                         }
                     }
-                    Log.d("SmartSubtitleLog", "--- VixSrc Subtitle Processing END ---")
+                    Log.i("StreamFlixES", "[VixSrc] --- Processing END ---")
                     
                     val base64Manifest = Base64.encodeToString(finalLines.joinToString("\n").toByteArray(), Base64.NO_WRAP)
                     videoSource = "data:application/vnd.apple.mpegurl;base64,$base64Manifest"

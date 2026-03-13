@@ -117,6 +117,7 @@ class CategoryViewHolder(
         onMovieClick: ((Movie) -> Unit)?,
         onTvShowClick: ((TvShow) -> Unit)?
     ) {
+        binding.tvCategoryTitle.text = category.name
         val handler = Handler(Looper.getMainLooper())
         handler.postDelayed(8_000) {
             binding.vpCategorySwiper.currentItem += 1
@@ -184,6 +185,7 @@ class CategoryViewHolder(
     }
 
     private fun displayTvSwiper(binding: ContentCategorySwiperTvBinding) {
+        binding.tvCategoryTitle.text = category.name
         val selected = category.list.getOrNull(category.selectedIndex) as? Show ?: return
 
         fun checkProviderAndRun(show: Show, action: () -> Unit) {

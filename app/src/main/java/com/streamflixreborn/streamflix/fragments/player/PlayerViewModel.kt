@@ -99,6 +99,11 @@ class PlayerViewModel(
         try {
             val servers = UserPreferences.currentProvider!!.getServers(id, videoType)
             if (servers.isEmpty()) throw Exception("No servers found")
+            
+            // LOG POTENZIATO: Mostra tutti i server disponibili per il player
+            Log.i("StreamFlixES", "[SERVERS LIST] -> Provider: ${UserPreferences.currentProvider!!.name}")
+            Log.i("StreamFlixES", "[SERVERS LIST] -> Found ${servers.size} servers: ${servers.joinToString { it.name }}")
+
             Log.d("PlayerViewModel", "Ricerca server completata: ${servers.size} server trovati")
             _state.emit(State.SuccessLoadingServers(servers))
         } catch (e: Exception) {
@@ -114,10 +119,19 @@ class PlayerViewModel(
             val video = UserPreferences.currentProvider!!.getVideo(server)
             if (video.source.isEmpty()) throw Exception("No source found")
 
-            if (!(video.isVoe && UserPreferences.serverVoeAutoSubtitlesDisabled)) {
-                video.subtitles
-                    .firstOrNull { it.label.startsWith(UserPreferences.subtitleName ?: "") }
-                    ?.default = true
+            // LOGICA SOTTOTITOLI GLOBALE: 
+            // Se il provider non ha già impostato un default (es. i "forced" in spagnolo),
+            // allora proviamo ad attivare l'ultimo sottotitolo usato dall'utente.
+            // MA: se siamo su un provider spagnolo e non ci sono forced, non dobbiamo attivare nulla.
+            val currentProviderLang = UserPreferences.currentProvider?.language ?: ""
+            val hasDefaultAlready = video.subtitles.any { it.default }
+
+            if (!hasDefaultAlready && currentProviderLang != "es") {
+                if (!(video.isVoe && UserPreferences.serverVoeAutoSubtitlesDisabled)) {
+                    video.subtitles
+                        .firstOrNull { it.label.startsWith(UserPreferences.subtitleName ?: "") }
+                        ?.default = true
+                }
             }
 
             Log.d("PlayerViewModel", "Estrazione video completata con successo")

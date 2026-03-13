@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.extractors
 
 import android.util.Base64
+import android.util.Log
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
@@ -18,7 +19,7 @@ open class FilemoonExtractor : Extractor() {
 
     override val name = "Filemoon"
     override val mainUrl = "https://filemoon.site"
-    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com","https://moflix-stream.link","https://bysezoxexe.com","https://bysebuho.com","https://filemoon.sx","https://bysekoze.com")
+    override val aliasUrls = listOf("https://bf0skv.org","https://bysejikuar.com","https://moflix-stream.link","https://bysezoxexe.com","https://bysebuho.com","https://filemoon.sx","https://bysekoze.com","https://bysesayeveum.com")
 
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)
@@ -67,6 +68,8 @@ open class FilemoonExtractor : Extractor() {
         if (sources.length() == 0) throw Exception("Empty sources list")
         
         val sourceUrl = sources.getJSONObject(0).getString("url")
+
+        Log.i("StreamFlixES", "[Filemoon] -> Source found: $sourceUrl")
 
         return Video(
             source = sourceUrl,

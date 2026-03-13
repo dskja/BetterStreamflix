@@ -54,6 +54,7 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.ui.PlayerMobileView
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
@@ -484,6 +485,17 @@ class PlayerMobileFragment : Fragment() {
         isSetupDone = false
     }
 
+    fun onBackPressed(): Boolean = when {
+        binding.pvPlayer.isManualZoomEnabled -> {
+            binding.pvPlayer.exitManualZoomMode()
+            true
+        }
+        binding.settings.isVisible -> {
+            binding.settings.onBackPressed()
+        }
+        else -> false
+    }
+
 
     private fun initializeVideo() {
         WindowCompat.getInsetsController(
@@ -615,6 +627,12 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
             player.seekTo(player.currentPosition + 85000)
             it.isGone = true
+        }
+
+        binding.settings.onManualZoomClicked = {
+            binding.settings.hide()
+            binding.pvPlayer.hideController()
+            binding.pvPlayer.enterManualZoomMode()
         }
     }
 
@@ -919,27 +937,29 @@ class PlayerMobileFragment : Fragment() {
 
                     when (videoType) {
                         is Video.Type.Movie -> {
-                            val movie = watchItem as Movie
-                            database.movieDao().update(movie)
+                            val movie = watchItem as? Movie
+                            movie?.let { database.movieDao().update(it) }
                         }
 
                         is Video.Type.Episode -> {
-                            val episode = watchItem as Episode
-                            if (player.hasFinished()) {
-                                database.episodeDao().resetProgressionFromEpisode(videoType.id)
-                            }
-                            database.episodeDao().update(episode)
+                            val episode = watchItem as? Episode
+                            episode?.let {
+                                if (player.hasFinished()) {
+                                    database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                                }
+                                database.episodeDao().update(it)
 
-                            episode.tvShow?.let { tvShow ->
-                                database.tvShowDao().getById(tvShow.id)
-                            }?.let { tvShow ->
-                                val episodeDao = database.episodeDao()
-                                val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
-                                
-                                database.tvShowDao().save(tvShow.copy().apply {
-                                    merge(tvShow)
-                                    isWatching = !player.hasReallyFinished() || isStillWatching
-                                })
+                                it.tvShow?.let { tvShow ->
+                                    database.tvShowDao().getById(tvShow.id)
+                                }?.let { tvShow ->
+                                    val episodeDao = database.episodeDao()
+                                    val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
+                                    
+                                    database.tvShowDao().save(tvShow.copy().apply {
+                                        merge(tvShow)
+                                        isWatching = !player.hasReallyFinished() || isStillWatching
+                                    })
+                                }
                             }
                         }
                     }
@@ -947,7 +967,6 @@ class PlayerMobileFragment : Fragment() {
                         if (UserPreferences.autoplay) {
                             viewModel.autoplayNextEpisode()
                         }
-
                     }
                 }
             }
@@ -997,7 +1016,7 @@ class PlayerMobileFragment : Fragment() {
 
     private fun ExoPlayer.hasReallyFinished(): Boolean {
         return this.duration > 0 &&
-                this.currentPosition >= this.duration
+                this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
     }
     private fun startProgressHandler() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -1075,6 +1094,13 @@ class PlayerMobileFragment : Fragment() {
                         .build(),
                     true,
                 )
+
+                val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
+                if (lang == "es") {
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setPreferredAudioLanguage("spa")
+                        .build()
+                }
 
                 mediaSession = MediaSession.Builder(requireContext(), player)
                     .build()

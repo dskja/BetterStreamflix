@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.adapters.viewholders
 
 import android.graphics.drawable.GradientDrawable
+import android.os.Bundle
 import android.view.animation.AnimationUtils
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
@@ -8,8 +9,6 @@ import androidx.viewbinding.ViewBinding
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.databinding.ItemGenreGridMobileBinding
 import com.streamflixreborn.streamflix.databinding.ItemGenreGridTvBinding
-import com.streamflixreborn.streamflix.fragments.search.SearchMobileFragmentDirections
-import com.streamflixreborn.streamflix.fragments.search.SearchTvFragmentDirections
 import com.streamflixreborn.streamflix.models.Genre
 
 
@@ -38,12 +37,11 @@ class GenreViewHolder(
             (background as? GradientDrawable)?.setColor(colors[bindingAdapterPosition % colors.size])
 
             setOnClickListener {
-                findNavController().navigate(
-                    SearchMobileFragmentDirections.actionSearchToGenre(
-                        id = genre.id,
-                        name = genre.name,
-                    )
-                )
+                val args = Bundle().apply {
+                    putString("id", genre.id)
+                    putString("name", genre.name)
+                }
+                findNavController().navigate(R.id.genre, args)
             }
         }
 
@@ -56,12 +54,11 @@ class GenreViewHolder(
             (background as? GradientDrawable)?.setColor(colors[bindingAdapterPosition % colors.size])
 
             setOnClickListener {
-                findNavController().navigate(
-                    SearchTvFragmentDirections.actionSearchToGenre(
-                        id = genre.id,
-                        name = genre.name,
-                    )
-                )
+                val args = Bundle().apply {
+                    putString("id", genre.id)
+                    putString("name", genre.name)
+                }
+                findNavController().navigate(R.id.genre, args)
             }
             setOnFocusChangeListener { _, hasFocus ->
                 val animation = when {

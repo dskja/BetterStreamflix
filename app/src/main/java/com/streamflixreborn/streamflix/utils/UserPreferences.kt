@@ -25,6 +25,7 @@ object UserPreferences {
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.buzz"
+    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana3.la"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -137,6 +138,12 @@ object UserPreferences {
         get() = Key.FORCE_EXTRA_BUFFERING.getBoolean() ?: false
         set(value) {
             Key.FORCE_EXTRA_BUFFERING.setBoolean(value)
+        }
+
+    var autoplayBuffer: Long
+        get() = Key.AUTOPLAY_BUFFER.getLong() ?: 3L
+        set(value) {
+            Key.AUTOPLAY_BUFFER.setLong(value)
         }
 
     var serverVoeAutoSubtitlesDisabled: Boolean
@@ -270,6 +277,30 @@ object UserPreferences {
             }
         }
 
+    var cuevanaDomain: String
+        get() {
+            if (!::prefs.isInitialized) return DEFAULT_CUEVANA_DOMAIN
+            val storedValue = prefs.getString(Key.CUEVANA_DOMAIN.name, null)
+            return if (storedValue.isNullOrEmpty()) DEFAULT_CUEVANA_DOMAIN else storedValue
+        }
+        set(value) {
+            val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.CUEVANA_DOMAIN.name, null) else null
+            if (!::prefs.isInitialized) return
+
+            if (value != oldDomain && !value.isNullOrEmpty() && !oldDomain.isNullOrEmpty()) {
+                clearProviderCache("Cuevana 3")
+            }
+
+            with(prefs.edit()) {
+                if (value.isNullOrEmpty()) {
+                    remove(Key.CUEVANA_DOMAIN.name)
+                } else {
+                    putString(Key.CUEVANA_DOMAIN.name, value)
+                }
+                apply()
+            }
+        }
+
     var dohProviderUrl: String
         get() = Key.DOH_PROVIDER_URL.getString() ?: DEFAULT_DOH_PROVIDER_URL
         set(value) {
@@ -303,6 +334,7 @@ object UserPreferences {
         QUALITY_HEIGHT,
         SUBTITLE_NAME,
         STREAMINGCOMMUNITY_DOMAIN,
+        CUEVANA_DOMAIN,
         DOH_PROVIDER_URL, // Removed STREAMINGCOMMUNITY_DNS_OVER_HTTPS, added DOH_PROVIDER_URL
         AUTOPLAY,
         PROVIDER_CACHE,
@@ -312,6 +344,7 @@ object UserPreferences {
         TMDB_API_KEY,
         SUBDL_API_KEY,
         FORCE_EXTRA_BUFFERING,
+        AUTOPLAY_BUFFER,
         SERVER_VOE_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
         SELECTED_THEME;

@@ -103,6 +103,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         SERVERS,
         GESTURES,
         KEEP_SCREEN_ON,
+        MANUAL_ZOOM,
     }
 
     protected var onQualitySelected: ((Settings.Quality) -> Unit) =
@@ -353,7 +354,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
     sealed class Settings : Item {
 
         companion object {
-            val list = listOf(
+            val listMobile = listOf(
                 Quality,
                 Audio,
                 Subtitle,
@@ -362,8 +363,20 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 ExtraBuffering,
                 Gestures,
                 KeepScreenOn,
+                ManualZoom,
+            )
+            val listTv = listOf(
+                Quality,
+                Audio,
+                Subtitle,
+                Speed,
+                Server,
+                ExtraBuffering,
+                ManualZoom,
             )
         }
+
+        data object ManualZoom : Settings()
 
         sealed class Gestures : Item {
             companion object : Settings() {
@@ -406,7 +419,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 var isDefaultEnabled = false
                 var selectedValue: Boolean? = null
 
-                val isEnabled: Boolean get() = selectedValue ?: (UserPreferences.forceExtraBuffering || isDefaultEnabled)
+                val isEnabled: Boolean get() = selectedValue ?: (isDefaultEnabled || UserPreferences.forceExtraBuffering)
 
                 val list = listOf(On, Off)
 
@@ -427,7 +440,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 override val stringId: Int
                     get() = when {
                         selectedValue == null && isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_on
-                        (selectedValue == true && !isDefaultEnabled) || (selectedValue == null && UserPreferences.forceExtraBuffering && !isDefaultEnabled) -> R.string.player_settings_extra_buffer_forced_on
+                        selectedValue == true && !isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_on
                         else -> R.string.player_settings_extra_buffer_on
                     }
             }
@@ -436,8 +449,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 override val isSelected: Boolean get() = !isEnabled
                 override val stringId: Int
                     get() = when {
-                        selectedValue == null && !isDefaultEnabled && !UserPreferences.forceExtraBuffering -> R.string.player_settings_extra_buffer_auto_off
-                        selectedValue == false && (isDefaultEnabled || UserPreferences.forceExtraBuffering) -> R.string.player_settings_extra_buffer_forced_off
+                        selectedValue == null && !isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_off
+                        selectedValue == false && isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_off
                         else -> R.string.player_settings_extra_buffer_off
                     }
             }

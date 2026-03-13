@@ -1,4 +1,5 @@
-﻿<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">Si è verificato un errore</string>
@@ -28,6 +29,7 @@
     <string name="main_menu_home">Home</string>
     <string name="main_menu_movies">Film</string>
     <string name="main_menu_tv_shows">Serie TV</string>
+    <string name="main_menu_all_channels">Tutti i canali</string>
     <string name="main_menu_settings">Impostazioni</string>
     <string name="main_menu_theme_change">Cambia Tema</string>
     <string name="theme_default">Predefinito</string>
@@ -208,12 +210,17 @@
     <string name="player_settings_servers_title">Servers</string>
     <string name="player_settings_servers_label">Servers</string>
 
+    <string name="settings_about">Informazioni</string>
     <string name="settings_about_version">Versione</string>
+    <string name="settings_version_tv">Versione TV</string>
+    <string name="settings_version_mobile">Versione Mobile</string>
     <string name="settings_about_version_name">Versione %s</string>
     <string name="settings_help">Aiuto</string>
     <string name="settings_telegram">Gruppo Telegram</string>
     <string name="settings_category_streamingcommunity">Impostazioni StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Nome di dominio StreamingCommunity</string>
+    <string name="settings_category_cuevana">Impostazioni Cuevana 3</string>
+    <string name="settings_category_cuevana_domain">Nome di dominio Cuevana 3</string>
     <string name="settings_close_app">Chiudi applicazione</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Use secure DNS</string>
     <string name="settings_category_network_title">Impostazioni di rete</string>
