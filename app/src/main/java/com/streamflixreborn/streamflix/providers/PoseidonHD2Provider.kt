@@ -24,8 +24,7 @@ object PoseidonHD2Provider : Provider {
     private const val URL = "https://www.poseidonhd2.co/"
     override val baseUrl = URL
     override val name = "Poseidonhd2"
-    override val logo =
-        "https://www.poseidonhd2.co/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo.33e4f182.png&w=640&q=7"
+    override val logo = "https://www.poseidonhd2.co/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fposeidonhd2.86e0c298.png&w=640&q=75"
     override val language = "es"
 
     private const val TAG = "PoseidonHD2"
