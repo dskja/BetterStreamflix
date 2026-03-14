@@ -125,12 +125,6 @@ object PoseidonHD2Provider : Provider {
             } else null
         }
 
-        // 1. FEATURED
-        json.optJSONArray("sliderItems")?.let { array ->
-            val list = (0 until array.length()).mapNotNull { i -> parseNextItem(array.getJSONObject(i)) }
-            if (list.isNotEmpty()) categories.add(Category(Category.FEATURED, list))
-        }
-
         // 2. TABS (Movies)
         val tabMap = listOf(
             "tabLastMovies" to "Últimas películas",

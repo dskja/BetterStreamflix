@@ -140,52 +140,33 @@ object CuevanaEuProvider : Provider {
         return try {
             coroutineScope {
                 val document = service.getPage("$baseUrl/")
+                Log.d(TAG, "getHome: fetched document from $baseUrl. Length: ${document.toString().length}")
+                if (document.toString().length > 1000) {
+                    Log.d(TAG, "getHome HTML Snippet: ${document.toString().take(1000)}")
+                }
 
                 val categories = mutableListOf<Category>()
-
-                // Featured / Top 10
-                val featured = document.select("div.embla__viewport article").mapNotNull { article ->
-                    val a = article.selectFirst("h2 a") ?: return@mapNotNull null
-                    val title = a.selectFirst("span.sr-only")?.text() ?: a.text()
-                    val href = a.attr("href")
-                    val poster = article.selectFirst("img.poster")?.let {
-                        it.attr("data-src").ifEmpty { it.attr("src") }
-                    }
-                    if (href.contains("/pelicula/")) {
-                        Movie(
-                            id = href.substringAfter(baseUrl).trim('/'),
-                            title = title,
-                            poster = poster
-                        )
-                    } else if (href.contains("/serie/")) {
-                        TvShow(
-                            id = href.substringAfter(baseUrl).trim('/'),
-                            title = title,
-                            poster = poster
-                        )
-                    } else null
-                }
-                if (featured.isNotEmpty()) {
-                    categories.add(Category(name = Category.FEATURED, list = featured))
-                }
 
                 fun parseSection(selector: String, name: String): Category? {
                     val items = document.select("$selector article").mapNotNull { article ->
                         val a = article.selectFirst("h2 a") ?: return@mapNotNull null
                         val title = a.text()
                         val href = a.attr("href")
-                        val poster = article.selectFirst("img.poster")?.let {
-                            it.attr("data-src").ifEmpty { it.attr("src") }
-                        }
+                        val poster = (article.selectFirst("img")?.let {
+                            it.attr("data-src").ifEmpty { it.attr("src") }.ifEmpty { it.attr("data-lazy-src") }
+                        } ?: article.selectFirst(".backdrop")?.attr("style")?.let { style ->
+                            Regex("url\\(['\"]?(.*?)['\"]?\\)").find(style)?.groupValues?.get(1)
+                        })?.let { fixImageUrl(it) }
+
                         if (href.contains("/pelicula/")) {
                             Movie(
-                                id = href.substringAfter(baseUrl).trim('/'),
+                                id = extractId(href),
                                 title = title,
                                 poster = poster
                             )
                         } else if (href.contains("/serie/")) {
                             TvShow(
-                                id = href.substringAfter(baseUrl).trim('/'),
+                                id = extractId(href),
                                 title = title,
                                 poster = poster
                             )
@@ -234,18 +215,21 @@ object CuevanaEuProvider : Provider {
                 val a = article.selectFirst("h2 a") ?: return@mapNotNull null
                 val title = a.text()
                 val href = a.attr("href")
-                val poster = article.selectFirst("img.poster")?.let {
-                    it.attr("data-src").ifEmpty { it.attr("src") }
-                }
+                val poster = (article.selectFirst("img")?.let {
+                    it.attr("data-src").ifEmpty { it.attr("src") }.ifEmpty { it.attr("data-lazy-src") }
+                } ?: article.selectFirst(".backdrop")?.attr("style")?.let { style ->
+                    Regex("url\\(['\"]?(.*?)['\"]?\\)").find(style)?.groupValues?.get(1)
+                })?.let { fixImageUrl(it) }
+
                 if (href.contains("/pelicula/")) {
                     Movie(
-                        id = href.substringAfter(baseUrl).trim('/'),
+                        id = extractId(href),
                         title = title,
                         poster = poster
                     )
                 } else if (href.contains("/serie/")) {
                     TvShow(
-                        id = href.substringAfter(baseUrl).trim('/'),
+                        id = extractId(href),
                         title = title,
                         poster = poster
                     )
@@ -265,11 +249,13 @@ object CuevanaEuProvider : Provider {
                 val href = a.attr("href")
                 if (!href.contains("/pelicula/")) return@mapNotNull null
                 Movie(
-                    id = href.substringAfter(baseUrl).trim('/'),
+                    id = extractId(href),
                     title = a.text(),
-                    poster = article.selectFirst("img.poster")?.let {
-                        it.attr("data-src").ifEmpty { it.attr("src") }
-                    }
+                    poster = (article.selectFirst("img")?.let {
+                        it.attr("data-src").ifEmpty { it.attr("src") }.ifEmpty { it.attr("data-lazy-src") }
+                    } ?: article.selectFirst(".backdrop")?.attr("style")?.let { style ->
+                        Regex("url\\(['\"]?(.*?)['\"]?\\)").find(style)?.groupValues?.get(1)
+                    })?.let { fixImageUrl(it) }
                 )
             }
         } catch (e: Exception) {
@@ -286,11 +272,13 @@ object CuevanaEuProvider : Provider {
                 val href = a.attr("href")
                 if (!href.contains("/serie/")) return@mapNotNull null
                 TvShow(
-                    id = href.substringAfter(baseUrl).trim('/'),
+                    id = extractId(href),
                     title = a.text(),
-                    poster = article.selectFirst("img.poster")?.let {
-                        it.attr("data-src").ifEmpty { it.attr("src") }
-                    }
+                    poster = (article.selectFirst("img")?.let {
+                        it.attr("data-src").ifEmpty { it.attr("src") }.ifEmpty { it.attr("data-lazy-src") }
+                    } ?: article.selectFirst(".backdrop")?.attr("style")?.let { style ->
+                        Regex("url\\(['\"]?(.*?)['\"]?\\)").find(style)?.groupValues?.get(1)
+                    })?.let { fixImageUrl(it) }
                 )
             }
         } catch (e: Exception) {
@@ -369,8 +357,12 @@ object CuevanaEuProvider : Provider {
             ?: document.selectFirst("div[data-read-more-text]")?.text() ?: ""
         val released = document.select("div.flex.items-center.flex-wrap.gap-x-1 span")
             .firstOrNull { it.text().matches(Regex("\\d{4}")) }?.text()
-        val poster = document.selectFirst("div.self-start figure img")?.attr("src")
-        val banner = document.selectFirst("figure.mask-to-l img")?.attr("src")
+        val poster = document.selectFirst("div.self-start figure img, div.Image img")?.let {
+            it.attr("data-src").ifEmpty { it.attr("src") }
+        }?.let { fixImageUrl(it) }
+        val banner = document.selectFirst("figure.mask-to-l img, .backdrop img")?.let {
+            it.attr("data-src").ifEmpty { it.attr("src") }
+        }?.let { fixImageUrl(it) }
 
         val genres = document.select("a[href*='/genero/']").map {
             Genre(id = it.attr("href").substringAfter("/genero/").trim('/'), name = it.text())
@@ -496,8 +488,12 @@ object CuevanaEuProvider : Provider {
             ?: document.selectFirst("div[data-read-more-text]")?.text() ?: ""
         val released = document.select("div.flex.items-center.flex-wrap.gap-x-1 span")
             .firstOrNull { it.text().matches(Regex("\\d{4}")) }?.text()
-        val poster = document.selectFirst("div.self-start figure img")?.attr("src")
-        val banner = document.selectFirst("figure.mask-to-l img")?.attr("src")
+        val poster = document.selectFirst("div.self-start figure img, div.Image img")?.let {
+            it.attr("data-src").ifEmpty { it.attr("src") }
+        }?.let { fixImageUrl(it) }
+        val banner = document.selectFirst("figure.mask-to-l img, .backdrop img")?.let {
+            it.attr("data-src").ifEmpty { it.attr("src") }
+        }?.let { fixImageUrl(it) }
 
         val genres = document.select("a[href*='/genero/']").map {
             Genre(id = it.attr("href").substringAfter("/genero/").trim('/'), name = it.text())
@@ -780,6 +776,18 @@ object CuevanaEuProvider : Provider {
 
     override val logo: String get() = "$baseUrl/wp-content/uploads/2025/05/icono-cuevana-3-dark.webp"
 
+    private fun fixImageUrl(url: String): String? {
+        if (url.isEmpty()) return null
+        if (url.startsWith("data:image")) return null
+        return if (url.startsWith("http")) url 
+        else if (url.startsWith("//")) "https:$url" 
+        else "$baseUrl/${url.trimStart('/')}"
+    }
+
+    private fun extractId(url: String): String {
+        return url.substringAfter(baseUrl).trim('/')
+    }
+
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {
             val url = if (page == 1) "$baseUrl/genero/$id/" else "$baseUrl/genero/$id/page/$page/"
@@ -787,18 +795,19 @@ object CuevanaEuProvider : Provider {
             val shows = document.select("article.tooltip-content").mapNotNull { article ->
                 val a = article.selectFirst("h2 a") ?: return@mapNotNull null
                 val href = a.attr("href")
-                val poster = article.selectFirst("img.poster")?.let {
+                val poster = article.selectFirst("img")?.let {
                     it.attr("data-src").ifEmpty { it.attr("src") }
-                }
+                }?.let { fixImageUrl(it) }
+
                 if (href.contains("/pelicula/")) {
                     Movie(
-                        id = href.substringAfter(baseUrl).trim('/'),
+                        id = extractId(href),
                         title = a.text(),
                         poster = poster
                     )
                 } else if (href.contains("/serie/")) {
                     TvShow(
-                        id = href.substringAfter(baseUrl).trim('/'),
+                        id = extractId(href),
                         title = a.text(),
                         poster = poster
                     )
