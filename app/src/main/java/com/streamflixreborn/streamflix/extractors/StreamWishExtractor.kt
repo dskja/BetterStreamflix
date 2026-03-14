@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.extractors
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.net.Uri
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -95,32 +96,59 @@ open class StreamWishExtractor : Extractor() {
         "https://ultpreplayer.com",
         "https://hglink.to",
         "https://haxloppd.com",
+        "https://streamwish.club",
+        "https://streamwish.cc",
+        "https://streamwish.biz",
+        "https://swish.site",
+        "https://wishon.site",
+        "https://vidwish.site",
+        "https://awish.top",
+        "https://dwish.top",
+        "https://mwish.top",
+        "https://streamwish.info",
+        "https://streamwish.net",
+        "https://streamwish.org",
+        "https://streamwish.live",
+        "https://streamwish.me",
     )
 
     protected var referer = ""
     val context = StreamFlixApp.instance.applicationContext
 
     override suspend fun extract(link: String): Video {
+        if (referer.isEmpty()) {
+            val uri = Uri.parse(link)
+            if (uri.scheme != null && uri.host != null) {
+                referer = "${uri.scheme}://${uri.host}/"
+            }
+        }
         val service = Service.build(mainUrl)
         val redirectedUrl = resolveRedirectWithWebView(context, link, mainUrl)
-        val document = redirectedUrl.let { service.get(it, referer = referer) }
+        val document = service.get(redirectedUrl, referer = referer)
 
 
         val script = Regex(
             "<script .*>(eval.*?)</script>",
             RegexOption.DOT_MATCHES_ALL
-        ).find(document.toString())
-            ?.groupValues?.get(1)
-            ?.let { JsUnpacker(it).unpack() }
+        ).findAll(document.toString())
+            .mapNotNull { it.groupValues[1].let { js -> JsUnpacker(js).unpack() } }
+            .firstOrNull { it.contains("m3u8") }
             ?: throw Exception("Can't retrieve script")
 
-        val source = Regex("\"hls(\\d+)\"\\s*:\\s*\"(https:[^\"]+\\.m3u8[^\"]*)\"")
+        val source = Regex("""(?:["']?hls(\d*)["']?|["']?file["']?)\s*[:=]\s*["']((?:https?://|/)[^"']+\.m3u8[^"']*)["']""")
             .findAll(script)
-            .map { it.groupValues[1].toInt() to it.groupValues[2] }
-            .sortedBy { it.first }  // hls2 > hls3 > hls4
+            .map { (it.groupValues[1].toIntOrNull() ?: 0) to it.groupValues[2] }
+            .sortedByDescending { it.first }
             .map { it.second }
             .firstOrNull()
             ?: throw Exception("Can't retrieve m3u8")
+
+        val finalSource = if (source.startsWith("/")) {
+            val uri = Uri.parse(redirectedUrl)
+            "${uri.scheme}://${uri.host}$source"
+        } else {
+            source
+        }
 
         val subtitles =
             Regex("file:\\s*\"(.*?)\"(?:,label:\\s*\"(.*?)\")?,kind:\\s*\"(.*?)\"").findAll(
@@ -138,12 +166,12 @@ open class StreamWishExtractor : Extractor() {
                 .toList()
 
         val video = Video(
-            source = source,
+            source = finalSource,
             subtitles = subtitles,
             headers = mapOf(
                 "Referer" to referer,
-                "Origin" to mainUrl,
-                "User-Agent" to "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:139.0) Gecko/20100101 Firefox/139.0",
+                "Origin" to "https://${Uri.parse(redirectedUrl).host}",
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                 "Accept" to "*/*",
                 "Accept-Language" to "en-US,en;q=0.5",
                 "Connection" to "keep-alive",
@@ -160,6 +188,7 @@ open class StreamWishExtractor : Extractor() {
                 suspendCancellableCoroutine { cont ->
                     val webView = WebView(context)
                     webView.settings.javaScriptEnabled = true
+                    webView.settings.domStorageEnabled = true
 
                     webView.webViewClient = object : WebViewClient() {
                         override fun shouldOverrideUrlLoading(
@@ -167,7 +196,7 @@ open class StreamWishExtractor : Extractor() {
                             request: WebResourceRequest?
                         ): Boolean {
                             val newUrl = request?.url.toString()
-                            if (newUrl.contains(mainUrl)) {
+                            if (newUrl.contains(mainUrl) || newUrl.contains("/e/")) {
                                 if (cont.isActive) cont.resume(newUrl)
                                 webView.destroy()
                                 return true
@@ -176,7 +205,7 @@ open class StreamWishExtractor : Extractor() {
                         }
 
                         override fun onPageFinished(view: WebView?, url: String?) {
-                            if (url != null && url.contains(mainUrl)) {
+                            if (url != null && (url.contains(mainUrl) || url.contains("/e/") || !url.contains("about:blank"))) {
                                 if (cont.isActive) cont.resume(url)
                                 webView.destroy()
                             }
