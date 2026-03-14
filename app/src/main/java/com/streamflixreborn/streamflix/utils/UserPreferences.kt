@@ -26,6 +26,7 @@ object UserPreferences {
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.buzz"
     private const val DEFAULT_CUEVANA_DOMAIN = "cuevana3.la"
+    private const val DEFAULT_POSEIDON_DOMAIN = "www.poseidonhd2.co"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -301,6 +302,30 @@ object UserPreferences {
             }
         }
 
+    var poseidonDomain: String
+        get() {
+            if (!::prefs.isInitialized) return DEFAULT_POSEIDON_DOMAIN
+            val storedValue = prefs.getString(Key.POSEIDON_DOMAIN.name, null)
+            return if (storedValue.isNullOrEmpty()) DEFAULT_POSEIDON_DOMAIN else storedValue
+        }
+        set(value) {
+            val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.POSEIDON_DOMAIN.name, null) else null
+            if (!::prefs.isInitialized) return
+
+            if (value != oldDomain && !value.isNullOrEmpty() && !oldDomain.isNullOrEmpty()) {
+                clearProviderCache("Poseidonhd2")
+            }
+
+            with(prefs.edit()) {
+                if (value.isNullOrEmpty()) {
+                    remove(Key.POSEIDON_DOMAIN.name)
+                } else {
+                    putString(Key.POSEIDON_DOMAIN.name, value)
+                }
+                apply()
+            }
+        }
+
     var dohProviderUrl: String
         get() = Key.DOH_PROVIDER_URL.getString() ?: DEFAULT_DOH_PROVIDER_URL
         set(value) {
@@ -335,6 +360,7 @@ object UserPreferences {
         SUBTITLE_NAME,
         STREAMINGCOMMUNITY_DOMAIN,
         CUEVANA_DOMAIN,
+        POSEIDON_DOMAIN,
         DOH_PROVIDER_URL, // Removed STREAMINGCOMMUNITY_DNS_OVER_HTTPS, added DOH_PROVIDER_URL
         AUTOPLAY,
         PROVIDER_CACHE,

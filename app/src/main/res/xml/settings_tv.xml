@@ -23,6 +23,16 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pc_poseidon_settings"
+        android:title="@string/settings_category_poseidon">
+
+        <EditTextPreference
+            android:key="provider_poseidon_domain"
+            android:title="@string/settings_category_poseidon_domain"
+            android:inputType="text"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="pc_tmdb_settings"
         android:title="@string/settings_category_tmdb">
         <SwitchPreferenceCompat

@@ -27,6 +27,18 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pc_poseidon_settings"
+        android:title="@string/settings_category_poseidon"
+        app:iconSpaceReserved="false">
+
+        <EditTextPreference
+            android:key="provider_poseidon_domain"
+            android:title="@string/settings_category_poseidon_domain"
+            android:inputType="text"
+            app:iconSpaceReserved="false"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="pc_tmdb_settings"
         android:title="@string/settings_category_tmdb"
         app:iconSpaceReserved="false">

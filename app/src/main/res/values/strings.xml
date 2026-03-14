@@ -223,6 +223,8 @@
     <string name="settings_category_streamingcommunity_domain">StreamingCommunity domain name</string>
     <string name="settings_category_cuevana">Cuevana 3 settings</string>
     <string name="settings_category_cuevana_domain">Cuevana 3 domain name</string>
+    <string name="settings_category_poseidon">Poseidonhd2 settings</string>
+    <string name="settings_category_poseidon_domain">Poseidonhd2 domain name</string>
     <string name="settings_close_app">Close app</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Use secure DNS</string>
     <string name="settings_category_network_title">Network Settings</string>

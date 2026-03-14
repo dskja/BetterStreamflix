@@ -6,6 +6,7 @@ import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.TMDb3
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
@@ -30,22 +31,38 @@ import java.util.concurrent.TimeUnit
 object CuevanaEuProvider : Provider {
 
     override val name = "Cuevana 3"
-    override val baseUrl = "https://cuevana3.la"
+    override val baseUrl: String get() = "https://${UserPreferences.cuevanaDomain}"
     override val language = "es"
     private const val TAG = "CuevanaEuProvider"
 
-    private val client = getOkHttpClient()
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(baseUrl)
-        .addConverterFactory(JsoupConverterFactory.create())
-        .client(client)
-        .build()
-    private val service = retrofit.create(CuevanaEuService::class.java)
+    private var _service: CuevanaEuService? = null
+    private val service: CuevanaEuService
+        get() {
+            if (_service == null) {
+                val retrofit = Retrofit.Builder()
+                    .baseUrl("$baseUrl/")
+                    .addConverterFactory(JsoupConverterFactory.create())
+                    .client(client)
+                    .build()
+                _service = retrofit.create(CuevanaEuService::class.java)
+            }
+            return _service!!
+        }
+
+    private var _client: okhttp3.OkHttpClient? = null
+    private val client: okhttp3.OkHttpClient
+        get() {
+            if (_client == null) {
+                _client = getOkHttpClient()
+            }
+            return _client!!
+        }
+
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun getOkHttpClient(): OkHttpClient {
+    private fun getOkHttpClient(): okhttp3.OkHttpClient {
         val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-        val clientBuilder = OkHttpClient.Builder()
+        val clientBuilder = okhttp3.OkHttpClient.Builder()
             .cache(appCache)
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -55,6 +72,26 @@ object CuevanaEuProvider : Provider {
                     .header("Referer", baseUrl)
                     .build()
                 chain.proceed(request)
+            }
+            .addInterceptor { chain ->
+                val response = chain.proceed(chain.request())
+                if (response.isRedirect) {
+                    val location = response.header("Location")
+                    if (!location.isNullOrEmpty()) {
+                        val newHost = if (location.startsWith("http")) {
+                            java.net.URL(location).host
+                        } else {
+                            null
+                        }
+                        if (!newHost.isNullOrEmpty() && newHost != UserPreferences.cuevanaDomain) {
+                            Log.d(TAG, "Domain changed from ${UserPreferences.cuevanaDomain} to $newHost")
+                            UserPreferences.cuevanaDomain = newHost
+                            _service = null
+                            _client = null
+                        }
+                    }
+                }
+                response
             }
         return clientBuilder.dns(DnsResolver.doh).build()
     }
@@ -741,7 +778,7 @@ object CuevanaEuProvider : Provider {
         return Extractor.extract(finalUrl, server)
     }
 
-    override val logo: String get() = "https://cuevana3.la/wp-content/uploads/2025/05/icono-cuevana-3-dark.webp"
+    override val logo: String get() = "$baseUrl/wp-content/uploads/2025/05/icono-cuevana-3-dark.webp"
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {

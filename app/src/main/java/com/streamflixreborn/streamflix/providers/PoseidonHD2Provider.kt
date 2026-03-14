@@ -7,6 +7,7 @@ import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.utils.NetworkClient
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.TMDb3
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
@@ -21,10 +22,9 @@ import kotlinx.coroutines.*
 
 object PoseidonHD2Provider : Provider {
 
-    private const val URL = "https://www.poseidonhd2.co/"
-    override val baseUrl = URL
+    override val baseUrl: String get() = "https://${UserPreferences.poseidonDomain}"
     override val name = "Poseidonhd2"
-    override val logo = "https://www.poseidonhd2.co/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fposeidonhd2.86e0c298.png&w=640&q=75"
+    override val logo: String get() = "$baseUrl/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fposeidonhd2.86e0c298.png&w=640&q=75"
     override val language = "es"
 
     private const val TAG = "PoseidonHD2"
@@ -34,6 +34,24 @@ object PoseidonHD2Provider : Provider {
             val client = NetworkClient.default.newBuilder()
                 .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(5, TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    val response = chain.proceed(chain.request())
+                    if (response.isRedirect) {
+                        val location = response.header("Location")
+                        if (!location.isNullOrEmpty()) {
+                            val newHost = if (location.startsWith("http")) {
+                                java.net.URL(location).host
+                            } else {
+                                null
+                            }
+                            if (!newHost.isNullOrEmpty() && newHost != UserPreferences.poseidonDomain) {
+                                Log.d(TAG, "Domain changed from ${UserPreferences.poseidonDomain} to $newHost")
+                                UserPreferences.poseidonDomain = newHost
+                            }
+                        }
+                    }
+                    response
+                }
                 .build()
 
             val request = okhttp3.Request.Builder()
@@ -526,7 +544,8 @@ object PoseidonHD2Provider : Provider {
     }
 
     private suspend fun resolvePlayerUrl(playerUrl: String): String? {
-        if (!playerUrl.contains("player.poseidonhd2.co")) return playerUrl
+        val currentHost = UserPreferences.poseidonDomain.removePrefix("www.")
+        if (!playerUrl.contains("player.$currentHost")) return playerUrl
         
         // Try resolving with OkHttp first (fast)
         try {

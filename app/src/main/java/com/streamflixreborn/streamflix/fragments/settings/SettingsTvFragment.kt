@@ -52,6 +52,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.buzz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
+    private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
 
     private lateinit var db: AppDatabase
@@ -133,6 +134,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             isVisible = UserPreferences.currentProvider?.name == "Cuevana 3"
         }
 
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.apply {
+            isVisible = UserPreferences.currentProvider?.name == "Poseidonhd2"
+        }
+
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
             summary = currentValue
@@ -171,6 +176,28 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 UserPreferences.cuevanaDomain = newDomainFromDialog
                 preference.summary = UserPreferences.cuevanaDomain
                 if (UserPreferences.currentProvider?.name == "Cuevana 3") {
+                    requireActivity().apply {
+                        finish()
+                        startActivity(Intent(this, this::class.java))
+                    }
+                }
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("provider_poseidon_domain")?.apply {
+            val currentValue = UserPreferences.poseidonDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_POSEIDON_DOMAIN_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newDomainFromDialog = newValue as String
+                UserPreferences.poseidonDomain = newDomainFromDialog
+                preference.summary = UserPreferences.poseidonDomain
+                if (UserPreferences.currentProvider?.name == "Poseidonhd2") {
                     requireActivity().apply {
                         finish()
                         startActivity(Intent(this, this::class.java))
@@ -572,6 +599,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible =
             UserPreferences.currentProvider?.name == "Cuevana 3"
+
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible =
+            UserPreferences.currentProvider?.name == "Poseidonhd2"
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
