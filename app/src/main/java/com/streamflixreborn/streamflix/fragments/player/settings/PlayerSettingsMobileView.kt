@@ -447,7 +447,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> context.getString(R.string.player_settings_caption_style_label)
                         is Settings.Subtitle.None -> context.getString(R.string.player_settings_subtitles_off)
-                        is Settings.Subtitle.TextTrackInformation -> item.label
+                        is Settings.Subtitle.TextTrackInformation -> item.label.ifEmpty { item.name }
                         Settings.Subtitle.LocalSubtitles -> context.getString(R.string.player_settings_local_subtitles_label)
                         Settings.Subtitle.OpenSubtitles -> context.getString(R.string.player_settings_open_subtitles_label)
                         Settings.Subtitle.SubDLSubtitles -> context.getString(R.string.player_settings_subdl_label)

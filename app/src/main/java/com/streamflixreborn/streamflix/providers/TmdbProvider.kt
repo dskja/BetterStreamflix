@@ -764,20 +764,34 @@ class TmdbProvider(override val language: String) : Provider {
                     // Match esatto (normalizzato) ha la priorità
                     if (nItem == nTarget) return true
                     
-                    // Match parziale solo se il titolo del target è contenuto interamente e la differenza di lunghezza è minima
+                    // Match parziale se contenuto e differenza lunghezza minima
                     if (nItem.contains(nTarget) || nTarget.contains(nItem)) {
                         val diff = Math.abs(nItem.length - nTarget.length)
-                        if (diff <= 3) return true
+                        if (diff <= 5) return true
                     }
                     
-                    val nItemWords = itemTitle.lowercase().split(Regex("\\s+")).filter { it.length > 2 }.toSet()
-                    val nTargetWords = target.lowercase().split(Regex("\\s+")).filter { it.length > 2 }.toSet()
-                    return if (nItemWords.isEmpty() || nTargetWords.isEmpty()) false
-                    else nItemWords.intersect(nTargetWords).size == nTargetWords.size // Tutte le parole del target devono esserci
+                    // Match per parole (almeno una deve corrispondere esattamente se il target è corto, o tutte se lungo)
+                    val cleanWords: (String) -> Set<String> = { s ->
+                        s.lowercase()
+                            .replace(Regex("[^a-z0-9 ]"), " ")
+                            .split(Regex("\\s+"))
+                            .filter { it.length > 2 }
+                            .toSet()
+                    }
+                    val nItemWords = cleanWords(itemTitle)
+                    val nTargetWords = cleanWords(target)
+                    
+                    if (nItemWords.isEmpty() || nTargetWords.isEmpty()) return false
+                    
+                    // Se il target ha solo una parola importante, deve esserci
+                    if (nTargetWords.size == 1) return nItemWords.contains(nTargetWords.first())
+                    
+                    // Altrimenti tutte le parole del target devono essere presenti nell'item
+                    return nItemWords.containsAll(nTargetWords) || nTargetWords.containsAll(nItemWords)
                 }
 
                 coroutineScope {
-                    val providers = listOf(CuevanaEuProvider, PelisplustoProvider, SoloLatinoProvider, CineCalidadProvider)
+                    val providers = listOf(CuevanaEuProvider, PelisplustoProvider, SoloLatinoProvider, CineCalidadProvider, PoseidonHD2Provider)
                     val deferred = providers.map { provider ->
                         async {
                             try {

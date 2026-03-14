@@ -15,6 +15,7 @@ import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.SubtitleView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
+import com.streamflixreborn.streamflix.utils.mediaServers
 import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
@@ -544,6 +545,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     get() = list.find { it.isSelected }
 
                 fun init(player: ExoPlayer, resources: Resources) {
+                    val currentServerId = player.currentMediaItem?.mediaMetadata?.extras?.getString("mediaServerId")
+                    val servers = player.playlistMetadata.mediaServers
+                    val currentServer = servers.find { it.id == currentServerId }
+                    val serverTag = currentServer?.name?.let { name ->
+                        Regex("\\[(.*?)]").find(name)?.groupValues?.get(1)
+                            ?: Regex("\\((.*?)\\)").find(name)?.groupValues?.get(1)
+                    }
+
                     list.clear()
                     list.addAll(
                         player.currentTracks.groups
@@ -551,11 +560,19 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .flatMap { trackGroup ->
                                 trackGroup.trackFormats
                                     .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .filter { it.label != null }
                                     .mapIndexed { trackIndex, trackFormat ->
+                                        val trackName = DefaultTrackNameProvider(resources)
+                                            .getTrackName(trackFormat)
+                                        
+                                        val finalName = when {
+                                            trackName.isBlank() || trackName.lowercase() == "und" || trackName.lowercase() == "unknown" -> {
+                                                if (serverTag != null) "Audio $serverTag" else "Track ${trackIndex + 1}"
+                                            }
+                                            else -> trackName
+                                        }
+
                                         AudioTrackInformation(
-                                            name = DefaultTrackNameProvider(resources)
-                                                .getTrackName(trackFormat),
+                                            name = finalName,
 
                                             trackGroup = trackGroup,
                                             trackIndex = trackIndex,
@@ -604,7 +621,6 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .flatMap { trackGroup ->
                                 trackGroup.trackFormats
                                     .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .filter { it.label != null }
                                     .mapIndexed { trackIndex, trackFormat ->
                                         TextTrackInformation(
                                             name = DefaultTrackNameProvider(resources)

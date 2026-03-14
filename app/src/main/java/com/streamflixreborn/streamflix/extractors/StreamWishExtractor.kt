@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.JsUnpacker
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
@@ -155,39 +156,42 @@ open class StreamWishExtractor : Extractor() {
     @SuppressLint("SetJavaScriptEnabled")
     suspend fun resolveRedirectWithWebView(context: Context, url: String, mainUrl: String): String =
         withContext(Dispatchers.Main) {
-            suspendCancellableCoroutine { cont ->
-                val webView = WebView(context)
-                webView.settings.javaScriptEnabled = true
+            val result = withTimeoutOrNull(30000) {
+                suspendCancellableCoroutine { cont ->
+                    val webView = WebView(context)
+                    webView.settings.javaScriptEnabled = true
 
-                webView.webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView?,
-                        request: WebResourceRequest?
-                    ): Boolean {
-                        val newUrl = request?.url.toString()
-                        if (!newUrl.contains(mainUrl)) {
-                            if (cont.isActive) cont.resume(newUrl)
-                            webView.destroy()
-                            return true
+                    webView.webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: WebResourceRequest?
+                        ): Boolean {
+                            val newUrl = request?.url.toString()
+                            if (newUrl.contains(mainUrl)) {
+                                if (cont.isActive) cont.resume(newUrl)
+                                webView.destroy()
+                                return true
+                            }
+                            return false
                         }
-                        return false
+
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            if (url != null && url.contains(mainUrl)) {
+                                if (cont.isActive) cont.resume(url)
+                                webView.destroy()
+                            }
+                        }
                     }
 
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        if (url != null && url.contains(mainUrl)) {
-                            if (cont.isActive) cont.resume(url)
-                            webView.destroy()
-                        }
+                    webView.loadUrl(url)
+
+                    cont.invokeOnCancellation {
+                        webView.stopLoading()
+                        webView.destroy()
                     }
-                }
-
-                webView.loadUrl(url)
-
-                cont.invokeOnCancellation {
-                    webView.stopLoading()
-                    webView.destroy()
                 }
             }
+            result ?: url // Fallback to original URL if timeout
         }
 
 
