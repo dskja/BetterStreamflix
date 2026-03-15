@@ -5,8 +5,8 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.JsUnpacker
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
-import retrofit2.http.Header
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Url
 
 class MixDropExtractor : Extractor() {
@@ -39,8 +39,7 @@ class MixDropExtractor : Extractor() {
             url = link
                 .replace("/f/", "/e/")
                 .replace(".club/", ".ag/")
-                .replace(Regex("^(https?://[^/]+/e/[^/?#]+).*$", RegexOption.IGNORE_CASE), "$1"),
-            userAgent = DEFAULT_USER_AGENT
+                .replace(Regex("^(https?://[^/]+/e/[^/?#]+).*$", RegexOption.IGNORE_CASE), "$1")
         )
 
         val html = document.toString()
@@ -72,15 +71,32 @@ class MixDropExtractor : Extractor() {
 
     private interface Service {
         @GET
+        @Headers(
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language: it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+            "X-Requested-With: XMLHttpRequest"
+        )
         suspend fun get(
-            @Url url: String,
-            @Header("User-Agent") userAgent: String
+            @Url url: String
         ): Document
 
         companion object {
             fun build(baseUrl: String): Service {
+                val client = okhttp3.OkHttpClient.Builder()
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header("Referer", baseUrl)
+                            .build()
+                        chain.proceed(request)
+                    }
+                    .build()
+
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
+                    .client(client)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .build()
                 return retrofit.create(Service::class.java)

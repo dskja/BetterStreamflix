@@ -139,6 +139,9 @@ class MainMobileActivity : FragmentActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                val handled = (getCurrentFragment() as? PlayerMobileFragment)?.onBackPressed() ?: false
+                if (handled) return
+
                 when (navController.currentDestination?.id) {
                     R.id.home -> finish()
                     R.id.search, R.id.movies, R.id.tv_shows, R.id.settings -> binding.bnvMain.findViewById<View>(R.id.home).performClick()

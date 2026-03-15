@@ -8,6 +8,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.ImageView
+import android.widget.Toast
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.navigation.NavController
@@ -348,6 +350,15 @@ class TvShowViewHolder(
         }
     }
 
+    private fun safeLaunchYoutube(intent: Intent) {
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("TvShowViewHolder", "Failed to launch YouTube intent", e)
+            Toast.makeText(context, context.getString(R.string.player_external_player_error_video), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun handleTrailerClick(trailer: String) {
         val youtubeIntent = Intent(Intent.ACTION_VIEW, trailer.toUri())
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -364,7 +375,7 @@ class TvShowViewHolder(
                 launchSmartTube("org.smarttube.beta", trailer)
             }
             "youtube" -> {
-                context.startActivity(youtubeIntent)
+                safeLaunchYoutube(youtubeIntent)
             }
             else -> {
                 val stPackages = getInstalledSmartTubePackages()
@@ -373,7 +384,7 @@ class TvShowViewHolder(
                         .setTitle(context.getString(R.string.watch_trailer_with))
                         .setItems(arrayOf(context.getString(R.string.youtube), context.getString(R.string.smarttube))) { _, which ->
                             if (which == 0) {
-                                context.startActivity(youtubeIntent)
+                                safeLaunchYoutube(youtubeIntent)
                             } else {
                                 if (stPackages.size > 1) {
                                     showSmartTubeVersionDialog(stPackages, trailer, false)
@@ -383,7 +394,7 @@ class TvShowViewHolder(
                             }
                         }.show()
                 } else {
-                    context.startActivity(youtubeIntent)
+                    safeLaunchYoutube(youtubeIntent)
                 }
             }
         }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioManager
 import android.provider.Settings
 import android.view.GestureDetector
+import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
@@ -11,6 +12,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.media3.ui.PlayerView
 import com.streamflixreborn.streamflix.ui.PlayerMobileView
+import com.streamflixreborn.streamflix.ui.PlayerTvView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -106,10 +108,17 @@ class PlayerGestureHelper(
         })
 
         playerView.setOnTouchListener { _, event ->
-            // Se lo zoom manuale è attivo in PlayerMobileView, disattiviamo i gesti standard
-            if (playerView is PlayerMobileView && playerView.isManualZoomEnabled) {
-                return@setOnTouchListener false 
+            // Abilitiamo le gesture solo se l'input proviene da un dispositivo di puntamento (Touch, Mouse, AirMouse)
+            val isPointing = (event.source and InputDevice.SOURCE_CLASS_POINTER) != 0
+            if (!isPointing) return@setOnTouchListener false
+
+            // Controllo Zoom Manuale universale (sia per Mobile che per TV)
+            val isManualZoom = when (playerView) {
+                is PlayerMobileView -> playerView.isManualZoomEnabled
+                is PlayerTvView -> playerView.isManualZoomEnabled
+                else -> false
             }
+            if (isManualZoom) return@setOnTouchListener false
 
             if (!UserPreferences.playerGestures) return@setOnTouchListener false
             
@@ -134,7 +143,7 @@ class PlayerGestureHelper(
         brightnessLayout.visibility = View.VISIBLE
         volumeLayout.visibility = View.GONE
 
-        val window = (context as android.app.Activity).window
+        val window = (context as? android.app.Activity)?.window ?: return
         val layoutParams = window.attributes
         
         var currentBrightness = layoutParams.screenBrightness

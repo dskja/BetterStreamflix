@@ -55,6 +55,9 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
         binding.btnSettingsClose.setOnClickListener {
             hide()
         }
+        binding.btnSettingsBack.setOnClickListener {
+            onBackPressed()
+        }
     }
 
     fun onBackPressed(): Boolean {
@@ -124,6 +127,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.MANUAL_ZOOM -> context.getString(R.string.player_settings_manual_zoom_label)
             }
         }
+
+        binding.btnSettingsBack.visibility = if (setting == Setting.MAIN) View.GONE else View.VISIBLE
 
         binding.rvSettings.adapter = when (setting) {
             Setting.MAIN -> settingsAdapter
@@ -212,12 +217,12 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                         is Settings.Quality -> {
                             settingsView.onQualitySelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Audio -> {
                             settingsView.onAudioSelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Subtitle -> {
@@ -229,7 +234,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 is Settings.Subtitle.None,
                                 is Settings.Subtitle.TextTrackInformation -> {
                                     settingsView.onSubtitleSelected.invoke(item)
-                                    settingsView.hide()
+                                    settingsView.displaySettings(Setting.MAIN)
                                 }
 
                                 Settings.Subtitle.LocalSubtitles -> {
@@ -331,22 +336,22 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                         is Settings.Subtitle.OpenSubtitles.Subtitle -> {
                             settingsView.onOpenSubtitleSelected?.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Subtitle.SubDLSubtitles.Subtitle -> {
                             settingsView.onSubDLSubtitleSelected?.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Speed -> {
                             settingsView.onSpeedSelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.ExtraBuffering -> {
                             settingsView.onExtraBufferingSelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Gestures -> {
@@ -367,7 +372,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                         is Settings.Server -> {
                             settingsView.onServerSelected?.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
                         else -> {}
                     }

@@ -59,6 +59,7 @@ import com.streamflixreborn.streamflix.ui.PlayerTvView
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
+import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
@@ -100,6 +101,7 @@ class PlayerTvFragment : Fragment() {
     private lateinit var mediaSession: MediaSession
     private lateinit var progressHandler: android.os.Handler
     private lateinit var progressRunnable: Runnable
+    private lateinit var gestureHelper: PlayerGestureHelper
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
@@ -197,6 +199,16 @@ class PlayerTvFragment : Fragment() {
 
         initializePlayer(false)
         initializeVideo()
+        gestureHelper = PlayerGestureHelper(
+            requireContext(), 
+            binding.pvPlayer, 
+            binding.llBrightness, 
+            binding.pbBrightness, 
+            binding.tvBrightnessPercentage,
+            binding.llVolume, 
+            binding.pbVolume, 
+            binding.tvVolumePercentage
+        )
 
         // Stato Video
         viewLifecycleOwner.lifecycleScope.launch {

@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.navigation.findNavController
@@ -194,6 +195,15 @@ class MovieViewHolder(
             }.show()
     }
 
+    private fun safeLaunchYoutube(intent: Intent) {
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch YouTube intent", e)
+            Toast.makeText(context, context.getString(R.string.player_external_player_error_video), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun handleSmartTubeSelection(trailerUrl: String, logPrefix: String) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val savedPackage = prefs.getString(KEY_SMARTTUBE_PACKAGE, null)
@@ -204,7 +214,7 @@ class MovieViewHolder(
         if (stPackages.isEmpty()) {
             // Caso 1: Nessuna SmartTube installata. Fallback su YouTube.
             Log.d(TAG, "$logPrefix: No SmartTube installed, falling back to YouTube")
-            context.startActivity(Intent(Intent.ACTION_VIEW, trailerUrl.toUri()))
+            safeLaunchYoutube(Intent(Intent.ACTION_VIEW, trailerUrl.toUri()))
             return
         }
 
@@ -249,7 +259,7 @@ class MovieViewHolder(
             }
             PLAYER_YOUTUBE -> {
                 Log.d(TAG, "$logPrefix: Launching YouTube (Preferred)")
-                context.startActivity(youtubeIntent)
+                safeLaunchYoutube(youtubeIntent)
             }
             else -> { // PLAYER_ASK or nothing set
                 val stPackages = getInstalledSmartTubePackages()
@@ -260,7 +270,7 @@ class MovieViewHolder(
                         .setItems(arrayOf(context.getString(R.string.youtube), context.getString(R.string.smarttube))) { _, which ->
                             if (which == 0) {
                                 Log.d(TAG, "$logPrefix: Dialog (Ask): YouTube selected")
-                                context.startActivity(youtubeIntent)
+                                safeLaunchYoutube(youtubeIntent)
                             } else {
                                 Log.d(TAG, "$logPrefix: Dialog (Ask): SmartTube selected")
                                 // Qui, non salvare la preferenza per la versione SmartTube,
@@ -274,7 +284,7 @@ class MovieViewHolder(
                         }.show()
                 } else {
                     Log.d(TAG, "$logPrefix: SmartTube not found, launching YouTube directly")
-                    context.startActivity(youtubeIntent)
+                    safeLaunchYoutube(youtubeIntent)
                 }
             }
         }

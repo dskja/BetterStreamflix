@@ -490,12 +490,34 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         Log.i("StreamFlixES", "[PROV] -> StreamingCommunity: getServers for $id")
         val base = "https://$domain/"
-        val iframeUrl = when (videoType) {
-            is Video.Type.Movie -> base + "$LANG/iframe/" + id.substringBefore("-") + "?language=$LANG"
-            is Video.Type.Episode -> base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=") + "&next_episode=1" + "&language=$LANG"
+        
+        // Proviamo prima il nuovo endpoint /watch/ che è più affidabile su molti mirror
+        val movieIframeUrl = base + "watch/" + id.substringBefore("-")
+        val episodeIframeUrl = base + "watch/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=")
+        
+        val iframeUrl = if (videoType is Video.Type.Movie) movieIframeUrl else episodeIframeUrl
+        
+        Log.d(TAG, "Fetching iframe from: $iframeUrl")
+        var document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(iframeUrl, base, language)
+        var src = document.selectFirst("iframe")?.attr("src") ?: ""
+        
+        // Se /watch/ non ha funzionato o non ha iframe, proviamo il vecchio /iframe/
+        if (src.isEmpty()) {
+            val oldIframeUrl = when (videoType) {
+                is Video.Type.Movie -> base + "$LANG/iframe/" + id.substringBefore("-") + "?language=$LANG"
+                is Video.Type.Episode -> base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=") + "&next_episode=1" + "&language=$LANG"
+            }
+            Log.d(TAG, "Fallback to old iframe URL: $oldIframeUrl")
+            document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(oldIframeUrl, base, language)
+            src = document.selectFirst("iframe")?.attr("src") ?: ""
         }
-        val document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(iframeUrl, base, language)
-        val src = document.selectFirst("iframe")?.attr("src") ?: ""
+
+        if (src.isEmpty()) {
+            Log.e(TAG, "No iframe found in both /watch/ and /iframe/ endpoints")
+            return listOf()
+        }
+
+        Log.i("StreamFlixES", "[PROV] -> Found Vixcloud src: $src")
         return listOf(Video.Server(id = id, name = "Vixcloud", src = src))
     }
 
@@ -543,7 +565,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     private interface StreamingCommunityService {
         companion object {
-            const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
             fun build(baseUrl: String, language: String, domainProvider: () -> String, onDomainChanged: (String) -> Unit, lang: String): StreamingCommunityService {
                 val client = NetworkClient.default.newBuilder()
@@ -585,7 +607,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                     .build()
                 
                 return try {
-                    client.newCall(okhttp3.Request.Builder().url(url).get().build()).execute().use { resp ->
+                    client.newCall(okhttp3.Request.Builder().url(url).header("X-Requested-With", "XMLHttpRequest").get().build()).execute().use { resp ->
                         Jsoup.parse(resp.body?.string() ?: "")
                     }
                 } catch (e: Exception) { Jsoup.parse("") }
@@ -593,7 +615,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         }
 
         @GET("./") suspend fun getHome(): Document
-        @GET("./") suspend fun getHome(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String): HomeRes
+        @GET("./") suspend fun getHome(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): HomeRes
         @GET("archive?type=movie") suspend fun getMoviesHtml(): Document
         @GET("archive?type=movie") suspend fun getMoviesJson(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("page") page: Int): ArchiveRes
         @GET("archive?type=tv") suspend fun getTvShowsHtml(): Document
@@ -601,8 +623,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         @GET("/api/search") suspend fun search(@Query("q", encoded = true) keyword: String, @Query("offset") offset: Int = 0, @Query("lang") language: String): SearchRes
         @GET("archive") suspend fun getArchiveHtml(@Query("genre[]") genreId: String): Document
         @GET("archive") suspend fun getArchiveJson(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("genre[]") genreId: String, @Query("page") page: Int): ArchiveRes
-        @GET("titles/{id}") suspend fun getDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String): HomeRes
-        @GET("titles/{id}/") suspend fun getSeasonDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String): SeasonRes
+        @GET("titles/{id}") suspend fun getDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): HomeRes
+        @GET("titles/{id}/") suspend fun getSeasonDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): SeasonRes
 
         data class Image(val filename: String, val type: String)
         data class Genre(val id: String, val name: String)
