@@ -78,10 +78,9 @@ class PlayerGestureHelper(
                 if (e1 == null || isScaling) return false
                 if (e1.y < 100) return false
 
-                val deltaX = e2.x - e1.x
-                val deltaY = e2.y - e1.y
-
                 if (!isScrolling) {
+                    val deltaX = e2.x - e1.x
+                    val deltaY = e2.y - e1.y
                     if (abs(deltaY) > abs(deltaX) && abs(deltaY) > 10) {
                         isScrolling = true
                     } else {
@@ -90,9 +89,9 @@ class PlayerGestureHelper(
                 }
 
                 if (e1.x < playerView.width / 2) {
-                    handleBrightness(deltaY / playerView.height)
+                    handleBrightness(distanceY / playerView.height)
                 } else {
-                    handleVolume(deltaY / playerView.height)
+                    handleVolume(distanceY / playerView.height)
                 }
                 
                 return true
