@@ -336,7 +336,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
         if (props.has("titles") && props.optJSONArray("titles") != null) {
             val jsonArray = props.optJSONArray("titles")
-            return gson.fromJson<List<StreamingCommunityService.Show>>(jsonArray.toString(), showListType) ?: listOf()
+            return gson.fromJson<List<StreamingCommunityService.Show>>(jsonArray?.toString() ?: "[]", showListType) ?: listOf()
         }
 
         val res: StreamingCommunityService.ArchiveRes? = try {
@@ -491,29 +491,17 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         Log.i("StreamFlixES", "[PROV] -> StreamingCommunity: getServers for $id")
         val base = "https://$domain/"
         
-        // Proviamo prima il nuovo endpoint /watch/ che è più affidabile su molti mirror
-        val movieIframeUrl = base + "watch/" + id.substringBefore("-")
-        val episodeIframeUrl = base + "watch/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=")
-        
-        val iframeUrl = if (videoType is Video.Type.Movie) movieIframeUrl else episodeIframeUrl
+        val iframeUrl = when (videoType) {
+            is Video.Type.Movie -> base + "$LANG/iframe/" + id.substringBefore("-") + "?language=$LANG"
+            is Video.Type.Episode -> base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=") + "&next_episode=1" + "&language=$LANG"
+        }
         
         Log.d(TAG, "Fetching iframe from: $iframeUrl")
-        var document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(iframeUrl, base, language)
-        var src = document.selectFirst("iframe")?.attr("src") ?: ""
-        
-        // Se /watch/ non ha funzionato o non ha iframe, proviamo il vecchio /iframe/
-        if (src.isEmpty()) {
-            val oldIframeUrl = when (videoType) {
-                is Video.Type.Movie -> base + "$LANG/iframe/" + id.substringBefore("-") + "?language=$LANG"
-                is Video.Type.Episode -> base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=") + "&next_episode=1" + "&language=$LANG"
-            }
-            Log.d(TAG, "Fallback to old iframe URL: $oldIframeUrl")
-            document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(oldIframeUrl, base, language)
-            src = document.selectFirst("iframe")?.attr("src") ?: ""
-        }
+        val document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(iframeUrl, base, language)
+        val src = document.selectFirst("iframe")?.attr("src") ?: ""
 
         if (src.isEmpty()) {
-            Log.e(TAG, "No iframe found in both /watch/ and /iframe/ endpoints")
+            Log.e(TAG, "No iframe found in /iframe/ endpoint")
             return listOf()
         }
 
