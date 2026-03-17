@@ -9,6 +9,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.SerienStreamDatabase
@@ -23,6 +24,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.FixSerienStreamUrlsWorker
 import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +84,20 @@ object SerienStreamProvider : Provider {
             this.appContext = context.applicationContext
 
         }
+
+        val request = OneTimeWorkRequestBuilder<FixSerienStreamUrlsWorker>()
+            .setInputData(
+                workDataOf("provider" to "serienstream")
+            )
+            .build()
+
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+            "fix_serienstream_urls",
+            ExistingWorkPolicy.KEEP,
+            request
+        )
     }
+
 
     private fun getDao(): TvShowDao {
         return tvShowDao ?: throw IllegalStateException("SerienStreamProvider not initialized")
@@ -284,8 +299,11 @@ object SerienStreamProvider : Provider {
                 )
             },
             trailer = tmdbTvShow?.trailer ?: document.selectFirst("div[itemprop='trailer'] a")?.attr("href") ?: "",
-            poster = tmdbTvShow?.poster ?: document.selectFirst("div.show-header-wrapper img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") },
-            banner = tmdbTvShow?.banner ?: document.selectFirst("div.backdrop-picture img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") },
+            poster = tmdbTvShow?.poster
+                ?: normalizeImageUrl(document.extractPoster()
+                ),
+            banner = tmdbTvShow?.banner ?: normalizeImageUrl(document.extractPoster()
+            ),
             seasons = document.select("#season-nav ul li a").map {
                 val seasonText = it.text().trim()
                 val seasonNumber = seasonText.toIntOrNull() ?: 0
