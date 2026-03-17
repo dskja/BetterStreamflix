@@ -276,9 +276,9 @@
     <string name="settings_frenchstream_use_new_interface_on">Activado</string>
     <string name="settings_frenchstream_use_new_interface_off">Desactivado</string>
 
-    <string name="settings_server_voe_category">Ajustes del servidor VOE</string>
-    <string name="settings_server_voe_title">Desactivar subtítulos automáticos del servidor VOE</string>
-    <string name="settings_server_voe_summary">Si está activado, los subtítulos del servidor VOE no se activarán automáticamente aunque estén disponibles y tengan el valor predeterminado true</string>
+    <string name="settings_server_voe_category">Ajustes de los servidores</string>
+    <string name="settings_server_voe_title">Desactivar subtítulos automáticos de los servidores</string>
+    <string name="settings_server_voe_summary">Si está activado, los subtítulos de los servidores VOE, Vidnest y Vidzy no se activarán automáticamente aunque estén disponibles y tengan el valor predeterminado true</string>
     <string name="settings_category_interface_title">Ajustes de la interfaz</string>
     <string name="settings_immersive_mode">Modo inmersivo</string>
     <string name="settings_immersive_mode_summary">Oculta las barras de estado y navegación</string>

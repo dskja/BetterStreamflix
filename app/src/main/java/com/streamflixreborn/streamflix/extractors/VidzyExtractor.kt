@@ -16,6 +16,29 @@ class VidzyExtractor : Extractor() {
     override val name = "Vidzy"
     override val mainUrl = "https://vidzy.org"
 
+    fun extractSubtitles(text: String): List<Video.Subtitle> {
+        val loadTracksRegex = Regex("""loadTracks\s*\(\s*\[(.*?)]\s*\)""")
+        val tracksContent = loadTracksRegex.find(text)?.groupValues?.get(1) ?: return emptyList()
+
+        val objectRegex = Regex("""\{(.*?)\}""")
+
+        return objectRegex.findAll(tracksContent).mapNotNull { match ->
+            val obj = match.groupValues[1]
+
+            val label = Regex("""label:'([^']+)'""").find(obj)?.groupValues?.get(1)
+            val file = Regex("""src:'([^']+)'""").find(obj)?.groupValues?.get(1)
+            val default = Regex("""default:(true|false)""").find(obj)?.groupValues?.get(1)?.toBoolean() ?: false
+
+            if (label == null || file == null || !file.startsWith("http")) return@mapNotNull null
+            Video.Subtitle(
+                file = file,
+                label = label,
+                initialDefault = default,
+                default = if (UserPreferences.serverAutoSubtitlesDisabled) false else default
+            )
+        }.toList()
+    }
+
     override suspend fun extract(link: String): Video {
         val service = Service.build(mainUrl)
 
@@ -35,7 +58,9 @@ class VidzyExtractor : Extractor() {
 
         return Video(
             source = streamUrl ?: throw Exception("Can't retrieve source"),
-            headers = mapOf("Referer" to mainUrl)
+            headers = mapOf("Referer" to mainUrl),
+            subtitles = extractSubtitles(unPacked),
+            useServerSubtitleSetting = true
         )
     }
 

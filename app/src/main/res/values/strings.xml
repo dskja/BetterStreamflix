@@ -303,6 +303,10 @@
     <string name="settings_frenchstream_use_new_interface">Use the new FrenchStream interface</string>
     <string name="settings_frenchstream_use_new_interface_on">On</string>
     <string name="settings_frenchstream_use_new_interface_off">Off</string>
+ 
+    <string name="settings_server_voe_category">VOE server settings</string>
+    <string name="settings_server_voe_title">Disable server auto subtitles</string>
+    <string name="settings_server_voe_summary">If enabled, subtitles from VOE, Vidnest and Vidzy servers will not be active by default even if they are available and have a default true value</string>
 
     <string name="settings_category_interface_title">Interface settings</string>
     <string name="settings_immersive_mode">Immersive Mode</string>
@@ -362,8 +366,4 @@
 
     <string name="settings_force_extra_buffer_title">Global Extra Buffering</string>
     <string name="settings_force_extra_buffer_summary">Enable extra buffering for all servers by default</string>
-
-    <string name="settings_server_voe_category">VOE Server Settings</string>
-    <string name="settings_server_voe_title">Disable VOE Auto Subtitles</string>
-    <string name="settings_server_voe_summary">If enabled, subtitles from the VOE server will not be automatically enabled even if they are available and have a default true value</string>
 </resources>

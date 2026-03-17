@@ -289,10 +289,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.apply {
-            isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
+        findPreference<SwitchPreference>("SERVER_AUTO_SUBTITLES_DISABLED")?.apply {
+            isChecked = UserPreferences.serverAutoSubtitlesDisabled
             setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.serverVoeAutoSubtitlesDisabled = newValue as Boolean
+                UserPreferences.serverAutoSubtitlesDisabled = newValue as Boolean
                 true
             }
         }
