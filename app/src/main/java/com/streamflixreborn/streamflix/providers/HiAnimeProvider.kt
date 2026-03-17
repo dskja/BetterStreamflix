@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 object HiAnimeProvider : Provider {
 
-    private const val URL = "https://hianime.to/"
+    private const val URL = "https://hianime.cv/"
     override val baseUrl = URL
     override val name = "HiAnime"
     override val logo = "$URL/images/logo.png"
