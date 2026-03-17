@@ -47,7 +47,7 @@ class Category(
 
 
     companion object {
-        const val FEATURED = "Featured"
+        const val FEATURED = ""
         const val CONTINUE_WATCHING = "Continue Watching"
         const val FAVORITE_MOVIES = "Favorite movies"
         const val FAVORITE_TV_SHOWS = "Favorite TV shows"

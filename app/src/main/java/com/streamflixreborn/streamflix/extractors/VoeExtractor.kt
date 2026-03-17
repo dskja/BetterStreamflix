@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Url
 import java.net.URL
 
@@ -70,6 +71,14 @@ class VoeExtractor : Extractor() {
             suspend fun build(baseUrl: String, originalLink: String): VoeExtractorService {
                 val client = OkHttpClient.Builder()
                     .dns(DnsResolver.doh)
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header("Referer", originalLink)
+                            .build()
+                        chain.proceed(request)
+                    }
                     .build()
 
                 val retrofitVOE = Retrofit.Builder()
@@ -108,6 +117,12 @@ class VoeExtractor : Extractor() {
         }
 
         @GET
+        @Headers(
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language: it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+            "X-Requested-With: XMLHttpRequest"
+        )
         suspend fun getSource(@Url url: String): Document
     }
 }

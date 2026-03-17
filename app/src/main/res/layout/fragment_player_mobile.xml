@@ -21,7 +21,8 @@
         app:show_next_button="false"
         app:show_previous_button="false"
         app:show_subtitle_button="true"
-        app:show_timeout="2000" />
+        app:show_timeout="2000"
+        app:surface_type="texture_view" />
 
     <com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsMobileView
         android:id="@+id/settings"

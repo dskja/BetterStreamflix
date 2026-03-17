@@ -10,6 +10,10 @@
         <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_default</item>
     </style>
 
+    <style name="BottomNavLabelStyle" parent="Widget.Design.BottomNavigationView">
+        <item name="android:textSize">11sp</item>
+    </style>
+
     <!-- Tema Nero Amoled/Oled per Mobile -->
     <style name="AppTheme.Mobile.NeroAmoledOled" parent="AppTheme.Mobile">
         <item name="app_background_color">#000000</item>

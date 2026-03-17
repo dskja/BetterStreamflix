@@ -4,10 +4,10 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.providers.CableVisionHDProvider
 import org.jsoup.nodes.Document
 
-fun Document.toTvShows(): List<TvShow> {
+fun Document.toTvShows(providerName: String): List<TvShow> {
 
     val listaNegra = listOf(
-        "Mundo Latam \uD83C\uDF10",
+        "Mundo Latam 🌐",
         "Donar con Paypal"
     )
 
@@ -29,13 +29,14 @@ fun Document.toTvShows(): List<TvShow> {
         }
 
         if (!poster.startsWith("http")) {
-            poster = "${CableVisionHDProvider.baseUrl}/${poster.removePrefix("/")}"
+            poster = "https://www.cablevisionhd.com/${poster.removePrefix("/")}"
         }
 
         TvShow(
             id = href,
             title = name,
             poster = poster,
+            providerName = providerName
         )
     }
 }

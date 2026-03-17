@@ -48,9 +48,18 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
     }
 
     override suspend fun extract(link: String): Video {
-        Log.d("VixcloudDebug", "Extracting with preferredLanguage: $preferredLanguage")
-        val service = VixcloudExtractorService.build(mainUrl)
-        val source = service.getSource(link.replace(mainUrl, ""))
+        Log.d("VixcloudDebug", "Extracting link: $link with preferredLanguage: $preferredLanguage")
+        
+        val uri = link.toHttpUrlOrNull() ?: throw Exception("Invalid Vixcloud link")
+        val currentMainUrl = "${uri.scheme}://${uri.host}/"
+        
+        val service = VixcloudExtractorService.build(currentMainUrl)
+        val source = try {
+            service.getSource(uri.encodedPath + if (uri.encodedQuery != null) "?" + uri.encodedQuery else "")
+        } catch (e: Exception) {
+            Log.e("VixcloudDebug", "Failed to get source from $link: ${e.message}")
+            throw e
+        }
 
         val scriptText = source.body().selectFirst("script")?.data() ?: ""
         
@@ -58,11 +67,22 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
             .substringAfter("window.video = ", "")
             .substringBefore(";", "")
             .trim()
+        
+        // Fallback: Prova a cercare window.video senza spazi o con altre varianti
+        if (videoJson.isEmpty()) {
+            videoJson = scriptText
+                .substringAfter("window.video=", "")
+                .substringBefore(";", "")
+                .trim()
+        }
+
         if (videoJson.isNotEmpty()) {
             videoJson = sanitizeJsonKeysAndQuotes(videoJson)
             videoJson = removeTrailingCommaFromJsonObjectString(videoJson)
             if (!videoJson.startsWith("{") && videoJson.contains(":")) videoJson = "{$videoJson"
             if (!videoJson.endsWith("}") && videoJson.contains(":")) videoJson = "$videoJson}"
+        } else {
+            Log.e("VixcloudDebug", "Could not find window.video in script")
         }
 
         val paramsObjectContent = scriptText
@@ -70,6 +90,10 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
             .substringAfter("params: {", "")
             .substringBefore("},", "")
             .trim()
+        
+        // Altro fallback per i parametri
+        val tokenFallback = scriptText.substringAfter("token: \"", "").substringBefore("\"")
+        val expiresFallback = scriptText.substringAfter("expires: \"", "").substringBefore("\"")
 
         var masterPlaylistJson: String
         if (paramsObjectContent.isNotEmpty()) {
@@ -95,9 +119,14 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
         val masterParams = mutableMapOf<String, String>()
         if (masterPlaylist?.token != null) {
             masterParams["token"] = masterPlaylist.token
+        } else if (tokenFallback.isNotEmpty()) {
+            masterParams["token"] = tokenFallback
         }
+        
         if (masterPlaylist?.expires != null) {
             masterParams["expires"] = masterPlaylist.expires
+        } else if (expiresFallback.isNotEmpty()) {
+            masterParams["expires"] = expiresFallback
         }
 
         val currentParams = link.split("&")
@@ -110,13 +139,13 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
         
         preferredLanguage?.let { masterParams["language"] = it }
 
-        val baseUrl = "https://vixcloud.co/playlist/${windowVideo.id}"
+        val baseUrl = "https://${uri.host}/playlist/${windowVideo.id}"
         val httpUrlBuilder = baseUrl.toHttpUrlOrNull()?.newBuilder()
             ?: throw IllegalArgumentException("Invalid base URL")
         masterParams.forEach { (key, value) -> httpUrlBuilder.addQueryParameter(key, value) }
         val finalUrl = httpUrlBuilder.build().toString()
 
-        val finalHeaders = mutableMapOf("Referer" to mainUrl, "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        val finalHeaders = mutableMapOf("Referer" to currentMainUrl, "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
         preferredLanguage?.let { lang ->
             finalHeaders["Accept-Language"] = if (lang == "en") "en-US,en;q=0.9" else "it-IT,it;q=0.9"
@@ -225,6 +254,14 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
             fun build(baseUrl: String): VixcloudExtractorService {
                 val client = OkHttpClient.Builder()
                     .dns(DnsResolver.doh)
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header("Referer", baseUrl)
+                            .build()
+                        chain.proceed(request)
+                    }
                     .build()
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
@@ -236,7 +273,12 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
         }
 
         @GET
-        @Headers("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        @Headers(
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language: it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+            "X-Requested-With: XMLHttpRequest"
+        )
         suspend fun getSource(@Url url: String): Document
 
         data class WindowVideo(

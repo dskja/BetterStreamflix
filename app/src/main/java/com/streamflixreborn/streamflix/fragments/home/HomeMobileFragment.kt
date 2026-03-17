@@ -11,7 +11,6 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
-import com.streamflixreborn.streamflix.NavMainGraphDirections
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -145,7 +144,7 @@ class HomeMobileFragment : Fragment() {
                 .into(this)
 
             setOnClickListener {
-                findNavController().navigate(NavMainGraphDirections.actionGlobalProviders())
+                findNavController().navigate(R.id.providers)
             }
         }
         

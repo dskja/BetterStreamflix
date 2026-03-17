@@ -6,9 +6,7 @@ import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.Cache
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
@@ -44,7 +42,7 @@ object CineCalidadProvider : Provider {
     private val client = getOkHttpClient()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl(baseUrl)
+        .baseUrl("$baseUrl/")
         .addConverterFactory(JsoupConverterFactory.create())
         .client(client)
         .build()
@@ -275,7 +273,7 @@ object CineCalidadProvider : Provider {
                     js.lineSequence()
                         .firstOrNull { line -> line.contains("#trailerazo") && line.contains(".src") }
                         ?.let { line ->
-                            Regex("""['"]https?://[^'\"]+['"]""")
+                            Regex("""['"]https?://[^'"]+['"]""")
                                 .find(line)
                                 ?.value
                                 ?.trim('"', '\'')
@@ -334,7 +332,7 @@ object CineCalidadProvider : Provider {
 
                     Video.Server(
                         id = serverUrl,
-                        name = serverName
+                        name = "$serverName [LAT]"
                     )
                 }
         } catch (e: Exception) {

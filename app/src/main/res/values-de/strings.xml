@@ -1,4 +1,5 @@
-﻿<resources>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">Ein Fehler ist aufgetreten</string>
@@ -29,7 +30,11 @@
     <string name="main_menu_home">Startseite</string>
     <string name="main_menu_movies">Filme</string>
     <string name="main_menu_tv_shows">Serien</string>
+    <string name="main_menu_all_channels">Alle Kanäle</string>
     <string name="main_menu_settings">Einstellungen</string>
+    <string name="main_menu_theme_change">Design ändern</string>
+    <string name="theme_default">Standard</string>
+    <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
 
     <string name="search_input_hint">Filme / Serien suchen</string>
     <string name="global_search">Globale Suche</string>
@@ -49,7 +54,7 @@
     <string name="option_show_unfavorite">Aus Favoriten entfernen</string>
     <string name="option_show_watched">Als Gesehen markieren</string>
     <string name="option_show_mark_all_previous_watched">Bis hier als Gesehen markieren</string>
-    <string name="option_show_mark_all_previous_unwatched">Bis hier als Ungesehen markieren</string>																						
+    <string name="option_show_mark_all_previous_unwatched">Bis hier als Ungesehen markieren</string>
     <string name="option_show_unwatched">Als Ungesehen markieren</string>
     <string name="option_clear_program">Aus Weiterschauen entfernen</string>
     <string name="option_cancel">Abbrechen</string>
@@ -87,7 +92,7 @@
     <string name="people_deathday">Todestag</string>
     <string name="people_birthplace">Geburtsort</string>
     <string name="people_biography">Biografie</string>
-    <string name="people_read_more">Mehr lesen ></string>
+    <string name="people_read_more">Mehr lesen &gt;</string>
 
     <string name="genre_header_name">%s Filme und Serien</string>
 
@@ -101,6 +106,9 @@
     <string name="player_aspect_ratio_fit">An Bildschirm anpassen</string>
     <string name="player_aspect_ratio_fill">Ausdehnen</string>
     <string name="player_aspect_ratio_zoom">Zoomen</string>
+    <string name="player_aspect_ratio_zoom_4_3">Zoom für 4:3</string>
+    <string name="player_aspect_ratio_stretch_vertical">Vertikal strecken</string>
+    <string name="player_aspect_ratio_super_zoom">Super-Zoom</string>
     <string name="player_settings_title">Einstellungen</string>
     <string name="player_settings_quality_title">Qualität des aktuellen Videos</string>
     <string name="player_settings_quality_label">Qualität</string>
@@ -127,8 +135,8 @@
     <string name="player_settings_caption_style_font_color_magenta">Magenta</string>
     <string name="player_settings_caption_style_font_color_red">Rot</string>
     <string name="player_settings_caption_style_font_color_black">Schwarz</string>
-    <string name="player_settings_caption_style_text_size_title">Textgröße</string>
-    <string name="player_settings_caption_style_text_size_label">Textgröße</string>
+    <string name="player_settings_caption_style_text_size_title">Textsize</string>
+    <string name="player_settings_caption_style_text_size_label">Textsize</string>
     <string name="player_settings_caption_style_text_size_0_5">50%</string>
     <string name="player_settings_caption_style_text_size_0_75">75%</string>
     <string name="player_settings_caption_style_text_size_0_8">80%</string>
@@ -147,7 +155,7 @@
     <string name="player_settings_caption_style_edge_style_label">Untertitelstil</string>
     <string name="player_settings_caption_style_edge_style_none">Keiner</string>
     <string name="player_settings_caption_style_edge_style_raised">Erhöht</string>
-    <string name="player_settings_caption_style_edge_style_depressed">Plattgedrückt</string>
+    <string name="player_settings_caption_style_edge_style_depressed">Vertieft</string>
     <string name="player_settings_caption_style_edge_style_outline">Einheitlich</string>
     <string name="player_settings_caption_style_edge_style_drop_shadow">Schlagschatten</string>
     <string name="player_settings_caption_style_background_color_title">Hintergrundfarbe</string>
@@ -171,7 +179,7 @@
     <string name="player_settings_caption_style_window_color_label">Fensterfarbe</string>
     <string name="player_settings_caption_style_window_color_black">Schwarz</string>
     <string name="player_settings_caption_style_window_color_yellow">Gelb</string>
-    <string name="player_settings_caption_style_window_color_green">Verde</string>
+    <string name="player_settings_caption_style_window_color_green">Grün</string>
     <string name="player_settings_caption_style_window_color_cyan">Cyan</string>
     <string name="player_settings_caption_style_window_color_blue">Blau</string>
     <string name="player_settings_caption_style_window_color_magenta">Magenta</string>
@@ -188,8 +196,10 @@
     <string name="player_settings_caption_style_margin_label">Unterer Rand</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
-    <string name="player_settings_local_subtitles_label">Lade aus Dateien</string>
-    <string name="player_settings_speed_title">Videogeschwindigkeit</string>
+    <string name="player_settings_subdl_title">SubDL</string>
+    <string name="player_settings_subdl_label">SubDL</string>
+    <string name="player_settings_local_subtitles_label">Aus Datei laden</string>
+    <string name="player_settings_speed_title">Wiedergabegeschwindigkeit</string>
     <string name="player_settings_speed_label">Geschwindigkeit</string>
     <string name="player_settings_speed_0_25">× 0.25</string>
     <string name="player_settings_speed_0_5">× 0.5</string>
@@ -203,12 +213,16 @@
     <string name="player_settings_servers_label">Server</string>
 
     <string name="settings_about">Über</string>
+    <string name="settings_version_tv">TV-Version</string>
+    <string name="settings_version_mobile">Mobile-Version</string>
     <string name="settings_about_version">Version</string>
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Hilfe</string>
     <string name="settings_telegram">Telegram‑Gruppe</string>
     <string name="settings_category_streamingcommunity">StreamingCommunity - Einstellungen</string>
     <string name="settings_category_streamingcommunity_domain">StreamingCommunity - Domain-Name</string>
+    <string name="settings_category_cuevana">Cuevana 3 - Einstellungen</string>
+    <string name="settings_category_cuevana_domain">Cuevana 3 - Domain-Name</string>
     <string name="settings_close_app">App schließen</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Sichere DNS-Auflösung verwenden</string>
     <string name="settings_category_network_title">Netzwerkeinstellungen</string>
@@ -219,58 +233,59 @@
     <string name="settings_autoupdate_on">An</string>
     <string name="settings_autoupdate_off">Aus</string>
     <string name="settings_autoupdate_now">Haupt-URL jetzt aktualisieren</string>
-    <string name="settings_autoplay">Automatisches Abspielen der nächsten Folge</string>
+    <string name="settings_autoplay">Nächste Folge automatisch abspielen</string>
     <string name="settings_autoplay_on">An</string>
     <string name="settings_autoplay_off">Aus</string>
-    <string name="autoplay_settings">Automatische Wiedergabeeinstellungen</string>
+    <string name="settings_autoplay_buffer_title">Autoplay-Puffer</string>
+    <string name="settings_autoplay_buffer_dialog_message">Legen Sie fest, wie viele Sekunden vor Ende der Folge zur nächsten gewechselt werden soll.</string>
+    <string name="autoplay_settings">Automatische Wiedergabe</string>
     <string name="player_settings">Player-Einstellungen</string>
     <string name="settings_player_gestures">Player-Gesten</string>
     <string name="settings_player_gestures_on">An</string>
     <string name="settings_player_gestures_off">Aus</string>
-    <string name="settings_keep_screen_on_when_paused">Bildschirm im Pause-Modus anlassen</string>
-    <string name="settings_keep_screen_on_when_paused_summary">Verhindert, dass der Bildschirm ausgeschaltet wird, wenn das Video angehalten wurde</string>
+    <string name="settings_keep_screen_on_when_paused">Bildschirm bei Pause anlassen</string>
+    <string name="settings_keep_screen_on_when_paused_summary">Verhindert das Ausschalten des Bildschirms bei Wiedergabestopp</string>
     <string name="miscelaneous_title">Sonstiges</string>
     <string name="clear_cache_done">Cache geleert</string>
-    <string name="clear_cache_done_409">Cache automatisch wegen HTTP 409 geleert</string>
+    <string name="clear_cache_done_409">Cache wegen HTTP 409 automatisch geleert</string>
     <string name="voice_search">Sprachsuche</string>
     <string name="voice_error_no_match">Nichts erkannt</string>
     <string name="voice_error_timeout">Zeitüberschreitung</string>
     <string name="voice_error_audio">Audiofehler</string>
-    <string name="voice_error_generic">Beim Starten der Spracherkennung ist ein Fehler aufgetreten.</string>
+    <string name="voice_error_generic">Fehler beim Starten der Spracherkennung.</string>
     <string name="voice_error_permission_denied">Mikrofonberechtigung verweigert</string>
     <string name="voice_permission_title">Berechtigung erforderlich</string>
-    <string name="voice_permission_rationale">Zugriff auf das Mikrofon ist erforderlich, um die Sprachsuche zu verwenden.</string>
-    <string name="voice_error_no_result">Es wurde keine Spracheingabe erkannt.</string>
-    <string name="voice_prompt">Sprich jetzt</string>
+    <string name="voice_permission_rationale">Mikrofonzugriff für Sprachsuche erforderlich.</string>
+    <string name="voice_error_no_result">Keine Spracheingabe erkannt.</string>
+    <string name="voice_prompt">Jetzt sprechen</string>
     <string name="backup_category_title">Backup und Wiederherstellung</string>
     <string name="backup_export_title">Benutzerdaten exportieren</string>
-    <string name="backup_export_summary">Speichere deine Daten (Favoriten, Wiedergabeverlauf) in einer Datei.</string>
+    <string name="backup_export_summary">Sichern Sie Ihre Daten (Favoriten, Verlauf) in einer Datei.</string>
     <string name="backup_import_title">Benutzerdaten importieren</string>
-    <string name="backup_import_summary">Stelle deine Daten aus einer Backup-Datei wieder her.</string>
+    <string name="backup_import_summary">Wiederherstellung aus einer Backup-Datei.</string>
     <string name="backup_export_success">Sicherung erfolgreich exportiert!</string>
-    <string name="backup_export_error_write">Fehler beim Export der Sicherung.</string>
+    <string name="backup_export_error_write">Fehler beim Exportieren der Sicherung.</string>
     <string name="backup_data_not_generated">Fehler: Sicherungsdaten wurden nicht erstellt.</string>
-    <string name="backup_import_success">Sicherung erfolgreich importiert! Starte die App neu, um die Änderungen anzuwenden.</string>
-    <string name="backup_import_error">Fehler beim Import der Sicherung.</string>
-    <string name="backup_import_empty_file">Fehler: Die Sicherungsdatei ist leer oder unlesbar.</string>
-    <string name="backup_import_read_error">Fehler beim Lesen oder Verarbeiten der Sicherungsdatei.</string>
+    <string name="backup_import_success">Sicherung importiert! Starten Sie die App neu.</string>
+    <string name="backup_import_error">Fehler beim Importieren der Sicherung.</string>
+    <string name="backup_import_empty_file">Fehler: Sicherungsdatei ist leer oder unlesbar.</string>
+    <string name="backup_import_read_error">Fehler beim Lesen der Sicherungsdatei.</string>
     <string name="screen_scale_category_title">Bildschirmabstand</string>
     <string name="screen_scale_x_title">Horizontaler Abstand</string>
-    <string name="screen_scale_x_summary">Passe den linken und rechten Bildschirmabstand an</string>
+    <string name="screen_scale_x_summary">Linken und rechten Abstand anpassen</string>
     <string name="screen_scale_y_title">Vertikaler Abstand</string>
-    <string name="screen_scale_y_summary">Passe den oberen und unteren Bildschirmabstand an</string>
-    <string name="doh_provider_updated">DNS-over-HTTPS-Einstellungen aktualisiert! Starte die App neu, um die Änderungen anzuwenden.</string>
-    <string name="settings_frenchstream_use_new_interface">Die neue FrenchStream-Oberfläche verwenden</string>
+    <string name="screen_scale_y_summary">Oberen und unteren Abstand anpassen</string>
+    <string name="doh_provider_updated">DNS-over-HTTPS-Einstellungen aktualisiert! Neustart erforderlich.</string>
+    <string name="settings_frenchstream_use_new_interface">Neue FrenchStream-Oberfläche verwenden</string>
     <string name="settings_frenchstream_use_new_interface_on">Ein</string>
     <string name="settings_frenchstream_use_new_interface_off">Aus</string>
 
     <string name="settings_server_voe_category">VOE-Server-Einstellungen</string>
-    <string name="settings_server_voe_title">Automatische Untertitel des VOE-Servers deaktivieren</string>
-    <string name="settings_server_voe_summary">Wenn aktiviert, werden Untertitel vom VOE-Server nicht automatisch aktiviert, auch wenn sie verfügbar sind und einen Standard-True-Wert haben</string>
+    <string name="settings_server_voe_title">VOE Auto-Untertitel deaktivieren</string>
+    <string name="settings_server_voe_summary">Verhindert das automatische Laden von VOE-Untertiteln</string>
 
-
-    <string name="player_settings_extra_buffer_title">Server mit Extra-Buffering</string>
-    <string name="player_settings_extra_buffer_server_label">Server mit Extra-Buffering</string>
+    <string name="player_settings_extra_buffer_title">Server mit Extra-Puffer</string>
+    <string name="player_settings_extra_buffer_server_label">Server mit Extra-Puffer</string>
     <string name="player_settings_extra_buffer_on">Aktiv</string>
     <string name="player_settings_extra_buffer_off">Deaktiviert</string>
     <string name="player_settings_extra_buffer_forced_on">Aktiv (Erzwungen)</string>
@@ -286,23 +301,28 @@
     <string name="error_dialog_unknown">Unbekannter Fehler</string>
     <string name="error_dialog_no_cause">Keine Ursache</string>
     <string name="player_settings_gestures_title">Gesten</string>
-    <string name="player_settings_keep_screen_on_title">Bildschirm im Pause-Modus anlassen</string>
+    <string name="player_settings_keep_screen_on_title">Bildschirm bei Pause anlassen</string>
 
     <string name="settings_category_tmdb">TMDb-Einstellungen</string>
-    <string name="settings_tmdb_api_key">Benutzerdefinierter TMDb API-Key</string>
-    <string name="settings_tmdb_api_key_summary">Leer lassen, um den Standard-API-Key der App zu verwenden</string>
+    <string name="settings_tmdb_api_key">Eigener TMDb API-Key</string>
+    <string name="settings_tmdb_api_key_summary">Leer lassen für Standard-API-Key</string>
     <string name="settings_tmdb_api_key_success">API-Key erfolgreich aktualisiert</string>
-    <string name="settings_tmdb_api_key_reset">Standard-TMDb-API-Key wird verwendet</string>
+    <string name="settings_tmdb_api_key_reset">Standard-API-Key wird verwendet</string>
     <string name="settings_category_subdl">SubDL-Einstellungen</string>
-    <string name="settings_subdl_api_key">SubDL API-Schlüssel</string>
-    <string name="settings_subdl_api_key_summary">Geben Sie Ihren persönlichen SubDL-API-Schlüssel ein, um SubDL in den Untertiteleinstellungen des Players zu aktivieren</string>
-    <string name="settings_subdl_api_key_success">SubDL API-Schlüssel erfolgreich gespeichert</string>
-    <string name="settings_subdl_api_key_reset">SubDL API-Schlüssel entfernt</string>
+    <string name="settings_subdl_api_key">SubDL API-Key</string>
+    <string name="settings_subdl_api_key_summary">Eigener SubDL API-Key für Untertitel</string>
+    <string name="settings_subdl_api_key_success">SubDL API-Key gespeichert</string>
+    <string name="settings_subdl_api_key_reset">SubDL API-Key entfernt</string>
 
-    <string name="settings_force_extra_buffer_title">Globales Extra-Buffering</string>
-    <string name="settings_force_extra_buffer_summary">Zusätzliches Buffering standardmäßig für alle Server aktivieren</string>
-    <string name="settings_enable_tmdb_summary">TMDB-Nutzung aktivieren oder deaktivieren</string>
-    <string name="settings_enable_tmdb_title">TMDB aktivieren</string>
-    <string name="settings_enable_tmdb_enabled">TMDB aktiviert</string>
-    <string name="settings_enable_tmdb_disabled">TMDB deaktiviert</string>
+    <string name="settings_force_extra_buffer_title">Globaler Extra-Puffer</string>
+    <string name="settings_force_extra_buffer_summary">Pufferung standardmäßig für alle Server aktivieren</string>
+    <string name="settings_enable_tmdb_summary">TMDb-Nutzung umschalten</string>
+    <string name="settings_enable_tmdb_title">TMDb aktivieren</string>
+    <string name="settings_enable_tmdb_enabled">TMDb aktiviert</string>
+    <string name="settings_enable_tmdb_disabled">TMDb deaktiviert</string>
+
+    <string name="player_settings_manual_zoom_label">Manueller Zoom</string>
+    <string name="player_manual_zoom_hint">HOCH/RUNTER für vertikalen Zoom, LINKS/RECHTS für horizontalen, ZURÜCK zum Beenden</string>
+
+    <string name="bypass_tv_instructions">DEN CURSOR ÜBER DAS KÄSTCHEN BEWEGEN\nUND OK DRÜCKEN ZUM FREISCHALTEN</string>
 </resources>

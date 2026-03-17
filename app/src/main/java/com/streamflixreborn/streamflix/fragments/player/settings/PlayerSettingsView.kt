@@ -15,6 +15,7 @@ import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.SubtitleView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
+import com.streamflixreborn.streamflix.utils.mediaServers
 import com.streamflixreborn.streamflix.utils.SubDL
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
@@ -103,6 +104,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         SERVERS,
         GESTURES,
         KEEP_SCREEN_ON,
+        MANUAL_ZOOM,
     }
 
     protected var onQualitySelected: ((Settings.Quality) -> Unit) =
@@ -353,7 +355,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
     sealed class Settings : Item {
 
         companion object {
-            val list = listOf(
+            val listMobile = listOf(
                 Quality,
                 Audio,
                 Subtitle,
@@ -362,8 +364,20 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 ExtraBuffering,
                 Gestures,
                 KeepScreenOn,
+                ManualZoom,
+            )
+            val listTv = listOf(
+                Quality,
+                Audio,
+                Subtitle,
+                Speed,
+                Server,
+                ExtraBuffering,
+                ManualZoom,
             )
         }
+
+        data object ManualZoom : Settings()
 
         sealed class Gestures : Item {
             companion object : Settings() {
@@ -406,7 +420,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 var isDefaultEnabled = false
                 var selectedValue: Boolean? = null
 
-                val isEnabled: Boolean get() = selectedValue ?: (UserPreferences.forceExtraBuffering || isDefaultEnabled)
+                val isEnabled: Boolean get() = selectedValue ?: (isDefaultEnabled || UserPreferences.forceExtraBuffering)
 
                 val list = listOf(On, Off)
 
@@ -427,7 +441,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 override val stringId: Int
                     get() = when {
                         selectedValue == null && isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_on
-                        (selectedValue == true && !isDefaultEnabled) || (selectedValue == null && UserPreferences.forceExtraBuffering && !isDefaultEnabled) -> R.string.player_settings_extra_buffer_forced_on
+                        selectedValue == true && !isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_on
                         else -> R.string.player_settings_extra_buffer_on
                     }
             }
@@ -436,8 +450,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 override val isSelected: Boolean get() = !isEnabled
                 override val stringId: Int
                     get() = when {
-                        selectedValue == null && !isDefaultEnabled && !UserPreferences.forceExtraBuffering -> R.string.player_settings_extra_buffer_auto_off
-                        selectedValue == false && (isDefaultEnabled || UserPreferences.forceExtraBuffering) -> R.string.player_settings_extra_buffer_forced_off
+                        selectedValue == null && !isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_off
+                        selectedValue == false && isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_off
                         else -> R.string.player_settings_extra_buffer_off
                     }
             }
@@ -531,6 +545,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     get() = list.find { it.isSelected }
 
                 fun init(player: ExoPlayer, resources: Resources) {
+                    val currentServerId = player.currentMediaItem?.mediaMetadata?.extras?.getString("mediaServerId")
+                    val servers = player.playlistMetadata.mediaServers
+                    val currentServer = servers.find { it.id == currentServerId }
+                    val serverTag = currentServer?.name?.let { name ->
+                        Regex("\\[(.*?)]").find(name)?.groupValues?.get(1)
+                            ?: Regex("\\((.*?)\\)").find(name)?.groupValues?.get(1)
+                    }
+
                     list.clear()
                     list.addAll(
                         player.currentTracks.groups
@@ -538,11 +560,19 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .flatMap { trackGroup ->
                                 trackGroup.trackFormats
                                     .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .filter { it.label != null }
                                     .mapIndexed { trackIndex, trackFormat ->
+                                        val trackName = DefaultTrackNameProvider(resources)
+                                            .getTrackName(trackFormat)
+                                        
+                                        val finalName = when {
+                                            trackName.isBlank() || trackName.lowercase() == "und" || trackName.lowercase() == "unknown" -> {
+                                                if (serverTag != null) "Audio $serverTag" else "Track ${trackIndex + 1}"
+                                            }
+                                            else -> trackName
+                                        }
+
                                         AudioTrackInformation(
-                                            name = DefaultTrackNameProvider(resources)
-                                                .getTrackName(trackFormat),
+                                            name = finalName,
 
                                             trackGroup = trackGroup,
                                             trackIndex = trackIndex,
@@ -591,7 +621,6 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .flatMap { trackGroup ->
                                 trackGroup.trackFormats
                                     .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .filter { it.label != null }
                                     .mapIndexed { trackIndex, trackFormat ->
                                         TextTrackInformation(
                                             name = DefaultTrackNameProvider(resources)

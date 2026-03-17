@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
@@ -21,6 +23,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import androidx.preference.SeekBarPreference
 import androidx.preference.SwitchPreferenceCompat
+import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainTvActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
@@ -48,6 +51,8 @@ import java.util.Locale
 class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.buzz"
+    private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
+    private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
 
     private lateinit var db: AppDatabase
@@ -125,6 +130,14 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
         }
 
+        findPreference<PreferenceCategory>("pc_cuevana_settings")?.apply {
+            isVisible = UserPreferences.currentProvider?.name == "Cuevana 3"
+        }
+
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.apply {
+            isVisible = UserPreferences.currentProvider?.name == "Poseidonhd2"
+        }
+
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
             summary = currentValue
@@ -138,7 +151,53 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 UserPreferences.streamingcommunityDomain = newDomainFromDialog
                 preference.summary = UserPreferences.streamingcommunityDomain
                 if (UserPreferences.currentProvider is StreamingCommunityProvider) {
-                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
+                    }
+                }
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("provider_cuevana_domain")?.apply {
+            val currentValue = UserPreferences.cuevanaDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_CUEVANA_DOMAIN_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newDomainFromDialog = newValue as String
+                UserPreferences.cuevanaDomain = newDomainFromDialog
+                preference.summary = UserPreferences.cuevanaDomain
+                if (UserPreferences.currentProvider?.name == "Cuevana 3") {
+                    requireActivity().apply {
+                        finish()
+                        startActivity(Intent(this, this::class.java))
+                    }
+                }
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("provider_poseidon_domain")?.apply {
+            val currentValue = UserPreferences.poseidonDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_POSEIDON_DOMAIN_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newDomainFromDialog = newValue as String
+                UserPreferences.poseidonDomain = newDomainFromDialog
+                preference.summary = UserPreferences.poseidonDomain
+                if (UserPreferences.currentProvider?.name == "Poseidonhd2") {
                     requireActivity().apply {
                         finish()
                         startActivity(Intent(this, this::class.java))
@@ -200,10 +259,18 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("p_settings_about")?.apply {
-            setOnPreferenceClickListener {
-                Toast.makeText(requireContext(), "About screen for TV not yet implemented.", Toast.LENGTH_SHORT).show()
-                true
-            }
+            val titleStr = getString(R.string.settings_version_tv)
+            val spannableTitle = SpannableString(titleStr)
+            spannableTitle.setSpan(ForegroundColorSpan(Color.WHITE), 0, titleStr.length, 0)
+            title = spannableTitle
+            
+            val summaryStr = BuildConfig.VERSION_NAME
+            val spannableSummary = SpannableString(summaryStr)
+            spannableSummary.setSpan(ForegroundColorSpan(Color.LTGRAY), 0, summaryStr.length, 0)
+            summary = spannableSummary
+
+            isSelectable = false
+            setOnPreferenceClickListener(null)
         }
 
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
@@ -216,6 +283,17 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             isChecked = UserPreferences.forceExtraBuffering
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.forceExtraBuffering = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("p_settings_autoplay_buffer")?.apply {
+            summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
+                val value = pref.text?.toLongOrNull() ?: 3L
+                "$value s"
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.autoplayBuffer = (newValue as String).toLongOrNull() ?: 3L
                 true
             }
         }
@@ -357,10 +435,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     }
                 }
                 if (UserPreferences.currentProvider is StreamingCommunityProvider) {
-                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
-                    requireActivity().apply {
-                        finish()
-                        startActivity(Intent(this, this::class.java))
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
                     }
                 } else {
                     Toast.makeText(requireContext(), getString(R.string.doh_provider_updated), Toast.LENGTH_LONG).show()
@@ -516,6 +596,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
+
+        findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible =
+            UserPreferences.currentProvider?.name == "Cuevana 3"
+
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible =
+            UserPreferences.currentProvider?.name == "Poseidonhd2"
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain

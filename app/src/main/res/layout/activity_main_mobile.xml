@@ -27,6 +27,8 @@
         android:theme="@style/Theme.AppCompat"
         app:itemIconTint="@color/nav_item_app"
         app:itemTextColor="@color/nav_item_app"
+        app:itemTextAppearanceActive="@style/BottomNavLabelStyle"
+        app:itemTextAppearanceInactive="@style/BottomNavLabelStyle"
         app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

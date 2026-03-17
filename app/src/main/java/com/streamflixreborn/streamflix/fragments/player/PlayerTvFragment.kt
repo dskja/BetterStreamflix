@@ -55,9 +55,11 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.ui.PlayerTvView
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
+import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
@@ -99,6 +101,7 @@ class PlayerTvFragment : Fragment() {
     private lateinit var mediaSession: MediaSession
     private lateinit var progressHandler: android.os.Handler
     private lateinit var progressRunnable: Runnable
+    private lateinit var gestureHelper: PlayerGestureHelper
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
@@ -196,6 +199,16 @@ class PlayerTvFragment : Fragment() {
 
         initializePlayer(false)
         initializeVideo()
+        gestureHelper = PlayerGestureHelper(
+            requireContext(), 
+            binding.pvPlayer, 
+            binding.llBrightness, 
+            binding.pbBrightness, 
+            binding.tvBrightnessPercentage,
+            binding.llVolume, 
+            binding.pbVolume, 
+            binding.tvVolumePercentage
+        )
 
         // Stato Video
         viewLifecycleOwner.lifecycleScope.launch {
@@ -395,16 +408,17 @@ class PlayerTvFragment : Fragment() {
                     player.release()
                     mediaSession.release()
                     isSetupDone = false
-                    val action = PlayerTvFragmentDirections
-                        .actionPlayerTvFragmentSelf(
-                            id = nextEpisode.id,
-                            videoType = nextEpisode,
-                            title = nextEpisode.tvShow.title,
-                            subtitle = "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
-                        )
-
+                    
+                    val args = Bundle().apply {
+                        putString("id", nextEpisode.id)
+                        putSerializable("videoType", nextEpisode)
+                        putString("title", nextEpisode.tvShow.title)
+                        putString("subtitle", "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}")
+                    }
+                    
                     findNavController().navigate(
-                        action,
+                        R.id.player,
+                        args,
                         NavOptions.Builder()
                             .setPopUpTo(findNavController().currentDestination?.id ?: return@collect, true)
                             .setLaunchSingleTop(false) 
@@ -436,6 +450,11 @@ class PlayerTvFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean = when {
+        (binding.pvPlayer as? PlayerTvView)?.isManualZoomEnabled == true -> {
+            (binding.pvPlayer as? PlayerTvView)?.exitManualZoomMode()
+            true
+        }
+
         binding.settings.isVisible -> {
             binding.settings.onBackPressed()
         }
@@ -572,6 +591,12 @@ class PlayerTvFragment : Fragment() {
                 currentServer ?: return@setOnExtraBufferingSelectedListener
             )
         }
+        binding.settings.onManualZoomClicked = {
+            binding.settings.hide()
+            binding.pvPlayer.hideController()
+            (binding.pvPlayer as? PlayerTvView)?.enterManualZoomMode()
+            binding.pvPlayer.requestFocus()
+        }
     }
 
     fun setupEpisodeNavigationButtons() {
@@ -609,20 +634,20 @@ class PlayerTvFragment : Fragment() {
 
                 when (videoType) {
                     is Video.Type.Movie -> {
-                        watchItem?.let { database.movieDao().update(it as Movie) }
+                        (watchItem as? Movie)?.let { database.movieDao().update(it) }
                     }
                     is Video.Type.Episode -> {
-                        watchItem?.let { episode ->
+                        (watchItem as? Episode)?.let { episode ->
                             if (player.hasFinished()) {
                                 episode.isWatched = true
-                                (episode as Episode).watchedDate = Calendar.getInstance()
+                                episode.watchedDate = Calendar.getInstance()
                                 episode.watchHistory = null
                                 database.episodeDao().resetProgressionFromEpisode(videoType.id)
                             }
 
-                            database.episodeDao().update(episode as Episode)
+                            database.episodeDao().update(episode)
 
-                            (episode as Episode).tvShow?.let { tvShow ->
+                            episode.tvShow?.let { tvShow ->
                                 database.tvShowDao().getById(tvShow.id)
                             }?.let { tvShow ->
                                 
@@ -851,27 +876,27 @@ class PlayerTvFragment : Fragment() {
 
                     when (videoType) {
                         is Video.Type.Movie -> {
-                            val movie = watchItem as Movie
-                            database.movieDao().update(movie)
+                            (watchItem as? Movie)?.let { database.movieDao().update(it) }
                         }
 
                         is Video.Type.Episode -> {
-                            val episode = watchItem as Episode
-                            if (player.hasFinished()) {
-                                database.episodeDao().resetProgressionFromEpisode(videoType.id)
-                            }
-                            database.episodeDao().update(episode)
+                            (watchItem as? Episode)?.let { episode ->
+                                if (player.hasFinished()) {
+                                    database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                                }
+                                database.episodeDao().update(episode)
 
-                            episode.tvShow?.let { tvShow ->
-                                database.tvShowDao().getById(tvShow.id)
-                            }?.let { tvShow ->
-                                val episodeDao = database.episodeDao()
-                                val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
-                                
-                                database.tvShowDao().save(tvShow.copy().apply {
-                                    merge(tvShow)
-                                    isWatching = !player.hasReallyFinished() || isStillWatching
-                                })
+                                episode.tvShow?.let { tvShow ->
+                                    database.tvShowDao().getById(tvShow.id)
+                                }?.let { tvShow ->
+                                    val episodeDao = database.episodeDao()
+                                    val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
+                                    
+                                    database.tvShowDao().save(tvShow.copy().apply {
+                                        merge(tvShow)
+                                        isWatching = !player.hasReallyFinished() || isStillWatching
+                                    })
+                                }
                             }
                         }
 
@@ -880,7 +905,6 @@ class PlayerTvFragment : Fragment() {
                         if (UserPreferences.autoplay){
                             viewModel.autoplayNextEpisode()
                         }
-
                     }
                 }
             }
@@ -919,7 +943,7 @@ class PlayerTvFragment : Fragment() {
     }
     private fun ExoPlayer.hasReallyFinished(): Boolean {
         return this.duration > 0 &&
-                this.currentPosition >= this.duration
+                this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
     }
     private fun startProgressHandler() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -986,6 +1010,13 @@ class PlayerTvFragment : Fragment() {
                         .build(),
                     true,
                 )
+
+                val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
+                if (lang == "es") {
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setPreferredAudioLanguage("spa")
+                        .build()
+                }
 
                 mediaSession = MediaSession.Builder(requireContext(), player)
                     .build()

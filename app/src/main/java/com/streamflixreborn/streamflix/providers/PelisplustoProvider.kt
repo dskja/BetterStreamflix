@@ -48,7 +48,7 @@ object PelisplustoProvider : Provider {
         .build()
 
     private val service = Retrofit.Builder()
-        .baseUrl(baseUrl)
+        .baseUrl("$baseUrl/")
         .addConverterFactory(JsoupConverterFactory.create())
         .client(client)
         .build()
@@ -73,7 +73,6 @@ object PelisplustoProvider : Provider {
             val bannerShows = mainDocument.select("div.home__slider_index div.swiper-slide article").mapNotNull {
                 val url = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
 
-                // La imagen del banner está en el 'div.bg' dentro de cada 'article'
                 val banner = it.selectFirst("div.bg")?.attr("style")
                     ?.substringAfter("url(")?.substringBefore(")")
                     ?.removeSurrounding("'")?.removeSurrounding("\"") ?: return@mapNotNull null
@@ -335,7 +334,7 @@ object PelisplustoProvider : Provider {
                     }
 
                     if (!finalUrl.isNullOrEmpty()) {
-                        servers.add(Video.Server(id = finalUrl, name = serverName, src = finalUrl))
+                        servers.add(Video.Server(id = finalUrl, name = "$serverName [LAT]", src = finalUrl))
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Fallo procesando un servidor individual: ${e.message}")

@@ -1,32 +1,31 @@
 package com.streamflixreborn.streamflix.fragments.settings
 
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
+import androidx.preference.PreferenceManager
+import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainMobileActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
 import com.streamflixreborn.streamflix.backup.ProviderBackupContext
 import com.streamflixreborn.streamflix.database.AppDatabase
-import com.streamflixreborn.streamflix.database.dao.EpisodeDao
-import com.streamflixreborn.streamflix.database.dao.MovieDao
-import com.streamflixreborn.streamflix.database.dao.TvShowDao
-import com.streamflixreborn.streamflix.database.dao.SeasonDao
 import com.streamflixreborn.streamflix.providers.FrenchStreamProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
@@ -44,11 +43,11 @@ import java.util.Locale
 
 class SettingsMobileFragment : PreferenceFragmentCompat() {
 
-    private lateinit var db: AppDatabase
-    private lateinit var movieDao: MovieDao
-    private lateinit var tvShowDao: TvShowDao
-    private lateinit var episodeDao: EpisodeDao
-    private lateinit var seasonDao: SeasonDao
+    private val DEFAULT_DOMAIN_VALUE = "streamingunity.buzz"
+    private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
+    private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
+    private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
+
     private lateinit var backupRestoreManager: BackupRestoreManager
 
     private val exportBackupLauncher = registerForActivityResult(
@@ -74,14 +73,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings_mobile, rootKey)
 
-        // Inizializzazione DB e Manager
-        db = AppDatabase.getInstance(requireContext())
-        movieDao = db.movieDao()
-        tvShowDao = db.tvShowDao()
-        episodeDao = db.episodeDao()
-        seasonDao = db.seasonDao()
-        
-        // Includiamo i provider statici + i provider TMDb dinamici (lingue principali) nel backup
         val allProvidersToBackup = Provider.providers.keys.toMutableList().apply {
             listOf("it", "en", "es", "de", "fr").forEach { lang ->
                 add(TmdbProvider(lang))
@@ -111,77 +102,83 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     }
 
     private fun displaySettings() {
-        
-        // Gestione visibilità categoria StreamingCommunity
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
             isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
         }
 
-        findPreference<ListPreference>("SELECTED_THEME")?.apply {
-            value = UserPreferences.selectedTheme
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.selectedTheme = newValue as String
-                requireActivity().apply {
-                    finish()
-                    startActivity(Intent(this, this::class.java))
+        findPreference<PreferenceCategory>("pc_cuevana_settings")?.apply {
+            isVisible = UserPreferences.currentProvider?.name == "Cuevana 3"
+        }
+
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.apply {
+            isVisible = UserPreferences.currentProvider?.name == "Poseidonhd2"
+        }
+
+        findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
+            val currentValue = UserPreferences.streamingcommunityDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_DOMAIN_VALUE || currentValue == PREFS_ERROR_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newDomainFromDialog = newValue as String
+                UserPreferences.streamingcommunityDomain = newDomainFromDialog
+                preference.summary = UserPreferences.streamingcommunityDomain
+                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
+                    }
                 }
                 true
             }
         }
 
-        findPreference<SwitchPreference>("AUTOPLAY")?.apply {
-            isChecked = UserPreferences.autoplay
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.autoplay = newValue as Boolean
-                true
+        findPreference<EditTextPreference>("provider_cuevana_domain")?.apply {
+            val currentValue = UserPreferences.cuevanaDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_CUEVANA_DOMAIN_VALUE) {
+                text = null
+            } else {
+                text = currentValue
             }
-        }
-        findPreference<SwitchPreference>("PLAYER_GESTURES")?.apply {
-            isChecked = UserPreferences.playerGestures
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.playerGestures = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.apply {
-            isChecked = UserPreferences.forceExtraBuffering
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.forceExtraBuffering = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.apply {
-            isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.serverVoeAutoSubtitlesDisabled = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("IMMERSIVE_MODE")?.apply {
-            isChecked = UserPreferences.immersiveMode
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.immersiveMode = newValue as Boolean
-                (activity as? MainMobileActivity)?.updateImmersiveMode()
-                true
-            }
-        }
-        findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {
-            isChecked = UserPreferences.enableTmdb
-
-            setOnPreferenceChangeListener { _, newValue ->
-                val enabled = newValue as Boolean
-                UserPreferences.enableTmdb = enabled
-
-                val message = if (enabled) {
-                    getString(R.string.settings_enable_tmdb_enabled)
-                } else {
-                    getString(R.string.settings_enable_tmdb_disabled)
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newDomainFromDialog = newValue as String
+                UserPreferences.cuevanaDomain = newDomainFromDialog
+                preference.summary = UserPreferences.cuevanaDomain
+                if (UserPreferences.currentProvider?.name == "Cuevana 3") {
+                    requireActivity().apply {
+                        finish()
+                        startActivity(Intent(this, this::class.java))
+                    }
                 }
+                true
+            }
+        }
 
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        findPreference<EditTextPreference>("provider_poseidon_domain")?.apply {
+            val currentValue = UserPreferences.poseidonDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_POSEIDON_DOMAIN_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newDomainFromDialog = newValue as String
+                UserPreferences.poseidonDomain = newDomainFromDialog
+                preference.summary = UserPreferences.poseidonDomain
+                if (UserPreferences.currentProvider?.name == "Poseidonhd2") {
+                    requireActivity().apply {
+                        finish()
+                        startActivity(Intent(this, this::class.java))
+                    }
+                }
                 true
             }
         }
@@ -220,6 +217,86 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<Preference>("p_settings_about")?.apply {
+            val titleStr = getString(R.string.settings_version_mobile)
+            val spannableTitle = SpannableString(titleStr)
+            spannableTitle.setSpan(ForegroundColorSpan(Color.WHITE), 0, titleStr.length, 0)
+            title = spannableTitle
+            
+            val summaryStr = BuildConfig.VERSION_NAME
+            val spannableSummary = SpannableString(summaryStr)
+            spannableSummary.setSpan(ForegroundColorSpan(Color.LTGRAY), 0, summaryStr.length, 0)
+            summary = spannableSummary
+            
+            isSelectable = false
+            setOnPreferenceClickListener(null)
+        }
+
+        findPreference<Preference>("p_settings_help")?.setOnPreferenceClickListener {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflix_app"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Telegram not found.", Toast.LENGTH_SHORT).show()
+            }
+            true
+        }
+
+        findPreference<Preference>("p_settings_telegram")?.setOnPreferenceClickListener {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflix_app"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Telegram not found.", Toast.LENGTH_SHORT).show()
+            }
+            true
+        }
+
+        findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
+        findPreference<SwitchPreference>("AUTOPLAY")?.setOnPreferenceChangeListener { _, newValue ->
+            UserPreferences.autoplay = newValue as Boolean
+            true
+        }
+
+        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.apply {
+            isChecked = UserPreferences.forceExtraBuffering
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.forceExtraBuffering = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("p_settings_autoplay_buffer")?.apply {
+            summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
+                val value = pref.text?.toLongOrNull() ?: 3L
+                "$value s"
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.autoplayBuffer = (newValue as String).toLongOrNull() ?: 3L
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
+        findPreference<SwitchPreference>("PLAYER_GESTURES")?.setOnPreferenceChangeListener { _, newValue ->
+            UserPreferences.playerGestures = newValue as Boolean
+            true
+        }
+
+        findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
+        findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.setOnPreferenceChangeListener { _, newValue ->
+            UserPreferences.keepScreenOnWhenPaused = newValue as Boolean
+            true
+        }
+
+        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.apply {
+            isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.serverVoeAutoSubtitlesDisabled = newValue as Boolean
+                true
+            }
+        }
+
         val HasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
         findPreference<PreferenceCategory>("pc_provider_settings")?.apply {
             isVisible = HasConfigProvider
@@ -230,7 +307,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             val configProvider = provider as? ProviderConfigUrl
             val portalProvider = provider as? ProviderPortalUrl
             var autoUpdateVal = false
-
 
             findPreference<SwitchPreference>("provider_autoupdate")?.apply {
                 isVisible = portalProvider != null
@@ -273,9 +349,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     }
                     setOnPreferenceChangeListener { _, newValue ->
                         val toSave = (newValue as String)
-                                .ifBlank { configProvider.defaultBaseUrl }
-                                .trim()
-                                .removeSuffix("/") + "/"
+                            .ifBlank { configProvider.defaultBaseUrl }
+                            .trim()
+                            .removeSuffix("/") + "/"
                         UserPreferences.setProviderCache(
                             null,
                             UserPreferences.PROVIDER_URL,
@@ -299,7 +375,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                             provider, UserPreferences
                                 .PROVIDER_PORTAL_URL
                         )
-                        .ifBlank { provider.defaultPortalUrl }
+                        .ifBlank { portalProvider.defaultPortalUrl }
                     setOnBindEditTextListener { editText ->
                         editText.inputType = InputType.TYPE_CLASS_TEXT
                         editText.imeOptions = EditorInfo.IME_ACTION_DONE
@@ -334,76 +410,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<Preference>("p_settings_about")?.apply {
-            setOnPreferenceClickListener {
-                findNavController().navigate(
-                    SettingsMobileFragmentDirections.actionSettingsToSettingsAbout()
-                )
-                true
-            }
-        }
-
-        findPreference<Preference>("p_settings_help")?.apply {
-            setOnPreferenceClickListener {
-                startActivity(
-                    Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://github.com/streamflix-reborn/streamflix")
-                    )
-                )
-                true
-            }
-        }
-
-        // Telegram group (mobile only)
-        findPreference<Preference>("p_settings_telegram")?.apply {
-            setOnPreferenceClickListener {
-                val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=streamflixreborn"))
-                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflixreborn"))
-                try {
-                    startActivity(tgIntent)
-                } catch (e: Exception) {
-                    startActivity(webIntent)
-                }
-                true
-            }
-        }
-
-        // Rinominato per coerenza, se necessario provider_streamingcommunity_domain
-        findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
-            summary = UserPreferences.streamingcommunityDomain
-
-            setOnBindEditTextListener { editText ->
-                editText.inputType = InputType.TYPE_CLASS_TEXT
-                editText.imeOptions = EditorInfo.IME_ACTION_DONE
-                editText.hint = "streamingcommunity.example"
-                val pref = UserPreferences.streamingcommunityDomain
-                if (!pref.isNullOrEmpty()) { // Modificato per non impostare testo se è vuoto
-                    editText.setText(pref)
-                } else {
-                    editText.setText(null) // Assicura che l'hint sia mostrato se il pref è vuoto
-                }
-            }
-
-            setOnPreferenceChangeListener { _, newValue ->
-                val newDomain = newValue as String
-                UserPreferences.streamingcommunityDomain = newDomain
-                summary = UserPreferences.streamingcommunityDomain // Usa il valore effettivo da UserPreferences
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
-                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService() // Rimosso newDomain, usa UserPreferences
-                    requireActivity().apply {
-                        finish()
-                        startActivity(Intent(this, this::class.java))
-                    }
-                }
-                true
-            }
-        }
-
         findPreference<ListPreference>("p_doh_provider_url")?.apply {
-            value = UserPreferences.dohProviderUrl // Rimossa logica DOH_DISABLED_VALUE se non necessaria
+            value = UserPreferences.dohProviderUrl
             summary = entry
-
             setOnPreferenceChangeListener { preference, newValue ->
                 val newUrl = newValue as String
                 UserPreferences.dohProviderUrl = newUrl
@@ -417,10 +426,12 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     }
                 }
                 if (UserPreferences.currentProvider is StreamingCommunityProvider) {
-                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
-                    requireActivity().apply {
-                        finish()
-                        startActivity(Intent(this, this::class.java))
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
                     }
                 } else {
                     Toast.makeText(requireContext(), getString(R.string.doh_provider_updated), Toast.LENGTH_LONG).show()
@@ -450,22 +461,58 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
-        // Listener per Esporta Backup
+        findPreference<ListPreference>("SELECTED_THEME")?.apply {
+            summary = entries[entryValues.indexOf(value)]
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newTheme = newValue as String
+                UserPreferences.selectedTheme = newTheme
+                if (preference is ListPreference) {
+                    preference.summary = preference.entries[preference.findIndexOfValue(newTheme)]
+                }
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainMobileActivity::class.java))
+                }
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("IMMERSIVE_MODE")?.apply {
+            isChecked = UserPreferences.immersiveMode
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.immersiveMode = newValue as Boolean
+                (activity as? MainMobileActivity)?.updateImmersiveMode()
+                true
+            }
+        }
+
+        findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {
+            isChecked = UserPreferences.enableTmdb
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                UserPreferences.enableTmdb = enabled
+                val message = if (enabled) {
+                    getString(R.string.settings_enable_tmdb_enabled)
+                } else {
+                    getString(R.string.settings_enable_tmdb_disabled)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
         findPreference<Preference>("key_backup_export_mobile")?.setOnPreferenceClickListener {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val fileName = "streamflix_mobile_backup_$timestamp.json"
-
             exportBackupLauncher.launch(fileName)
             true
         }
 
-        // Listener per Importa Backup
         findPreference<Preference>("key_backup_import_mobile")?.setOnPreferenceClickListener {
             importBackupLauncher.launch(arrayOf("application/json"))
             true
         }
 
-        // Trailer Player Reset
         findPreference<Preference>("preferred_player_reset")?.setOnPreferenceClickListener {
             PreferenceManager.getDefaultSharedPreferences(requireContext())
                 .edit()
@@ -523,26 +570,41 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
             UserPreferences.currentProvider is StreamingCommunityProvider
-        findPreference<ListPreference>("SELECTED_THEME")?.value = UserPreferences.selectedTheme
-        findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
-        findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
-        findPreference<SwitchPreference>("IMMERSIVE_MODE")?.isChecked = UserPreferences.immersiveMode
-        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
-        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
 
-        // Aggiorna summary per provider_streamingcommunity_domain in onResume
-        findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.summary = UserPreferences.streamingcommunityDomain
+        findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible =
+            UserPreferences.currentProvider?.name == "Cuevana 3"
 
-        // Aggiorna summary per p_doh_provider_url in onResume
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible =
+            UserPreferences.currentProvider?.name == "Poseidonhd2"
+
+        findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
+            val currentValue = UserPreferences.streamingcommunityDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_DOMAIN_VALUE || currentValue == PREFS_ERROR_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+        }
+
+        findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
+            summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
+            text = UserPreferences.tmdbApiKey
+        }
+
+        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
+            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
+            text = UserPreferences.subdlApiKey
+        }
+
         findPreference<ListPreference>("p_doh_provider_url")?.apply {
             summary = entry
         }
 
-        // Mantenuto per p_settings_autoplay_buffer, se esiste ancora nel XML (non presente nell'ultimo XML mostrato)
-        val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer")
-        bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
-            val value = pref.text?.toLongOrNull() ?: 3L
-            "$value seconds" // TODO: Estrarre "seconds" in strings.xml
-        }
+        findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
+        findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
+        findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
+        findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
+        findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.isChecked = UserPreferences.enableTmdb
     }
 }

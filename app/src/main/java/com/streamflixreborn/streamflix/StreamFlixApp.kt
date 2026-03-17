@@ -8,14 +8,11 @@ import com.streamflixreborn.streamflix.providers.AniWorldProvider
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.utils.CacheUtils
 import com.streamflixreborn.streamflix.utils.DnsResolver
-import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 
 class StreamFlixApp : Application() {
     companion object {
         lateinit var instance: StreamFlixApp
-            private set
-        lateinit var database: AppDatabase
             private set
     }
 
@@ -23,23 +20,27 @@ class StreamFlixApp : Application() {
         super.onCreate()
         instance = this
 
+        // 1. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
+        
+        // 2. Configurazione DNS
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
 
+        // 3. Inizializzazione Database per il provider corrente
+        AppDatabase.setup(this)
+
+        // 4. Inizializzazione provider specifici (se necessario)
         SerienStreamProvider.initialize(this)
         AniWorldProvider.initialize(this)
 
-        // Pulizia automatica della cache all'avvio
-        // Differenziamo la soglia tra TV (più restrittiva) e Mobile
+        // 5. Pulizia cache intelligente
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L
-        
         CacheUtils.autoClearIfNeeded(this, thresholdMb = threshold)
     }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        // Se il sistema è a corto di memoria, puliamo la cache completa
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             CacheUtils.clearAppCache(this)
         }

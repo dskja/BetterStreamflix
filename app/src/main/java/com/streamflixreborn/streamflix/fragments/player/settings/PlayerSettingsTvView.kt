@@ -28,7 +28,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
         true
     )
 
-    private val settingsAdapter = SettingsAdapter(this, Settings.list)
+    private val settingsAdapter = SettingsAdapter(this, Settings.listTv)
     private val qualityAdapter = SettingsAdapter(this, Settings.Quality.list)
     private val audioAdapter = SettingsAdapter(this, Settings.Audio.list)
     private val subtitlesAdapter = SettingsAdapter(this, Settings.Subtitle.list)
@@ -47,10 +47,9 @@ class PlayerSettingsTvView @JvmOverloads constructor(
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
     private val marginAdapter = SettingsAdapter(this, Settings.Subtitle.Style.Margin.list)
-    private val gesturesAdapter = SettingsAdapter(this, Settings.Gestures.list)
-    private val keepScreenOnAdapter = SettingsAdapter(this, Settings.KeepScreenOn.list)
 
     override var onSubtitlesClicked: (() -> Unit)? = null
+    var onManualZoomClicked: (() -> Unit)? = null
 
     init {
         binding.rvSettings.addItemDecoration(SpacingItemDecoration(6.dp(context)))
@@ -66,7 +65,8 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.EXTRA_BUFFERING,
             Setting.SERVERS,
             Setting.GESTURES,
-            Setting.KEEP_SCREEN_ON -> displaySettings(Setting.MAIN)
+            Setting.KEEP_SCREEN_ON,
+            Setting.MANUAL_ZOOM -> displaySettings(Setting.MAIN)
             Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
             Setting.CAPTION_STYLE_FONT_COLOR,
             Setting.CAPTION_STYLE_TEXT_SIZE,
@@ -127,6 +127,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                 Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
                 Setting.GESTURES -> context.getString(R.string.player_settings_gestures_title)
                 Setting.KEEP_SCREEN_ON -> context.getString(R.string.player_settings_keep_screen_on_title)
+                Setting.MANUAL_ZOOM -> context.getString(R.string.player_settings_manual_zoom_label)
             }
         }
 
@@ -150,8 +151,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.EXTRA_BUFFERING -> extraBufferingAdapter
             Setting.SERVERS -> serversAdapter
             Setting.CAPTION_STYLE_MARGIN -> marginAdapter
-            Setting.GESTURES -> gesturesAdapter
-            Setting.KEEP_SCREEN_ON -> keepScreenOnAdapter
+            else -> settingsAdapter
         }
         binding.rvSettings.requestFocus()
     }
@@ -206,8 +206,11 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 Settings.Speed -> settingsView.displaySettings(Setting.SPEED)
                                 Settings.ExtraBuffering -> settingsView.displaySettings(Setting.EXTRA_BUFFERING)
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
-                                Settings.Gestures -> settingsView.displaySettings(Setting.GESTURES)
-                                Settings.KeepScreenOn -> settingsView.displaySettings(Setting.KEEP_SCREEN_ON)
+                                Settings.ManualZoom -> {
+                                    settingsView.onManualZoomClicked?.invoke()
+                                    settingsView.hide()
+                                }
+                                else -> {}
                             }
                         }
 
@@ -356,22 +359,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                             settingsView.onServerSelected?.invoke(item)
                             settingsView.hide()
                         }
-
-                        is Settings.Gestures -> {
-                            UserPreferences.playerGestures = when (item) {
-                                is Settings.Gestures.On -> true
-                                is Settings.Gestures.Off -> false
-                            }
-                            settingsView.hide()
-                        }
-
-                        is Settings.KeepScreenOn -> {
-                            UserPreferences.keepScreenOnWhenPaused = when (item) {
-                                is Settings.KeepScreenOn.On -> true
-                                is Settings.KeepScreenOn.Off -> false
-                            }
-                            settingsView.hide()
-                        }
+                        else -> {}
                     }
                 }
             }
@@ -415,20 +403,13 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                     R.drawable.ic_player_settings_servers
                                 )
                             )
-
-                            Settings.Gestures -> setImageDrawable(
+                            Settings.ManualZoom -> setImageDrawable(
                                 ContextCompat.getDrawable(
                                     context,
-                                    R.drawable.ic_player_settings_gestures
+                                    R.drawable.exo_styled_controls_aspect_ratio
                                 )
                             )
-
-                            Settings.KeepScreenOn -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    R.drawable.ic_player_settings_quality
-                                )
-                            )
+                            else -> {}
                         }
                         visibility = View.VISIBLE
                     }
@@ -471,8 +452,8 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.Speed -> context.getString(R.string.player_settings_speed_label)
                         Settings.ExtraBuffering -> context.getString(R.string.player_settings_extra_buffer_server_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
-                        Settings.Gestures -> context.getString(R.string.player_settings_gestures_title)
-                        Settings.KeepScreenOn -> context.getString(R.string.player_settings_keep_screen_on_title)
+                        Settings.ManualZoom -> context.getString(R.string.player_settings_manual_zoom_label)
+                        else -> ""
                     }
 
                     is Settings.Audio -> when (item) {
@@ -500,7 +481,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> context.getString(R.string.player_settings_caption_style_label)
                         is Settings.Subtitle.None -> context.getString(R.string.player_settings_subtitles_off)
-                        is Settings.Subtitle.TextTrackInformation -> item.label
+                        is Settings.Subtitle.TextTrackInformation -> item.label.ifEmpty { item.name }
                         Settings.Subtitle.LocalSubtitles -> context.getString(R.string.player_settings_local_subtitles_label)
                         Settings.Subtitle.OpenSubtitles -> context.getString(R.string.player_settings_open_subtitles_label)
                         Settings.Subtitle.SubDLSubtitles -> context.getString(R.string.player_settings_subdl_label)
@@ -546,10 +527,6 @@ class PlayerSettingsTvView @JvmOverloads constructor(
 
                     is Settings.Server -> item.name
 
-                    is Settings.Gestures -> context.getString(item.stringId)
-
-                    is Settings.KeepScreenOn -> context.getString(item.stringId)
-
                     else -> ""
                 }
             }
@@ -578,8 +555,8 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.Speed -> context.getString(Settings.Speed.selected.stringId)
                         Settings.ExtraBuffering -> context.getString(Settings.ExtraBuffering.selected.stringId)
                         Settings.Server -> Settings.Server.selected?.name ?: ""
-                        Settings.Gestures -> context.getString(Settings.Gestures.selected.stringId)
-                        Settings.KeepScreenOn -> context.getString(Settings.KeepScreenOn.selected.stringId)
+                        Settings.ManualZoom -> ""
+                        else -> ""
                     }
 
                     is Settings.Subtitle -> when (item) {
@@ -697,23 +674,23 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         else -> View.GONE
                     }
 
-                    is Settings.Gestures -> when {
-                        item.isSelected -> View.VISIBLE
-                        else -> View.GONE
-                    }
-
-                    is Settings.KeepScreenOn -> when {
-                        item.isSelected -> View.VISIBLE
-                        else -> View.GONE
-                    }
-
                     else -> View.GONE
                 }
             }
 
             binding.ivSettingEnter.apply {
                 visibility = when (item) {
-                    is Settings -> View.VISIBLE
+                    is Settings -> {
+                        when(item) {
+                            Settings.Quality,
+                            Settings.Audio,
+                            Settings.Subtitle,
+                            Settings.Speed,
+                            Settings.ExtraBuffering,
+                            Settings.Server -> View.VISIBLE
+                            else -> View.GONE
+                        }
+                    }
 
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> View.VISIBLE

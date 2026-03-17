@@ -14,9 +14,21 @@
             android:id="@+id/action_providers_to_home"
             app:destination="@id/home" />
     </fragment>
+
+    <!-- Global Actions -->
     <action
         android:id="@+id/action_global_providers"
         app:destination="@id/providers" />
+    <action
+        android:id="@+id/action_global_player"
+        app:destination="@id/player" />
+    <action
+        android:id="@+id/action_global_tv_show"
+        app:destination="@id/tv_show" />
+    <action
+        android:id="@+id/action_global_movie"
+        app:destination="@id/movie" />
+
     <fragment
         android:id="@+id/home"
         android:name="com.streamflixreborn.streamflix.fragments.home.HomeMobileFragment"

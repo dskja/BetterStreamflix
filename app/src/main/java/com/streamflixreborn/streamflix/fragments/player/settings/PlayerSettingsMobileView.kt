@@ -11,10 +11,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.databinding.ItemSettingMobileBinding
 import com.streamflixreborn.streamflix.databinding.ViewPlayerSettingsMobileBinding
-import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.margin
-import com.streamflixreborn.streamflix.utils.UserPreferences
 
 class PlayerSettingsMobileView @JvmOverloads constructor(
     context: Context,
@@ -28,7 +26,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
         true
     )
 
-    private val settingsAdapter = SettingsAdapter(this, Settings.list)
+    private val settingsAdapter = SettingsAdapter(this, Settings.listMobile)
     private val qualityAdapter = SettingsAdapter(this, Settings.Quality.list)
     private val audioAdapter = SettingsAdapter(this, Settings.Audio.list)
     private val subtitlesAdapter = SettingsAdapter(this, Settings.Subtitle.list)
@@ -45,17 +43,50 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val subDLAdapter = SettingsAdapter(this, Settings.Subtitle.SubDLSubtitles.list)
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
-    private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
-    private val marginAdapter = SettingsAdapter(this, Settings.Subtitle.Style.Margin.list)
     private val gesturesAdapter = SettingsAdapter(this, Settings.Gestures.list)
     private val keepScreenOnAdapter = SettingsAdapter(this, Settings.KeepScreenOn.list)
+    private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
+    private val marginAdapter = SettingsAdapter(this, Settings.Subtitle.Style.Margin.list)
 
     override var onSubtitlesClicked: (() -> Unit)? = null
+    var onManualZoomClicked: (() -> Unit)? = null
 
     init {
-        binding.rvSettings.addItemDecoration(SpacingItemDecoration(6.dp(context)))
+        binding.btnSettingsClose.setOnClickListener {
+            hide()
+        }
+        binding.btnSettingsBack.setOnClickListener {
+            onBackPressed()
+        }
     }
 
+    fun onBackPressed(): Boolean {
+        when (currentSettings) {
+            Setting.MAIN -> hide()
+            Setting.QUALITY,
+            Setting.AUDIO,
+            Setting.SUBTITLES,
+            Setting.SPEED,
+            Setting.SERVERS,
+            Setting.GESTURES,
+            Setting.KEEP_SCREEN_ON,
+            Setting.EXTRA_BUFFERING,
+            Setting.MANUAL_ZOOM -> displaySettings(Setting.MAIN)
+            Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
+            Setting.CAPTION_STYLE_FONT_COLOR,
+            Setting.CAPTION_STYLE_TEXT_SIZE,
+            Setting.CAPTION_STYLE_FONT_OPACITY,
+            Setting.CAPTION_STYLE_EDGE_STYLE,
+            Setting.CAPTION_STYLE_BACKGROUND_COLOR,
+            Setting.CAPTION_STYLE_BACKGROUND_OPACITY,
+            Setting.CAPTION_STYLE_WINDOW_COLOR,
+            Setting.CAPTION_STYLE_WINDOW_OPACITY,
+            Setting.CAPTION_STYLE_MARGIN -> displaySettings(Setting.CAPTION_STYLE)
+            Setting.OPEN_SUBTITLES -> displaySettings(Setting.SUBTITLES)
+            Setting.SUBDL -> displaySettings(Setting.SUBTITLES)
+        }
+        return true
+    }
 
     fun show() {
         this.visibility = View.VISIBLE
@@ -93,45 +124,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
                 Setting.GESTURES -> context.getString(R.string.player_settings_gestures_title)
                 Setting.KEEP_SCREEN_ON -> context.getString(R.string.player_settings_keep_screen_on_title)
+                Setting.MANUAL_ZOOM -> context.getString(R.string.player_settings_manual_zoom_label)
             }
         }
 
-        binding.btnSettingsBack.apply {
-            setOnClickListener {
-                when (setting) {
-                    Setting.MAIN -> hide()
-                    Setting.QUALITY,
-                    Setting.AUDIO,
-                    Setting.SUBTITLES,
-                    Setting.SPEED,
-                    Setting.EXTRA_BUFFERING,
-                    Setting.SERVERS,
-                    Setting.GESTURES,
-                    Setting.KEEP_SCREEN_ON -> displaySettings(Setting.MAIN)
-                    Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
-                    Setting.CAPTION_STYLE_FONT_COLOR,
-                    Setting.CAPTION_STYLE_TEXT_SIZE,
-                    Setting.CAPTION_STYLE_FONT_OPACITY,
-                    Setting.CAPTION_STYLE_EDGE_STYLE,
-                    Setting.CAPTION_STYLE_BACKGROUND_COLOR,
-                    Setting.CAPTION_STYLE_BACKGROUND_OPACITY,
-                    Setting.CAPTION_STYLE_WINDOW_COLOR,
-                    Setting.CAPTION_STYLE_WINDOW_OPACITY,
-                    Setting.CAPTION_STYLE_MARGIN -> displaySettings(Setting.CAPTION_STYLE)
-                    Setting.OPEN_SUBTITLES -> displaySettings(Setting.SUBTITLES)
-                    Setting.SUBDL -> displaySettings(Setting.SUBTITLES)
-                }
-            }
-
-            visibility = when (setting) {
-                Setting.MAIN -> View.GONE
-                else -> View.VISIBLE
-            }
-        }
-
-        binding.btnSettingsClose.setOnClickListener {
-            hide()
-        }
+        binding.btnSettingsBack.visibility = if (setting == Setting.MAIN) View.GONE else View.VISIBLE
 
         binding.rvSettings.adapter = when (setting) {
             Setting.MAIN -> settingsAdapter
@@ -155,6 +152,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.CAPTION_STYLE_MARGIN -> marginAdapter
             Setting.GESTURES -> gesturesAdapter
             Setting.KEEP_SCREEN_ON -> keepScreenOnAdapter
+            Setting.MANUAL_ZOOM -> settingsAdapter
         }
     }
 
@@ -210,17 +208,21 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
                                 Settings.Gestures -> settingsView.displaySettings(Setting.GESTURES)
                                 Settings.KeepScreenOn -> settingsView.displaySettings(Setting.KEEP_SCREEN_ON)
+                                Settings.ManualZoom -> {
+                                    settingsView.onManualZoomClicked?.invoke()
+                                    settingsView.hide()
+                                }
                             }
                         }
 
                         is Settings.Quality -> {
                             settingsView.onQualitySelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Audio -> {
                             settingsView.onAudioSelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Subtitle -> {
@@ -232,7 +234,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 is Settings.Subtitle.None,
                                 is Settings.Subtitle.TextTrackInformation -> {
                                     settingsView.onSubtitleSelected.invoke(item)
-                                    settingsView.hide()
+                                    settingsView.displaySettings(Setting.MAIN)
                                 }
 
                                 Settings.Subtitle.LocalSubtitles -> {
@@ -334,134 +336,81 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                         is Settings.Subtitle.OpenSubtitles.Subtitle -> {
                             settingsView.onOpenSubtitleSelected?.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Subtitle.SubDLSubtitles.Subtitle -> {
                             settingsView.onSubDLSubtitleSelected?.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Speed -> {
                             settingsView.onSpeedSelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
-
-
 
                         is Settings.ExtraBuffering -> {
                             settingsView.onExtraBufferingSelected.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
+                        }
+
+                        is Settings.Gestures -> {
+                            when (item) {
+                                is Settings.Gestures.On -> com.streamflixreborn.streamflix.utils.UserPreferences.playerGestures = true
+                                is Settings.Gestures.Off -> com.streamflixreborn.streamflix.utils.UserPreferences.playerGestures = false
+                            }
+                            settingsView.displaySettings(Setting.MAIN)
+                        }
+
+                        is Settings.KeepScreenOn -> {
+                            when (item) {
+                                is Settings.KeepScreenOn.On -> com.streamflixreborn.streamflix.utils.UserPreferences.keepScreenOnWhenPaused = true
+                                is Settings.KeepScreenOn.Off -> com.streamflixreborn.streamflix.utils.UserPreferences.keepScreenOnWhenPaused = false
+                            }
+                            settingsView.displaySettings(Setting.MAIN)
                         }
 
                         is Settings.Server -> {
                             settingsView.onServerSelected?.invoke(item)
-                            settingsView.hide()
+                            settingsView.displaySettings(Setting.MAIN)
                         }
-
-                        is Settings.Gestures -> {
-                            UserPreferences.playerGestures = when (item) {
-                                is Settings.Gestures.On -> true
-                                is Settings.Gestures.Off -> false
-                            }
-                            settingsView.hide()
-                        }
-
-                        is Settings.KeepScreenOn -> {
-                            UserPreferences.keepScreenOnWhenPaused = when (item) {
-                                is Settings.KeepScreenOn.On -> true
-                                is Settings.KeepScreenOn.Off -> false
-                            }
-                            settingsView.hide()
-                        }
+                        else -> {}
                     }
                 }
             }
 
-            binding.ivSettingIcon.apply {
-                when (item) {
-                    is Settings -> {
-                        when (item) {
-                            Settings.Quality -> setImageDrawable(
-                                ContextCompat.getDrawable(context, R.drawable.ic_player_settings_quality)
-                            )
-                            Settings.Audio -> setImageDrawable(
-                                ContextCompat.getDrawable(context, R.drawable.ic_player_settings_audio)
-                            )
-                            Settings.Subtitle -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    when (Settings.Subtitle.selected) {
-                                        is Settings.Subtitle.TextTrackInformation -> R.drawable.ic_player_settings_subtitle_on
-                                        else -> R.drawable.ic_player_settings_subtitle_off
-                                    }
-                                )
-                            )
-                            Settings.Speed -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    R.drawable.ic_player_settings_playback_speed
-                                )
-                                )
+            // CLEAN RESET
+            binding.vSettingColor.visibility = View.GONE
+            binding.ivSettingIcon.visibility = View.GONE
 
-                            Settings.ExtraBuffering -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    R.drawable.ic_player_settings_extra_buffer
-                                )
-                            )
-
-                            Settings.Server -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    R.drawable.ic_player_settings_servers
-                                )
-                            )
-
-                            Settings.Gestures -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    R.drawable.ic_player_settings_gestures
-                                )
-                            )
-
-                            Settings.KeepScreenOn -> setImageDrawable(
-                                ContextCompat.getDrawable(
-                                    context,
-                                    R.drawable.ic_player_settings_quality
-                                )
-                            )
-                        }
-                        visibility = View.VISIBLE
-                    }
-
-                    else -> {
-                        visibility = View.GONE
-                    }
-                }
+            // Handle Color Dots
+            val color = when (item) {
+                is Settings.Subtitle.Style.FontColor -> item.color
+                is Settings.Subtitle.Style.BackgroundColor -> item.color
+                is Settings.Subtitle.Style.WindowColor -> item.color
+                else -> null
+            }
+            if (color != null) {
+                binding.vSettingColor.backgroundTintList = ColorStateList.valueOf(color)
+                binding.vSettingColor.visibility = View.VISIBLE
             }
 
-            binding.vSettingColor.apply {
-                when (item) {
-                    is Settings.Subtitle.Style.FontColor -> {
-                        backgroundTintList = ColorStateList.valueOf(item.color)
-                        visibility = View.VISIBLE
-                    }
-
-                    is Settings.Subtitle.Style.BackgroundColor -> {
-                        backgroundTintList = ColorStateList.valueOf(item.color)
-                        visibility = View.VISIBLE
-                    }
-
-                    is Settings.Subtitle.Style.WindowColor -> {
-                        backgroundTintList = ColorStateList.valueOf(item.color)
-                        visibility = View.VISIBLE
-                    }
-
-                    else -> {
-                        visibility = View.GONE
-                    }
-                }
+            // Handle Icons for Main categories only
+            if (item is Settings) {
+                binding.ivSettingIcon.visibility = View.VISIBLE
+                binding.ivSettingIcon.setImageDrawable(
+                    ContextCompat.getDrawable(binding.root.context, when (item) {
+                        Settings.Quality -> R.drawable.ic_player_settings_quality
+                        Settings.Audio -> R.drawable.ic_player_settings_audio
+                        Settings.Subtitle -> if (Settings.Subtitle.selected is Settings.Subtitle.TextTrackInformation) R.drawable.ic_player_settings_subtitle_on else R.drawable.ic_player_settings_subtitle_off
+                        Settings.Speed -> R.drawable.ic_player_settings_playback_speed
+                        Settings.ExtraBuffering -> R.drawable.ic_player_settings_extra_buffer
+                        Settings.Server -> R.drawable.ic_player_settings_servers
+                        Settings.Gestures -> R.drawable.ic_player_settings_gestures
+                        Settings.KeepScreenOn -> R.drawable.ic_brightness
+                        Settings.ManualZoom -> R.drawable.exo_styled_controls_aspect_ratio
+                    })
+                )
             }
 
             binding.tvSettingMainText.apply {
@@ -475,6 +424,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
                         Settings.Gestures -> context.getString(R.string.player_settings_gestures_title)
                         Settings.KeepScreenOn -> context.getString(R.string.player_settings_keep_screen_on_title)
+                        Settings.ManualZoom -> context.getString(R.string.player_settings_manual_zoom_label)
+                    }
+
+                    is Settings.Audio -> when (item) {
+                        is Settings.Audio.AudioTrackInformation -> item.name
                     }
 
                     is Settings.Quality -> when (item) {
@@ -495,14 +449,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         )
                     }
 
-                    is Settings.Audio -> when (item) {
-                        is Settings.Audio.AudioTrackInformation -> item.name
-                    }
-
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> context.getString(R.string.player_settings_caption_style_label)
                         is Settings.Subtitle.None -> context.getString(R.string.player_settings_subtitles_off)
-                        is Settings.Subtitle.TextTrackInformation -> item.label
+                        is Settings.Subtitle.TextTrackInformation -> item.label.ifEmpty { item.name }
                         Settings.Subtitle.LocalSubtitles -> context.getString(R.string.player_settings_local_subtitles_label)
                         Settings.Subtitle.OpenSubtitles -> context.getString(R.string.player_settings_open_subtitles_label)
                         Settings.Subtitle.SubDLSubtitles -> context.getString(R.string.player_settings_subdl_label)
@@ -546,12 +496,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.ExtraBuffering -> context.getString(item.stringId)
 
-                    is Settings.Server -> item.name
-
                     is Settings.Gestures -> context.getString(item.stringId)
 
                     is Settings.KeepScreenOn -> context.getString(item.stringId)
 
+                    is Settings.Server -> item.name
                     else -> ""
                 }
             }
@@ -579,9 +528,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         }
                         Settings.Speed -> context.getString(Settings.Speed.selected.stringId)
                         Settings.ExtraBuffering -> context.getString(Settings.ExtraBuffering.selected.stringId)
-                        Settings.Server -> Settings.Server.selected?.name ?: ""
                         Settings.Gestures -> context.getString(Settings.Gestures.selected.stringId)
                         Settings.KeepScreenOn -> context.getString(Settings.KeepScreenOn.selected.stringId)
+                        Settings.Server -> Settings.Server.selected?.name ?: ""
+                        Settings.ManualZoom -> ""
+                        else -> ""
                     }
 
                     is Settings.Subtitle -> when (item) {
@@ -694,11 +645,6 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         else -> View.GONE
                     }
 
-                    is Settings.Server -> when {
-                        item.isSelected -> View.VISIBLE
-                        else -> View.GONE
-                    }
-
                     is Settings.Gestures -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
@@ -709,13 +655,30 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         else -> View.GONE
                     }
 
+                    is Settings.Server -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
                     else -> View.GONE
                 }
             }
 
             binding.ivSettingEnter.apply {
                 visibility = when (item) {
-                    is Settings -> View.VISIBLE
+                    is Settings -> {
+                        when(item) {
+                            Settings.Quality,
+                            Settings.Audio,
+                            Settings.Subtitle,
+                            Settings.Speed,
+                            Settings.ExtraBuffering,
+                            Settings.Gestures,
+                            Settings.KeepScreenOn,
+                            Settings.Server -> View.VISIBLE
+                            else -> View.GONE
+                        }
+                    }
 
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> View.VISIBLE

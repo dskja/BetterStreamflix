@@ -1,4 +1,5 @@
-﻿<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
     <string name="loading_error_title">Une erreur est survenue</string>
@@ -28,6 +29,7 @@
     <string name="main_menu_home">Accueil</string>
     <string name="main_menu_movies">Films</string>
     <string name="main_menu_tv_shows">Séries TV</string>
+    <string name="main_menu_all_channels">Toutes les chaînes</string>
     <string name="main_menu_settings">Paramètres</string>
     <string name="main_menu_theme_change">Changer de thème</string>
     <string name="theme_default">Par défaut</string>
@@ -89,7 +91,7 @@
     <string name="people_deathday">Date de décès</string>
     <string name="people_birthplace">Lieu de naissance</string>
     <string name="people_biography">Biographie</string>
-    <string name="people_read_more">Voir plus ></string>
+    <string name="people_read_more">Voir plus &gt;</string>
 
     <string name="genre_header_name">%s Films et séries TV</string>
 
@@ -194,6 +196,8 @@
     <string name="player_settings_caption_style_margin_label">Marge inférieure</string>
     <string name="player_settings_open_subtitles_title">OpenSubtitles</string>
     <string name="player_settings_open_subtitles_label">OpenSubtitles</string>
+    <string name="player_settings_subdl_title">SubDL</string>
+    <string name="player_settings_subdl_label">SubDL</string>
     <string name="player_settings_local_subtitles_label">Charger depuis fichier</string>
     <string name="player_settings_speed_title">Vitesse vidéo</string>
     <string name="player_settings_speed_label">Vitesse</string>
@@ -208,12 +212,17 @@
     <string name="player_settings_servers_title">Serveurs</string>
     <string name="player_settings_servers_label">Serveurs</string>
 
+    <string name="settings_about">À propos</string>
+    <string name="settings_version_tv">Version TV</string>
+    <string name="settings_version_mobile">Version Mobile</string>
     <string name="settings_about_version">Version</string>
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Aide</string>
     <string name="settings_telegram">Groupe Telegram</string>
     <string name="settings_category_streamingcommunity">Paramètres StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Nom de domaine StreamingCommunity</string>
+    <string name="settings_category_cuevana">Paramètres Cuevana 3</string>
+    <string name="settings_category_cuevana_domain">Nom de domaine Cuevana 3</string>
     <string name="settings_close_app">Fermer l\'application</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Utiliser DNS sécurisé</string>
     <string name="settings_category_network_title">Paramètres réseau</string>
@@ -285,13 +294,10 @@
     <string name="backup_import_read_error">Erreur lors de la lecture du fichier de sauvegarde.</string>
 
     <string name="doh_provider_updated">Paramètres DNS over HTTPS mis à jour ! Redémarrez.</string>
+    <string name="settings_category_frenchstream">Paramètres FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface">Utiliser la nouvelle interface FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Activé</string>
     <string name="settings_frenchstream_use_new_interface_off">Désactivé</string>
-
-    <string name="settings_server_voe_category">Paramètres du serveur VOE</string>
-    <string name="settings_server_voe_title">Désactiver les sous-titres automatiques du serveur VOE</string>
-    <string name="settings_server_voe_summary">Si activé, les sous-titres du serveur VOE ne seront pas activés automatiquement même s\'ils sont disponibles et ont une valeur par défaut true</string>
 
     <string name="settings_category_interface_title">Paramètres d\'interface</string>
     <string name="settings_immersive_mode">Mode Immersif</string>
@@ -323,7 +329,7 @@
 
     <string name="settings_category_appearance">Apparence</string>
     <string name="settings_theme_title">Thème de l\'application</string>
-    <string name="player_settings_gestures_title">Gestes</string>
+    <string name="player_settings_gestures_title">Gestures</string>
     <string name="player_settings_keep_screen_on_title">Écran actif en pause</string>
 
     <string name="settings_category_tmdb">Paramètres TMDb</string>
@@ -337,10 +343,20 @@
     <string name="settings_subdl_api_key_success">Clé API SubDL enregistrée avec succès</string>
     <string name="settings_subdl_api_key_reset">Clé API SubDL supprimée</string>
 
-    <string name="settings_force_extra_buffer_title">Mise in mémoire tampone extra globale</string>
-    <string name="settings_force_extra_buffer_summary">Activer la mise in mémoire tampone extra pour tous les serveurs par défaut</string>
-    <string name="settings_enable_tmdb_summary">Activer ou désactiver l’utilisation de TMDB</string>
-    <string name="settings_enable_tmdb_title">Activer TMDB</string>
-    <string name="settings_enable_tmdb_enabled">TMDB activé</string>
-    <string name="settings_enable_tmdb_disabled">TMDB désactivé</string>
+    <string name="player_settings_manual_zoom_label">Zoom Manuel</string>
+    <string name="player_manual_zoom_hint">Utilisez HAUT/BAS per zoom vertical, GAUCHE/DROITE pour horizontal, RETOUR pour quitter</string>
+
+    <string name="bypass_tv_instructions">DÉPLACEZ LE CURSEUR SUR LA CASE\nET APPUYEZ SUR OK POUR DÉBLOQUER</string>
+
+    <string name="settings_enable_tmdb_summary">Activer ou désactiver l\'utilisation de TMDb</string>
+    <string name="settings_enable_tmdb_title">Activer TMDb</string>
+    <string name="settings_enable_tmdb_enabled">TMDb activé</string>
+    <string name="settings_enable_tmdb_disabled">TMDb désactivé</string>
+
+    <string name="settings_force_extra_buffer_title">Mise en mémoire tampon supplémentaire globale</string>
+    <string name="settings_force_extra_buffer_summary">Activer la mise en mémoire tampon supplémentaire pour tous les serveurs par défaut</string>
+
+    <string name="settings_server_voe_category">Paramètres du serveur VOE</string>
+    <string name="settings_server_voe_title">Désactiver les sous-titres automatiques VOE</string>
+    <string name="settings_server_voe_summary">Si activé, les sous-titres du serveur VOE ne seront pas activés automatiquement même s\'ils sont disponibles</string>
 </resources>

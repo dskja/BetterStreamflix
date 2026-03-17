@@ -28,7 +28,7 @@
     </style>
 
     <!-- Stile per forzare il fondo nero nelle schermate di impostazione (Leanback) -->
-    <!-- Usiamo direttamente android:background nella preferenceTheme per non rompere il build -->
+    <!-- Usiamo direttamente android:background nella preferenceTheme per non romper il build -->
     <style name="PreferenceThemeOverlay.Leanback.Amoled" parent="PreferenceThemeOverlayLeanback">
         <item name="android:windowBackground">?attr/app_background_color</item>
         <item name="android:colorBackground">?attr/app_background_color</item>

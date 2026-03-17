@@ -102,6 +102,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="16dp"
+        android:textColor="#FFFFFF"
         app:layout_constraintBottom_toTopOf="@id/tv_swiper_overview"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_swiper_rating_icon"

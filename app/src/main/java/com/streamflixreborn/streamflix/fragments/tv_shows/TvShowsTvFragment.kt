@@ -106,12 +106,11 @@ class TvShowsTvFragment : Fragment() {
 
     private fun initializeTvShows() {
         binding.vgvTvShows.apply {
+            val spacing = requireContext().resources.getDimension(R.dimen.tv_shows_spacing).toInt()
+            setItemSpacing(spacing)
             adapter = appAdapter.apply {
                 stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
             }
-            setItemSpacing(
-                requireContext().resources.getDimension(R.dimen.tv_shows_spacing).toInt()
-            )
         }
 
         binding.root.requestFocus()
