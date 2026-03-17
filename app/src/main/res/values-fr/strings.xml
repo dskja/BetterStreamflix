@@ -236,11 +236,11 @@
     <string name="settings_autoplay">Lecture automatique de l\'épisode suivant</string>
     <string name="settings_autoplay_on">Activé</string>
     <string name="settings_autoplay_off">Désactivé</string>
-    <string name="settings_autoplay_buffer_title">Buffer de lecture automatique</string>
-    <string name="settings_autoplay_buffer_dialog_message">Réglez le nombre de secondes avant la fin de l\'épisode pour passer au suivant.</string>
+    <string name="settings_autoplay_buffer_title">Délai avant l\'épisode suivant</string>
+    <string name="settings_autoplay_buffer_dialog_message">Réglez le nombre de secondes restant avant de passer à l\'épisode suivant.</string>
     <string name="autoplay_settings">Paramètres de lecture automatique</string>
     <string name="player_settings">Paramètres du lecteur</string>
-    <string name="settings_player_gestures">Gestes du lecteur</string>
+    <string name="settings_player_gestures">Contrôles tactiles</string>
     <string name="settings_player_gestures_on">Activé</string>
     <string name="settings_player_gestures_off">Désactivé</string>
     <string name="settings_keep_screen_on_when_paused">Garder l\'écran allumé en pause</string>
