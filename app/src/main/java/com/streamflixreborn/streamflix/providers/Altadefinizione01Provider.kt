@@ -426,7 +426,7 @@ object Altadefinizione01Provider : Provider {
         }
 
         val doc = service.getPage(id)
-        val iframeSrc = doc.selectFirst("iframe[src*='mostraguarda.stream']")?.attr("src")
+        val iframeSrc = doc.selectFirst("iframe[src*='guardahd.stream']")?.attr("src")
             ?: throw Exception("Embed iframe not found")
         val embedUrl = normalizeUrl(iframeSrc)
         val embedDoc = service.getPage(embedUrl)
