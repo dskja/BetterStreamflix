@@ -79,10 +79,14 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.navigation.NavOptions
+import com.streamflixreborn.streamflix.StreamFlixApp
+import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
+import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
+import java.net.CookieManager
 import java.util.Locale
 
 class PlayerMobileFragment : Fragment() {
@@ -112,6 +116,8 @@ class PlayerMobileFragment : Fragment() {
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
     private var isIgnoringPip = false
+    private val customTabHelper = CustomTabHelper()
+    private var waitingForBypass = false
 
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -178,6 +184,14 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        //s.to specific stuff
+        if (waitingForBypass) {
+            waitingForBypass = false
+            lifecycleScope.launch {
+                delay(3000) // give time for redirect after "Weiter"
+                viewModel.reloadServersAfterBypass()
+            }
+        }
         if (!isSetupDone) {
             requireActivity().requestedOrientation =
                 ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -211,7 +225,7 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        customTabHelper.warmup(StreamFlixApp.instance)
         initializePlayer(false)
         initializeVideo()
         gestureHelper = PlayerGestureHelper(
@@ -232,41 +246,51 @@ class PlayerMobileFragment : Fragment() {
                     PlayerViewModel.State.LoadingServers -> {}
                     is PlayerViewModel.State.SuccessLoadingServers -> {
                         servers = state.servers
-                        
-                        val providerName = UserPreferences.currentProvider?.name ?: ""
-                        val isTmdb = providerName.contains("TMDb", ignoreCase = true)
-                        val isAD = providerName.contains("AfterDark", ignoreCase = true)
+                        val sToServer = servers.firstOrNull {
+                            it.id.startsWith("https://s.to/r")
+                        }
 
-                        if (servers.isEmpty()) {
-                            val message = if (isTmdb || isAD) {
-                                val langCode = providerName.substringAfter("(").substringBefore(")")
-                                val locale = Locale.forLanguageTag(langCode)
-                                val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
-                                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                        if (sToServer != null && !waitingForBypass) {
+                            waitingForBypass = true
 
-                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
-                                else getString(R.string.player_retry_later_message)
-                            } else {
-                                "No servers found for this content."
+                            customTabHelper.open(requireActivity(), sToServer.id)
+                        } else {
+                            val providerName = UserPreferences.currentProvider?.name ?: ""
+                            val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                            val isAD = providerName.contains("AfterDark", ignoreCase = true)
+
+                            if (servers.isEmpty()) {
+                                val message = if (isTmdb || isAD) {
+                                    val langCode = providerName.substringAfter("(").substringBefore(")")
+                                    val locale = Locale.forLanguageTag(langCode)
+                                    val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
+                                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
+                                    if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
+                                    else getString(R.string.player_retry_later_message)
+                                } else {
+                                    "No servers found for this content."
+                                }
+                                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                                findNavController().navigateUp()
+                                return@collect
                             }
-                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-                            findNavController().navigateUp()
-                            return@collect
+
+                            player.playlistMetadata = MediaMetadata.Builder()
+                                .setTitle(state.toString())
+                                .setMediaServers(state.servers.map {
+                                    MediaServer(
+                                        id = it.id,
+                                        name = it.name,
+                                    )
+                                })
+                                .build()
+                            binding.settings.setOnServerSelectedListener { server ->
+                                viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                            }
+                            viewModel.getVideo(state.servers.first())
                         }
 
-                        player.playlistMetadata = MediaMetadata.Builder()
-                            .setTitle(state.toString())
-                            .setMediaServers(state.servers.map {
-                                MediaServer(
-                                    id = it.id,
-                                    name = it.name,
-                                )
-                            })
-                            .build()
-                        binding.settings.setOnServerSelectedListener { server ->
-                            viewModel.getVideo(state.servers.find { server.id == it.id }!!)
-                        }
-                        viewModel.getVideo(state.servers.first())
                     }
 
                     is PlayerViewModel.State.FailedLoadingServers -> {

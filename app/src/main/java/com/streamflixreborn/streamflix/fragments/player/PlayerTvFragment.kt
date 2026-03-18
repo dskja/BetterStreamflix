@@ -80,6 +80,12 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.streamflixreborn.streamflix.utils.CustomTabHelper
+import com.streamflixreborn.streamflix.utils.QrUtils
+import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.delay
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.util.Locale
 
 class PlayerTvFragment : Fragment() {
@@ -108,17 +114,36 @@ class PlayerTvFragment : Fragment() {
 
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
-
+    private val customTabHelper = CustomTabHelper()
+    private var waitingForBypass = false
+    private var bypassDone = false
+    private var qrDialog: androidx.appcompat.app.AlertDialog? = null
+    fun getLocalIpAddress(): String? {
+        return try {
+            NetworkInterface.getNetworkInterfaces().toList()
+                .flatMap { it.inetAddresses.toList() }
+                .firstOrNull { !it.isLoopbackAddress && it is Inet4Address }
+                ?.hostAddress
+        } catch (e: Exception) {
+            null
+        }
+    }
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
                 val clickedComponent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT, android.content.ComponentName::class.java)
+                    intent?.getParcelableExtra(
+                        Intent.EXTRA_CHOSEN_COMPONENT,
+                        android.content.ComponentName::class.java
+                    )
                 } else {
                     @Suppress("DEPRECATION")
                     intent?.getParcelableExtra(Intent.EXTRA_CHOSEN_COMPONENT)
                 }
-                Log.i("ExternalPlayer", "TV - App selezionata: ${clickedComponent?.packageName ?: "Sconosciuta"}")
+                Log.i(
+                    "ExternalPlayer",
+                    "TV - App selezionata: ${clickedComponent?.packageName ?: "Sconosciuta"}"
+                )
             }
         }
     }
@@ -135,24 +160,26 @@ class PlayerTvFragment : Fragment() {
         val fileName = uri.getFileName(requireContext()) ?: uri.toString()
 
         val currentPosition = player.currentPosition
-        val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
-            MediaItem.SubtitleConfiguration.Builder(it.uri)
-                .setMimeType(it.mimeType)
-                .setLabel(it.label)
-                .setLanguage(it.language)
-                .setSelectionFlags(0)
-                .build()
-        } ?: listOf()
+        val currentSubtitleConfigurations =
+            player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
+                MediaItem.SubtitleConfiguration.Builder(it.uri)
+                    .setMimeType(it.mimeType)
+                    .setLabel(it.label)
+                    .setLanguage(it.language)
+                    .setSelectionFlags(0)
+                    .build()
+            } ?: listOf()
         player.setMediaItem(
             MediaItem.Builder()
                 .setUri(player.currentMediaItem?.localConfiguration?.uri)
                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
-                .setSubtitleConfigurations(currentSubtitleConfigurations
-                        + MediaItem.SubtitleConfiguration.Builder(uri)
-                    .setMimeType(fileName.toSubtitleMimeType())
-                    .setLabel(fileName)
-                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                    .build()
+                .setSubtitleConfigurations(
+                    currentSubtitleConfigurations
+                            + MediaItem.SubtitleConfiguration.Builder(uri)
+                        .setMimeType(fileName.toSubtitleMimeType())
+                        .setLabel(fileName)
+                        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                        .build()
                 )
                 .setMediaMetadata(player.mediaMetadata)
                 .build()
@@ -200,13 +227,13 @@ class PlayerTvFragment : Fragment() {
         initializePlayer(false)
         initializeVideo()
         gestureHelper = PlayerGestureHelper(
-            requireContext(), 
-            binding.pvPlayer, 
-            binding.llBrightness, 
-            binding.pbBrightness, 
+            requireContext(),
+            binding.pvPlayer,
+            binding.llBrightness,
+            binding.pbBrightness,
             binding.tvBrightnessPercentage,
-            binding.llVolume, 
-            binding.pbVolume, 
+            binding.llVolume,
+            binding.pbVolume,
             binding.tvVolumePercentage
         )
 
@@ -217,7 +244,27 @@ class PlayerTvFragment : Fragment() {
                     PlayerViewModel.State.LoadingServers -> {}
                     is PlayerViewModel.State.SuccessLoadingServers -> {
                         servers = state.servers
-                        
+
+                        val sToServer = servers.firstOrNull {
+                            it.id.startsWith("https://s.to/r")
+                        }
+                        if (sToServer != null && !waitingForBypass && !bypassDone) {
+                            waitingForBypass = true
+
+                            val ip = getLocalIpAddress() ?: return@collect
+
+                            val qrContent = "streamflix://resolve?tv=$ip:8080&url=${
+                                Uri.encode(sToServer.id)
+                            }"
+
+                            startCallbackServer()       // 👈 start TV listener
+                            showQrDialog(qrContent)     // 👈 show QR
+
+                            return@collect // ⛔ STOP normal flow until resolved
+                        }
+
+
+
                         val providerName = UserPreferences.currentProvider?.name ?: ""
                         val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                         val isAD = providerName.contains("AfterDark", ignoreCase = true)
@@ -228,8 +275,11 @@ class PlayerTvFragment : Fragment() {
                                 val locale = Locale.forLanguageTag(langCode)
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                
-                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
+
+                                if (isTmdb) getString(
+                                    R.string.player_not_available_lang_message,
+                                    langDisplayName
+                                )
                                 else getString(R.string.player_retry_later_message)
                             } else {
                                 "No servers found for this content."
@@ -252,626 +302,431 @@ class PlayerTvFragment : Fragment() {
                             viewModel.getVideo(state.servers.find { server.id == it.id }!!)
                         }
                         viewModel.getVideo(state.servers.first())
+
                     }
-
-                    is PlayerViewModel.State.FailedLoadingServers -> {
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        findNavController().navigateUp()
-                    }
-
-                    is PlayerViewModel.State.LoadingVideo -> {
-                        player.setMediaItem(
-                            MediaItem.Builder()
-                                .setUri("".toUri())
-                                .setMediaMetadata(
-                                    MediaMetadata.Builder()
-                                        .setMediaServerId(state.server.id)
-                                        .build()
-                                )
-                                .build()
-                        )
-                    }
-
-                    is PlayerViewModel.State.SuccessLoadingVideo -> {
-                        PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
-                        displayVideo(state.video, state.server)
-                    }
-
-                    is PlayerViewModel.State.FailedLoadingVideo -> {
-                        val nextServer = servers.getOrNull(servers.indexOf(state.server) + 1)
-                        if (nextServer != null) {
-                            viewModel.getVideo(nextServer)
-                        } else {
-                            val providerName = UserPreferences.currentProvider?.name ?: ""
-                            val isTmdb = providerName.contains("TMDb", ignoreCase = true)
-                            val isAD = providerName.contains("AfterDark", ignoreCase = true)
-
-                            val message = if (isTmdb || isAD) {
-                                val langCode = providerName.substringAfter("(").substringBefore(")")
-                                val locale = Locale.forLanguageTag(langCode)
-                                val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
-                                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                
-                                if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
-                                else getString(R.string.player_retry_later_message)
-                            } else {
-                                "All servers failed to load the video."
-                            }
-                            
+                        is PlayerViewModel.State.FailedLoadingServers -> {
                             Toast.makeText(
                                 requireContext(),
-                                message,
+                                state.error.message ?: "",
                                 Toast.LENGTH_LONG
                             ).show()
                             findNavController().navigateUp()
                         }
-                    }
-                }
-            }
-        }
 
-        // Stato Sottotitoli
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.subtitleState.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED).collect { state ->
-                when (state) {
-                    PlayerViewModel.SubtitleState.Loading -> {}
-                    is PlayerViewModel.SubtitleState.SuccessOpenSubtitles -> {
-                        binding.settings.openSubtitles = state.subtitles
-                    }
-                    is PlayerViewModel.SubtitleState.FailedOpenSubtitles -> {}
-
-                    PlayerViewModel.SubtitleState.DownloadingOpenSubtitle -> {}
-                    is PlayerViewModel.SubtitleState.SuccessDownloadingOpenSubtitle -> {
-                        val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
-                        val currentPosition = player.currentPosition
-                        val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
-                            MediaItem.SubtitleConfiguration.Builder(it.uri)
-                                .setMimeType(it.mimeType)
-                                .setLabel(it.label)
-                                .setLanguage(it.language)
-                                .setSelectionFlags(0)
-                                .build()
-                        } ?: listOf()
-                        player.setMediaItem(
-                            MediaItem.Builder()
-                                .setUri(player.currentMediaItem?.localConfiguration?.uri)
-                                .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
-                                .setSubtitleConfigurations(currentSubtitleConfigurations
-                                        + MediaItem.SubtitleConfiguration.Builder(state.uri)
-                                    .setMimeType(fileName.toSubtitleMimeType())
-                                    .setLabel(fileName)
-                                    .setLanguage(state.subtitle.languageName)
-                                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                        is PlayerViewModel.State.LoadingVideo -> {
+                            player.setMediaItem(
+                                MediaItem.Builder()
+                                    .setUri("".toUri())
+                                    .setMediaMetadata(
+                                        MediaMetadata.Builder()
+                                            .setMediaServerId(state.server.id)
+                                            .build()
+                                    )
                                     .build()
-                                )
-                                .setMediaMetadata(player.mediaMetadata)
-                                .build()
-                        )
-                        UserPreferences.subtitleName = (state.subtitle.languageName ?: fileName).substringBefore(" ")
-                        player.seekTo(currentPosition)
-                        player.play()
-                    }
-                    is PlayerViewModel.SubtitleState.FailedDownloadingOpenSubtitle -> {
-                        Toast.makeText(requireContext(), "${state.subtitle.subFileName}: ${state.error.message}", Toast.LENGTH_LONG).show()
-                    }
+                            )
+                        }
 
-                    is PlayerViewModel.SubtitleState.SuccessSubDLSubtitles -> {
-                        binding.settings.subDLSubtitles = state.subtitles
-                    }
-                    is PlayerViewModel.SubtitleState.FailedSubDLSubtitles -> {}
+                        is PlayerViewModel.State.SuccessLoadingVideo -> {
+                            PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
+                            displayVideo(state.video, state.server)
+                        }
 
-                    PlayerViewModel.SubtitleState.DownloadingSubDLSubtitle -> {}
-                    is PlayerViewModel.SubtitleState.SuccessDownloadingSubDLSubtitle -> {
-                        val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
-                        val currentPosition = player.currentPosition
-                        val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
-                            MediaItem.SubtitleConfiguration.Builder(it.uri)
-                                .setMimeType(it.mimeType)
-                                .setLabel(it.label)
-                                .setLanguage(it.language)
-                                .setSelectionFlags(0)
-                                .build()
-                        } ?: listOf()
-                        player.setMediaItem(
-                            MediaItem.Builder()
-                                .setUri(player.currentMediaItem?.localConfiguration?.uri)
-                                .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
-                                .setSubtitleConfigurations(currentSubtitleConfigurations
-                                        + MediaItem.SubtitleConfiguration.Builder(state.uri)
-                                    .setMimeType(fileName.toSubtitleMimeType())
-                                    .setLabel(state.subtitle.releaseName ?: state.subtitle.name ?: fileName)
-                                    .setLanguage(state.subtitle.lang ?: state.subtitle.language ?: "Unknown")
-                                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                                    .build()
-                                )
-                                .setMediaMetadata(player.mediaMetadata)
-                                .build()
-                        )
-                        UserPreferences.subtitleName = (state.subtitle.releaseName ?: state.subtitle.name ?: fileName).substringBefore(" ")
-                        player.seekTo(currentPosition)
-                        player.play()
-                    }
-                    is PlayerViewModel.SubtitleState.FailedDownloadingSubDLSubtitle -> {
-                        Toast.makeText(requireContext(), "${state.subtitle.name}: ${state.error.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
+                        is PlayerViewModel.State.FailedLoadingVideo -> {
+                            val nextServer = servers.getOrNull(servers.indexOf(state.server) + 1)
+                            if (nextServer != null) {
+                                viewModel.getVideo(nextServer)
+                            } else {
+                                val providerName = UserPreferences.currentProvider?.name ?: ""
+                                val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                                val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
-                    player.release()
-                    mediaSession.release()
-                    isSetupDone = false
-                    
-                    val args = Bundle().apply {
-                        putString("id", nextEpisode.id)
-                        putSerializable("videoType", nextEpisode)
-                        putString("title", nextEpisode.tvShow.title)
-                        putString("subtitle", "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}")
-                    }
-                    
-                    findNavController().navigate(
-                        R.id.player,
-                        args,
-                        NavOptions.Builder()
-                            .setPopUpTo(findNavController().currentDestination?.id ?: return@collect, true)
-                            .setLaunchSingleTop(false) 
-                            .build()
-                    )
-                }
-            }
-        }
+                                val message = if (isTmdb || isAD) {
+                                    val langCode =
+                                        providerName.substringAfter("(").substringBefore(")")
+                                    val locale = Locale.forLanguageTag(langCode)
+                                    val langDisplayName =
+                                        locale.getDisplayLanguage(Locale.getDefault())
+                                            .replaceFirstChar {
+                                                if (it.isLowerCase()) it.titlecase(
+                                                    Locale.getDefault()
+                                                ) else it.toString()
+                                            }
 
-
-    }
-
-    override fun onPause() {
-        super.onPause()
-        player.pause()
-        stopProgressHandler()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        player.release()
-        mediaSession.release()
-        stopProgressHandler()
-        try {
-            requireContext().unregisterReceiver(chooserReceiver)
-        } catch (ignored: Exception) {}
-        _binding = null
-        isSetupDone = false
-    }
-
-    fun onBackPressed(): Boolean = when {
-        (binding.pvPlayer as? PlayerTvView)?.isManualZoomEnabled == true -> {
-            (binding.pvPlayer as? PlayerTvView)?.exitManualZoomMode()
-            true
-        }
-
-        binding.settings.isVisible -> {
-            binding.settings.onBackPressed()
-        }
-
-        binding.pvPlayer.controller.isVisible -> {
-            binding.pvPlayer.hideController()
-            true
-        }
-
-        else -> false
-    }
-
-
-
-
-    private fun updatePlayerScale() {
-        val videoSurfaceView = binding.pvPlayer.videoSurfaceView
-        val playerResize = UserPreferences.playerResize 
-
-        binding.pvPlayer.resizeMode = playerResize.resizeMode 
-
-        when (playerResize) { 
-            UserPreferences.PlayerResize.Stretch43 -> {
-                val scale = 1.33f 
-                videoSurfaceView?.scaleX = scale
-                videoSurfaceView?.scaleY = 1f
-            }
-            UserPreferences.PlayerResize.StretchVertical -> {
-                videoSurfaceView?.scaleX = 1f
-                videoSurfaceView?.scaleY = 1.25f
-            }
-            UserPreferences.PlayerResize.SuperZoom -> {
-                videoSurfaceView?.scaleX = 1.5f
-                videoSurfaceView?.scaleY = 1.5f
-            }
-            else -> {
-                videoSurfaceView?.scaleX = 1f
-                videoSurfaceView?.scaleY = 1f
-            }
-        }
-    }
-
-    private fun initializeVideo() {
-        when (val type = args.videoType) {
-            is Video.Type.Episode -> {
-
-                if (EpisodeManager.listIsEmpty(type)) {
-                    EpisodeManager.addEpisodesFromDb(type, database)
-                }
-                EpisodeManager.setCurrentEpisode(type)
-            }
-            is Video.Type.Movie -> {
-                EpisodeManager.clearEpisodes()
-            }
-        }
-        setupEpisodeNavigationButtons()
-        binding.pvPlayer.resizeMode = UserPreferences.playerResize.resizeMode
-        binding.pvPlayer.subtitleView?.apply {
-            setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * UserPreferences.captionTextSize)
-            setStyle(UserPreferences.captionStyle)
-            setPadding(0, 0, 0, UserPreferences.captionMargin.dp(context))
-        }
-        binding.settings.setOnExtraBufferingSelectedListener {
-            displayVideo(
-                currentVideo ?: return@setOnExtraBufferingSelectedListener,
-                currentServer ?: return@setOnExtraBufferingSelectedListener
-            )
-        }
-
-        binding.pvPlayer.controller.binding.tvExoTitle.text = args.title
-
-        binding.pvPlayer.controller.binding.tvExoSubtitle.text = args.subtitle
-
-        binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.player_external_player_error_video),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        binding.pvPlayer.controller.binding.exoReplay.setOnClickListener {
-            player.seekTo(0)
-        }
-
-        binding.pvPlayer.controller.binding.exoProgress.setKeyTimeIncrement(10_000)
-
-        binding.pvPlayer.controller.binding.btnExoAspectRatio.setOnClickListener {
-            val newResize = UserPreferences.playerResize.next()
-            zoomToast?.cancel()
-            zoomToast = Toast.makeText(requireContext(), newResize.stringRes, Toast.LENGTH_SHORT)
-            zoomToast?.show()
-
-            UserPreferences.playerResize = newResize
-            binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
-            updatePlayerScale()
-        }
-
-        binding.pvPlayer.controller.binding.exoSettings.setOnClickListener {
-            binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
-            binding.settings.show()
-        }
-
-        binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
-            player.seekTo(player.currentPosition + 85000) 
-            it.visibility = View.GONE
-        }
-
-        binding.settings.setOnLocalSubtitlesClickedListener {
-            pickLocalSubtitle.launch(
-                arrayOf(
-                    "text/plain",
-                    "text/str",
-                    "application/octet-stream",
-                    MimeTypes.TEXT_UNKNOWN,
-                    MimeTypes.TEXT_VTT,
-                    MimeTypes.TEXT_SSA,
-                    MimeTypes.APPLICATION_TTML,
-                    MimeTypes.APPLICATION_MP4VTT,
-                    MimeTypes.APPLICATION_SUBRIP,
-                )
-            )
-        }
-
-        binding.settings.setOnOpenSubtitleSelectedListener { subtitle ->
-            viewModel.downloadSubtitle(subtitle.openSubtitle)
-        }
-        binding.settings.setOnSubDLSubtitleSelectedListener { subtitle ->
-            viewModel.downloadSubDLSubtitle(subtitle.subDLSubtitle)
-        }
-        binding.settings.setOnExtraBufferingSelectedListener {
-            displayVideo(
-                currentVideo ?: return@setOnExtraBufferingSelectedListener,
-                currentServer ?: return@setOnExtraBufferingSelectedListener
-            )
-        }
-        binding.settings.onManualZoomClicked = {
-            binding.settings.hide()
-            binding.pvPlayer.hideController()
-            (binding.pvPlayer as? PlayerTvView)?.enterManualZoomMode()
-            binding.pvPlayer.requestFocus()
-        }
-    }
-
-    fun setupEpisodeNavigationButtons() {
-        val btnPrevious = binding.pvPlayer.controller.binding.btnCustomPrev
-        val btnNext = binding.pvPlayer.controller.binding.btnCustomNext
-
-        fun handleNavigationButton(
-            button: ImageView,
-            hasEpisode: () -> Boolean,
-            playEpisode: () -> Unit
-        ) {
-            if (!hasEpisode()) {
-                button.visibility = View.GONE
-                return
-            }
-
-            button.setOnClickListener {
-                if (!hasEpisode()) return@setOnClickListener
-
-                val videoType = args.videoType
-                val watchItem: WatchItem? = when (videoType) {
-                    is Video.Type.Movie -> database.movieDao().getById(videoType.id)
-                    is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
-                }
-
-                watchItem?.apply {
-                    isWatched = false
-                    watchedDate = null
-                    watchHistory = WatchItem.WatchHistory(
-                        lastEngagementTimeUtcMillis = System.currentTimeMillis(),
-                        lastPlaybackPositionMillis = player.currentPosition,
-                        durationMillis = player.duration
-                    )
-                }
-
-                when (videoType) {
-                    is Video.Type.Movie -> {
-                        (watchItem as? Movie)?.let { database.movieDao().update(it) }
-                    }
-                    is Video.Type.Episode -> {
-                        (watchItem as? Episode)?.let { episode ->
-                            if (player.hasFinished()) {
-                                episode.isWatched = true
-                                episode.watchedDate = Calendar.getInstance()
-                                episode.watchHistory = null
-                                database.episodeDao().resetProgressionFromEpisode(videoType.id)
-                            }
-
-                            database.episodeDao().update(episode)
-
-                            episode.tvShow?.let { tvShow ->
-                                database.tvShowDao().getById(tvShow.id)
-                            }?.let { tvShow ->
-                                
-                                val isWatchingValue = if (player.hasFinished()) {
-                                    database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
+                                    if (isTmdb) getString(
+                                        R.string.player_not_available_lang_message,
+                                        langDisplayName
+                                    )
+                                    else getString(R.string.player_retry_later_message)
                                 } else {
-                                    true 
+                                    "All servers failed to load the video."
                                 }
 
-                                database.tvShowDao().save(tvShow.copy().apply {
-                                    merge(tvShow)
-                                    isWatching = isWatchingValue
-                                })
+                                Toast.makeText(
+                                    requireContext(),
+                                    message,
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                findNavController().navigateUp()
                             }
                         }
                     }
                 }
-
-                playEpisode()
-            }
-        }
-
-        handleNavigationButton(btnPrevious, EpisodeManager::hasPreviousEpisode, viewModel::playPreviousEpisode)
-        handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, viewModel::playNextEpisode)
-    }
-
-    private fun decodeBase64Uri(uri: String): String? {
-        return try {
-            val parts = uri.split(",")
-            if (parts.size == 2 && parts[0].contains(";base64")) {
-                val base64Data = parts[1]
-                val decodedBytes = Base64.getDecoder().decode(base64Data)
-                String(decodedBytes, Charsets.UTF_8)
-            } else {
-                null
-            }
-        } catch (ignored: Exception) {
-            null
-        }
-    }
-
-    private fun extractUrlFromPlaylist(playlist: String): String? {
-        return try {
-            val lines = playlist.lines().map { it.trim() }
-            lines.firstOrNull { it.startsWith("http") }
-                ?: lines.firstNotNullOfOrNull { line ->
-                    val regex = """URI=["'](http[^"']+)["']""".toRegex()
-                    regex.find(line)?.groupValues?.get(1)
-                }
-        } catch (ignored: Exception) {
-            null
-        }
-    }
-
-    private fun displayVideo(video: Video, server: Video.Server) {
-        currentVideo = video
-        currentServer = server
-        val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
-        val needsReinit = extraBuffering != currentExtraBuffering
-        if (needsReinit) {
-            initializePlayer(extraBuffering)
-            player.playlistMetadata = MediaMetadata.Builder()
-                .setTitle(args.title)
-                .setMediaServers(servers.map {
-                    MediaServer(
-                        id = it.id,
-                        name = it.name,
-                    )
-                })
-                .build()
-        }
-
-        val currentPosition = player.currentPosition
-
-        httpDataSource.setDefaultRequestProperties(
-            mapOf(
-                "User-Agent" to userAgent,
-            ) + (video.headers ?: emptyMap())
-        )
-
-        player.setMediaItem(
-            MediaItem.Builder()
-                .setUri(video.source.toUri())
-                .setMimeType(video.type)
-                .setSubtitleConfigurations(video.subtitles.map { subtitle ->
-                    MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
-                        .setMimeType(subtitle.file.toSubtitleMimeType())
-                        .setLabel(subtitle.label)
-                        .setSelectionFlags(if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0)
-                        .build()
-                })
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setMediaServerId(server.id)
-                        .build()
-                )
-                .build()
-        )
-
-        binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
-            val videoTitle = when (val type = args.videoType) {
-                is Video.Type.Movie -> type.title
-                is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
             }
 
-            var sourceUri: Uri
-            val mimeType = "video/*"
-            
-            val initialSource = video.source
+            // Stato Sottotitoli
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.subtitleState.flowWithLifecycle(lifecycle, Lifecycle.State.CREATED)
+                    .collect { state ->
+                        when (state) {
+                            PlayerViewModel.SubtitleState.Loading -> {}
+                            is PlayerViewModel.SubtitleState.SuccessOpenSubtitles -> {
+                                binding.settings.openSubtitles = state.subtitles
+                            }
 
-            if (initialSource.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
-                val playlistContent = decodeBase64Uri(initialSource)
-                val extractedUrl = if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
-                
-                if (extractedUrl != null) {
-                    sourceUri = extractedUrl.toUri()
-                    Log.i("ExternalPlayer", "Link reale estratto TV: $sourceUri")
-                } else {
-                    try {
-                        val file = File(requireContext().cacheDir, "stream.m3u8")
-                        FileOutputStream(file).use { it.write(playlistContent?.toByteArray() ?: ByteArray(0)) }
-                        sourceUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.provider", file)
-                    } catch (ignored: Exception) {
-                        sourceUri = initialSource.toUri()
+                            is PlayerViewModel.SubtitleState.FailedOpenSubtitles -> {}
+
+                            PlayerViewModel.SubtitleState.DownloadingOpenSubtitle -> {}
+                            is PlayerViewModel.SubtitleState.SuccessDownloadingOpenSubtitle -> {
+                                val fileName =
+                                    state.uri.getFileName(requireContext()) ?: state.uri.toString()
+                                val currentPosition = player.currentPosition
+                                val currentSubtitleConfigurations =
+                                    player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
+                                        MediaItem.SubtitleConfiguration.Builder(it.uri)
+                                            .setMimeType(it.mimeType)
+                                            .setLabel(it.label)
+                                            .setLanguage(it.language)
+                                            .setSelectionFlags(0)
+                                            .build()
+                                    } ?: listOf()
+                                player.setMediaItem(
+                                    MediaItem.Builder()
+                                        .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                        .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
+                                        .setSubtitleConfigurations(
+                                            currentSubtitleConfigurations
+                                                    + MediaItem.SubtitleConfiguration.Builder(state.uri)
+                                                .setMimeType(fileName.toSubtitleMimeType())
+                                                .setLabel(fileName)
+                                                .setLanguage(state.subtitle.languageName)
+                                                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                                                .build()
+                                        )
+                                        .setMediaMetadata(player.mediaMetadata)
+                                        .build()
+                                )
+                                UserPreferences.subtitleName =
+                                    (state.subtitle.languageName ?: fileName).substringBefore(" ")
+                                player.seekTo(currentPosition)
+                                player.play()
+                            }
+
+                            is PlayerViewModel.SubtitleState.FailedDownloadingOpenSubtitle -> {
+                                Toast.makeText(
+                                    requireContext(),
+                                    "${state.subtitle.subFileName}: ${state.error.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+
+                            is PlayerViewModel.SubtitleState.SuccessSubDLSubtitles -> {
+                                binding.settings.subDLSubtitles = state.subtitles
+                            }
+
+                            is PlayerViewModel.SubtitleState.FailedSubDLSubtitles -> {}
+
+                            PlayerViewModel.SubtitleState.DownloadingSubDLSubtitle -> {}
+                            is PlayerViewModel.SubtitleState.SuccessDownloadingSubDLSubtitle -> {
+                                val fileName =
+                                    state.uri.getFileName(requireContext()) ?: state.uri.toString()
+                                val currentPosition = player.currentPosition
+                                val currentSubtitleConfigurations =
+                                    player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
+                                        MediaItem.SubtitleConfiguration.Builder(it.uri)
+                                            .setMimeType(it.mimeType)
+                                            .setLabel(it.label)
+                                            .setLanguage(it.language)
+                                            .setSelectionFlags(0)
+                                            .build()
+                                    } ?: listOf()
+                                player.setMediaItem(
+                                    MediaItem.Builder()
+                                        .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                        .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
+                                        .setSubtitleConfigurations(
+                                            currentSubtitleConfigurations
+                                                    + MediaItem.SubtitleConfiguration.Builder(state.uri)
+                                                .setMimeType(fileName.toSubtitleMimeType())
+                                                .setLabel(
+                                                    state.subtitle.releaseName
+                                                        ?: state.subtitle.name ?: fileName
+                                                )
+                                                .setLanguage(
+                                                    state.subtitle.lang ?: state.subtitle.language
+                                                    ?: "Unknown"
+                                                )
+                                                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                                                .build()
+                                        )
+                                        .setMediaMetadata(player.mediaMetadata)
+                                        .build()
+                                )
+                                UserPreferences.subtitleName =
+                                    (state.subtitle.releaseName ?: state.subtitle.name
+                                    ?: fileName).substringBefore(" ")
+                                player.seekTo(currentPosition)
+                                player.play()
+                            }
+
+                            is PlayerViewModel.SubtitleState.FailedDownloadingSubDLSubtitle -> {
+                                Toast.makeText(
+                                    requireContext(),
+                                    "${state.subtitle.name}: ${state.error.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
+                        player.release()
+                        mediaSession.release()
+                        isSetupDone = false
+
+                        val args = Bundle().apply {
+                            putString("id", nextEpisode.id)
+                            putSerializable("videoType", nextEpisode)
+                            putString("title", nextEpisode.tvShow.title)
+                            putString(
+                                "subtitle",
+                                "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
+                            )
+                        }
+
+                        findNavController().navigate(
+                            R.id.player,
+                            args,
+                            NavOptions.Builder()
+                                .setPopUpTo(
+                                    findNavController().currentDestination?.id ?: return@collect,
+                                    true
+                                )
+                                .setLaunchSingleTop(false)
+                                .build()
+                        )
                     }
                 }
-            } else {
-                sourceUri = initialSource.toUri()
             }
 
-            Log.i("ExternalPlayer", "Avvio intent TV con URI: $sourceUri e MIME: $mimeType")
 
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(sourceUri, mimeType)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                
-                putExtra("title", videoTitle)
-                putExtra("position", player.currentPosition.toInt())
-                putExtra("return_result", true)
+        }
 
-                video.headers?.forEach { (key, value) ->
-                    putExtra(key, value) 
-                }
-                
-                putExtra("extra_headers", video.headers?.map { "${it.key}: ${it.value}" }?.toTypedArray())
-                
-                if (video.headers != null) {
-                    val headersArray = video.headers.flatMap { listOf(it.key, it.value) }.toTypedArray()
-                    putExtra("headers", headersArray)
-                }
-            }
+        override fun onPause() {
+            super.onPause()
+            player.pause()
+            stopProgressHandler()
+        }
 
+        override fun onDestroyView() {
+            super.onDestroyView()
+            player.release()
+            mediaSession.release()
+            stopProgressHandler()
             try {
-                val receiverIntent = Intent("ACTION_PLAYER_CHOSEN_TV").apply {
-                    setPackage(requireContext().packageName)
-                }
-                val pendingIntent = PendingIntent.getBroadcast(
-                    requireContext(), 0, receiverIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                )
+                requireContext().unregisterReceiver(chooserReceiver)
+            } catch (ignored: Exception) {
+            }
+            _binding = null
+            isSetupDone = false
+        }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                    startActivity(
-                        Intent.createChooser(
-                            intent,
-                            getString(R.string.player_external_player_title),
-                            pendingIntent.intentSender
-                        )
-                    )
-                } else {
-                    startActivity(Intent.createChooser(intent, getString(R.string.player_external_player_title)))
+        fun onBackPressed(): Boolean = when {
+            (binding.pvPlayer as? PlayerTvView)?.isManualZoomEnabled == true -> {
+                (binding.pvPlayer as? PlayerTvView)?.exitManualZoomMode()
+                true
+            }
+
+            binding.settings.isVisible -> {
+                binding.settings.onBackPressed()
+            }
+
+            binding.pvPlayer.controller.isVisible -> {
+                binding.pvPlayer.hideController()
+                true
+            }
+
+            else -> false
+        }
+
+
+        private fun updatePlayerScale() {
+            val videoSurfaceView = binding.pvPlayer.videoSurfaceView
+            val playerResize = UserPreferences.playerResize
+
+            binding.pvPlayer.resizeMode = playerResize.resizeMode
+
+            when (playerResize) {
+                UserPreferences.PlayerResize.Stretch43 -> {
+                    val scale = 1.33f
+                    videoSurfaceView?.scaleX = scale
+                    videoSurfaceView?.scaleY = 1f
                 }
-            } catch (e: Exception) {
-                Log.e("ExternalPlayer", "Errore selettore app TV", e)
-                startActivity(Intent.createChooser(intent, getString(R.string.player_external_player_title)))
+
+                UserPreferences.PlayerResize.StretchVertical -> {
+                    videoSurfaceView?.scaleX = 1f
+                    videoSurfaceView?.scaleY = 1.25f
+                }
+
+                UserPreferences.PlayerResize.SuperZoom -> {
+                    videoSurfaceView?.scaleX = 1.5f
+                    videoSurfaceView?.scaleY = 1.5f
+                }
+
+                else -> {
+                    videoSurfaceView?.scaleX = 1f
+                    videoSurfaceView?.scaleY = 1f
+                }
             }
         }
 
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                super.onPlaybackStateChanged(playbackState)
+        private fun initializeVideo() {
+            when (val type = args.videoType) {
+                is Video.Type.Episode -> {
 
-                if (playbackState == Player.STATE_READY) {
-                    binding.pvPlayer.controller.binding.exoPlayPause.nextFocusDownId = -1
+                    if (EpisodeManager.listIsEmpty(type)) {
+                        EpisodeManager.addEpisodesFromDb(type, database)
+                    }
+                    EpisodeManager.setCurrentEpisode(type)
+                }
+
+                is Video.Type.Movie -> {
+                    EpisodeManager.clearEpisodes()
                 }
             }
+            setupEpisodeNavigationButtons()
+            binding.pvPlayer.resizeMode = UserPreferences.playerResize.resizeMode
+            binding.pvPlayer.subtitleView?.apply {
+                setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * UserPreferences.captionTextSize)
+                setStyle(UserPreferences.captionStyle)
+                setPadding(0, 0, 0, UserPreferences.captionMargin.dp(context))
+            }
+            binding.settings.setOnExtraBufferingSelectedListener {
+                displayVideo(
+                    currentVideo ?: return@setOnExtraBufferingSelectedListener,
+                    currentServer ?: return@setOnExtraBufferingSelectedListener
+                )
+            }
 
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                binding.pvPlayer.keepScreenOn = isPlaying
+            binding.pvPlayer.controller.binding.tvExoTitle.text = args.title
 
-                if (isPlaying) {
-                    startProgressHandler()
-                } else {
-                    stopProgressHandler()
+            binding.pvPlayer.controller.binding.tvExoSubtitle.text = args.subtitle
+
+            binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.player_external_player_error_video),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            binding.pvPlayer.controller.binding.exoReplay.setOnClickListener {
+                player.seekTo(0)
+            }
+
+            binding.pvPlayer.controller.binding.exoProgress.setKeyTimeIncrement(10_000)
+
+            binding.pvPlayer.controller.binding.btnExoAspectRatio.setOnClickListener {
+                val newResize = UserPreferences.playerResize.next()
+                zoomToast?.cancel()
+                zoomToast =
+                    Toast.makeText(requireContext(), newResize.stringRes, Toast.LENGTH_SHORT)
+                zoomToast?.show()
+
+                UserPreferences.playerResize = newResize
+                binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
+                updatePlayerScale()
+            }
+
+            binding.pvPlayer.controller.binding.exoSettings.setOnClickListener {
+                binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
+                binding.settings.show()
+            }
+
+            binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
+                player.seekTo(player.currentPosition + 85000)
+                it.visibility = View.GONE
+            }
+
+            binding.settings.setOnLocalSubtitlesClickedListener {
+                pickLocalSubtitle.launch(
+                    arrayOf(
+                        "text/plain",
+                        "text/str",
+                        "application/octet-stream",
+                        MimeTypes.TEXT_UNKNOWN,
+                        MimeTypes.TEXT_VTT,
+                        MimeTypes.TEXT_SSA,
+                        MimeTypes.APPLICATION_TTML,
+                        MimeTypes.APPLICATION_MP4VTT,
+                        MimeTypes.APPLICATION_SUBRIP,
+                    )
+                )
+            }
+
+            binding.settings.setOnOpenSubtitleSelectedListener { subtitle ->
+                viewModel.downloadSubtitle(subtitle.openSubtitle)
+            }
+            binding.settings.setOnSubDLSubtitleSelectedListener { subtitle ->
+                viewModel.downloadSubDLSubtitle(subtitle.subDLSubtitle)
+            }
+            binding.settings.setOnExtraBufferingSelectedListener {
+                displayVideo(
+                    currentVideo ?: return@setOnExtraBufferingSelectedListener,
+                    currentServer ?: return@setOnExtraBufferingSelectedListener
+                )
+            }
+            binding.settings.onManualZoomClicked = {
+                binding.settings.hide()
+                binding.pvPlayer.hideController()
+                (binding.pvPlayer as? PlayerTvView)?.enterManualZoomMode()
+                binding.pvPlayer.requestFocus()
+            }
+        }
+
+        fun setupEpisodeNavigationButtons() {
+            val btnPrevious = binding.pvPlayer.controller.binding.btnCustomPrev
+            val btnNext = binding.pvPlayer.controller.binding.btnCustomNext
+
+            fun handleNavigationButton(
+                button: ImageView,
+                hasEpisode: () -> Boolean,
+                playEpisode: () -> Unit
+            ) {
+                if (!hasEpisode()) {
+                    button.visibility = View.GONE
+                    return
                 }
-                val hasUri = player.currentMediaItem?.localConfiguration?.uri
-                    ?.toString()?.isNotEmpty()
-                    ?: false
 
-                if (!isPlaying && hasUri) {
+                button.setOnClickListener {
+                    if (!hasEpisode()) return@setOnClickListener
+
                     val videoType = args.videoType
                     val watchItem: WatchItem? = when (videoType) {
                         is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                         is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                     }
 
-                    when {
-                        player.hasStarted() && !player.hasFinished() -> {
-                            watchItem?.isWatched = false
-                            watchItem?.watchedDate = null
-                            watchItem?.watchHistory = WatchItem.WatchHistory(
-                                lastEngagementTimeUtcMillis = System.currentTimeMillis(),
-                                lastPlaybackPositionMillis = player.currentPosition,
-                                durationMillis = player.duration,
-                            )
-                        }
-
-                        player.hasFinished() -> {
-                            watchItem?.isWatched = true
-                            watchItem?.watchedDate = Calendar.getInstance()
-                            watchItem?.watchHistory = null
-
-
-                        }
+                    watchItem?.apply {
+                        isWatched = false
+                        watchedDate = null
+                        watchHistory = WatchItem.WatchHistory(
+                            lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                            lastPlaybackPositionMillis = player.currentPosition,
+                            durationMillis = player.duration
+                        )
                     }
 
                     when (videoType) {
@@ -882,151 +737,495 @@ class PlayerTvFragment : Fragment() {
                         is Video.Type.Episode -> {
                             (watchItem as? Episode)?.let { episode ->
                                 if (player.hasFinished()) {
+                                    episode.isWatched = true
+                                    episode.watchedDate = Calendar.getInstance()
+                                    episode.watchHistory = null
                                     database.episodeDao().resetProgressionFromEpisode(videoType.id)
                                 }
+
                                 database.episodeDao().update(episode)
 
                                 episode.tvShow?.let { tvShow ->
                                     database.tvShowDao().getById(tvShow.id)
                                 }?.let { tvShow ->
-                                    val episodeDao = database.episodeDao()
-                                    val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
-                                    
+
+                                    val isWatchingValue = if (player.hasFinished()) {
+                                        database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
+                                    } else {
+                                        true
+                                    }
+
                                     database.tvShowDao().save(tvShow.copy().apply {
                                         merge(tvShow)
-                                        isWatching = !player.hasReallyFinished() || isStillWatching
+                                        isWatching = isWatchingValue
                                     })
                                 }
                             }
                         }
+                    }
 
-                    }
-                    if (player.hasReallyFinished()){
-                        if (UserPreferences.autoplay){
-                            viewModel.autoplayNextEpisode()
-                        }
-                    }
+                    playEpisode()
                 }
             }
 
-            override fun onPlayerError(error: PlaybackException) {
-                super.onPlayerError(error)
-                Log.e("PlayerTvFragment", "onPlayerError: ", error)
-            }
-        })
-
-        if (currentPosition == 0L) {
-            val videoType = args.videoType
-            val watchItem: WatchItem? = when (videoType) {
-                is Video.Type.Movie -> database.movieDao().getById(videoType.id)
-                is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
-            }
-            val lastPlaybackPositionMillis = watchItem?.watchHistory
-                ?.let { it.lastPlaybackPositionMillis - 10.seconds.inWholeMilliseconds }
-
-            player.seekTo(lastPlaybackPositionMillis ?: 0)
-        } else {
-            player.seekTo(currentPosition)
-        }
-
-        player.prepare()
-        player.play()
-    }
-
-
-    private fun ExoPlayer.hasStarted(): Boolean {
-        return (this.currentPosition > (this.duration * 0.03) || this.currentPosition > 2.minutes.inWholeMilliseconds)
-    }
-
-    private fun ExoPlayer.hasFinished(): Boolean {
-        return (this.currentPosition > (this.duration * 0.90))
-    }
-    private fun ExoPlayer.hasReallyFinished(): Boolean {
-        return this.duration > 0 &&
-                this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
-    }
-    private fun startProgressHandler() {
-        progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
-        progressRunnable = Runnable {
-            if (player.isPlaying) {
-                val show = player.currentPosition in 3000..120000
-                showSkipIntroButton(show)
-            }
-            progressHandler.postDelayed(progressRunnable, 1000)
-        }
-        progressHandler.post(progressRunnable)
-    }
-    private fun stopProgressHandler() {
-        if (::progressHandler.isInitialized) {
-            progressHandler.removeCallbacks(progressRunnable)
-        }
-    }
-    private fun showSkipIntroButton(show: Boolean) {
-        val btnSkipIntro = binding.pvPlayer.controller.binding.btnSkipIntro
-        if (show && btnSkipIntro.isGone) {
-            val fadeIn = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
-            btnSkipIntro.startAnimation(fadeIn)
-            btnSkipIntro.isVisible = true
-        } else if (!show && btnSkipIntro.isVisible) {
-            val fadeOut = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
-            btnSkipIntro.startAnimation(fadeOut)
-            btnSkipIntro.isGone = true
-        }
-    }
-
-    private var currentExtraBuffering = false
-
-    private fun initializePlayer(extraBuffering: Boolean) {
-        if (::player.isInitialized) {
-            player.release()
-            mediaSession.release()
-        }
-        currentExtraBuffering = extraBuffering
-
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
-        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-        
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            handleNavigationButton(
+                btnPrevious,
+                EpisodeManager::hasPreviousEpisode,
+                viewModel::playPreviousEpisode
             )
-            .build()
+            handleNavigationButton(
+                btnNext,
+                EpisodeManager::hasNextEpisode,
+                viewModel::playNextEpisode
+            )
+        }
 
-        player = ExoPlayer.Builder(requireContext())
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .setLoadControl(loadControl)
-            .build().also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
-
-                val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                if (lang == "es") {
-                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                        .setPreferredAudioLanguage("spa")
-                        .build()
+        private fun decodeBase64Uri(uri: String): String? {
+            return try {
+                val parts = uri.split(",")
+                if (parts.size == 2 && parts[0].contains(";base64")) {
+                    val base64Data = parts[1]
+                    val decodedBytes = Base64.getDecoder().decode(base64Data)
+                    String(decodedBytes, Charsets.UTF_8)
+                } else {
+                    null
                 }
+            } catch (ignored: Exception) {
+                null
+            }
+        }
 
-                mediaSession = MediaSession.Builder(requireContext(), player)
+        private fun extractUrlFromPlaylist(playlist: String): String? {
+            return try {
+                val lines = playlist.lines().map { it.trim() }
+                lines.firstOrNull { it.startsWith("http") }
+                    ?: lines.firstNotNullOfOrNull { line ->
+                        val regex = """URI=["'](http[^"']+)["']""".toRegex()
+                        regex.find(line)?.groupValues?.get(1)
+                    }
+            } catch (ignored: Exception) {
+                null
+            }
+        }
+
+        private fun displayVideo(video: Video, server: Video.Server) {
+            currentVideo = video
+            currentServer = server
+            val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
+            val needsReinit = extraBuffering != currentExtraBuffering
+            if (needsReinit) {
+                initializePlayer(extraBuffering)
+                player.playlistMetadata = MediaMetadata.Builder()
+                    .setTitle(args.title)
+                    .setMediaServers(servers.map {
+                        MediaServer(
+                            id = it.id,
+                            name = it.name,
+                        )
+                    })
                     .build()
             }
 
-        binding.pvPlayer.player = player
-        binding.settings.player = player
-        binding.settings.subtitleView = binding.pvPlayer.subtitleView
-        binding.settings.onSubtitlesClicked = {
-            viewModel.getSubtitles(args.videoType)
+            val currentPosition = player.currentPosition
+
+            httpDataSource.setDefaultRequestProperties(
+                mapOf(
+                    "User-Agent" to userAgent,
+                ) + (video.headers ?: emptyMap())
+            )
+
+            player.setMediaItem(
+                MediaItem.Builder()
+                    .setUri(video.source.toUri())
+                    .setMimeType(video.type)
+                    .setSubtitleConfigurations(video.subtitles.map { subtitle ->
+                        MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
+                            .setMimeType(subtitle.file.toSubtitleMimeType())
+                            .setLabel(subtitle.label)
+                            .setSelectionFlags(if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0)
+                            .build()
+                    })
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setMediaServerId(server.id)
+                            .build()
+                    )
+                    .build()
+            )
+
+            binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
+                val videoTitle = when (val type = args.videoType) {
+                    is Video.Type.Movie -> type.title
+                    is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
+                }
+
+                var sourceUri: Uri
+                val mimeType = "video/*"
+
+                val initialSource = video.source
+
+                if (initialSource.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
+                    val playlistContent = decodeBase64Uri(initialSource)
+                    val extractedUrl =
+                        if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
+
+                    if (extractedUrl != null) {
+                        sourceUri = extractedUrl.toUri()
+                        Log.i("ExternalPlayer", "Link reale estratto TV: $sourceUri")
+                    } else {
+                        try {
+                            val file = File(requireContext().cacheDir, "stream.m3u8")
+                            FileOutputStream(file).use {
+                                it.write(
+                                    playlistContent?.toByteArray() ?: ByteArray(0)
+                                )
+                            }
+                            sourceUri = FileProvider.getUriForFile(
+                                requireContext(),
+                                "${requireContext().packageName}.provider",
+                                file
+                            )
+                        } catch (ignored: Exception) {
+                            sourceUri = initialSource.toUri()
+                        }
+                    }
+                } else {
+                    sourceUri = initialSource.toUri()
+                }
+
+                Log.i("ExternalPlayer", "Avvio intent TV con URI: $sourceUri e MIME: $mimeType")
+
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(sourceUri, mimeType)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+                    putExtra("title", videoTitle)
+                    putExtra("position", player.currentPosition.toInt())
+                    putExtra("return_result", true)
+
+                    video.headers?.forEach { (key, value) ->
+                        putExtra(key, value)
+                    }
+
+                    putExtra(
+                        "extra_headers",
+                        video.headers?.map { "${it.key}: ${it.value}" }?.toTypedArray()
+                    )
+
+                    if (video.headers != null) {
+                        val headersArray =
+                            video.headers.flatMap { listOf(it.key, it.value) }.toTypedArray()
+                        putExtra("headers", headersArray)
+                    }
+                }
+
+                try {
+                    val receiverIntent = Intent("ACTION_PLAYER_CHOSEN_TV").apply {
+                        setPackage(requireContext().packageName)
+                    }
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        requireContext(), 0, receiverIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                    )
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                        startActivity(
+                            Intent.createChooser(
+                                intent,
+                                getString(R.string.player_external_player_title),
+                                pendingIntent.intentSender
+                            )
+                        )
+                    } else {
+                        startActivity(
+                            Intent.createChooser(
+                                intent,
+                                getString(R.string.player_external_player_title)
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("ExternalPlayer", "Errore selettore app TV", e)
+                    startActivity(
+                        Intent.createChooser(
+                            intent,
+                            getString(R.string.player_external_player_title)
+                        )
+                    )
+                }
+            }
+
+            player.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    super.onPlaybackStateChanged(playbackState)
+
+                    if (playbackState == Player.STATE_READY) {
+                        binding.pvPlayer.controller.binding.exoPlayPause.nextFocusDownId = -1
+                    }
+                }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    binding.pvPlayer.keepScreenOn = isPlaying
+
+                    if (isPlaying) {
+                        startProgressHandler()
+                    } else {
+                        stopProgressHandler()
+                    }
+                    val hasUri = player.currentMediaItem?.localConfiguration?.uri
+                        ?.toString()?.isNotEmpty()
+                        ?: false
+
+                    if (!isPlaying && hasUri) {
+                        val videoType = args.videoType
+                        val watchItem: WatchItem? = when (videoType) {
+                            is Video.Type.Movie -> database.movieDao().getById(videoType.id)
+                            is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
+                        }
+
+                        when {
+                            player.hasStarted() && !player.hasFinished() -> {
+                                watchItem?.isWatched = false
+                                watchItem?.watchedDate = null
+                                watchItem?.watchHistory = WatchItem.WatchHistory(
+                                    lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                                    lastPlaybackPositionMillis = player.currentPosition,
+                                    durationMillis = player.duration,
+                                )
+                            }
+
+                            player.hasFinished() -> {
+                                watchItem?.isWatched = true
+                                watchItem?.watchedDate = Calendar.getInstance()
+                                watchItem?.watchHistory = null
+
+
+                            }
+                        }
+
+                        when (videoType) {
+                            is Video.Type.Movie -> {
+                                (watchItem as? Movie)?.let { database.movieDao().update(it) }
+                            }
+
+                            is Video.Type.Episode -> {
+                                (watchItem as? Episode)?.let { episode ->
+                                    if (player.hasFinished()) {
+                                        database.episodeDao()
+                                            .resetProgressionFromEpisode(videoType.id)
+                                    }
+                                    database.episodeDao().update(episode)
+
+                                    episode.tvShow?.let { tvShow ->
+                                        database.tvShowDao().getById(tvShow.id)
+                                    }?.let { tvShow ->
+                                        val episodeDao = database.episodeDao()
+                                        val isStillWatching =
+                                            episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
+
+                                        database.tvShowDao().save(tvShow.copy().apply {
+                                            merge(tvShow)
+                                            isWatching =
+                                                !player.hasReallyFinished() || isStillWatching
+                                        })
+                                    }
+                                }
+                            }
+
+                        }
+                        if (player.hasReallyFinished()) {
+                            if (UserPreferences.autoplay) {
+                                viewModel.autoplayNextEpisode()
+                            }
+                        }
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    super.onPlayerError(error)
+                    Log.e("PlayerTvFragment", "onPlayerError: ", error)
+                }
+            })
+
+            if (currentPosition == 0L) {
+                val videoType = args.videoType
+                val watchItem: WatchItem? = when (videoType) {
+                    is Video.Type.Movie -> database.movieDao().getById(videoType.id)
+                    is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
+                }
+                val lastPlaybackPositionMillis = watchItem?.watchHistory
+                    ?.let { it.lastPlaybackPositionMillis - 10.seconds.inWholeMilliseconds }
+
+                player.seekTo(lastPlaybackPositionMillis ?: 0)
+            } else {
+                player.seekTo(currentPosition)
+            }
+
+            player.prepare()
+            player.play()
+        }
+
+
+        private fun ExoPlayer.hasStarted(): Boolean {
+            return (this.currentPosition > (this.duration * 0.03) || this.currentPosition > 2.minutes.inWholeMilliseconds)
+        }
+
+        private fun ExoPlayer.hasFinished(): Boolean {
+            return (this.currentPosition > (this.duration * 0.90))
+        }
+
+        private fun ExoPlayer.hasReallyFinished(): Boolean {
+            return this.duration > 0 &&
+                    this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
+        }
+
+        private fun startProgressHandler() {
+            progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+            progressRunnable = Runnable {
+                if (player.isPlaying) {
+                    val show = player.currentPosition in 3000..120000
+                    showSkipIntroButton(show)
+                }
+                progressHandler.postDelayed(progressRunnable, 1000)
+            }
+            progressHandler.post(progressRunnable)
+        }
+
+        private fun stopProgressHandler() {
+            if (::progressHandler.isInitialized) {
+                progressHandler.removeCallbacks(progressRunnable)
+            }
+        }
+
+        private fun showSkipIntroButton(show: Boolean) {
+            val btnSkipIntro = binding.pvPlayer.controller.binding.btnSkipIntro
+            if (show && btnSkipIntro.isGone) {
+                val fadeIn = android.view.animation.AnimationUtils.loadAnimation(
+                    requireContext(),
+                    R.anim.fade_in
+                )
+                btnSkipIntro.startAnimation(fadeIn)
+                btnSkipIntro.isVisible = true
+            } else if (!show && btnSkipIntro.isVisible) {
+                val fadeOut = android.view.animation.AnimationUtils.loadAnimation(
+                    requireContext(),
+                    R.anim.fade_out
+                )
+                btnSkipIntro.startAnimation(fadeOut)
+                btnSkipIntro.isGone = true
+            }
+        }
+
+        private var currentExtraBuffering = false
+
+        private fun initializePlayer(extraBuffering: Boolean) {
+            if (::player.isInitialized) {
+                player.release()
+                mediaSession.release()
+            }
+            currentExtraBuffering = extraBuffering
+
+            val okHttpClient = OkHttpClient.Builder()
+                .dns(DnsResolver.doh)
+                .build()
+            httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+            dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+
+            val loadControl = DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                    DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                    if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+                )
+                .build()
+
+            player = ExoPlayer.Builder(requireContext())
+                .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+                .setLoadControl(loadControl)
+                .build().also { player ->
+                    player.setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(C.USAGE_MEDIA)
+                            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                            .build(),
+                        true,
+                    )
+
+                    val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
+                    if (lang == "es") {
+                        player.trackSelectionParameters =
+                            player.trackSelectionParameters.buildUpon()
+                                .setPreferredAudioLanguage("spa")
+                                .build()
+                    }
+
+                    mediaSession = MediaSession.Builder(requireContext(), player)
+                        .build()
+                }
+
+            binding.pvPlayer.player = player
+            binding.settings.player = player
+            binding.settings.subtitleView = binding.pvPlayer.subtitleView
+            binding.settings.onSubtitlesClicked = {
+                viewModel.getSubtitles(args.videoType)
+            }
+        }
+
+    private fun showQrDialog(content: String) {
+        val imageView = ImageView(requireContext())
+        imageView.setImageBitmap(QrUtils.generate(content))
+
+        qrDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Scan with phone")
+            .setMessage("Solve captcha on phone")
+            .setView(imageView)
+            .setCancelable(false)
+            .create()
+
+        qrDialog?.show()
+    }
+
+    private var httpServer: NanoHTTPD? = null
+
+    private fun startCallbackServer() {
+        if (httpServer != null) return
+
+        httpServer = object : NanoHTTPD(8080) {
+            override fun serve(session: IHTTPSession): Response {
+                if (session.uri == "/callback") {
+                    lifecycleScope.launch {
+                        onBypassCompleted()
+                    }
+                    return newFixedLengthResponse("OK")
+                }
+                return newFixedLengthResponse("Not found")
+            }
+        }
+
+        try {
+            httpServer?.start()
+            Log.d("Bypass", "Server started on 8080")
+        } catch (e: Exception) {
+            Log.e("Bypass", "Failed to start server", e)
         }
     }
-}
+    private fun onBypassCompleted() {
+        bypassDone = true
+        waitingForBypass = false
+
+        qrDialog?.dismiss()
+        qrDialog = null
+
+        httpServer?.stop()
+        httpServer = null
+
+        lifecycleScope.launch {
+            delay(1000)
+            viewModel.reloadServersAfterBypass()
+        }
+    }
+
+
+    }

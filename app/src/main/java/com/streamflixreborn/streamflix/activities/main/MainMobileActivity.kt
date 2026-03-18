@@ -3,7 +3,9 @@ package com.streamflixreborn.streamflix.activities.main
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -27,13 +29,16 @@ import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class MainMobileActivity : FragmentActivity() {
 
     private var _binding: ActivityMainMobileBinding? = null
     private val binding get() = _binding!!
-
+    private var pendingTv: String? = null
+    private var pendingUrl: String? = null
     private val viewModel by viewModels<MainViewModel>()
 
     private lateinit var updateAppDialog: UpdateAppMobileDialog
@@ -46,6 +51,7 @@ class MainMobileActivity : FragmentActivity() {
         }
 
         super.onCreate(savedInstanceState)
+        handleIntent(intent)
         
         // Inizializza il provider con il context dell'attività per gestire eventuali bypass visibili
         Cine24hProvider.init(this)
@@ -166,6 +172,10 @@ class MainMobileActivity : FragmentActivity() {
                 getString(R.string.main_menu_all_channels) else getString(R.string.main_menu_tv_shows)
         }
     }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
 
     fun updateImmersiveMode() {
         val insetsController = WindowInsetsControllerCompat(window, window.decorView)
@@ -176,5 +186,52 @@ class MainMobileActivity : FragmentActivity() {
             insetsController.show(WindowInsetsCompat.Type.systemBars())
             insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val tv = pendingTv ?: return
+
+        lifecycleScope.launch {
+            delay(4000) // give time after clicking "Weiter"
+
+            try {
+                okhttp3.OkHttpClient().newCall(
+                    okhttp3.Request.Builder()
+                        .url("http://$tv/callback")
+                        .post("done".toRequestBody())
+                        .build()
+                ).execute()
+
+                Log.d("Resolver", "TV notified")
+            } catch (e: Exception) {
+                Log.e("Resolver", "Failed to notify TV", e)
+            }
+
+            pendingTv = null
+            pendingUrl = null
+        }
+    }
+
+    private fun handleIntent(intent: Intent) {
+        val data = intent.data ?: return
+
+        if (data.scheme == "streamflix" && data.host == "resolve") {
+            val tv = data.getQueryParameter("tv") ?: return
+            val url = data.getQueryParameter("url") ?: return
+
+            resolveForTv(tv, url)
+        }
+    }
+    private fun resolveForTv(tv: String, url: String) {
+        pendingTv = tv
+        pendingUrl = url
+
+        val customTabsIntent = androidx.browser.customtabs.CustomTabsIntent.Builder()
+            .setShowTitle(true)
+            .build()
+
+        customTabsIntent.launchUrl(this, Uri.parse(url))
     }
 }
