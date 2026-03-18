@@ -42,6 +42,7 @@ import org.jsoup.Jsoup
 class StreamingCommunityProvider(private val _language: String? = null) : Provider {
 
     private val mutex = Mutex()
+    private val totalCounts = mutableMapOf<String, Int>()
 
     override val language: String
         get() = _language ?: UserPreferences.currentLanguage ?: "it"
@@ -52,7 +53,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     private val TAG: String
         get() = "SCProviderDebug[$LANG]"
 
-    private val DEFAULT_DOMAIN: String = "streamingunity.bike"
+    private val DEFAULT_DOMAIN: String = "streamingunity.buzz"
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -348,23 +349,39 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        val json: JSONObject? = try {
-            if (page == 1) InertiaUtils.parseInertiaData(withSslFallback { it.getMoviesHtml() })
-            else withSslFallback { it.getMoviesJson(version = version, page = page) }.let { JSONObject(Gson().toJson(it)) }
-        } catch (e: Exception) { null }
+        val offset = (page - 1) * 60
+        val shows = try {
+            if (page == 1) {
+                val json = InertiaUtils.parseInertiaData(withSslFallback { it.getMoviesHtml() })
+                getTitlesFromInertiaJson(json)
+            } else {
+                withSslFallback { it.getArchiveApi(lang = language, offset = offset, type = "movie") }.titles
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching movies page $page: ${e.message}")
+            listOf()
+        }
 
-        return (json?.let { getTitlesFromInertiaJson(it) } ?: listOf()).map { title ->
+        return shows.map { title ->
             Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
         }.distinctBy { it.id }
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val json: JSONObject? = try {
-            if (page == 1) InertiaUtils.parseInertiaData(withSslFallback { it.getTvShowsHtml() })
-            else withSslFallback { it.getTvShowsJson(version = version, page = page) }.let { JSONObject(Gson().toJson(it)) }
-        } catch (e: Exception) { null }
+        val offset = (page - 1) * 60
+        val shows = try {
+            if (page == 1) {
+                val json = InertiaUtils.parseInertiaData(withSslFallback { it.getTvShowsHtml() })
+                getTitlesFromInertiaJson(json)
+            } else {
+                withSslFallback { it.getArchiveApi(lang = language, offset = offset, type = "tv") }.titles
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching tv shows page $page: ${e.message}")
+            listOf()
+        }
 
-        return (json?.let { getTitlesFromInertiaJson(it) } ?: listOf()).map { title ->
+        return shows.map { title ->
             TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
         }.distinctBy { it.id }
     }
@@ -465,12 +482,32 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
-        val json: JSONObject? = try {
-            if (page == 1) InertiaUtils.parseInertiaData(withSslFallback { it.getArchiveHtml(genreId = id) })
-            else withSslFallback { it.getArchiveJson(version = version, genreId = id, page = page) }.let { JSONObject(Gson().toJson(it)) }
-        } catch (e: Exception) { null }
+        val name = ""
+        val offset = (page - 1) * 60
+        
+        // Skip if we already know there's no more data
+        totalCounts[id]?.let { total ->
+            if (offset >= total) return Genre(id = id, name = name, shows = emptyList())
+        }
 
-        return Genre(id = id, name = id, shows = (json?.let { getTitlesFromInertiaJson(it) } ?: listOf()).map { title ->
+        val shows = try {
+            if (page == 1) {
+                val json = InertiaUtils.parseInertiaData(withSslFallback { it.getArchiveHtml(genreId = id) })
+                val props = json.optJSONObject("props")
+                if (props != null) {
+                    val total = props.optInt("totalCount", 0)
+                    if (total > 0) totalCounts[id] = total
+                }
+                getTitlesFromInertiaJson(json)
+            } else {
+                withSslFallback { it.getArchiveApi(lang = language, offset = offset, genreId = id) }.titles
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching genre $id page $page: ${e.message}")
+            listOf()
+        }
+
+        return Genre(id = id, name = name, shows = shows.map { title ->
             val poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename)
             if (title.type == "movie") Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = poster)
             else TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = poster)
@@ -605,12 +642,10 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         @GET("./") suspend fun getHome(): Document
         @GET("./") suspend fun getHome(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): HomeRes
         @GET("archive?type=movie") suspend fun getMoviesHtml(): Document
-        @GET("archive?type=movie") suspend fun getMoviesJson(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("page") page: Int): ArchiveRes
         @GET("archive?type=tv") suspend fun getTvShowsHtml(): Document
-        @GET("archive?type=tv") suspend fun getTvShowsJson(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("page") page: Int): ArchiveRes
         @GET("/api/search") suspend fun search(@Query("q", encoded = true) keyword: String, @Query("offset") offset: Int = 0, @Query("lang") language: String): SearchRes
+        @GET("/api/archive") suspend fun getArchiveApi(@Query("lang") lang: String, @Query("offset") offset: Int, @Query("genre[]") genreId: String? = null, @Query("type") type: String? = null): ApiArchiveRes
         @GET("archive") suspend fun getArchiveHtml(@Query("genre[]") genreId: String): Document
-        @GET("archive") suspend fun getArchiveJson(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("genre[]") genreId: String, @Query("page") page: Int): ArchiveRes
         @GET("titles/{id}") suspend fun getDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): HomeRes
         @GET("titles/{id}/") suspend fun getSeasonDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): SeasonRes
 
@@ -648,5 +683,6 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         data class ArchivePage(val data: List<Show>?, @SerializedName("current_page") val currentPage: Int?, @SerializedName("last_page") val lastPage: Int?)
         data class ArchiveProps(val archive: ArchivePage?, val titles: ArchivePage?, val movies: ArchivePage?, val tv: ArchivePage?, @SerializedName("tv_shows") val tvShows: ArchivePage?)
         data class ArchiveRes(val version: String, val props: ArchiveProps?)
+        data class ApiArchiveRes(val titles: List<Show>)
     }
 }
