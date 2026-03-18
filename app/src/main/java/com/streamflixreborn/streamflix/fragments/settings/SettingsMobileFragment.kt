@@ -248,7 +248,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 startActivity(tgIntent)
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Telegram not found.", Toast.LENGTH_SHORT).show()
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflix_reborn"))
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflixreborn"))
                 startActivity(intent)
             }
             true
