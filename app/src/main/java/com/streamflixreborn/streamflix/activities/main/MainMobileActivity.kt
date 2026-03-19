@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -24,36 +25,43 @@ import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.databinding.ActivityMainMobileBinding
 import com.streamflixreborn.streamflix.fragments.player.PlayerMobileFragment
-import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
-import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
+import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.coroutines.withContext
+import okhttp3.*
 
 class MainMobileActivity : FragmentActivity() {
 
     private var _binding: ActivityMainMobileBinding? = null
     private val binding get() = _binding!!
-    private var pendingTv: String? = null
-    private var pendingUrl: String? = null
+
     private val viewModel by viewModels<MainViewModel>()
+
+    // 🔥 Resolver state
+    private var pendingWs: String? = null
+    private var pendingUrl: String? = null
+    private var isResolving = false
+    private var customTabOpened = false
 
     private lateinit var updateAppDialog: UpdateAppMobileDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Tema impostato in base alle preferenze già caricate in StreamFlixApp
+
         when (UserPreferences.selectedTheme) {
             "nero_amoled_oled" -> setTheme(R.style.AppTheme_Mobile_NeroAmoledOled)
             else -> setTheme(R.style.AppTheme_Mobile)
         }
 
         super.onCreate(savedInstanceState)
-        handleIntent(intent)
-        
-        // Inizializza il provider con il context dell'attività per gestire eventuali bypass visibili
+
+        // 🔴 handle deep link FIRST
+        if (handleIntent(intent)) return
+
         Cine24hProvider.init(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -62,29 +70,21 @@ class MainMobileActivity : FragmentActivity() {
         _binding = ActivityMainMobileBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
-            val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
-
-            val isPlayer = currentFragment is PlayerMobileFragment
-            val isBottomNavVisible = binding.bnvMain.visibility == View.VISIBLE
-
-            val bottomPadding = if (isPlayer || isBottomNavVisible) 0 else insets.bottom
-            val topPadding = if (isPlayer) 0 else insets.top
-
-            view.setPadding(insets.left, topPadding, insets.right, bottomPadding)
-            windowInsets
+        ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, insets ->
+            val sys = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(sys.left, sys.top, sys.right, sys.bottom)
+            insets
         }
 
         updateImmersiveMode()
 
-        val navHostFragment = this.supportFragmentManager
-            .findFragmentById(binding.navMainFragment.id) as NavHostFragment
-        val navController = navHostFragment.navController
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
+        val navController = navHost.navController
 
-        // Reindirizzamento TV se necessario
-        if (BuildConfig.APP_LAYOUT == "tv" || (BuildConfig.APP_LAYOUT != "mobile" && packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))) {
+        // redirect TV
+        if (BuildConfig.APP_LAYOUT == "tv" ||
+            (BuildConfig.APP_LAYOUT != "mobile" && packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
+        ) {
             finish()
             startActivity(Intent(this, MainTvActivity::class.java))
             return
@@ -99,24 +99,6 @@ class MainMobileActivity : FragmentActivity() {
         viewModel.checkUpdate()
 
         binding.bnvMain.setupWithNavController(navController)
-        binding.bnvMain.setOnItemReselectedListener { item ->
-            navController.popBackStack(item.itemId, inclusive = true)
-            navController.navigate(item.itemId)
-        }
-        
-        updateNavigationVisibility()
-
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            when (destination.id) {
-                R.id.search, R.id.home, R.id.movies, R.id.tv_shows, R.id.settings -> {
-                    binding.bnvMain.visibility = View.VISIBLE
-                    updateNavigationVisibility()
-                    updateImmersiveMode()
-                }
-                else -> binding.bnvMain.visibility = View.GONE
-            }
-            binding.mainContent.post { binding.mainContent.requestApplyInsets() }
-        }
 
         lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
@@ -145,93 +127,106 @@ class MainMobileActivity : FragmentActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                val handled = (getCurrentFragment() as? PlayerMobileFragment)?.onBackPressed() ?: false
+                val handled =
+                    (getCurrentFragment() as? PlayerMobileFragment)?.onBackPressed() ?: false
                 if (handled) return
 
-                when (navController.currentDestination?.id) {
-                    R.id.home -> finish()
-                    R.id.search, R.id.movies, R.id.tv_shows, R.id.settings -> binding.bnvMain.findViewById<View>(R.id.home).performClick()
-                    else -> if (!navController.navigateUp()) finish()
-                }
+                if (!navController.navigateUp()) finish()
             }
         })
     }
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        (getCurrentFragment() as? PlayerMobileFragment)?.onUserLeaveHint()
-    }
-    
-    private fun updateNavigationVisibility() {
-        UserPreferences.currentProvider?.let { provider ->
-            binding.bnvMain.menu.findItem(R.id.movies)?.isVisible = Provider.supportsMovies(provider)
-            val tvShowsItem = binding.bnvMain.menu.findItem(R.id.tv_shows)
-            tvShowsItem?.isVisible = Provider.supportsTvShows(provider)
-            
-            tvShowsItem?.title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD") 
-                getString(R.string.main_menu_all_channels) else getString(R.string.main_menu_tv_shows)
-        }
-    }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
 
-    fun updateImmersiveMode() {
-        val insetsController = WindowInsetsControllerCompat(window, window.decorView)
-        if (UserPreferences.immersiveMode) {
-            insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            insetsController.hide(WindowInsetsCompat.Type.systemBars())
-        } else {
-            insetsController.show(WindowInsetsCompat.Type.systemBars())
-            insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
-        }
-    }
-
     override fun onResume() {
         super.onResume()
 
-        val tv = pendingTv ?: return
+        if (!isResolving || !customTabOpened) return
+
+        val wsUrl = pendingWs ?: return
+
+        isResolving = false
+        customTabOpened = false
 
         lifecycleScope.launch {
-            delay(4000) // give time after clicking "Weiter"
+            sendWebSocketDone(wsUrl)
 
-            try {
-                okhttp3.OkHttpClient().newCall(
-                    okhttp3.Request.Builder()
-                        .url("http://$tv/callback")
-                        .post("done".toRequestBody())
-                        .build()
-                ).execute()
-
-                Log.d("Resolver", "TV notified")
-            } catch (e: Exception) {
-                Log.e("Resolver", "Failed to notify TV", e)
-            }
-
-            pendingTv = null
+            pendingWs = null
             pendingUrl = null
+
+            finish()
         }
     }
 
-    private fun handleIntent(intent: Intent) {
-        val data = intent.data ?: return
+    // -----------------------------
+    // 🔥 WebSocket send
+    // -----------------------------
+    private suspend fun sendWebSocketDone(wsUrl: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+
+                val request = Request.Builder()
+                    .url(wsUrl)
+                    .build()
+
+                val ws = client.newWebSocket(request, object : WebSocketListener() {
+                    override fun onOpen(webSocket: WebSocket, response: Response) {
+                        Log.d("ResolverWS", "Connected → sending DONE")
+                        webSocket.send("done")
+                        webSocket.close(1000, null)
+                    }
+
+                    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                        Log.e("ResolverWS", "WS failed", t)
+                    }
+                })
+
+            } catch (e: Exception) {
+                Log.e("ResolverWS", "Error", e)
+            }
+        }
+    }
+
+    // -----------------------------
+    // 🔥 Deep link
+    // -----------------------------
+    private fun handleIntent(intent: Intent): Boolean {
+        val data = intent.data ?: return false
 
         if (data.scheme == "streamflix" && data.host == "resolve") {
-            val tv = data.getQueryParameter("tv") ?: return
-            val url = data.getQueryParameter("url") ?: return
 
-            resolveForTv(tv, url)
+            val ws = data.getQueryParameter("ws") ?: return false
+            val url = data.getQueryParameter("url") ?: return false
+
+            Log.d("ResolverWS", "WS: $ws")
+
+            resolve(ws, url)
+            return true
         }
+
+        return false
     }
-    private fun resolveForTv(tv: String, url: String) {
-        pendingTv = tv
+
+    private fun resolve(ws: String, url: String) {
+        pendingWs = ws
         pendingUrl = url
+        isResolving = true
+        customTabOpened = true
 
-        val customTabsIntent = androidx.browser.customtabs.CustomTabsIntent.Builder()
-            .setShowTitle(true)
-            .build()
+        val intent = CustomTabsIntent.Builder().build()
+        intent.launchUrl(this, Uri.parse(url))
+    }
 
-        customTabsIntent.launchUrl(this, Uri.parse(url))
+    fun updateImmersiveMode() {
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        if (UserPreferences.immersiveMode) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
     }
 }

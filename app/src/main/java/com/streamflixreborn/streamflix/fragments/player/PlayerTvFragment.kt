@@ -1,11 +1,13 @@
 package com.streamflixreborn.streamflix.fragments.player
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -80,9 +82,9 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.QrUtils
-import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.delay
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -118,11 +120,13 @@ class PlayerTvFragment : Fragment() {
     private var waitingForBypass = false
     private var bypassDone = false
     private var qrDialog: androidx.appcompat.app.AlertDialog? = null
+    private var wsServer: BypassWebSocketServer? = null
     fun getLocalIpAddress(): String? {
         return try {
             NetworkInterface.getNetworkInterfaces().toList()
-                .flatMap { it.inetAddresses.toList() }
-                .firstOrNull { !it.isLoopbackAddress && it is Inet4Address }
+                .firstOrNull { it.name == "wlan0" || it.name == "eth0" }
+                ?.inetAddresses?.toList()
+                ?.firstOrNull { it is Inet4Address && !it.isLoopbackAddress }
                 ?.hostAddress
         } catch (e: Exception) {
             null
@@ -252,13 +256,15 @@ class PlayerTvFragment : Fragment() {
                             waitingForBypass = true
 
                             val ip = getLocalIpAddress() ?: return@collect
+                            val wsUrl = "ws://$ip:8081"
 
-                            val qrContent = "streamflix://resolve?tv=$ip:8080&url=${
-                                Uri.encode(sToServer.id)
-                            }"
+                            val qrContent = "streamflix://resolve?ws=$wsUrl&url=${Uri.encode(sToServer.id)}"
 
-                            startCallbackServer()       // 👈 start TV listener
-                            showQrDialog(qrContent)     // 👈 show QR
+                            startWebSocketServer()
+                            requireActivity().runOnUiThread {
+                                showQrDialog(qrContent)
+                                Log.d("Bypass", "TV IP: $ip")
+                            }
 
                             return@collect // ⛔ STOP normal flow until resolved
                         }
@@ -524,15 +530,23 @@ class PlayerTvFragment : Fragment() {
 
         }
 
-        override fun onPause() {
-            super.onPause()
-            player.pause()
-            stopProgressHandler()
+    override fun onPause() {
+        super.onPause()
+
+        if (::player.isInitialized) {
+            try {
+                player.pause()
+            } catch (e: Exception) {
+                Log.w("Player", "pause() ignored, player already released")
+            }
         }
+
+        stopProgressHandler()
+    }
 
         override fun onDestroyView() {
             super.onDestroyView()
-            player.release()
+            if (::player.isInitialized) player.release()
             mediaSession.release()
             stopProgressHandler()
             try {
@@ -543,23 +557,25 @@ class PlayerTvFragment : Fragment() {
             isSetupDone = false
         }
 
-        fun onBackPressed(): Boolean = when {
-            (binding.pvPlayer as? PlayerTvView)?.isManualZoomEnabled == true -> {
-                (binding.pvPlayer as? PlayerTvView)?.exitManualZoomMode()
-                true
-            }
+    fun onBackPressed(): Boolean = when {
 
-            binding.settings.isVisible -> {
-                binding.settings.onBackPressed()
-            }
 
-            binding.pvPlayer.controller.isVisible -> {
-                binding.pvPlayer.hideController()
-                true
-            }
-
-            else -> false
+        (binding.pvPlayer as? PlayerTvView)?.isManualZoomEnabled == true -> {
+            (binding.pvPlayer as? PlayerTvView)?.exitManualZoomMode()
+            true
         }
+
+        binding.settings.isVisible -> {
+            binding.settings.onBackPressed()
+        }
+
+        binding.pvPlayer.controller.isVisible -> {
+            binding.pvPlayer.hideController()
+            true
+        }
+
+        else -> false
+    }
 
 
         private fun updatePlayerScale() {
@@ -1174,43 +1190,56 @@ class PlayerTvFragment : Fragment() {
         }
 
     private fun showQrDialog(content: String) {
-        val imageView = ImageView(requireContext())
-        imageView.setImageBitmap(QrUtils.generate(content))
+        val bitmap = QrUtils.generate(content, 800) ?: return
 
-        qrDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        val imageView = ImageView(requireContext()).apply {
+            setImageBitmap(bitmap)
+            setBackgroundColor(Color.WHITE)
+            isFocusable = true
+            isFocusableInTouchMode = true
+            requestFocus()
+        }
+
+        qrDialog = androidx.appcompat.app.AlertDialog.Builder(requireActivity())
             .setTitle("Scan with phone")
             .setMessage("Solve captcha on phone")
             .setView(imageView)
-            .setCancelable(false)
+            .setCancelable(true) // ✅ allow back press
+            .setOnCancelListener {
+                qrDialog?.dismiss()
+                qrDialog = null
+                Log.d("Bypass", "QR dialog cancelled")
+                waitingForBypass = false
+                stopWebSocketServer()
+                bypassDone = true
+                waitingForBypass = false
+                viewModel.reloadServersAfterBypass()
+            }
             .create()
 
         qrDialog?.show()
     }
 
-    private var httpServer: NanoHTTPD? = null
+    private fun startWebSocketServer() {
+        if (wsServer != null) return
 
-    private fun startCallbackServer() {
-        if (httpServer != null) return
-
-        httpServer = object : NanoHTTPD(8080) {
-            override fun serve(session: IHTTPSession): Response {
-                if (session.uri == "/callback") {
-                    lifecycleScope.launch {
-                        onBypassCompleted()
-                    }
-                    return newFixedLengthResponse("OK")
-                }
-                return newFixedLengthResponse("Not found")
+        wsServer = BypassWebSocketServer(8081) {
+            requireActivity().runOnUiThread {
+                Log.d("BypassWS", "DONE received")
+                onBypassCompleted()
             }
         }
 
-        try {
-            httpServer?.start()
-            Log.d("Bypass", "Server started on 8080")
-        } catch (e: Exception) {
-            Log.e("Bypass", "Failed to start server", e)
-        }
+        wsServer?.start()
     }
+    private fun stopWebSocketServer() {
+        try {
+            wsServer?.stop()
+        } catch (_: Exception) {}
+        wsServer = null
+    }
+
+
     private fun onBypassCompleted() {
         bypassDone = true
         waitingForBypass = false
@@ -1218,11 +1247,10 @@ class PlayerTvFragment : Fragment() {
         qrDialog?.dismiss()
         qrDialog = null
 
-        httpServer?.stop()
-        httpServer = null
+        stopWebSocketServer()
 
         lifecycleScope.launch {
-            delay(1000)
+            delay(500)
             viewModel.reloadServersAfterBypass()
         }
     }
