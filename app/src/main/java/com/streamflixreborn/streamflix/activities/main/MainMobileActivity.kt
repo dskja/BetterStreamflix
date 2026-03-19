@@ -58,8 +58,6 @@ class MainMobileActivity : FragmentActivity() {
         }
 
         super.onCreate(savedInstanceState)
-
-        // 🔴 handle deep link FIRST
         if (handleIntent(intent)) return
 
         Cine24hProvider.init(this)
@@ -81,7 +79,6 @@ class MainMobileActivity : FragmentActivity() {
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
         val navController = navHost.navController
 
-        // redirect TV
         if (BuildConfig.APP_LAYOUT == "tv" ||
             (BuildConfig.APP_LAYOUT != "mobile" && packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
         ) {
@@ -160,10 +157,6 @@ class MainMobileActivity : FragmentActivity() {
             finish()
         }
     }
-
-    // -----------------------------
-    // 🔥 WebSocket send
-    // -----------------------------
     private suspend fun sendWebSocketDone(wsUrl: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -190,10 +183,6 @@ class MainMobileActivity : FragmentActivity() {
             }
         }
     }
-
-    // -----------------------------
-    // 🔥 Deep link
-    // -----------------------------
     private fun handleIntent(intent: Intent): Boolean {
         val data = intent.data ?: return false
 

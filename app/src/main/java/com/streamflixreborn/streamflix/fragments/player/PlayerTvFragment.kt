@@ -266,7 +266,7 @@ class PlayerTvFragment : Fragment() {
                                 Log.d("Bypass", "TV IP: $ip")
                             }
 
-                            return@collect // ⛔ STOP normal flow until resolved
+                            return@collect
                         }
 
 
@@ -1204,7 +1204,7 @@ class PlayerTvFragment : Fragment() {
             .setTitle("Scan with phone")
             .setMessage("Solve captcha on phone")
             .setView(imageView)
-            .setCancelable(true) // ✅ allow back press
+            .setCancelable(true)
             .setOnCancelListener {
                 qrDialog?.dismiss()
                 qrDialog = null
