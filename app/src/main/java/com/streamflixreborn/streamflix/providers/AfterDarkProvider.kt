@@ -22,6 +22,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.Response
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.TMDb3
@@ -44,18 +45,14 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://afterdark.mom/"
+    override val defaultBaseUrl: String = "https://afterdark.best/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
             return cacheURL.ifEmpty { field }
         }
 
-    override val logo: String
-        get() {
-            val cacheLogo = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_LOGO)
-            return cacheLogo.ifEmpty { baseUrl + "logo.png" }
-        }
+    override val logo = "https://images2.imgbox.com/f5/45/6Es7LVQ6_o.png"
     override val language = "fr"
     override val changeUrlMutex = Mutex()
 
@@ -63,19 +60,20 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     private var serviceInitialized = false
     private val initializationMutex = Mutex()
 
-    private lateinit var homeUrl: String
-    private lateinit var movieUrl: String
-    private lateinit var tvUrl: String
+    private var homeUrls: List<String> = emptyList()
+    private var movieUrls: List<String> = emptyList()
+    private var tvUrls: List<String> = emptyList()
     private lateinit var searchUrl: String
 
     data class AfterDarkItem(
-        val message: String,
+        val message: String?,
         val tmdbId: Int,
-        val title: String,
+        val title: String?,
+        val tagline: String?,
 
         val posterPath: String?,
         val backdropPath: String?,
-        val overview: String,
+        val overview: String?,
 
         val kind: String, // "movie" or "show"
 
@@ -86,7 +84,11 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     )
 
     data class AfterDarkResponse(
-        val items: List<AfterDarkItem>
+        val data: List<AfterDarkItem>
+    )
+    
+    data class AfterDarkFeatResponse(
+        val data: AfterDarkItem
     )
 
     fun AfterDarkItem.toShow(): Show =
@@ -94,17 +96,19 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             "show" -> TvShow(
                 id = tmdbId.toString(),
                 title = buildString {
-                    append(title)
+                    append(title ?: tagline ?: "")
                     if (season != null && episode != null) {
                         append(" - S${season}E${episode}")
                     } }
                 ,
+                overview = overview ?: "",
                 banner = backdropPath?.original,
                 poster = posterPath?.w500,
             )
             else -> Movie(
                 id = tmdbId.toString(),
-                title = title,
+                title = title ?: tagline ?: "",
+                overview = overview ?: "",
                 banner = backdropPath?.original,
                 poster = posterPath?.w500,
             )
@@ -113,7 +117,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     fun AfterDarkResponse.toCategorie(name: String): Category {
     return Category(
                 name = name,
-                list = items
+                list = data
                     .map { it.toShow() }
             )
     }
@@ -144,7 +148,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         }
 
     fun extractTitles(js: String): List<String> {
-        val titleRegex = Regex("""title:"([^"]+)"""")
+        val titleRegex = Regex("""title\s*:\s*[`"']([^`"']+)[`"']""")
 
         return titleRegex.findAll(js)
             .map { it.groupValues[1] }
@@ -161,13 +165,18 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             categories.add(carousel.toCategorie(Category.FEATURED))
         } catch (e: Exception) { }
 
-        val homePage = service.loadPage(homeUrl)
-        val html = homePage.body()
+        val queries = mutableListOf<QueryCall>()
+        val titles = mutableListOf<String>()
+        homeUrls.forEach { url ->
+            val page = service.loadPage(url)
+            val html = page.body()
+            if (!html.isNullOrEmpty()) {
+                queries.addAll(extractQueries(html))
+                titles.addAll(extractTitles(html))
+            }
+        }
 
-        if (! html.isNullOrEmpty()) {
-            val queries = extractQueries(html)
-            val titles = extractTitles(html)
-
+        if (queries.isNotEmpty()) {
             categories.addAll(
                 queries.mapIndexedNotNull { idx, it ->
                     val params = parseParams(it.paramsRaw).toMutableMap()
@@ -196,9 +205,9 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
         try {
             val advisors = mutableListOf<Show>()
-            advisors.add(service.getFeat("home").toShow())
-            advisors.add(service.getFeat("movies").toShow())
-            advisors.add(service.getFeat("shows").toShow())
+            advisors.add(service.getFeat("home").data.toShow())
+            advisors.add(service.getFeat("movies").data.toShow())
+            advisors.add(service.getFeat("shows").data.toShow())
 
             categories.add(
                 2,
@@ -292,19 +301,21 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
         try {
             val carousel = service.getCarousel("movies")
-            movies.addAll(carousel.items.map { it.toShow() as Movie })
+            movies.addAll(carousel.data.map { it.toShow() as Movie })
         } catch (e: Exception) { }
 
-        val moviePage = service.loadPage(movieUrl)
-        val html = moviePage.body()
+        movieUrls.forEach { url ->
+            val moviePage = service.loadPage(url)
+            val html = moviePage.body()
 
-        if (! html.isNullOrEmpty()) {
-            extractQueries(html)
-                .mapIndexed { idx, it ->
-                    val params = parseParams(it.paramsRaw).toMutableMap()
-                    params.putIfAbsent("language", "fr-FR")
-                    movies.addAll(TMDb3.Discover.movie(params).results.map { it.toAppItem() as Movie })
-                }
+            if (! html.isNullOrEmpty()) {
+                extractQueries(html)
+                    .mapIndexed { idx, it ->
+                        val params = parseParams(it.paramsRaw).toMutableMap()
+                        params.putIfAbsent("language", "fr-FR")
+                        movies.addAll(TMDb3.Discover.movie(params).results.map { it.toAppItem() as Movie })
+                    }
+            }
         }
 
         return movies
@@ -319,19 +330,21 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
         try {
             val carousel = service.getCarousel("shows")
-            tvShows.addAll(carousel.items.map { it.toShow() as TvShow })
+            tvShows.addAll(carousel.data.map { it.toShow() as TvShow })
         } catch (e: Exception) { }
 
-        val moviePage = service.loadPage(movieUrl)
-        val html = moviePage.body()
+        tvUrls.forEach { url ->
+            val page = service.loadPage(url)
+            val html = page.body()
 
-        if (! html.isNullOrEmpty()) {
-            extractQueries(html)
-                .mapIndexed { idx, it ->
-                    val params = parseParams(it.paramsRaw).toMutableMap()
-                    params.putIfAbsent("language", "fr-FR")
-                    tvShows.addAll(TMDb3.Discover.tv(params).results.map { it.toAppItem() as TvShow })
-                }
+            if (! html.isNullOrEmpty()) {
+                extractQueries(html)
+                    .mapIndexed { idx, it ->
+                        val params = parseParams(it.paramsRaw).toMutableMap()
+                        params.putIfAbsent("language", "fr-FR")
+                        tvShows.addAll(TMDb3.Discover.tv(params).results.map { it.toAppItem() as TvShow })
+                    }
+            }
         }
 
         return tvShows
@@ -598,7 +611,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val paramsRaw: String?
     )
 
-    private val queryRegex = Regex("""queryFn\s*:\s*\(\)\s*=>\s*e\("([^"]+)"(?:,\{([^}]*)\})?\)""")
+    private val queryRegex = Regex("""queryFn\s*:\s*\(\)\s*=>\s*[a-zA-Z0-9_]+\s*\(\s*[`"']([^`"']+)[`"'](?:\s*,\s*\{([^}]*)\})?\s*\)""")
 
     fun extractQueries(js: String): List<QueryCall> {
         return queryRegex.findAll(js).map {
@@ -625,36 +638,22 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return AfterDarkExtractor(baseUrl).servers(videoType)
     }
 
-    suspend fun getRealUrlFor(section: String): String {
-        val regex = Regex("""<script\s+type="module".*?src="(/assets/index-[^"]+\.js)"""")
-        val regexIndex = Regex(""""(assets/index-.*?\.js)"""")
-        val regexSearch = Regex(""""(assets/search-.*?\.js)"""")
+    suspend fun getRealUrlsFor(section: String): List<String> {
+        val pattern = if (section.isEmpty()) "_layout" else section
+        val regex = Regex("""href="(/assets/$pattern-[^"]+\.js)"""")
+        val regexSearch = Regex("""href="(/assets/search-[^"]+\.js)"""")
 
         val homedoc = service.loadPage(section)
         if (! homedoc.isSuccessful)
-            return ""
-        var html = homedoc.body()
+            return emptyList()
+        val html = homedoc.body() ?: ""
 
-        var match = regex.find(html ?: "")
-        val url = match?.groupValues?.get(1)
-
-        if (url.isNullOrEmpty())
-            return ""
-
-        val mainPage = service.loadPage(url)
-        if (! mainPage.isSuccessful)
-            return ""
-        html = mainPage.body()
-
-        if (!::searchUrl.isInitialized  || searchUrl.isBlank()) {
-            /* update searchUrl if blank */
-            match = regexSearch.find(html ?: "")
-            searchUrl = match?.groupValues?.get(1) ?: ""
+        if (!::searchUrl.isInitialized || searchUrl.isBlank()) {
+            val searchMatch = regexSearch.find(html)
+            searchUrl = searchMatch?.groupValues?.get(1) ?: ""
         }
 
-        match = regexIndex.find(html ?: "")
-
-        return match?.groupValues?.get(1) ?: ""
+        return regex.findAll(html).map { it.groupValues[1] }.toList()
     }
 
     /**
@@ -691,9 +690,9 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             service = Service.build(baseUrl)
 
             try {
-                homeUrl = getRealUrlFor("")
-                movieUrl = getRealUrlFor("movies")
-                tvUrl = getRealUrlFor("series")
+                homeUrls = getRealUrlsFor("")
+                movieUrls = getRealUrlsFor("movies")
+                tvUrls = getRealUrlsFor("series")
                 serviceInitialized = true
             } catch (e: Exception) {
                 Log.e("ERROR", "CANNOT INITIALIZE")
@@ -753,16 +752,16 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Header("user-agent") user_agent: String = "Mozilla"
         ): Response<String>
 
-        @GET("api/carousel/{section}")
+        @GET("api/v1/shelves")
         suspend fun getCarousel(
-            @Path("section") section: String,
+            @Query("ctx") section: String,
             @Header("user-agent") user_agent: String = "Mozilla"
         ): AfterDarkResponse
 
-        @GET("api/feat/{section}")
+        @GET("api/v1/billboards")
         suspend fun getFeat(
-            @Path("section") section: String,
+            @Query("ctx") section: String,
             @Header("user-agent") user_agent: String = "Mozilla"
-        ): AfterDarkItem
+        ): AfterDarkFeatResponse
     }
 }
