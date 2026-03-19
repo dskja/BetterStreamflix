@@ -83,7 +83,6 @@ class RpmvidExtractor : Extractor() {
 
         val decryptedJson = decryptHexPayload(hexResponse)
         val json = JsonParser.parseString(decryptedJson).asJsonObject
-
         val hlsPath = json.get("hls")?.asString?.takeIf { it.isNotEmpty() }
         val hlsTiktok = json.get("hlsVideoTiktok")?.asString?.takeIf { it.isNotEmpty() }
         var cfPath = json.get("cf")?.asString?.takeIf { it.isNotEmpty() }
@@ -109,10 +108,48 @@ class RpmvidExtractor : Extractor() {
                 "$mainLink$hlsTiktok$query" to mapOf("Referer" to mainLink)
             }
             !cfPath.isNullOrEmpty() -> {
-                if (!cfExpire.isNullOrEmpty()) {
-                    val parts = cfExpire.split("::")
-                    if (parts.size >= 2) {
-                        cfPath = "$cfPath?t=${parts[0]}&e=${parts[1]}"
+
+                var t: String? = null
+                var e: String? = null
+                val configStr = json.get("streamingConfig")?.asString
+
+                try {
+                    if (configStr != null) {
+                        val streamingConfig = JsonParser.parseString(configStr).asJsonObject
+
+                        val cloudflare = streamingConfig
+                            .getAsJsonObject("adjust")
+                            ?.getAsJsonObject("Cloudflare")
+
+                        val disabled = cloudflare
+                            ?.get("disabled")
+                            ?.takeIf { !it.isJsonNull }
+                            ?.asBoolean ?: true
+
+                        if (!disabled) {
+                            val params = cloudflare.getAsJsonObject("params")
+
+                            t = params
+                                ?.get("t")
+                                ?.takeIf { !it.isJsonNull }
+                                ?.asString
+
+                            e = params
+                                ?.get("e")
+                                ?.takeIf { !it.isJsonNull }
+                                ?.asString
+                        }
+                    }
+                } catch (e: Exception) { }
+
+                if (!e.isNullOrEmpty() && !t.isNullOrEmpty()) {
+                    cfPath = "$cfPath?t=${t}&e=${e}"
+                } else {
+                    if (!cfExpire.isNullOrEmpty()) {
+                        val parts = cfExpire.split("::")
+                        if (parts.size >= 2) {
+                            cfPath = "$cfPath?t=${parts[0]}&e=${parts[1]}"
+                        }
                     }
                 }
                 cfPath!! to mapOf("Referer" to mainLink)
