@@ -406,9 +406,37 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 tvShowServers
             }
             is Video.Type.Movie -> {
-                val tvShowServers = mutableListOf<Video.Server>()
-                tvShowServers
+                val movieServers = mutableListOf<Video.Server>()
+                val episodesData = try {
+                    service.getEpisodesData(id)
+                } catch (e: Exception) {
+                    null
+                }
 
+                val counts = mutableMapOf<String, Int>()
+
+                fun addServers(map: Map<String, Map<String, String>>?, lang: String) {
+                    map?.values?.forEach { servers ->
+                        servers.forEach { (provider, url) ->
+                            val key = "${provider}_$lang"
+                            val count = counts.getOrDefault(key, 0) + 1
+                            counts[key] = count
+                            val suffix = if (count > 1) " $count" else ""
+                            
+                            movieServers.add(Video.Server(
+                                id = "${lang.lowercase()}${provider}$count",
+                                name = provider.replaceFirstChar { it.uppercase() }+" ($lang)$suffix",
+                                src = url
+                            ))
+                        }
+                    }
+                }
+
+                addServers(episodesData?.vf, "VF")
+                addServers(episodesData?.vostfr, "VOSTFR")
+                addServers(episodesData?.vo, "VO")
+                
+                movieServers
             }
         }
 
