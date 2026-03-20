@@ -281,8 +281,8 @@
     <string name="settings_frenchstream_use_new_interface_off">Aus</string>
 
     <string name="settings_server_voe_category">VOE-Server-Einstellungen</string>
-    <string name="settings_server_voe_title">VOE Auto-Untertitel deaktivieren</string>
-    <string name="settings_server_voe_summary">Verhindert das automatische Laden von VOE-Untertiteln</string>
+    <string name="settings_server_voe_title">Auto-Untertitel deaktivieren</string>
+    <string name="settings_server_voe_summary">Verhindert das automatische Laden von VOE, Vidnest und Vidzy-Untertiteln</string>
 
     <string name="player_settings_extra_buffer_title">Server mit Extra-Puffer</string>
     <string name="player_settings_extra_buffer_server_label">Server mit Extra-Puffer</string>

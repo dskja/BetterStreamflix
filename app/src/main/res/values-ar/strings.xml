@@ -188,9 +188,9 @@
     <string name="settings_frenchstream_use_new_interface_on">تشغيل</string>
     <string name="settings_frenchstream_use_new_interface_off">إيقاف</string>
 
-    <string name="settings_server_voe_category">إعدادات خادم VOE</string>
-    <string name="settings_server_voe_title">تعطيل الترجمات التلقائية لخادم VOE</string>
-    <string name="settings_server_voe_summary">إذا تم التمكين، فلن يتم تمكين ترجمات خادم VOE تلقائيًا حتى لو كانت متاحة ولديها قيمة افتراضية صحيحة</string>
+    <string name="settings_server_voe_category">إعدادات الخوادم</string>
+    <string name="settings_server_voe_title">تعطيل الترجمات التلقائية للخوادم</string>
+    <string name="settings_server_voe_summary">إذا تم تفعيل هذا الخيار، فلن يتم تفعيل ترجمات خوادم VOE وVidnest وVidzy تلقائيًا حتى لو كانت متاحة ومحددة كافتراضية</string>
 
 
     <string name="player_settings_extra_buffer_title">خادم مع تخزين مؤقت إضافي</string>

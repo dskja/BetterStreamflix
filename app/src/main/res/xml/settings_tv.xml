@@ -111,7 +111,13 @@
             android:title="@string/settings_autoplay"
             android:defaultValue="true"
             android:summaryOn="@string/settings_autoplay_on"
-            android:summaryOff="@string/settings_autoplay_off" />
+		android:summaryOff="@string/settings_autoplay_off" />
+        <EditTextPreference
+            android:key="p_settings_autoplay_buffer"
+            android:title="@string/settings_autoplay_buffer_title"
+            android:dialogMessage="@string/settings_autoplay_buffer_dialog_message"
+            android:defaultValue="3"
+            android:inputType="number" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -123,13 +129,6 @@
             android:title="@string/settings_force_extra_buffer_title"
             android:summary="@string/settings_force_extra_buffer_summary"
             android:defaultValue="false" />
-
-        <EditTextPreference
-            android:key="p_settings_autoplay_buffer"
-            android:title="@string/settings_autoplay_buffer_title"
-            android:dialogMessage="@string/settings_autoplay_buffer_dialog_message"
-            android:defaultValue="3"
-            android:inputType="number" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/player_settings">
@@ -152,7 +151,7 @@
         android:title="@string/settings_server_voe_category">
 
         <SwitchPreference
-            android:key="SERVER_VOE_AUTO_SUBTITLES_DISABLED"
+            android:key="SERVER_AUTO_SUBTITLES_DISABLED"
             android:title="@string/settings_server_voe_title"
             android:summary="@string/settings_server_voe_summary"
             android:defaultValue="true" />

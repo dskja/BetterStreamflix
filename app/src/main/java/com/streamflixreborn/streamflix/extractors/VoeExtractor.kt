@@ -54,13 +54,14 @@ class VoeExtractor : Extractor() {
             Video.Subtitle(
                 file = if (file.startsWith("http")) file else baseSubtitle + file,
                 label = obj.get("label").asString,
-                default = if (UserPreferences.serverVoeAutoSubtitlesDisabled) false else obj.get("default").asBoolean
+                initialDefault = obj.get("default").asBoolean,
+                default = if (UserPreferences.serverAutoSubtitlesDisabled) false else obj.get("default").asBoolean
             )
         }
         return Video(
             source = m3u8,
             subtitles = subtitles,
-            isVoe = true
+            useServerSubtitleSetting = true
         )
     }
 
