@@ -26,6 +26,7 @@ import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.Cache
@@ -71,6 +72,7 @@ object AniWorldProvider : Provider {
     private lateinit var appContext: Context
 
     private var preloadJob: Job? = null
+    private val providerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val cacheLock = Any()
 
@@ -109,7 +111,7 @@ object AniWorldProvider : Provider {
     }
 
     override suspend fun getHome(): List<Category> {
-        preloadSeriesAlphabet()
+        preloadSeriesAlphabetAsync()
         val document = service.getHome()
 
         val categories = mutableListOf<Category>()
@@ -220,7 +222,7 @@ object AniWorldProvider : Provider {
                 preloadSeriesAlphabet()
             }
         }
-        CoroutineScope(Dispatchers.IO).launch { preloadSeriesAlphabet() }
+        preloadSeriesAlphabetAsync()
         synchronized(cacheLock) {
             if (fromIndex >= seriesCache.size) return emptyList()
             val actualToIndex = minOf(toIndex, seriesCache.size)
@@ -456,6 +458,13 @@ object AniWorldProvider : Provider {
     private val seriesCache = mutableListOf<TvShow>()
     private const val chunkSize = 25
     private var isSeriesCacheLoaded = false
+
+    private fun preloadSeriesAlphabetAsync() {
+        if (preloadJob?.isActive == true) return
+        preloadJob = providerScope.launch {
+            runCatching { preloadSeriesAlphabet() }
+        }
+    }
 
     private suspend fun preloadSeriesAlphabet() {
         val document = service.getAnimesAlphabet()

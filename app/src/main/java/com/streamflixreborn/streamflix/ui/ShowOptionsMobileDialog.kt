@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -16,12 +17,17 @@ import com.streamflixreborn.streamflix.fragments.home.HomeMobileFragmentDirectio
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.loadMoviePoster
+import com.streamflixreborn.streamflix.utils.loadTvShowPoster
+import com.streamflixreborn.streamflix.utils.ArtworkRepair
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
 import com.streamflixreborn.streamflix.utils.toActivity
 import com.streamflixreborn.streamflix.providers.Provider
 import java.util.Calendar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ShowOptionsMobileDialog(
     context: Context,
@@ -30,7 +36,8 @@ class ShowOptionsMobileDialog(
 
     private val binding = DialogShowOptionsMobileBinding.inflate(LayoutInflater.from(context))
 
-    private val database = AppDatabase.getInstance(context)
+    private val database: AppDatabase
+        get() = AppDatabase.getInstance(context)
 
     private fun checkProviderAndRun(show: AppAdapter.Item, action: () -> Unit) {
         val providerName = when(show){
@@ -43,7 +50,6 @@ class ShowOptionsMobileDialog(
         if (!providerName.isNullOrBlank() && providerName != UserPreferences.currentProvider?.name) {
             Provider.providers.keys.find { it.name == providerName }?.let {
                 UserPreferences.currentProvider = it
-                AppDatabase.setup(context)
             }
         }
         action()
@@ -101,7 +107,9 @@ class ShowOptionsMobileDialog(
                     is HomeMobileFragment -> episode.tvShow?.let { tvShow ->
                         NavHostFragment.findNavController(fragment).navigate(
                             HomeMobileFragmentDirections.actionHomeToTvShow(
-                                id = tvShow.id
+                                id = tvShow.id,
+                                poster = tvShow.poster,
+                                banner = tvShow.banner,
                             )
                         )
                     }
@@ -242,10 +250,9 @@ class ShowOptionsMobileDialog(
     }
 
     private fun displayMovie(movie: Movie) {
-        Glide.with(context)
-            .load(movie.poster)
-            .fitCenter()
-            .into(binding.ivOptionsShowPoster)
+        binding.ivOptionsShowPoster.loadMoviePoster(movie) {
+            fitCenter()
+        }
 
         binding.tvOptionsShowTitle.text = movie.title
 
@@ -257,10 +264,14 @@ class ShowOptionsMobileDialog(
         binding.btnOptionShowFavorite.apply {
             setOnClickListener {
                 checkProviderAndRun(movie) {
-                    AppDatabase.getInstance(context).movieDao().save(movie.copy().apply {
-                        merge(movie)
-                        isFavorite = !isFavorite
-                    })
+                    context.toActivity()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val newValue = !movie.isFavorite
+                        val resolvedMovie = ArtworkRepair.resolveMovieForFavorite(context, movie, newValue)
+                        AppDatabase.getInstance(context).movieDao().save(resolvedMovie.copy().apply {
+                            merge(resolvedMovie)
+                            isFavorite = newValue
+                        })
+                    }
                 }
 
                 hide()
@@ -318,10 +329,9 @@ class ShowOptionsMobileDialog(
     }
 
     private fun displayTvShow(tvShow: TvShow) {
-        Glide.with(context)
-            .load(tvShow.poster)
-            .fitCenter()
-            .into(binding.ivOptionsShowPoster)
+        binding.ivOptionsShowPoster.loadTvShowPoster(tvShow) {
+            fitCenter()
+        }
 
         binding.tvOptionsShowTitle.text = tvShow.title
 
@@ -333,10 +343,14 @@ class ShowOptionsMobileDialog(
         binding.btnOptionShowFavorite.apply {
             setOnClickListener {
                 checkProviderAndRun(tvShow) {
-                    AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
-                        merge(tvShow)
-                        isFavorite = !isFavorite
-                    })
+                    context.toActivity()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val newValue = !tvShow.isFavorite
+                        val resolvedTvShow = ArtworkRepair.resolveTvShowForFavorite(context, tvShow, newValue)
+                        AppDatabase.getInstance(context).tvShowDao().save(resolvedTvShow.copy().apply {
+                            merge(resolvedTvShow)
+                            isFavorite = newValue
+                        })
+                    }
                 }
 
                 hide()

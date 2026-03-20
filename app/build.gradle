@@ -127,6 +127,7 @@ dependencies {
     implementation "androidx.browser:browser:1.7.0"
     implementation "org.nanohttpd:nanohttpd:2.3.1"
     implementation "com.google.zxing:core:3.5.1"
+    implementation "com.google.android.gms:play-services-code-scanner:16.1.0"
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
     
 }

@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Transaction
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.format
 
 @Dao
 interface TvShowDao {
@@ -28,6 +29,9 @@ interface TvShowDao {
 
     @Query("SELECT * FROM tv_shows WHERE isFavorite = 1")
     fun getFavorites(): Flow<List<TvShow>>
+
+    @Query("SELECT * FROM tv_shows WHERE isFavorite = 1 OR poster IS NULL OR poster = '' OR banner IS NULL OR banner = ''")
+    suspend fun getArtworkRepairCandidates(): List<TvShow>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(tvShow: TvShow)
@@ -58,7 +62,7 @@ interface TvShowDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         val existing = getById(tvShow.id)
         if (existing != null) {
-            val merged = existing.merge(tvShow)
+            val merged = tvShow.merge(existing)
             update(merged)
             Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE TV Show: ${merged.title} (Fav: ${merged.isFavorite}, Watching: ${merged.isWatching})")
         } else {
@@ -72,6 +76,35 @@ interface TvShowDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         setFavorite(id, favorite)
         Log.d("DatabaseVerify", "[$provider] REAL-TIME Favorite Toggled: ID $id -> $favorite")
+    }
+
+    @Transaction
+    fun upsertFavorite(tvShow: TvShow, favorite: Boolean) {
+        val existing = getById(tvShow.id)
+        if (existing != null) {
+            val updated = existing.copy(
+                title = tvShow.title.ifBlank { existing.title },
+                overview = tvShow.overview ?: existing.overview,
+                released = tvShow.released?.format("yyyy-MM-dd") ?: existing.released?.format("yyyy-MM-dd"),
+                runtime = tvShow.runtime ?: existing.runtime,
+                trailer = tvShow.trailer ?: existing.trailer,
+                quality = tvShow.quality ?: existing.quality,
+                rating = tvShow.rating ?: existing.rating,
+                poster = tvShow.poster ?: existing.poster,
+                banner = tvShow.banner ?: existing.banner,
+                imdbId = tvShow.imdbId ?: existing.imdbId,
+                seasons = if (tvShow.seasons.isNotEmpty()) tvShow.seasons else existing.seasons,
+                genres = if (tvShow.genres.isNotEmpty()) tvShow.genres else existing.genres,
+                directors = if (tvShow.directors.isNotEmpty()) tvShow.directors else existing.directors,
+                cast = if (tvShow.cast.isNotEmpty()) tvShow.cast else existing.cast,
+                recommendations = if (tvShow.recommendations.isNotEmpty()) tvShow.recommendations else existing.recommendations,
+                isFavorite = favorite,
+            )
+            updated.isWatching = existing.isWatching
+            update(updated)
+        } else {
+            insert(tvShow.copy(isFavorite = favorite))
+        }
     }
 
     @Query("UPDATE tv_shows SET isFavorite = :favorite WHERE id = :id")

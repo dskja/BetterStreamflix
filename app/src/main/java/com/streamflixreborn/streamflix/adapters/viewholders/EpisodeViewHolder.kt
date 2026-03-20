@@ -262,6 +262,8 @@ class EpisodeViewHolder(
                 findNavController().navigate(
                     HomeMobileFragmentDirections.actionHomeToTvShow(
                         id = episode.tvShow?.id ?: "",
+                        poster = episode.tvShow?.poster,
+                        banner = episode.tvShow?.banner,
                     )
                 )
                 findNavController().navigate(
@@ -366,6 +368,8 @@ class EpisodeViewHolder(
                 findNavController().navigate(
                     HomeTvFragmentDirections.actionHomeToTvShow(
                         id = episode.tvShow?.id ?: "",
+                        poster = episode.tvShow?.poster,
+                        banner = episode.tvShow?.banner,
                     )
                 )
                 findNavController().navigate(

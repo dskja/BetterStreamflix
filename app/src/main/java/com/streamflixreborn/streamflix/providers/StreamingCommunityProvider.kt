@@ -19,7 +19,6 @@ import com.streamflixreborn.streamflix.utils.TmdbUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -71,46 +70,33 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             return _domain!!
         }
         set(value) {
-            if (value != domain) {
-                Log.d(TAG, "Domain changed via setter from $domain to $value")
+            val currentDomain = _domain ?: UserPreferences.streamingcommunityDomain.ifEmpty { DEFAULT_DOMAIN }
+            if (value != currentDomain) {
+                Log.d(TAG, "Domain changed via setter from $currentDomain to $value")
                 UserPreferences.clearProviderCache(name)
                 _domain = value
                 UserPreferences.streamingcommunityDomain = value
-                runBlocking { rebuildService(value) }
+                invalidateService()
             }
         }
 
     override val name: String
         get() = if (language == "it") "StreamingCommunity" else "StreamingCommunity (EN)"
 
-    override val logo get() = if (domain == DEFAULT_DOMAIN) {
-        try {
-            if (Looper.myLooper() == Looper.getMainLooper()) {
-                "https://$DEFAULT_DOMAIN/apple-touch-icon.png"
-            } else {
-                val resolvedBase = resolveFinalBaseUrl("https://$DEFAULT_DOMAIN/")
-                val host = resolvedBase.substringAfter("https://").substringBefore("/")
-                if (host.isNotEmpty() && host != domain) {
-                    runBlocking { rebuildService(host) }
-                    "https://$host/apple-touch-icon.png"
-                } else if (host.isNotEmpty() && host == domain) {
-                    "https://$domain/apple-touch-icon.png"
-                } else {
-                    "https://$DEFAULT_DOMAIN/apple-touch-icon.png"
-                }
-            }
-        } catch (_: Exception) {
-            "https://$DEFAULT_DOMAIN/apple-touch-icon.png"
-        }
-    } else {
-        "https://$domain/apple-touch-icon.png"
-    }
+    override val logo get() = "https://${domain.ifEmpty { DEFAULT_DOMAIN }}/apple-touch-icon.png"
     
     private val MAX_SEARCH_RESULTS = 60
 
     private var _service: StreamingCommunityService? = null
     private var _serviceLanguage: String? = null
     private var _serviceDomain: String? = null
+
+    private fun invalidateService() {
+        _service = null
+        _serviceLanguage = null
+        _serviceDomain = null
+        version = ""
+    }
 
     private suspend fun getService(): StreamingCommunityService {
         return mutex.withLock {
@@ -197,15 +183,15 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     }
 
     private var version: String = ""
-        get() {
-            if (field != "") return field
-            synchronized(this) {
-                if (field != "") return field
-                val document = runBlocking { withSslFallback { it.getHome() } }
-                field = InertiaUtils.getVersion(document)
-                return field
-            }
-        }
+
+    private suspend fun ensureVersion(): String {
+        version.takeIf { it.isNotEmpty() }?.let { return it }
+
+        val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
+        return Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
+            .also { version = it.version }
+            .version
+    }
 
     private fun getImageLink(filename: String?): String? {
         if (filename.isNullOrEmpty()) return null
@@ -312,8 +298,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
+            val currentVersion = ensureVersion()
             val res = try {
-                withSslFallback { it.getHome(version = version) }
+                withSslFallback { it.getHome(version = currentVersion) }
             } catch (e: Exception) {
                 val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
@@ -388,8 +375,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     override suspend fun getMovie(id: String): Movie = coroutineScope {
         val resDeferred = async {
+            val currentVersion = ensureVersion()
             try {
-                withSslFallback { it.getDetails(id, version = version, language = LANG) }.also {
+                withSslFallback { it.getDetails(id, version = currentVersion, language = LANG) }.also {
                     if (version != it.version) version = it.version
                 }
             } catch (e: Exception) {
@@ -426,8 +414,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     override suspend fun getTvShow(id: String): TvShow = coroutineScope {
         val resDeferred = async {
+             val currentVersion = ensureVersion()
              try {
-                withSslFallback { it.getDetails(id, version = version, language = LANG) }.also {
+                withSslFallback { it.getDetails(id, version = currentVersion, language = LANG) }.also {
                     if (version != it.version) version = it.version
                 }
             } catch (e: Exception) {
@@ -464,8 +453,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
+        val currentVersion = ensureVersion()
         val res: StreamingCommunityService.SeasonRes = try {
-            withSslFallback { it.getSeasonDetails(seasonId, version = version, language = LANG) }.also {
+            withSslFallback { it.getSeasonDetails(seasonId, version = currentVersion, language = LANG) }.also {
                 if (version != it.version) version = it.version
             }
         } catch (e: Exception) {

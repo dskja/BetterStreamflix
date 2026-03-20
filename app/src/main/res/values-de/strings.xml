@@ -325,4 +325,36 @@
     <string name="player_manual_zoom_hint">HOCH/RUNTER für vertikalen Zoom, LINKS/RECHTS für horizontalen, ZURÜCK zum Beenden</string>
 
     <string name="bypass_tv_instructions">DEN CURSOR ÜBER DAS KÄSTCHEN BEWEGEN\nUND OK DRÜCKEN ZUM FREISCHALTEN</string>
+    <string name="player_not_available_it_message">Auf italienischen Servern nicht verfügbar, suche es auf TMDB in anderen Sprachen</string>
+    <string name="settings_category_poseidon">Poseidonhd2-Einstellungen</string>
+    <string name="settings_category_poseidon_domain">Poseidonhd2-Domainname</string>
+    <string name="settings_scan_resolver_qr_title">TV-Bypass-QR scannen</string>
+    <string name="settings_scan_resolver_qr_summary">Öffne die Kamera und scanne den auf dem TV angezeigten QR-Code</string>
+    <string name="settings_scan_resolver_invalid_qr">Dieser QR-Code ist kein StreamFlix-Bypass-Link.</string>
+    <string name="settings_scan_resolver_failed">QR-Scanner konnte auf diesem Gerät nicht gestartet werden.</string>
+    <string name="settings_category_provider_url_manual">Manuell eingeben</string>
+    <string name="player_skip_intro">Intro überspringen</string>
+    <string name="voice_error_clear">Suchverlauf löschen</string>
+    <string name="watch_trailer_with">Trailer ansehen mit...</string>
+    <string name="youtube">YouTube</string>
+    <string name="smarttube">SmartTube</string>
+    <string name="smarttube_stable">SmartTube Stable</string>
+    <string name="smarttube_beta">SmartTube Beta</string>
+    <string name="choose_smarttube_version">SmartTube-Version auswählen</string>
+    <string name="settings_trailer_player_title">Trailer-Player</string>
+    <string name="settings_trailer_player_summary">Bevorzugten Player für Trailer auswählen</string>
+    <string name="settings_trailer_player_ask">Jedes Mal fragen</string>
+    <string name="settings_trailer_player_reset">SmartTube-Versionsauswahl zurücksetzen</string>
+    <string name="settings_trailer_player_reset_summary">Erzwingt, dass die App erneut fragt, welche SmartTube-Version (Stable/Beta) verwendet werden soll.</string>
+    <string name="settings_category_frenchstream">FrenchStream-Einstellungen</string>
+    <string name="settings_category_interface_title">Oberflächeneinstellungen</string>
+    <string name="settings_immersive_mode">Immersiver Modus</string>
+    <string name="settings_immersive_mode_summary">Status- und Navigationsleisten ausblenden</string>
+    <string name="settings_immersive_mode_on">An (Leisten ausgeblendet)</string>
+    <string name="settings_immersive_mode_off">Aus (Leisten sichtbar)</string>
+    <string name="player_brightness">Helligkeit</string>
+    <string name="player_volume">Lautstärke</string>
+    <string name="percentage_format">%d%%</string>
+    <string name="settings_category_appearance">Darstellung</string>
+    <string name="settings_theme_title">App-Design</string>
 </resources>

@@ -352,4 +352,18 @@
     <string name="settings_enable_tmdb_title">Abilita TMDB</string>
     <string name="settings_enable_tmdb_enabled">TMDB abilitato</string>
     <string name="settings_enable_tmdb_disabled">TMDB disabilitato</string>
+    <string name="player_settings_subdl_title">SubDL</string>
+    <string name="player_settings_subdl_label">SubDL</string>
+    <string name="settings_category_poseidon">Impostazioni Poseidonhd2</string>
+    <string name="settings_category_poseidon_domain">Nome di dominio Poseidonhd2</string>
+    <string name="settings_scan_resolver_qr_title">Scansiona QR bypass TV</string>
+    <string name="settings_scan_resolver_qr_summary">Apri la fotocamera e scansiona il codice QR mostrato sulla TV</string>
+    <string name="settings_scan_resolver_invalid_qr">Questo codice QR non è un link di bypass StreamFlix.</string>
+    <string name="settings_scan_resolver_failed">Impossibile avviare lo scanner QR su questo dispositivo.</string>
+    <string name="settings_category_provider_url_manual">Inserisci manualmente</string>
+    <string name="player_skip_intro">Salta intro</string>
+    <string name="voice_error_clear">Cancella cronologia ricerche</string>
+    <string name="player_settings_manual_zoom_label">Zoom manuale</string>
+    <string name="player_manual_zoom_hint">Usa SU/GIÙ per lo zoom verticale, SINISTRA/DESTRA per quello orizzontale, INDIETRO per uscire</string>
+    <string name="bypass_tv_instructions">SPOSTA IL CURSORE SUL reCAPTCHA\nE PREMI OK PER SBLOCCARE</string>
 </resources>

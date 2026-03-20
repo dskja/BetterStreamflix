@@ -1,15 +1,26 @@
 package com.streamflixreborn.streamflix.utils
 
 import android.util.Log
-import org.java_websocket.server.WebSocketServer
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
+import org.java_websocket.server.WebSocketServer
 import java.net.InetSocketAddress
+import java.util.concurrent.ConcurrentHashMap
 
 class BypassWebSocketServer(
     port: Int,
-    private val onDone: () -> Unit
+    private val onDone: (token: String) -> Unit
 ) : WebSocketServer(InetSocketAddress(port)) {
+
+    private val sessions = ConcurrentHashMap<String, String>()
+
+    fun registerSession(token: String, url: String) {
+        sessions[token] = url
+    }
+
+    fun clearSession(token: String) {
+        sessions.remove(token)
+    }
 
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake) {
         Log.d("BypassWS", "Client connected: ${conn.remoteSocketAddress}")
@@ -18,8 +29,26 @@ class BypassWebSocketServer(
     override fun onMessage(conn: WebSocket, message: String) {
         Log.d("BypassWS", "Message: $message")
 
-        if (message == "done") {
-            onDone()
+        when {
+            message.startsWith("resolve:") -> {
+                val token = message.substringAfter("resolve:")
+                val url = sessions[token]
+                if (url != null) {
+                    conn.send("url:$url")
+                } else {
+                    conn.send("error:unknown_session")
+                }
+            }
+
+            message.startsWith("done:") -> {
+                val token = message.substringAfter("done:")
+                if (sessions.remove(token) != null) {
+                    conn.send("ack:$token")
+                    onDone(token)
+                } else {
+                    conn.send("error:unknown_session")
+                }
+            }
         }
     }
 

@@ -75,6 +75,13 @@
         android:key="pc_network_settings"
         android:title="@string/settings_category_network_title"
         app:iconSpaceReserved="false">
+
+        <Preference
+            android:key="p_scan_resolver_qr"
+            android:title="@string/settings_scan_resolver_qr_title"
+            android:summary="@string/settings_scan_resolver_qr_summary"
+            app:iconSpaceReserved="false"/>
+
         <ListPreference
             android:key="p_doh_provider_url"
             android:title="@string/settings_doh_provider_title"

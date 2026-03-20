@@ -17,9 +17,12 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
 import androidx.preference.PreferenceManager
+import androidx.preference.SwitchPreference
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainMobileActivity
@@ -49,6 +52,13 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
 
     private lateinit var backupRestoreManager: BackupRestoreManager
+    private val qrScanner by lazy {
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+        GmsBarcodeScanning.getClient(requireActivity(), options)
+    }
 
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -251,6 +261,40 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflixreborn"))
                 startActivity(intent)
             }
+            true
+        }
+
+        findPreference<Preference>("p_scan_resolver_qr")?.setOnPreferenceClickListener {
+            qrScanner.startScan()
+                .addOnSuccessListener { barcode ->
+                    val rawValue = barcode.rawValue.orEmpty()
+                    val uri = rawValue
+                        .takeIf { it.startsWith("streamflix://resolve") }
+                        ?.let(Uri::parse)
+
+                    if (uri == null) {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.settings_scan_resolver_invalid_qr),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@addOnSuccessListener
+                    }
+
+                    val intent = Intent(requireContext(), MainMobileActivity::class.java).apply {
+                        action = Intent.ACTION_VIEW
+                        data = uri
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    startActivity(intent)
+                }
+                .addOnFailureListener {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.settings_scan_resolver_failed),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             true
         }
 

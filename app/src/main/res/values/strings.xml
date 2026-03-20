@@ -228,6 +228,10 @@
     <string name="settings_close_app">Close app</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Use secure DNS</string>
     <string name="settings_category_network_title">Network Settings</string>
+    <string name="settings_scan_resolver_qr_title">Scan TV bypass QR</string>
+    <string name="settings_scan_resolver_qr_summary">Open the camera and scan the QR code shown on TV</string>
+    <string name="settings_scan_resolver_invalid_qr">This QR code is not a StreamFlix bypass link.</string>
+    <string name="settings_scan_resolver_failed">Unable to start QR scanner on this device.</string>
     <string name="settings_category_provider_title">Provider settings</string>
     <string name="settings_category_provider_url">Main URL</string>
     <string name="settings_category_provider_url_manual">Enter manually</string>

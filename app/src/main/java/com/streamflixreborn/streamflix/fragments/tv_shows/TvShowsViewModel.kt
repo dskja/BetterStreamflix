@@ -12,7 +12,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
@@ -34,8 +35,11 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
         _state.transformLatest { state ->
             when (state) {
                 is State.SuccessLoading -> {
-                    database.tvShowDao().getByIds(state.tvShows.map { it.id })
-                        .collect { emit(it) }
+                    if (state.tvShows.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.tvShowDao().getByIds(state.tvShows.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<TvShow>())
             }
@@ -43,9 +47,10 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
     ) { state, tvShowsDb ->
         when (state) {
             is State.SuccessLoading -> {
+                val tvShowsById = tvShowsDb.associateBy { it.id }
                 State.SuccessLoading(
                     tvShows = state.tvShows.map { tvShow ->
-                        tvShowsDb.find { it.id == tvShow.id }
+                        tvShowsById[tvShow.id]
                             ?.takeIf { !tvShow.isSame(it) }
                             ?.let { tvShow.copy().merge(it) }
                             ?: tvShow
@@ -56,7 +61,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
             }
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     private var page = 1
 
@@ -88,7 +93,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
     }
 
     fun loadMoreTvShows() = viewModelScope.launch(Dispatchers.IO) {
-        val currentState = _state.first()
+        val currentState = _state.value
         if (currentState is State.SuccessLoading) {
             _state.emit(State.LoadingMore)
 

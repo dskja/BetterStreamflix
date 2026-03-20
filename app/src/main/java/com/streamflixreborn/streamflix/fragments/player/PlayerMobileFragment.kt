@@ -505,6 +505,7 @@ class PlayerMobileFragment : Fragment() {
         try {
             requireContext().unregisterReceiver(chooserReceiver)
         } catch (ignored: Exception) {}
+        customTabHelper.release()
         _binding = null
         isSetupDone = false
     }

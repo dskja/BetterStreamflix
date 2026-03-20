@@ -37,8 +37,12 @@ class ProviderViewHolder(
             setOnClickListener {
                 UserPreferences.currentProvider = provider.provider
                 context.toActivity()?.apply {
+                    startActivity(
+                        Intent(this, this::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        }
+                    )
                     finish()
-                    startActivity(Intent(this, this::class.java))
                 }
             }
         }
@@ -63,8 +67,12 @@ class ProviderViewHolder(
             setOnClickListener {
                 UserPreferences.currentProvider = provider.provider
                 context.toActivity()?.apply {
+                    startActivity(
+                        Intent(this, this::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        }
+                    )
                     finish()
-                    startActivity(Intent(this, this::class.java))
                 }
             }
         }

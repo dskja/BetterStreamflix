@@ -11,7 +11,6 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -21,6 +20,7 @@ import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
 import com.streamflixreborn.streamflix.utils.CacheUtils
 import com.streamflixreborn.streamflix.utils.LoggingUtils
 import com.streamflixreborn.streamflix.utils.dp
+import com.streamflixreborn.streamflix.utils.loadMovieBanner
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 
@@ -105,10 +105,9 @@ class MovieMobileFragment : Fragment() {
     }
 
     private fun displayMovie(movie: Movie) {
-        Glide.with(requireContext())
-            .load(movie.banner)
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivMovieBanner)
+        binding.ivMovieBanner.loadMovieBanner(movie) {
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
 
         appAdapter.submitList(listOfNotNull(
             movie.apply { itemType = AppAdapter.Type.MOVIE_MOBILE },

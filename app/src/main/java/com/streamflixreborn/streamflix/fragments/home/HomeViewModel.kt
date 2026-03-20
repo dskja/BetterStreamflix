@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
@@ -36,18 +37,27 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             database.episodeDao().getNextEpisodesToWatch(),
         ) { watchingMovies, watchingEpisodes, watchNextEpisodes ->
 
-            val allEpisodes = watchingEpisodes + watchNextEpisodes
+            val allEpisodes = (watchingEpisodes + watchNextEpisodes)
+                .distinctBy { it.id }
 
             val tvShowIds = allEpisodes.mapNotNull { it.tvShow?.id }.distinct()
             val seasonIds = allEpisodes.mapNotNull { it.season?.id }.distinct()
 
-            val tvShowsMap = database.tvShowDao()
-                .getByIds(tvShowIds)
-                .first()
-                .associateBy { it.id }
+            val tvShowsMap = if (tvShowIds.isEmpty()) {
+                emptyMap()
+            } else {
+                database.tvShowDao()
+                    .getByIds(tvShowIds)
+                    .first()
+                    .associateBy { it.id }
+            }
 
-            val seasonsMap = seasonIds.associateWith { id ->
-                database.seasonDao().getById(id)
+            val seasonsMap = if (seasonIds.isEmpty()) {
+                emptyMap()
+            } else {
+                database.seasonDao()
+                    .getByIds(seasonIds)
+                    .associateBy { it.id }
             }
 
             val enrichedEpisodes = allEpisodes.onEach { episode ->
@@ -68,7 +78,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     val movies = state.categories
                         .flatMap { it.list }
                         .filterIsInstance<Movie>()
-                    emitAll(database.movieDao().getByIds(movies.map { it.id }))
+                    if (movies.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.movieDao().getByIds(movies.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<Movie>())
             }
@@ -81,7 +95,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     val tvShows = state.categories
                         .flatMap { it.list }
                         .filterIsInstance<TvShow>()
-                    emitAll(database.tvShowDao().getByIds(tvShows.map { it.id }))
+                    if (tvShows.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.tvShowDao().getByIds(tvShows.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<TvShow>())
             }
@@ -177,7 +195,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     sealed class State {
         data object Loading : State()

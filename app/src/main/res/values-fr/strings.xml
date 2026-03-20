@@ -359,4 +359,13 @@
 
     <string name="settings_force_extra_buffer_title">Mise en cache</string>
     <string name="settings_force_extra_buffer_summary">Activer la mise en cache supplémentaire par défaut</string>
+    <string name="settings_category_poseidon">Paramètres Poseidonhd2</string>
+    <string name="settings_category_poseidon_domain">Nom de domaine Poseidonhd2</string>
+    <string name="settings_scan_resolver_qr_title">Scanner le QR de contournement TV</string>
+    <string name="settings_scan_resolver_qr_summary">Ouvrir la caméra et scanner le QR affiché sur la TV</string>
+    <string name="settings_scan_resolver_invalid_qr">Ce code QR n\'est pas un lien de contournement StreamFlix.</string>
+    <string name="settings_scan_resolver_failed">Impossible de démarrer le scanner QR sur cet appareil.</string>
+    <string name="settings_category_provider_url_manual">Saisir manuellement</string>
+    <string name="player_skip_intro">Passer l\'intro</string>
+    <string name="voice_error_clear">Effacer l\'historique de recherche</string>
 </resources>

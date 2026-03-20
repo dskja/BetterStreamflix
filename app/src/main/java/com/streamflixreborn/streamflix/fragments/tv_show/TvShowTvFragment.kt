@@ -11,7 +11,6 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -19,6 +18,7 @@ import com.streamflixreborn.streamflix.databinding.FragmentTvShowTvBinding
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.utils.CacheUtils
 import com.streamflixreborn.streamflix.utils.LoggingUtils
+import com.streamflixreborn.streamflix.utils.loadTvShowBanner
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 
@@ -31,7 +31,14 @@ class TvShowTvFragment : Fragment() {
 
     private val args by navArgs<TvShowTvFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
-    private val viewModel by viewModelsFactory { TvShowViewModel(args.id, database) }
+    private val viewModel by viewModelsFactory {
+        TvShowViewModel(
+            id = args.id,
+            database = database,
+            fallbackPoster = args.poster,
+            fallbackBanner = args.banner,
+        )
+    }
 
     private val appAdapter = AppAdapter()
 
@@ -112,10 +119,9 @@ class TvShowTvFragment : Fragment() {
     }
 
     private fun displayTvShow(tvShow: TvShow) {
-        Glide.with(requireContext())
-            .load(tvShow.banner)
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivTvShowBanner)
+        binding.ivTvShowBanner.loadTvShowBanner(tvShow) {
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
 
         appAdapter.submitList(listOfNotNull(
             tvShow.apply { itemType = AppAdapter.Type.TV_SHOW_TV },

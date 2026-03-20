@@ -14,7 +14,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
@@ -51,10 +52,12 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                 is State.SuccessSearching -> {
                     val movies = state.results
                         .filterIsInstance<Movie>()
-                    database.movieDao().getByIds(movies.map { it.id })
-                        .collect { emit(it) }
+                    if (movies.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.movieDao().getByIds(movies.map { it.id }))
+                    }
                 }
-                // Añadido para ser exhaustivo
                 else -> emit(emptyList<Movie>())
             }
         },
@@ -63,24 +66,29 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                 is State.SuccessSearching -> {
                     val tvShows = state.results
                         .filterIsInstance<TvShow>()
-                    database.tvShowDao().getByIds(tvShows.map { it.id })
-                        .collect { emit(it) }
+                    if (tvShows.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.tvShowDao().getByIds(tvShows.map { it.id }))
+                    }
                 }
-                // Añadido para ser exhaustivo
                 else -> emit(emptyList<TvShow>())
             }
         },
     ) { state, moviesDb, tvShowsDb ->
         when (state) {
             is State.SuccessSearching -> {
+                val moviesById = moviesDb.associateBy { it.id }
+                val tvShowsById = tvShowsDb.associateBy { it.id }
+
                 State.SuccessSearching(
                     results = state.results.map { item ->
                         when (item) {
-                            is Movie -> moviesDb.find { it.id == item.id }
+                            is Movie -> moviesById[item.id]
                                 ?.takeIf { !item.isSame(it) }
                                 ?.let { item.copy().merge(it) }
                                 ?: item
-                            is TvShow -> tvShowsDb.find { it.id == item.id }
+                            is TvShow -> tvShowsById[item.id]
                                 ?.takeIf { !item.isSame(it) }
                                 ?.let { item.copy().merge(it) }
                                 ?: item
@@ -90,10 +98,9 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                     hasMore = state.hasMore
                 )
             }
-            // Añadido para ser exhaustivo
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     var query = ""
     private var page = 1
@@ -117,7 +124,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
     }
 
     fun loadMore() = viewModelScope.launch(Dispatchers.IO) {
-        val currentState = _state.first()
+        val currentState = _state.value
         if (currentState is State.SuccessSearching) {
             _state.emit(State.SearchingMore)
             try {

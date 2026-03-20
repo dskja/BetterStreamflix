@@ -83,14 +83,19 @@ import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
-import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.QrUtils
 import kotlinx.coroutines.delay
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.Locale
+import java.util.UUID
 
 class PlayerTvFragment : Fragment() {
+
+    private data class BypassSession(
+        val token: String,
+        val serverUrl: String,
+    )
 
     private var _binding: FragmentPlayerTvBinding? = null
     private val binding get() = _binding!!
@@ -116,9 +121,9 @@ class PlayerTvFragment : Fragment() {
 
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
-    private val customTabHelper = CustomTabHelper()
     private var waitingForBypass = false
     private var bypassDone = false
+    private var activeBypassSession: BypassSession? = null
     private var qrDialog: androidx.appcompat.app.AlertDialog? = null
     private var wsServer: BypassWebSocketServer? = null
     fun getLocalIpAddress(): String? {
@@ -257,10 +262,16 @@ class PlayerTvFragment : Fragment() {
 
                             val ip = getLocalIpAddress() ?: return@collect
                             val wsUrl = "ws://$ip:8081"
+                            val session = BypassSession(
+                                token = UUID.randomUUID().toString(),
+                                serverUrl = sToServer.id,
+                            )
+                            activeBypassSession = session
 
-                            val qrContent = "streamflix://resolve?ws=$wsUrl&url=${Uri.encode(sToServer.id)}"
+                            val qrContent = "streamflix://resolve?ws=$wsUrl&token=${Uri.encode(session.token)}"
 
                             startWebSocketServer()
+                            wsServer?.registerSession(session.token, session.serverUrl)
                             requireActivity().runOnUiThread {
                                 showQrDialog(qrContent)
                                 Log.d("Bypass", "TV IP: $ip")
@@ -1209,11 +1220,12 @@ class PlayerTvFragment : Fragment() {
                 qrDialog?.dismiss()
                 qrDialog = null
                 Log.d("Bypass", "QR dialog cancelled")
+                activeBypassSession?.let { session ->
+                    wsServer?.clearSession(session.token)
+                }
+                activeBypassSession = null
                 waitingForBypass = false
                 stopWebSocketServer()
-                bypassDone = true
-                waitingForBypass = false
-                viewModel.reloadServersAfterBypass()
             }
             .create()
 
@@ -1223,10 +1235,10 @@ class PlayerTvFragment : Fragment() {
     private fun startWebSocketServer() {
         if (wsServer != null) return
 
-        wsServer = BypassWebSocketServer(8081) {
+        wsServer = BypassWebSocketServer(8081) { token ->
             requireActivity().runOnUiThread {
-                Log.d("BypassWS", "DONE received")
-                onBypassCompleted()
+                Log.d("BypassWS", "DONE received for token: $token")
+                onBypassCompleted(token)
             }
         }
 
@@ -1240,9 +1252,16 @@ class PlayerTvFragment : Fragment() {
     }
 
 
-    private fun onBypassCompleted() {
+    private fun onBypassCompleted(token: String) {
+        val session = activeBypassSession
+        if (session == null || session.token != token) {
+            Log.w("BypassWS", "Ignoring bypass completion for stale token: $token")
+            return
+        }
+
         bypassDone = true
         waitingForBypass = false
+        activeBypassSession = null
 
         qrDialog?.dismiss()
         qrDialog = null
