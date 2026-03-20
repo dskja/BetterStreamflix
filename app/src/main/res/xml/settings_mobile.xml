@@ -12,6 +12,12 @@
             android:title="@string/settings_category_streamingcommunity_domain"
             android:inputType="text"
             app:iconSpaceReserved="false"/>
+
+        <Preference
+            android:key="provider_streamingcommunity_domain_reset"
+            android:title="@string/settings_streamingcommunity_domain_reset"
+            android:summary="@string/settings_streamingcommunity_domain_reset_summary"
+            app:iconSpaceReserved="false"/>
     </PreferenceCategory>
 
     <PreferenceCategory

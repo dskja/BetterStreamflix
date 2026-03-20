@@ -53,7 +53,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     private val TAG: String
         get() = "SCProviderDebug[$LANG]"
 
-    private val DEFAULT_DOMAIN: String = "streamingunity.buzz"
+    private val DEFAULT_DOMAIN: String = "streamingunity.biz"
+    private val BLOCKED_DOMAINS = setOf("streamingcommunityz.green", "streamingunity.club")
     override val baseUrl = DEFAULT_DOMAIN
     private var _domain: String? = null
     private var domain: String
@@ -63,10 +64,12 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
             val storedDomain = UserPreferences.streamingcommunityDomain
 
-            _domain = if (storedDomain.isNullOrEmpty())
-                DEFAULT_DOMAIN
-            else
-                storedDomain
+            if (storedDomain.isNullOrEmpty() || BLOCKED_DOMAINS.any { storedDomain.contains(it) }) {
+                if (!storedDomain.isNullOrEmpty()) UserPreferences.streamingcommunityDomain = DEFAULT_DOMAIN
+                _domain = DEFAULT_DOMAIN
+            } else {
+                _domain = storedDomain
+            }
 
             return _domain!!
         }
@@ -579,7 +582,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 val newUrl = if (location.startsWith("http")) location else request.url.resolve(location)?.toString() ?: break
                 if (!visited.add(newUrl)) break
                 val host = newUrl.substringAfter("https://").substringBefore("/")
-                if (host.isNotEmpty() && host != currentDomain && !host.contains("streamingcommunityz.green")) onDomainChanged(host)
+                if (host.isNotEmpty() && host != currentDomain && !host.contains("streamingcommunityz.green") && !host.contains("streamingunity.club")) onDomainChanged(host)
                 response.close()
                 request = request.newBuilder().url(newUrl).build()
                 response = chain.proceed(request)

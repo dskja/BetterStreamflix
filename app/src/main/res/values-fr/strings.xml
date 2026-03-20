@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Streamflix</string>
 
@@ -221,6 +221,10 @@
     <string name="settings_telegram">Groupe Telegram</string>
     <string name="settings_category_streamingcommunity">Paramètres StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Nom de domaine StreamingCommunity</string>
+    <string name="settings_streamingcommunity_domain_reset">Réinitialiser le domaine</string>
+    <string name="settings_streamingcommunity_domain_reset_summary">Restaurer le nom de domaine par défaut</string>
+    <string name="settings_streamingcommunity_domain_reset_done">Domaine restauré par défaut</string>
+    <string name="settings_streamingcommunity_domain_blocked">Domaine bloqué détecté, restauré par défaut</string>
     <string name="settings_category_cuevana">Paramètres Cuevana 3</string>
     <string name="settings_category_cuevana_domain">Nom de domaine Cuevana 3</string>
     <string name="settings_close_app">Fermer l\'application</string>
