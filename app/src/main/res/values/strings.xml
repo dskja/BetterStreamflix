@@ -289,11 +289,19 @@
     
     <string name="backup_export_success">Backup exported successfully!</string>
     <string name="backup_export_error_write">Error while exporting the backup.</string>
+    <string name="backup_export_picker_option">Choose save location</string>
+    <string name="backup_export_local_option">Save to local backups</string>
+    <string name="backup_export_downloads_option">Save to Downloads</string>
+    <string name="backup_export_saved_to">Backup exported to %1$s</string>
     <string name="backup_data_not_generated">Error: backup data not generated.</string>
     <string name="backup_import_success">Backup imported successfully! Restart the app to apply changes.</string>
     <string name="backup_import_error">Error while importing the backup.</string>
     <string name="backup_import_empty_file">Error: backup file is empty or unreadable.</string>
     <string name="backup_import_read_error">Error while reading or processing the backup file.</string>
+    <string name="backup_import_picker_option">Choose backup file</string>
+    <string name="backup_import_local_option">Restore from local backups</string>
+    <string name="backup_import_no_local_files">No local backup files found.</string>
+    <string name="backup_picker_unavailable">No file picker available. Using local backups instead.</string>
 
     <string name="screen_scale_category_title">Screen Padding</string>
     <string name="screen_scale_x_title">Horizontal padding</string>

@@ -278,10 +278,18 @@
 
     <string name="backup_export_success">Backup esportato con successo!</string>
     <string name="backup_export_error_write">Errore durante l\'esportazione del backup.</string>
+    <string name="backup_export_picker_option">Scegli dove salvare</string>
+    <string name="backup_export_local_option">Salva nei backup locali</string>
+    <string name="backup_export_downloads_option">Salva in Download</string>
+    <string name="backup_export_saved_to">Backup esportato in %1$s</string>
     <string name="backup_data_not_generated">Errore: dati di backup non generati.</string>
     <string name="backup_import_success">Backup importato con successo! Riavvia l\'app per applicare le modifiche.</string>
     <string name="backup_import_error">Errore durante l\'importazione del backup.</string>
     <string name="backup_import_empty_file">Errore: file di backup vuoto o illeggibile.</string>
+    <string name="backup_import_picker_option">Scegli il file di backup</string>
+    <string name="backup_import_local_option">Ripristina dai backup locali</string>
+    <string name="backup_import_no_local_files">Nessun file di backup locale trovato.</string>
+    <string name="backup_picker_unavailable">Nessun selettore file disponibile. Verranno usati i backup locali.</string>
 
     <string name="screen_scale_category_title">Padding dello schermo</string>
     <string name="screen_scale_x_title">Padding orizzontale</string>

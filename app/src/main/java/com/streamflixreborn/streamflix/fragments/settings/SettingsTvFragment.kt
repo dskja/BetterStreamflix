@@ -1,9 +1,14 @@
 package com.streamflixreborn.streamflix.fragments.settings
 
+import android.app.AlertDialog
+import android.content.ActivityNotFoundException
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.text.InputType
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -43,6 +48,7 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
+import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -484,12 +490,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<Preference>("key_backup_export_tv")?.setOnPreferenceClickListener {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val fileName = "streamflix_tv_backup_$timestamp.json"
-            exportBackupLauncher.launch(fileName)
+            showBackupExportOptions(fileName)
             true
         }
 
         findPreference<Preference>("key_backup_import_tv")?.setOnPreferenceClickListener {
-            importBackupLauncher.launch(arrayOf("application/json"))
+            showBackupImportOptions()
             true
         }
 
@@ -556,6 +562,8 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.writer().use { it.write(jsonData) }
                     Toast.makeText(requireContext(), getString(R.string.backup_export_success), Toast.LENGTH_LONG).show()
+                } ?: run {
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
                 }
             } catch (e: IOException) {
                 Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
@@ -589,6 +597,180 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
             Log.e("BackupImportTV", "Error reading/processing backup file", e)
         }
+    }
+
+    private fun showBackupExportOptions(fileName: String) {
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        if (hasCreateDocumentHandler()) {
+            options += getString(R.string.backup_export_picker_option) to {
+                try {
+                    exportBackupLauncher.launch(fileName)
+                } catch (error: ActivityNotFoundException) {
+                    Log.w("BackupExportTV", "No document picker available, using local fallback", error)
+                    Toast.makeText(requireContext(), getString(R.string.backup_picker_unavailable), Toast.LENGTH_LONG).show()
+                    exportBackupToLocalFile(fileName)
+                }
+            }
+        }
+        options += getString(R.string.backup_export_local_option) to {
+            exportBackupToLocalFile(fileName)
+        }
+        if (canWriteToDownloads()) {
+            options += getString(R.string.backup_export_downloads_option) to {
+                exportBackupToDownloads(fileName)
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_export_title)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which ->
+                options[which].second.invoke()
+            }
+            .show()
+    }
+
+    private fun showBackupImportOptions() {
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        if (hasOpenDocumentHandler()) {
+            options += getString(R.string.backup_import_picker_option) to {
+                try {
+                    importBackupLauncher.launch(arrayOf("application/json"))
+                } catch (error: ActivityNotFoundException) {
+                    Log.w("BackupImportTV", "No document picker available, using local fallback", error)
+                    Toast.makeText(requireContext(), getString(R.string.backup_picker_unavailable), Toast.LENGTH_LONG).show()
+                    showLocalBackupPicker()
+                }
+            }
+        }
+        options += getString(R.string.backup_import_local_option) to {
+            showLocalBackupPicker()
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_import_title)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which ->
+                options[which].second.invoke()
+            }
+            .show()
+    }
+
+    private fun exportBackupToLocalFile(fileName: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val jsonData = backupRestoreManager.exportUserData()
+            if (jsonData.isNullOrBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            runCatching {
+                val file = File(getBackupDirectory(), fileName).apply {
+                    parentFile?.mkdirs()
+                    writeText(jsonData)
+                }
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.backup_export_saved_to, file.absolutePath),
+                    Toast.LENGTH_LONG
+                ).show()
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                Log.e("BackupExportTV", "Error writing local backup file", error)
+            }
+        }
+    }
+
+    private fun exportBackupToDownloads(fileName: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val jsonData = backupRestoreManager.exportUserData()
+            if (jsonData.isNullOrBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            runCatching {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/StreamFlix")
+                }
+                val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: error("Unable to create download entry")
+                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.writer().use { it.write(jsonData) }
+                } ?: error("Unable to open output stream")
+
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.backup_export_saved_to, "Downloads/StreamFlix/$fileName"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                Log.e("BackupExportTV", "Error writing backup to downloads", error)
+            }
+        }
+    }
+
+    private fun showLocalBackupPicker() {
+        val backups = getBackupDirectory()
+            .listFiles { file -> file.isFile && file.extension.equals("json", ignoreCase = true) }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+
+        if (backups.isEmpty()) {
+            Toast.makeText(requireContext(), getString(R.string.backup_import_no_local_files), Toast.LENGTH_LONG).show()
+            return
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_import_local_option)
+            .setItems(backups.map { it.name }.toTypedArray()) { _, which ->
+                importBackupFromFile(backups[which])
+            }
+            .show()
+    }
+
+    private fun importBackupFromFile(file: File) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                val jsonData = file.readText()
+                if (jsonData.isBlank()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val success = backupRestoreManager.importUserData(jsonData)
+                if (success) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
+                }
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                Log.e("BackupImportTV", "Error importing local backup file", error)
+            }
+        }
+    }
+
+    private fun getBackupDirectory(): File {
+        return File(requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: requireContext().filesDir, "backups")
+    }
+
+    private fun hasCreateDocumentHandler(): Boolean {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("application/json")
+        return intent.resolveActivity(requireContext().packageManager) != null
+    }
+
+    private fun hasOpenDocumentHandler(): Boolean {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("application/json")
+        return intent.resolveActivity(requireContext().packageManager) != null
+    }
+
+    private fun canWriteToDownloads(): Boolean {
+        return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
     }
 
     override fun onResume() {

@@ -171,10 +171,18 @@
 
 	<string name="backup_export_success">تم تصدير النسخة الاحتياطية بنجاح!</string>
 	<string name="backup_export_error_write">حدث خطأ أثناء تصدير النسخة الاحتياطية.</string>
+	<string name="backup_export_picker_option">اختر مكان الحفظ</string>
+	<string name="backup_export_local_option">احفظ في النسخ الاحتياطية المحلية</string>
+	<string name="backup_export_downloads_option">احفظ في التنزيلات</string>
+	<string name="backup_export_saved_to">تم تصدير النسخة الاحتياطية إلى %1$s</string>
 	<string name="backup_data_not_generated">خطأ: لم يتم إنشاء بيانات النسخ الاحتياطي.</string>
 	<string name="backup_import_success">تم استيراد النسخة الاحتياطية بنجاح! أعد تشغيل التطبيق لتطبيق التغييرات.</string>
 	<string name="backup_import_error">حدث خطأ أثناء استيراد النسخة الاحتياطية.</string>
 	<string name="backup_import_empty_file">خطأ: ملف النسخة الاحتياطية فارغ أو غير قابل للقراءة.</string>
+	<string name="backup_import_picker_option">اختر ملف النسخة الاحتياطية</string>
+	<string name="backup_import_local_option">استعد من النسخ الاحتياطية المحلية</string>
+	<string name="backup_import_no_local_files">لم يتم العثور على ملفات نسخ احتياطية محلية.</string>
+	<string name="backup_picker_unavailable">لا يوجد منتقي ملفات متاح. سيتم استخدام النسخ الاحتياطية المحلية بدلاً من ذلك.</string>
 	<string name="backup_import_read_error">حدث خطأ أثناء قراءة أو معالجة ملف النسخة الاحتياطية.</string>
 
     <string name="screen_scale_category_title">حشوة الشاشة</string>
