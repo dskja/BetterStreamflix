@@ -219,16 +219,17 @@ object FlixLatamProvider : Provider {
     }
 
     private suspend fun processIframe(embedUrl: String): List<Video.Server> {
-        return try {
-            val embedHeaders = mapOf("Referer" to baseUrl)
-            val embedDocument = service.getEmbedPage(embedUrl, embedHeaders)
-            
-            // 1. DataLink case
+        val servers = mutableListOf<Video.Server>()
+        val embedDocument = try { 
+            service.getEmbedPage(embedUrl, mapOf("Referer" to baseUrl)) 
+        } catch (e: Exception) { return emptyList() }
+        
+        // 1. DataLink case
+        try {
             val scriptData = embedDocument.selectFirst("script:containsData(dataLink)")?.data() ?: ""
             val dataLinkJsonString = Regex("""dataLink\s*=\s*(\[.+?\]);""").find(scriptData)?.groupValues?.get(1)
-
             if (dataLinkJsonString != null) {
-                return json.decodeFromString<List<DataLinkItem>>(dataLinkJsonString).flatMap { item ->
+                servers.addAll(json.decodeFromString<List<DataLinkItem>>(dataLinkJsonString).flatMap { item ->
                     item.sortedEmbeds.mapNotNull { embed ->
                         if (embed.servername.equals("download", ignoreCase = true)) return@mapNotNull null
                         decodeBase64Link(embed.link)?.let { decryptedLink ->
@@ -238,26 +239,37 @@ object FlixLatamProvider : Provider {
                             )
                         }
                     }
+                })
+            }
+        } catch (e: Exception) { /* JSON error - continue to other methods */ }
+        
+        // 2. go_to_playerVast Case
+        try {
+            val domItems = embedDocument.select(".ODDIV .OD_1 li[onclick]")
+            servers.addAll(
+                domItems.mapNotNull { dom ->
+                    val onclick = dom.attr("onclick")
+                    val m = Regex("""go_to_playerVast\(\s*'([^']+)'""").find(onclick)
+                    val finalUrl = m?.groupValues?.getOrNull(1)?.trim() ?: return@mapNotNull null
+                    val serverName = dom.selectFirst("span")?.text()?.trim() ?: "Opción"
+                    if (serverName.contains("download", ignoreCase = true) || serverName.contains("1fichier", ignoreCase = true)) return@mapNotNull null
+                    if (servers.any { it.id == finalUrl }) return@mapNotNull null
+                    Video.Server(id = finalUrl, name = serverName)
+                }
+            )
+        } catch (e: Exception) { /* DOM error - continue */ }
+
+        // 3. Direct Iframe Case
+        try {
+            embedDocument.selectFirst("iframe")?.attr("src")?.takeIf { it.isNotEmpty() }?.let { src ->
+                val name = src.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
+                if (servers.none { it.id == src }) {
+                    servers.add(Video.Server(id = src, name = name))
                 }
             }
-            
-            // 2. go_to_playerVast Case
-            val domItems = embedDocument.select(".ODDIV .OD_1 li[onclick]")
-            val domServers = domItems.mapNotNull { dom ->
-                val onclick = dom.attr("onclick")
-                val m = Regex("""go_to_playerVast\(\s*'([^']+)'""").find(onclick)
-                val finalUrl = m?.groupValues?.getOrNull(1)?.trim() ?: return@mapNotNull null
-                val serverName = dom.selectFirst("span")?.text()?.trim() ?: "Opción"
-                if (serverName.contains("download", ignoreCase = true)) return@mapNotNull null
-                Video.Server(id = finalUrl, name = serverName)
-            }
-            
-            if (domServers.isNotEmpty()) return domServers
+        } catch (e: Exception) { /* Fallback error */ }
 
-            emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return servers
     }
 
     override suspend fun getVideo(server: Video.Server): Video = Extractor.extract(server.id)

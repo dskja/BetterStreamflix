@@ -7,24 +7,15 @@ import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.models.sololatino.Item
 import com.streamflixreborn.streamflix.utils.DnsResolver
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.Cache
-import okhttp3.FormBody
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody
-import okhttp3.ResponseBody
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
-import retrofit2.Response
+import org.jsoup.nodes.Element
 import retrofit2.Retrofit
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.POST
 import retrofit2.http.Url
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -69,126 +60,116 @@ object SoloLatinoProvider : Provider {
         @GET
         suspend fun getPage(@Url url: String): Document
 
-        @POST("wp-admin/admin-ajax.php")
-        suspend fun getPlayerAjax(
-            @Header("Referer") referer: String,
-            @Body body: RequestBody
-        ): Response<ResponseBody>
     }
 
-    override val logo = "$baseUrl/wp-content/uploads/2022/11/logo-final.png"
+    override val logo = "$baseUrl/images/logo.png"
 
     override suspend fun getHome(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
 
-        val deferredMap = mapOf(
-            "Tendencias" to async { service.getPage("$baseUrl/tendencias/page/1") },
-            "Películas de Estreno" to async { service.getPage("$baseUrl/pelicula/estrenos") },
-            "Series Mejor Valoradas" to async { service.getPage("$baseUrl/series/mejor-valoradas") },
-            "Animes Mejor Valorados" to async { service.getPage("$baseUrl/animes/mejor-valoradas") },
-            "Toons" to async { service.getPage("$baseUrl/genre_series/toons") },
-            "KDramas" to async { service.getPage("$baseUrl/genre_series/kdramas") }
-        )
-
         try {
-            val trendingDoc = deferredMap["Tendencias"]?.await()
-            if (trendingDoc != null) {
-                val bannerShows = parseBannerShows(trendingDoc).take(12)
-                if (bannerShows.isNotEmpty()) {
-                    categories.add(Category(Category.FEATURED, bannerShows))
+            val mainDoc = service.getPage(baseUrl)
+            
+            // 1. Featured
+            val bannerShows = parseBannerShows(mainDoc).take(12)
+            if (bannerShows.isNotEmpty()) {
+                categories.add(Category(Category.FEATURED, bannerShows))
+            }
+            
+            // 2. Sections from the home page
+            val sections = mainDoc.select("section")
+            for (section in sections) {
+                val title = section.selectFirst(".section-title")?.text() ?: continue
+                val shows = parseMixed(section)
+                if (shows.isNotEmpty()) {
+                    categories.add(Category(title, shows.take(12)))
                 }
             }
         } catch (e: Exception) { /* Ignore */ }
 
-        for ((categoryName, deferred) in deferredMap) {
-            try {
-                val doc = deferred.await()
-                val shows = parseMixed(doc)
-                if (shows.isNotEmpty()) {
-                    categories.add(Category(categoryName, shows.take(12)))
-                }
-            } catch (e: Exception) { /* Ignore */ }
-        }
-
         categories
     }
 
-    private fun parseMixed(document: Document): List<Show> {
-        return document.select("article.item").mapNotNull { element ->
-            val linkElement = element.selectFirst("a") ?: return@mapNotNull null
-            val href = linkElement.attr("href")
+    private fun parseMixed(element: Element): List<Show> {
+        val cards = if (element is Document) element.select("div.card") else element.select("div.card")
+        return cards.mapNotNull { card ->
+            val linkElement = card.selectFirst("a") ?: card.parents().firstOrNull { it.tagName() == "a" }
+            val href = linkElement?.attr("href") ?: return@mapNotNull null
             val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-            val imgUrl = element.selectFirst("img")?.attr("data-srcset") ?: ""
-            val title = element.selectFirst("img")?.attr("alt") ?: ""
+            
+            val imgElement = card.selectFirst("img.card__poster")
+            val poster = imgElement?.attr("src") ?: ""
+            
+            val titleElement = card.selectFirst(".card__title")
+            val title = titleElement?.text() ?: ""
+            
+            val year = card.selectFirst(".card__year")?.text()
+            val isMovie = card.selectFirst(".badge-movie") != null || absoluteUrl.contains("/pelicula/")
 
-            if (element.hasClass("movies")) {
+            if (isMovie) {
                 Movie(
                     id = absoluteUrl,
                     title = title,
-                    poster = if (imgUrl.startsWith("http")) imgUrl else "$baseUrl$imgUrl"
+                    released = year,
+                    poster = poster
                 )
             } else {
                 TvShow(
                     id = absoluteUrl,
                     title = title,
-                    poster = if (imgUrl.startsWith("http")) imgUrl else "$baseUrl$imgUrl"
+                    released = year,
+                    poster = poster
                 )
             }
         }
     }
 
     private fun parseBannerShows(document: Document): List<Show> {
-        return document.select("article.item").mapNotNull { element ->
-            val linkElement = element.selectFirst("a") ?: return@mapNotNull null
+        return document.select(".hero__slide").mapNotNull { slide ->
+            val linkElement = slide.selectFirst("a.btn-accent") ?: return@mapNotNull null
             val href = linkElement.attr("href")
             val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-            val imageUrl = element.selectFirst("img")?.attr("data-srcset") ?: ""
-            val title = element.selectFirst("img")?.attr("alt") ?: ""
+            
+            val posterElement = slide.selectFirst(".hero__bg")
+            val style = posterElement?.attr("style") ?: ""
+            val bannerUrl = if (style.contains("url('")) {
+                style.substringAfter("url('").substringBefore("')")
+            } else ""
+            
+            val title = slide.selectFirst(".hero__logo-img")?.attr("alt")?.takeIf { it.isNotBlank() }
+                ?: slide.selectFirst(".hero__content p.font-display")?.text()?.trim() 
+                ?: ""
+            
+            val year = slide.selectFirst("div.flex.items-center span")?.text()?.takeIf { it.matches(Regex("""\d{4}""")) }
+            
+            val overview = slide.selectFirst(".text-sm.leading-relaxed.line-clamp-4")?.text()?.trim()
 
-            if (element.hasClass("movies")) {
+            if (absoluteUrl.contains("/pelicula/")) {
                 Movie(
                     id = absoluteUrl,
                     title = title,
-                    banner = if (imageUrl.startsWith("http")) imageUrl else "$baseUrl$imageUrl"
+                    banner = bannerUrl,
+                    overview = overview,
+                    released = year
                 )
             } else {
                 TvShow(
                     id = absoluteUrl,
                     title = title,
-                    banner = if (imageUrl.startsWith("http")) imageUrl else "$baseUrl$imageUrl"
+                    banner = bannerUrl,
+                    overview = overview,
+                    released = year
                 )
             }
         }
     }
 
     private fun parseMovies(document: Document): List<Movie> {
-        return document.select("article.item").mapNotNull { element ->
-            val linkElement = element.selectFirst("a") ?: return@mapNotNull null
-            val href = linkElement.attr("href")
-            val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-            val posterUrl = element.selectFirst("img")?.attr("data-srcset") ?: ""
-
-            Movie(
-                id = absoluteUrl,
-                title = element.selectFirst("img")!!.attr("alt"),
-                poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
-            )
-        }
+        return parseMixed(document).filterIsInstance<Movie>()
     }
 
     private fun parseTvShows(document: Document): List<TvShow> {
-        return document.select("article.item").mapNotNull { element ->
-            val linkElement = element.selectFirst("a") ?: return@mapNotNull null
-            val href = linkElement.attr("href")
-            val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-            val posterUrl = element.selectFirst("img")?.attr("data-srcset") ?: ""
-
-            TvShow(
-                id = absoluteUrl,
-                title = element.selectFirst("img")!!.attr("alt"),
-                poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
-            )
-        }
+        return parseMixed(document).filterIsInstance<TvShow>()
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -224,29 +205,9 @@ object SoloLatinoProvider : Provider {
         }
 
         return try {
-            val document = service.getPage("$baseUrl/page/$page?s=$query")
-            val items = document.select("article.item").mapNotNull { element ->
-                val linkElement = element.selectFirst("a") ?: return@mapNotNull null
-                val href = linkElement.attr("href")
-                val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-                val imgUrl = element.selectFirst("img")?.attr("data-srcset") ?: ""
-                val title = element.selectFirst("img")?.attr("alt") ?: ""
-
-                if (element.hasClass("movies")) {
-                    Movie(
-                        id = absoluteUrl,
-                        title = title,
-                        poster = if (imgUrl.startsWith("http")) imgUrl else "$baseUrl$imgUrl"
-                    )
-                } else {
-                    TvShow(
-                        id = absoluteUrl,
-                        title = title,
-                        poster = if (imgUrl.startsWith("http")) imgUrl else "$baseUrl$imgUrl"
-                    )
-                }
-            }
-            items
+            val url = if (page > 1) "$baseUrl/buscar?q=$query&page=$page" else "$baseUrl/buscar?q=$query"
+            val document = service.getPage(url)
+            parseMixed(document)
         } catch (e: Exception) {
             emptyList()
         }
@@ -254,7 +215,8 @@ object SoloLatinoProvider : Provider {
 
     override suspend fun getMovies(page: Int): List<Movie> {
         return try {
-            val document = service.getPage("$baseUrl/pelicula/estrenos/page/$page")
+            val url = if (page > 1) "$baseUrl/peliculas/page/$page" else "$baseUrl/peliculas"
+            val document = service.getPage(url)
             parseMovies(document)
         } catch (e: Exception) {
             emptyList()
@@ -263,7 +225,8 @@ object SoloLatinoProvider : Provider {
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
         return try {
-            val document = service.getPage("$baseUrl/series/page/$page")
+            val url = if (page > 1) "$baseUrl/series/page/$page" else "$baseUrl/series"
+            val document = service.getPage(url)
             parseTvShows(document)
         } catch (e: Exception) {
             emptyList()
@@ -272,11 +235,12 @@ object SoloLatinoProvider : Provider {
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {
-            val document = service.getPage("$baseUrl/page/$page?s=$id")
+            val url = if (page > 1) "$baseUrl/genero/$id/page/$page" else "$baseUrl/genero/$id"
+            val document = service.getPage(url)
             val shows = parseMixed(document)
             Genre(
                 id = id,
-                name = id.replaceFirstChar { it.uppercase() },
+                name = id.replace("-", " ").replaceFirstChar { it.uppercase() },
                 shows = shows
             )
         } catch (e: Exception) {
@@ -287,38 +251,57 @@ object SoloLatinoProvider : Provider {
     override suspend fun getMovie(id: String): Movie {
         return try {
             val document = service.getPage(id)
-            val sheader = document.selectFirst("div.sheader")!!
+            val title = document.selectFirst("h1")?.text() 
+                ?: document.select("nav[aria-label=breadcrumb] span:last-child").text()
+            
+            val posterElement = document.selectFirst("div.-mt-28 img, div.flex-shrink-0.mx-auto img, img.card__poster")
+            val posterUrl = posterElement?.attr("src") ?: ""
+            
+            val overview = document.selectFirst(".description")?.text() 
+                ?: document.selectFirst(".storyline")?.text()
+                ?: document.selectFirst("p.leading-relaxed")?.text()
+                ?: document.selectFirst("p.text-sm")?.text() ?: ""
 
-            val posterUrl = sheader.selectFirst("div.poster > img")?.attr("src") ?: ""
-            val title = sheader.selectFirst("div.data > h1")?.text() ?: "Sin Título"
-            val genres = sheader.select("div.data > div.sgeneros > a").map {
-                Genre(id = it.attr("href").substringAfter("/genres/").removeSuffix("/"), name = it.text())
+            val banner = document.selectFirst(".hero__bg, .detail-hero__bg")?.attr("style")
+                ?.substringAfter("url('")?.substringBefore("')")
+            val rating = document.selectFirst(".rating-badge--tmdb")?.text()?.let { 
+                Regex("""(\d+\.?\d*)""").find(it)?.value?.toDoubleOrNull()
             }
-            val overview = document.selectFirst("div.wp-content > p")?.text()
-            val banner = document.selectFirst("div.wallpaper")?.attr("style")?.substringAfter("url(")?.substringBefore(")")
-            val rating = document.selectFirst("div.nota > span")?.text()?.substringBefore(" ")?.toDoubleOrNull()
 
-            val extraInfo = document.selectFirst("div.sbox.extra")
-            val runtime = extraInfo?.selectFirst("span.runtime")?.text()?.removeSuffix(" Min.")?.trim()?.toIntOrNull()
-            val released = sheader.selectFirst("span.date")?.text()?.split(", ")?.getOrNull(1)
-            val trailer = extraInfo?.selectFirst("li > span > a[href*=youtube]")?.attr("href")
+            val runtimeStr = document.select("div.flex.flex-wrap.items-center.gap-4.text-sm.mb-5 span")
+                .map { it.text() }
+                .firstOrNull { it.contains("h") || (it.contains("m") && it.any { c -> c.isDigit() }) }
+            
+            val runtime = runtimeStr?.let { str ->
+                val hours = Regex("""(\d+)h""").find(str)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val minutes = Regex("""(\d+)m""").find(str)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                if (hours == 0 && minutes == 0) null else (hours * 60) + minutes
+            }
+            val released = document.selectFirst("span.date")?.text() ?: document.selectFirst(".card__year")?.text()
+            val trailer = document.selectFirst("button[data-trailer]")?.attr("data-trailer")?.let { 
+                "https://www.youtube.com/watch?v=$it" 
+            }
 
-            val cast = document.select("div.sbox.srepart div.person").map {
+            val genres = document.select("div.flex-1.min-w-0 a[href*=/genero/]").map {
+                Genre(id = "", name = it.text())
+            }
+
+            val cast = document.select("div.cast-card").map {
                 People(
                     id = it.selectFirst("a")?.attr("href") ?: "",
-                    name = it.selectFirst(".name a")?.text() ?: "",
-                    image = it.selectFirst(".img img")?.attr("src")
+                    name = it.selectFirst("p.font-semibold")?.text() ?: "",
+                    image = it.selectFirst("img")?.attr("src")
                 )
             }
 
-            val recommendations = document.select("div.sbox.srelacionados article").mapNotNull { article ->
+            val recommendations = document.select("div.card, article.card").mapNotNull { article ->
                 val linkElement = article.selectFirst("a") ?: return@mapNotNull null
                 val imgElement = article.selectFirst("img") ?: return@mapNotNull null
                 val href = linkElement.attr("href")
                 val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-                val recPoster = imgElement.attr("data-srcset")
+                val recPoster = imgElement.attr("src") ?: imgElement.attr("data-srcset")
 
-                TvShow(
+                Movie(
                     id = absoluteUrl,
                     title = imgElement.attr("alt"),
                     poster = if (recPoster.startsWith("http")) recPoster else "$baseUrl$recPoster"
@@ -347,40 +330,55 @@ object SoloLatinoProvider : Provider {
     override suspend fun getTvShow(id: String): TvShow {
         return try {
             val document = service.getPage(id)
-            val sheader = document.selectFirst("div.sheader")!!
+            val title = document.selectFirst("h1")?.text()
+                ?: document.select("nav[aria-label=breadcrumb] span:last-child").text()
+            
+            val posterElement = document.selectFirst("div.-mt-28 img, div.flex-shrink-0.mx-auto img, img.card__poster")
+            val posterUrl = posterElement?.attr("src") ?: ""
 
-            val posterUrl = sheader.selectFirst("div.poster > img")?.attr("src") ?: ""
-            val title = sheader.selectFirst("div.data > h1")?.text() ?: "Sin Título"
-            val genres = sheader.select("div.data > div.sgeneros > a").map {
-                Genre(id = it.attr("href").substringAfter("/genres/").removeSuffix("/"), name = it.text())
-            }
-            val overview = document.selectFirst("div.wp-content > p")?.text()
-            val seasons = document.select("div#seasons div.se-c").map { seasonElement ->
-                val seasonNumber = seasonElement.attr("data-season").toIntOrNull() ?: 0
+            val overview = document.selectFirst(".description")?.text() 
+                ?: document.selectFirst(".storyline")?.text()
+                ?: document.selectFirst("p.leading-relaxed")?.text()
+                ?: document.selectFirst("p.text-sm")?.text() ?: ""
+
+            val seasons = document.select("div[data-season-panel]").map { seasonElement ->
+                val seasonNumber = seasonElement.attr("data-season-panel").toIntOrNull() ?: 0
                 Season(id = "$id@$seasonNumber", number = seasonNumber, title = "Temporada $seasonNumber")
             }.filter { it.number != 0 }
 
-            val banner = document.selectFirst("div.wallpaper")?.attr("style")?.substringAfter("url(")?.substringBefore(")")
-            val rating = document.selectFirst("div.nota > span")?.text()?.substringBefore(" ")?.toDoubleOrNull()
-            val extraInfo = document.selectFirst("div.sbox.extra")
-            val runtime = extraInfo?.selectFirst("span.runtime")?.text()?.removeSuffix(" Min.")?.trim()?.toIntOrNull()
-            val released = sheader.selectFirst("span.date")?.text()?.split(", ")?.getOrNull(1)
-            val trailer = extraInfo?.selectFirst("li > span > a[href*=youtube]")?.attr("href")
+            val banner = document.selectFirst(".hero__bg, .detail-hero__bg")?.attr("style")
+                ?.substringAfter("url('")?.substringBefore("')")
+                
+            val rating = document.selectFirst(".rating-badge--tmdb")?.text()?.let { 
+                Regex("""(\d+\.?\d*)""").find(it)?.value?.toDoubleOrNull()
+            }
+            val runtime: Int? = null
+            
+            val yearMatch = Regex("""\d{4}""").find(document.text())
+            val released = yearMatch?.value
+            
+            val trailer = document.selectFirst("button[data-trailer]")?.attr("data-trailer")?.let { 
+                "https://www.youtube.com/watch?v=$it" 
+            }
 
-            val cast = document.select("div.sbox.srepart div.person").map {
+            val genres = document.select("div.flex-1.min-w-0 a[href*=/genero/]").map {
+                Genre(id = "", name = it.text())
+            }
+
+            val cast = document.select("div.cast-card, div.sbox.srepart div.person").map {
                 People(
                     id = it.selectFirst("a")?.attr("href") ?: "",
-                    name = it.selectFirst(".name a")?.text() ?: "",
-                    image = it.selectFirst(".img img")?.attr("src")
+                    name = it.selectFirst("p.font-semibold, .name a")?.text() ?: "",
+                    image = it.selectFirst("img")?.attr("src")
                 )
             }
 
-            val recommendations = document.select("div.sbox.srelacionados article").mapNotNull { article ->
+            val recommendations = document.select("div.card, article.card").mapNotNull { article ->
                 val linkElement = article.selectFirst("a") ?: return@mapNotNull null
                 val imgElement = article.selectFirst("img") ?: return@mapNotNull null
                 val href = linkElement.attr("href")
                 val absoluteUrl = if (href.startsWith("http")) href else "$baseUrl$href"
-                val recPoster = imgElement.attr("data-srcset")
+                val recPoster = imgElement.attr("src") ?: imgElement.attr("data-srcset")
 
                 TvShow(
                     id = absoluteUrl,
@@ -396,7 +394,7 @@ object SoloLatinoProvider : Provider {
                 banner = banner,
                 genres = genres,
                 overview = overview,
-                seasons = seasons.reversed(),
+                seasons = seasons.sortedBy { it.number },
                 rating = rating,
                 runtime = runtime,
                 released = released,
@@ -414,17 +412,21 @@ object SoloLatinoProvider : Provider {
             val showId = seasonId.substringBefore("@")
             val seasonNumber = seasonId.substringAfter("@")
             val document = service.getPage(showId)
-            val seasonElement = document.select("div.se-c[data-season=$seasonNumber]").firstOrNull() ?: return emptyList()
-            seasonElement.select("ul.episodios li").map { episodeElement ->
-                val numerando = episodeElement.selectFirst("div.numerando")?.text() ?: "0 - 0"
-                val episodeNum = numerando.split("-").getOrNull(1)?.trim()?.toIntOrNull() ?: 0
-                val episodeTitle = episodeElement.selectFirst("div.episodiotitle .epst")?.text()
+            val seasonElement = document.select("div[data-season-panel=$seasonNumber]").firstOrNull() ?: return emptyList()
+            seasonElement.select("a.ep-item").map { episodeElement ->
+                val epNumText = episodeElement.selectFirst("p.ep-num")?.text() ?: "E0"
+                val episodeNum = epNumText.filter { it.isDigit() }.toIntOrNull() ?: 0
+                val episodeTitle = episodeElement.selectFirst("p.leading-tight")?.text()
                     ?: "Episodio $episodeNum"
+                val episodeOverview = episodeElement.selectFirst("p.text-xs.line-clamp-2")?.text() 
+                    ?: episodeElement.selectFirst("p[style*='color:#5050a0']")?.text()
+
                 Episode(
-                    id = episodeElement.selectFirst("a")!!.attr("href"),
+                    id = episodeElement.attr("href"),
                     number = episodeNum,
-                    title = episodeTitle,
-                    poster = episodeElement.selectFirst("div.imagen > img")?.attr("src")
+                    title = episodeTitle.trim(),
+                    overview = episodeOverview?.trim(),
+                    poster = episodeElement.selectFirst("img.ep-thumb")?.attr("src")
                 )
             }
         } catch (e: Exception) {
@@ -437,72 +439,76 @@ object SoloLatinoProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return try {
             val doc = service.getPage(id)
-            val servers = mutableListOf<Video.Server>()
-            val linkElements = doc.select("li[data-type][data-post][data-nume]")
-
-            // Try all elements, skip those that cause errors
-            for (element in linkElements) {
-                try {
-                    val post = element.attr("data-post")
-                    val nume = element.attr("data-nume")
-                    val type = element.attr("data-type")
-
-                    val formBody = FormBody.Builder()
-                        .add("action", "doo_player_ajax")
-                        .add("post", post)
-                        .add("nume", nume)
-                        .add("type", type)
-                        .build()
-
-                    val ajaxResponse = service.getPlayerAjax(id, formBody)
-                    val ajaxBody = ajaxResponse.body()?.string() ?: continue
-
-                    val iframeUrl = ajaxBody.substringAfter("src='").substringBefore("'")
-                    if (iframeUrl.isBlank()) continue
-
-                    val iframeDoc = service.getPage(iframeUrl)
-                    val iframeHtml = iframeDoc.html()
-
-                    val dataLinkMatch = Regex("""dataLink = (\[.+?\]);""").find(iframeHtml)
-                    if (dataLinkMatch != null) {
-                        val items = json.decodeFromString<List<Item>>(dataLinkMatch.groupValues[1])
-                        for (item in items) {
-                            val lang = when(item.video_language) {
-                                "LAT" -> "[LAT]"
-                                "ESP" -> "[CAST]"
-                                "SUB" -> "[SUB]"
-                                else -> ""
-                            }
-                            val embeds = item.sortedEmbeds
-                            for (embed in embeds) {
-                                if (embed.servername.equals("download", ignoreCase = true)) continue
-                                val encrypted = embed.link
-                                val decryptedLink = decodeBase64Link(encrypted) ?: continue
-                                servers.add(Video.Server(id = decryptedLink, name = "${embed.servername} $lang".trim()))
-                            }
-                        }
-                        // Continue trying other elements to find more servers
-                    } else {
-                        // DOM-based fallback: some players expose direct links via onclick handlers
-                        val iframeDocParsed = org.jsoup.Jsoup.parse(iframeHtml)
-                        val domItems = iframeDocParsed.select(".ODDIV .OD_1 li[onclick]")
-                        for (dom in domItems) {
-                            val onclick = dom.attr("onclick")
-                            val m = Regex("""go_to_playerVast\(\s*'([^']+)'""").find(onclick)
-                            val finalUrl = m?.groupValues?.getOrNull(1)?.trim().orEmpty()
-                            if (finalUrl.isBlank()) continue
-                            val serverName = dom.selectFirst("span")?.text()?.trim().orEmpty()
-                            if (serverName.equals("1fichier", ignoreCase = true)) continue
-                            servers.add(Video.Server(id = finalUrl, name = serverName))
-                        }
-                        // Continue trying other elements to find more servers
-                    }
-                } catch (e: Exception) {
-                    // Skip this element and continue with the next one
-                    continue
+            val allServers = mutableListOf<Video.Server>()
+            
+            val serverBtns = doc.select("button.server-btn")
+            for (btn in serverBtns) {
+                val serverUrl = btn.attr("data-server-url")
+                if (serverUrl.isNotEmpty()) {
+                    val nested = processIframe(serverUrl, id)
+                    allServers.addAll(nested)
                 }
             }
-            servers.distinctBy { it.id }
+            
+            allServers.distinctBy { it.id }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private suspend fun processIframe(iframeUrl: String, referer: String): List<Video.Server> {
+        return try {
+            val iframeDoc = service.getPage(iframeUrl)
+            val iframeHtml = iframeDoc.html()
+            val servers = mutableListOf<Video.Server>()
+
+            // 1. DataLink case
+            try {
+                val dataLinkMatch = Regex("""dataLink = (\[.+?\]);""").find(iframeHtml)
+                if (dataLinkMatch != null) {
+                    val items = json.decodeFromString<List<Item>>(dataLinkMatch.groupValues[1])
+                    for (item in items) {
+                        val lang = when(item.video_language) {
+                            "LAT" -> "[LAT]"
+                            "ESP" -> "[CAST]"
+                            "SUB" -> "[SUB]"
+                            "JAP" -> "[JAP]"
+                            else -> ""
+                        }
+                        for (embed in item.sortedEmbeds) {
+                            if (embed.servername.equals("download", ignoreCase = true)) continue
+                            val decryptedLink = decodeBase64Link(embed.link) ?: continue
+                            servers.add(Video.Server(id = decryptedLink, name = "${embed.servername} $lang".trim()))
+                        }
+                    }
+                }
+            } catch (e: Exception) { /* JSON error - continue */ }
+
+            // 2. DOM-base
+            try {
+                val domItems = iframeDoc.select(".ODDIV .OD_1 li[onclick]")
+                for (dom in domItems) {
+                    val onclick = dom.attr("onclick")
+                    val m = Regex("""go_to_playerVast\(\s*'([^']+)'""").find(onclick)
+                    val finalUrl = m?.groupValues?.getOrNull(1)?.trim().orEmpty()
+                    if (finalUrl.isBlank()) continue
+                    val serverName = dom.selectFirst("span")?.text()?.trim().orEmpty()
+                    if (serverName.equals("1fichier", ignoreCase = true) || serverName.equals("download", ignoreCase = true)) continue
+                    if (servers.none { it.id == finalUrl }) {
+                        servers.add(Video.Server(id = finalUrl, name = serverName))
+                    }
+                }
+            } catch (e: Exception) { /* DOM error - continue */ }
+
+            // 3. Direct Iframe
+            iframeDoc.selectFirst("iframe")?.attr("src")?.takeIf { it.isNotEmpty() }?.let { src ->
+                val name = src.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
+                if (servers.none { it.id == src }) {
+                    servers.add(Video.Server(id = src, name = name))
+                }
+            }
+
+            servers
         } catch (e: Exception) {
             emptyList()
         }
@@ -557,6 +563,9 @@ object SoloLatinoProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
+        if (page > 1) {
+            return People(id = id, name = "")
+        }
         return try {
             val document = service.getPage(id)
             val name = document.selectFirst(".data h1")?.text() ?: ""
