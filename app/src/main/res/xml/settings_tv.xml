@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
@@ -9,6 +9,11 @@
             android:key="provider_streamingcommunity_domain"
             android:title="@string/settings_category_streamingcommunity_domain"
             android:inputType="text"/>
+
+        <Preference
+            android:key="provider_streamingcommunity_domain_reset"
+            android:title="@string/settings_streamingcommunity_domain_reset"
+            android:summary="@string/settings_streamingcommunity_domain_reset_summary"/>
 
     </PreferenceCategory>
 

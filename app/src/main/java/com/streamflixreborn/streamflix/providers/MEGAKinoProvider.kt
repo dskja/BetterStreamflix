@@ -34,7 +34,7 @@ import com.streamflixreborn.streamflix.utils.TmdbUtils
 object MEGAKinoProvider : Provider {
 
     override val name = "MEGAKino"
-    override val baseUrl = "https://megakino1.watch"
+    override val baseUrl = "https://megakino2.tv"
     override val logo = "https://images2.imgbox.com/a2/83/OubSojBq_o.png"
     override val language = "de"
 

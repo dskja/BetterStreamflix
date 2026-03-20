@@ -1,4 +1,4 @@
-package com.streamflixreborn.streamflix.fragments.settings
+﻿package com.streamflixreborn.streamflix.fragments.settings
 
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
@@ -56,7 +56,7 @@ import java.util.Locale
 
 class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
-    private val DEFAULT_DOMAIN_VALUE = "streamingunity.buzz"
+    private val DEFAULT_DOMAIN_VALUE = "streamingunity.biz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
@@ -153,9 +153,15 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 text = currentValue
             }
             setOnPreferenceChangeListener { preference, newValue ->
-                val newDomainFromDialog = newValue as String
-                UserPreferences.streamingcommunityDomain = newDomainFromDialog
-                preference.summary = UserPreferences.streamingcommunityDomain
+                val typed = (newValue as String).trim()
+                val BLOCKED = listOf("streamingcommunityz.green", "streamingunity.club")
+                val effectiveDomain = if (BLOCKED.any { typed.contains(it) }) DEFAULT_DOMAIN_VALUE else typed
+                UserPreferences.streamingcommunityDomain = effectiveDomain
+                preference.summary = effectiveDomain
+                if (effectiveDomain != typed) {
+                    findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.text = null
+                    Toast.makeText(requireContext(), getString(R.string.settings_streamingcommunity_domain_blocked), Toast.LENGTH_LONG).show()
+                }
                 if (UserPreferences.currentProvider is StreamingCommunityProvider) {
                     viewLifecycleOwner.lifecycleScope.launch {
                         (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
@@ -167,6 +173,25 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 }
                 true
             }
+        }
+
+        findPreference<Preference>("provider_streamingcommunity_domain_reset")?.setOnPreferenceClickListener {
+            UserPreferences.streamingcommunityDomain = DEFAULT_DOMAIN_VALUE
+            findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
+                summary = DEFAULT_DOMAIN_VALUE
+                text = null
+            }
+            Toast.makeText(requireContext(), getString(R.string.settings_streamingcommunity_domain_reset_done), Toast.LENGTH_SHORT).show()
+            if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                    requireActivity().apply {
+                        finish()
+                        startActivity(Intent(this, this::class.java))
+                    }
+                }
+            }
+            true
         }
 
         findPreference<EditTextPreference>("provider_cuevana_domain")?.apply {
