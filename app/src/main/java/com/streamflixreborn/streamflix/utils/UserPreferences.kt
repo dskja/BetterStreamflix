@@ -147,10 +147,10 @@ object UserPreferences {
             Key.AUTOPLAY_BUFFER.setLong(value)
         }
 
-    var serverVoeAutoSubtitlesDisabled: Boolean
-        get() = Key.SERVER_VOE_AUTO_SUBTITLES_DISABLED.getBoolean() ?: true
+    var serverAutoSubtitlesDisabled: Boolean
+        get() = Key.SERVER_AUTO_SUBTITLES_DISABLED.getBoolean() ?: true
         set(value) {
-            Key.SERVER_VOE_AUTO_SUBTITLES_DISABLED.setBoolean(value)
+            Key.SERVER_AUTO_SUBTITLES_DISABLED.setBoolean(value)
         }
 
     var selectedTheme: String
@@ -371,7 +371,7 @@ object UserPreferences {
         SUBDL_API_KEY,
         FORCE_EXTRA_BUFFERING,
         AUTOPLAY_BUFFER,
-        SERVER_VOE_AUTO_SUBTITLES_DISABLED,
+        SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
         SELECTED_THEME;
 

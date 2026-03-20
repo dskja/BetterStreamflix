@@ -236,11 +236,11 @@
     <string name="settings_autoplay">Lecture automatique de l\'épisode suivant</string>
     <string name="settings_autoplay_on">Activé</string>
     <string name="settings_autoplay_off">Désactivé</string>
-    <string name="settings_autoplay_buffer_title">Buffer de lecture automatique</string>
-    <string name="settings_autoplay_buffer_dialog_message">Réglez le nombre de secondes avant la fin de l\'épisode pour passer au suivant.</string>
+    <string name="settings_autoplay_buffer_title">Délai avant l\'épisode suivant</string>
+    <string name="settings_autoplay_buffer_dialog_message">Réglez le nombre de secondes restant avant de passer à l\'épisode suivant.</string>
     <string name="autoplay_settings">Paramètres de lecture automatique</string>
     <string name="player_settings">Paramètres du lecteur</string>
-    <string name="settings_player_gestures">Gestes du lecteur</string>
+    <string name="settings_player_gestures">Contrôles tactiles</string>
     <string name="settings_player_gestures_on">Activé</string>
     <string name="settings_player_gestures_off">Désactivé</string>
     <string name="settings_keep_screen_on_when_paused">Garder l\'écran allumé en pause</string>
@@ -299,6 +299,10 @@
     <string name="settings_frenchstream_use_new_interface_on">Activé</string>
     <string name="settings_frenchstream_use_new_interface_off">Désactivé</string>
 
+    <string name="settings_server_voe_category">Paramètres des serveurs</string>
+    <string name="settings_server_voe_title">Désactiver les sous-titres automatiques des serveurs</string>
+    <string name="settings_server_voe_summary">Si activé, les sous-titres des serveurs VOE, Vidnest et Vidzy ne seront pas activés automatiquement même s\'ils sont disponibles et ont une valeur par défaut true</string>
+
     <string name="settings_category_interface_title">Paramètres d\'interface</string>
     <string name="settings_immersive_mode">Mode Immersif</string>
     <string name="settings_immersive_mode_summary">Cache les barres d\'état et de navigation</string>
@@ -309,9 +313,9 @@
     <string name="player_brightness">Luminosité</string>
     <string name="player_volume">Volume</string>
     <string name="percentage_format">%d%%</string>
-    <string name="player_settings_extra_buffer_title">Serveur avec Extra Buffering</string>
+    <string name="player_settings_extra_buffer_title">Mise en cache supplémentaire</string>
 
-    <string name="player_settings_extra_buffer_server_label">Serveur avec Extra Buffering</string>
+    <string name="player_settings_extra_buffer_server_label">Mise en cache supplémentaire</string>
     <string name="player_settings_extra_buffer_on">Activé</string>
     <string name="player_settings_extra_buffer_off">Désactivé</string>
     <string name="player_settings_extra_buffer_forced_on">Activé (Forcé)</string>
@@ -329,7 +333,7 @@
 
     <string name="settings_category_appearance">Apparence</string>
     <string name="settings_theme_title">Thème de l\'application</string>
-    <string name="player_settings_gestures_title">Gestures</string>
+    <string name="player_settings_gestures_title">Contrôles tactiles</string>
     <string name="player_settings_keep_screen_on_title">Écran actif en pause</string>
 
     <string name="settings_category_tmdb">Paramètres TMDb</string>
@@ -353,10 +357,6 @@
     <string name="settings_enable_tmdb_enabled">TMDb activé</string>
     <string name="settings_enable_tmdb_disabled">TMDb désactivé</string>
 
-    <string name="settings_force_extra_buffer_title">Mise en mémoire tampon supplémentaire globale</string>
-    <string name="settings_force_extra_buffer_summary">Activer la mise en mémoire tampon supplémentaire pour tous les serveurs par défaut</string>
-
-    <string name="settings_server_voe_category">Paramètres du serveur VOE</string>
-    <string name="settings_server_voe_title">Désactiver les sous-titres automatiques VOE</string>
-    <string name="settings_server_voe_summary">Si activé, les sous-titres du serveur VOE ne seront pas activés automatiquement même s\'ils sont disponibles</string>
+    <string name="settings_force_extra_buffer_title">Mise en cache</string>
+    <string name="settings_force_extra_buffer_summary">Activer la mise en cache supplémentaire par défaut</string>
 </resources>

@@ -10,7 +10,7 @@ data class Video(
     val headers: Map<String, String>? = null,
     val type: String? = null,
     val extraBuffering: Boolean = false,
-    val isVoe: Boolean = false
+    val useServerSubtitleSetting: Boolean = false
 ) : Serializable {
 
     sealed class Type : Parcelable, Serializable {
@@ -55,6 +55,7 @@ data class Video(
         val label: String,
         val file: String,
         var default: Boolean = false,
+        val initialDefault: Boolean = false
     ) : Serializable
 
     data class Server(

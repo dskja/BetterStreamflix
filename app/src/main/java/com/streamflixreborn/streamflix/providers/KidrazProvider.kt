@@ -19,19 +19,14 @@ import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.streamflixreborn.streamflix.utils.UserPreferences
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
-import retrofit2.http.POST
+import retrofit2.http.Query
 import retrofit2.http.Url
 
 object KidrazProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
@@ -69,198 +64,219 @@ object KidrazProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     private lateinit var service: Service
     private var serviceInitialized = false
     private val initializationMutex = Mutex()
+    
+    data class FilmResponse(
+        val films: List<KidrazFilm>,
+        val total: Int? = null,
+        val hasMore: Boolean? = null
+    )
+
+    data class KidrazFilm(
+        val id: String,
+        val title: String,
+        val poster: String?,
+        val link: String?,
+        val cat: String? = null,
+        val hd: Boolean? = null
+    )
 
     override suspend fun getHome(): List<Category> = coroutineScope {
-
         initializeService()
-        val document = service.loadPage(homePath)
+        val doc = service.loadPage(homePath)
 
-        val derniersDeferred = document
-            .selectFirst("div#dernieajouts")
-            ?.select("div#hann")
-            ?.mapNotNull { element ->
+        // 1. Sections
+        val categories = mutableListOf<Category>()
 
-                val link = element.selectFirst("a") ?: return@mapNotNull null
-                val href = link.attr("href")
-
-                async(Dispatchers.IO) {
-
-                    val docimg = service.loadPage(href)
-                    val img = docimg.selectFirst("img")
-                        ?.attr("src")
-                        ?.replace("/original/", "/w300/")
-
-                    Movie(
-                        id = href,
-                        title = link.text().trim(),
-                        poster = img
-                    )
+        // 2. Dynamic Section Discovery via content-row identification
+        val carousels = doc.select(".trend-row, .showcase, .film-grid, .newfilms-wrap, .newfilms-section")
+        
+        carousels.forEach { rowContainer ->
+            // 1. Find items: inside or nearby
+            var items = rowContainer.select(".showcase-card, .film-card, .trend-card, a.trend-card")
+            if (items.isEmpty()) {
+                rowContainer.nextElementSibling()?.let { nextSib ->
+                    items = nextSib.select(".showcase-card, .film-card, .trend-card, a.trend-card")
                 }
             }
-            ?.awaitAll()
-            ?: emptyList()
+            if (items.isEmpty()) return@forEach
 
-        val topDeferred = document
-            .selectFirst("div.column2")
-            ?.select("a:has(div.trend_unity)")
-            ?.mapNotNull { element ->
-
-                val href = element.attr("href")
-
-                async(Dispatchers.IO) {
-
-                    val docimg = service.loadPage(href)
-                    val img = docimg.selectFirst("img")
-                        ?.attr("src")
-                        ?.replace("/original/", "/w300/")
-
-                    Movie(
-                        id = href,
-                        title = element
-                            .selectFirst("div.trend_title")
-                            ?.text()
-                            ?.trim()
-                            ?.substringBeforeLast(" (")
-                            ?: "",
-                        banner = img,
-                    )
+            var titleText = ""
+            rowContainer.selectFirst(".trend-vignette, .vignette")?.let { vignette ->
+                val vTitle = vignette.selectFirst(".trend-vignette-title, .vignette-title")
+                val vCount = vignette.selectFirst(".trend-vignette-count, .vignette-count")
+                if (vTitle != null) {
+                    titleText = vTitle.text().trim()
+                    if (vCount != null) {
+                        titleText += " " + vCount.text().trim()
+                    }
                 }
             }
-            ?.awaitAll()
-            ?: emptyList()
 
-        listOf(
-            Category(Category.FEATURED, topDeferred),
-                    Category("Derniers Ajouts", derniersDeferred),
-        )
+            if (titleText.isEmpty()) {
+                var curr: org.jsoup.nodes.Element? = rowContainer
+                while (curr != null && titleText.isEmpty()) {
+                    var prev = curr.previousElementSibling()
+                    while (prev != null) {
+                        val hEl = prev.selectFirst("h2, h3, h4") ?: if (prev.tagName() in listOf("h2", "h3", "h4")) prev else null
+                        if (hEl != null) {
+                            titleText = hEl.text().trim()
+                            break
+                        }
+                        val tEl = prev.selectFirst(".section-header, .title, .newfilms-header")
+                        if (tEl != null) {
+                            titleText = tEl.text().trim()
+                            break
+                        }
+                        prev = prev.previousElementSibling()
+                    }
+                    if (titleText.isNotEmpty()) break
+                    curr = curr.parent()
+                    if (curr == null || curr.tagName().equals("body", true)) break
+                }
+            }
+
+            if (titleText.isEmpty()) return@forEach
+
+            var cleanKey = titleText
+                .replace(Regex("""(?i)\s*\+\d+$"""), "")
+                .replace(Regex("""(?i)tout voir|voir tout"""), "")
+                .trim()
+
+
+            val categoryTitle = if (cleanKey.isNotEmpty()) cleanKey else null
+            if (categoryTitle == null) return@forEach
+
+            if (categories.none { it.name.equals(categoryTitle, true) }) {
+                val movies = items.mapNotNull { item ->
+                    val a = if (item.tagName() == "a") item else item.selectFirst("a")
+                    val img = item.selectFirst("img") ?: return@mapNotNull null
+                    val rawTitle = (item.selectFirst(".showcase-card-title, .film-card-title, .trend-card-title")?.text()?.trim() 
+                        ?: img.attr("alt")?.trim() 
+                        ?: "Unknown").toString()
+                    
+                    val titleMatch = Regex("""^(.*?)\s*\((\d{4})\)\s*$""").find(rawTitle)
+                    val name = titleMatch?.groupValues?.getOrNull(1)?.trim() ?: rawTitle.replace(Regex("""\(\d{4}\)"""), "").trim()
+                    val year = titleMatch?.groupValues?.getOrNull(2) ?: Regex("""(\d{4})""").find(rawTitle)?.groupValues?.getOrNull(1)
+                    
+                    Movie(
+                        id = a?.attr("href") ?: "",
+                        title = name,
+                        released = year,
+                        poster = img.attr("src")?.replace("/original/", "/w300/")
+                    )
+                }.distinctBy { it.id }
+                
+                if (movies.isNotEmpty()) {
+                    categories.add(Category(categoryTitle, movies))
+                }
+            }
+        }
+
+        categories
     }
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> = coroutineScope {
         initializeService()
 
         if (query.isEmpty()) {
-            val document = service.loadPage(homePath)
-            val genres = document.selectFirst("div.drop-down__menu-box")
-                ?.select("li")
-                ?.map {
-                    Genre(
-                        name = it.text(),
-                        id = it.text() + "/" +
-                                it.attr("onclick")
-                                    .substringAfter("'")
-                                    .substringBeforeLast("/")
-                    )
-                } ?: emptyList()
-
-            return@coroutineScope genres
-        }
-        if (page > 1) return@coroutineScope emptyList()
-
-        val document = service.search(
-            homePath,
-            query = query
-        )
-
-        val deferredResults = document.select("div#hann").mapNotNull { element ->
-
-            val link = element.selectFirst("a") ?: return@mapNotNull null
-            val href = link.attr("href")
-
-            async(Dispatchers.IO) {
-
-                val docimg = service.loadPage(href)
-                val img = docimg.selectFirst("img")
-                    ?.attr("src")
-                    ?.replace("/original/", "/w300/")
-
-                Movie(
-                    id = href,
-                    title = link.text().trim().substringBeforeLast(" ("),
-                    poster = img
+            val doc = service.loadPage(homePath)
+            val genres = doc.select(".navbar-dropdown-grid a.navbar-dropdown-item").map { a ->
+                val name = a.text().trim()
+                val href = a.attr("href")
+                val parts = href.substringAfter("/c/").split("/")
+                val catid = if (parts.size >= 2) parts[1] else ""
+                Genre(
+                    name = name,
+                    id = "$name|$catid"
                 )
             }
+            return@coroutineScope genres
         }
 
-        deferredResults.awaitAll()
+        val apiBase = homePath.substringBefore("/home/")
+        val folder = apiBase.removePrefix("/").substringBefore("/")
+        val pr = homePath.substringAfterLast("/")
+
+        val response = service.search(
+            "$apiBase/api_search.php",
+            query = query,
+            offset = (page - 1) * 20,
+            limit = 20,
+            folder = folder,
+            pr = pr
+        )
+
+        response.films.map { film ->
+            val titleMatch = Regex("^(.*?)\\s*\\((\\d{4})\\)\\s*$").find(film.title.trim())
+            val displayTitle = titleMatch?.groupValues?.getOrNull(1)?.trim() ?: film.title
+            val year = titleMatch?.groupValues?.getOrNull(2)
+
+            Movie(
+                id = film.link ?: "",
+                title = displayTitle,
+                released = year,
+                poster = film.poster?.replace("/original/", "/w300/"),
+                quality = if (film.hd == true) "HD" else null
+            )
+        }
     }
 
     override suspend fun getMovies(page: Int): List<Movie> = coroutineScope {
         initializeService()
 
-        if (moviePath.isEmpty()) {
-            val docmob = service.loadPage(homePath)
-            moviePath = docmob.selectFirst("div.drop-down__menu-box")
-                ?.selectFirst("li")
-                ?.attr("onclick")
-                ?.substringAfter("'")
-                ?.substringBeforeLast("/")
-                ?: ""
+        val apiBase = homePath.substringBefore("/home/")
+        val folder = apiBase.removePrefix("/").substringBefore("/")
+        val pr = homePath.substringAfterLast("/")
+
+        val response = service.apiFilms(
+            "$apiBase/api_films.php",
+            offset = (page - 1) * 20,
+            limit = 20,
+            folder = folder,
+            pr = pr
+        )
+
+        response.films.map { film ->
+            val titleMatch = Regex("^(.*?)\\s*\\((\\d{4})\\)\\s*$").find(film.title.trim())
+            val displayTitle = titleMatch?.groupValues?.getOrNull(1)?.trim() ?: film.title
+            val year = titleMatch?.groupValues?.getOrNull(2)
+
+            Movie(
+                id = film.link ?: "",
+                title = displayTitle,
+                released = year,
+                poster = film.poster?.replace("/original/", "/w300/"),
+                quality = if (film.hd == true) "HD" else null
+            )
         }
-
-        if (moviePath.isEmpty()) return@coroutineScope emptyList()
-
-        val document = service.loadPage("$moviePath/${page - 1}")
-
-        val deferredMovies = document.select("div#hann").mapNotNull { element ->
-
-            val link = element.selectFirst("a") ?: return@mapNotNull null
-            val href = link.attr("href")
-
-            async(Dispatchers.IO) {
-
-                val docimg = service.loadPage(href)
-                val img = docimg.selectFirst("img")
-                    ?.attr("src")
-                    ?.replace("/original/", "/w300/")
-
-                Movie(
-                    id = href,
-                    title = link.text().trim(),
-                    poster = img
-                )
-            }
-        }
-
-        deferredMovies.awaitAll()
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> = emptyList()
 
     override suspend fun getMovie(id: String): Movie {
         initializeService()
-        val document = service.loadPage(id)
+        val doc = service.loadPage(id)
 
-        val bloc = document.selectFirst("div.column16")
-            ?.selectFirst("b[style*=text-transform: uppercase]")
+        val rawTitle = doc.selectFirst(".film-detail-title")?.text()?.trim() 
+            ?: doc.selectFirst("title")?.text()?.trim() 
+            ?: ""
+        val titleMatch = Regex("^(.*?)\\s*\\((\\d{4})\\)\\s*$").find(rawTitle)
+        val title = titleMatch?.groupValues?.getOrNull(1)?.trim() ?: rawTitle
+        val year = titleMatch?.groupValues?.getOrNull(2)
 
-        var title : String?= ""
-        var released : String?= ""
-        var quality : String?= ""
-        var version : String ?=""
-        if (bloc != null) {
-            val fullText = bloc.ownText().trim()
-            val regex = Regex("(.+)\\s*\\((\\d{4})\\)\\s*(\\[[^\\]]+)?")
-            val match = regex.find(fullText)
+        val poster = (doc.selectFirst(".film-detail-poster img")?.attr("src")
+            ?: doc.selectFirst("img")?.attr("src"))?.replace("/original/", "/w300/")
 
-            title = match?.groupValues?.get(1)?.trim()
-            released = match?.groupValues?.get(2)?.trim()
-            version = match?.groupValues?.get(3)?.trim()?.replaceFirst("[", " ")
-            quality = bloc.selectFirst("i")?.text()?.trim()
-        }
-        val header = document.selectFirst("b:containsOwn(CANEVAS DU FILM)")
-        val parentP = header?.closest("p")
-        val descP = parentP?.nextElementSibling()
-        val overview = descP?.text()?.trim()
+        val overview = doc.selectFirst(".film-synopsis-text, .film-detail-synopsis")?.text()?.trim()
+        val genre = doc.selectFirst(".film-detail-cat")?.text()?.trim()
 
-        val movie = Movie(
+        return Movie(
             id = id,
-            title = title ?: "",
-            released = released,
-            quality = quality+version,
+            title = title,
+            released = year,
             overview = overview,
-            poster = document.selectFirst("img")?.attr("src"),
+            genres = genre?.let { listOf(Genre(name = it, id = it)) } ?: listOf(),
+            poster = poster,
         )
-
-        return movie
     }
 
     override suspend fun getTvShow(id: String): TvShow {
@@ -273,31 +289,34 @@ object KidrazProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getGenre(id: String, page: Int): Genre = coroutineScope {
         initializeService()
-        val (name, url) = id.split("/", limit = 2)
+        val (name, catid) = id.split("|", limit = 2)
 
-        val document = service.loadPage("$url/${page - 1}")
+        val apiBase = homePath.substringBefore("/home/")
+        val folder = apiBase.removePrefix("/").substringBefore("/")
+        val pr = homePath.substringAfterLast("/")
 
-        val deferredMovies = document.select("div#hann").mapNotNull { element ->
+        val response = service.apiCategory(
+            "$apiBase/api_category.php",
+            catid = catid,
+            offset = (page - 1) * 20,
+            limit = 20,
+            folder = folder,
+            pr = pr
+        )
 
-            val link = element.selectFirst("a") ?: return@mapNotNull null
-            val href = link.attr("href")
+        val movies = response.films.map { film ->
+            val titleMatch = Regex("^(.*?)\\s*\\((\\d{4})\\)\\s*$").find(film.title.trim())
+            val displayTitle = titleMatch?.groupValues?.getOrNull(1)?.trim() ?: film.title
+            val year = titleMatch?.groupValues?.getOrNull(2)
 
-            async(Dispatchers.IO) {
-
-                val docimg = service.loadPage(href)
-                val img = docimg.selectFirst("img")
-                    ?.attr("src")
-                    ?.replace("/original/", "/w300/")
-
-                Movie(
-                    id = href,
-                    title = link.text().trim(),
-                    poster = img
-                )
-            }
+            Movie(
+                id = film.link ?: "",
+                title = displayTitle,
+                released = year,
+                poster = film.poster?.replace("/original/", "/w300/"),
+                quality = if (film.hd == true) "HD" else null
+            )
         }
-
-        val movies = deferredMovies.awaitAll()
 
         Genre(
             id = name,
@@ -439,6 +458,36 @@ object KidrazProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             }
         }
 
+
+        @GET
+        suspend fun search(
+            @Url url: String,
+            @Query("searchword") query: String,
+            @Query("offset") offset: Int,
+            @Query("limit") limit: Int,
+            @Query("folder") folder: String,
+            @Query("pr") pr: String
+        ): FilmResponse
+
+        @GET
+        suspend fun apiFilms(
+            @Url url: String,
+            @Query("offset") offset: Int,
+            @Query("limit") limit: Int,
+            @Query("folder") folder: String,
+            @Query("pr") pr: String
+        ): FilmResponse
+
+        @GET
+        suspend fun apiCategory(
+            @Url url: String,
+            @Query("catid") catid: String,
+            @Query("offset") offset: Int,
+            @Query("limit") limit: Int,
+            @Query("folder") folder: String,
+            @Query("pr") pr: String
+        ): FilmResponse
+
         @GET
         suspend fun loadPage(
             @Url url: String
@@ -448,12 +497,5 @@ object KidrazProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         suspend fun loadPageRaw(
             @Url url: String
         ): Response<ResponseBody>
-
-        @POST
-        @FormUrlEncoded
-        suspend fun search(
-            @Url url: String,
-            @Field("searchword") query: String
-        ): Document
     }
 }

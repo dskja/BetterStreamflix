@@ -298,10 +298,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
-        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.apply {
-            isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
+        findPreference<SwitchPreference>("SERVER_AUTO_SUBTITLES_DISABLED")?.apply {
+            isChecked = UserPreferences.serverAutoSubtitlesDisabled
             setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.serverVoeAutoSubtitlesDisabled = newValue as Boolean
+                UserPreferences.serverAutoSubtitlesDisabled = newValue as Boolean
                 true
             }
         }
@@ -639,7 +639,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
-        findPreference<SwitchPreference>("SERVER_VOE_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverVoeAutoSubtitlesDisabled
+        findPreference<SwitchPreference>("SERVER_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverAutoSubtitlesDisabled
         
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->

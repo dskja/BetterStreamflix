@@ -98,7 +98,8 @@ interface Provider {
             TvporinternetHDProvider to ProviderSupport(movies = false, tvShows = true),
             FrembedProvider to ProviderSupport(movies = true, tvShows = true),
             AfterDarkProvider to ProviderSupport(movies = true, tvShows = true),
-            KidrazProvider to ProviderSupport(movies = true, tvShows = false)
+            KidrazProvider to ProviderSupport(movies = true, tvShows = false),
+            FrenchMangaProvider to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support

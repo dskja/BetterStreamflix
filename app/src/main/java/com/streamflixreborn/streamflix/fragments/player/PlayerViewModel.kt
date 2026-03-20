@@ -130,11 +130,11 @@ class PlayerViewModel(
             val hasDefaultAlready = video.subtitles.any { it.default }
 
             if (!hasDefaultAlready && currentProviderLang != "es") {
-                if (!(video.isVoe && UserPreferences.serverVoeAutoSubtitlesDisabled)) {
+                if (!(video.useServerSubtitleSetting && UserPreferences.serverAutoSubtitlesDisabled)) {
                     video.subtitles
                         .firstOrNull { it.label.startsWith(UserPreferences.subtitleName ?: "") }
                         ?.default = true
-                }
+		}
             }
 
             Log.d("PlayerViewModel", "Estrazione video completata con successo")
