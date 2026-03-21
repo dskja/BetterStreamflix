@@ -249,7 +249,7 @@ class PlayerTvFragment : Fragment() {
                         servers = state.servers
 
                         val sToServer = servers.firstOrNull {
-                            it.id.startsWith("https://s.to/r")
+                            isSerienStreamBypassUrl(it.id)
                         }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
@@ -1275,6 +1275,12 @@ class PlayerTvFragment : Fragment() {
 
         qrDialog?.show()
         qrDialog?.window?.setLayout(dialogWidth, LinearLayout.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun isSerienStreamBypassUrl(url: String): Boolean {
+        return runCatching {
+            Uri.parse(url).host.equals("s.to", ignoreCase = true)
+        }.getOrDefault(false)
     }
 
     private fun startWebSocketServer(): Boolean {

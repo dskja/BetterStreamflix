@@ -118,6 +118,7 @@ class PlayerMobileFragment : Fragment() {
     private var isIgnoringPip = false
     private val customTabHelper = CustomTabHelper()
     private var waitingForBypass = false
+    private var bypassDone = false
 
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -187,6 +188,7 @@ class PlayerMobileFragment : Fragment() {
         //s.to specific stuff
         if (waitingForBypass) {
             waitingForBypass = false
+            bypassDone = true
             lifecycleScope.launch {
                 delay(3000) // give time for redirect after "Weiter"
                 viewModel.reloadServersAfterBypass()
@@ -247,10 +249,10 @@ class PlayerMobileFragment : Fragment() {
                     is PlayerViewModel.State.SuccessLoadingServers -> {
                         servers = state.servers
                         val sToServer = servers.firstOrNull {
-                            it.id.startsWith("https://s.to/r")
+                            isSerienStreamBypassUrl(it.id)
                         }
 
-                        if (sToServer != null && !waitingForBypass) {
+                        if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
 
                             customTabHelper.open(requireActivity(), sToServer.id)
@@ -1137,5 +1139,11 @@ class PlayerMobileFragment : Fragment() {
         binding.settings.onSubtitlesClicked = {
             viewModel.getSubtitles(args.videoType)
         }
+    }
+
+    private fun isSerienStreamBypassUrl(url: String): Boolean {
+        return runCatching {
+            Uri.parse(url).host.equals("s.to", ignoreCase = true)
+        }.getOrDefault(false)
     }
 }
