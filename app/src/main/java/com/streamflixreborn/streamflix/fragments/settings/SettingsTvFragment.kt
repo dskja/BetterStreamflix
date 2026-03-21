@@ -270,18 +270,31 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
             setOnPreferenceChangeListener { _, newValue ->
                 val enabled = newValue as Boolean
-                UserPreferences.enableTmdb = enabled
+                val applyChange = {
+                    UserPreferences.enableTmdb = enabled
+                    updateParentalControlPreferenceState()
+                    ProviderChangeNotifier.notifyProviderChanged()
 
-                val message = if (enabled) {
-                    getString(R.string.settings_enable_tmdb_enabled)
-                } else {
-                    getString(R.string.settings_enable_tmdb_disabled)
+                    val message = if (enabled) {
+                        getString(R.string.settings_enable_tmdb_enabled)
+                    } else {
+                        getString(R.string.settings_enable_tmdb_disabled)
+                    }
+
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 }
 
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                true
+                if (!enabled && UserPreferences.parentalControlPin.isNotBlank()) {
+                    changeParentalSettingWithPinCheck(onVerified = applyChange)
+                    false
+                } else {
+                    applyChange()
+                    true
+                }
             }
         }
+
+        setupParentalControlPreferences()
 
         findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
             summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
@@ -853,6 +866,293 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
     }
 
+    private fun setupParentalControlPreferences() {
+        val pinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_PIN")
+        val adminPinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_ADMIN_PIN")
+        val maxAgePreference = findPreference<ListPreference>("PARENTAL_CONTROL_MAX_AGE")
+        val unlockPreference = findPreference<Preference>("PARENTAL_CONTROL_UNLOCK")
+
+        fun bindPinEditText(editText: EditText) {
+            editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            editText.imeOptions = EditorInfo.IME_ACTION_DONE
+            editText.hint = getString(R.string.settings_parental_pin_hint)
+            editText.setText("")
+        }
+
+        pinPreference?.setOnBindEditTextListener(::bindPinEditText)
+        adminPinPreference?.setOnBindEditTextListener(::bindPinEditText)
+
+        pinPreference?.setOnPreferenceChangeListener { _, newValue ->
+            if (!UserPreferences.enableTmdb) return@setOnPreferenceChangeListener false
+
+            val newPin = (newValue as String).trim()
+            if (newPin.isNotEmpty() && newPin.length < 4) {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_too_short), Toast.LENGTH_SHORT).show()
+                return@setOnPreferenceChangeListener false
+            }
+
+            changeParentalSettingWithPinCheck {
+                UserPreferences.parentalControlPin = newPin
+                if (newPin.isBlank()) {
+                    UserPreferences.parentalControlMaxAge = null
+                    maxAgePreference?.value = ""
+                    UserPreferences.unlockParentalControls()
+                    Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_removed), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_saved), Toast.LENGTH_SHORT).show()
+                }
+                ProviderChangeNotifier.notifyProviderChanged()
+                updateParentalControlPreferenceState()
+            }
+
+            false
+        }
+
+        adminPinPreference?.setOnPreferenceChangeListener { _, newValue ->
+            val newPin = (newValue as String).trim()
+            if (newPin.isNotEmpty() && newPin.length < 4) {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_too_short), Toast.LENGTH_SHORT).show()
+                return@setOnPreferenceChangeListener false
+            }
+
+            changeAdminSettingWithPinCheck {
+                UserPreferences.parentalControlAdminPin = newPin
+                if (newPin.isBlank()) {
+                    Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_removed), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_saved), Toast.LENGTH_SHORT).show()
+                }
+                updateParentalControlPreferenceState()
+            }
+
+            false
+        }
+
+        maxAgePreference?.setOnPreferenceChangeListener { _, newValue ->
+            if (!UserPreferences.enableTmdb) return@setOnPreferenceChangeListener false
+            if (UserPreferences.parentalControlPin.isBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_set_pin_first), Toast.LENGTH_SHORT).show()
+                return@setOnPreferenceChangeListener false
+            }
+
+            val newMaxAgeValue = newValue as String
+            val newMaxAge = newMaxAgeValue.toIntOrNull()
+
+            changeParentalSettingWithPinCheck {
+                UserPreferences.parentalControlMaxAge = newMaxAge
+                maxAgePreference.value = newMaxAgeValue
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_max_age_saved), Toast.LENGTH_SHORT).show()
+                ProviderChangeNotifier.notifyProviderChanged()
+                updateParentalControlPreferenceState()
+            }
+
+            false
+        }
+
+        unlockPreference?.setOnPreferenceClickListener {
+            if (UserPreferences.parentalControlAdminPin.isBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_set_admin_pin_first), Toast.LENGTH_SHORT).show()
+            } else {
+                promptForAdminPin {
+                    UserPreferences.unlockParentalControls()
+                    Toast.makeText(requireContext(), getString(R.string.settings_parental_unlocked), Toast.LENGTH_SHORT).show()
+                    updateParentalControlPreferenceState()
+                }
+            }
+            true
+        }
+
+        updateParentalControlPreferenceState()
+    }
+
+    private fun updateParentalControlPreferenceState() {
+        val tmdbEnabled = UserPreferences.enableTmdb
+        val pinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_PIN")
+        val adminPinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_ADMIN_PIN")
+        val maxAgePreference = findPreference<ListPreference>("PARENTAL_CONTROL_MAX_AGE")
+        val unlockPreference = findPreference<Preference>("PARENTAL_CONTROL_UNLOCK")
+        val isLocked = UserPreferences.isParentalControlTemporarilyLocked || UserPreferences.parentalControlHardLocked
+
+        pinPreference?.apply {
+            isEnabled = tmdbEnabled && !isLocked
+            text = ""
+            summary = when {
+                !tmdbEnabled -> getString(R.string.settings_parental_requires_tmdb)
+                UserPreferences.parentalControlHardLocked -> getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked -> getString(
+                    R.string.settings_parental_locked_temporary,
+                    lockRemainingMinutes()
+                )
+                UserPreferences.parentalControlPin.isBlank() -> getString(R.string.settings_parental_pin_not_set)
+                else -> getString(R.string.settings_parental_pin_set)
+            }
+        }
+
+        adminPinPreference?.apply {
+            isEnabled = tmdbEnabled
+            text = ""
+            summary = when {
+                !tmdbEnabled -> getString(R.string.settings_parental_requires_tmdb)
+                UserPreferences.parentalControlAdminPin.isBlank() -> getString(R.string.settings_parental_admin_pin_not_set)
+                else -> getString(R.string.settings_parental_admin_pin_set)
+            }
+        }
+
+        maxAgePreference?.apply {
+            isEnabled = tmdbEnabled && !isLocked
+            value = UserPreferences.parentalControlMaxAge?.toString().orEmpty()
+            summary = when {
+                !tmdbEnabled -> getString(R.string.settings_parental_requires_tmdb)
+                UserPreferences.parentalControlHardLocked -> getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked -> getString(
+                    R.string.settings_parental_locked_temporary,
+                    lockRemainingMinutes()
+                )
+                UserPreferences.parentalControlPin.isBlank() -> getString(R.string.settings_parental_set_pin_first)
+                UserPreferences.parentalControlMaxAge == null -> getString(R.string.settings_parental_max_age_disabled)
+                else -> "${UserPreferences.parentalControlMaxAge}+"
+            }
+        }
+
+        unlockPreference?.apply {
+            isVisible = isLocked
+            isEnabled = tmdbEnabled && UserPreferences.parentalControlAdminPin.isNotBlank()
+            summary = when {
+                UserPreferences.parentalControlAdminPin.isBlank() -> getString(R.string.settings_parental_set_admin_pin_first)
+                UserPreferences.parentalControlHardLocked -> getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked -> getString(
+                    R.string.settings_parental_locked_temporary,
+                    lockRemainingMinutes()
+                )
+                else -> getString(R.string.settings_parental_unlock_summary)
+            }
+        }
+    }
+
+    private fun changeParentalSettingWithPinCheck(onVerified: () -> Unit) {
+        when {
+            UserPreferences.parentalControlHardLocked -> {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_locked_hard), Toast.LENGTH_SHORT).show()
+                updateParentalControlPreferenceState()
+                return
+            }
+            UserPreferences.isParentalControlTemporarilyLocked -> {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.settings_parental_locked_temporary, lockRemainingMinutes()),
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateParentalControlPreferenceState()
+                return
+            }
+        }
+
+        val currentPin = UserPreferences.parentalControlPin
+        if (currentPin.isBlank()) {
+            onVerified()
+            return
+        }
+
+        promptForPin(
+            titleRes = R.string.settings_parental_enter_current_pin_title,
+            messageRes = R.string.settings_parental_enter_current_pin_message,
+            onSubmit = { enteredPin ->
+                if (enteredPin == currentPin) {
+                    UserPreferences.registerParentalPinSuccess()
+                    onVerified()
+                    null
+                } else {
+                    UserPreferences.registerParentalPinFailure()
+                    updateParentalControlPreferenceState()
+                    when {
+                        UserPreferences.parentalControlHardLocked -> R.string.settings_parental_locked_hard
+                        UserPreferences.isParentalControlTemporarilyLocked -> R.string.settings_parental_locked_temporary
+                        else -> R.string.settings_parental_invalid_pin
+                    }.let { failureMessageRes ->
+                        if (failureMessageRes == R.string.settings_parental_locked_temporary) {
+                            getString(failureMessageRes, lockRemainingMinutes())
+                        } else {
+                            getString(failureMessageRes)
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    private fun changeAdminSettingWithPinCheck(onVerified: () -> Unit) {
+        val currentAdminPin = UserPreferences.parentalControlAdminPin
+        if (currentAdminPin.isBlank()) {
+            onVerified()
+            return
+        }
+
+        promptForAdminPin(onVerified)
+    }
+
+    private fun promptForAdminPin(onVerified: () -> Unit) {
+        val currentAdminPin = UserPreferences.parentalControlAdminPin
+        if (currentAdminPin.isBlank()) {
+            Toast.makeText(requireContext(), getString(R.string.settings_parental_set_admin_pin_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        promptForPin(
+            titleRes = R.string.settings_parental_enter_admin_pin_title,
+            messageRes = R.string.settings_parental_enter_admin_pin_message,
+            onSubmit = { enteredPin ->
+                if (enteredPin == currentAdminPin) {
+                    UserPreferences.unlockParentalControls()
+                    onVerified()
+                    null
+                } else {
+                    getString(R.string.settings_parental_invalid_admin_pin)
+                }
+            }
+        )
+    }
+
+    private fun promptForPin(
+        titleRes: Int,
+        messageRes: Int,
+        onSubmit: (String) -> String?,
+    ) {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            hint = getString(R.string.settings_parental_pin_hint)
+        }
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setMessage(messageRes)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                input.error = null
+                val errorMessage = onSubmit(input.text?.toString()?.trim().orEmpty())
+                if (errorMessage == null) {
+                    dialog.dismiss()
+                } else {
+                    input.setText("")
+                    input.error = errorMessage
+                    input.requestFocus()
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun lockRemainingMinutes(): Int {
+        val millis = UserPreferences.parentalControlLockRemainingMillis
+        return ((millis + 60_000L - 1L) / 60_000L).toInt().coerceAtLeast(1)
+    }
+
     override fun onResume() {
         super.onResume()
         
@@ -914,6 +1214,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             val value = pref.text?.toLongOrNull() ?: 3L
             "$value s"
         }
+        updateParentalControlPreferenceState()
     }
 
     private fun showWebSocketBypassTestDialog() {

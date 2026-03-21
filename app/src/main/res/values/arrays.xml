@@ -21,4 +21,30 @@
         <item>smarttube_stable</item>
         <item>smarttube_beta</item>
     </string-array>
+
+    <string-array name="parental_control_age_entries">
+        <item>@string/settings_parental_max_age_disabled</item>
+        <item>0+</item>
+        <item>6+</item>
+        <item>7+</item>
+        <item>10+</item>
+        <item>12+</item>
+        <item>13+</item>
+        <item>14+</item>
+        <item>16+</item>
+        <item>18+</item>
+    </string-array>
+
+    <string-array name="parental_control_age_values">
+        <item></item>
+        <item>0</item>
+        <item>6</item>
+        <item>7</item>
+        <item>10</item>
+        <item>12</item>
+        <item>13</item>
+        <item>14</item>
+        <item>16</item>
+        <item>18</item>
+    </string-array>
 </resources>

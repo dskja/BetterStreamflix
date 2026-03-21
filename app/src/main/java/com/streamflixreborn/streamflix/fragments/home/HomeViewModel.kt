@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.fragments.home
 
 import android.util.Log
+import com.streamflixreborn.streamflix.StreamFlixApp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.adapters.AppAdapter
@@ -9,6 +10,9 @@ import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.HomeCacheStore
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
+import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.combine
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +22,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flowOn
@@ -140,7 +145,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     }
                 }
 
-                val categories = listOfNotNull(
+                val categories = ParentalControlUtils.filterCategories(listOfNotNull(
 
                     // FEATURED
                     state.categories
@@ -192,7 +197,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         category.copy(
                             list = category.list.map(::mergeItem)
                         )
-                    }
+                    })
 
                 State.SuccessLoading(categories)
             }
@@ -208,6 +213,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     }
 
     init {
+        viewModelScope.launch {
+            ProviderChangeNotifier.providerChangeFlow.collect {
+                getHome()
+            }
+        }
         getHome()
     }
 
@@ -268,12 +278,25 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     fun getHome() = viewModelScope.launch(Dispatchers.IO) {
         _state.emit(State.Loading)
 
+        val provider = UserPreferences.currentProvider ?: run {
+            _state.emit(State.FailedLoading(IllegalStateException("No provider selected")))
+            return@launch
+        }
+        val appContext = StreamFlixApp.instance.applicationContext
+        val cachedCategories = HomeCacheStore.read(appContext, provider.name)
+        if (!cachedCategories.isNullOrEmpty()) {
+            _state.emit(State.SuccessLoading(cachedCategories))
+        }
+
         try {
-            val categories = UserPreferences.currentProvider!!.getHome()
+            val categories = provider.getHome()
+            HomeCacheStore.write(appContext, provider.name, categories)
             _state.emit(State.SuccessLoading(categories))
         } catch (e: Exception) {
             Log.e("HomeViewModel", "getHome: ", e)
-            _state.emit(State.FailedLoading(e))
+            if (cachedCategories.isNullOrEmpty()) {
+                _state.emit(State.FailedLoading(e))
+            }
         }
     }
 }

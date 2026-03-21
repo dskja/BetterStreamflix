@@ -8,6 +8,7 @@ import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -113,7 +114,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         _state.emit(State.Searching)
 
         try {
-            val results = UserPreferences.currentProvider!!.search(query)
+            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
             this@SearchViewModel.query = query
             page = 1
             _state.emit(State.SuccessSearching(results, true))
@@ -128,7 +129,9 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         if (currentState is State.SuccessSearching) {
             _state.emit(State.SearchingMore)
             try {
-                val results = UserPreferences.currentProvider!!.search(query, page + 1)
+                val results = ParentalControlUtils.filterItems(
+                    UserPreferences.currentProvider!!.search(query, page + 1)
+                )
                 page += 1
                 _state.emit(
                     State.SuccessSearching(
@@ -174,7 +177,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         targetProviders.forEachIndexed { index, provider ->
             launch {
                 try {
-                    val results = provider.search(query).onEach { item ->
+                    val results = ParentalControlUtils.filterItems(provider.search(query).onEach { item ->
                         // ========= ¡AQUÍ ESTÁ LA MAGIA! =========
                         // Le ponemos el sello a cada resultado
                         when (item) {
@@ -182,7 +185,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                             is TvShow -> item.providerName = provider.name
                         }
                         // =======================================
-                    }
+                    })
                     mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
                 } catch (e: Exception) {
                     Log.e("SearchViewModel", "searchGlobal for ${provider.name}: ", e)

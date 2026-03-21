@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import kotlinx.coroutines.Dispatchers
@@ -80,7 +81,9 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
         _state.emit(State.Loading)
 
         try {
-            val movies = UserPreferences.currentProvider!!.getMovies()
+            val movies = ParentalControlUtils.filterItems(
+                UserPreferences.currentProvider!!.getMovies()
+            ).filterIsInstance<Movie>()
 
             page = 1
 
@@ -97,7 +100,9 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
             _state.emit(State.LoadingMore)
 
             try {
-                val movies = UserPreferences.currentProvider!!.getMovies(page + 1)
+                val movies = ParentalControlUtils.filterItems(
+                    UserPreferences.currentProvider!!.getMovies(page + 1)
+                ).filterIsInstance<Movie>()
 
                 page += 1
 

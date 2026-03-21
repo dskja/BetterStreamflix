@@ -65,6 +65,41 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pc_parental_control_settings"
+        android:title="@string/settings_category_parental_control"
+        app:iconSpaceReserved="false">
+
+        <EditTextPreference
+            android:key="PARENTAL_CONTROL_PIN"
+            android:title="@string/settings_parental_pin_title"
+            android:summary="@string/settings_parental_pin_summary"
+            android:inputType="numberPassword"
+            app:iconSpaceReserved="false"/>
+
+        <EditTextPreference
+            android:key="PARENTAL_CONTROL_ADMIN_PIN"
+            android:title="@string/settings_parental_admin_pin_title"
+            android:summary="@string/settings_parental_admin_pin_summary"
+            android:inputType="numberPassword"
+            app:iconSpaceReserved="false"/>
+
+        <ListPreference
+            android:key="PARENTAL_CONTROL_MAX_AGE"
+            android:title="@string/settings_parental_max_age_title"
+            android:summary="@string/settings_parental_max_age_summary"
+            android:entries="@array/parental_control_age_entries"
+            android:entryValues="@array/parental_control_age_values"
+            android:defaultValue=""
+            app:iconSpaceReserved="false"/>
+
+        <Preference
+            android:key="PARENTAL_CONTROL_UNLOCK"
+            android:title="@string/settings_parental_unlock_title"
+            android:summary="@string/settings_parental_unlock_summary"
+            app:iconSpaceReserved="false"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="pc_subdl_settings"
         android:title="@string/settings_category_subdl"
         app:iconSpaceReserved="false">

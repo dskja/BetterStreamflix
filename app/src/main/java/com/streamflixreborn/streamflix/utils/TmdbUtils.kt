@@ -9,11 +9,15 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
 import java.text.Normalizer
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 
 object TmdbUtils {
     private const val MIN_ACCEPTABLE_SCORE = 60
     private const val MAX_LOCALIZED_DETAIL_CANDIDATES = 5
+    private const val UNKNOWN_AGE_RATING = Int.MIN_VALUE
+    private val movieAgeCache = ConcurrentHashMap<String, Int>()
+    private val tvAgeCache = ConcurrentHashMap<String, Int>()
 
     suspend fun getMovie(title: String, year: Int? = null, language: String? = null): Movie? {
         if (!UserPreferences.enableTmdb) return null
@@ -116,6 +120,40 @@ object TmdbUtils {
         } catch (_: Exception) { listOf() }
     }
 
+    suspend fun getMovieAgeRating(title: String, year: Int? = null, language: String? = null): Int? {
+        if (!UserPreferences.enableTmdb) return null
+
+        val effectiveYear = year ?: extractYear(title)
+        val cacheKey = buildLookupCacheKey("movie", title, effectiveYear, language)
+        movieAgeCache[cacheKey]?.let(::decodeAgeRatingCacheValue)?.let { return it }
+        if (movieAgeCache.containsKey(cacheKey)) return null
+
+        val ageRating = runCatching {
+            val movie = findBestMovieMatch(title, effectiveYear, language) ?: return@runCatching null
+            getMovieAgeRatingById(movie.id, language)
+        }.getOrNull()
+
+        movieAgeCache[cacheKey] = encodeAgeRatingCacheValue(ageRating)
+        return ageRating
+    }
+
+    suspend fun getTvShowAgeRating(title: String, year: Int? = null, language: String? = null): Int? {
+        if (!UserPreferences.enableTmdb) return null
+
+        val effectiveYear = year ?: extractYear(title)
+        val cacheKey = buildLookupCacheKey("tv", title, effectiveYear, language)
+        tvAgeCache[cacheKey]?.let(::decodeAgeRatingCacheValue)?.let { return it }
+        if (tvAgeCache.containsKey(cacheKey)) return null
+
+        val ageRating = runCatching {
+            val tvShow = findBestTvMatch(title, effectiveYear, language) ?: return@runCatching null
+            getTvShowAgeRatingById(tvShow.id, language)
+        }.getOrNull()
+
+        tvAgeCache[cacheKey] = encodeAgeRatingCacheValue(ageRating)
+        return ageRating
+    }
+
     suspend fun getMovieById(id: Int, language: String? = null): Movie? {
         if (!UserPreferences.enableTmdb) return null
         return try {
@@ -148,6 +186,26 @@ object TmdbUtils {
                 cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
             )
         } catch (_: Exception) { null }
+    }
+
+    suspend fun getMovieAgeRatingById(id: Int, language: String? = null): Int? {
+        if (!UserPreferences.enableTmdb) return null
+
+        val cacheKey = "movie-id|$id|${language.orEmpty()}"
+        movieAgeCache[cacheKey]?.let(::decodeAgeRatingCacheValue)?.let { return it }
+        if (movieAgeCache.containsKey(cacheKey)) return null
+
+        val ageRating = runCatching {
+            val details = TMDb3.Movies.details(
+                movieId = id,
+                appendToResponse = listOf(TMDb3.Params.AppendToResponse.Movie.RELEASES_DATES),
+                language = language
+            )
+            extractMovieAgeRating(details, language)
+        }.getOrNull()
+
+        movieAgeCache[cacheKey] = encodeAgeRatingCacheValue(ageRating)
+        return ageRating
     }
 
     suspend fun getTvShowById(id: Int, language: String? = null): TvShow? {
@@ -189,6 +247,26 @@ object TmdbUtils {
                 cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
             )
         } catch (_: Exception) { null }
+    }
+
+    suspend fun getTvShowAgeRatingById(id: Int, language: String? = null): Int? {
+        if (!UserPreferences.enableTmdb) return null
+
+        val cacheKey = "tv-id|$id|${language.orEmpty()}"
+        tvAgeCache[cacheKey]?.let(::decodeAgeRatingCacheValue)?.let { return it }
+        if (tvAgeCache.containsKey(cacheKey)) return null
+
+        val ageRating = runCatching {
+            val details = TMDb3.TvSeries.details(
+                seriesId = id,
+                appendToResponse = listOf(TMDb3.Params.AppendToResponse.Tv.CONTENT_RATING),
+                language = language
+            )
+            extractTvShowAgeRating(details, language)
+        }.getOrNull()
+
+        tvAgeCache[cacheKey] = encodeAgeRatingCacheValue(ageRating)
+        return ageRating
     }
 
     private suspend fun findBestMovieMatch(
@@ -426,5 +504,106 @@ object TmdbUtils {
 
         val overlap = leftWords.intersect(rightWords).size.toDouble()
         return overlap / max(leftWords.size, rightWords.size).toDouble()
+    }
+
+    private fun buildLookupCacheKey(type: String, title: String, year: Int?, language: String?): String {
+        return "$type|${normalizeTitle(title)}|${year ?: -1}|${language.orEmpty()}"
+    }
+
+    private fun encodeAgeRatingCacheValue(ageRating: Int?): Int = ageRating ?: UNKNOWN_AGE_RATING
+
+    private fun decodeAgeRatingCacheValue(value: Int): Int? {
+        return value.takeUnless { it == UNKNOWN_AGE_RATING }
+    }
+
+    private fun extractMovieAgeRating(details: TMDb3.Movie.Detail, language: String?): Int? {
+        val releaseDates = details.releaseDates?.results.orEmpty()
+        val preferredCountries = buildPreferredCertificationCountries(language)
+
+        preferredCountries.forEach { countryCode ->
+            releaseDates
+                .firstOrNull { it.iso3166.equals(countryCode, ignoreCase = true) }
+                ?.releaseDates
+                ?.mapNotNull { parseAgeRating(it.certification) }
+                ?.maxOrNull()
+                ?.let { return it }
+        }
+
+        return releaseDates
+            .asSequence()
+            .flatMap { it.releaseDates.asSequence() }
+            .mapNotNull { parseAgeRating(it.certification) }
+            .maxOrNull()
+    }
+
+    private fun extractTvShowAgeRating(details: TMDb3.Tv.Detail, language: String?): Int? {
+        val contentRatings = details.contentRatings?.results.orEmpty()
+        val preferredCountries = buildPreferredCertificationCountries(language)
+
+        preferredCountries.forEach { countryCode ->
+            contentRatings
+                .filter { it.iso3166.equals(countryCode, ignoreCase = true) }
+                .mapNotNull { parseAgeRating(it.rating) }
+                .maxOrNull()
+                ?.let { return it }
+        }
+
+        return contentRatings
+            .mapNotNull { parseAgeRating(it.rating) }
+            .maxOrNull()
+    }
+
+    private fun buildPreferredCertificationCountries(language: String?): List<String> {
+        val primary = when (language?.substringBefore('-')?.lowercase()) {
+            "de" -> "DE"
+            "es" -> "ES"
+            "fr" -> "FR"
+            "it" -> "IT"
+            "pt" -> "PT"
+            "en" -> "US"
+            else -> language
+                ?.substringAfterLast('-')
+                ?.takeIf { it.length == 2 }
+                ?.uppercase()
+        }
+
+        return listOfNotNull(primary, "US", "GB", "DE", "FR", "ES", "IT", "PT")
+            .distinct()
+    }
+
+    private fun parseAgeRating(raw: String?): Int? {
+        val normalized = raw
+            ?.trim()
+            ?.uppercase()
+            ?.replace('_', '-')
+            ?.replace(Regex("\\s+"), " ")
+            ?: return null
+
+        if (normalized.isBlank()) return null
+
+        listOf(18, 17, 16, 15, 14, 13, 12, 10, 7, 6, 0).forEach { age ->
+            if (Regex("(^|\\D)$age(\\D|$)").containsMatchIn(normalized)) {
+                return age
+            }
+        }
+
+        return when (normalized) {
+            "TV-MA", "MA", "MATURE", "X", "RX", "C" -> 18
+            "NC-17", "R" -> 17
+            "TV-14" -> 14
+            "PG-13" -> 13
+            "TV-PG", "PG" -> 10
+            "TV-Y7", "TV-Y7-FV" -> 7
+            "TV-G", "TV-Y", "G", "U", "A", "AL", "ATP", "TP", "L", "T", "ALL" -> 0
+            "NR", "UR", "UNRATED", "NOT RATED", "N/A" -> null
+            else -> when {
+                normalized.contains("TOUS PUBLICS") -> 0
+                normalized.contains("APTA") -> 0
+                normalized.contains("TODOS") -> 0
+                normalized.contains("MA") -> 17
+                normalized.contains("PG") -> 10
+                else -> null
+            }
+        }
     }
 }

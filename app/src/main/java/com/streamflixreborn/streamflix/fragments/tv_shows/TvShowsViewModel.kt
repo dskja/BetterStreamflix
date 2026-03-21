@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +82,9 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
         _state.emit(State.Loading)
 
         try {
-            val tvShows = UserPreferences.currentProvider!!.getTvShows()
+            val tvShows = ParentalControlUtils.filterItems(
+                UserPreferences.currentProvider!!.getTvShows()
+            ).filterIsInstance<TvShow>()
 
             page = 1
 
@@ -98,7 +101,9 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
             _state.emit(State.LoadingMore)
 
             try {
-                val tvShows = UserPreferences.currentProvider!!.getTvShows(page + 1)
+                val tvShows = ParentalControlUtils.filterItems(
+                    UserPreferences.currentProvider!!.getTvShows(page + 1)
+                ).filterIsInstance<TvShow>()
 
                 page += 1
 

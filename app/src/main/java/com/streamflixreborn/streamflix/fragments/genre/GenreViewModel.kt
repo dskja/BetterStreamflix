@@ -7,6 +7,7 @@ import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Genre
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import kotlinx.coroutines.Dispatchers
@@ -107,7 +108,9 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
         _state.emit(State.Loading)
 
         try {
-            val genre = UserPreferences.currentProvider!!.getGenre(id)
+            val genre = UserPreferences.currentProvider!!.getGenre(id).let {
+                it.copy(shows = ParentalControlUtils.filterShows(it.shows))
+            }
 
             page = 1
 
@@ -124,7 +127,9 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
             _state.emit(State.LoadingMore)
 
             try {
-                val genre = UserPreferences.currentProvider!!.getGenre(id, page + 1)
+                val genre = UserPreferences.currentProvider!!.getGenre(id, page + 1).let {
+                    it.copy(shows = ParentalControlUtils.filterShows(it.shows))
+                }
 
                 page += 1
 

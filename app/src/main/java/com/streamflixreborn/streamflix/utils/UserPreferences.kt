@@ -178,6 +178,84 @@ object UserPreferences {
             }
         }
 
+    var parentalControlPin: String
+        get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
+        set(value) {
+            Key.PARENTAL_CONTROL_PIN.setString(value.trim())
+        }
+
+    var parentalControlAdminPin: String
+        get() = Key.PARENTAL_CONTROL_ADMIN_PIN.getString() ?: ""
+        set(value) {
+            Key.PARENTAL_CONTROL_ADMIN_PIN.setString(value.trim())
+        }
+
+    var parentalControlMaxAge: Int?
+        get() = Key.PARENTAL_CONTROL_MAX_AGE.getInt()
+        set(value) {
+            Key.PARENTAL_CONTROL_MAX_AGE.setInt(value)
+        }
+
+    var parentalControlFailedAttempts: Int
+        get() = Key.PARENTAL_CONTROL_FAILED_ATTEMPTS.getInt() ?: 0
+        set(value) {
+            Key.PARENTAL_CONTROL_FAILED_ATTEMPTS.setInt(value)
+        }
+
+    var parentalControlLockedUntilMillis: Long
+        get() = Key.PARENTAL_CONTROL_LOCKED_UNTIL.getLong() ?: 0L
+        set(value) {
+            Key.PARENTAL_CONTROL_LOCKED_UNTIL.setLong(value)
+        }
+
+    var parentalControlHardLocked: Boolean
+        get() = Key.PARENTAL_CONTROL_HARD_LOCKED.getBoolean() ?: false
+        set(value) {
+            Key.PARENTAL_CONTROL_HARD_LOCKED.setBoolean(value)
+        }
+
+    val isParentalControlActive: Boolean
+        get() = enableTmdb && parentalControlPin.isNotBlank() && parentalControlMaxAge != null
+
+    val isParentalControlTemporarilyLocked: Boolean
+        get() = parentalControlLockedUntilMillis > System.currentTimeMillis()
+
+    val parentalControlLockRemainingMillis: Long
+        get() = (parentalControlLockedUntilMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+
+    fun registerParentalPinSuccess() {
+        parentalControlFailedAttempts = 0
+        parentalControlLockedUntilMillis = 0L
+        parentalControlHardLocked = false
+    }
+
+    fun registerParentalPinFailure(nowMillis: Long = System.currentTimeMillis()) {
+        val attempts = parentalControlFailedAttempts + 1
+        parentalControlFailedAttempts = attempts
+
+        when {
+            attempts >= 7 && parentalControlAdminPin.isNotBlank() -> {
+                parentalControlHardLocked = true
+                parentalControlLockedUntilMillis = 0L
+            }
+            attempts >= 7 -> {
+                parentalControlLockedUntilMillis = nowMillis + 24L * 60L * 60L * 1000L
+            }
+            attempts >= 5 -> {
+                parentalControlLockedUntilMillis = nowMillis + 30L * 60L * 1000L
+            }
+            attempts >= 3 -> {
+                parentalControlLockedUntilMillis = nowMillis + 5L * 60L * 1000L
+            }
+        }
+    }
+
+    fun unlockParentalControls() {
+        parentalControlFailedAttempts = 0
+        parentalControlLockedUntilMillis = 0L
+        parentalControlHardLocked = false
+    }
+
     var subdlApiKey: String
         get() = Key.SUBDL_API_KEY.getString() ?: ""
         set(value) {
@@ -377,6 +455,12 @@ object UserPreferences {
         AUTOPLAY_BUFFER,
         SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
+        PARENTAL_CONTROL_PIN,
+        PARENTAL_CONTROL_ADMIN_PIN,
+        PARENTAL_CONTROL_MAX_AGE,
+        PARENTAL_CONTROL_FAILED_ATTEMPTS,
+        PARENTAL_CONTROL_LOCKED_UNTIL,
+        PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
         BYPASS_WS_ADVERTISED_HOST;
 
