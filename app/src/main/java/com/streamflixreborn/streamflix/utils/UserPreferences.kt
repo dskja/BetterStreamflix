@@ -26,7 +26,7 @@ object UserPreferences {
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.biz"
-    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana3.la"
+    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana.gs"
     private const val DEFAULT_POSEIDON_DOMAIN = "www.poseidonhd2.co"
 
     const val PROVIDER_URL = "URL"
@@ -171,6 +171,11 @@ object UserPreferences {
         set(value) {
             Key.ENABLE_TMDB.setBoolean(value)
             TMDb3.rebuildService()
+            if (value) {
+                runCatching {
+                    ArtworkRepairScheduler.schedule(StreamFlixApp.instance, currentProvider)
+                }
+            }
         }
 
     var subdlApiKey: String

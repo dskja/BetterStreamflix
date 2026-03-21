@@ -13,18 +13,23 @@ import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 class HomeViewModel(database: AppDatabase) : ViewModel() {
 
     private val _state = MutableStateFlow<State>(State.Loading)
+    private val continueWatchingTvShowCache = ConcurrentHashMap<String, TvShow>()
+    private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: Flow<State> = combine(
@@ -35,22 +40,15 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             database.movieDao().getWatchingMovies(),
             database.episodeDao().getWatchingEpisodes(),
             database.episodeDao().getNextEpisodesToWatch(),
-        ) { watchingMovies, watchingEpisodes, watchNextEpisodes ->
+            database.tvShowDao().getAll(),
+        ) { watchingMovies, watchingEpisodes, watchNextEpisodes, tvShows ->
 
             val allEpisodes = (watchingEpisodes + watchNextEpisodes)
                 .distinctBy { it.id }
 
-            val tvShowIds = allEpisodes.mapNotNull { it.tvShow?.id }.distinct()
             val seasonIds = allEpisodes.mapNotNull { it.season?.id }.distinct()
 
-            val tvShowsMap = if (tvShowIds.isEmpty()) {
-                emptyMap()
-            } else {
-                database.tvShowDao()
-                    .getByIds(tvShowIds)
-                    .first()
-                    .associateBy { it.id }
-            }
+            val tvShowsMap = tvShows.associateBy { it.id }
 
             val seasonsMap = if (seasonIds.isEmpty()) {
                 emptyMap()
@@ -60,10 +58,16 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     .associateBy { it.id }
             }
 
-            val enrichedEpisodes = allEpisodes.onEach { episode ->
-                episode.tvShow = episode.tvShow?.id?.let { tvShowsMap[it] }
-                episode.season = episode.season?.id?.let { seasonsMap[it] }
-            }
+            val enrichedEpisodes = enrichContinueWatchingEpisodes(
+                episodes = allEpisodes.map { episode ->
+                    episode.copy(
+                        tvShow = episode.tvShow?.id?.let { tvShowsMap[it] } ?: episode.tvShow,
+                        season = episode.season?.id?.let { seasonsMap[it] } ?: episode.season,
+                    ).apply {
+                        merge(episode)
+                    }
+                }
+            )
 
             (watchingMovies + enrichedEpisodes) as List<AppAdapter.Item>
         },
@@ -205,6 +209,60 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
     init {
         getHome()
+    }
+
+    private suspend fun enrichContinueWatchingEpisodes(episodes: List<Episode>): List<Episode> = coroutineScope {
+        val provider = UserPreferences.currentProvider ?: return@coroutineScope episodes
+
+        episodes.map { episode ->
+            async {
+                val tvShowId = episode.tvShow?.id ?: return@async episode
+                val resolvedTvShow = continueWatchingTvShowCache[tvShowId] ?: runCatching {
+                    provider.getTvShow(tvShowId)
+                }.getOrNull()?.also { fetchedTvShow ->
+                    continueWatchingTvShowCache[tvShowId] = fetchedTvShow
+                }
+
+                val mergedTvShow = resolvedTvShow?.copy().apply {
+                    this?.let { show ->
+                        episode.tvShow?.let { existingTvShow -> show.merge(existingTvShow) }
+                    }
+                } ?: episode.tvShow
+
+                val resolvedSeason = episode.season?.let { season ->
+                    mergedTvShow?.seasons?.firstOrNull { it.id == season.id || it.number == season.number }
+                        ?: season
+                }
+
+                val resolvedEpisode = if (UserPreferences.enableTmdb) {
+                    val seasonId = resolvedSeason?.id
+                        ?: episode.season?.id
+                    seasonId?.let { key ->
+                        continueWatchingSeasonEpisodesCache[key] ?: runCatching {
+                            provider.getEpisodesBySeason(key)
+                        }.getOrDefault(emptyList()).also { fetchedEpisodes ->
+                            if (fetchedEpisodes.isNotEmpty()) {
+                                continueWatchingSeasonEpisodesCache[key] = fetchedEpisodes
+                            }
+                        }
+                    }?.firstOrNull { seasonEpisode ->
+                        seasonEpisode.id == episode.id || seasonEpisode.number == episode.number
+                    }
+                } else {
+                    null
+                }
+
+                episode.copy(
+                    title = resolvedEpisode?.title ?: episode.title,
+                    overview = resolvedEpisode?.overview ?: episode.overview,
+                    poster = resolvedEpisode?.poster ?: episode.poster,
+                    tvShow = mergedTvShow,
+                    season = resolvedSeason,
+                ).apply {
+                    merge(episode)
+                }
+            }
+        }.awaitAll()
     }
 
     fun getHome() = viewModelScope.launch(Dispatchers.IO) {

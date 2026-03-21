@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">ستريم فليكس</string>
 
@@ -342,8 +342,6 @@
     <string name="player_settings_speed_2">× 2</string>
     <string name="player_settings_servers_title">الخوادم</string>
     <string name="player_settings_servers_label">الخوادم</string>
-    <string name="settings_category_streamingcommunity">إعدادات StreamingCommunity</string>
-    <string name="settings_category_streamingcommunity_domain">اسم نطاق StreamingCommunity</string>
     <string name="settings_category_poseidon">إعدادات Poseidonhd2</string>
     <string name="settings_category_poseidon_domain">اسم نطاق Poseidonhd2</string>
     <string name="settings_close_app">إغلاق التطبيق</string>

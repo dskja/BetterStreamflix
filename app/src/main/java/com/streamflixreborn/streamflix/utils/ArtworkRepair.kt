@@ -54,7 +54,13 @@ object ArtworkRepair {
     ): Movie? {
         return runCatching {
             prepareProvider(context, provider)
-            val refreshedMovie = provider.getMovie(movie.id)
+            val refreshedMovie = provider.getMovie(movie.id).also { fetchedMovie ->
+                applyTmdbFallbackToMovie(
+                    currentMovie = fetchedMovie,
+                    fallbackTitle = movie.title,
+                    providerLanguage = provider.language,
+                )
+            }
             database.movieDao().getById(movie.id)?.let { refreshedMovie.merge(it) }
             database.movieDao().insert(refreshedMovie)
             refreshedMovie
@@ -71,7 +77,13 @@ object ArtworkRepair {
     ): TvShow? {
         return runCatching {
             prepareProvider(context, provider)
-            val refreshedTvShow = provider.getTvShow(tvShow.id)
+            val refreshedTvShow = provider.getTvShow(tvShow.id).also { fetchedTvShow ->
+                applyTmdbFallbackToTvShow(
+                    currentTvShow = fetchedTvShow,
+                    fallbackTitle = tvShow.title,
+                    providerLanguage = provider.language,
+                )
+            }
             database.tvShowDao().getById(tvShow.id)?.let { refreshedTvShow.merge(it) }
             database.tvShowDao().insert(refreshedTvShow)
             refreshedTvShow
@@ -86,6 +98,26 @@ object ArtworkRepair {
         database: AppDatabase,
     ) {
         prepareProvider(context, provider)
+
+        database.episodeDao()
+            .getArtworkRepairTvShowIds()
+            .distinct()
+            .forEach { tvShowId ->
+                val existingTvShow = database.tvShowDao().getById(tvShowId)
+                val missingArtwork = existingTvShow == null ||
+                    !isRemoteArtworkUrl(existingTvShow.poster) ||
+                    existingTvShow.banner.isNullOrBlank() ||
+                    !isRemoteArtworkUrl(existingTvShow.banner)
+
+                if (missingArtwork) {
+                    repairTvShow(
+                        context = context,
+                        provider = provider,
+                        database = database,
+                        tvShow = existingTvShow ?: TvShow(id = tvShowId, title = ""),
+                    )
+                }
+            }
 
         database.movieDao()
             .getArtworkRepairCandidates()
@@ -111,6 +143,50 @@ object ArtworkRepair {
 
     private fun hasUsableArtwork(poster: String?, banner: String?): Boolean {
         return isRemoteArtworkUrl(poster) && (banner.isNullOrBlank() || isRemoteArtworkUrl(banner))
+    }
+
+    private suspend fun applyTmdbFallbackToMovie(
+        currentMovie: Movie,
+        fallbackTitle: String?,
+        providerLanguage: String?,
+    ) {
+        if (hasUsableArtwork(currentMovie.poster, currentMovie.banner)) return
+
+        val lookupTitle = currentMovie.title.ifBlank { fallbackTitle.orEmpty() }
+        if (lookupTitle.isBlank()) return
+
+        val tmdbMovie = TmdbUtils.getMovie(lookupTitle, language = providerLanguage) ?: return
+        if (!isRemoteArtworkUrl(currentMovie.poster) && isRemoteArtworkUrl(tmdbMovie.poster)) {
+            currentMovie.poster = tmdbMovie.poster
+        }
+        if (!isRemoteArtworkUrl(currentMovie.banner) && isRemoteArtworkUrl(tmdbMovie.banner)) {
+            currentMovie.banner = tmdbMovie.banner
+        }
+        if (currentMovie.imdbId.isNullOrBlank()) {
+            currentMovie.imdbId = tmdbMovie.imdbId
+        }
+    }
+
+    private suspend fun applyTmdbFallbackToTvShow(
+        currentTvShow: TvShow,
+        fallbackTitle: String?,
+        providerLanguage: String?,
+    ) {
+        if (hasUsableArtwork(currentTvShow.poster, currentTvShow.banner)) return
+
+        val lookupTitle = currentTvShow.title.ifBlank { fallbackTitle.orEmpty() }
+        if (lookupTitle.isBlank()) return
+
+        val tmdbTvShow = TmdbUtils.getTvShow(lookupTitle, language = providerLanguage) ?: return
+        if (!isRemoteArtworkUrl(currentTvShow.poster) && isRemoteArtworkUrl(tmdbTvShow.poster)) {
+            currentTvShow.poster = tmdbTvShow.poster
+        }
+        if (!isRemoteArtworkUrl(currentTvShow.banner) && isRemoteArtworkUrl(tmdbTvShow.banner)) {
+            currentTvShow.banner = tmdbTvShow.banner
+        }
+        if (currentTvShow.imdbId.isNullOrBlank()) {
+            currentTvShow.imdbId = tmdbTvShow.imdbId
+        }
     }
 
     private fun containsFileNotFound(error: GlideException?): Boolean {

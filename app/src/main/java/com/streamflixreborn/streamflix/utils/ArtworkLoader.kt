@@ -93,8 +93,18 @@ private fun ImageView.loadRecoverableArtwork(
     configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable>,
     onRepair: (staleUrl: String, onUpdated: (String) -> Unit) -> Unit,
 ) {
+    var hasRequestedRepairForBlankUrl = false
+
     fun submit(url: String?) {
         val requestedUrl = url
+        if (requestedUrl.isNullOrBlank() && !hasRequestedRepairForBlankUrl) {
+            hasRequestedRepairForBlankUrl = true
+            onRepair("") { refreshedUrl ->
+                if (!isAttachedToWindow || refreshedUrl.isBlank()) return@onRepair
+                submit(refreshedUrl)
+            }
+        }
+
         configure(Glide.with(this).load(requestedUrl))
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
@@ -177,6 +187,20 @@ fun ImageView.loadTvShowBanner(
     loadRecoverableArtwork(tvShow.banner, configure) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairTvShowArtwork(this, tvShow, staleUrl) { refreshedTvShow ->
             val refreshedUrl = refreshedTvShow.banner
+            if (!refreshedUrl.isNullOrBlank() && refreshedUrl != staleUrl) {
+                onUpdated(refreshedUrl)
+            }
+        }
+    }
+}
+
+fun ImageView.loadTvShowCardArtwork(
+    tvShow: TvShow,
+    configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
+) {
+    loadRecoverableArtwork(tvShow.poster ?: tvShow.banner, configure) { staleUrl, onUpdated ->
+        ArtworkRepairCoordinator.repairTvShowArtwork(this, tvShow, staleUrl) { refreshedTvShow ->
+            val refreshedUrl = refreshedTvShow.poster ?: refreshedTvShow.banner
             if (!refreshedUrl.isNullOrBlank() && refreshedUrl != staleUrl) {
                 onUpdated(refreshedUrl)
             }
