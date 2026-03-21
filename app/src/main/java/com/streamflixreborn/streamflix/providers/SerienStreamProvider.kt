@@ -148,10 +148,12 @@ object SerienStreamProvider : Provider {
         )
         categories.add(
             Category(name = "Neu auf S.to",
-                list = document.select("div:has(h4:contains(Neu auf S.to)) + div.row > div").map {
+                list = document.select("section.continue-widget.new-shows-slider .swiper-slide").map {
                     TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("h6 a")?.text() ?: "",
+                        id = getTvShowIdFromLink(
+                            it.selectFirst("a.continue-cover, h3.continue-title a")?.attr("href") ?: ""
+                        ),
+                        title = it.selectFirst("h3.continue-title a")?.text()?.trim() ?: "",
                         poster = normalizeImageUrl(it.extractPoster()))
                 })
         )

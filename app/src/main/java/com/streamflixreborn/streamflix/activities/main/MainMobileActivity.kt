@@ -30,6 +30,7 @@ import com.streamflixreborn.streamflix.providers.Cine24hProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
 import com.streamflixreborn.streamflix.utils.CustomTabHelper
+import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -41,6 +42,10 @@ import okhttp3.*
 import kotlin.coroutines.resume
 
 class MainMobileActivity : FragmentActivity() {
+
+    private companion object {
+        const val RESOLVER_TIMEOUT_MS = 12_000L
+    }
 
     private var _binding: ActivityMainMobileBinding? = null
     private val binding get() = _binding!!
@@ -115,10 +120,20 @@ class MainMobileActivity : FragmentActivity() {
         viewModel.checkUpdate()
 
         binding.bnvMain.setupWithNavController(navController)
+        updateNavigationVisibility()
         updateBottomNavigationVisibility(navController.currentDestination?.id)
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateNavigationVisibility(destination.id)
             updateBottomNavigationVisibility(destination.id)
+        }
+
+        lifecycleScope.launch {
+            ProviderChangeNotifier.providerChangeFlow
+                .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+                .collect {
+                    updateNavigationVisibility(navController.currentDestination?.id)
+                }
         }
 
         lifecycleScope.launch {
@@ -237,6 +252,34 @@ class MainMobileActivity : FragmentActivity() {
         binding.bnvMain.visibility = if (showBottomNav) View.VISIBLE else View.GONE
     }
 
+    private fun updateNavigationVisibility(currentDestinationId: Int? = null) {
+        val provider = UserPreferences.currentProvider ?: return
+        val supportsMovies = Provider.supportsMovies(provider)
+        val supportsTvShows = Provider.supportsTvShows(provider)
+
+        binding.bnvMain.menu.findItem(R.id.movies)?.isVisible = supportsMovies
+        binding.bnvMain.menu.findItem(R.id.tv_shows)?.apply {
+            isVisible = supportsTvShows
+            title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD") {
+                getString(R.string.main_menu_all_channels)
+            } else {
+                getString(R.string.main_menu_tv_shows)
+            }
+        }
+
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+        val navController = navHost?.navController ?: return
+        when {
+            currentDestinationId == R.id.movies && !supportsMovies -> {
+                navController.navigate(R.id.tv_shows)
+            }
+
+            currentDestinationId == R.id.tv_shows && !supportsTvShows -> {
+                navController.navigate(R.id.home)
+            }
+        }
+    }
+
     private fun isTopLevelProviderDestination(destinationId: Int?): Boolean {
         return destinationId in setOf(
             R.id.search,
@@ -257,7 +300,7 @@ class MainMobileActivity : FragmentActivity() {
 
     private suspend fun requestResolvedUrl(wsUrl: String, token: String): String? =
         withContext(Dispatchers.IO) {
-            withTimeoutOrNull(5_000) {
+            withTimeoutOrNull(RESOLVER_TIMEOUT_MS) {
                 suspendCancellableCoroutine { continuation ->
                     val request = Request.Builder()
                         .url(wsUrl)
@@ -272,14 +315,17 @@ class MainMobileActivity : FragmentActivity() {
                         override fun onMessage(webSocket: WebSocket, text: String) {
                             when {
                                 text.startsWith("url:") -> {
-                                    val url = text.substringAfter("url:")
+                                    val url = text.substringAfter("url:").trim()
                                     if (continuation.isActive) {
-                                        continuation.resume(url)
+                                        continuation.resume(
+                                            url.takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
+                                        )
                                     }
                                     webSocket.close(1000, null)
                                 }
 
                                 text.startsWith("error:") -> {
+                                    Log.e("ResolverWS", "Resolver returned error: $text")
                                     if (continuation.isActive) {
                                         continuation.resume(null)
                                     }
@@ -289,10 +335,12 @@ class MainMobileActivity : FragmentActivity() {
                         }
 
                         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                            Log.e("ResolverWS", "WS resolve failed", t)
-                            if (continuation.isActive) {
-                                continuation.resume(null)
+                            if (!continuation.isActive) {
+                                Log.d("ResolverWS", "WS resolve cancelled or timed out")
+                                return
                             }
+                            Log.e("ResolverWS", "WS resolve failed", t)
+                            continuation.resume(null)
                         }
                     })
 
@@ -305,7 +353,7 @@ class MainMobileActivity : FragmentActivity() {
 
     private suspend fun sendWebSocketDone(wsUrl: String, token: String) {
         withContext(Dispatchers.IO) {
-            withTimeoutOrNull(5_000) {
+            withTimeoutOrNull(RESOLVER_TIMEOUT_MS) {
                 suspendCancellableCoroutine { continuation ->
                     val request = Request.Builder()
                         .url(wsUrl)
@@ -325,10 +373,12 @@ class MainMobileActivity : FragmentActivity() {
                         }
 
                         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                            Log.e("ResolverWS", "WS failed", t)
-                            if (continuation.isActive) {
-                                continuation.resume(Unit)
+                            if (!continuation.isActive) {
+                                Log.d("ResolverWS", "WS done cancelled or timed out")
+                                return
                             }
+                            Log.e("ResolverWS", "WS failed", t)
+                            continuation.resume(Unit)
                         }
                     })
 
@@ -364,9 +414,9 @@ class MainMobileActivity : FragmentActivity() {
         lifecycleScope.launch {
             val url = requestResolvedUrl(ws, token)
             if (url == null) {
-                Toast.makeText(this@MainMobileActivity, "Unable to start bypass", Toast.LENGTH_SHORT).show()
-                clearResolverState()
-                finish()
+                isResolving = false
+                customTabOpened = false
+                showResolverConnectionErrorDialog(ws, token)
                 return@launch
             }
 
@@ -374,6 +424,24 @@ class MainMobileActivity : FragmentActivity() {
             customTabOpened = true
             customTabHelper.open(this@MainMobileActivity, url)
         }
+    }
+
+    private fun showResolverConnectionErrorDialog(ws: String, token: String) {
+        if (isFinishing || isDestroyed) return
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.app_name)
+            .setMessage("Unable to reach the TV bypass websocket. Retry?")
+            .setPositiveButton("Retry") { _, _ ->
+                resolve(ws, token)
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+                clearResolverState()
+            }
+            .setOnCancelListener {
+                clearResolverState()
+            }
+            .show()
     }
 
     fun updateImmersiveMode() {

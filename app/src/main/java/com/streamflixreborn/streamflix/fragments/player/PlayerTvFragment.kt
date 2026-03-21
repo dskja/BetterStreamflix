@@ -11,11 +11,17 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -83,10 +89,9 @@ import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
+import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
 import com.streamflixreborn.streamflix.utils.QrUtils
 import kotlinx.coroutines.delay
-import java.net.Inet4Address
-import java.net.NetworkInterface
 import java.util.Locale
 import java.util.UUID
 
@@ -126,17 +131,6 @@ class PlayerTvFragment : Fragment() {
     private var activeBypassSession: BypassSession? = null
     private var qrDialog: androidx.appcompat.app.AlertDialog? = null
     private var wsServer: BypassWebSocketServer? = null
-    fun getLocalIpAddress(): String? {
-        return try {
-            NetworkInterface.getNetworkInterfaces().toList()
-                .firstOrNull { it.name == "wlan0" || it.name == "eth0" }
-                ?.inetAddresses?.toList()
-                ?.firstOrNull { it is Inet4Address && !it.isLoopbackAddress }
-                ?.hostAddress
-        } catch (e: Exception) {
-            null
-        }
-    }
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
@@ -260,21 +254,25 @@ class PlayerTvFragment : Fragment() {
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
 
-                            val ip = getLocalIpAddress() ?: return@collect
-                            val wsUrl = "ws://$ip:8081"
+                            val wsUrl = BypassWebSocketEndpointHelper.getAdvertisedWsUrl(8081)
+                                ?: return@collect
                             val session = BypassSession(
                                 token = UUID.randomUUID().toString(),
                                 serverUrl = sToServer.id,
                             )
                             activeBypassSession = session
 
-                            val qrContent = "streamflix://resolve?ws=$wsUrl&token=${Uri.encode(session.token)}"
+                            val qrContent = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
 
-                            startWebSocketServer()
+                            if (!startWebSocketServer()) {
+                                waitingForBypass = false
+                                activeBypassSession = null
+                                return@collect
+                            }
                             wsServer?.registerSession(session.token, session.serverUrl)
                             requireActivity().runOnUiThread {
                                 showQrDialog(qrContent)
-                                Log.d("Bypass", "TV IP: $ip")
+                                Log.d("Bypass", "Advertised WS URL: $wsUrl")
                             }
 
                             return@collect
@@ -1201,20 +1199,66 @@ class PlayerTvFragment : Fragment() {
         }
 
     private fun showQrDialog(content: String) {
-        val bitmap = QrUtils.generate(content, 800) ?: return
+        val displayMetrics: DisplayMetrics = resources.displayMetrics
+        val density = displayMetrics.density
+        val dialogWidth = (displayMetrics.widthPixels * 0.72f).toInt()
+        val qrSize = minOf(
+            (dialogWidth - (density * 64).toInt()).coerceAtLeast((density * 240).toInt()),
+            (displayMetrics.heightPixels * 0.45f).toInt().coerceAtLeast((density * 240).toInt()),
+        )
+        val bitmap = QrUtils.generate(content, qrSize) ?: return
 
         val imageView = ImageView(requireContext()).apply {
             setImageBitmap(bitmap)
             setBackgroundColor(Color.WHITE)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            adjustViewBounds = true
             isFocusable = true
             isFocusableInTouchMode = true
             requestFocus()
         }
 
+        val instructionsView = TextView(requireContext()).apply {
+            text = buildString {
+                append("Solve captcha on phone")
+                if (BypassWebSocketEndpointHelper.isProbablyEmulator()) {
+                    append("\n\nEmulator note: set 'Bypass advertised host' in TV settings to your PC LAN IP and forward TCP 8081 to the emulator.")
+                }
+            }
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextColor(Color.WHITE)
+        }
+
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(
+                (density * 24).toInt(),
+                (density * 16).toInt(),
+                (density * 24).toInt(),
+                (density * 12).toInt(),
+            )
+        }
+        container.addView(
+            imageView,
+            LinearLayout.LayoutParams(qrSize, qrSize)
+        )
+        container.addView(
+            instructionsView,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        )
+
+        val scrollView = ScrollView(requireContext()).apply {
+            isFillViewport = true
+            addView(container)
+        }
+
         qrDialog = androidx.appcompat.app.AlertDialog.Builder(requireActivity())
             .setTitle("Scan with phone")
-            .setMessage("Solve captcha on phone")
-            .setView(imageView)
+            .setView(scrollView)
             .setCancelable(true)
             .setOnCancelListener {
                 qrDialog?.dismiss()
@@ -1230,10 +1274,11 @@ class PlayerTvFragment : Fragment() {
             .create()
 
         qrDialog?.show()
+        qrDialog?.window?.setLayout(dialogWidth, LinearLayout.LayoutParams.WRAP_CONTENT)
     }
 
-    private fun startWebSocketServer() {
-        if (wsServer != null) return
+    private fun startWebSocketServer(): Boolean {
+        if (wsServer != null) return true
 
         wsServer = BypassWebSocketServer(8081) { token ->
             requireActivity().runOnUiThread {
@@ -1242,7 +1287,15 @@ class PlayerTvFragment : Fragment() {
             }
         }
 
-        wsServer?.start()
+        return runCatching {
+            wsServer?.start()
+            wsServer?.awaitStart() == true
+        }.getOrDefault(false).also { started ->
+            if (!started) {
+                Log.e("BypassWS", "WebSocket server failed to start on time")
+                stopWebSocketServer()
+            }
+        }
     }
     private fun stopWebSocketServer() {
         try {

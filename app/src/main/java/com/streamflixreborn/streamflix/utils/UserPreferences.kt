@@ -184,6 +184,12 @@ object UserPreferences {
             Key.SUBDL_API_KEY.setString(value)
         }
 
+    var bypassWsAdvertisedHost: String
+        get() = Key.BYPASS_WS_ADVERTISED_HOST.getString() ?: ""
+        set(value) {
+            Key.BYPASS_WS_ADVERTISED_HOST.setString(value.trim())
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -371,7 +377,8 @@ object UserPreferences {
         AUTOPLAY_BUFFER,
         SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
-        SELECTED_THEME;
+        SELECTED_THEME,
+        BYPASS_WS_ADVERTISED_HOST;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

@@ -6,6 +6,8 @@ import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class BypassWebSocketServer(
     port: Int,
@@ -13,6 +15,7 @@ class BypassWebSocketServer(
 ) : WebSocketServer(InetSocketAddress(port)) {
 
     private val sessions = ConcurrentHashMap<String, String>()
+    private val startedLatch = CountDownLatch(1)
 
     fun registerSession(token: String, url: String) {
         sessions[token] = url
@@ -20,6 +23,10 @@ class BypassWebSocketServer(
 
     fun clearSession(token: String) {
         sessions.remove(token)
+    }
+
+    fun awaitStart(timeoutMs: Long = 2_000): Boolean {
+        return startedLatch.await(timeoutMs, TimeUnit.MILLISECONDS)
     }
 
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake) {
@@ -62,5 +69,6 @@ class BypassWebSocketServer(
 
     override fun onStart() {
         Log.d("BypassWS", "Server started")
+        startedLatch.countDown()
     }
 }
