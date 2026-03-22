@@ -3,6 +3,7 @@
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="@raw/isrg_root_x1" />
         </trust-anchors>
     </base-config>
 </network-security-config>

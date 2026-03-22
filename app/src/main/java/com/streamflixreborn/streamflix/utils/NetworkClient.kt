@@ -2,17 +2,25 @@ package com.streamflixreborn.streamflix.utils
 
 import android.util.Log
 import android.webkit.CookieManager
+import okhttp3.ConnectionSpec
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.TlsVersion
 import okhttp3.logging.HttpLoggingInterceptor
+import java.security.KeyStore
 import java.security.SecureRandom
+import java.security.cert.CertificateFactory
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
+import com.streamflixreborn.streamflix.StreamFlixApp
+import com.streamflixreborn.streamflix.R
+import android.os.Build
 
 object NetworkClient {
 
@@ -83,6 +91,76 @@ object NetworkClient {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .dns(dns)
+
+        // Modern and compatible TLS configuration
+        val spec = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+            .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2, TlsVersion.TLS_1_1, TlsVersion.TLS_1_0)
+            .build()
+        builder.connectionSpecs(listOf(spec, ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT))
+
+        // SSL compatibility for Android < 9.0 (API 28) and ISRG Root X1 for Let's Encrypt
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            try {
+                // On older Android we manually inject the Let's Encrypt ISRG Root X1 certificate
+                // and enable older TLS versions just in case.
+                
+                val cf = CertificateFactory.getInstance("X.509")
+                val certInput = StreamFlixApp.instance.resources.openRawResource(R.raw.isrg_root_x1)
+                val isrgCert = certInput.use { cf.generateCertificate(it) }
+
+                val keyStore = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
+                    load(null, null)
+                    setCertificateEntry("isrg_root_x1", isrgCert)
+                }
+
+                // Initialize TMF with our certificate
+                val tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm()
+                val tmf = TrustManagerFactory.getInstance(tmfAlgorithm).apply {
+                    init(keyStore)
+                }
+
+                // Get system TMF for regular certificates
+                val systemTmf = TrustManagerFactory.getInstance(tmfAlgorithm).apply {
+                    init(null as KeyStore?)
+                }
+
+                val systemTrustManager = systemTmf.trustManagers.first { it is X509TrustManager } as X509TrustManager
+                val customTrustManager = tmf.trustManagers.first { it is X509TrustManager } as X509TrustManager
+
+                // Custom trust manager that trusts both system and our bundled certificate
+                val combinedTrustManager = object : X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {
+                        systemTrustManager.checkClientTrusted(chain, authType)
+                    }
+
+                    override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {
+                        try {
+                            systemTrustManager.checkServerTrusted(chain, authType)
+                        } catch (e: Exception) {
+                            try {
+                                customTrustManager.checkServerTrusted(chain, authType)
+                            } catch (e2: Exception) {
+                                // Fallback to system check as a last resort, throwing if it fails
+                                systemTrustManager.checkServerTrusted(chain, authType)
+                            }
+                        }
+                    }
+
+                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> {
+                        return systemTrustManager.acceptedIssuers + customTrustManager.acceptedIssuers
+                    }
+                }
+
+                val sslContext = SSLContext.getInstance("TLS").apply {
+                    init(null, arrayOf(combinedTrustManager), SecureRandom())
+                }
+                
+                builder.sslSocketFactory(sslContext.socketFactory, combinedTrustManager)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting up SSL compatibility: ${e.message}")
+            }
+        }
+
         customizer?.invoke(builder)
         return builder.build()
     }
