@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="settings_list_styler_tag" type="id" />
+    <item name="settings_row_style_kind" type="id" />
+    <item name="settings_row_defaults" type="id" />
+</resources>

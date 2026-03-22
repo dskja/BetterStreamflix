@@ -34,6 +34,14 @@
     <string name="main_menu_theme_change">Change Theme</string>
     <string name="theme_default">Default</string>
     <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
+    <string name="theme_sunset_cinema">Sunset Cinema</string>
+    <string name="theme_steel_blue">Steel Blue</string>
+    <string name="theme_forest_night">Forest Night</string>
+    <string name="theme_crimson_noir">Crimson Noir</string>
+    <string name="theme_midnight_violet">Midnight Violet</string>
+    <string name="theme_nord_frost">Nord Frost</string>
+    <string name="theme_emerald_luxe">Emerald Luxe</string>
+    <string name="theme_retro_neon">Retro Neon</string>
 
     <string name="search_input_hint">Search movies, TV shows</string>
     <string name="global_search">Global search</string>
@@ -231,12 +239,23 @@
     <string name="settings_category_poseidon_domain">Poseidonhd2 domain name</string>
     <string name="settings_close_app">Close app</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Use secure DNS</string>
-    <string name="settings_category_network_title">Network Settings</string>
+    <string name="settings_section_content_title">Content and Safety</string>
+    <string name="settings_screen_content_summary">TMDb access, parental control and content restrictions</string>
+    <string name="settings_category_network_title">Connection &amp; Services</string>
+    <string name="settings_screen_network_summary">DNS, TV bypass tools and subtitle service keys</string>
     <string name="settings_scan_resolver_qr_title">Scan TV bypass QR</string>
     <string name="settings_scan_resolver_qr_summary">Open the camera and scan the QR code shown on TV</string>
     <string name="settings_scan_resolver_invalid_qr">This QR code is not a StreamFlix bypass link.</string>
     <string name="settings_scan_resolver_failed">Unable to start QR scanner on this device.</string>
+    <string name="settings_scan_resolver_camera_permission_denied">Camera permission is required to scan the QR code.</string>
+    <string name="settings_scan_resolver_camera_unavailable">No camera is available on this device.</string>
     <string name="settings_category_provider_title">Provider settings</string>
+    <string name="settings_provider_connection_title">Settings for current provider</string>
+    <string name="settings_screen_provider_summary">Main domain, portal and provider-specific recovery options</string>
+    <string name="settings_screen_provider_summary_with_name">%1$s domain, portal and provider-specific recovery options</string>
+    <string name="settings_provider_connection_category_title">%1$s connection</string>
+    <string name="settings_provider_no_options_title">No provider options available</string>
+    <string name="settings_provider_no_options_summary">This provider does not expose any extra configuration right now.</string>
     <string name="settings_category_provider_url">Main URL</string>
     <string name="settings_category_provider_url_manual">Enter manually</string>
     <string name="settings_category_provider_update_url">Portal URL</string>
@@ -251,12 +270,14 @@
     <string name="settings_autoplay_buffer_dialog_message">Set how many seconds before the end of the episode to switch to the next one.</string>
     <string name="autoplay_settings">Autoplay settings</string>
     <string name="player_settings">Player settings</string>
+    <string name="settings_screen_playback_summary">Autoplay, buffering, trailer playback and player behavior</string>
     <string name="settings_player_gestures">Player gestures</string>
     <string name="settings_player_gestures_on">On</string>
     <string name="settings_player_gestures_off">Off</string>
     <string name="settings_keep_screen_on_when_paused">Keep screen on when paused</string>
     <string name="settings_keep_screen_on_when_paused_summary">Prevents the screen from turning off when a video is paused</string>
     <string name="miscelaneous_title">Miscellaneous</string>
+    <string name="settings_screen_misc_summary">Version info, help links and community shortcuts</string>
     <string name="clear_cache_done">Cache cleared</string>
     <string name="clear_cache_done_409">Cache cleared automatically due to HTTP 409</string>
     <string name="player_skip_intro">Skip intro</string>
@@ -286,6 +307,7 @@
     <string name="settings_trailer_player_reset_summary">Forces the app to ask again which SmartTube version (Stable/Beta) to use.</string>
 
     <string name="backup_category_title">Backup and Restore</string>
+    <string name="settings_screen_backup_summary">Export or restore favorites, history and saved app data</string>
     <string name="backup_export_title">Export user data</string>
     <string name="backup_export_summary">Save your data (favorites, watch history) to a file.</string>
     <string name="backup_import_title">Import user data</string>
@@ -306,6 +328,12 @@
     <string name="backup_import_local_option">Restore from local backups</string>
     <string name="backup_import_no_local_files">No local backup files found.</string>
     <string name="backup_picker_unavailable">No file picker available. Using local backups instead.</string>
+    <string name="backup_import_action">Import</string>
+    <string name="backup_delete_action">Delete</string>
+    <string name="backup_delete_confirm_title">Delete backup</string>
+    <string name="backup_delete_confirm_message">Delete %1$s from local backups?</string>
+    <string name="backup_delete_success">Backup deleted.</string>
+    <string name="backup_delete_error">Unable to delete backup.</string>
 
     <string name="screen_scale_category_title">Screen Padding</string>
     <string name="screen_scale_x_title">Horizontal padding</string>
@@ -354,7 +382,17 @@
     <string name="error_dialog_no_cause">No cause</string>
 
     <string name="settings_category_appearance">Appearance</string>
+    <string name="settings_screen_appearance_summary">Theme, immersive mode and screen layout adjustments</string>
     <string name="settings_theme_title">App Theme</string>
+    <string name="settings_app_language_title">App language</string>
+    <string name="settings_app_language_summary">Choose which bundled translation the app should use</string>
+    <string name="settings_app_language_system">System default</string>
+    <string name="settings_app_language_english">English</string>
+    <string name="settings_app_language_arabic">Arabic</string>
+    <string name="settings_app_language_german">German</string>
+    <string name="settings_app_language_spanish">Spanish</string>
+    <string name="settings_app_language_french">French</string>
+    <string name="settings_app_language_italian">Italian</string>
     <string name="player_settings_gestures_title">Gestures</string>
     <string name="player_settings_keep_screen_on_title">Keep screen on when paused</string>
 
@@ -390,6 +428,10 @@
     <string name="settings_parental_admin_pin_set">Admin PIN set</string>
     <string name="settings_parental_unlock_title">Unlock parental controls</string>
     <string name="settings_parental_unlock_summary">Use the admin PIN to clear the parental lockout</string>
+    <string name="settings_parental_remove_pin_title">Remove parental PIN</string>
+    <string name="settings_parental_remove_pin_summary">Disable parental PIN protection and clear the age limit</string>
+    <string name="settings_parental_remove_admin_pin_title">Remove admin PIN</string>
+    <string name="settings_parental_remove_admin_pin_summary">Remove the recovery PIN used to unlock parental controls</string>
     <string name="settings_parental_max_age_title">Maximum age rating</string>
     <string name="settings_parental_max_age_summary">Only show titles up to this TMDb age rating</string>
     <string name="settings_parental_max_age_disabled">Disabled</string>
@@ -405,6 +447,10 @@
     <string name="settings_parental_enter_current_pin_message">Enter the current parental PIN to change these settings.</string>
     <string name="settings_parental_enter_admin_pin_title">Enter admin PIN</string>
     <string name="settings_parental_enter_admin_pin_message">Enter the admin PIN to unlock parental controls.</string>
+    <string name="settings_parental_set_new_pin_message">Enter a new parental PIN.</string>
+    <string name="settings_parental_change_pin_message">Enter a new parental PIN. Leave it empty to remove the current PIN.</string>
+    <string name="settings_parental_set_new_admin_pin_message">Enter a new admin PIN.</string>
+    <string name="settings_parental_change_admin_pin_message">Enter a new admin PIN. Leave it empty to remove the current admin PIN.</string>
     <string name="settings_parental_invalid_pin">Incorrect parental PIN.</string>
     <string name="settings_parental_invalid_admin_pin">Incorrect admin PIN.</string>
     <string name="settings_parental_pin_hint">4 digits or more</string>

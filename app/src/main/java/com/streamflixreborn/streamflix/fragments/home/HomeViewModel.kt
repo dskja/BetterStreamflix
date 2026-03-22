@@ -276,21 +276,21 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     }
 
     fun getHome() = viewModelScope.launch(Dispatchers.IO) {
-        _state.emit(State.Loading)
-
         val provider = UserPreferences.currentProvider ?: run {
             _state.emit(State.FailedLoading(IllegalStateException("No provider selected")))
             return@launch
         }
         val appContext = StreamFlixApp.instance.applicationContext
-        val cachedCategories = HomeCacheStore.read(appContext, provider.name)
+        val cachedCategories = HomeCacheStore.read(appContext, provider)
         if (!cachedCategories.isNullOrEmpty()) {
             _state.emit(State.SuccessLoading(cachedCategories))
+        } else {
+            _state.emit(State.Loading)
         }
 
         try {
             val categories = provider.getHome()
-            HomeCacheStore.write(appContext, provider.name, categories)
+            HomeCacheStore.write(appContext, provider, categories)
             _state.emit(State.SuccessLoading(categories))
         } catch (e: Exception) {
             Log.e("HomeViewModel", "getHome: ", e)

@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.providers.AniWorldProvider
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
+import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.ArtworkRepairScheduler
 import com.streamflixreborn.streamflix.utils.CacheUtils
 import com.streamflixreborn.streamflix.utils.DnsResolver
@@ -22,6 +23,10 @@ class StreamFlixApp : Application() {
     }
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLanguageManager.wrap(base))
+    }
 
     override fun onCreate() {
         super.onCreate()

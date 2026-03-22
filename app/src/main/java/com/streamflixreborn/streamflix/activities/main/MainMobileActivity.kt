@@ -2,7 +2,7 @@ package com.streamflixreborn.streamflix.activities.main
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -29,8 +29,10 @@ import com.streamflixreborn.streamflix.fragments.player.PlayerMobileFragment
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
+import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
+import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -63,12 +65,13 @@ class MainMobileActivity : FragmentActivity() {
 
     private var updateAppDialog: UpdateAppMobileDialog? = null
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppLanguageManager.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        when (UserPreferences.selectedTheme) {
-            "nero_amoled_oled" -> setTheme(R.style.AppTheme_Mobile_NeroAmoledOled)
-            else -> setTheme(R.style.AppTheme_Mobile)
-        }
+        setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
 
         super.onCreate(savedInstanceState)
         customTabHelper.warmup(this)
@@ -77,10 +80,13 @@ class MainMobileActivity : FragmentActivity() {
         Cine24hProvider.init(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = Color.TRANSPARENT
+        val palette = ThemeManager.palette(UserPreferences.selectedTheme)
+        window.statusBarColor = palette.systemBar
+        window.navigationBarColor = palette.systemBar
 
         _binding = ActivityMainMobileBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applyThemeNavigationChrome()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, insets ->
             val sys = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -162,6 +168,11 @@ class MainMobileActivity : FragmentActivity() {
                 val handled =
                     (getCurrentFragment() as? PlayerMobileFragment)?.onBackPressed() ?: false
                 if (handled) return
+
+                if (navController.currentDestination?.id == R.id.settings) {
+                    navigateToProviderHome(navController)
+                    return
+                }
 
                 if (UserPreferences.currentProvider != null && isTopLevelProviderDestination(navController.currentDestination?.id)) {
                     closeTask()
@@ -288,6 +299,21 @@ class MainMobileActivity : FragmentActivity() {
             R.id.tv_shows,
             R.id.settings,
         )
+    }
+
+    private fun navigateToProviderHome(navController: androidx.navigation.NavController) {
+        if (!navController.popBackStack(R.id.home, false)) {
+            navController.navigate(
+                R.id.home,
+                null,
+                navOptions {
+                    launchSingleTop = true
+                    popUpTo(R.id.providers) {
+                        inclusive = true
+                    }
+                }
+            )
+        }
     }
 
     private fun closeTask() {
@@ -450,6 +476,32 @@ class MainMobileActivity : FragmentActivity() {
             controller.hide(WindowInsetsCompat.Type.systemBars())
         } else {
             controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun applyThemeNavigationChrome() {
+        val palette = ThemeManager.palette(UserPreferences.selectedTheme)
+        val navColors = ColorStateList(
+            arrayOf(
+                intArrayOf(android.R.attr.state_checked),
+                intArrayOf(),
+            ),
+            intArrayOf(
+                palette.mobileNavActive,
+                palette.mobileNavInactive,
+            )
+        )
+
+        binding.bnvMain.setBackgroundColor(palette.mobileNavBackground)
+        binding.bnvMain.itemIconTintList = navColors
+        binding.bnvMain.itemTextColor = navColors
+
+        window.statusBarColor = palette.systemBar
+        window.navigationBarColor = palette.systemBar
+
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
         }
     }
 }

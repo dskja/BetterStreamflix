@@ -25,6 +25,7 @@ import android.widget.TextView
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.lifecycleScope
@@ -33,8 +34,9 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
-import androidx.preference.SwitchPreference
+import androidx.preference.PreferenceScreen
 import androidx.preference.SeekBarPreference
+import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
 import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
@@ -53,9 +55,11 @@ import com.streamflixreborn.streamflix.providers.ProviderPortalUrl
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
 import com.streamflixreborn.streamflix.providers.TmdbProvider
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
+import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.QrUtils
+import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.WebSocketBypassTestHelper
 import kotlinx.coroutines.launch
@@ -66,11 +70,18 @@ import java.util.Date
 import java.util.Locale
 
 class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
+    private data class SettingsScreenState(
+        val rootKey: String?,
+        val title: String?,
+    )
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.biz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
+    private var currentScreenState = SettingsScreenState(rootKey = null, title = null)
+    private val screenBackStack = ArrayDeque<SettingsScreenState>()
+    private lateinit var settingsBackCallback: OnBackPressedCallback
 
     private lateinit var db: AppDatabase
     private lateinit var movieDao: MovieDao
@@ -100,7 +111,8 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.settings_tv, rootKey)
+        currentScreenState = SettingsScreenState(rootKey = rootKey, title = null)
+        renderCurrentScreen()
 
         db = AppDatabase.getInstance(requireContext())
         movieDao = db.movieDao()
@@ -137,23 +149,60 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         displaySettings()
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        settingsBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                if (screenBackStack.isEmpty()) return
+                currentScreenState = screenBackStack.removeLast()
+                settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+                renderCurrentScreen()
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(this, settingsBackCallback)
+    }
+
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        if (preference is PreferenceScreen && !preference.key.isNullOrBlank()) {
+            screenBackStack.addLast(currentScreenState)
+            currentScreenState = SettingsScreenState(
+                rootKey = preference.key,
+                title = preference.title?.toString(),
+            )
+            settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+            renderCurrentScreen()
+            return true
+        }
+        return super.onPreferenceTreeClick(preference)
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        if (preference.key == "PARENTAL_CONTROL_PIN" || preference.key == "PARENTAL_CONTROL_ADMIN_PIN") {
+            return
+        }
+        super.onDisplayPreferenceDialog(preference)
+    }
+
+    private fun applyScreenTitle() {
+        activity?.title = currentScreenState.title ?: getString(R.string.player_settings_title)
+    }
+
+    private fun renderCurrentScreen() {
+        setPreferencesFromResource(R.xml.settings_tv, currentScreenState.rootKey)
+        if (::backupRestoreManager.isInitialized) {
+            displaySettings()
+        }
+        applyScreenTitle()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        SettingsListStyler.attach(view, isTv = true)
     }
 
     private fun displaySettings() {
-        
-        findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
-            isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
-        }
-
-        findPreference<PreferenceCategory>("pc_cuevana_settings")?.apply {
-            isVisible = UserPreferences.currentProvider?.name == "Cuevana 3"
-        }
-
-        findPreference<PreferenceCategory>("pc_poseidon_settings")?.apply {
-            isVisible = UserPreferences.currentProvider?.name == "Poseidonhd2"
-        }
+        updateOverviewLabels()
+        updateProviderVisibilityState()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
@@ -314,18 +363,41 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("p_settings_about")?.apply {
+            val palette = ThemeManager.palette(UserPreferences.selectedTheme)
             val titleStr = getString(R.string.settings_version_tv)
             val spannableTitle = SpannableString(titleStr)
-            spannableTitle.setSpan(ForegroundColorSpan(Color.WHITE), 0, titleStr.length, 0)
+            spannableTitle.setSpan(ForegroundColorSpan(palette.tvHeaderPrimary), 0, titleStr.length, 0)
             title = spannableTitle
             
             val summaryStr = BuildConfig.VERSION_NAME
             val spannableSummary = SpannableString(summaryStr)
-            spannableSummary.setSpan(ForegroundColorSpan(Color.LTGRAY), 0, summaryStr.length, 0)
+            spannableSummary.setSpan(ForegroundColorSpan(palette.tvHeaderSecondary), 0, summaryStr.length, 0)
             summary = spannableSummary
 
             isSelectable = false
             setOnPreferenceClickListener(null)
+        }
+
+        findPreference<Preference>("p_settings_help")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://github.com/streamflix-reborn/streamflix")
+                )
+            )
+            true
+        }
+
+        findPreference<Preference>("p_settings_telegram")?.setOnPreferenceClickListener {
+            try {
+                val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=streamflixreborn"))
+                startActivity(tgIntent)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Telegram not found.", Toast.LENGTH_SHORT).show()
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflixreborn"))
+                startActivity(intent)
+            }
+            true
         }
 
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
@@ -623,12 +695,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         findPreference<ListPreference>("theme_preference")?.apply {
             summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
-                val selectedTheme = pref.value ?: "default"
-                when (selectedTheme) {
-                    "default" -> getString(R.string.theme_default)
-                    "nero_amoled_oled" -> getString(R.string.theme_nero_amoled_oled)
-                    else -> getString(R.string.theme_default)
-                }
+                getString(ThemeManager.titleRes(pref.value ?: ThemeManager.DEFAULT))
             }
 
             setOnPreferenceChangeListener { _, newValue ->
@@ -642,6 +709,27 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                         addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
                     overridePendingTransition(0, 0) // Disable transition animation
+                }
+                true
+            }
+        }
+
+        findPreference<ListPreference>("APP_LANGUAGE")?.apply {
+            entries = AppLanguageManager.buildLanguageEntries(requireContext())
+            entryValues = AppLanguageManager.buildLanguageValues(requireContext())
+            value = AppLanguageManager.getSelectedLanguage(requireContext())
+            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                pref.entries.getOrNull(pref.findIndexOfValue(pref.value)) ?: getString(R.string.settings_app_language_system)
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                val newLanguage = newValue as String
+                AppLanguageManager.setSelectedLanguage(newLanguage)
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainTvActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                    overridePendingTransition(0, 0)
                 }
                 true
             }
@@ -817,9 +905,53 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.backup_import_local_option)
-            .setItems(backups.map { it.name }.toTypedArray()) { _, which ->
-                importBackupFromFile(backups[which])
+            .setItems(backups.map(::buildBackupListLabel).toTypedArray()) { _, which ->
+                showLocalBackupFileActions(backups[which])
             }
+            .show()
+    }
+
+    private fun showLocalBackupFileActions(file: File) {
+        val options = arrayOf(
+            getString(R.string.backup_import_action),
+            getString(R.string.backup_delete_action),
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(file.name)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> importBackupFromFile(file)
+                    1 -> confirmDeleteLocalBackup(file)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmDeleteLocalBackup(file: File) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_delete_confirm_title)
+            .setMessage(getString(R.string.backup_delete_confirm_message, file.name))
+            .setPositiveButton(R.string.backup_delete_action) { _, _ ->
+                runCatching { file.delete() }
+                    .onSuccess { deleted ->
+                        val messageRes = if (deleted) {
+                            R.string.backup_delete_success
+                        } else {
+                            R.string.backup_delete_error
+                        }
+                        Toast.makeText(requireContext(), getString(messageRes), Toast.LENGTH_LONG).show()
+                        if (deleted) {
+                            showLocalBackupPicker()
+                        }
+                    }
+                    .onFailure { error ->
+                        Toast.makeText(requireContext(), getString(R.string.backup_delete_error), Toast.LENGTH_LONG).show()
+                        Log.e("BackupDeleteTV", "Error deleting local backup file", error)
+                    }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -848,6 +980,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         return File(requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: requireContext().filesDir, "backups")
     }
 
+    private fun buildBackupListLabel(file: File): String {
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
+        return "$timestamp  ${file.name}"
+    }
+
     private fun hasCreateDocumentHandler(): Boolean {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
@@ -866,9 +1003,43 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
     }
 
+    private fun updateOverviewLabels() {
+        val providerName = UserPreferences.currentProvider?.name
+
+        findPreference<PreferenceScreen>("screen_provider")?.apply {
+            title = getString(R.string.settings_provider_connection_title)
+            summary = providerName?.let {
+                getString(R.string.settings_screen_provider_summary_with_name, it)
+            } ?: getString(R.string.settings_screen_provider_summary)
+        }
+
+        findPreference<PreferenceCategory>("pc_provider_settings")?.title = providerName?.let {
+            getString(R.string.settings_provider_connection_category_title, it)
+        } ?: getString(R.string.settings_category_provider_title)
+
+        findPreference<PreferenceCategory>("pc_provider_empty_state")?.title = providerName?.let {
+            getString(R.string.settings_provider_connection_category_title, it)
+        } ?: getString(R.string.settings_provider_connection_title)
+    }
+
+    private fun updateProviderVisibilityState() {
+        val isStreamingCommunity = UserPreferences.currentProvider is StreamingCommunityProvider
+        val isCuevana = UserPreferences.currentProvider?.name == "Cuevana 3"
+        val isPoseidon = UserPreferences.currentProvider?.name == "Poseidonhd2"
+        val hasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
+        val hasSpecificOptions = isStreamingCommunity || isCuevana || isPoseidon
+
+        findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible = isStreamingCommunity
+        findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible = isCuevana
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible = isPoseidon
+        findPreference<PreferenceCategory>("pc_provider_empty_state")?.isVisible = !hasConfigProvider && !hasSpecificOptions
+    }
+
     private fun setupParentalControlPreferences() {
         val pinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_PIN")
         val adminPinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_ADMIN_PIN")
+        val removePinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_PIN")
+        val removeAdminPinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_ADMIN_PIN")
         val maxAgePreference = findPreference<ListPreference>("PARENTAL_CONTROL_MAX_AGE")
         val unlockPreference = findPreference<Preference>("PARENTAL_CONTROL_UNLOCK")
 
@@ -882,50 +1053,36 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         pinPreference?.setOnBindEditTextListener(::bindPinEditText)
         adminPinPreference?.setOnBindEditTextListener(::bindPinEditText)
 
-        pinPreference?.setOnPreferenceChangeListener { _, newValue ->
-            if (!UserPreferences.enableTmdb) return@setOnPreferenceChangeListener false
+        pinPreference?.setOnPreferenceClickListener {
+            showParentalPinEditor(maxAgePreference)
+            true
+        }
 
-            val newPin = (newValue as String).trim()
-            if (newPin.isNotEmpty() && newPin.length < 4) {
-                Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_too_short), Toast.LENGTH_SHORT).show()
-                return@setOnPreferenceChangeListener false
-            }
+        adminPinPreference?.setOnPreferenceClickListener {
+            showAdminPinEditor()
+            true
+        }
 
+        removePinPreference?.setOnPreferenceClickListener {
             changeParentalSettingWithPinCheck {
-                UserPreferences.parentalControlPin = newPin
-                if (newPin.isBlank()) {
-                    UserPreferences.parentalControlMaxAge = null
-                    maxAgePreference?.value = ""
-                    UserPreferences.unlockParentalControls()
-                    Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_removed), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_saved), Toast.LENGTH_SHORT).show()
-                }
+                UserPreferences.parentalControlPin = ""
+                UserPreferences.parentalControlMaxAge = null
+                maxAgePreference?.value = ""
+                UserPreferences.unlockParentalControls()
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_removed), Toast.LENGTH_SHORT).show()
                 ProviderChangeNotifier.notifyProviderChanged()
                 updateParentalControlPreferenceState()
             }
-
-            false
+            true
         }
 
-        adminPinPreference?.setOnPreferenceChangeListener { _, newValue ->
-            val newPin = (newValue as String).trim()
-            if (newPin.isNotEmpty() && newPin.length < 4) {
-                Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_too_short), Toast.LENGTH_SHORT).show()
-                return@setOnPreferenceChangeListener false
-            }
-
+        removeAdminPinPreference?.setOnPreferenceClickListener {
             changeAdminSettingWithPinCheck {
-                UserPreferences.parentalControlAdminPin = newPin
-                if (newPin.isBlank()) {
-                    Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_removed), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_saved), Toast.LENGTH_SHORT).show()
-                }
+                UserPreferences.parentalControlAdminPin = ""
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_removed), Toast.LENGTH_SHORT).show()
                 updateParentalControlPreferenceState()
             }
-
-            false
+            true
         }
 
         maxAgePreference?.setOnPreferenceChangeListener { _, newValue ->
@@ -969,6 +1126,8 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         val tmdbEnabled = UserPreferences.enableTmdb
         val pinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_PIN")
         val adminPinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_ADMIN_PIN")
+        val removePinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_PIN")
+        val removeAdminPinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_ADMIN_PIN")
         val maxAgePreference = findPreference<ListPreference>("PARENTAL_CONTROL_MAX_AGE")
         val unlockPreference = findPreference<Preference>("PARENTAL_CONTROL_UNLOCK")
         val isLocked = UserPreferences.isParentalControlTemporarilyLocked || UserPreferences.parentalControlHardLocked
@@ -996,6 +1155,16 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 UserPreferences.parentalControlAdminPin.isBlank() -> getString(R.string.settings_parental_admin_pin_not_set)
                 else -> getString(R.string.settings_parental_admin_pin_set)
             }
+        }
+
+        removePinPreference?.apply {
+            isVisible = tmdbEnabled && UserPreferences.parentalControlPin.isNotBlank()
+            isEnabled = !isLocked
+        }
+
+        removeAdminPinPreference?.apply {
+            isVisible = tmdbEnabled && UserPreferences.parentalControlAdminPin.isNotBlank()
+            isEnabled = true
         }
 
         maxAgePreference?.apply {
@@ -1112,6 +1281,78 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         )
     }
 
+    private fun showParentalPinEditor(maxAgePreference: ListPreference?) {
+        if (!UserPreferences.enableTmdb) {
+            Toast.makeText(requireContext(), getString(R.string.settings_parental_requires_tmdb), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        changeParentalSettingWithPinCheck {
+            promptForPinValue(
+                titleRes = R.string.settings_parental_pin_title,
+                messageRes = if (UserPreferences.parentalControlPin.isBlank()) {
+                    R.string.settings_parental_set_new_pin_message
+                } else {
+                    R.string.settings_parental_change_pin_message
+                },
+                allowBlank = UserPreferences.parentalControlPin.isNotBlank(),
+                onSubmit = { newPin ->
+                    when {
+                        newPin.isBlank() -> {
+                            UserPreferences.parentalControlPin = ""
+                            UserPreferences.parentalControlMaxAge = null
+                            maxAgePreference?.value = ""
+                            UserPreferences.unlockParentalControls()
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_removed), Toast.LENGTH_SHORT).show()
+                            ProviderChangeNotifier.notifyProviderChanged()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                        newPin.length < 4 -> getString(R.string.settings_parental_pin_too_short)
+                        else -> {
+                            UserPreferences.parentalControlPin = newPin
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_saved), Toast.LENGTH_SHORT).show()
+                            ProviderChangeNotifier.notifyProviderChanged()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    private fun showAdminPinEditor() {
+        changeAdminSettingWithPinCheck {
+            promptForPinValue(
+                titleRes = R.string.settings_parental_admin_pin_title,
+                messageRes = if (UserPreferences.parentalControlAdminPin.isBlank()) {
+                    R.string.settings_parental_set_new_admin_pin_message
+                } else {
+                    R.string.settings_parental_change_admin_pin_message
+                },
+                allowBlank = UserPreferences.parentalControlAdminPin.isNotBlank(),
+                onSubmit = { newPin ->
+                    when {
+                        newPin.isBlank() -> {
+                            UserPreferences.parentalControlAdminPin = ""
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_removed), Toast.LENGTH_SHORT).show()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                        newPin.length < 4 -> getString(R.string.settings_parental_pin_too_short)
+                        else -> {
+                            UserPreferences.parentalControlAdminPin = newPin
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_saved), Toast.LENGTH_SHORT).show()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                    }
+                }
+            )
+        }
+    }
+
     private fun promptForPin(
         titleRes: Int,
         messageRes: Int,
@@ -1148,6 +1389,51 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         dialog.show()
     }
 
+    private fun promptForPinValue(
+        titleRes: Int,
+        messageRes: Int,
+        allowBlank: Boolean,
+        onSubmit: (String) -> String?,
+    ) {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            hint = getString(R.string.settings_parental_pin_hint)
+        }
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setMessage(messageRes)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                input.error = null
+                val newValue = input.text?.toString()?.trim().orEmpty()
+                if (newValue.isBlank() && !allowBlank) {
+                    input.setText("")
+                    input.error = getString(R.string.settings_parental_pin_too_short)
+                    input.requestFocus()
+                    return@setOnClickListener
+                }
+
+                val errorMessage = onSubmit(newValue)
+                if (errorMessage == null) {
+                    dialog.dismiss()
+                } else {
+                    input.setText("")
+                    input.error = errorMessage
+                    input.requestFocus()
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
     private fun lockRemainingMinutes(): Int {
         val millis = UserPreferences.parentalControlLockRemainingMillis
         return ((millis + 60_000L - 1L) / 60_000L).toInt().coerceAtLeast(1)
@@ -1155,15 +1441,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     override fun onResume() {
         super.onResume()
-        
-        findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
-            UserPreferences.currentProvider is StreamingCommunityProvider
-
-        findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible =
-            UserPreferences.currentProvider?.name == "Cuevana 3"
-
-        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible =
-            UserPreferences.currentProvider?.name == "Poseidonhd2"
+        applyScreenTitle()
+        updateOverviewLabels()
+        updateProviderVisibilityState()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
@@ -1194,6 +1474,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<ListPreference>("p_doh_provider_url")?.apply {
             summary = entry
         }
+
+        findPreference<ListPreference>("APP_LANGUAGE")?.value =
+            AppLanguageManager.getSelectedLanguage(requireContext())
 
         val networkSettingsCategory = findPreference<PreferenceCategory>("pc_network_settings")
         if (networkSettingsCategory != null) {

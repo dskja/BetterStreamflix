@@ -10,44 +10,72 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.providers.Provider
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 object HomeCacheStore {
     private val gson = Gson()
+    private val memoryCache = ConcurrentHashMap<String, List<CachedCategory>>()
 
-    fun read(context: Context, providerName: String): List<Category>? {
-        val file = cacheFile(context, providerName)
+    fun read(context: Context, provider: Provider): List<Category>? {
+        val cacheKey = cacheKey(provider)
+        memoryCache[cacheKey]?.let { payload ->
+            return payload.toCategories()
+        }
+
+        val file = cacheFile(context, cacheKey)
         if (!file.exists()) return null
 
         return runCatching {
             val type = object : TypeToken<List<CachedCategory>>() {}.type
             val payload: List<CachedCategory> = gson.fromJson(file.readText(), type)
-            payload.mapNotNull { it.toCategoryOrNull() }
+            memoryCache[cacheKey] = payload
+            payload.toCategories()
         }.recoverCatching {
             if (it is JsonSyntaxException) {
+                memoryCache.remove(cacheKey)
                 file.delete()
             }
             null
         }.getOrNull()
     }
 
-    fun write(context: Context, providerName: String, categories: List<Category>) {
+    fun write(context: Context, provider: Provider, categories: List<Category>) {
         runCatching {
             val payload = categories.map { CachedCategory.from(it) }
-            cacheFile(context, providerName).apply {
+            val cacheKey = cacheKey(provider)
+            memoryCache[cacheKey] = payload
+            cacheFile(context, cacheKey).apply {
                 parentFile?.mkdirs()
                 writeText(gson.toJson(payload))
             }
         }
     }
 
-    fun clear(context: Context, providerName: String) {
-        cacheFile(context, providerName).delete()
+    fun clear(context: Context, provider: Provider) {
+        val cacheKey = cacheKey(provider)
+        memoryCache.remove(cacheKey)
+        cacheFile(context, cacheKey).delete()
     }
 
-    private fun cacheFile(context: Context, providerName: String): File {
-        val safeName = providerName.replace(Regex("[^a-zA-Z0-9._-]+"), "_")
+    private fun cacheFile(context: Context, cacheKey: String): File {
+        val safeName = cacheKey.replace(Regex("[^a-zA-Z0-9._-]+"), "_")
         return File(context.cacheDir, "home-cache/$safeName.json")
+    }
+
+    private fun cacheKey(provider: Provider): String {
+        val baseUrlKey = provider.baseUrl.trim().trimEnd('/')
+        return buildList {
+            add(provider.name)
+            if (baseUrlKey.isNotEmpty()) {
+                add(baseUrlKey)
+            }
+        }.joinToString("__")
+    }
+
+    private fun List<CachedCategory>.toCategories(): List<Category> {
+        return mapNotNull { it.toCategoryOrNull() }
     }
 
     private data class CachedCategory(

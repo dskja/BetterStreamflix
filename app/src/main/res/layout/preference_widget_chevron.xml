@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:foregroundGravity="center"
+    android:minWidth="32dp"
+    android:paddingStart="4dp"
+    android:paddingEnd="2dp">
+
+    <ImageView
+        android:id="@+id/settings_chevron"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="center"
+        android:alpha="0.82"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_player_setting_arrow_right"
+        android:tint="#9BA7B4" />
+</FrameLayout>
