@@ -75,7 +75,6 @@ class MainMobileActivity : FragmentActivity() {
 
         super.onCreate(savedInstanceState)
         customTabHelper.warmup(this)
-        if (handleIntent(intent)) return
 
         Cine24hProvider.init(this)
 
@@ -182,10 +181,15 @@ class MainMobileActivity : FragmentActivity() {
                 if (!navController.navigateUp()) finish()
             }
         })
+
+        if (savedInstanceState == null) {
+            handleIntent(intent)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleIntent(intent)
     }
 

@@ -265,8 +265,12 @@ class PlayerTvFragment : Fragment() {
                             val qrContent = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
 
                             if (!startWebSocketServer()) {
-                                waitingForBypass = false
-                                activeBypassSession = null
+                                clearBypassSession()
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Unable to start TV bypass. Please try again.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@collect
                             }
                             wsServer?.registerSession(session.token, session.serverUrl)
@@ -555,8 +559,9 @@ class PlayerTvFragment : Fragment() {
 
         override fun onDestroyView() {
             super.onDestroyView()
+            clearBypassSession(dismissDialog = true)
             if (::player.isInitialized) player.release()
-            mediaSession.release()
+            if (::mediaSession.isInitialized) mediaSession.release()
             stopProgressHandler()
             try {
                 requireContext().unregisterReceiver(chooserReceiver)
@@ -1261,15 +1266,8 @@ class PlayerTvFragment : Fragment() {
             .setView(scrollView)
             .setCancelable(true)
             .setOnCancelListener {
-                qrDialog?.dismiss()
-                qrDialog = null
                 Log.d("Bypass", "QR dialog cancelled")
-                activeBypassSession?.let { session ->
-                    wsServer?.clearSession(session.token)
-                }
-                activeBypassSession = null
-                waitingForBypass = false
-                stopWebSocketServer()
+                clearBypassSession(dismissDialog = false)
             }
             .create()
 
@@ -1310,6 +1308,25 @@ class PlayerTvFragment : Fragment() {
         wsServer = null
     }
 
+    private fun clearBypassSession(
+        dismissDialog: Boolean = true,
+        resetBypassDone: Boolean = false,
+    ) {
+        activeBypassSession?.let { session ->
+            wsServer?.clearSession(session.token)
+        }
+        activeBypassSession = null
+        waitingForBypass = false
+        if (resetBypassDone) {
+            bypassDone = false
+        }
+        if (dismissDialog) {
+            qrDialog?.dismiss()
+        }
+        qrDialog = null
+        stopWebSocketServer()
+    }
+
 
     private fun onBypassCompleted(token: String) {
         val session = activeBypassSession
@@ -1322,10 +1339,7 @@ class PlayerTvFragment : Fragment() {
         waitingForBypass = false
         activeBypassSession = null
 
-        qrDialog?.dismiss()
-        qrDialog = null
-
-        stopWebSocketServer()
+        clearBypassSession(dismissDialog = true)
 
         lifecycleScope.launch {
             delay(500)
