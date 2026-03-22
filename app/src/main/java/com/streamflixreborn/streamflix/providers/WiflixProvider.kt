@@ -38,7 +38,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty{ field }
         }
 
-    override val defaultBaseUrl: String = "http://flemmix.one/"
+    override val defaultBaseUrl: String = "http://flemmix.best/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -615,22 +615,28 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 try {
                     val document = addressService.getHome()
 
-                    val newUrl = document.select("div.alert-success")
-                        .firstOrNull {
-                            it.text().contains("Nom de domaine principal") ||
-                                    it.text().contains("Nouveau site")
+                    // Cerchiamo l'URL tra i vari elementi che solitamente contengono il link attivo
+                    val newUrl = document.select("div.alert-success a, div.alert-info a, a.btn-success, div.entry-content a")
+                        .map { it.attr("href").trim() }
+                        .firstOrNull { link ->
+                            // Escludiamo i link interni, i social e il portale stesso
+                            link.startsWith("http") && 
+                            !link.contains("wiflix-adresses") && 
+                            !link.contains("facebook") && 
+                            !link.contains("twitter") &&
+                            !link.contains("t.me") &&
+                            !link.contains("instagram") &&
+                            !link.contains("pinterest")
                         }
-                        ?.selectFirst("a")?.attr("href")?.trim()
                         ?.replace("http://", "https://")
 
                     if (!newUrl.isNullOrEmpty()) {
-                        val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-                        UserPreferences.setProviderCache(this,
-                            UserPreferences.PROVIDER_URL, newUrl)
+                        val formattedUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, formattedUrl)
                         UserPreferences.setProviderCache(
                             this,
                             UserPreferences.PROVIDER_LOGO,
-                            newUrl + "templates/flemmixnew/images/favicon.png"
+                            formattedUrl + "templates/flemmixnew/images/favicon.png"
                         )
                     }
                 } catch (e: Exception) {
