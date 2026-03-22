@@ -196,15 +196,22 @@ class MainMobileActivity : FragmentActivity() {
                     (getCurrentFragment() as? PlayerMobileFragment)?.onBackPressed() ?: false
                 if (handled) return
 
-                if (navController.currentDestination?.id == R.id.settings) {
+                val currentDestinationId = navController.currentDestination?.id
+
+                if (currentDestinationId == R.id.settings) {
                     navigateToProviderHome(navController)
                     return
                 }
 
-                if (UserPreferences.currentProvider != null &&
-                    isTopLevelProviderDestination(navController.currentDestination?.id)
-                ) {
+                if (UserPreferences.currentProvider != null && currentDestinationId == R.id.home) {
                     closeTask()
+                    return
+                }
+
+                if (UserPreferences.currentProvider != null &&
+                    isTopLevelProviderDestination(currentDestinationId)
+                ) {
+                    navigateToProviderHome(navController)
                     return
                 }
 

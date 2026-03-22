@@ -158,14 +158,9 @@ class MainTvActivity : FragmentActivity() {
             override fun handleOnBackPressed() {
                 when (navController.currentDestination?.id) {
                     R.id.home -> if (binding.navMain.hasFocus()) finish() else binding.navMain.requestFocus()
-                    R.id.settings -> navigateToProviderHome(navController)
-                    R.id.search, R.id.movies, R.id.tv_shows -> {
-                        if (binding.navMain.hasFocus()) {
-                            binding.navMain.findViewById<View>(R.id.home)?.let {
-                                it.requestFocus()
-                                it.performClick()
-                            }
-                        } else binding.navMain.requestFocus()
+                    R.id.settings, R.id.search, R.id.movies, R.id.tv_shows -> {
+                        navigateToProviderHome(navController)
+                        binding.navMain.requestFocus()
                     }
                     else -> {
                         val handled = (getCurrentFragment() as? PlayerTvFragment)?.onBackPressed() ?: false
