@@ -5,13 +5,14 @@ import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
 import java.net.InetSocketAddress
+import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class BypassWebSocketServer(
     port: Int,
-    private val onDone: (token: String) -> Unit
+    private val onDone: (token: String, cookies: String?) -> Unit
 ) : WebSocketServer(InetSocketAddress(port)) {
 
     private val sessions = ConcurrentHashMap<String, String>()
@@ -48,10 +49,18 @@ class BypassWebSocketServer(
             }
 
             message.startsWith("done:") -> {
-                val token = message.substringAfter("done:")
+                val payload = message.substringAfter("done:")
+                val token = payload.substringBefore(":")
+                val cookies = payload.substringAfter(":", "")
+                    .takeIf { it.isNotBlank() }
+                    ?.let { encoded ->
+                        runCatching {
+                            String(Base64.getDecoder().decode(encoded), Charsets.UTF_8)
+                        }.getOrNull()
+                    }
                 if (sessions.remove(token) != null) {
                     conn.send("ack:$token")
-                    onDone(token)
+                    onDone(token, cookies)
                 } else {
                     conn.send("error:unknown_session")
                 }

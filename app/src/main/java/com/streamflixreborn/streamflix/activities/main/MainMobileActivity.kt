@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.activities.main
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -9,6 +10,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -24,23 +26,28 @@ import androidx.navigation.navOptions
 import androidx.navigation.ui.setupWithNavController
 import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
+import com.streamflixreborn.streamflix.activities.tools.BypassWebViewActivity
 import com.streamflixreborn.streamflix.databinding.ActivityMainMobileBinding
 import com.streamflixreborn.streamflix.fragments.player.PlayerMobileFragment
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
-import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import java.util.Base64
 import kotlin.coroutines.resume
 
 class MainMobileActivity : FragmentActivity() {
@@ -54,14 +61,28 @@ class MainMobileActivity : FragmentActivity() {
 
     private val viewModel by viewModels<MainViewModel>()
     private val resolverWebSocketClient by lazy { OkHttpClient() }
-    private val customTabHelper = CustomTabHelper()
+    private val bypassWebViewLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val wsUrl = pendingWs
+            val token = pendingToken
+            val cookies =
+                result.data?.getStringExtra(BypassWebViewActivity.EXTRA_COOKIE_HEADER)?.trim()
 
-    // 🔥 Resolver state
+            clearResolverState()
+
+            if (result.resultCode != Activity.RESULT_OK || wsUrl.isNullOrBlank() || token.isNullOrBlank()) {
+                return@registerForActivityResult
+            }
+
+            lifecycleScope.launch {
+                sendWebSocketDone(wsUrl, token, cookies)
+                showPostBypassCloseDialog()
+            }
+        }
+
     private var pendingWs: String? = null
     private var pendingToken: String? = null
     private var pendingUrl: String? = null
-    private var isResolving = false
-    private var customTabOpened = false
 
     private var updateAppDialog: UpdateAppMobileDialog? = null
 
@@ -70,11 +91,9 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
 
         super.onCreate(savedInstanceState)
-        customTabHelper.warmup(this)
 
         Cine24hProvider.init(this)
 
@@ -96,11 +115,13 @@ class MainMobileActivity : FragmentActivity() {
 
         updateImmersiveMode()
 
-        val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
+        val navHost =
+            supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
         val navController = navHost.navController
 
         if (BuildConfig.APP_LAYOUT == "tv" ||
-            (BuildConfig.APP_LAYOUT != "mobile" && packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
+            (BuildConfig.APP_LAYOUT != "mobile" &&
+                packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
         ) {
             finish()
             startActivity(Intent(this, MainTvActivity::class.java))
@@ -147,16 +168,23 @@ class MainMobileActivity : FragmentActivity() {
                     is MainViewModel.State.SuccessCheckingUpdate -> {
                         showUpdateDialog(state)
                     }
+
                     MainViewModel.State.DownloadingUpdate -> updateAppDialog?.isLoading = true
                     is MainViewModel.State.SuccessDownloadingUpdate -> {
                         viewModel.installUpdate(this@MainMobileActivity, state.apk)
                         dismissUpdateDialog()
                     }
+
                     MainViewModel.State.InstallingUpdate -> updateAppDialog?.isLoading = true
                     is MainViewModel.State.FailedUpdate -> {
                         updateAppDialog?.isLoading = false
-                        Toast.makeText(this@MainMobileActivity, state.error.message ?: "Update failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@MainMobileActivity,
+                            state.error.message ?: "Update failed",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
+
                     else -> {}
                 }
             }
@@ -173,7 +201,9 @@ class MainMobileActivity : FragmentActivity() {
                     return
                 }
 
-                if (UserPreferences.currentProvider != null && isTopLevelProviderDestination(navController.currentDestination?.id)) {
+                if (UserPreferences.currentProvider != null &&
+                    isTopLevelProviderDestination(navController.currentDestination?.id)
+                ) {
                     closeTask()
                     return
                 }
@@ -194,45 +224,9 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     override fun onDestroy() {
-        customTabHelper.release()
         dismissUpdateDialog()
         _binding = null
         super.onDestroy()
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        if (!isResolving || !customTabOpened) return
-
-        val wsUrl = pendingWs ?: return
-        val token = pendingToken ?: return
-
-        isResolving = false
-        customTabOpened = false
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(R.string.app_name)
-            .setMessage("Did you complete the bypass?")
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                lifecycleScope.launch {
-                    sendWebSocketDone(wsUrl, token)
-                    clearResolverState()
-                    showPostBypassCloseDialog()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-                clearResolverState()
-            }
-            .setNeutralButton("Retry") { _, _ ->
-                pendingUrl?.let { customTabHelper.open(this, it) }
-                customTabOpened = true
-                isResolving = true
-            }
-            .setOnCancelListener {
-                clearResolverState()
-            }
-            .show()
     }
 
     private fun clearResolverState() {
@@ -261,7 +255,8 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     private fun updateBottomNavigationVisibility(destinationId: Int?) {
-        val showBottomNav = UserPreferences.currentProvider != null && isTopLevelProviderDestination(destinationId)
+        val showBottomNav =
+            UserPreferences.currentProvider != null && isTopLevelProviderDestination(destinationId)
         binding.bnvMain.visibility = if (showBottomNav) View.VISIBLE else View.GONE
     }
 
@@ -280,7 +275,8 @@ class MainMobileActivity : FragmentActivity() {
             }
         }
 
-        val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+        val navHost =
+            supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
         val navController = navHost?.navController ?: return
         when {
             currentDestinationId == R.id.movies && !supportsMovies -> {
@@ -334,43 +330,50 @@ class MainMobileActivity : FragmentActivity() {
                         .url(wsUrl)
                         .build()
 
-                    val socket = resolverWebSocketClient.newWebSocket(request, object : WebSocketListener() {
-                        override fun onOpen(webSocket: WebSocket, response: Response) {
-                            Log.d("ResolverWS", "Connected → requesting URL")
-                            webSocket.send("resolve:$token")
-                        }
+                    val socket =
+                        resolverWebSocketClient.newWebSocket(request, object : WebSocketListener() {
+                            override fun onOpen(webSocket: WebSocket, response: Response) {
+                                Log.d("ResolverWS", "Connected -> requesting URL")
+                                webSocket.send("resolve:$token")
+                            }
 
-                        override fun onMessage(webSocket: WebSocket, text: String) {
-                            when {
-                                text.startsWith("url:") -> {
-                                    val url = text.substringAfter("url:").trim()
-                                    if (continuation.isActive) {
-                                        continuation.resume(
-                                            url.takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
-                                        )
+                            override fun onMessage(webSocket: WebSocket, text: String) {
+                                when {
+                                    text.startsWith("url:") -> {
+                                        val url = text.substringAfter("url:").trim()
+                                        if (continuation.isActive) {
+                                            continuation.resume(
+                                                url.takeUnless {
+                                                    it.isEmpty() || it.equals("null", ignoreCase = true)
+                                                }
+                                            )
+                                        }
+                                        webSocket.close(1000, null)
                                     }
-                                    webSocket.close(1000, null)
-                                }
 
-                                text.startsWith("error:") -> {
-                                    Log.e("ResolverWS", "Resolver returned error: $text")
-                                    if (continuation.isActive) {
-                                        continuation.resume(null)
+                                    text.startsWith("error:") -> {
+                                        Log.e("ResolverWS", "Resolver returned error: $text")
+                                        if (continuation.isActive) {
+                                            continuation.resume(null)
+                                        }
+                                        webSocket.close(1000, null)
                                     }
-                                    webSocket.close(1000, null)
                                 }
                             }
-                        }
 
-                        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                            if (!continuation.isActive) {
-                                Log.d("ResolverWS", "WS resolve cancelled or timed out")
-                                return
+                            override fun onFailure(
+                                webSocket: WebSocket,
+                                t: Throwable,
+                                response: Response?,
+                            ) {
+                                if (!continuation.isActive) {
+                                    Log.d("ResolverWS", "WS resolve cancelled or timed out")
+                                    return
+                                }
+                                Log.e("ResolverWS", "WS resolve failed", t)
+                                continuation.resume(null)
                             }
-                            Log.e("ResolverWS", "WS resolve failed", t)
-                            continuation.resume(null)
-                        }
-                    })
+                        })
 
                     continuation.invokeOnCancellation {
                         socket.cancel()
@@ -379,7 +382,7 @@ class MainMobileActivity : FragmentActivity() {
             }
         }
 
-    private suspend fun sendWebSocketDone(wsUrl: String, token: String) {
+    private suspend fun sendWebSocketDone(wsUrl: String, token: String, cookies: String?) {
         withContext(Dispatchers.IO) {
             withTimeoutOrNull(RESOLVER_TIMEOUT_MS) {
                 suspendCancellableCoroutine { continuation ->
@@ -387,28 +390,45 @@ class MainMobileActivity : FragmentActivity() {
                         .url(wsUrl)
                         .build()
 
-                    val socket = resolverWebSocketClient.newWebSocket(request, object : WebSocketListener() {
-                        override fun onOpen(webSocket: WebSocket, response: Response) {
-                            Log.d("ResolverWS", "Connected → sending DONE")
-                            webSocket.send("done:$token")
-                        }
+                    val socket =
+                        resolverWebSocketClient.newWebSocket(request, object : WebSocketListener() {
+                            override fun onOpen(webSocket: WebSocket, response: Response) {
+                                Log.d("ResolverWS", "Connected -> sending DONE")
+                                val encodedCookies = cookies
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let {
+                                        Base64.getEncoder().encodeToString(
+                                            it.toByteArray(Charsets.UTF_8)
+                                        )
+                                    }
+                                val message = if (encodedCookies.isNullOrBlank()) {
+                                    "done:$token"
+                                } else {
+                                    "done:$token:$encodedCookies"
+                                }
+                                webSocket.send(message)
+                            }
 
-                        override fun onMessage(webSocket: WebSocket, text: String) {
-                            if (text == "ack:$token" && continuation.isActive) {
+                            override fun onMessage(webSocket: WebSocket, text: String) {
+                                if (text == "ack:$token" && continuation.isActive) {
+                                    continuation.resume(Unit)
+                                    webSocket.close(1000, null)
+                                }
+                            }
+
+                            override fun onFailure(
+                                webSocket: WebSocket,
+                                t: Throwable,
+                                response: Response?,
+                            ) {
+                                if (!continuation.isActive) {
+                                    Log.d("ResolverWS", "WS done cancelled or timed out")
+                                    return
+                                }
+                                Log.e("ResolverWS", "WS failed", t)
                                 continuation.resume(Unit)
-                                webSocket.close(1000, null)
                             }
-                        }
-
-                        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                            if (!continuation.isActive) {
-                                Log.d("ResolverWS", "WS done cancelled or timed out")
-                                return
-                            }
-                            Log.e("ResolverWS", "WS failed", t)
-                            continuation.resume(Unit)
-                        }
-                    })
+                        })
 
                     continuation.invokeOnCancellation {
                         socket.cancel()
@@ -437,20 +457,19 @@ class MainMobileActivity : FragmentActivity() {
     private fun resolve(ws: String, token: String) {
         pendingWs = ws
         pendingToken = token
-        isResolving = true
 
         lifecycleScope.launch {
             val url = requestResolvedUrl(ws, token)
             if (url == null) {
-                isResolving = false
-                customTabOpened = false
                 showResolverConnectionErrorDialog(ws, token)
                 return@launch
             }
 
             pendingUrl = url
-            customTabOpened = true
-            customTabHelper.open(this@MainMobileActivity, url)
+            bypassWebViewLauncher.launch(
+                Intent(this@MainMobileActivity, BypassWebViewActivity::class.java)
+                    .putExtra(BypassWebViewActivity.EXTRA_URL, url)
+            )
         }
     }
 

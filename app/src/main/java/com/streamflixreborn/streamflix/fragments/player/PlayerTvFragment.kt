@@ -18,6 +18,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.CookieManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -1284,10 +1285,10 @@ class PlayerTvFragment : Fragment() {
     private fun startWebSocketServer(): Boolean {
         if (wsServer != null) return true
 
-        wsServer = BypassWebSocketServer(8081) { token ->
+        wsServer = BypassWebSocketServer(8081) { token, cookies ->
             requireActivity().runOnUiThread {
                 Log.d("BypassWS", "DONE received for token: $token")
-                onBypassCompleted(token)
+                onBypassCompleted(token, cookies)
             }
         }
 
@@ -1328,7 +1329,7 @@ class PlayerTvFragment : Fragment() {
     }
 
 
-    private fun onBypassCompleted(token: String) {
+    private fun onBypassCompleted(token: String, cookies: String?) {
         val session = activeBypassSession
         if (session == null || session.token != token) {
             Log.w("BypassWS", "Ignoring bypass completion for stale token: $token")
@@ -1340,11 +1341,38 @@ class PlayerTvFragment : Fragment() {
         activeBypassSession = null
 
         clearBypassSession(dismissDialog = true)
+        applyBypassCookies(session.serverUrl, cookies)
 
         lifecycleScope.launch {
             delay(500)
             viewModel.reloadServersAfterBypass()
         }
+    }
+
+    private fun applyBypassCookies(url: String, cookieHeader: String?) {
+        val cookies = cookieHeader?.trim().orEmpty()
+        if (cookies.isBlank()) return
+
+        val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
+        val targets = linkedSetOf<String>().apply {
+            if (url.isNotBlank()) add(url)
+            if (host.isNotBlank()) {
+                add("https://$host/")
+                add("http://$host/")
+            }
+        }
+        if (targets.isEmpty()) return
+
+        val cookieManager = CookieManager.getInstance()
+        cookies.split(";")
+            .map { it.trim() }
+            .filter { it.contains("=") }
+            .forEach { cookie ->
+                targets.forEach { target ->
+                    cookieManager.setCookie(target, cookie)
+                }
+            }
+        cookieManager.flush()
     }
 
 

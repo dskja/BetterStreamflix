@@ -18,6 +18,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -421,6 +422,20 @@ object SerienStreamProvider : Provider {
     interface SerienStreamService {
 
         companion object {
+            private fun OkHttpClient.Builder.applyBrowserHeaders(): OkHttpClient.Builder {
+                return addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .header("User-Agent", NetworkClient.USER_AGENT)
+                        .header(
+                            "Accept",
+                            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+                        )
+                        .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7")
+                        .build()
+                    chain.proceed(request)
+                }.cookieJar(NetworkClient.cookieJar)
+            }
+
             private fun getOkHttpClient(): OkHttpClient {
                 val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
                 val clientBuilder = OkHttpClient.Builder()
@@ -429,6 +444,7 @@ object SerienStreamProvider : Provider {
                     .connectTimeout(30, TimeUnit.SECONDS)
 
                 return clientBuilder
+                    .applyBrowserHeaders()
                     .dns(DnsResolver.doh)
                     .build()
             }
@@ -455,6 +471,7 @@ object SerienStreamProvider : Provider {
                         .hostnameVerifier { _, _ -> true }
 
                     return clientBuilder
+                        .applyBrowserHeaders()
                         .dns(DnsResolver.doh)
                         .followRedirects(true)
                         .followSslRedirects(true)

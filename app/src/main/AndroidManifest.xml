@@ -95,6 +95,11 @@
             android:theme="@style/AppTheme.Mobile" />
 
         <activity
+            android:name=".activities.tools.BypassWebViewActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme.Mobile" />
+
+        <activity
             android:name=".activities.main.MainTvActivity"
             android:exported="true"
             android:theme="@style/AppTheme.Tv">

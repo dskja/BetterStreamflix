@@ -42,7 +42,9 @@ object WebSocketBypassTestHelper {
         server?.let { return it }
 
         return runCatching {
-            BypassWebSocketServer(serverPort, onDone).also {
+            BypassWebSocketServer(serverPort) { token, _ ->
+                onDone(token)
+            }.also {
                 it.start()
                 check(it.awaitStart()) { "Timed out while starting websocket server" }
                 server = it
