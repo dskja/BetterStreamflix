@@ -214,12 +214,11 @@ class MainMobileActivity : FragmentActivity() {
                 lifecycleScope.launch {
                     sendWebSocketDone(wsUrl, token)
                     clearResolverState()
-                    finish()
+                    showPostBypassCloseDialog()
                 }
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
                 clearResolverState()
-                finish()
             }
             .setNeutralButton("Retry") { _, _ ->
                 pendingUrl?.let { customTabHelper.open(this, it) }
@@ -228,7 +227,6 @@ class MainMobileActivity : FragmentActivity() {
             }
             .setOnCancelListener {
                 clearResolverState()
-                finish()
             }
             .show()
     }
@@ -467,6 +465,20 @@ class MainMobileActivity : FragmentActivity() {
             .setOnCancelListener {
                 clearResolverState()
             }
+            .show()
+    }
+
+    private fun showPostBypassCloseDialog() {
+        if (isFinishing || isDestroyed) return
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.app_name)
+            .setMessage("Bypass completed. Do you want to close the app?")
+            .setPositiveButton("Close app") { _, _ ->
+                closeTask()
+            }
+            .setNegativeButton("Keep open", null)
+            .setOnCancelListener(null)
             .show()
     }
 
