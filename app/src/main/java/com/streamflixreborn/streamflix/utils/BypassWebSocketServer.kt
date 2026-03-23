@@ -26,7 +26,11 @@ class BypassWebSocketServer(
         sessions.remove(token)
     }
 
-    fun awaitStart(timeoutMs: Long = 2_000): Boolean {
+    private var startError: Exception? = null
+
+    fun getStartError(): Exception? = startError
+
+    fun awaitStart(timeoutMs: Long = 5_000): Boolean {
         return startedLatch.await(timeoutMs, TimeUnit.MILLISECONDS)
     }
 
@@ -74,6 +78,10 @@ class BypassWebSocketServer(
 
     override fun onError(conn: WebSocket?, ex: Exception) {
         Log.e("BypassWS", "Error", ex)
+        if (conn == null) {
+            startError = ex
+            startedLatch.countDown()
+        }
     }
 
     override fun onStart() {

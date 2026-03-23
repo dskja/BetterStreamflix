@@ -107,6 +107,10 @@ object UserPreferences {
         get() = Key.CURRENT_LANGUAGE.getString()
         set(value) = Key.CURRENT_LANGUAGE.setString(value)
 
+    var providerLanguage: String?
+        get() = Key.PROVIDER_LANGUAGE.getString()
+        set(value) = Key.PROVIDER_LANGUAGE.setString(value)
+
     var captionTextSize: Float
         get() = Key.CAPTION_TEXT_SIZE.getFloat()
             ?: PlayerSettingsView.Settings.Subtitle.Style.TextSize.DEFAULT.value
@@ -462,7 +466,8 @@ object UserPreferences {
         PARENTAL_CONTROL_LOCKED_UNTIL,
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
-        BYPASS_WS_ADVERTISED_HOST;
+        BYPASS_WS_ADVERTISED_HOST,
+        PROVIDER_LANGUAGE;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

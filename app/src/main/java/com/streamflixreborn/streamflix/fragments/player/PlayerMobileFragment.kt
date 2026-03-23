@@ -84,7 +84,9 @@ import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.net.CookieManager
 import java.util.Locale
@@ -536,9 +538,17 @@ class PlayerMobileFragment : Fragment() {
         when (val type = args.videoType) {
             is Video.Type.Episode -> {
                 if (EpisodeManager.listIsEmpty(type)) {
-                    EpisodeManager.addEpisodesFromDb(type, database)
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        EpisodeManager.addEpisodesFromDb(type, database)
+                        withContext(Dispatchers.Main) {
+                            EpisodeManager.setCurrentEpisode(type)
+                            setupEpisodeNavigationButtons()
+                        }
+                    }
+                } else {
+                    EpisodeManager.setCurrentEpisode(type)
+                    setupEpisodeNavigationButtons()
                 }
-                EpisodeManager.setCurrentEpisode(type)
             }
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
         }

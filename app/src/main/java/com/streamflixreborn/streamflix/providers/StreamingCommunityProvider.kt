@@ -44,7 +44,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     private val totalCounts = mutableMapOf<String, Int>()
 
     override val language: String
-        get() = _language ?: UserPreferences.currentLanguage ?: "it"
+        get() = _language ?: UserPreferences.providerLanguage ?: "it"
 
     private val LANG: String
         get() = if (language == "en") "en" else "it"

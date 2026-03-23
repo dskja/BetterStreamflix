@@ -92,7 +92,9 @@ import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
 import com.streamflixreborn.streamflix.utils.QrUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.UUID
 
@@ -255,17 +257,14 @@ class PlayerTvFragment : Fragment() {
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
 
-                            val wsUrl = BypassWebSocketEndpointHelper.getAdvertisedWsUrl(8081)
-                                ?: return@collect
                             val session = BypassSession(
                                 token = UUID.randomUUID().toString(),
                                 serverUrl = sToServer.id,
                             )
                             activeBypassSession = session
 
-                            val qrContent = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
-
-                            if (!startWebSocketServer()) {
+                            val actualPort = startWebSocketServer()
+                            if (actualPort == -1) {
                                 clearBypassSession()
                                 Toast.makeText(
                                     requireContext(),
@@ -274,6 +273,12 @@ class PlayerTvFragment : Fragment() {
                                 ).show()
                                 return@collect
                             }
+
+                            val wsUrl = BypassWebSocketEndpointHelper.getAdvertisedWsUrl(actualPort)
+                                ?: return@collect
+
+                            val qrContent = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
+
                             wsServer?.registerSession(session.token, session.serverUrl)
                             requireActivity().runOnUiThread {
                                 showQrDialog(qrContent)
@@ -628,9 +633,17 @@ class PlayerTvFragment : Fragment() {
                 is Video.Type.Episode -> {
 
                     if (EpisodeManager.listIsEmpty(type)) {
-                        EpisodeManager.addEpisodesFromDb(type, database)
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            EpisodeManager.addEpisodesFromDb(type, database)
+                            withContext(Dispatchers.Main) {
+                                EpisodeManager.setCurrentEpisode(type)
+                                setupEpisodeNavigationButtons()
+                            }
+                        }
+                    } else {
+                        EpisodeManager.setCurrentEpisode(type)
+                        setupEpisodeNavigationButtons()
                     }
-                    EpisodeManager.setCurrentEpisode(type)
                 }
 
                 is Video.Type.Movie -> {
@@ -1282,25 +1295,35 @@ class PlayerTvFragment : Fragment() {
         }.getOrDefault(false)
     }
 
-    private fun startWebSocketServer(): Boolean {
-        if (wsServer != null) return true
+    private fun startWebSocketServer(): Int {
+        if (wsServer != null) return wsServer?.address?.port ?: 8081
 
-        wsServer = BypassWebSocketServer(8081) { token, cookies ->
-            requireActivity().runOnUiThread {
-                Log.d("BypassWS", "DONE received for token: $token")
-                onBypassCompleted(token, cookies)
+        val ports = listOf(8081, 8082, 8887, 0)
+        for (port in ports) {
+            val server = BypassWebSocketServer(port) { token, cookies ->
+                requireActivity().runOnUiThread {
+                    Log.d("BypassWS", "DONE received for token: $token")
+                    onBypassCompleted(token, cookies)
+                }
             }
-        }
-
-        return runCatching {
-            wsServer?.start()
-            wsServer?.awaitStart() == true
-        }.getOrDefault(false).also { started ->
-            if (!started) {
-                Log.e("BypassWS", "WebSocket server failed to start on time")
+            wsServer = server
+            try {
+                server.start()
+                if (server.awaitStart(5_000)) {
+                    val actualPort = server.address.port
+                    Log.d("BypassWS", "WebSocket server started on port $actualPort")
+                    return actualPort
+                } else {
+                    val error = server.getStartError()
+                    Log.e("BypassWS", "Server failed to start on port $port: ${error?.message}")
+                    stopWebSocketServer()
+                }
+            } catch (e: Exception) {
+                Log.e("BypassWS", "Failed to start on port $port", e)
                 stopWebSocketServer()
             }
         }
+        return -1
     }
     private fun stopWebSocketServer() {
         try {
