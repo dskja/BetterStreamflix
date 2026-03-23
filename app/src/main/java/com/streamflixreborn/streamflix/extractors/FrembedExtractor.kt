@@ -57,6 +57,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
             .replace("crystaltreatmenteast", "voe")
             .replace("lauradaydo", "voe")
             .replace("lancewhosedifficult", "voe")
+            .replace("dianaavoidthey", "voe")
             .replace("myvidplay", "dood")
             .replaceFirstChar { it.uppercase() }
     }
