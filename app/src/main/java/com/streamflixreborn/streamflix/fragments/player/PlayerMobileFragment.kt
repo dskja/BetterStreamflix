@@ -80,6 +80,7 @@ import java.io.FileOutputStream
 import androidx.core.content.FileProvider
 import androidx.navigation.NavOptions
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import okhttp3.OkHttpClient
@@ -1065,9 +1066,7 @@ class PlayerMobileFragment : Fragment() {
         }
         currentExtraBuffering = extraBuffering
 
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
+        val okHttpClient = NetworkClient.default
         httpDataSource = OkHttpDataSource.Factory(okHttpClient)
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
