@@ -8,13 +8,15 @@ import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
@@ -51,10 +53,12 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                 is State.SuccessSearching -> {
                     val movies = state.results
                         .filterIsInstance<Movie>()
-                    database.movieDao().getByIds(movies.map { it.id })
-                        .collect { emit(it) }
+                    if (movies.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.movieDao().getByIds(movies.map { it.id }))
+                    }
                 }
-                // Añadido para ser exhaustivo
                 else -> emit(emptyList<Movie>())
             }
         },
@@ -63,24 +67,29 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                 is State.SuccessSearching -> {
                     val tvShows = state.results
                         .filterIsInstance<TvShow>()
-                    database.tvShowDao().getByIds(tvShows.map { it.id })
-                        .collect { emit(it) }
+                    if (tvShows.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.tvShowDao().getByIds(tvShows.map { it.id }))
+                    }
                 }
-                // Añadido para ser exhaustivo
                 else -> emit(emptyList<TvShow>())
             }
         },
     ) { state, moviesDb, tvShowsDb ->
         when (state) {
             is State.SuccessSearching -> {
+                val moviesById = moviesDb.associateBy { it.id }
+                val tvShowsById = tvShowsDb.associateBy { it.id }
+
                 State.SuccessSearching(
                     results = state.results.map { item ->
                         when (item) {
-                            is Movie -> moviesDb.find { it.id == item.id }
+                            is Movie -> moviesById[item.id]
                                 ?.takeIf { !item.isSame(it) }
                                 ?.let { item.copy().merge(it) }
                                 ?: item
-                            is TvShow -> tvShowsDb.find { it.id == item.id }
+                            is TvShow -> tvShowsById[item.id]
                                 ?.takeIf { !item.isSame(it) }
                                 ?.let { item.copy().merge(it) }
                                 ?: item
@@ -90,10 +99,9 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                     hasMore = state.hasMore
                 )
             }
-            // Añadido para ser exhaustivo
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     var query = ""
     private var page = 1
@@ -106,7 +114,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         _state.emit(State.Searching)
 
         try {
-            val results = UserPreferences.currentProvider!!.search(query)
+            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
             this@SearchViewModel.query = query
             page = 1
             _state.emit(State.SuccessSearching(results, true))
@@ -117,11 +125,13 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
     }
 
     fun loadMore() = viewModelScope.launch(Dispatchers.IO) {
-        val currentState = _state.first()
+        val currentState = _state.value
         if (currentState is State.SuccessSearching) {
             _state.emit(State.SearchingMore)
             try {
-                val results = UserPreferences.currentProvider!!.search(query, page + 1)
+                val results = ParentalControlUtils.filterItems(
+                    UserPreferences.currentProvider!!.search(query, page + 1)
+                )
                 page += 1
                 _state.emit(
                     State.SuccessSearching(
@@ -167,7 +177,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         targetProviders.forEachIndexed { index, provider ->
             launch {
                 try {
-                    val results = provider.search(query).onEach { item ->
+                    val results = ParentalControlUtils.filterItems(provider.search(query).onEach { item ->
                         // ========= ¡AQUÍ ESTÁ LA MAGIA! =========
                         // Le ponemos el sello a cada resultado
                         when (item) {
@@ -175,7 +185,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                             is TvShow -> item.providerName = provider.name
                         }
                         // =======================================
-                    }
+                    })
                     mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
                 } catch (e: Exception) {
                     Log.e("SearchViewModel", "searchGlobal for ${provider.name}: ", e)

@@ -2,268 +2,399 @@
 <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <PreferenceCategory
-        android:key="pc_streamingcommunity_settings"
-        android:title="@string/settings_category_streamingcommunity"
+    <PreferenceScreen
+        android:key="screen_content"
+        android:title="@string/settings_section_content_title"
+        android:summary="@string/settings_screen_content_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <EditTextPreference
-            android:key="provider_streamingcommunity_domain"
-            android:title="@string/settings_category_streamingcommunity_domain"
-            android:inputType="text"
-            app:iconSpaceReserved="false"/>
+        <PreferenceCategory
+            android:key="pc_tmdb_settings"
+            android:title="@string/settings_category_tmdb"
+            app:iconSpaceReserved="false">
 
-        <Preference
-            android:key="provider_streamingcommunity_domain_reset"
-            android:title="@string/settings_streamingcommunity_domain_reset"
-            android:summary="@string/settings_streamingcommunity_domain_reset_summary"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+            <SwitchPreferenceCompat
+                android:key="ENABLE_TMDB"
+                android:title="@string/settings_enable_tmdb_title"
+                android:summary="@string/settings_enable_tmdb_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
 
-    <PreferenceCategory
-        android:key="pc_cuevana_settings"
-        android:title="@string/settings_category_cuevana"
+            <EditTextPreference
+                android:key="TMDB_API_KEY"
+                android:title="@string/settings_tmdb_api_key"
+                android:summary="@string/settings_tmdb_api_key_summary"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_parental_control_settings"
+            android:title="@string/settings_category_parental_control"
+            app:iconSpaceReserved="false">
+
+            <EditTextPreference
+                android:key="PARENTAL_CONTROL_PIN"
+                android:title="@string/settings_parental_pin_title"
+                android:summary="@string/settings_parental_pin_summary"
+                android:inputType="numberPassword"
+                app:iconSpaceReserved="false" />
+
+            <EditTextPreference
+                android:key="PARENTAL_CONTROL_ADMIN_PIN"
+                android:title="@string/settings_parental_admin_pin_title"
+                android:summary="@string/settings_parental_admin_pin_summary"
+                android:inputType="numberPassword"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="PARENTAL_CONTROL_REMOVE_PIN"
+                android:title="@string/settings_parental_remove_pin_title"
+                android:summary="@string/settings_parental_remove_pin_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="PARENTAL_CONTROL_REMOVE_ADMIN_PIN"
+                android:title="@string/settings_parental_remove_admin_pin_title"
+                android:summary="@string/settings_parental_remove_admin_pin_summary"
+                app:iconSpaceReserved="false" />
+
+            <ListPreference
+                android:key="PARENTAL_CONTROL_MAX_AGE"
+                android:title="@string/settings_parental_max_age_title"
+                android:summary="@string/settings_parental_max_age_summary"
+                android:entries="@array/parental_control_age_entries"
+                android:entryValues="@array/parental_control_age_values"
+                android:defaultValue=""
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="PARENTAL_CONTROL_UNLOCK"
+                android:title="@string/settings_parental_unlock_title"
+                android:summary="@string/settings_parental_unlock_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:key="screen_playback"
+        android:title="@string/player_settings"
+        android:summary="@string/settings_screen_playback_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <EditTextPreference
-            android:key="provider_cuevana_domain"
-            android:title="@string/settings_category_cuevana_domain"
-            android:inputType="text"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+        <PreferenceCategory
+            android:title="@string/autoplay_settings"
+            app:iconSpaceReserved="false">
 
-    <PreferenceCategory
-        android:key="pc_poseidon_settings"
-        android:title="@string/settings_category_poseidon"
-        app:iconSpaceReserved="false">
+            <SwitchPreference
+                android:key="AUTOPLAY"
+                android:title="@string/settings_autoplay"
+                android:defaultValue="true"
+                android:summaryOn="@string/settings_autoplay_on"
+                android:summaryOff="@string/settings_autoplay_off"
+                app:iconSpaceReserved="false" />
 
-        <EditTextPreference
-            android:key="provider_poseidon_domain"
-            android:title="@string/settings_category_poseidon_domain"
-            android:inputType="text"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+            <EditTextPreference
+                android:key="p_settings_autoplay_buffer"
+                android:title="@string/settings_autoplay_buffer_title"
+                android:dialogMessage="@string/settings_autoplay_buffer_dialog_message"
+                android:defaultValue="3"
+                android:inputType="number"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
 
-    <PreferenceCategory
-        android:key="pc_tmdb_settings"
-        android:title="@string/settings_category_tmdb"
-        app:iconSpaceReserved="false">
+        <PreferenceCategory
+            android:key="pc_extra_buffering_settings"
+            android:title="@string/player_settings_extra_buffer_title"
+            app:iconSpaceReserved="false">
 
-        <SwitchPreferenceCompat
-            android:key="ENABLE_TMDB"
-            android:title="@string/settings_enable_tmdb_title"
-            android:summary="@string/settings_enable_tmdb_summary"
-            android:defaultValue="true"
-            app:iconSpaceReserved="false"/>
+            <SwitchPreference
+                android:key="FORCE_EXTRA_BUFFERING"
+                android:title="@string/settings_force_extra_buffer_title"
+                android:summary="@string/settings_force_extra_buffer_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
 
-        <EditTextPreference
-            android:key="TMDB_API_KEY"
-            android:title="@string/settings_tmdb_api_key"
-            android:summary="@string/settings_tmdb_api_key_summary"
-            android:inputType="text"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+        <PreferenceCategory
+            android:title="@string/player_settings"
+            app:iconSpaceReserved="false">
 
-    <PreferenceCategory
-        android:key="pc_subdl_settings"
-        android:title="@string/settings_category_subdl"
-        app:iconSpaceReserved="false">
+            <SwitchPreference
+                android:key="PLAYER_GESTURES"
+                android:title="@string/settings_player_gestures"
+                android:defaultValue="true"
+                android:summaryOn="@string/settings_player_gestures_on"
+                android:summaryOff="@string/settings_player_gestures_off"
+                app:iconSpaceReserved="false" />
 
-        <EditTextPreference
-            android:key="SUBDL_API_KEY"
-            android:title="@string/settings_subdl_api_key"
-            android:summary="@string/settings_subdl_api_key_summary"
-            android:inputType="text"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+            <SwitchPreference
+                android:key="KEEP_SCREEN_ON_WHEN_PAUSED"
+                android:title="@string/settings_keep_screen_on_when_paused"
+                android:summary="@string/settings_keep_screen_on_when_paused_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
 
-    <PreferenceCategory
-        android:key="pc_network_settings"
-        android:title="@string/settings_category_network_title"
-        app:iconSpaceReserved="false">
-        <ListPreference
-            android:key="p_doh_provider_url"
-            android:title="@string/settings_doh_provider_title"
-            android:summary="%s"
-            android:entries="@array/doh_provider_names"
-            android:entryValues="@array/doh_provider_urls"
-            android:defaultValue="https://cloudflare-dns.com/dns-query"
-            app:iconSpaceReserved="false"/>
-     </PreferenceCategory>
+            <ListPreference
+                android:key="preferred_player"
+                android:title="@string/settings_trailer_player_title"
+                android:summary="@string/settings_trailer_player_summary"
+                android:entries="@array/trailer_player_names"
+                android:entryValues="@array/trailer_player_values"
+                android:defaultValue="ask"
+                app:iconSpaceReserved="false" />
 
-    <PreferenceCategory
-        android:key="pc_provider_settings"
-        android:title="@string/settings_category_provider_title"
-        app:iconSpaceReserved="false">
+            <Preference
+                android:key="preferred_player_reset"
+                android:title="@string/settings_trailer_player_reset"
+                android:summary="@string/settings_trailer_player_reset_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
 
-        <EditTextPreference
-            android:key="provider_url"
-            android:title="@string/settings_category_provider_url"
-            android:inputType="textUri"
-            app:iconSpaceReserved="false"/>
+        <PreferenceCategory
+            android:title="@string/settings_server_voe_category"
+            app:iconSpaceReserved="false">
 
-        <EditTextPreference
-            android:key="provider_portal_url"
-            android:title="@string/settings_category_provider_update_url"
-            android:inputType="textUri"
-            app:iconSpaceReserved="false"/>
+            <SwitchPreference
+                android:key="SERVER_AUTO_SUBTITLES_DISABLED"
+                android:title="@string/settings_server_voe_title"
+                android:summary="@string/settings_server_voe_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
 
-        <SwitchPreference
-            android:key="provider_autoupdate"
-            android:title="@string/settings_autoupdate"
-            android:defaultValue="true"
-            android:summaryOn="@string/settings_autoupdate_on"
-            android:summaryOff="@string/settings_autoupdate_off"
-            app:iconSpaceReserved="false"/>
-
-        <Preference
-            android:icon="@drawable/ic_refresh"
-            android:key="provider_autoupdate_now"
-            android:title="@string/settings_autoupdate_now"
-            app:iconSpaceReserved="false"/>
-
-        <SwitchPreference
-            android:key="pc_frenchstream_new_interface"
-            android:title="@string/settings_frenchstream_use_new_interface"
-            android:defaultValue="true"
-            android:summaryOn="@string/settings_frenchstream_use_new_interface_on"
-            android:summaryOff="@string/settings_frenchstream_use_new_interface_off"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
-    
-    <PreferenceCategory
-        android:key="pc_appearance_settings"
+    <PreferenceScreen
+        android:key="screen_appearance"
         android:title="@string/settings_category_appearance"
+        android:summary="@string/settings_screen_appearance_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <ListPreference
-            android:key="SELECTED_THEME"
-            android:title="@string/settings_theme_title"
-            android:summary="%s"
-            android:entries="@array/theme_names"
-            android:entryValues="@array/theme_values"
-            android:defaultValue="default"
-            app:iconSpaceReserved="false"/>
+        <PreferenceCategory
+            android:key="pc_appearance_settings"
+            android:title="@string/settings_category_appearance"
+            app:iconSpaceReserved="false">
 
-        <SwitchPreference
-            android:key="IMMERSIVE_MODE"
-            android:title="@string/settings_immersive_mode"
-            android:summary="@string/settings_immersive_mode_summary"
-            android:summaryOn="@string/settings_immersive_mode_on"
-            android:summaryOff="@string/settings_immersive_mode_off"
-            android:defaultValue="false"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+            <ListPreference
+                android:key="APP_LANGUAGE"
+                android:title="@string/settings_app_language_title"
+                android:summary="@string/settings_app_language_summary"
+                android:defaultValue="system"
+                app:iconSpaceReserved="false" />
 
-    <PreferenceCategory android:title="@string/autoplay_settings" app:iconSpaceReserved="false">
-        <SwitchPreference
-            android:key="AUTOPLAY"
-            android:title="@string/settings_autoplay"
-            android:defaultValue="true"
-            android:summaryOn="@string/settings_autoplay_on"
-            android:summaryOff="@string/settings_autoplay_off"
-		app:iconSpaceReserved="false"/>
-        <EditTextPreference
-            android:key="p_settings_autoplay_buffer"
-            android:title="@string/settings_autoplay_buffer_title"
-            android:dialogMessage="@string/settings_autoplay_buffer_dialog_message"
-            android:defaultValue="3"
-            android:inputType="number"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+            <ListPreference
+                android:key="SELECTED_THEME"
+                android:title="@string/settings_theme_title"
+                android:summary="%s"
+                android:entries="@array/theme_names"
+                android:entryValues="@array/theme_values"
+                android:defaultValue="default"
+                app:iconSpaceReserved="false" />
 
-    <PreferenceCategory
-        android:key="pc_extra_buffering_settings"
-        android:title="@string/player_settings_extra_buffer_title"
+            <SwitchPreference
+                android:key="IMMERSIVE_MODE"
+                android:title="@string/settings_immersive_mode"
+                android:summary="@string/settings_immersive_mode_summary"
+                android:summaryOn="@string/settings_immersive_mode_on"
+                android:summaryOff="@string/settings_immersive_mode_off"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:key="screen_network"
+        android:title="@string/settings_category_network_title"
+        android:summary="@string/settings_screen_network_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <SwitchPreference
-            android:key="FORCE_EXTRA_BUFFERING"
-            android:title="@string/settings_force_extra_buffer_title"
-            android:summary="@string/settings_force_extra_buffer_summary"
-            android:defaultValue="false"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+        <PreferenceCategory
+            android:key="pc_network_settings"
+            android:title="@string/settings_category_network_title"
+            app:iconSpaceReserved="false">
 
-    <PreferenceCategory android:title="@string/player_settings" app:iconSpaceReserved="false">
-        <SwitchPreference
-            android:key="PLAYER_GESTURES"
-            android:title="@string/settings_player_gestures"
-            android:defaultValue="true"
-            android:summaryOn="@string/settings_player_gestures_on"
-            android:summaryOff="@string/settings_player_gestures_off"
-            app:iconSpaceReserved="false"/>
+            <Preference
+                android:key="p_scan_resolver_qr"
+                android:title="@string/settings_scan_resolver_qr_title"
+                android:summary="@string/settings_scan_resolver_qr_summary"
+                app:iconSpaceReserved="false" />
 
-        <SwitchPreference
-            android:key="KEEP_SCREEN_ON_WHEN_PAUSED"
-            android:title="@string/settings_keep_screen_on_when_paused"
-            android:summary="@string/settings_keep_screen_on_when_paused_summary"
-            android:defaultValue="false"
-            app:iconSpaceReserved="false"/>
+            <ListPreference
+                android:key="p_doh_provider_url"
+                android:title="@string/settings_doh_provider_title"
+                android:summary="%s"
+                android:entries="@array/doh_provider_names"
+                android:entryValues="@array/doh_provider_urls"
+                android:defaultValue="https://cloudflare-dns.com/dns-query"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
 
-        <ListPreference
-            android:key="preferred_player"
-            android:title="@string/settings_trailer_player_title"
-            android:summary="@string/settings_trailer_player_summary"
-            android:entries="@array/trailer_player_names"
-            android:entryValues="@array/trailer_player_values"
-            android:defaultValue="ask"
-            app:iconSpaceReserved="false"/>
+        <PreferenceCategory
+            android:key="pc_subdl_settings"
+            android:title="@string/settings_category_subdl"
+            app:iconSpaceReserved="false">
 
-        <Preference
-            android:key="preferred_player_reset"
-            android:title="@string/settings_trailer_player_reset"
-            android:summary="@string/settings_trailer_player_reset_summary"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+            <EditTextPreference
+                android:key="SUBDL_API_KEY"
+                android:title="@string/settings_subdl_api_key"
+                android:summary="@string/settings_subdl_api_key_summary"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
 
-    <PreferenceCategory
-        android:title="@string/settings_server_voe_category"
+    <PreferenceScreen
+        android:key="screen_provider"
+        android:title="@string/settings_category_provider_title"
+        android:summary="@string/settings_screen_provider_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <SwitchPreference
-            android:key="SERVER_AUTO_SUBTITLES_DISABLED"
-            android:title="@string/settings_server_voe_title"
-            android:summary="@string/settings_server_voe_summary"
-            android:defaultValue="true"
-            app:iconSpaceReserved="false"/>
-    </PreferenceCategory>
+        <PreferenceCategory
+            android:key="pc_provider_settings"
+            android:title="@string/settings_category_provider_title"
+            app:iconSpaceReserved="false">
 
-    <PreferenceCategory
+            <EditTextPreference
+                android:key="provider_url"
+                android:title="@string/settings_category_provider_url"
+                android:inputType="textUri"
+                app:iconSpaceReserved="false" />
+
+            <EditTextPreference
+                android:key="provider_portal_url"
+                android:title="@string/settings_category_provider_update_url"
+                android:inputType="textUri"
+                app:iconSpaceReserved="false" />
+
+            <SwitchPreference
+                android:key="provider_autoupdate"
+                android:title="@string/settings_autoupdate"
+                android:defaultValue="true"
+                android:summaryOn="@string/settings_autoupdate_on"
+                android:summaryOff="@string/settings_autoupdate_off"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:icon="@drawable/ic_refresh"
+                android:key="provider_autoupdate_now"
+                android:title="@string/settings_autoupdate_now"
+                app:iconSpaceReserved="false" />
+
+            <SwitchPreference
+                android:key="pc_frenchstream_new_interface"
+                android:title="@string/settings_frenchstream_use_new_interface"
+                android:defaultValue="true"
+                android:summaryOn="@string/settings_frenchstream_use_new_interface_on"
+                android:summaryOff="@string/settings_frenchstream_use_new_interface_off"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_streamingcommunity_settings"
+            android:title="@string/settings_category_streamingcommunity"
+            app:iconSpaceReserved="false">
+
+            <EditTextPreference
+                android:key="provider_streamingcommunity_domain"
+                android:title="@string/settings_category_streamingcommunity_domain"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="provider_streamingcommunity_domain_reset"
+                android:title="@string/settings_streamingcommunity_domain_reset"
+                android:summary="@string/settings_streamingcommunity_domain_reset_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_cuevana_settings"
+            android:title="@string/settings_category_cuevana"
+            app:iconSpaceReserved="false">
+
+            <EditTextPreference
+                android:key="provider_cuevana_domain"
+                android:title="@string/settings_category_cuevana_domain"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_poseidon_settings"
+            android:title="@string/settings_category_poseidon"
+            app:iconSpaceReserved="false">
+
+            <EditTextPreference
+                android:key="provider_poseidon_domain"
+                android:title="@string/settings_category_poseidon_domain"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_provider_empty_state"
+            android:title="@string/settings_provider_connection_title"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="provider_no_options"
+                android:title="@string/settings_provider_no_options_title"
+                android:summary="@string/settings_provider_no_options_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:key="screen_backup"
         android:title="@string/backup_category_title"
+        android:summary="@string/settings_screen_backup_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <Preference
-            android:key="key_backup_export_mobile"
-            android:title="@string/backup_export_title"
-            android:summary="@string/backup_export_summary"
-            app:iconSpaceReserved="false"/>
+        <PreferenceCategory
+            android:title="@string/backup_category_title"
+            app:iconSpaceReserved="false">
 
-        <Preference
-            android:key="key_backup_import_mobile"
-            android:title="@string/backup_import_title"
-            android:summary="@string/backup_import_summary"
-            app:iconSpaceReserved="false"/>
+            <Preference
+                android:key="key_backup_export_mobile"
+                android:title="@string/backup_export_title"
+                android:summary="@string/backup_export_summary"
+                app:iconSpaceReserved="false" />
 
-    </PreferenceCategory>
+            <Preference
+                android:key="key_backup_import_mobile"
+                android:title="@string/backup_import_title"
+                android:summary="@string/backup_import_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
 
-    <PreferenceCategory android:title="@string/miscelaneous_title" app:iconSpaceReserved="false">
+    <PreferenceCategory
+        android:title="@string/miscelaneous_title"
+        app:iconSpaceReserved="false">
+
         <Preference
             android:icon="@drawable/ic_telegram"
             android:key="p_settings_telegram"
             android:title="@string/settings_telegram"
-            app:iconSpaceReserved="false"/>
+            app:iconSpaceReserved="false" />
+
         <Preference
             android:icon="@drawable/ic_settings_about"
             android:key="p_settings_about"
             android:title="@string/settings_about"
-            app:iconSpaceReserved="false"/>
+            app:iconSpaceReserved="false" />
 
         <Preference
             android:icon="@drawable/ic_settings_help"
             android:key="p_settings_help"
             android:title="@string/settings_help"
-            app:iconSpaceReserved="false"/>
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

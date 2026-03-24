@@ -71,6 +71,10 @@ class AppAdapter(
     val items: MutableList<Item> = mutableListOf()
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    init {
+        setHasStableIds(true)
+    }
+
     // --- LISTENERS AÑADIDOS AQUÍ ---
     var onMovieClickListener: ((Movie) -> Unit)? = null
     var onTvShowClickListener: ((TvShow) -> Unit)? = null
@@ -551,6 +555,26 @@ class AppAdapter(
             (onLoadMoreListener?.let { 1 } ?: 0) +
             (footer?.let { 1 } ?: 0)
 
+    override fun getItemId(position: Int): Long {
+        if (header != null && position == 0) return Long.MIN_VALUE
+
+        val adjustedPosition = header?.let { position - 1 } ?: position
+        if (adjustedPosition in items.indices) {
+            return items.stableIdAt(adjustedPosition)
+        }
+
+        val loadMorePosition = itemCount - 1 - (if (footer != null) 1 else 0)
+        if (onLoadMoreListener != null && position == loadMorePosition) {
+            return Long.MIN_VALUE + 1
+        }
+
+        if (footer != null && position == itemCount - 1) {
+            return Long.MIN_VALUE + 2
+        }
+
+        return RecyclerView.NO_ID
+    }
+
     override fun getItemViewType(position: Int): Int {
         if (header != null && position == 0) {
             return Type.HEADER.ordinal
@@ -607,17 +631,8 @@ class AppAdapter(
             override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                 val oldItem = items[oldItemPosition]
                 val newItem = list[newItemPosition]
-                return when {
-                    oldItem is Category && newItem is Category -> oldItem.name == newItem.name
-                    oldItem is Episode && newItem is Episode -> oldItem.id == newItem.id
-                    oldItem is Genre && newItem is Genre -> oldItem.id == newItem.id
-                    oldItem is Movie && newItem is Movie -> oldItem.id == newItem.id
-                    oldItem is People && newItem is People -> oldItem.id == newItem.id
-                    oldItem is Provider && newItem is Provider -> oldItem.name == newItem.name
-                    oldItem is Season && newItem is Season -> oldItem.id == newItem.id
-                    oldItem is TvShow && newItem is TvShow -> oldItem.id == newItem.id
-                    else -> false
-                } && oldItem.itemType.ordinal == newItem.itemType.ordinal
+                return items.identityAt(oldItemPosition) == list.identityAt(newItemPosition) &&
+                        oldItem::class == newItem::class
             }
 
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
@@ -708,4 +723,31 @@ class AppAdapter(
         val binding: (parent: ViewGroup) -> T,
         val bind: ((binding: T) -> Unit)? = null,
     )
+
+    private fun List<Item>.stableIdAt(position: Int): Long {
+        return identityAt(position).fold(1125899906842597L) { acc, char ->
+            31L * acc + char.code
+        }
+    }
+
+    private fun List<Item>.identityAt(position: Int): String {
+        val item = this[position]
+        val baseKey = item.baseIdentityKey()
+        val occurrenceIndex = subList(0, position).count {
+            it.itemType == item.itemType && it.baseIdentityKey() == baseKey
+        }
+        return "${item.itemType.ordinal}:$baseKey:$occurrenceIndex"
+    }
+
+    private fun Item.baseIdentityKey(): String = when (this) {
+        is Category -> "category:${name}"
+        is Episode -> "episode:${id}"
+        is Genre -> "genre:${id}"
+        is Movie -> "movie:${id}"
+        is People -> "people:${id}"
+        is Provider -> "provider:${name}"
+        is Season -> "season:${id}"
+        is TvShow -> "tvshow:${id}"
+        else -> "item:${itemType.name}"
+    }
 }

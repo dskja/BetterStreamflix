@@ -42,6 +42,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
+        @Volatile
+        private var currentProviderName: String? = null
 
         private fun sanitizeProviderName(name: String): String {
             // Rimuove caratteri non validi per i nomi dei file DB, 
@@ -55,17 +57,22 @@ abstract class AppDatabase : RoomDatabase() {
         fun setup(context: Context) {
             if (UserPreferences.currentProvider == null) return
 
-            synchronized(this) {
-                INSTANCE?.close() // Chiudi connessioni esistenti
-                INSTANCE = buildDatabase(UserPreferences.currentProvider!!.name, context)
-            }
+            getInstance(context)
         }
 
         fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = buildDatabase(UserPreferences.currentProvider!!.name, context)
-                INSTANCE = instance
-                instance
+            val providerName = UserPreferences.currentProvider?.name
+                ?: currentProviderName
+                ?: throw IllegalStateException("Current provider is not set")
+
+            return INSTANCE?.takeIf { currentProviderName == providerName } ?: synchronized(this) {
+                INSTANCE?.takeIf { currentProviderName == providerName } ?: run {
+                    INSTANCE?.close()
+                    buildDatabase(providerName, context).also { instance ->
+                        INSTANCE = instance
+                        currentProviderName = providerName
+                    }
+                }
             }
         }
 
@@ -74,6 +81,7 @@ abstract class AppDatabase : RoomDatabase() {
             synchronized(this) {
                 INSTANCE?.close()
                 INSTANCE = null
+                currentProviderName = null
             }
         }
 

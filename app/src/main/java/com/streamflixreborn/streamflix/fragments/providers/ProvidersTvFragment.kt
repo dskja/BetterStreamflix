@@ -114,10 +114,10 @@ class ProvidersTvFragment : Fragment() {
                 ) {
                     if (position == 0) {
                         viewModel.getProviders()
-                        UserPreferences.currentLanguage = null
+                        UserPreferences.providerLanguage = null
                     } else {
                         viewModel.getProviders(languages[position - 1].code)
-                        UserPreferences.currentLanguage = languages[position - 1].code
+                        UserPreferences.providerLanguage = languages[position - 1].code
                     }
                 }
 
@@ -137,7 +137,7 @@ class ProvidersTvFragment : Fragment() {
             setAdapter(spinnerAdapter)
 
             setSelection(
-                UserPreferences.currentLanguage?.let {
+                UserPreferences.providerLanguage?.let {
                     languages.indexOfFirst { language -> language.code == it } + 1
                 } ?: 0
             )

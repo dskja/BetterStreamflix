@@ -29,6 +29,110 @@
         <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_amoled</item>
     </style>
 
+    <style name="AppTheme.Mobile.SunsetCinema" parent="AppTheme.Mobile">
+        <item name="app_background_color">#201410</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_sunset</item>
+        <item name="android:colorBackground">#201410</item>
+        <item name="colorAccent">#F39A5B</item>
+        <item name="android:textColorPrimary">#FFF0E5</item>
+        <item name="android:textColorSecondary">#D7B7A4</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_sunset</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_sunset</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_sunset</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_sunset</item>
+    </style>
+
+    <style name="AppTheme.Mobile.SteelBlue" parent="AppTheme.Mobile">
+        <item name="app_background_color">#141C25</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_steel</item>
+        <item name="android:colorBackground">#141C25</item>
+        <item name="colorAccent">#7DB3E8</item>
+        <item name="android:textColorPrimary">#EAF4FF</item>
+        <item name="android:textColorSecondary">#ADC5DA</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_steel</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_steel</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_steel</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_steel</item>
+    </style>
+
+    <style name="AppTheme.Mobile.ForestNight" parent="AppTheme.Mobile">
+        <item name="app_background_color">#101816</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_forest</item>
+        <item name="android:colorBackground">#101816</item>
+        <item name="colorAccent">#65D7C2</item>
+        <item name="android:textColorPrimary">#E6FFF8</item>
+        <item name="android:textColorSecondary">#A8D1C7</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_forest</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_forest</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_forest</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_forest</item>
+    </style>
+
+    <style name="AppTheme.Mobile.CrimsonNoir" parent="AppTheme.Mobile">
+        <item name="app_background_color">#1C1014</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_crimson</item>
+        <item name="android:colorBackground">#1C1014</item>
+        <item name="colorAccent">#D86A7A</item>
+        <item name="android:textColorPrimary">#FFECEF</item>
+        <item name="android:textColorSecondary">#D6B2BA</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_crimson</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_crimson</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_crimson</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_crimson</item>
+    </style>
+
+    <style name="AppTheme.Mobile.MidnightViolet" parent="AppTheme.Mobile">
+        <item name="app_background_color">#151523</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_violet</item>
+        <item name="android:colorBackground">#151523</item>
+        <item name="colorAccent">#AFA3FF</item>
+        <item name="android:textColorPrimary">#F1EEFF</item>
+        <item name="android:textColorSecondary">#BFB9DD</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_violet</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_violet</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_violet</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_violet</item>
+    </style>
+
+    <style name="AppTheme.Mobile.NordFrost" parent="AppTheme.Mobile">
+        <item name="app_background_color">#182029</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_nord</item>
+        <item name="android:colorBackground">#182029</item>
+        <item name="colorAccent">#8ED0E8</item>
+        <item name="android:textColorPrimary">#EAF7FD</item>
+        <item name="android:textColorSecondary">#B1C9D6</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_nord</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_nord</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_nord</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_nord</item>
+    </style>
+
+    <style name="AppTheme.Mobile.EmeraldLuxe" parent="AppTheme.Mobile">
+        <item name="app_background_color">#11201B</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_emerald</item>
+        <item name="android:colorBackground">#11201B</item>
+        <item name="colorAccent">#7ED6A3</item>
+        <item name="android:textColorPrimary">#EDF9F2</item>
+        <item name="android:textColorSecondary">#B6D0C0</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_emerald</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_emerald</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_emerald</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_emerald</item>
+    </style>
+
+    <style name="AppTheme.Mobile.RetroNeon" parent="AppTheme.Mobile">
+        <item name="app_background_color">#16161D</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_neon</item>
+        <item name="android:colorBackground">#16161D</item>
+        <item name="colorAccent">#4DE0D7</item>
+        <item name="android:textColorPrimary">#F4F7FF</item>
+        <item name="android:textColorSecondary">#CFB7DA</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_neon</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_neon</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_neon</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_neon</item>
+    </style>
+
     <!-- Tema di Default per TV -->
     <style name="AppTheme.Tv" parent="Theme.Leanback">
         <item name="app_background_color">#181818</item>
@@ -66,6 +170,166 @@
         <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_amoled</item>
         <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_amoled</item>
         <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_amoled</item>
+    </style>
+
+    <style name="AppTheme.SunsetCinema" parent="Theme.Leanback">
+        <item name="app_background_color">#201410</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#F39A5B</item>
+        <item name="colorControlActivated">#F39A5B</item>
+        <item name="colorControlNormal">#D7B7A4</item>
+        <item name="android:textColorPrimary">#FFF0E5</item>
+        <item name="android:textColorSecondary">#D7B7A4</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_sunset</item>
+        <item name="defaultBrandColor">#2B1812</item>
+        <item name="defaultSearchColor">#2B1812</item>
+        <item name="defaultSearchBrightColor">#41231A</item>
+        <item name="defaultSearchIconColor">#FFF0E5</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_sunset</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_sunset</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_sunset</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_sunset</item>
+    </style>
+
+    <style name="AppTheme.SteelBlue" parent="Theme.Leanback">
+        <item name="app_background_color">#141C25</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#7DB3E8</item>
+        <item name="colorControlActivated">#7DB3E8</item>
+        <item name="colorControlNormal">#ADC5DA</item>
+        <item name="android:textColorPrimary">#EAF4FF</item>
+        <item name="android:textColorSecondary">#ADC5DA</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_steel</item>
+        <item name="defaultBrandColor">#1A2430</item>
+        <item name="defaultSearchColor">#1A2430</item>
+        <item name="defaultSearchBrightColor">#243243</item>
+        <item name="defaultSearchIconColor">#EAF4FF</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_steel</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_steel</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_steel</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_steel</item>
+    </style>
+
+    <style name="AppTheme.ForestNight" parent="Theme.Leanback">
+        <item name="app_background_color">#101816</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#65D7C2</item>
+        <item name="colorControlActivated">#65D7C2</item>
+        <item name="colorControlNormal">#A8D1C7</item>
+        <item name="android:textColorPrimary">#E6FFF8</item>
+        <item name="android:textColorSecondary">#A8D1C7</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_forest</item>
+        <item name="defaultBrandColor">#13221E</item>
+        <item name="defaultSearchColor">#13221E</item>
+        <item name="defaultSearchBrightColor">#1C322C</item>
+        <item name="defaultSearchIconColor">#E6FFF8</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_forest</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_forest</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_forest</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_forest</item>
+    </style>
+
+    <style name="AppTheme.CrimsonNoir" parent="Theme.Leanback">
+        <item name="app_background_color">#1C1014</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#D86A7A</item>
+        <item name="colorControlActivated">#D86A7A</item>
+        <item name="colorControlNormal">#A88891</item>
+        <item name="android:textColorPrimary">#FFECEF</item>
+        <item name="android:textColorSecondary">#D6B2BA</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_crimson</item>
+        <item name="defaultBrandColor">#241015</item>
+        <item name="defaultSearchColor">#241015</item>
+        <item name="defaultSearchBrightColor">#361A22</item>
+        <item name="defaultSearchIconColor">#FFECEF</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_crimson</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_crimson</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_crimson</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_crimson</item>
+    </style>
+
+    <style name="AppTheme.MidnightViolet" parent="Theme.Leanback">
+        <item name="app_background_color">#151523</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#AFA3FF</item>
+        <item name="colorControlActivated">#AFA3FF</item>
+        <item name="colorControlNormal">#8F8AAE</item>
+        <item name="android:textColorPrimary">#F1EEFF</item>
+        <item name="android:textColorSecondary">#BFB9DD</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_violet</item>
+        <item name="defaultBrandColor">#181726</item>
+        <item name="defaultSearchColor">#181726</item>
+        <item name="defaultSearchBrightColor">#27263C</item>
+        <item name="defaultSearchIconColor">#F1EEFF</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_violet</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_violet</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_violet</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_violet</item>
+    </style>
+
+    <style name="AppTheme.NordFrost" parent="Theme.Leanback">
+        <item name="app_background_color">#182029</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#8ED0E8</item>
+        <item name="colorControlActivated">#8ED0E8</item>
+        <item name="colorControlNormal">#8EA2B0</item>
+        <item name="android:textColorPrimary">#EAF7FD</item>
+        <item name="android:textColorSecondary">#B1C9D6</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_nord</item>
+        <item name="defaultBrandColor">#18212A</item>
+        <item name="defaultSearchColor">#18212A</item>
+        <item name="defaultSearchBrightColor">#24303A</item>
+        <item name="defaultSearchIconColor">#EAF7FD</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_nord</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_nord</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_nord</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_nord</item>
+    </style>
+
+    <style name="AppTheme.EmeraldLuxe" parent="Theme.Leanback">
+        <item name="app_background_color">#11201B</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#7ED6A3</item>
+        <item name="colorControlActivated">#7ED6A3</item>
+        <item name="colorControlNormal">#98AE9F</item>
+        <item name="android:textColorPrimary">#EDF9F2</item>
+        <item name="android:textColorSecondary">#B6D0C0</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_emerald</item>
+        <item name="defaultBrandColor">#13211B</item>
+        <item name="defaultSearchColor">#13211B</item>
+        <item name="defaultSearchBrightColor">#203128</item>
+        <item name="defaultSearchIconColor">#EDF9F2</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_emerald</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_emerald</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_emerald</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_emerald</item>
+    </style>
+
+    <style name="AppTheme.RetroNeon" parent="Theme.Leanback">
+        <item name="app_background_color">#16161D</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
+        <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
+        <item name="colorAccent">#4DE0D7</item>
+        <item name="colorControlActivated">#4DE0D7</item>
+        <item name="colorControlNormal">#A56FBD</item>
+        <item name="android:textColorPrimary">#F4F7FF</item>
+        <item name="android:textColorSecondary">#CFB7DA</item>
+        <item name="android:windowBackground">@drawable/bg_splash_screen_neon</item>
+        <item name="defaultBrandColor">#18181E</item>
+        <item name="defaultSearchColor">#18181E</item>
+        <item name="defaultSearchBrightColor">#24242D</item>
+        <item name="defaultSearchIconColor">#F4F7FF</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_neon</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_neon</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_neon</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_neon</item>
     </style>
 
     <!-- Stile Dialogo Nero Amoled/Oled -->

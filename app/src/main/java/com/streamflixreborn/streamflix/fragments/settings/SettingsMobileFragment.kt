@@ -1,5 +1,6 @@
 ﻿package com.streamflixreborn.streamflix.fragments.settings
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -8,8 +9,11 @@ import android.text.InputType
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Log
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
@@ -17,12 +21,14 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
-import androidx.preference.PreferenceManager
 import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainMobileActivity
+import com.streamflixreborn.streamflix.activities.tools.QrScannerActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
 import com.streamflixreborn.streamflix.backup.ProviderBackupContext
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -32,8 +38,10 @@ import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
 import com.streamflixreborn.streamflix.providers.ProviderPortalUrl
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
 import com.streamflixreborn.streamflix.providers.TmdbProvider
+import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
+import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -42,11 +50,18 @@ import java.util.Date
 import java.util.Locale
 
 class SettingsMobileFragment : PreferenceFragmentCompat() {
+    private data class SettingsScreenState(
+        val rootKey: String?,
+        val title: String?,
+    )
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.biz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
+    private var currentScreenState = SettingsScreenState(rootKey = null, title = null)
+    private val screenBackStack = ArrayDeque<SettingsScreenState>()
+    private lateinit var settingsBackCallback: OnBackPressedCallback
 
     private lateinit var backupRestoreManager: BackupRestoreManager
 
@@ -70,8 +85,38 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
     }
 
+    private val scanResolverQrLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) {
+            return@registerForActivityResult
+        }
+
+        val rawValue = result.data?.getStringExtra(QrScannerActivity.EXTRA_QR_VALUE).orEmpty()
+        val uri = rawValue
+            .takeIf { it.startsWith("streamflix://resolve") }
+            ?.let(Uri::parse)
+
+        if (uri == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.settings_scan_resolver_invalid_qr),
+                Toast.LENGTH_SHORT
+            ).show()
+            return@registerForActivityResult
+        }
+
+        val intent = Intent(requireContext(), MainMobileActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = uri
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        startActivity(intent)
+    }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.settings_mobile, rootKey)
+        currentScreenState = SettingsScreenState(rootKey = rootKey, title = null)
+        renderCurrentScreen()
 
         val allProvidersToBackup = Provider.providers.keys.toMutableList().apply {
             listOf("it", "en", "es", "de", "fr").forEach { lang ->
@@ -101,18 +146,60 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         displaySettings()
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        settingsBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                if (screenBackStack.isEmpty()) return
+                currentScreenState = screenBackStack.removeLast()
+                settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+                renderCurrentScreen()
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(this, settingsBackCallback)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        SettingsListStyler.attach(view, isTv = false)
+    }
+
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        if (preference is PreferenceScreen && !preference.key.isNullOrBlank()) {
+            screenBackStack.addLast(currentScreenState)
+            currentScreenState = SettingsScreenState(
+                rootKey = preference.key,
+                title = preference.title?.toString(),
+            )
+            settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+            renderCurrentScreen()
+            return true
+        }
+        return super.onPreferenceTreeClick(preference)
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        if (preference.key == "PARENTAL_CONTROL_PIN" || preference.key == "PARENTAL_CONTROL_ADMIN_PIN") {
+            return
+        }
+        super.onDisplayPreferenceDialog(preference)
+    }
+
+    private fun applyScreenTitle() {
+        activity?.title = currentScreenState.title ?: getString(R.string.player_settings_title)
+    }
+
+    private fun renderCurrentScreen() {
+        setPreferencesFromResource(R.xml.settings_mobile, currentScreenState.rootKey)
+        if (::backupRestoreManager.isInitialized) {
+            displaySettings()
+        }
+        applyScreenTitle()
+    }
+
     private fun displaySettings() {
-        findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.apply {
-            isVisible = UserPreferences.currentProvider is StreamingCommunityProvider
-        }
-
-        findPreference<PreferenceCategory>("pc_cuevana_settings")?.apply {
-            isVisible = UserPreferences.currentProvider?.name == "Cuevana 3"
-        }
-
-        findPreference<PreferenceCategory>("pc_poseidon_settings")?.apply {
-            isVisible = UserPreferences.currentProvider?.name == "Poseidonhd2"
-        }
+        updateOverviewLabels()
+        updateProviderVisibilityState()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
@@ -243,14 +330,15 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("p_settings_about")?.apply {
+            val palette = ThemeManager.palette(UserPreferences.selectedTheme)
             val titleStr = getString(R.string.settings_version_mobile)
             val spannableTitle = SpannableString(titleStr)
-            spannableTitle.setSpan(ForegroundColorSpan(Color.WHITE), 0, titleStr.length, 0)
+            spannableTitle.setSpan(ForegroundColorSpan(palette.tvHeaderPrimary), 0, titleStr.length, 0)
             title = spannableTitle
             
             val summaryStr = BuildConfig.VERSION_NAME
             val spannableSummary = SpannableString(summaryStr)
-            spannableSummary.setSpan(ForegroundColorSpan(Color.LTGRAY), 0, summaryStr.length, 0)
+            spannableSummary.setSpan(ForegroundColorSpan(palette.tvHeaderSecondary), 0, summaryStr.length, 0)
             summary = spannableSummary
             
             isSelectable = false
@@ -276,6 +364,11 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflixreborn"))
                 startActivity(intent)
             }
+            true
+        }
+
+        findPreference<Preference>("p_scan_resolver_qr")?.setOnPreferenceClickListener {
+            scanResolverQrLauncher.launch(Intent(requireContext(), QrScannerActivity::class.java))
             true
         }
 
@@ -489,16 +582,44 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<ListPreference>("SELECTED_THEME")?.apply {
-            summary = entries[entryValues.indexOf(value)]
+            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                getString(ThemeManager.titleRes(pref.value ?: ThemeManager.DEFAULT))
+            }
             setOnPreferenceChangeListener { preference, newValue ->
                 val newTheme = newValue as String
                 UserPreferences.selectedTheme = newTheme
                 if (preference is ListPreference) {
-                    preference.summary = preference.entries[preference.findIndexOfValue(newTheme)]
+                    preference.value = newTheme
                 }
                 requireActivity().apply {
                     finish()
                     startActivity(Intent(this, MainMobileActivity::class.java))
+                }
+                true
+            }
+        }
+
+        findPreference<ListPreference>("APP_LANGUAGE")?.apply {
+            entries = AppLanguageManager.buildLanguageEntries(requireContext())
+            entryValues = AppLanguageManager.buildLanguageValues(requireContext())
+            value = AppLanguageManager.getSelectedLanguage(requireContext())
+            summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                pref.entries.getOrNull(pref.findIndexOfValue(pref.value))
+                    ?: getString(R.string.settings_app_language_system)
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val newLanguage = newValue as String
+                AppLanguageManager.setSelectedLanguage(newLanguage)
+                if (preference is ListPreference) {
+                    preference.value = newLanguage
+                }
+                requireActivity().apply {
+                    finish()
+                    startActivity(
+                        Intent(this, MainMobileActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                    )
                 }
                 true
             }
@@ -517,16 +638,29 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             isChecked = UserPreferences.enableTmdb
             setOnPreferenceChangeListener { _, newValue ->
                 val enabled = newValue as Boolean
-                UserPreferences.enableTmdb = enabled
-                val message = if (enabled) {
-                    getString(R.string.settings_enable_tmdb_enabled)
-                } else {
-                    getString(R.string.settings_enable_tmdb_disabled)
+                val applyChange = {
+                    UserPreferences.enableTmdb = enabled
+                    updateParentalControlPreferenceState()
+                    ProviderChangeNotifier.notifyProviderChanged()
+                    val message = if (enabled) {
+                        getString(R.string.settings_enable_tmdb_enabled)
+                    } else {
+                        getString(R.string.settings_enable_tmdb_disabled)
+                    }
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 }
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                true
+
+                if (!enabled && UserPreferences.parentalControlPin.isNotBlank()) {
+                    changeParentalSettingWithPinCheck(onVerified = applyChange)
+                    false
+                } else {
+                    applyChange()
+                    true
+                }
             }
         }
+
+        setupParentalControlPreferences()
 
         findPreference<Preference>("key_backup_export_mobile")?.setOnPreferenceClickListener {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -548,6 +682,442 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             Toast.makeText(requireContext(), R.string.settings_trailer_player_reset, Toast.LENGTH_SHORT).show()
             true
         }
+    }
+
+    private fun updateOverviewLabels() {
+        val providerName = UserPreferences.currentProvider?.name
+
+        findPreference<PreferenceScreen>("screen_provider")?.apply {
+            title = getString(R.string.settings_provider_connection_title)
+            summary = providerName?.let {
+                getString(R.string.settings_screen_provider_summary_with_name, it)
+            } ?: getString(R.string.settings_screen_provider_summary)
+        }
+
+        findPreference<PreferenceCategory>("pc_provider_settings")?.title = providerName?.let {
+            getString(R.string.settings_provider_connection_category_title, it)
+        } ?: getString(R.string.settings_category_provider_title)
+
+        findPreference<PreferenceCategory>("pc_provider_empty_state")?.title = providerName?.let {
+            getString(R.string.settings_provider_connection_category_title, it)
+        } ?: getString(R.string.settings_provider_connection_title)
+    }
+
+    private fun updateProviderVisibilityState() {
+        val isStreamingCommunity = UserPreferences.currentProvider is StreamingCommunityProvider
+        val isCuevana = UserPreferences.currentProvider?.name == "Cuevana 3"
+        val isPoseidon = UserPreferences.currentProvider?.name == "Poseidonhd2"
+        val hasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
+        val hasSpecificOptions = isStreamingCommunity || isCuevana || isPoseidon
+
+        findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible = isStreamingCommunity
+        findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible = isCuevana
+        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible = isPoseidon
+        findPreference<PreferenceCategory>("pc_provider_empty_state")?.isVisible = !hasConfigProvider && !hasSpecificOptions
+    }
+
+    private fun setupParentalControlPreferences() {
+        val pinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_PIN")
+        val adminPinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_ADMIN_PIN")
+        val removePinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_PIN")
+        val removeAdminPinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_ADMIN_PIN")
+        val maxAgePreference = findPreference<ListPreference>("PARENTAL_CONTROL_MAX_AGE")
+        val unlockPreference = findPreference<Preference>("PARENTAL_CONTROL_UNLOCK")
+
+        fun bindPinEditText(editText: android.widget.EditText) {
+            editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            editText.imeOptions = EditorInfo.IME_ACTION_DONE
+            editText.hint = getString(R.string.settings_parental_pin_hint)
+            editText.setText("")
+        }
+
+        pinPreference?.setOnBindEditTextListener(::bindPinEditText)
+        adminPinPreference?.setOnBindEditTextListener(::bindPinEditText)
+
+        pinPreference?.setOnPreferenceClickListener {
+            showParentalPinEditor(maxAgePreference)
+            true
+        }
+
+        adminPinPreference?.setOnPreferenceClickListener {
+            showAdminPinEditor()
+            true
+        }
+
+        removePinPreference?.setOnPreferenceClickListener {
+            changeParentalSettingWithPinCheck {
+                UserPreferences.parentalControlPin = ""
+                UserPreferences.parentalControlMaxAge = null
+                maxAgePreference?.value = ""
+                UserPreferences.unlockParentalControls()
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_removed), Toast.LENGTH_SHORT).show()
+                ProviderChangeNotifier.notifyProviderChanged()
+                updateParentalControlPreferenceState()
+            }
+            true
+        }
+
+        removeAdminPinPreference?.setOnPreferenceClickListener {
+            changeAdminSettingWithPinCheck {
+                UserPreferences.parentalControlAdminPin = ""
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_removed), Toast.LENGTH_SHORT).show()
+                updateParentalControlPreferenceState()
+            }
+            true
+        }
+
+        maxAgePreference?.setOnPreferenceChangeListener { _, newValue ->
+            if (!UserPreferences.enableTmdb) return@setOnPreferenceChangeListener false
+            if (UserPreferences.parentalControlPin.isBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_set_pin_first), Toast.LENGTH_SHORT).show()
+                return@setOnPreferenceChangeListener false
+            }
+
+            val newMaxAgeValue = newValue as String
+            val newMaxAge = newMaxAgeValue.toIntOrNull()
+
+            changeParentalSettingWithPinCheck {
+                UserPreferences.parentalControlMaxAge = newMaxAge
+                maxAgePreference.value = newMaxAgeValue
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_max_age_saved), Toast.LENGTH_SHORT).show()
+                ProviderChangeNotifier.notifyProviderChanged()
+                updateParentalControlPreferenceState()
+            }
+
+            false
+        }
+
+        unlockPreference?.setOnPreferenceClickListener {
+            if (UserPreferences.parentalControlAdminPin.isBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_set_admin_pin_first), Toast.LENGTH_SHORT).show()
+            } else {
+                promptForAdminPin {
+                    UserPreferences.unlockParentalControls()
+                    Toast.makeText(requireContext(), getString(R.string.settings_parental_unlocked), Toast.LENGTH_SHORT).show()
+                    updateParentalControlPreferenceState()
+                }
+            }
+            true
+        }
+
+        updateParentalControlPreferenceState()
+    }
+
+    private fun updateParentalControlPreferenceState() {
+        val tmdbEnabled = UserPreferences.enableTmdb
+        val pinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_PIN")
+        val adminPinPreference = findPreference<EditTextPreference>("PARENTAL_CONTROL_ADMIN_PIN")
+        val removePinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_PIN")
+        val removeAdminPinPreference = findPreference<Preference>("PARENTAL_CONTROL_REMOVE_ADMIN_PIN")
+        val maxAgePreference = findPreference<ListPreference>("PARENTAL_CONTROL_MAX_AGE")
+        val unlockPreference = findPreference<Preference>("PARENTAL_CONTROL_UNLOCK")
+        val isLocked = UserPreferences.isParentalControlTemporarilyLocked || UserPreferences.parentalControlHardLocked
+
+        pinPreference?.apply {
+            isEnabled = tmdbEnabled && !isLocked
+            text = ""
+            summary = when {
+                !tmdbEnabled -> getString(R.string.settings_parental_requires_tmdb)
+                UserPreferences.parentalControlHardLocked -> getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked -> getString(
+                    R.string.settings_parental_locked_temporary,
+                    lockRemainingMinutes()
+                )
+                UserPreferences.parentalControlPin.isBlank() -> getString(R.string.settings_parental_pin_not_set)
+                else -> getString(R.string.settings_parental_pin_set)
+            }
+        }
+
+        adminPinPreference?.apply {
+            isEnabled = tmdbEnabled
+            text = ""
+            summary = when {
+                !tmdbEnabled -> getString(R.string.settings_parental_requires_tmdb)
+                UserPreferences.parentalControlAdminPin.isBlank() -> getString(R.string.settings_parental_admin_pin_not_set)
+                else -> getString(R.string.settings_parental_admin_pin_set)
+            }
+        }
+
+        removePinPreference?.apply {
+            isVisible = tmdbEnabled && UserPreferences.parentalControlPin.isNotBlank()
+            isEnabled = !isLocked
+        }
+
+        removeAdminPinPreference?.apply {
+            isVisible = tmdbEnabled && UserPreferences.parentalControlAdminPin.isNotBlank()
+            isEnabled = true
+        }
+
+        maxAgePreference?.apply {
+            isEnabled = tmdbEnabled && !isLocked
+            value = UserPreferences.parentalControlMaxAge?.toString().orEmpty()
+            summary = when {
+                !tmdbEnabled -> getString(R.string.settings_parental_requires_tmdb)
+                UserPreferences.parentalControlHardLocked -> getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked -> getString(
+                    R.string.settings_parental_locked_temporary,
+                    lockRemainingMinutes()
+                )
+                UserPreferences.parentalControlPin.isBlank() -> getString(R.string.settings_parental_set_pin_first)
+                UserPreferences.parentalControlMaxAge == null -> getString(R.string.settings_parental_max_age_disabled)
+                else -> "${UserPreferences.parentalControlMaxAge}+"
+            }
+        }
+
+        unlockPreference?.apply {
+            isVisible = isLocked
+            isEnabled = tmdbEnabled && UserPreferences.parentalControlAdminPin.isNotBlank()
+            summary = when {
+                UserPreferences.parentalControlAdminPin.isBlank() -> getString(R.string.settings_parental_set_admin_pin_first)
+                UserPreferences.parentalControlHardLocked -> getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked -> getString(
+                    R.string.settings_parental_locked_temporary,
+                    lockRemainingMinutes()
+                )
+                else -> getString(R.string.settings_parental_unlock_summary)
+            }
+        }
+    }
+
+    private fun changeParentalSettingWithPinCheck(onVerified: () -> Unit) {
+        when {
+            UserPreferences.parentalControlHardLocked -> {
+                Toast.makeText(requireContext(), getString(R.string.settings_parental_locked_hard), Toast.LENGTH_SHORT).show()
+                updateParentalControlPreferenceState()
+                return
+            }
+            UserPreferences.isParentalControlTemporarilyLocked -> {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.settings_parental_locked_temporary, lockRemainingMinutes()),
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateParentalControlPreferenceState()
+                return
+            }
+        }
+
+        val currentPin = UserPreferences.parentalControlPin
+        if (currentPin.isBlank()) {
+            onVerified()
+            return
+        }
+
+        promptForPin(
+            titleRes = R.string.settings_parental_enter_current_pin_title,
+            messageRes = R.string.settings_parental_enter_current_pin_message,
+            onSubmit = { enteredPin ->
+                if (enteredPin == currentPin) {
+                    UserPreferences.registerParentalPinSuccess()
+                    onVerified()
+                    null
+                } else {
+                    UserPreferences.registerParentalPinFailure()
+                    updateParentalControlPreferenceState()
+                    when {
+                        UserPreferences.parentalControlHardLocked -> R.string.settings_parental_locked_hard
+                        UserPreferences.isParentalControlTemporarilyLocked -> R.string.settings_parental_locked_temporary
+                        else -> R.string.settings_parental_invalid_pin
+                    }.let { failureMessageRes ->
+                        if (failureMessageRes == R.string.settings_parental_locked_temporary) {
+                            getString(failureMessageRes, lockRemainingMinutes())
+                        } else {
+                            getString(failureMessageRes)
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    private fun changeAdminSettingWithPinCheck(onVerified: () -> Unit) {
+        val currentAdminPin = UserPreferences.parentalControlAdminPin
+        if (currentAdminPin.isBlank()) {
+            onVerified()
+            return
+        }
+
+        promptForAdminPin(onVerified)
+    }
+
+    private fun promptForAdminPin(onVerified: () -> Unit) {
+        val currentAdminPin = UserPreferences.parentalControlAdminPin
+        if (currentAdminPin.isBlank()) {
+            Toast.makeText(requireContext(), getString(R.string.settings_parental_set_admin_pin_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        promptForPin(
+            titleRes = R.string.settings_parental_enter_admin_pin_title,
+            messageRes = R.string.settings_parental_enter_admin_pin_message,
+            onSubmit = { enteredPin ->
+                if (enteredPin == currentAdminPin) {
+                    UserPreferences.unlockParentalControls()
+                    onVerified()
+                    null
+                } else {
+                    getString(R.string.settings_parental_invalid_admin_pin)
+                }
+            }
+        )
+    }
+
+    private fun showParentalPinEditor(maxAgePreference: ListPreference?) {
+        if (!UserPreferences.enableTmdb) {
+            Toast.makeText(requireContext(), getString(R.string.settings_parental_requires_tmdb), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        changeParentalSettingWithPinCheck {
+            promptForPinValue(
+                titleRes = R.string.settings_parental_pin_title,
+                messageRes = if (UserPreferences.parentalControlPin.isBlank()) {
+                    R.string.settings_parental_set_new_pin_message
+                } else {
+                    R.string.settings_parental_change_pin_message
+                },
+                allowBlank = UserPreferences.parentalControlPin.isNotBlank(),
+                onSubmit = { newPin ->
+                    when {
+                        newPin.isBlank() -> {
+                            UserPreferences.parentalControlPin = ""
+                            UserPreferences.parentalControlMaxAge = null
+                            maxAgePreference?.value = ""
+                            UserPreferences.unlockParentalControls()
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_removed), Toast.LENGTH_SHORT).show()
+                            ProviderChangeNotifier.notifyProviderChanged()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                        newPin.length < 4 -> getString(R.string.settings_parental_pin_too_short)
+                        else -> {
+                            UserPreferences.parentalControlPin = newPin
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_pin_saved), Toast.LENGTH_SHORT).show()
+                            ProviderChangeNotifier.notifyProviderChanged()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    private fun showAdminPinEditor() {
+        changeAdminSettingWithPinCheck {
+            promptForPinValue(
+                titleRes = R.string.settings_parental_admin_pin_title,
+                messageRes = if (UserPreferences.parentalControlAdminPin.isBlank()) {
+                    R.string.settings_parental_set_new_admin_pin_message
+                } else {
+                    R.string.settings_parental_change_admin_pin_message
+                },
+                allowBlank = UserPreferences.parentalControlAdminPin.isNotBlank(),
+                onSubmit = { newPin ->
+                    when {
+                        newPin.isBlank() -> {
+                            UserPreferences.parentalControlAdminPin = ""
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_removed), Toast.LENGTH_SHORT).show()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                        newPin.length < 4 -> getString(R.string.settings_parental_pin_too_short)
+                        else -> {
+                            UserPreferences.parentalControlAdminPin = newPin
+                            Toast.makeText(requireContext(), getString(R.string.settings_parental_admin_pin_saved), Toast.LENGTH_SHORT).show()
+                            updateParentalControlPreferenceState()
+                            null
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    private fun promptForPin(
+        titleRes: Int,
+        messageRes: Int,
+        onSubmit: (String) -> String?,
+    ) {
+        val input = android.widget.EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            hint = getString(R.string.settings_parental_pin_hint)
+        }
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setMessage(messageRes)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                input.error = null
+                val errorMessage = onSubmit(input.text?.toString()?.trim().orEmpty())
+                if (errorMessage == null) {
+                    dialog.dismiss()
+                } else {
+                    input.setText("")
+                    input.error = errorMessage
+                    input.requestFocus()
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun promptForPinValue(
+        titleRes: Int,
+        messageRes: Int,
+        allowBlank: Boolean,
+        onSubmit: (String) -> String?,
+    ) {
+        val input = android.widget.EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            hint = getString(R.string.settings_parental_pin_hint)
+        }
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setMessage(messageRes)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                input.error = null
+                val newValue = input.text?.toString()?.trim().orEmpty()
+                if (newValue.isBlank() && !allowBlank) {
+                    input.setText("")
+                    input.error = getString(R.string.settings_parental_pin_too_short)
+                    input.requestFocus()
+                    return@setOnClickListener
+                }
+
+                val errorMessage = onSubmit(newValue)
+                if (errorMessage == null) {
+                    dialog.dismiss()
+                } else {
+                    input.setText("")
+                    input.error = errorMessage
+                    input.requestFocus()
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun lockRemainingMinutes(): Int {
+        val millis = UserPreferences.parentalControlLockRemainingMillis
+        return ((millis + 60_000L - 1L) / 60_000L).toInt().coerceAtLeast(1)
     }
 
     private suspend fun performBackupExport(uri: Uri) {
@@ -594,15 +1164,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
     override fun onResume() {
         super.onResume()
-        
-        findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible =
-            UserPreferences.currentProvider is StreamingCommunityProvider
-
-        findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible =
-            UserPreferences.currentProvider?.name == "Cuevana 3"
-
-        findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible =
-            UserPreferences.currentProvider?.name == "Poseidonhd2"
+        applyScreenTitle()
+        updateOverviewLabels()
+        updateProviderVisibilityState()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
@@ -628,10 +1192,14 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             summary = entry
         }
 
+        findPreference<ListPreference>("APP_LANGUAGE")?.value =
+            AppLanguageManager.getSelectedLanguage(requireContext())
+
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
         findPreference<SwitchPreference>("PLAYER_GESTURES")?.isChecked = UserPreferences.playerGestures
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.isChecked = UserPreferences.enableTmdb
+        updateParentalControlPreferenceState()
     }
 }

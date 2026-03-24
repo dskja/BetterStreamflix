@@ -1,143 +1,210 @@
 package com.streamflixreborn.streamflix.fragments.home
 
 import android.util.Log
+import com.streamflixreborn.streamflix.StreamFlixApp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.HomeCacheStore
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
+import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 class HomeViewModel(database: AppDatabase) : ViewModel() {
 
     private val _state = MutableStateFlow<State>(State.Loading)
+    private val continueWatchingTvShowCache = ConcurrentHashMap<String, TvShow>()
+    private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: Flow<State> = combine(
         _state,
+
+        // CONTINUE WATCHING
         combine(
             database.movieDao().getWatchingMovies(),
             database.episodeDao().getWatchingEpisodes(),
             database.episodeDao().getNextEpisodesToWatch(),
-        ) { watchingMovies, watchingEpisodes, watchNextEpisodes ->
-            watchingMovies + watchingEpisodes.onEach { episode ->
-                episode.tvShow = episode.tvShow?.let { database.tvShowDao().getById(it.id) }
-                episode.season = episode.season?.let { database.seasonDao().getById(it.id) }
-            } + watchNextEpisodes.onEach { episode ->
-                episode.tvShow = episode.tvShow?.let { database.tvShowDao().getById(it.id) }
-                episode.season = episode.season?.let { database.seasonDao().getById(it.id) }
+            database.tvShowDao().getAll(),
+        ) { watchingMovies, watchingEpisodes, watchNextEpisodes, tvShows ->
+
+            val allEpisodes = (watchingEpisodes + watchNextEpisodes)
+                .distinctBy { it.id }
+
+            val seasonIds = allEpisodes.mapNotNull { it.season?.id }.distinct()
+
+            val tvShowsMap = tvShows.associateBy { it.id }
+
+            val seasonsMap = if (seasonIds.isEmpty()) {
+                emptyMap()
+            } else {
+                database.seasonDao()
+                    .getByIds(seasonIds)
+                    .associateBy { it.id }
             }
+
+            val enrichedEpisodes = enrichContinueWatchingEpisodes(
+                episodes = allEpisodes.map { episode ->
+                    episode.copy(
+                        tvShow = episode.tvShow?.id?.let { tvShowsMap[it] } ?: episode.tvShow,
+                        season = episode.season?.id?.let { seasonsMap[it] } ?: episode.season,
+                    ).apply {
+                        merge(episode)
+                    }
+                }
+            )
+
+            (watchingMovies + enrichedEpisodes) as List<AppAdapter.Item>
         },
+
         database.movieDao().getFavorites(),
         database.tvShowDao().getFavorites(),
+
+        // MOVIES DB
         _state.transformLatest { state ->
             when (state) {
                 is State.SuccessLoading -> {
                     val movies = state.categories
                         .flatMap { it.list }
                         .filterIsInstance<Movie>()
-                    database.movieDao().getByIds(movies.map { it.id })
-                        .collect { emit(it) }
+                    if (movies.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.movieDao().getByIds(movies.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<Movie>())
             }
         },
+
+        // TV SHOWS DB
         _state.transformLatest { state ->
             when (state) {
                 is State.SuccessLoading -> {
                     val tvShows = state.categories
                         .flatMap { it.list }
                         .filterIsInstance<TvShow>()
-                    database.tvShowDao().getByIds(tvShows.map { it.id })
-                        .collect { emit(it) }
+                    if (tvShows.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.tvShowDao().getByIds(tvShows.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<TvShow>())
             }
         },
-    ) { state, continueWatching, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
+
+        ) {
+            state: State,
+            continueWatching: List<AppAdapter.Item>,
+            favoritesMovies: List<Movie>,
+            favoriteTvShows: List<TvShow>,
+            moviesDb: List<Movie>,
+            tvShowsDb: List<TvShow>
+        ->
+
         when (state) {
             is State.SuccessLoading -> {
-                val categories = listOfNotNull(
+
+                val moviesMap = moviesDb.associateBy { it.id }
+                val tvShowsMap = tvShowsDb.associateBy { it.id }
+
+                fun mergeItem(item: AppAdapter.Item): AppAdapter.Item {
+                    return when (item) {
+                        is Movie -> moviesMap[item.id]
+                            ?.takeIf { !item.isSame(it) }
+                            ?.let { item.copy().merge(it) }
+                            ?: item
+
+                        is TvShow -> tvShowsMap[item.id]
+                            ?.takeIf { !item.isSame(it) }
+                            ?.let { item.copy().merge(it) }
+                            ?: item
+
+                        else -> item
+                    }
+                }
+
+                val categories = ParentalControlUtils.filterCategories(listOfNotNull(
+
+                    // FEATURED
                     state.categories
                         .find { it.name == Category.FEATURED }
                         ?.let { category ->
                             category.copy(
-                                list = category.list.map { item ->
-                                    when (item) {
-                                        is Movie -> moviesDb.find { it.id == item.id }
-                                            ?.takeIf { !item.isSame(it) }
-                                            ?.let { item.copy().merge(it) }
-                                            ?: item
-                                        is TvShow -> tvShowsDb.find { it.id == item.id }
-                                            ?.takeIf { !item.isSame(it) }
-                                            ?.let { item.copy().merge(it) }
-                                            ?: item
-                                        else -> item
-                                    }
-                                }
+                                list = category.list.map(::mergeItem)
                             )
                         },
 
+                    // CONTINUE WATCHING
                     Category(
                         name = Category.CONTINUE_WATCHING,
                         list = continueWatching
                             .sortedByDescending {
-                                it.watchHistory?.lastEngagementTimeUtcMillis
-                                    ?: it.watchedDate?.timeInMillis
+                                when (it) {
+                                    is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                        ?: it.watchedDate?.timeInMillis
+                                        ?: 0L
+
+                                    is Movie -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                        ?: it.watchedDate?.timeInMillis
+                                        ?: 0L
+
+                                    else -> 0L
+                                }
                             }
                             .distinctBy {
                                 when (it) {
                                     is Episode -> it.tvShow?.id
-                                    else -> false
+                                    is Movie -> it.id
+                                    else -> null
                                 }
                             },
                     ),
 
+                    // FAVORITES
                     Category(
                         name = Category.FAVORITE_MOVIES,
-                        list = favoritesMovies
-                            .reversed(),
+                        list = favoritesMovies.reversed(),
                     ),
-
                     Category(
                         name = Category.FAVORITE_TV_SHOWS,
-                        list = favoriteTvShows
-                            .reversed(),
+                        list = favoriteTvShows.reversed(),
                     ),
                 ) + state.categories
                     .filter { it.name != Category.FEATURED }
                     .map { category ->
                         category.copy(
-                            list = category.list.map { item ->
-                                when (item) {
-                                    is Movie -> moviesDb.find { it.id == item.id }
-                                        ?.takeIf { !item.isSame(it) }
-                                        ?.let { item.copy().merge(it) }
-                                        ?: item
-                                    is TvShow -> tvShowsDb.find { it.id == item.id }
-                                        ?.takeIf { !item.isSame(it) }
-                                        ?.let { item.copy().merge(it) }
-                                        ?: item
-                                    else -> item
-                                }
-                            }
+                            list = category.list.map(::mergeItem)
                         )
-                    }
+                    })
 
                 State.SuccessLoading(categories)
             }
+
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     sealed class State {
         data object Loading : State()
@@ -146,20 +213,90 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     }
 
     init {
+        viewModelScope.launch {
+            ProviderChangeNotifier.providerChangeFlow.collect {
+                getHome()
+            }
+        }
         getHome()
     }
 
+    private suspend fun enrichContinueWatchingEpisodes(episodes: List<Episode>): List<Episode> = coroutineScope {
+        val provider = UserPreferences.currentProvider ?: return@coroutineScope episodes
+
+        episodes.map { episode ->
+            async {
+                val tvShowId = episode.tvShow?.id ?: return@async episode
+                val resolvedTvShow = continueWatchingTvShowCache[tvShowId] ?: runCatching {
+                    provider.getTvShow(tvShowId)
+                }.getOrNull()?.also { fetchedTvShow ->
+                    continueWatchingTvShowCache[tvShowId] = fetchedTvShow
+                }
+
+                val mergedTvShow = resolvedTvShow?.copy().apply {
+                    this?.let { show ->
+                        episode.tvShow?.let { existingTvShow -> show.merge(existingTvShow) }
+                    }
+                } ?: episode.tvShow
+
+                val resolvedSeason = episode.season?.let { season ->
+                    mergedTvShow?.seasons?.firstOrNull { it.id == season.id || it.number == season.number }
+                        ?: season
+                }
+
+                val resolvedEpisode = if (UserPreferences.enableTmdb) {
+                    val seasonId = resolvedSeason?.id
+                        ?: episode.season?.id
+                    seasonId?.let { key ->
+                        continueWatchingSeasonEpisodesCache[key] ?: runCatching {
+                            provider.getEpisodesBySeason(key)
+                        }.getOrDefault(emptyList()).also { fetchedEpisodes ->
+                            if (fetchedEpisodes.isNotEmpty()) {
+                                continueWatchingSeasonEpisodesCache[key] = fetchedEpisodes
+                            }
+                        }
+                    }?.firstOrNull { seasonEpisode ->
+                        seasonEpisode.id == episode.id || seasonEpisode.number == episode.number
+                    }
+                } else {
+                    null
+                }
+
+                episode.copy(
+                    title = resolvedEpisode?.title ?: episode.title,
+                    overview = resolvedEpisode?.overview ?: episode.overview,
+                    poster = resolvedEpisode?.poster ?: episode.poster,
+                    tvShow = mergedTvShow,
+                    season = resolvedSeason,
+                ).apply {
+                    merge(episode)
+                }
+            }
+        }.awaitAll()
+    }
 
     fun getHome() = viewModelScope.launch(Dispatchers.IO) {
-        _state.emit(State.Loading)
+        val provider = UserPreferences.currentProvider ?: run {
+            _state.emit(State.FailedLoading(IllegalStateException("No provider selected")))
+            return@launch
+        }
+        val appContext = StreamFlixApp.instance.applicationContext
+        val cachedCategories = HomeCacheStore.read(appContext, provider)
+        if (!cachedCategories.isNullOrEmpty()) {
+            _state.emit(State.SuccessLoading(cachedCategories))
+        } else {
+            _state.emit(State.Loading)
+        }
 
         try {
-            val categories = UserPreferences.currentProvider!!.getHome()
-
+            val categories = provider.getHome()
+            HomeCacheStore.write(appContext, provider, categories)
             _state.emit(State.SuccessLoading(categories))
         } catch (e: Exception) {
             Log.e("HomeViewModel", "getHome: ", e)
-            _state.emit(State.FailedLoading(e))
+            if (cachedCategories.isNullOrEmpty()) {
+                _state.emit(State.FailedLoading(e))
+            }
         }
     }
 }

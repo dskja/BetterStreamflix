@@ -31,6 +31,12 @@ object Cine24hProvider : Provider {
     private val providerMutex = Mutex()
     private const val TAG = "Cine24hBypass"
 
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(StreamFlixApp.instance).also {
+            webViewResolver = it
+        }
+    }
+
     fun init(context: Context) {
         webViewResolver = WebViewResolver(context)
     }
@@ -62,8 +68,7 @@ object Cine24hProvider : Provider {
 
         // Se OkHttp fallisce o rileva blocco, passiamo SUBITO alla WebView
         Log.d(TAG, "[Provider] Launching WebView Bypass for $url")
-        val resolver = webViewResolver ?: WebViewResolver(StreamFlixApp.instance)
-        val html = resolver.get(url)
+        val html = getResolver().get(url)
         return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
     }
 

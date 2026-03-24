@@ -71,9 +71,8 @@ class SearchMobileFragment : Fragment() {
                             pbIsLoading.visibility = View.VISIBLE
                             gIsLoadingRetry.visibility = View.GONE
                         }
-                        binding.rvSearch.adapter = AppAdapter().also {
-                            appAdapter = it
-                        }
+                        appAdapter.isLoading = false
+                        appAdapter.setOnLoadMoreListener(null)
                     }
                     is State.SearchingMore -> appAdapter.isLoading = true
                     is State.SuccessSearching -> {

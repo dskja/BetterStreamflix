@@ -28,6 +28,13 @@ object PoseidonHD2Provider : Provider {
     override val language = "es"
 
     private const val TAG = "PoseidonHD2"
+    private var webViewResolver: WebViewResolver? = null
+
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(StreamFlixApp.instance).also {
+            webViewResolver = it
+        }
+    }
 
     private suspend fun getDocument(url: String): Document {
         try {
@@ -72,8 +79,7 @@ object PoseidonHD2Provider : Provider {
             Log.e(TAG, "OkHttp failed for $url, trying WebView")
         }
 
-        val resolver = WebViewResolver(StreamFlixApp.instance)
-        val html = resolver.get(url)
+        val html = getResolver().get(url)
         return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
     }
 

@@ -77,6 +77,19 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingEpisodes(): Flow<List<Episode>>
 
+    @Query(
+        """
+        SELECT DISTINCT tvShow
+        FROM episodes
+        WHERE tvShow IS NOT NULL
+          AND (
+              lastEngagementTimeUtcMillis IS NOT NULL
+              OR isWatched = 1
+          )
+        """
+    )
+    fun getArtworkRepairTvShowIds(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(episode: Episode)
 

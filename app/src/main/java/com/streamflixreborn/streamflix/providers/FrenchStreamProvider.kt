@@ -372,6 +372,8 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         id = it.attr("href").substringBeforeLast("/").substringAfterLast("/"),
                         name = it.text(),
                     )
+                }.ifEmpty {
+                    listOf(Genre(id = "unknown", name = ""))
                 },
             directors = document.select("ul#s-list li")
                 .find {

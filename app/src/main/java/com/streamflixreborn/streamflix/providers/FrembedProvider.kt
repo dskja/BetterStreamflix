@@ -44,7 +44,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://frembed.work/"
+    override val defaultBaseUrl: String = "https://frembed.bond/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -143,7 +143,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     )
 
     data class FrembedShortCutItem(
-        val tmdb: Int?,
+        val tmdb: String?,
         val id: Int?,
         val imdb: String?,
         val title: String?,
@@ -153,7 +153,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val poster: String?,
         val poster_path: String?,
         val version: String?,
-        val year: Int?,
+        val year: String?,
         val release_date: String?,
         val first_air_date: String?,
         val rating: Double?,

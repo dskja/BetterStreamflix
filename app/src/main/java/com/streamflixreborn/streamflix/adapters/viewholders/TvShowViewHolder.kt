@@ -12,6 +12,8 @@ import android.widget.Toast
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
@@ -27,7 +29,6 @@ import com.streamflixreborn.streamflix.fragments.home.HomeTvFragmentDirections
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import android.app.AlertDialog
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,6 +55,9 @@ import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.toActivity
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
 import com.streamflixreborn.streamflix.utils.dp
+import com.streamflixreborn.streamflix.utils.loadTvShowBanner
+import com.streamflixreborn.streamflix.utils.loadTvShowPoster
+import com.streamflixreborn.streamflix.utils.ArtworkRepair
 import com.streamflixreborn.streamflix.providers.Provider
 import java.util.Locale
 
@@ -64,7 +68,8 @@ class TvShowViewHolder(
 ) {
 
     private val context = itemView.context
-    private val database = AppDatabase.getInstance(context)
+    private val database: AppDatabase
+        get() = AppDatabase.getInstance(context)
     private lateinit var tvShow: TvShow
 
     val childRecyclerView: RecyclerView?
@@ -110,7 +115,6 @@ class TvShowViewHolder(
         if (!tvShow.providerName.isNullOrBlank() && tvShow.providerName != UserPreferences.currentProvider?.name) {
             Provider.providers.keys.find { it.name == tvShow.providerName }?.let {
                 UserPreferences.currentProvider = it
-                AppDatabase.setup(itemView.context)
             }
         }
         action()
@@ -146,13 +150,20 @@ class TvShowViewHolder(
         navController.navigate(R.id.player, args)
     }
 
+    private fun tvShowArgs(): Bundle {
+        return Bundle().apply {
+            putString("id", tvShow.id)
+            putString("poster", tvShow.poster)
+            putString("banner", tvShow.banner)
+        }
+    }
+
     private fun setPoster(imageView: ImageView) {
         imageView.scaleType = if (isIptvProvider()) ImageView.ScaleType.FIT_CENTER else ImageView.ScaleType.CENTER_CROP
-        Glide.with(context)
-            .load(tvShow.poster)
-            .fallback(R.drawable.glide_fallback_cover)
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(imageView)
+        imageView.loadTvShowPoster(tvShow) {
+            fallback(R.drawable.glide_fallback_cover)
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
     }
 
     private fun displayMobileItem(binding: ItemTvShowMobileBinding) {
@@ -161,8 +172,7 @@ class TvShowViewHolder(
                 if (isIptvProvider()) {
                     handleDirectPlay(binding.root.findNavController())
                 } else {
-                    val args = Bundle().apply { putString("id", tvShow.id) }
-                    binding.root.findNavController().navigate(R.id.tv_show, args)
+                    binding.root.findNavController().navigate(R.id.tv_show, tvShowArgs())
                 }
             }
         }
@@ -190,8 +200,7 @@ class TvShowViewHolder(
                     if (isIptvProvider()) {
                         handleDirectPlay(findNavController())
                     } else {
-                        val args = Bundle().apply { putString("id", tvShow.id) }
-                        findNavController().navigate(R.id.tv_show, args)
+                        findNavController().navigate(R.id.tv_show, tvShowArgs())
                     }
                 }
             }
@@ -227,8 +236,7 @@ class TvShowViewHolder(
                 if (isIptvProvider()) {
                     handleDirectPlay(binding.root.findNavController())
                 } else {
-                    val args = Bundle().apply { putString("id", tvShow.id) }
-                    binding.root.findNavController().navigate(R.id.tv_show, args)
+                    binding.root.findNavController().navigate(R.id.tv_show, tvShowArgs())
                 }
             }
         }
@@ -256,8 +264,7 @@ class TvShowViewHolder(
                     if (isIptvProvider()) {
                         handleDirectPlay(findNavController())
                     } else {
-                        val args = Bundle().apply { putString("id", tvShow.id) }
-                        findNavController().navigate(R.id.tv_show, args)
+                        findNavController().navigate(R.id.tv_show, tvShowArgs())
                     }
                 }
             }
@@ -401,7 +408,9 @@ class TvShowViewHolder(
     }
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {
-        Glide.with(context).load(tvShow.banner).centerCrop().transition(DrawableTransitionOptions.withCrossFade()).into(binding.ivSwiperBackground)
+        binding.ivSwiperBackground.loadTvShowBanner(tvShow) {
+            centerCrop().transition(DrawableTransitionOptions.withCrossFade())
+        }
         binding.tvSwiperTitle.text = tvShow.title
         binding.tvSwiperTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: context.getString(R.string.tv_show_item_type)
         
@@ -426,19 +435,17 @@ class TvShowViewHolder(
             if (isIptvProvider()) {
                 handleDirectPlay(binding.root.findNavController())
             } else {
-                val args = Bundle().apply { putString("id", tvShow.id) }
-                binding.root.findNavController().navigate(R.id.tv_show, args)
+                binding.root.findNavController().navigate(R.id.tv_show, tvShowArgs())
             }
         }
     }
 
     private fun displayTvShowMobile(binding: ContentTvShowMobileBinding) {
         binding.ivTvShowPoster.run {
-            Glide.with(context)
-                .load(tvShow.poster)
-                .fallback(R.drawable.glide_fallback_cover)
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(this)
+            loadTvShowPoster(tvShow) {
+                fallback(R.drawable.glide_fallback_cover)
+                transition(DrawableTransitionOptions.withCrossFade())
+            }
             visibility = if (tvShow.poster.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
         binding.tvTvShowTitle.text = tvShow.title
@@ -539,18 +546,23 @@ class TvShowViewHolder(
             }
 
             setOnClickListener {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = database.tvShowDao()
-                    val current = dao.getById(tvShow.id)?.isFavorite ?: false
-                    val newValue = !current
+                checkProviderAndRun {
+                    itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val dao = database.tvShowDao()
+                        val current = dao.getById(tvShow.id)?.isFavorite ?: false
+                        val newValue = !current
+                        val resolvedTvShow = ArtworkRepair.resolveTvShowForFavorite(context, tvShow, newValue)
 
-                    dao.setFavorite(tvShow.id, newValue)
+                        dao.upsertFavorite(resolvedTvShow, newValue)
 
-                    withContext(Dispatchers.Main) {
-                        tvShow.isFavorite = newValue
-                        setImageDrawable(
-                            ContextCompat.getDrawable(context, newValue.drawable())
-                        )
+                        withContext(Dispatchers.Main) {
+                            tvShow.poster = resolvedTvShow.poster
+                            tvShow.banner = resolvedTvShow.banner
+                            tvShow.isFavorite = newValue
+                            setImageDrawable(
+                                ContextCompat.getDrawable(context, newValue.drawable())
+                            )
+                        }
                     }
                 }
             }
@@ -563,11 +575,10 @@ class TvShowViewHolder(
 
     private fun displayTvShowTv(binding: ContentTvShowTvBinding) {
         binding.ivTvShowPoster.run {
-            Glide.with(context)
-                .load(tvShow.poster)
-                .fallback(R.drawable.glide_fallback_cover)
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(this)
+            loadTvShowPoster(tvShow) {
+                fallback(R.drawable.glide_fallback_cover)
+                transition(DrawableTransitionOptions.withCrossFade())
+            }
             visibility = if (tvShow.poster.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
         binding.tvTvShowTitle.text = tvShow.title
@@ -668,18 +679,23 @@ class TvShowViewHolder(
             }
 
             setOnClickListener {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = database.tvShowDao()
-                    val current = dao.getById(tvShow.id)?.isFavorite ?: false
-                    val newValue = !current
+                checkProviderAndRun {
+                    itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val dao = database.tvShowDao()
+                        val current = dao.getById(tvShow.id)?.isFavorite ?: false
+                        val newValue = !current
+                        val resolvedTvShow = ArtworkRepair.resolveTvShowForFavorite(context, tvShow, newValue)
 
-                    dao.setFavorite(tvShow.id, newValue)
+                        dao.upsertFavorite(resolvedTvShow, newValue)
 
-                    withContext(Dispatchers.Main) {
-                        tvShow.isFavorite = newValue
-                        setImageDrawable(
-                            ContextCompat.getDrawable(context, newValue.drawable())
-                        )
+                        withContext(Dispatchers.Main) {
+                            tvShow.poster = resolvedTvShow.poster
+                            tvShow.banner = resolvedTvShow.banner
+                            tvShow.isFavorite = newValue
+                            setImageDrawable(
+                                ContextCompat.getDrawable(context, newValue.drawable())
+                            )
+                        }
                     }
                 }
             }

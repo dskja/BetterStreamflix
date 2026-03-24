@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
+import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +13,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
@@ -34,8 +36,11 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
         _state.transformLatest { state ->
             when (state) {
                 is State.SuccessLoading -> {
-                    database.movieDao().getByIds(state.movies.map { it.id })
-                        .collect { emit(it) }
+                    if (state.movies.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.movieDao().getByIds(state.movies.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<Movie>())
             }
@@ -43,9 +48,10 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
     ) { state, moviesDb ->
         when (state) {
             is State.SuccessLoading -> {
+                val moviesById = moviesDb.associateBy { it.id }
                 State.SuccessLoading(
                     movies = state.movies.map { movie ->
-                        moviesDb.find { it.id == movie.id }
+                        moviesById[movie.id]
                             ?.takeIf { !movie.isSame(it) }
                             ?.let { movie.copy().merge(it) }
                             ?: movie
@@ -55,7 +61,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
             }
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     private var page = 1
 
@@ -75,7 +81,9 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
         _state.emit(State.Loading)
 
         try {
-            val movies = UserPreferences.currentProvider!!.getMovies()
+            val movies = ParentalControlUtils.filterItems(
+                UserPreferences.currentProvider!!.getMovies()
+            ).filterIsInstance<Movie>()
 
             page = 1
 
@@ -87,12 +95,14 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
     }
 
     fun loadMoreMovies() = viewModelScope.launch(Dispatchers.IO) {
-        val currentState = _state.first()
+        val currentState = _state.value
         if (currentState is State.SuccessLoading) {
             _state.emit(State.LoadingMore)
 
             try {
-                val movies = UserPreferences.currentProvider!!.getMovies(page + 1)
+                val movies = ParentalControlUtils.filterItems(
+                    UserPreferences.currentProvider!!.getMovies(page + 1)
+                ).filterIsInstance<Movie>()
 
                 page += 1
 

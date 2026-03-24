@@ -25,7 +25,7 @@ class ProvidersViewModel : ViewModel() {
     }
 
     init {
-        getProviders(UserPreferences.currentLanguage)
+        getProviders(UserPreferences.providerLanguage)
     }
 
     fun getProviders(language: String? = null) = viewModelScope.launch(Dispatchers.IO) {

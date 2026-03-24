@@ -2,7 +2,6 @@ package com.streamflixreborn.streamflix.activities.main
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -14,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.navOptions
 import com.bumptech.glide.Glide
 import com.tanasi.navigation.widget.setupWithNavController
 import com.streamflixreborn.streamflix.BuildConfig
@@ -25,6 +25,8 @@ import com.streamflixreborn.streamflix.fragments.player.PlayerTvFragment
 import com.streamflixreborn.streamflix.ui.UpdateAppTvDialog
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
+import com.streamflixreborn.streamflix.utils.AppLanguageManager
+import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
 import kotlinx.coroutines.launch
@@ -38,22 +40,22 @@ class MainTvActivity : FragmentActivity() {
 
     private lateinit var updateAppDialog: UpdateAppTvDialog
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppLanguageManager.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Il setup delle preferenze è già avvenuto in StreamFlixApp
-        when (UserPreferences.selectedTheme) {
-            "nero_amoled_oled" -> setTheme(R.style.AppTheme_NeroAmoledOled)
-            else -> setTheme(R.style.AppTheme_Tv)
-        }
+        setTheme(ThemeManager.tvThemeRes(UserPreferences.selectedTheme))
         
         super.onCreate(savedInstanceState)
         
         // Inizializza il provider con il context dell'attività per gestire eventuali bypass visibili
         Cine24hProvider.init(this)
         
-        window.statusBarColor = Color.TRANSPARENT
-        
         _binding = ActivityMainTvBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applyThemeNavigationChrome()
 
         binding.ivSplashOverlay.animate()
             .alpha(0f)
@@ -98,6 +100,10 @@ class MainTvActivity : FragmentActivity() {
                     .into(header.ivNavigationHeaderIcon)
                 header.tvNavigationHeaderTitle.text = UserPreferences.currentProvider?.name
                 header.tvNavigationHeaderSubtitle.text = getString(R.string.main_menu_change_provider)
+                val palette = ThemeManager.palette(UserPreferences.selectedTheme)
+                header.tvNavigationHeaderTitle.setTextColor(palette.tvHeaderPrimary)
+                header.tvNavigationHeaderSubtitle.setTextColor(palette.tvHeaderSecondary)
+                setBackgroundColor(palette.tvNavBackground)
 
                 setOnOpenListener {
                     header.tvNavigationHeaderTitle.visibility = View.VISIBLE
@@ -152,13 +158,9 @@ class MainTvActivity : FragmentActivity() {
             override fun handleOnBackPressed() {
                 when (navController.currentDestination?.id) {
                     R.id.home -> if (binding.navMain.hasFocus()) finish() else binding.navMain.requestFocus()
-                    R.id.search, R.id.movies, R.id.tv_shows, R.id.settings -> {
-                        if (binding.navMain.hasFocus()) {
-                            binding.navMain.findViewById<View>(R.id.home)?.let {
-                                it.requestFocus()
-                                it.performClick()
-                            }
-                        } else binding.navMain.requestFocus()
+                    R.id.settings, R.id.search, R.id.movies, R.id.tv_shows -> {
+                        navigateToProviderHome(navController)
+                        binding.navMain.requestFocus()
                     }
                     else -> {
                         val handled = (getCurrentFragment() as? PlayerTvFragment)?.onBackPressed() ?: false
@@ -172,6 +174,19 @@ class MainTvActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.checkUpdate()
+    }
+
+    private fun applyThemeNavigationChrome() {
+        val palette = ThemeManager.palette(UserPreferences.selectedTheme)
+        window.statusBarColor = palette.systemBar
+        window.navigationBarColor = palette.systemBar
+        binding.navMain.setBackgroundColor(palette.tvNavBackground)
+        binding.navMain.headerView?.let { headerView ->
+            headerView.setBackgroundColor(palette.tvNavBackground)
+            val header = ContentHeaderMenuMainTvBinding.bind(headerView)
+            header.tvNavigationHeaderTitle.setTextColor(palette.tvHeaderPrimary)
+            header.tvNavigationHeaderSubtitle.setTextColor(palette.tvHeaderSecondary)
+        }
     }
     
     private fun updateNavigationVisibility() {
@@ -188,5 +203,20 @@ class MainTvActivity : FragmentActivity() {
         val uDeltaX = deltaX ?: UserPreferences.paddingX
         val uDeltaY = deltaY ?: UserPreferences.paddingY
         binding.root.setPadding(uDeltaX, uDeltaY, uDeltaX, uDeltaY)
+    }
+
+    private fun navigateToProviderHome(navController: androidx.navigation.NavController) {
+        if (!navController.popBackStack(R.id.home, false)) {
+            navController.navigate(
+                R.id.home,
+                null,
+                navOptions {
+                    launchSingleTop = true
+                    popUpTo(R.id.providers) {
+                        inclusive = true
+                    }
+                }
+            )
+        }
     }
 }

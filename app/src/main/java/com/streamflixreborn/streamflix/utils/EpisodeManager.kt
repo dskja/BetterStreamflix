@@ -19,13 +19,29 @@ object EpisodeManager {
         currentIndex = 0
     }
 
-    fun addEpisodesFromDb(type: Video.Type.Episode, database: AppDatabase){
+    suspend fun addEpisodesFromDb(type: Video.Type.Episode, database: AppDatabase) {
         val tvShowId = type.tvShow.id
         val seasonNumber = type.season.number
-        val episodesFromDb = database.episodeDao().getByTvShowIdAndSeasonNumber(tvShowId, seasonNumber)
-        if (!episodesFromDb.isEmpty()){
-            addEpisodes(convertToVideoTypeEpisodes(episodesFromDb, database, seasonNumber));
+        var episodesFromDb = database.episodeDao().getByTvShowIdAndSeasonNumber(tvShowId, seasonNumber)
+        val provider = UserPreferences.currentProvider
+        if (provider != null) {
+            try {
+                val tvShow = provider.getTvShow(tvShowId)
+                val season = tvShow.seasons.find { it.number == seasonNumber }
+                if (season != null) {
+                    val fetchedEpisodes = provider.getEpisodesBySeason(season.id)
+                    if (fetchedEpisodes.isNotEmpty()) {
+                        database.episodeDao().insertAll(fetchedEpisodes)
+                        episodesFromDb = fetchedEpisodes
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
+        if (episodesFromDb.isNotEmpty()) {
+            addEpisodes(convertToVideoTypeEpisodes(episodesFromDb, database, seasonNumber))
         }
     }
     fun clearEpisodes(){
@@ -33,7 +49,10 @@ object EpisodeManager {
         currentIndex = 0
     }
     fun setCurrentEpisode(episode: Episode) {
-        currentIndex = episodes.indexOfFirst { it.id == episode.id }
+        val index = episodes.indexOfFirst { it.id == episode.id }
+        if (index >= 0) {
+            currentIndex = index
+        }
     }
 
     fun getCurrentEpisode(): Episode? =
@@ -62,7 +81,7 @@ object EpisodeManager {
     }
 
     fun listIsEmpty(episode: Episode): Boolean{
-        return episodes.isEmpty() || return episodes.indexOf(episode) == -1
+        return episodes.isEmpty() || episodes.none { it.id == episode.id }
     }
 
     fun convertToVideoTypeEpisodes(episodes: List<com.streamflixreborn.streamflix.models.Episode>, database: AppDatabase, seasonNumber: Int): List<Episode> {

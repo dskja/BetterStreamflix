@@ -12,6 +12,8 @@ import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
@@ -72,6 +74,9 @@ import com.streamflixreborn.streamflix.utils.dp
 import androidx.preference.Preference
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
+import com.streamflixreborn.streamflix.utils.loadMovieBanner
+import com.streamflixreborn.streamflix.utils.loadMoviePoster
+import com.streamflixreborn.streamflix.utils.ArtworkRepair
 import com.streamflixreborn.streamflix.utils.toActivity
 import java.util.Locale
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -79,7 +84,6 @@ import com.streamflixreborn.streamflix.providers.Provider
 import android.view.KeyEvent
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsMobileBinding
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsTvBinding
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -91,7 +95,8 @@ class MovieViewHolder(
 ) {
 
     private val context = itemView.context
-    private val database = AppDatabase.getInstance(context)
+    private val database: AppDatabase
+        get() = AppDatabase.getInstance(context)
     private lateinit var movie: Movie
     private val TAG = "TrailerChoiceDebug" // Logging Tag
 
@@ -143,7 +148,6 @@ class MovieViewHolder(
         if (!movie.providerName.isNullOrBlank() && movie.providerName != UserPreferences.currentProvider?.name) {
             Provider.providers.keys.find { it.name == movie.providerName }?.let {
                 UserPreferences.currentProvider = it
-                AppDatabase.setup(itemView.context)
             }
         }
         action()
@@ -317,11 +321,10 @@ class MovieViewHolder(
             }
         }
 
-        Glide.with(context)
-            .load(movie.poster)
-            .centerCrop()
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivMoviePoster)
+        binding.ivMoviePoster.loadMoviePoster(movie) {
+            centerCrop()
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -388,12 +391,11 @@ class MovieViewHolder(
             }
         }
 
-        Glide.with(context)
-            .load(movie.poster)
-            .fallback(R.drawable.glide_fallback_cover)
-            .centerCrop()
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivMoviePoster)
+        binding.ivMoviePoster.loadMoviePoster(movie) {
+            fallback(R.drawable.glide_fallback_cover)
+            centerCrop()
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -435,11 +437,10 @@ class MovieViewHolder(
             }
         }
 
-        Glide.with(context)
-            .load(movie.poster)
-            .centerCrop()
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivMoviePoster)
+        binding.ivMoviePoster.loadMoviePoster(movie) {
+            centerCrop()
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -496,12 +497,11 @@ class MovieViewHolder(
                 animation.fillAfter = true
             }
         }
-        Glide.with(context)
-            .load(movie.poster)
-            .fallback(R.drawable.glide_fallback_cover)
-            .centerCrop()
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivMoviePoster)
+        binding.ivMoviePoster.loadMoviePoster(movie) {
+            fallback(R.drawable.glide_fallback_cover)
+            centerCrop()
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -526,11 +526,10 @@ class MovieViewHolder(
     }
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {
-        Glide.with(context)
-            .load(movie.banner)
-            .centerCrop()
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivSwiperBackground)
+        binding.ivSwiperBackground.loadMovieBanner(movie) {
+            centerCrop()
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
 
         binding.tvSwiperTitle.text = movie.title
 
@@ -600,10 +599,9 @@ class MovieViewHolder(
 
     private fun displayMovieMobile(binding: ContentMovieMobileBinding) {
         binding.ivMoviePoster.run {
-            Glide.with(context)
-                .load(movie.poster)
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(this)
+            loadMoviePoster(movie) {
+                transition(DrawableTransitionOptions.withCrossFade())
+            }
             visibility = when {
                 movie.poster.isNullOrEmpty() -> View.GONE
                 else -> View.VISIBLE
@@ -703,18 +701,23 @@ class MovieViewHolder(
             }
 
             setOnClickListener {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = database.movieDao()
-                    val current = dao.getById(movie.id)?.isFavorite ?: false
-                    val newValue = !current
+                checkProviderAndRun {
+                    itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val dao = database.movieDao()
+                        val current = dao.getById(movie.id)?.isFavorite ?: false
+                        val newValue = !current
+                        val resolvedMovie = ArtworkRepair.resolveMovieForFavorite(context, movie, newValue)
 
-                    dao.setFavorite(movie.id, newValue)
+                        dao.upsertFavorite(resolvedMovie, newValue)
 
-                    withContext(Dispatchers.Main) {
-                        movie.isFavorite = newValue
-                        setImageDrawable(
-                            ContextCompat.getDrawable(context, newValue.drawable())
-                        )
+                        withContext(Dispatchers.Main) {
+                            movie.poster = resolvedMovie.poster
+                            movie.banner = resolvedMovie.banner
+                            movie.isFavorite = newValue
+                            setImageDrawable(
+                                ContextCompat.getDrawable(context, newValue.drawable())
+                            )
+                        }
                     }
                 }
             }
@@ -727,10 +730,9 @@ class MovieViewHolder(
 
     private fun displayMovieTv(binding: ContentMovieTvBinding) {
         binding.ivMoviePoster.run {
-            Glide.with(context)
-                .load(movie.poster)
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(this)
+            loadMoviePoster(movie) {
+                transition(DrawableTransitionOptions.withCrossFade())
+            }
             visibility = when {
                 movie.poster.isNullOrEmpty() -> View.GONE
                 else -> View.VISIBLE
@@ -828,18 +830,23 @@ class MovieViewHolder(
             }
 
             setOnClickListener {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = database.movieDao()
-                    val current = dao.getById(movie.id)?.isFavorite ?: false
-                    val newValue = !current
+                checkProviderAndRun {
+                    itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val dao = database.movieDao()
+                        val current = dao.getById(movie.id)?.isFavorite ?: false
+                        val newValue = !current
+                        val resolvedMovie = ArtworkRepair.resolveMovieForFavorite(context, movie, newValue)
 
-                    dao.setFavorite(movie.id, newValue)
+                        dao.upsertFavorite(resolvedMovie, newValue)
 
-                    withContext(Dispatchers.Main) {
-                        movie.isFavorite = newValue
-                        setImageDrawable(
-                            ContextCompat.getDrawable(context, newValue.drawable())
-                        )
+                        withContext(Dispatchers.Main) {
+                            movie.poster = resolvedMovie.poster
+                            movie.banner = resolvedMovie.banner
+                            movie.isFavorite = newValue
+                            setImageDrawable(
+                                ContextCompat.getDrawable(context, newValue.drawable())
+                            )
+                        }
                     }
                 }
             }

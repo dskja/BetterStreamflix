@@ -191,6 +191,7 @@ class HomeMobileFragment : Fragment() {
                     if (category.name != Category.FEATURED && category.name != getString(R.string.home_continue_watching)) {
                         category.list.onEach { show ->
                             when (show) {
+                                is Episode -> show.itemType = AppAdapter.Type.EPISODE_MOBILE_ITEM
                                 is Movie -> show.itemType = AppAdapter.Type.MOVIE_MOBILE_ITEM
                                 is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_MOBILE_ITEM
                             }

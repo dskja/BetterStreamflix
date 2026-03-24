@@ -1,10 +1,12 @@
 package com.streamflixreborn.streamflix.fragments.player
 
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -30,7 +32,6 @@ class PlayerViewModel(
 
     private val _playPreviousOrNextEpisode = MutableSharedFlow<Video.Type.Episode>()
     val playPreviousOrNextEpisode: SharedFlow<Video.Type.Episode> = _playPreviousOrNextEpisode
-
     init {
         getServers(videoType, id)
         getSubtitles(videoType)
@@ -95,6 +96,8 @@ class PlayerViewModel(
 
     private fun getServers(videoType: Video.Type, id: String) = viewModelScope.launch(Dispatchers.IO) {
         Log.d("PlayerViewModel", "Inizio ricerca server per ID: $id")
+        lastVideoType = videoType
+        lastId = id
         _state.emit(State.LoadingServers)
         try {
             val servers = UserPreferences.currentProvider!!.getServers(id, videoType)
@@ -247,5 +250,12 @@ class PlayerViewModel(
         data object DownloadingSubDLSubtitle : SubtitleState()
         data class SuccessDownloadingSubDLSubtitle(val subtitle: SubDL.Subtitle, val uri: Uri) : SubtitleState()
         data class FailedDownloadingSubDLSubtitle(val error: Exception, val subtitle: SubDL.Subtitle) : SubtitleState()
+    }
+    private var lastVideoType: Video.Type? = null
+    private var lastId: String? = null
+    fun reloadServersAfterBypass() {
+        val type = lastVideoType ?: return
+        val id = lastId ?: return
+        getServers(type, id)
     }
 }

@@ -8,17 +8,25 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.utils.ArtworkRepair
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
-class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel() {
+class TvShowViewModel(
+    id: String,
+    private val database: AppDatabase,
+    private val fallbackPoster: String? = null,
+    private val fallbackBanner: String? = null,
+) : ViewModel() {
 
     private val _state = MutableStateFlow<State>(State.Loading)
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -81,8 +89,11 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
                 is State.SuccessLoading -> {
                     val movies = state.tvShow.recommendations
                         .filterIsInstance<Movie>()
-                    database.movieDao().getByIds(movies.map { it.id })
-                        .collect { emit(it) }
+                    if (movies.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.movieDao().getByIds(movies.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<Movie>())
             }
@@ -92,8 +103,11 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
                 is State.SuccessLoading -> {
                     val tvShows = state.tvShow.recommendations
                         .filterIsInstance<TvShow>()
-                    database.tvShowDao().getByIds(tvShows.map { it.id })
-                        .collect { emit(it) }
+                    if (tvShows.isEmpty()) {
+                        emit(emptyList())
+                    } else {
+                        emitAll(database.tvShowDao().getByIds(tvShows.map { it.id }))
+                    }
                 }
                 else -> emit(emptyList<TvShow>())
             }
@@ -101,6 +115,8 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
     ) { state, tvShowDb, episodesDb, moviesDb, tvShowsDb ->
         when (state) {
             is State.SuccessLoading -> {
+                val moviesById = moviesDb.associateBy { it.id }
+                val tvShowsById = tvShowsDb.associateBy { it.id }
                 State.SuccessLoading(
                     tvShow = state.tvShow.copy(
                         seasons = (state.tvShow.seasons
@@ -123,11 +139,11 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
                             },
                         recommendations = state.tvShow.recommendations.map { show ->
                             when (show) {
-                                is Movie -> moviesDb.find { it.id == show.id }
+                                is Movie -> moviesById[show.id]
                                     ?.takeIf { !show.isSame(it) }
                                     ?.let { show.copy().merge(it) }
                                     ?: show
-                                is TvShow -> tvShowsDb.find { it.id == show.id }
+                                is TvShow -> tvShowsById[show.id]
                                     ?.takeIf { !show.isSame(it) }
                                     ?.let { show.copy().merge(it) }
                                     ?: show
@@ -140,7 +156,7 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
             }
             else -> state
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     sealed class State {
         data object Loading : State()
@@ -171,7 +187,17 @@ class TvShowViewModel(id: String, private val database: AppDatabase) : ViewModel
         try {
             val tvShow = UserPreferences.currentProvider!!.getTvShow(id)
 
-            database.tvShowDao().getByIdAsFlow(tvShow.id).first()?.let { tvShowDb ->
+            if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.poster) && ArtworkRepair.isRemoteArtworkUrl(fallbackPoster)) {
+                tvShow.poster = fallbackPoster
+            }
+            if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.banner) && ArtworkRepair.isRemoteArtworkUrl(fallbackBanner)) {
+                tvShow.banner = fallbackBanner
+            }
+            if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.banner) && ArtworkRepair.isRemoteArtworkUrl(tvShow.poster)) {
+                tvShow.banner = tvShow.poster
+            }
+
+            database.tvShowDao().getById(tvShow.id)?.let { tvShowDb ->
                 tvShow.merge(tvShowDb)
             }
             database.tvShowDao().insert(tvShow)
