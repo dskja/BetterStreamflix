@@ -106,18 +106,21 @@ class MainMobileActivity : FragmentActivity() {
         setContentView(binding.root)
         applyThemeNavigationChrome()
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, insets ->
-            val sys = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(sys.left, sys.top, sys.right, 0)
-            binding.bnvMain.updatePadding(bottom = sys.bottom)
-            insets
+        ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+            val currentFragment = navHostFragment?.childFragmentManager?.primaryNavigationFragment
+
+            val isPlayer = currentFragment is PlayerMobileFragment
+            val isBottomNavVisible = binding.bnvMain.visibility == View.VISIBLE
+
+            val bottomPadding = if (isPlayer || isBottomNavVisible) 0 else insets.bottom
+            val topPadding = if (isPlayer) 0 else insets.top
+
+            view.setPadding(insets.left, topPadding, insets.right, bottomPadding)
+            windowInsets
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.navMainFragment) { view, insets ->
-            val sys = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updatePadding(bottom = sys.bottom)
-            insets
-        }
 
         updateImmersiveMode()
 
@@ -158,6 +161,7 @@ class MainMobileActivity : FragmentActivity() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateNavigationVisibility(destination.id)
             updateBottomNavigationVisibility(destination.id)
+            binding.mainContent.post { binding.mainContent.requestApplyInsets() }
         }
 
         lifecycleScope.launch {
