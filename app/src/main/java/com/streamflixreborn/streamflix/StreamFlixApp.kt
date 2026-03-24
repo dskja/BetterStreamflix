@@ -3,6 +3,8 @@ package com.streamflixreborn.streamflix
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import java.security.Security
+import org.conscrypt.Conscrypt
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.providers.AniWorldProvider
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
@@ -32,6 +34,10 @@ class StreamFlixApp : Application() {
         super.onCreate()
         instance = this
 
+        // 0. Initialize Conscrypt for modern SSL on old Android
+        Security.insertProviderAt(Conscrypt.newProvider(), 1)
+
+        // 1. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
 

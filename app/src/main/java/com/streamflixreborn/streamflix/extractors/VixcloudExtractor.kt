@@ -7,7 +7,7 @@ import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
-import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
@@ -15,13 +15,37 @@ import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Url
+import retrofit2.http.Header
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
-class VixcloudExtractor(private val preferredLanguage: String? = null) : Extractor() {
+class VixcloudExtractor(
+    private val preferredLanguage: String? = null,
+    private var customReferer: String? = null
+) : Extractor() {
 
     override val name = "vixcloud"
     override val mainUrl = "https://vixcloud.co/"
+
+    companion object {
+        private val client = NetworkClient.default.newBuilder()
+            .readTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .build()
+
+        private val retrofitCache = mutableMapOf<String, VixcloudExtractorService>()
+
+        private fun getService(baseUrl: String): VixcloudExtractorService {
+            return retrofitCache.getOrPut(baseUrl) {
+                Retrofit.Builder()
+                    .baseUrl(baseUrl)
+                    .addConverterFactory(JsoupConverterFactory.create())
+                    .client(client)
+                    .build()
+                    .create(VixcloudExtractorService::class.java)
+            }
+        }
+    }
 
     private fun sanitizeJsonKeysAndQuotes(jsonLikeString: String): String {
         var temp = jsonLikeString
@@ -52,10 +76,11 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
         
         val uri = link.toHttpUrlOrNull() ?: throw Exception("Invalid Vixcloud link")
         val currentMainUrl = "${uri.scheme}://${uri.host}/"
+        val referer = customReferer ?: currentMainUrl
         
-        val service = VixcloudExtractorService.build(currentMainUrl)
+        val service = getService(currentMainUrl)
         val source = try {
-            service.getSource(uri.encodedPath + if (uri.encodedQuery != null) "?" + uri.encodedQuery else "")
+            service.getSource(uri.encodedPath + if (uri.encodedQuery != null) "?" + uri.encodedQuery else "", referer = referer)
         } catch (e: Exception) {
             Log.e("VixcloudDebug", "Failed to get source from $link: ${e.message}")
             throw e
@@ -156,10 +181,6 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
 
         if (preferredLanguage != null) {
             try {
-                val client = OkHttpClient.Builder()
-                    .dns(DnsResolver.doh)
-                    .readTimeout(15, TimeUnit.SECONDS)
-                    .build()
                 val headersBuilder = okhttp3.Headers.Builder()
                 finalHeaders.forEach { (k, v) -> headersBuilder.add(k, v) }
                 val request = Request.Builder().url(finalUrl).headers(headersBuilder.build()).build()
@@ -250,36 +271,14 @@ class VixcloudExtractor(private val preferredLanguage: String? = null) : Extract
     }
 
     private interface VixcloudExtractorService {
-        companion object {
-            fun build(baseUrl: String): VixcloudExtractorService {
-                val client = OkHttpClient.Builder()
-                    .dns(DnsResolver.doh)
-                    .followRedirects(true)
-                    .followSslRedirects(true)
-                    .addInterceptor { chain ->
-                        val request = chain.request().newBuilder()
-                            .header("Referer", baseUrl)
-                            .build()
-                        chain.proceed(request)
-                    }
-                    .build()
-                return Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(JsoupConverterFactory.create())
-                    .client(client)
-                    .build()
-                    .create(VixcloudExtractorService::class.java)
-            }
-        }
 
         @GET
         @Headers(
             "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "Accept-Language: it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
-            "X-Requested-With: XMLHttpRequest"
+            "Accept-Language: it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
         )
-        suspend fun getSource(@Url url: String): Document
+        suspend fun getSource(@Url url: String, @Header("Referer") referer: String): Document
 
         data class WindowVideo(
             @SerializedName("id") val id: Int,

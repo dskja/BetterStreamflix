@@ -66,6 +66,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.ui.PlayerTvView
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
@@ -80,7 +81,6 @@ import com.streamflixreborn.streamflix.utils.toSubtitleMimeType
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
-import okhttp3.internal.userAgent
 import java.util.Calendar
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -872,6 +872,11 @@ class PlayerTvFragment : Fragment() {
 
             val currentPosition = player.currentPosition
 
+        httpDataSource.setDefaultRequestProperties(
+            mapOf(
+                "User-Agent" to (video.headers?.get("User-Agent") ?: NetworkClient.USER_AGENT),
+            ) + (video.headers ?: emptyMap())
+        )
             httpDataSource.setDefaultRequestProperties(
                 mapOf(
                     "User-Agent" to userAgent,
@@ -1358,6 +1363,33 @@ class PlayerTvFragment : Fragment() {
             Log.w("BypassWS", "Ignoring bypass completion for stale token: $token")
             return
         }
+        currentExtraBuffering = extraBuffering
+
+        val okHttpClient = NetworkClient.default
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+        
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            )
+            .build()
+
+        player = ExoPlayer.Builder(requireContext())
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
+            .build().also { player ->
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
 
         bypassDone = true
         waitingForBypass = false

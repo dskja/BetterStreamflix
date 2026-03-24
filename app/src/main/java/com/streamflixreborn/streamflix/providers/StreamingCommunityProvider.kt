@@ -521,9 +521,11 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         Log.i("StreamFlixES", "[PROV] -> StreamingCommunity: getServers for $id")
         val base = "https://$domain/"
         
-        val iframeUrl = when (videoType) {
-            is Video.Type.Movie -> base + "$LANG/iframe/" + id.substringBefore("-") + "?language=$LANG"
-            is Video.Type.Episode -> base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("=") + "&next_episode=1" + "&language=$LANG"
+        val isEpisode = videoType is Video.Type.Episode || id.contains("?episode_id=")
+        val iframeUrl = if (isEpisode) {
+            base + "$LANG/iframe/" + id.substringBefore("?") + "?episode_id=" + id.substringAfter("episode_id=").substringBefore("&") + "&next_episode=1" + "&language=$LANG"
+        } else {
+            base + "$LANG/iframe/" + id.substringBefore("-") + "?language=$LANG"
         }
         
         Log.d(TAG, "Fetching iframe from: $iframeUrl")
@@ -541,9 +543,28 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     override suspend fun getVideo(server: Video.Server): Video {
         Log.i("StreamFlixES", "[SERVER] -> StreamingCommunity: Using ${server.name} (Src: ${server.src})")
-        val video = VixcloudExtractor(language).extract(server.src)
-        Log.i("StreamFlixES", "[VIDEO] -> Source: ${video.source}")
-        return video
+        
+        val base = "https://$domain/"
+        val isEpisode = server.id.contains("?episode_id=")
+        val iframeUrl = if (isEpisode) {
+            base + "$LANG/iframe/" + server.id.substringBefore("?") + "?episode_id=" + server.id.substringAfter("episode_id=").substringBefore("&") + "&next_episode=1" + "&language=$LANG"
+        } else {
+            base + "$LANG/iframe/" + server.id.substringBefore("-") + "?language=$LANG"
+        }
+
+        return try {
+            VixcloudExtractor(language, customReferer = iframeUrl).extract(server.src)
+        } catch (e: Exception) {
+            val isGone = e.message?.contains("410") == true
+            if (isGone) {
+                Log.w(TAG, "Vixcloud token probably expired (410), retrying by re-fetching iframe...")
+                val document = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback(iframeUrl, base, language)
+                val newSrc = document.selectFirst("iframe")?.attr("src") ?: throw e
+                VixcloudExtractor(language, customReferer = iframeUrl).extract(newSrc)
+            } else {
+                throw e
+            }
+        }
     }
 
     private class UserAgentInterceptor(private val userAgent: String, private val languageProvider: () -> String) : Interceptor {

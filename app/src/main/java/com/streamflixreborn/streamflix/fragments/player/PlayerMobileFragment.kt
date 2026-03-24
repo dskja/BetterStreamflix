@@ -66,7 +66,6 @@ import com.streamflixreborn.streamflix.utils.setMediaServers
 import com.streamflixreborn.streamflix.utils.toSubtitleMimeType
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
-import okhttp3.internal.userAgent
 import java.util.Calendar
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -82,6 +81,7 @@ import androidx.navigation.NavOptions
 import com.streamflixreborn.streamflix.StreamFlixApp
 import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import kotlinx.coroutines.Dispatchers
@@ -832,7 +832,7 @@ class PlayerMobileFragment : Fragment() {
 
         httpDataSource.setDefaultRequestProperties(
             mapOf(
-                "User-Agent" to userAgent,
+                "User-Agent" to (video.headers?.get("User-Agent") ?: NetworkClient.USER_AGENT),
             ) + (video.headers ?: emptyMap())
         )
 
@@ -1102,9 +1102,7 @@ class PlayerMobileFragment : Fragment() {
         }
         currentExtraBuffering = extraBuffering
 
-        val okHttpClient = OkHttpClient.Builder()
-            .dns(DnsResolver.doh)
-            .build()
+        val okHttpClient = NetworkClient.default
         httpDataSource = OkHttpDataSource.Factory(okHttpClient)
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
