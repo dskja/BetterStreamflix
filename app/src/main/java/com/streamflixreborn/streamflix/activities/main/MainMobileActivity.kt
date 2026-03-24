@@ -113,6 +113,12 @@ class MainMobileActivity : FragmentActivity() {
             insets
         }
 
+        ViewCompat.setOnApplyWindowInsetsListener(binding.navMainFragment) { view, insets ->
+            val sys = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(bottom = sys.bottom)
+            insets
+        }
+
         updateImmersiveMode()
 
         val navHost =
