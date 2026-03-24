@@ -19,6 +19,7 @@ class VidsrcNetExtractor : Extractor() {
 
     override val name = "Vidsrc.net"
     override val mainUrl = "https://vidsrc-embed.ru"
+    override val aliasUrls = listOf("https://vsembed.ru")
 
     fun server(videoType: Video.Type): Video.Server {
         return Video.Server(

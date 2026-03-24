@@ -5,6 +5,7 @@ import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.ApiVoirFilmExtractor
 import com.streamflixreborn.streamflix.extractors.Extractor
+import com.streamflixreborn.streamflix.extractors.OnRegardeOuExtractor
 import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Genre
@@ -697,7 +698,9 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         initializeService()
 
         val apivoirfilm = ApiVoirFilmExtractor()
+        val onregadeou = OnRegardeOuExtractor()
         var apiUrl = ""
+        var onregardeUrl = ""
 
         val servers = when (videoType) {
             is Video.Type.Episode -> {
@@ -715,6 +718,10 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
                         if (link.embed_url.startsWith(apivoirfilm.mainUrl)) {
                             apiUrl = link.embed_url
+                            return@mapIndexedNotNull null
+                        }
+                        if (link.embed_url.startsWith(onregadeou.mainUrl)) {
+                            onregardeUrl = link.embed_url
                             return@mapIndexedNotNull null
                         }
 
@@ -746,6 +753,10 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                             apiUrl = link.embed_url
                             return@mapIndexedNotNull null
                         }
+                        if (link.embed_url.startsWith(onregadeou.mainUrl)) {
+                            onregardeUrl = link.embed_url
+                            return@mapIndexedNotNull null
+                        }
 
                         val title = it.selectFirst("span.title")?.text()?:"Server $idx"
 
@@ -760,7 +771,10 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
         val other = if (apiUrl.isNotEmpty())
                         apivoirfilm.expand(apiUrl, baseUrl, "FR ")
-                    else emptyList()
+                    else if (onregardeUrl.isNotEmpty())
+                        onregadeou.expand(onregardeUrl, baseUrl, "FR ")
+                    else
+                        emptyList()
 
         return servers + other
     }
