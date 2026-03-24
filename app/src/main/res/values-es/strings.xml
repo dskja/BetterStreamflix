@@ -224,6 +224,9 @@
     <string name="settings_autoupdate_off">Desactivado</string>
     <string name="settings_autoupdate_now">Actualizar URL principal ahora</string>
     <string name="settings_autoplay">Reproducción automática del siguiente episodio</string>
+    <string name="settings_category_streamingcommunity_dnsOverHttps">Usar DNS seguro</string>
+    <string name="settings_section_content_title">Contenido y seguridad</string>
+    <string name="settings_category_network_title">Conexion y servicios</string>
     <string name="settings_autoplay_on">Activado</string>
     <string name="settings_autoplay_off">Desactivado</string>
     <string name="settings_autoplay_buffer_title">Búfer de reproducción automática</string>
