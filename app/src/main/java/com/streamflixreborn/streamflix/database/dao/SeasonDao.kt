@@ -17,6 +17,9 @@ interface SeasonDao {
     @Query("SELECT * FROM seasons WHERE id = :id")
     fun getById(id: String): Season?
 
+    @Query("SELECT * FROM seasons WHERE id IN (:ids)")
+    fun getByIds(ids: List<String>): List<Season>
+
     @Query("SELECT * FROM seasons WHERE id = :id")
     fun getByIdAsFlow(id: String): Flow<Season?>
 

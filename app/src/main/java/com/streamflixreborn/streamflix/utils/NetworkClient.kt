@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.utils
 
 import android.util.Log
 import android.webkit.CookieManager
+import com.streamflixreborn.streamflix.BuildConfig
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.Dns
@@ -21,9 +22,10 @@ object NetworkClient {
     // User-Agent Mobile standard per massima compatibilità con Cloudflare
     const val USER_AGENT = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
 
+    private val cookieManager by lazy { CookieManager.getInstance() }
+
     val cookieJar = object : CookieJar {
         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-            val cookieManager = CookieManager.getInstance()
             cookies.forEach { cookie ->
                 cookieManager.setCookie(url.toString(), cookie.toString())
             }
@@ -31,7 +33,6 @@ object NetworkClient {
         }
 
         override fun loadForRequest(url: HttpUrl): List<Cookie> {
-            val cookieManager = CookieManager.getInstance()
             val cookieString = cookieManager.getCookie(url.toString()) ?: return emptyList()
             return cookieString.split(";").mapNotNull {
                 Cookie.parse(url, it.trim())
@@ -78,11 +79,13 @@ object NetworkClient {
                     .build()
                 chain.proceed(request)
             }
-            .addInterceptor(loggingInterceptor)
             .cookieJar(cookieJar)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .dns(dns)
+        if (BuildConfig.DEBUG) {
+            builder.addInterceptor(loggingInterceptor)
+        }
         customizer?.invoke(builder)
         return builder.build()
     }

@@ -3,10 +3,26 @@
     <string-array name="theme_names">
         <item>@string/theme_default</item>
         <item>@string/theme_nero_amoled_oled</item>
+        <item>@string/theme_sunset_cinema</item>
+        <item>@string/theme_steel_blue</item>
+        <item>@string/theme_forest_night</item>
+        <item>@string/theme_crimson_noir</item>
+        <item>@string/theme_midnight_violet</item>
+        <item>@string/theme_nord_frost</item>
+        <item>@string/theme_emerald_luxe</item>
+        <item>@string/theme_retro_neon</item>
     </string-array>
     <string-array name="theme_values">
         <item>default</item>
         <item>nero_amoled_oled</item>
+        <item>sunset_cinema</item>
+        <item>steel_blue</item>
+        <item>forest_night</item>
+        <item>crimson_noir</item>
+        <item>midnight_violet</item>
+        <item>nord_frost</item>
+        <item>emerald_luxe</item>
+        <item>retro_neon</item>
     </string-array>
 
     <string-array name="trailer_player_names">
@@ -20,5 +36,31 @@
         <item>youtube</item>
         <item>smarttube_stable</item>
         <item>smarttube_beta</item>
+    </string-array>
+
+    <string-array name="parental_control_age_entries">
+        <item>@string/settings_parental_max_age_disabled</item>
+        <item>0+</item>
+        <item>6+</item>
+        <item>7+</item>
+        <item>10+</item>
+        <item>12+</item>
+        <item>13+</item>
+        <item>14+</item>
+        <item>16+</item>
+        <item>18+</item>
+    </string-array>
+
+    <string-array name="parental_control_age_values">
+        <item></item>
+        <item>0</item>
+        <item>6</item>
+        <item>7</item>
+        <item>10</item>
+        <item>12</item>
+        <item>13</item>
+        <item>14</item>
+        <item>16</item>
+        <item>18</item>
     </string-array>
 </resources>

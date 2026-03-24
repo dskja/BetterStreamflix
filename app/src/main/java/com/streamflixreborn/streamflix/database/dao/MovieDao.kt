@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.Movie
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Transaction
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.format
 
 @Dao
 interface MovieDao {
@@ -28,6 +29,9 @@ interface MovieDao {
 
     @Query("SELECT * FROM movies WHERE isFavorite = 1")
     fun getFavorites(): Flow<List<Movie>>
+
+    @Query("SELECT * FROM movies WHERE isFavorite = 1 OR poster IS NULL OR poster = '' OR banner IS NULL OR banner = ''")
+    suspend fun getArtworkRepairCandidates(): List<Movie>
 
     @Query("SELECT * FROM movies WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingMovies(): Flow<List<Movie>>
@@ -49,7 +53,7 @@ interface MovieDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         val existing = getById(movie.id)
         if (existing != null) {
-            val merged = existing.merge(movie)
+            val merged = movie.merge(existing)
             update(merged)
             Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE Movie: ${merged.title} (Fav: ${merged.isFavorite}, Watched: ${merged.isWatched})")
         } else {
@@ -63,6 +67,36 @@ interface MovieDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         setFavorite(id, favorite)
         Log.d("DatabaseVerify", "[$provider] REAL-TIME Favorite Toggled: ID $id -> $favorite")
+    }
+
+    @Transaction
+    fun upsertFavorite(movie: Movie, favorite: Boolean) {
+        val existing = getById(movie.id)
+        if (existing != null) {
+            val updated = existing.copy(
+                title = movie.title.ifBlank { existing.title },
+                overview = movie.overview ?: existing.overview,
+                released = movie.released?.format("yyyy-MM-dd") ?: existing.released?.format("yyyy-MM-dd"),
+                runtime = movie.runtime ?: existing.runtime,
+                trailer = movie.trailer ?: existing.trailer,
+                quality = movie.quality ?: existing.quality,
+                rating = movie.rating ?: existing.rating,
+                poster = movie.poster ?: existing.poster,
+                banner = movie.banner ?: existing.banner,
+                imdbId = movie.imdbId ?: existing.imdbId,
+                genres = if (movie.genres.isNotEmpty()) movie.genres else existing.genres,
+                directors = if (movie.directors.isNotEmpty()) movie.directors else existing.directors,
+                cast = if (movie.cast.isNotEmpty()) movie.cast else existing.cast,
+                recommendations = if (movie.recommendations.isNotEmpty()) movie.recommendations else existing.recommendations,
+                isFavorite = favorite,
+            )
+            updated.isWatched = existing.isWatched
+            updated.watchedDate = existing.watchedDate
+            updated.watchHistory = existing.watchHistory
+            update(updated)
+        } else {
+            insert(movie.copy(isFavorite = favorite))
+        }
     }
 
     @Query("UPDATE movies SET isFavorite = :favorite WHERE id = :id")

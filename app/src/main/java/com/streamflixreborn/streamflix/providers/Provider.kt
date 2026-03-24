@@ -112,5 +112,9 @@ interface Provider {
             val support = providers[provider] ?: ProviderSupport(movies = true, tvShows = true)
             return support.tvShows
         }
+
+        fun findByName(name: String): Provider? {
+            return providers.keys.find { it.name == name }
+        }
     }
 }

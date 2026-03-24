@@ -78,8 +78,8 @@ class CategoryViewHolder(
         binding.tvCategoryTitle.text = category.name
 
         binding.rvCategory.apply {
-            adapter = AppAdapter().apply {
-
+            val categoryAdapter = (adapter as? AppAdapter) ?: AppAdapter().also { adapter = it }
+            categoryAdapter.apply {
                 this.onMovieClickListener = onMovieClick
                 this.onTvShowClickListener = onTvShowClick
                 submitList(category.list)
@@ -99,7 +99,8 @@ class CategoryViewHolder(
         binding.hgvCategory.apply {
             setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT)
 
-            adapter = AppAdapter().apply {
+            val categoryAdapter = (adapter as? AppAdapter) ?: AppAdapter().also { adapter = it }
+            categoryAdapter.apply {
                 this.onMovieClickListener = onMovieClick
                 this.onTvShowClickListener = onTvShowClick
                 submitList(category.list)
@@ -197,7 +198,6 @@ class CategoryViewHolder(
             if (!providerName.isNullOrBlank() && providerName != UserPreferences.currentProvider?.name) {
                 Provider.providers.keys.find { it.name == providerName }?.let {
                     UserPreferences.currentProvider = it
-                    AppDatabase.setup(itemView.context)
                 }
             }
             action()
@@ -297,7 +297,11 @@ class CategoryViewHolder(
                     findNavController().navigate(
                         when (selected) {
                             is Movie -> HomeTvFragmentDirections.actionHomeToMovie(selected.id)
-                            is TvShow -> HomeTvFragmentDirections.actionHomeToTvShow(selected.id)
+                            is TvShow -> HomeTvFragmentDirections.actionHomeToTvShow(
+                                id = selected.id,
+                                poster = selected.poster,
+                                banner = selected.banner,
+                            )
                         }
                     )
                 }

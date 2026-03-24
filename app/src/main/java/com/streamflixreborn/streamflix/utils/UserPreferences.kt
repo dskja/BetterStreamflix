@@ -2,9 +2,10 @@ package com.streamflixreborn.streamflix.utils
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log // <-- Import Log
+import android.util.Log
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.CaptionStyleCompat
+import com.streamflixreborn.streamflix.StreamFlixApp
 import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
@@ -17,7 +18,7 @@ import org.json.JSONObject
 
 object UserPreferences {
 
-    private const val TAG = "UserPrefsDebug" // <-- TAG per i Log
+    private const val TAG = "UserPrefsDebug"
 
     private lateinit var prefs: SharedPreferences
 
@@ -25,7 +26,7 @@ object UserPreferences {
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.biz"
-    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana3.la"
+    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana.gs"
     private const val DEFAULT_POSEIDON_DOMAIN = "www.poseidonhd2.co"
 
     const val PROVIDER_URL = "URL"
@@ -36,22 +37,23 @@ object UserPreferences {
 
     lateinit var providerCache: JSONObject
 
+    private inline fun debugLog(message: () -> String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, message())
+        }
+    }
+
     fun setup(context: Context) {
-        Log.d(TAG, "setup() called with context: $context")
         val prefsName = "${BuildConfig.APPLICATION_ID}.preferences"
-        Log.d(TAG, "SharedPreferences name: $prefsName")
         prefs = context.getSharedPreferences(
             prefsName,
             Context.MODE_PRIVATE,
         )
         if (::prefs.isInitialized) {
-            Log.d(TAG, "prefs initialized successfully in setup. Hash: ${prefs.hashCode()}")
+            debugLog { "prefs initialized: ${prefs.hashCode()}" }
 
             val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
-
-        } else {
-            Log.e(TAG, "prefs FAILED to initialize in setup.")
         }
     }
 
@@ -71,6 +73,9 @@ object UserPreferences {
             AppDatabase.resetInstance()
 
             Key.CURRENT_PROVIDER.setString(value?.name)
+            runCatching {
+                ArtworkRepairScheduler.schedule(StreamFlixApp.instance, value)
+            }
             // Notify all ViewModels that the provider has changed
             ProviderChangeNotifier.notifyProviderChanged()
         }
@@ -92,17 +97,19 @@ object UserPreferences {
 
     fun clearProviderCache(providerName: String) {
         if (providerCache.has(providerName)) {
-            Log.d(TAG, "CACHE: Removing stored data for $providerName")
+            debugLog { "CACHE: removing stored data for $providerName" }
             providerCache.remove(providerName)
             Key.PROVIDER_CACHE.setString(providerCache.toString())
-        } else {
-            Log.d(TAG, "CACHE: No existing data to clear for $providerName")
         }
     }
 
     var currentLanguage: String?
         get() = Key.CURRENT_LANGUAGE.getString()
         set(value) = Key.CURRENT_LANGUAGE.setString(value)
+
+    var providerLanguage: String?
+        get() = Key.PROVIDER_LANGUAGE.getString()
+        set(value) = Key.PROVIDER_LANGUAGE.setString(value)
 
     var captionTextSize: Float
         get() = Key.CAPTION_TEXT_SIZE.getFloat()
@@ -168,12 +175,101 @@ object UserPreferences {
         set(value) {
             Key.ENABLE_TMDB.setBoolean(value)
             TMDb3.rebuildService()
+            if (value) {
+                runCatching {
+                    ArtworkRepairScheduler.schedule(StreamFlixApp.instance, currentProvider)
+                }
+            }
         }
+
+    var parentalControlPin: String
+        get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
+        set(value) {
+            Key.PARENTAL_CONTROL_PIN.setString(value.trim())
+        }
+
+    var parentalControlAdminPin: String
+        get() = Key.PARENTAL_CONTROL_ADMIN_PIN.getString() ?: ""
+        set(value) {
+            Key.PARENTAL_CONTROL_ADMIN_PIN.setString(value.trim())
+        }
+
+    var parentalControlMaxAge: Int?
+        get() = Key.PARENTAL_CONTROL_MAX_AGE.getInt()
+        set(value) {
+            Key.PARENTAL_CONTROL_MAX_AGE.setInt(value)
+        }
+
+    var parentalControlFailedAttempts: Int
+        get() = Key.PARENTAL_CONTROL_FAILED_ATTEMPTS.getInt() ?: 0
+        set(value) {
+            Key.PARENTAL_CONTROL_FAILED_ATTEMPTS.setInt(value)
+        }
+
+    var parentalControlLockedUntilMillis: Long
+        get() = Key.PARENTAL_CONTROL_LOCKED_UNTIL.getLong() ?: 0L
+        set(value) {
+            Key.PARENTAL_CONTROL_LOCKED_UNTIL.setLong(value)
+        }
+
+    var parentalControlHardLocked: Boolean
+        get() = Key.PARENTAL_CONTROL_HARD_LOCKED.getBoolean() ?: false
+        set(value) {
+            Key.PARENTAL_CONTROL_HARD_LOCKED.setBoolean(value)
+        }
+
+    val isParentalControlActive: Boolean
+        get() = enableTmdb && parentalControlPin.isNotBlank() && parentalControlMaxAge != null
+
+    val isParentalControlTemporarilyLocked: Boolean
+        get() = parentalControlLockedUntilMillis > System.currentTimeMillis()
+
+    val parentalControlLockRemainingMillis: Long
+        get() = (parentalControlLockedUntilMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+
+    fun registerParentalPinSuccess() {
+        parentalControlFailedAttempts = 0
+        parentalControlLockedUntilMillis = 0L
+        parentalControlHardLocked = false
+    }
+
+    fun registerParentalPinFailure(nowMillis: Long = System.currentTimeMillis()) {
+        val attempts = parentalControlFailedAttempts + 1
+        parentalControlFailedAttempts = attempts
+
+        when {
+            attempts >= 7 && parentalControlAdminPin.isNotBlank() -> {
+                parentalControlHardLocked = true
+                parentalControlLockedUntilMillis = 0L
+            }
+            attempts >= 7 -> {
+                parentalControlLockedUntilMillis = nowMillis + 24L * 60L * 60L * 1000L
+            }
+            attempts >= 5 -> {
+                parentalControlLockedUntilMillis = nowMillis + 30L * 60L * 1000L
+            }
+            attempts >= 3 -> {
+                parentalControlLockedUntilMillis = nowMillis + 5L * 60L * 1000L
+            }
+        }
+    }
+
+    fun unlockParentalControls() {
+        parentalControlFailedAttempts = 0
+        parentalControlLockedUntilMillis = 0L
+        parentalControlHardLocked = false
+    }
 
     var subdlApiKey: String
         get() = Key.SUBDL_API_KEY.getString() ?: ""
         set(value) {
             Key.SUBDL_API_KEY.setString(value)
+        }
+
+    var bypassWsAdvertisedHost: String
+        get() = Key.BYPASS_WS_ADVERTISED_HOST.getString() ?: ""
+        set(value) {
+            Key.BYPASS_WS_ADVERTISED_HOST.setString(value.trim())
         }
 
     enum class PlayerResize(
@@ -236,34 +332,24 @@ object UserPreferences {
         set(value) = Key.SUBTITLE_NAME.setString(value)
     var streamingcommunityDomain: String
         get() {
-            Log.d(TAG, "streamingcommunityDomain GET called")
             if (!::prefs.isInitialized) {
-                Log.e(TAG, "streamingcommunityDomain GET: prefs IS NOT INITIALIZED!")
-                return "PREFS_NOT_INIT_ERROR" // Restituisce un valore di errore evidente
+                Log.e(TAG, "streamingcommunityDomain GET: prefs is not initialized")
+                return DEFAULT_STREAMINGCOMMUNITY_DOMAIN
             }
-            Log.d(TAG, "streamingcommunityDomain GET: prefs hash: ${prefs.hashCode()}")
             val storedValue = prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null)
-            Log.d(TAG, "streamingcommunityDomain GET: storedValue from prefs: '$storedValue'")
-            val returnValue = if (storedValue.isNullOrEmpty()) {
-                Log.d(TAG, "streamingcommunityDomain GET: storedValue is null or empty, returning DEFAULT: '$DEFAULT_STREAMINGCOMMUNITY_DOMAIN'")
+            return if (storedValue.isNullOrEmpty()) {
                 DEFAULT_STREAMINGCOMMUNITY_DOMAIN
             } else {
-                Log.d(TAG, "streamingcommunityDomain GET: storedValue is NOT null or empty, returning storedValue: '$storedValue'")
                 storedValue
             }
-            Log.d(TAG, "streamingcommunityDomain GET: final returnValue: '$returnValue'")
-            return returnValue
         }
         set(value) {
             val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null) else null
-            Log.d(TAG, "streamingcommunityDomain SET called with value: '$value' (Old: '$oldDomain')")
-            
             if (!::prefs.isInitialized) {
-                Log.e(TAG, "streamingcommunityDomain SET: prefs IS NOT INITIALIZED!")
-                return 
+                Log.e(TAG, "streamingcommunityDomain SET: prefs is not initialized")
+                return
             }
 
-            // TRIGGER PULIZIA CACHE SE IL DOMINIO CAMBIA
             if (value != oldDomain && !value.isNullOrEmpty() && !oldDomain.isNullOrEmpty()) {
                 clearProviderCache("StreamingCommunity")
             }
@@ -373,7 +459,15 @@ object UserPreferences {
         AUTOPLAY_BUFFER,
         SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
-        SELECTED_THEME;
+        PARENTAL_CONTROL_PIN,
+        PARENTAL_CONTROL_ADMIN_PIN,
+        PARENTAL_CONTROL_MAX_AGE,
+        PARENTAL_CONTROL_FAILED_ATTEMPTS,
+        PARENTAL_CONTROL_LOCKED_UNTIL,
+        PARENTAL_CONTROL_HARD_LOCKED,
+        SELECTED_THEME,
+        BYPASS_WS_ADVERTISED_HOST,
+        PROVIDER_LANGUAGE;
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

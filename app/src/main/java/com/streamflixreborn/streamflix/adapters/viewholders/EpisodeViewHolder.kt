@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.adapters.viewholders
 
 import android.view.View
 import android.view.animation.AnimationUtils
+import android.widget.ImageView
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
@@ -24,8 +25,10 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.ui.ShowOptionsMobileDialog
 import com.streamflixreborn.streamflix.ui.ShowOptionsTvDialog
 import com.streamflixreborn.streamflix.utils.EpisodeManager
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
+import com.streamflixreborn.streamflix.utils.loadTvShowCardArtwork
 import com.streamflixreborn.streamflix.utils.toActivity
 
 class EpisodeViewHolder(
@@ -262,6 +265,8 @@ class EpisodeViewHolder(
                 findNavController().navigate(
                     HomeMobileFragmentDirections.actionHomeToTvShow(
                         id = episode.tvShow?.id ?: "",
+                        poster = episode.tvShow?.poster,
+                        banner = episode.tvShow?.banner,
                     )
                 )
                 findNavController().navigate(
@@ -317,12 +322,7 @@ class EpisodeViewHolder(
 
         binding.ivEpisodeTvShowPoster.apply {
             clipToOutline = true
-            Glide.with(context)
-                .load(episode.tvShow?.poster ?: episode.tvShow?.banner ?: episode.poster)
-                .error(R.drawable.glide_fallback_cover)
-                .centerCrop()
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(this)
+            loadContinueWatchingArtwork()
         }
 
         binding.pbEpisodeProgress.apply {
@@ -366,6 +366,8 @@ class EpisodeViewHolder(
                 findNavController().navigate(
                     HomeTvFragmentDirections.actionHomeToTvShow(
                         id = episode.tvShow?.id ?: "",
+                        poster = episode.tvShow?.poster,
+                        banner = episode.tvShow?.banner,
                     )
                 )
                 findNavController().navigate(
@@ -435,13 +437,7 @@ class EpisodeViewHolder(
 
         binding.ivEpisodeTvShowPoster.apply {
             clipToOutline = true
-            Glide.with(context)
-                .load(episode.tvShow?.poster ?: episode.tvShow?.banner ?: episode.poster)
-                .error(R.drawable.glide_fallback_cover)
-                .fallback(R.drawable.glide_fallback_cover)
-                .centerCrop()
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(this)
+            loadContinueWatchingArtwork(withFallback = true)
         }
 
         binding.pbEpisodeProgress.apply {
@@ -479,5 +475,33 @@ class EpisodeViewHolder(
                 episode.number
             )
         )
+    }
+
+    private fun ImageView.loadContinueWatchingArtwork(withFallback: Boolean = false) {
+        val episodePoster = episode.poster
+        val tvShow = episode.tvShow
+        val shouldUseEpisodePoster = UserPreferences.enableTmdb && !episodePoster.isNullOrBlank()
+
+        if (shouldUseEpisodePoster || tvShow == null) {
+            Glide.with(context)
+                .load(episodePoster)
+                .error(R.drawable.glide_fallback_cover)
+                .apply {
+                    if (withFallback) fallback(R.drawable.glide_fallback_cover)
+                }
+                .centerCrop()
+                .transition(DrawableTransitionOptions.withCrossFade())
+                .into(this)
+            return
+        }
+
+        loadTvShowCardArtwork(tvShow) {
+            error(R.drawable.glide_fallback_cover)
+            apply {
+                if (withFallback) fallback(R.drawable.glide_fallback_cover)
+            }
+            centerCrop()
+            transition(DrawableTransitionOptions.withCrossFade())
+        }
     }
 }

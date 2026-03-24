@@ -4,12 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Base64
 import android.util.Log
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.SerienStreamDatabase
@@ -24,7 +18,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
-import com.streamflixreborn.streamflix.utils.FixSerienStreamUrlsWorker
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.TmdbUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,18 +78,6 @@ object SerienStreamProvider : Provider {
             this.appContext = context.applicationContext
 
         }
-
-        val request = OneTimeWorkRequestBuilder<FixSerienStreamUrlsWorker>()
-            .setInputData(
-                workDataOf("provider" to "serienstream")
-            )
-            .build()
-
-        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
-            "fix_serienstream_urls",
-            ExistingWorkPolicy.KEEP,
-            request
-        )
     }
 
 
@@ -167,10 +149,12 @@ object SerienStreamProvider : Provider {
         )
         categories.add(
             Category(name = "Neu auf S.to",
-                list = document.select("div:has(h4:contains(Neu auf S.to)) + div.row > div").map {
+                list = document.select("section.continue-widget.new-shows-slider .swiper-slide").map {
                     TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("h6 a")?.text() ?: "",
+                        id = getTvShowIdFromLink(
+                            it.selectFirst("a.continue-cover, h3.continue-title a")?.attr("href") ?: ""
+                        ),
+                        title = it.selectFirst("h3.continue-title a")?.text()?.trim() ?: "",
                         poster = normalizeImageUrl(it.extractPoster()))
                 })
         )
@@ -300,10 +284,9 @@ object SerienStreamProvider : Provider {
             },
             trailer = tmdbTvShow?.trailer ?: document.selectFirst("div[itemprop='trailer'] a")?.attr("href") ?: "",
             poster = tmdbTvShow?.poster
-                ?: normalizeImageUrl(document.extractPoster()
-                ),
-            banner = tmdbTvShow?.banner ?: normalizeImageUrl(document.extractPoster()
-            ),
+                ?: normalizeImageUrl(document.extractShowPoster()),
+            banner = tmdbTvShow?.banner
+                ?: normalizeImageUrl(document.extractShowBanner()),
             seasons = document.select("#season-nav ul li a").map {
                 val seasonText = it.text().trim()
                 val seasonNumber = seasonText.toIntOrNull() ?: 0
@@ -439,6 +422,20 @@ object SerienStreamProvider : Provider {
     interface SerienStreamService {
 
         companion object {
+            private fun OkHttpClient.Builder.applyBrowserHeaders(): OkHttpClient.Builder {
+                return addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .header("User-Agent", NetworkClient.USER_AGENT)
+                        .header(
+                            "Accept",
+                            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+                        )
+                        .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7")
+                        .build()
+                    chain.proceed(request)
+                }.cookieJar(NetworkClient.cookieJar)
+            }
+
             private fun getOkHttpClient(): OkHttpClient {
                 val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
                 val clientBuilder = OkHttpClient.Builder()
@@ -447,6 +444,7 @@ object SerienStreamProvider : Provider {
                     .connectTimeout(30, TimeUnit.SECONDS)
 
                 return clientBuilder
+                    .applyBrowserHeaders()
                     .dns(DnsResolver.doh)
                     .build()
             }
@@ -473,6 +471,7 @@ object SerienStreamProvider : Provider {
                         .hostnameVerifier { _, _ -> true }
 
                     return clientBuilder
+                        .applyBrowserHeaders()
                         .dns(DnsResolver.doh)
                         .followRedirects(true)
                         .followSslRedirects(true)
@@ -563,33 +562,116 @@ object SerienStreamProvider : Provider {
     }
 
     fun Element.extractPoster(): String {
-        selectFirst("img[data-src]")?.attr("data-src")
-            ?.takeIf { it.isNotBlank() }
-            ?.let { return it }
-
+        posterCandidate("img[data-src]", "data-src")?.let { return it }
+        posterCandidate("img[data-srcset]", "data-srcset")?.let { return it }
         select("source[data-srcset]")
-            .firstOrNull { it.attr("type") != "image/webp" }
-            ?.attr("data-srcset")
-            ?.split(",")
-            ?.firstOrNull()
-            ?.trim()
-            ?.split(" ")
-            ?.firstOrNull()
+            .firstNotNullOfOrNull { source -> source.attr("data-srcset").firstJpegSrcsetEntry() }
+            ?.takeIf(::isUsablePosterUrl)
             ?.let { return it }
-        select("source[data-srcset]")
-            .firstOrNull { it.attr("type") != "image/avif" }
-            ?.attr("data-srcset")
-            ?.split(",")
-            ?.firstOrNull()
-            ?.trim()
-            ?.split(" ")
-            ?.firstOrNull()
-            ?.let { return it }
-        selectFirst("img[src]")?.attr("src")
-            ?.takeIf { it.isNotBlank() }
-            ?.let { return it }
-
+        posterCandidate("img[srcset]", "srcset")?.let { return it }
+        posterCandidate("img[src]", "src")?.let { return it }
         return ""
+    }
+
+    fun Element.extractBanner(): String {
+        bannerCandidate("img[data-src]", "data-src")?.let { return it }
+        bannerCandidate("img[data-srcset]", "data-srcset")?.let { return it }
+        select("source[data-srcset]")
+            .firstNotNullOfOrNull { source -> source.attr("data-srcset").firstBackdropJpegSrcsetEntry() }
+            ?.takeIf(::isUsableBannerUrl)
+            ?.let { return it }
+        bannerCandidate("img[srcset]", "srcset")?.let { return it }
+        bannerCandidate("img[src]", "src")?.let { return it }
+        return ""
+    }
+
+    fun Document.extractShowPoster(): String {
+        selectFirst(".show-cover-mobile picture")
+            ?.extractPoster()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        select("div.col-3.col-md-3.col-lg-2 picture")
+            .firstNotNullOfOrNull { it.extractPoster().takeIf(String::isNotBlank) }
+            ?.let { return it }
+        return extractPoster()
+    }
+
+    fun Document.extractShowBanner(): String {
+        selectFirst(".backdrop-picture picture")
+            ?.extractBanner()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        return extractBanner()
+    }
+
+    private fun Element.posterCandidate(selector: String, attribute: String): String? {
+        return selectFirst(selector)
+            ?.attr(attribute)
+            ?.firstSrcsetEntry()
+            ?.takeIf(::isUsablePosterUrl)
+    }
+
+    private fun Element.bannerCandidate(selector: String, attribute: String): String? {
+        return select(selector)
+            .firstNotNullOfOrNull { it.attr(attribute).firstBackdropJpegSrcsetEntry() }
+            ?.takeIf(::isUsableBannerUrl)
+    }
+
+    private fun String.firstSrcsetEntry(): String? {
+        val entries = srcsetEntries()
+        return entries.firstOrNull(::looksLikeJpegUrl)
+            ?: entries.firstOrNull()
+    }
+
+    private fun String.firstJpegSrcsetEntry(): String? {
+        val entries = srcsetEntries()
+        return entries.firstOrNull(::looksLikeJpegUrl) ?: entries.firstOrNull()
+    }
+
+    private fun String.firstBackdropJpegSrcsetEntry(): String? {
+        val entries = srcsetEntries().filter(::isUsableBannerUrl)
+        return entries.firstOrNull(::looksLikeJpegUrl) ?: entries.firstOrNull()
+    }
+
+    private fun String.srcsetEntries(): List<String> {
+        return split(",")
+            .mapNotNull { entry ->
+                entry.trim()
+                    .substringBefore(" ")
+                    .takeIf { it.isNotBlank() }
+            }
+    }
+
+    private fun looksLikeJpegUrl(url: String): Boolean {
+        val normalized = url.lowercase()
+        return normalized.endsWith(".jpg") ||
+            normalized.endsWith(".jpeg") ||
+            normalized.contains("format=jpg") ||
+            normalized.contains("format=jpeg")
+    }
+
+    private fun isUsablePosterUrl(url: String): Boolean {
+        return url.isNotBlank() &&
+            !url.startsWith("data:", ignoreCase = true) &&
+            !url.startsWith("javascript:", ignoreCase = true) &&
+            url != "#" &&
+            !url.contains("/backdrop/", ignoreCase = true) &&
+            !url.contains("/assets/", ignoreCase = true) &&
+            !url.contains("/logos/", ignoreCase = true) &&
+            !url.contains("placeholder", ignoreCase = true) &&
+            !url.contains("default", ignoreCase = true) &&
+            !url.substringBefore("?").endsWith(".svg", ignoreCase = true)
+    }
+
+    private fun isUsableBannerUrl(url: String): Boolean {
+        return url.isNotBlank() &&
+            !url.startsWith("data:", ignoreCase = true) &&
+            !url.startsWith("javascript:", ignoreCase = true) &&
+            url != "#" &&
+            url.contains("/backdrop/", ignoreCase = true) &&
+            !url.contains("/assets/", ignoreCase = true) &&
+            !url.contains("/logos/", ignoreCase = true) &&
+            !url.substringBefore("?").endsWith(".svg", ignoreCase = true)
     }
 
     fun normalizeImageUrl(url: String?): String? {

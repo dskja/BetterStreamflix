@@ -89,8 +89,8 @@ class VidsrcNetExtractor : Extractor() {
             /* Subtitles are selected based on the provider's language, except when the language is English */
             val preferredSubtitle =
                 if (subtitlesRaw.isNotEmpty() &&
-                    !UserPreferences.currentLanguage.isNullOrEmpty() && UserPreferences.currentLanguage != "en")
-                        UserPreferences.currentLanguage.orEmpty()
+                    !UserPreferences.providerLanguage.isNullOrEmpty() && UserPreferences.providerLanguage != "en")
+                        UserPreferences.providerLanguage.orEmpty()
                 else ""
 
             var alreadySet = false

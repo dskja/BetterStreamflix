@@ -49,7 +49,6 @@ class SearchTvFragment : Fragment() {
 
                 if (movie.providerName != UserPreferences.currentProvider?.name) {
                     UserPreferences.currentProvider = Provider.providers.keys.find { it.name == movie.providerName }
-                    AppDatabase.setup(requireContext())
                     Toast.makeText(requireContext(), getString(R.string.switching_to_provider, movie.providerName), Toast.LENGTH_SHORT).show()
                 }
                 findNavController().navigate(
@@ -60,11 +59,14 @@ class SearchTvFragment : Fragment() {
 
                 if (tvShow.providerName != UserPreferences.currentProvider?.name) {
                     UserPreferences.currentProvider = Provider.providers.keys.find { it.name == tvShow.providerName }
-                    AppDatabase.setup(requireContext())
                     Toast.makeText(requireContext(), getString(R.string.switching_to_provider, tvShow.providerName), Toast.LENGTH_SHORT).show()
                 }
                 findNavController().navigate(
-                    SearchTvFragmentDirections.actionSearchToTvShow(id = tvShow.id)
+                    SearchTvFragmentDirections.actionSearchToTvShow(
+                        id = tvShow.id,
+                        poster = tvShow.poster,
+                        banner = tvShow.banner,
+                    )
                 )
             }
         }
@@ -94,8 +96,8 @@ class SearchTvFragment : Fragment() {
                             pbIsLoading.visibility = View.VISIBLE
                             gIsLoadingRetry.visibility = View.GONE
                         }
-
-                        binding.vgvSearch.adapter = appAdapter
+                        appAdapter.isLoading = false
+                        appAdapter.setOnLoadMoreListener(null)
                     }
                     is State.SearchingMore -> appAdapter.isLoading = true
                     is State.SuccessSearching -> {
