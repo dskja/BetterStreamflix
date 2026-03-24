@@ -18,7 +18,7 @@
         <item></item> <!-- Disabilitato -->
         <item>https://dns.google/dns-query</item>
         <item>https://cloudflare-dns.com/dns-query</item>
-        <item>https://doh/opendns.com/dns-query</item>
+        <item>https://doh.opendns.com/dns-query</item>
         <item>https://dns.quad9.net/dns-query</item>
         <item>https://doh.cleanbrowsing.org/doh/family-filter/</item>
         <item>https://dns.adguard-dns.com/dns-query</item>

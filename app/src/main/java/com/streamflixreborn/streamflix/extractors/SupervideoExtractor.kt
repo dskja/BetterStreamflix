@@ -79,6 +79,7 @@ class SupervideoExtractor : Extractor() {
         return Video(
             source = streamUrl,
             subtitles = subtitles,
+            headers = mapOf("Referer" to "mainUrl"),
             extraBuffering = true
         )
     }
