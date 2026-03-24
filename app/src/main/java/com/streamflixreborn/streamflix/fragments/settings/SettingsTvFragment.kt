@@ -193,11 +193,13 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             displaySettings()
         }
         applyScreenTitle()
+        view?.post { listView?.requestFocus() }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         SettingsListStyler.attach(view, isTv = true)
+        view.post { listView?.requestFocus() }
     }
 
     private fun displaySettings() {
