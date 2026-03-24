@@ -872,17 +872,11 @@ class PlayerTvFragment : Fragment() {
 
             val currentPosition = player.currentPosition
 
-        httpDataSource.setDefaultRequestProperties(
-            mapOf(
-                "User-Agent" to (video.headers?.get("User-Agent") ?: NetworkClient.USER_AGENT),
-            ) + (video.headers ?: emptyMap())
-        )
             httpDataSource.setDefaultRequestProperties(
                 mapOf(
-                    "User-Agent" to userAgent,
+                    "User-Agent" to (video.headers?.get("User-Agent") ?: NetworkClient.USER_AGENT),
                 ) + (video.headers ?: emptyMap())
             )
-
             player.setMediaItem(
                 MediaItem.Builder()
                     .setUri(video.source.toUri())
@@ -1363,6 +1357,8 @@ class PlayerTvFragment : Fragment() {
             Log.w("BypassWS", "Ignoring bypass completion for stale token: $token")
             return
         }
+
+        val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
         currentExtraBuffering = extraBuffering
 
         val okHttpClient = NetworkClient.default
@@ -1390,6 +1386,7 @@ class PlayerTvFragment : Fragment() {
                         .build(),
                     true,
                 )
+            }
 
         bypassDone = true
         waitingForBypass = false
