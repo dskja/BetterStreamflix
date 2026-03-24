@@ -88,6 +88,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.internal.userAgent
 import java.net.CookieManager
 import java.util.Locale
 
@@ -832,7 +833,7 @@ class PlayerMobileFragment : Fragment() {
 
         httpDataSource.setDefaultRequestProperties(
             mapOf(
-                "User-Agent" to (video.headers?.get("User-Agent") ?: NetworkClient.USER_AGENT),
+                "User-Agent" to userAgent,
             ) + (video.headers ?: emptyMap())
         )
 
