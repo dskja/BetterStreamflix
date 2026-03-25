@@ -45,6 +45,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
     private val subDLAdapter = SettingsAdapter(this, Settings.Subtitle.SubDLSubtitles.list)
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
+    private val softwareDecoderAdapter = SettingsAdapter(this, Settings.SoftwareDecoder.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
     private val marginAdapter = SettingsAdapter(this, Settings.Subtitle.Style.Margin.list)
 
@@ -63,6 +64,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.SUBTITLES,
             Setting.SPEED,
             Setting.EXTRA_BUFFERING,
+            Setting.SOFTWARE_DECODER,
             Setting.SERVERS,
             Setting.GESTURES,
             Setting.KEEP_SCREEN_ON,
@@ -123,6 +125,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                 Setting.SUBDL -> context.getString(R.string.player_settings_subdl_title)
                 Setting.SPEED -> context.getString(R.string.player_settings_speed_title)
                 Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
+                Setting.SOFTWARE_DECODER -> context.getString(R.string.player_settings_software_decoder_title)
                 Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
                 Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
                 Setting.GESTURES -> context.getString(R.string.player_settings_gestures_title)
@@ -149,6 +152,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.SUBDL -> subDLAdapter
             Setting.SPEED -> speedAdapter
             Setting.EXTRA_BUFFERING -> extraBufferingAdapter
+            Setting.SOFTWARE_DECODER -> softwareDecoderAdapter
             Setting.SERVERS -> serversAdapter
             Setting.CAPTION_STYLE_MARGIN -> marginAdapter
             else -> settingsAdapter
@@ -205,6 +209,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 Settings.Subtitle -> settingsView.displaySettings(Setting.SUBTITLES)
                                 Settings.Speed -> settingsView.displaySettings(Setting.SPEED)
                                 Settings.ExtraBuffering -> settingsView.displaySettings(Setting.EXTRA_BUFFERING)
+                                Settings.SoftwareDecoder -> settingsView.displaySettings(Setting.SOFTWARE_DECODER)
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
                                 Settings.ManualZoom -> {
                                     settingsView.onManualZoomClicked?.invoke()
@@ -355,6 +360,11 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                             settingsView.hide()
                         }
 
+                        is Settings.SoftwareDecoder -> {
+                            settingsView.onSoftwareDecoderSelected.invoke(item)
+                            settingsView.hide()
+                        }
+
                         is Settings.Server -> {
                             settingsView.onServerSelected?.invoke(item)
                             settingsView.hide()
@@ -391,6 +401,13 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 )
 
                             Settings.ExtraBuffering -> setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.ic_player_settings_extra_buffer
+                                )
+                            )
+
+                            Settings.SoftwareDecoder -> setImageDrawable(
                                 ContextCompat.getDrawable(
                                     context,
                                     R.drawable.ic_player_settings_extra_buffer
@@ -451,6 +468,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.Subtitle -> context.getString(R.string.player_settings_subtitles_label)
                         Settings.Speed -> context.getString(R.string.player_settings_speed_label)
                         Settings.ExtraBuffering -> context.getString(R.string.player_settings_extra_buffer_server_label)
+                        Settings.SoftwareDecoder -> context.getString(R.string.player_settings_software_decoder_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
                         Settings.ManualZoom -> context.getString(R.string.player_settings_manual_zoom_label)
                         else -> ""
@@ -524,6 +542,8 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                     is Settings.Speed -> context.getString(item.stringId)
 
                     is Settings.ExtraBuffering -> context.getString(item.stringId)
+
+                    is Settings.SoftwareDecoder -> context.getString(item.stringId)
 
                     is Settings.Server -> item.name
 
@@ -669,6 +689,11 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         else -> View.GONE
                     }
 
+                    is Settings.SoftwareDecoder -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
                     is Settings.Server -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
@@ -687,6 +712,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                             Settings.Subtitle,
                             Settings.Speed,
                             Settings.ExtraBuffering,
+                            Settings.SoftwareDecoder,
                             Settings.Server -> View.VISIBLE
                             else -> View.GONE
                         }

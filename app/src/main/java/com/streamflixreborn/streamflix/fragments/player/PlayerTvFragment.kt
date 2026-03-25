@@ -48,6 +48,7 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
@@ -354,6 +355,7 @@ class PlayerTvFragment : Fragment() {
 
                         is PlayerViewModel.State.SuccessLoadingVideo -> {
                             PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
+                            PlayerSettingsView.Settings.SoftwareDecoder.init(false)
                             displayVideo(state.video, state.server)
                         }
 
@@ -662,6 +664,12 @@ class PlayerTvFragment : Fragment() {
                 displayVideo(
                     currentVideo ?: return@setOnExtraBufferingSelectedListener,
                     currentServer ?: return@setOnExtraBufferingSelectedListener
+                )
+            }
+            binding.settings.setOnSoftwareDecoderSelectedListener { useSoftware ->
+                displayVideo(
+                    currentVideo ?: return@setOnSoftwareDecoderSelectedListener,
+                    currentServer ?: return@setOnSoftwareDecoderSelectedListener
                 )
             }
 
@@ -1161,6 +1169,7 @@ class PlayerTvFragment : Fragment() {
         }
 
         private var currentExtraBuffering = false
+        private var currentSoftwareDecoder = false
 
         private fun initializePlayer(extraBuffering: Boolean) {
             if (::player.isInitialized) {
@@ -1185,7 +1194,14 @@ class PlayerTvFragment : Fragment() {
                 )
                 .build()
 
-            player = ExoPlayer.Builder(requireContext())
+            val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+                setEnableDecoderFallback(true)
+                if (currentSoftwareDecoder) {
+                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                }
+            }
+
+            player = ExoPlayer.Builder(requireContext(), renderersFactory)
                 .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
                 .setLoadControl(loadControl)
                 .build().also { player ->
@@ -1376,7 +1392,14 @@ class PlayerTvFragment : Fragment() {
             )
             .build()
 
-        player = ExoPlayer.Builder(requireContext())
+        val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+            setEnableDecoderFallback(true)
+            if (currentSoftwareDecoder) {
+                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            }
+        }
+
+        player = ExoPlayer.Builder(requireContext(), renderersFactory)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setLoadControl(loadControl)
             .build().also { player ->

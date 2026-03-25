@@ -98,7 +98,8 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM episodes WHERE tvShow = :tvShowId")
     fun getEpisodesByTvShowId(tvShowId: String): List<Episode>
-
+    @Query("SELECT * FROM episodes WHERE tvShow = :tvShowId AND season = :season")
+    fun getEpisodesByTvShowIdAndSeason(tvShowId: String, season: String?): List<Episode>
     @Update
     fun update(episode: Episode)
 
