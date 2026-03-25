@@ -1359,36 +1359,6 @@ class PlayerTvFragment : Fragment() {
             return
         }
 
-        val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
-        currentExtraBuffering = extraBuffering
-
-        val okHttpClient = NetworkClient.default
-        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-        
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-            )
-            .build()
-
-        player = ExoPlayer.Builder(requireContext())
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .setLoadControl(loadControl)
-            .build().also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
-            }
-
         bypassDone = true
         waitingForBypass = false
         activeBypassSession = null
@@ -1397,7 +1367,16 @@ class PlayerTvFragment : Fragment() {
         applyBypassCookies(session.serverUrl, cookies)
 
         lifecycleScope.launch {
-            delay(500)
+            delay(300)
+
+            // 🔴 restore episode context BEFORE reload
+            when (val type = args.videoType) {
+                is Video.Type.Episode -> {
+                    EpisodeManager.setCurrentEpisode(type)
+                }
+                else -> {}
+            }
+
             viewModel.reloadServersAfterBypass()
         }
     }
