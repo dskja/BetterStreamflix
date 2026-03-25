@@ -199,6 +199,8 @@
     <string name="settings_about_version">Versión</string>
     <string name="settings_version_tv">Versión para TV</string>
     <string name="settings_version_mobile">Versión para móviles</string>
+    <string name="settings_update_check">Búsqueda de actualizaciones automática</string>
+    <string name="settings_update_check_summary">Buscar nuevas versiones de la aplicación automáticamente</string>
     <string name="settings_about_version_name">Versión %s</string>
     <string name="settings_help">Ayuda</string>
     <string name="settings_telegram">Grupo de Telegram</string>

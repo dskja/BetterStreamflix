@@ -254,6 +254,12 @@ object UserPreferences {
         }
     }
 
+    var updateCheckEnabled: Boolean
+        get() = Key.UPDATE_CHECK_ENABLED.getBoolean() ?: true
+        set(value) {
+            Key.UPDATE_CHECK_ENABLED.setBoolean(value)
+        }
+
     fun unlockParentalControls() {
         parentalControlFailedAttempts = 0
         parentalControlLockedUntilMillis = 0L
@@ -467,6 +473,7 @@ object UserPreferences {
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
         BYPASS_WS_ADVERTISED_HOST,
+        UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE;
 
         fun getBoolean(): Boolean? = when {

@@ -522,6 +522,11 @@ class MainMobileActivity : FragmentActivity() {
             .show()
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        (getCurrentFragment() as? PlayerMobileFragment)?.onUserLeaveHint()
+    }
+
     fun updateImmersiveMode() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         if (UserPreferences.immersiveMode) {

@@ -1,4 +1,4 @@
-﻿package com.streamflixreborn.streamflix.fragments.settings
+package com.streamflixreborn.streamflix.fragments.settings
 
 import android.app.Activity
 import android.content.Intent
@@ -406,6 +406,12 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.setOnPreferenceChangeListener { _, newValue ->
             UserPreferences.keepScreenOnWhenPaused = newValue as Boolean
+            true
+        }
+
+        findPreference<SwitchPreference>("UPDATE_CHECK_ENABLED")?.isChecked = UserPreferences.updateCheckEnabled
+        findPreference<SwitchPreference>("UPDATE_CHECK_ENABLED")?.setOnPreferenceChangeListener { _, newValue ->
+            UserPreferences.updateCheckEnabled = newValue as Boolean
             true
         }
 

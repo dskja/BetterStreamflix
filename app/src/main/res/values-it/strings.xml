@@ -14,6 +14,8 @@
     <string name="update_release_notes">Note di rilascio</string>
     <string name="update_later">Forse più tardi</string>
     <string name="update">Aggiorna</string>
+    <string name="settings_update_check">Controllo aggiornamenti automatico</string>
+    <string name="settings_update_check_summary">Controlla automaticamente se sono disponibili nuove versioni dell\'app</string>
 
     <string name="app_layout">App layout</string>
     <string name="app_layout_auto">Auto</string>

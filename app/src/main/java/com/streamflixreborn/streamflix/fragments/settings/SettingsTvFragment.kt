@@ -1,4 +1,4 @@
-﻿package com.streamflixreborn.streamflix.fragments.settings
+package com.streamflixreborn.streamflix.fragments.settings
 
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
@@ -431,6 +431,14 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             isChecked = UserPreferences.serverAutoSubtitlesDisabled
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.serverAutoSubtitlesDisabled = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("UPDATE_CHECK_ENABLED")?.apply {
+            isChecked = UserPreferences.updateCheckEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.updateCheckEnabled = newValue as Boolean
                 true
             }
         }

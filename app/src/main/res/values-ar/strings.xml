@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">ستريم فليكس</string>
 
@@ -118,6 +118,8 @@
 	<string name="settings_about">حول</string>
 	<string name="settings_version_tv">إصدار التلفاز</string>
 	<string name="settings_version_mobile">إصدار الهاتف</string>
+    <string name="settings_update_check">التحقق التلقائي من التحديثات</string>
+    <string name="settings_update_check_summary">التحقق من وجود إصدارات جديدة من التطبيق تلقائيًا</string>
 	<string name="settings_about_version">الإصدار</string>
 	<string name="settings_about_version_name">الإصدار %s</string>
 	<string name="settings_help">مساعدة</string>

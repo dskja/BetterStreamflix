@@ -22,6 +22,8 @@ import org.jsoup.nodes.Element
 import org.jsoup.Jsoup
 import retrofit2.Retrofit
 import okhttp3.OkHttpClient
+import okhttp3.Interceptor
+import okhttp3.Response
 import okhttp3.dnsoverhttps.DnsOverHttps
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.util.concurrent.TimeUnit
@@ -38,7 +40,7 @@ import retrofit2.http.FormUrlEncoded
 object HDFilmeProvider : Provider {
 
     override val name: String = "HDFilme"
-    override val baseUrl: String = "https://hdfilme.press"
+    override val baseUrl: String = "https://hdfilme.bid"
     override val logo: String = "$baseUrl/templates/hdfilme/images/apple-touch-icon.png"
     override val language: String = "de"
 
@@ -50,8 +52,13 @@ object HDFilmeProvider : Provider {
                 val clientBuilder = OkHttpClient.Builder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
+                    .followRedirects(false)
+                    .followSslRedirects(false)
 
-                val client = clientBuilder.dns(DnsResolver.doh).build()
+                val client = clientBuilder
+                    .addInterceptor(RedirectInterceptor())
+                    .dns(DnsResolver.doh)
+                    .build()
 
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
@@ -59,6 +66,27 @@ object HDFilmeProvider : Provider {
                     .client(client)
                     .build()
                     .create(HDFilmeService::class.java)
+            }
+            
+            private class RedirectInterceptor : Interceptor {
+                override fun intercept(chain: Interceptor.Chain): Response {
+                    var request = chain.request()
+                    var response = chain.proceed(request)
+                    
+                    while (response.isRedirect) {
+                        val location = response.header("Location") ?: break
+                        val newUrl = request.url.resolve(location) ?: break
+                        
+                        request = request.newBuilder()
+                            .url(newUrl)
+                            .method(request.method, request.body)
+                            .build()
+                        
+                        response.close()
+                        response = chain.proceed(request)
+                    }
+                    return response
+                }
             }
         }
 
@@ -412,7 +440,8 @@ object HDFilmeProvider : Provider {
         val titleRaw = doc.selectFirst("h1.font-bold")?.text()?.trim() ?: ""
         val title = titleRaw.replace(Regex("\\s*hdfilme\\s*$", RegexOption.IGNORE_CASE), "").trim()
         
-        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
+        val tmdbTitle = title.replace(Regex("(?i)\\s*\\((Season|Staffel)s?\\s*\\d+-\\d+\\)"), "").trim()
+        val tmdbTvShow = TmdbUtils.getTvShow(tmdbTitle, language = language)
         val poster = normalizeUrl(doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: "")
 
         val overviewDiv = doc.selectFirst("div.font-extralight.prose.max-w-none")
@@ -485,14 +514,16 @@ object HDFilmeProvider : Provider {
                 }
             }
             
-            seasons.add(
-                Season(
-                    id = "$id#season-$seasonNumber",
-                    number = seasonNumber,
-                    poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
-                    episodes = episodes.distinctBy { it.number }.sortedBy { it.number }
+            if (episodes.isNotEmpty()) {
+                seasons.add(
+                    Season(
+                        id = "$id#season-$seasonNumber",
+                        number = seasonNumber,
+                        poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
+                        episodes = episodes.distinctBy { it.number }.sortedBy { it.number }
+                    )
                 )
-            )
+            }
         }
 
         val cast = doc.select("ul.space-y-1 li:has(span:containsOwn(Schauspieler:)) a[href*='/xfsearch/actors/']")
@@ -530,8 +561,9 @@ object HDFilmeProvider : Provider {
         val doc = service.getPage(showUrl)
         val titleRaw = doc.selectFirst("h1.font-bold")?.text()?.trim() ?: ""
         val title = titleRaw.replace(Regex("\\s*hdfilme\\s*$", RegexOption.IGNORE_CASE), "").trim()
-
-        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
+        
+        val tmdbTitle = title.replace(Regex("(?i)\\s*\\((Season|Staffel)s?\\s*\\d+-\\d+\\)"), "").trim()
+        val tmdbTvShow = TmdbUtils.getTvShow(tmdbTitle, language = language)
         val tmdbEpisodes = tmdbTvShow?.let { TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) } ?: emptyList()
 
         val episodes = mutableListOf<Episode>()

@@ -185,15 +185,18 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         }
     }
 
-    private var version: String = ""
+    private var version: String? = ""
 
     private suspend fun ensureVersion(): String {
-        version.takeIf { it.isNotEmpty() }?.let { return it }
+        version?.takeIf { it.isNotEmpty() }?.let { return it }
 
         val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
         return Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
-            .also { version = it.version }
-            .version
+            .let { 
+                val v = it.version ?: ""
+                version = v
+                v
+            }
     }
 
     private fun getImageLink(filename: String?): String? {
@@ -203,20 +206,20 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     override suspend fun getHome(): List<Category> {
         val res: StreamingCommunityService.HomeRes = try {
-            if (version.isEmpty()) {
+            if (version.isNullOrEmpty()) {
                 val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
-                    if (version != it.version) version = it.version
+                    if (version != it.version) version = it.version ?: ""
                 }
             } else {
                 try {
-                    withSslFallback { it.getHome(version = version) }.also { fetched ->
-                        if (version != fetched.version) version = fetched.version
+                    withSslFallback { it.getHome(version = version!!) }.also { fetched ->
+                        if (version != fetched.version) version = fetched.version ?: ""
                     }
                 } catch (e: Exception) {
                     val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
                     Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
-                        if (version != it.version) version = it.version
+                        if (version != it.version) version = it.version ?: ""
                     }
                 }
             }
@@ -308,7 +311,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
             }
-            if (version != res.version) version = res.version
+            if (version != res.version) version = res.version ?: ""
             return res.props.genres.map { Genre(id = it.id, name = it.name) }.sortedBy { it.name }
         }
         val res = withSslFallback { it.search(query, (page - 1) * MAX_SEARCH_RESULTS, LANG) }
@@ -334,7 +337,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             gson.fromJson(json.toString(), StreamingCommunityService.ArchiveRes::class.java)
         } catch (e: Exception) { null }
 
-        res?.version?.let { version = it }
+        res?.version?.let { version = it ?: "" }
         return res?.props?.let { p -> p.archive?.data ?: p.titles?.data ?: p.movies?.data ?: p.tv?.data ?: p.tvShows?.data } ?: listOf()
     }
 
@@ -381,7 +384,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             val currentVersion = ensureVersion()
             try {
                 withSslFallback { it.getDetails(id, version = currentVersion, language = LANG) }.also {
-                    if (version != it.version) version = it.version
+                    if (version != it.version) version = it.version ?: ""
                 }
             } catch (e: Exception) {
                 // Se riceviamo 401 o altro errore Inertia, ripieghiamo sull'HTML puro (Shadow Bypass)
@@ -389,7 +392,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/", language)
                 val json = InertiaUtils.parseInertiaData(doc)
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
-                    if (version != it.version) version = it.version
+                    if (version != it.version) version = it.version ?: ""
                 }
             }
         }
@@ -420,14 +423,14 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
              val currentVersion = ensureVersion()
              try {
                 withSslFallback { it.getDetails(id, version = currentVersion, language = LANG) }.also {
-                    if (version != it.version) version = it.version
+                    if (version != it.version) version = it.version ?: ""
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Inertia getDetails failed ($e), falling back to HTML parsing")
                 val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/", language)
                 val json = InertiaUtils.parseInertiaData(doc)
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
-                    if (version != it.version) version = it.version
+                    if (version != it.version) version = it.version ?: ""
                 }
             }
         }
@@ -459,14 +462,14 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         val currentVersion = ensureVersion()
         val res: StreamingCommunityService.SeasonRes = try {
             withSslFallback { it.getSeasonDetails(seasonId, version = currentVersion, language = LANG) }.also {
-                if (version != it.version) version = it.version
+                if (version != it.version) version = it.version ?: ""
             }
         } catch (e: Exception) {
             Log.w(TAG, "Inertia getSeasonDetails failed ($e), falling back to HTML parsing")
             val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$seasonId", "https://$domain/", language)
             val json = InertiaUtils.parseInertiaData(doc)
             Gson().fromJson(json.toString(), StreamingCommunityService.SeasonRes::class.java).also {
-                if (version != it.version) version = it.version
+                if (version != it.version) version = it.version ?: ""
             }
         }
         return res.props.loadedSeason.episodes.map {

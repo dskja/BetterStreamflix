@@ -3,11 +3,12 @@ package com.streamflixreborn.streamflix.extractors
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.JsUnpacker
 import okhttp3.OkHttpClient
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Url
-import java.net.URL
+import java.net.URI
 
 class DroploadExtractor : Extractor() {
     override val name = "Dropload"
@@ -25,11 +26,16 @@ class DroploadExtractor : Extractor() {
 
     private interface DroploadService {
         @GET
-        suspend fun get(@Url url: String): String
+        suspend fun get(@Url url: String): Response<String>
     }
 
     override suspend fun extract(link: String): Video {
-        val html = service.get(link)
+        val response = service.get(link)
+        val html = response.body() ?: throw Exception("Failed to load page")
+
+        // Use the final URL after redirects as referer
+        val finalUrl = response.raw().request.url.toString()
+        val referer = URI(finalUrl).let { "${it.scheme}://${it.host}" }
 
         val scriptData = html
             .substringAfter("eval(function(p,a,c,k,e,d)")
@@ -58,8 +64,6 @@ class DroploadExtractor : Extractor() {
             )
         }.toList()
 
-        val referer = URL(link).protocol + "://" + URL(link).host
-
         return Video(
             source = streamUrl,
             subtitles = subtitles,
@@ -70,5 +74,3 @@ class DroploadExtractor : Extractor() {
         )
     }
 }
-
-

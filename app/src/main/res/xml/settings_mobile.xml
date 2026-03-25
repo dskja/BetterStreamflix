@@ -378,6 +378,13 @@
         android:title="@string/miscelaneous_title"
         app:iconSpaceReserved="false">
 
+        <SwitchPreference
+            android:key="UPDATE_CHECK_ENABLED"
+            android:title="@string/settings_update_check"
+            android:summary="@string/settings_update_check_summary"
+            android:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
         <Preference
             android:icon="@drawable/ic_telegram"
             android:key="p_settings_telegram"

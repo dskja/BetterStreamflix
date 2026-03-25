@@ -215,6 +215,8 @@
     <string name="settings_about">À propos</string>
     <string name="settings_version_tv">Version TV</string>
     <string name="settings_version_mobile">Version Mobile</string>
+    <string name="settings_update_check">Vérification automatique des mises à jour</string>
+    <string name="settings_update_check_summary">Vérifier automatiquement les nouvelles versions de l\'application</string>
     <string name="settings_about_version">Version</string>
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Aide</string>

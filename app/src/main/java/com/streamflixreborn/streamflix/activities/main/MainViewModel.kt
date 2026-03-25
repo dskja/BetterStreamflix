@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import java.io.File
 
 class MainViewModel : ViewModel() {
@@ -33,6 +34,7 @@ class MainViewModel : ViewModel() {
 
 
     fun checkUpdate() = viewModelScope.launch(Dispatchers.IO) {
+        if (!UserPreferences.updateCheckEnabled) return@launch
         _state.emit(State.CheckingUpdate)
 
         try {

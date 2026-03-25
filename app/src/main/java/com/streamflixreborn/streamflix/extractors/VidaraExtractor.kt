@@ -41,13 +41,13 @@ class VidaraExtractor : Extractor() {
 
         val defaultSub = jsonObject.get("default_sub_lang")?.asString?:""
         var alreadySelect = false
-        val subtitles = jsonObject.getAsJsonArray("subtitles")
-            ?.map { elem ->
+        val subtitles = if (jsonObject.get("subtitles")?.isJsonArray == true) {
+            jsonObject.getAsJsonArray("subtitles").mapNotNull { elem ->
                 val obj = elem.asJsonObject
-                val label = obj.get("language")?.asString?:""
+                val label = obj.get("language")?.asString ?: ""
                 Video.Subtitle(
                     label = label,
-                    file = obj.get("file_path")?.asString?:"",
+                    file = obj.get("file_path")?.asString ?: "",
                     default = if (alreadySelect == false && defaultSub.isNotEmpty() && label.contains(
                             defaultSub
                         )
@@ -58,7 +58,10 @@ class VidaraExtractor : Extractor() {
                         false
                     }
                 )
-            } ?: emptyList()
+            }
+        } else {
+            emptyList()
+        }
 
         return Video(
             source = streamingUrl,
