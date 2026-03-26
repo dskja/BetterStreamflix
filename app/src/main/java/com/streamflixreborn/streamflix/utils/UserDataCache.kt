@@ -285,7 +285,7 @@ object UserDataCache {
             watchHistory = WatchItem.WatchHistory(
                 lastEngagementTimeUtcMillis = this@toMovie.lastEngagementTimeUtcMillis,
                 lastPlaybackPositionMillis = 0,
-                durationMillis = 0,
+                durationMillis = watchHistory?.durationMillis ?: 0
             )
         }
     }
@@ -318,7 +318,7 @@ object UserDataCache {
             watchHistory = WatchItem.WatchHistory(
                 lastEngagementTimeUtcMillis = this@toEpisode.lastEngagementTimeUtcMillis,
                 lastPlaybackPositionMillis = this@toEpisode.lastPlaybackPositionMillis ?: 0,
-                durationMillis = 0,
+                durationMillis = this@toEpisode.lastPlaybackPositionMillis ?: 0
             )
         }
         tvShow = this@toEpisode.tvShowId?.let {

@@ -285,12 +285,17 @@ private fun WatchItem.WatchHistory.toJson(): JSONObject =
         put("durationMillis", durationMillis)
     }
 
-private fun JSONObject.toWatchHistory(): WatchItem.WatchHistory =
-    WatchItem.WatchHistory(
-        optLong("lastEngagementTimeUtcMillis", 0L),
-        optLong("lastPlaybackPositionMillis", 0L),
-        optLong("durationMillis", 0L)
+private fun JSONObject.toWatchHistory(): WatchItem.WatchHistory? {
+    val duration = optLong("durationMillis", 0L)
+
+    if (duration <= 0) return null
+
+    return WatchItem.WatchHistory(
+        lastEngagementTimeUtcMillis = optLong("lastEngagementTimeUtcMillis", 0L),
+        lastPlaybackPositionMillis = optLong("lastPlaybackPositionMillis", 0L),
+        durationMillis = duration
     )
+}
 
 
 private fun JSONObject.optLongOrNull(name: String): Long? {

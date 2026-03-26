@@ -188,7 +188,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -229,7 +230,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -260,7 +262,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -298,7 +301,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
