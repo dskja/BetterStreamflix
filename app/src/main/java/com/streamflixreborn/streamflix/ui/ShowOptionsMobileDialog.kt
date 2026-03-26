@@ -171,13 +171,12 @@ class ShowOptionsMobileDialog(
                     val episodeDao = AppDatabase.getInstance(context).episodeDao()
                     val episodeNumber = episode.number
                     val tvShowId = episode.tvShow?.id ?: return@checkProviderAndRun
-                    val allEpisodes = episodeDao.getEpisodesByTvShowId(tvShowId)
-
+                    val allEpisodes = episodeDao.getEpisodesByTvShowIdAndSeason(tvShowId, episode.season?.id).filter { it.number <= episodeNumber }
                     val targetState = !episode.isWatched // If current is watched, we unwatch; else, we mark watched
                     val now = Calendar.getInstance()
 
                     for (ep in allEpisodes) {
-                        if (ep.number <= episodeNumber && ep.isWatched != targetState) {
+                        if (ep.isWatched != targetState) {
                             episodeDao.save(ep.copy().apply {
                                 merge(ep)
                                 isWatched = targetState

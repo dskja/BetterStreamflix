@@ -373,6 +373,14 @@
     <string name="player_settings_extra_buffer_forced_off">Disabled (Forced)</string>
     <string name="player_settings_extra_buffer_auto_on">Active (Default)</string>
     <string name="player_settings_extra_buffer_auto_off">Disabled (Default)</string>
+    <string name="player_settings_software_decoder_title">Software Decoder</string>
+    <string name="player_settings_software_decoder_label">Software Decoder</string>
+    <string name="player_settings_software_decoder_on">Active</string>
+    <string name="player_settings_software_decoder_off">Disabled</string>
+    <string name="player_settings_software_decoder_forced_on">Active (Forced)</string>
+    <string name="player_settings_software_decoder_forced_off">Disabled (Forced)</string>
+    <string name="player_settings_software_decoder_auto_on">Active (Default)</string>
+    <string name="player_settings_software_decoder_auto_off">Disabled (Default)</string>
 
     <string name="error_dialog_title">Error Details</string>
     <string name="error_dialog_message">Error Message</string>
@@ -461,7 +469,6 @@
     <string name="settings_parental_locked_hard">Parental controls are locked. Use the admin PIN to unlock them.</string>
     <string name="settings_parental_unlocked">Parental controls unlocked.</string>
     <string name="settings_parental_tmdb_disable_blocked">You must unlock parental controls before disabling TMDb.</string>
-
     <string name="settings_force_extra_buffer_title">Global Extra Buffering</string>
     <string name="settings_force_extra_buffer_summary">Enable extra buffering for all servers by default</string>
 </resources>

@@ -101,6 +101,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         SUBDL,
         SPEED,
         EXTRA_BUFFERING,
+        SOFTWARE_DECODER,
         SERVERS,
         GESTURES,
         KEEP_SCREEN_ON,
@@ -334,6 +335,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         this.onExtraBufferingListener = listener
     }
 
+    protected var onSoftwareDecoderListener: ((Boolean) -> Unit)? = null
+    fun setOnSoftwareDecoderSelectedListener(listener: (Boolean) -> Unit) {
+        this.onSoftwareDecoderListener = listener
+    }
+
     protected var onExtraBufferingSelected: ((Settings.ExtraBuffering) -> Unit) =
         fun(extraBuffering) {
             val newValue = when (extraBuffering) {
@@ -342,6 +348,16 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
             }
             Settings.ExtraBuffering.selectedValue = if (newValue == Settings.ExtraBuffering.isDefaultEnabled) null else newValue
             onExtraBufferingListener?.invoke(newValue)
+        }
+
+    protected var onSoftwareDecoderSelected: ((Settings.SoftwareDecoder) -> Unit) =
+        fun(softwareDecoder) {
+            val newValue = when (softwareDecoder) {
+                is Settings.SoftwareDecoder.On -> true
+                is Settings.SoftwareDecoder.Off -> false
+            }
+            Settings.SoftwareDecoder.selectedValue = if (newValue == Settings.SoftwareDecoder.isDefaultEnabled) null else newValue
+            onSoftwareDecoderListener?.invoke(newValue)
         }
 
     protected var onServerSelected: ((Settings.Server) -> Unit)? = null
@@ -362,6 +378,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Speed,
                 Server,
                 ExtraBuffering,
+                SoftwareDecoder,
                 Gestures,
                 KeepScreenOn,
                 ManualZoom,
@@ -373,6 +390,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Speed,
                 Server,
                 ExtraBuffering,
+                SoftwareDecoder,
                 ManualZoom,
             )
         }
@@ -453,6 +471,48 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         selectedValue == null && !isDefaultEnabled -> R.string.player_settings_extra_buffer_auto_off
                         selectedValue == false && isDefaultEnabled -> R.string.player_settings_extra_buffer_forced_off
                         else -> R.string.player_settings_extra_buffer_off
+                    }
+            }
+        }
+
+        sealed class SoftwareDecoder : Item {
+            companion object : Settings() {
+                var isDefaultEnabled = false
+                var selectedValue: Boolean? = null
+
+                val isEnabled: Boolean get() = selectedValue ?: (isDefaultEnabled)
+
+                val list = listOf(On, Off)
+
+                val selected: SoftwareDecoder
+                    get() = if (isEnabled) On else Off
+
+                fun init(defaultEnabled: Boolean) {
+                    isDefaultEnabled = defaultEnabled
+                    selectedValue = null
+                }
+            }
+
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : SoftwareDecoder() {
+                override val isSelected: Boolean get() = isEnabled
+                override val stringId: Int
+                    get() = when {
+                        selectedValue == null && isDefaultEnabled -> R.string.player_settings_software_decoder_auto_on
+                        selectedValue == true && !isDefaultEnabled -> R.string.player_settings_software_decoder_forced_on
+                        else -> R.string.player_settings_software_decoder_on
+                    }
+            }
+
+            data object Off : SoftwareDecoder() {
+                override val isSelected: Boolean get() = !isEnabled
+                override val stringId: Int
+                    get() = when {
+                        selectedValue == null && !isDefaultEnabled -> R.string.player_settings_software_decoder_auto_off
+                        selectedValue == false && isDefaultEnabled -> R.string.player_settings_software_decoder_forced_off
+                        else -> R.string.player_settings_software_decoder_off
                     }
             }
         }

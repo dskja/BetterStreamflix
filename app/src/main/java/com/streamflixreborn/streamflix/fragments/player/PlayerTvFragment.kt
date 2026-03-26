@@ -48,6 +48,7 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
@@ -355,6 +356,7 @@ class PlayerTvFragment : Fragment() {
 
                         is PlayerViewModel.State.SuccessLoadingVideo -> {
                             PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
+                            PlayerSettingsView.Settings.SoftwareDecoder.init(false)
                             displayVideo(state.video, state.server)
                         }
 
@@ -663,6 +665,12 @@ class PlayerTvFragment : Fragment() {
                 displayVideo(
                     currentVideo ?: return@setOnExtraBufferingSelectedListener,
                     currentServer ?: return@setOnExtraBufferingSelectedListener
+                )
+            }
+            binding.settings.setOnSoftwareDecoderSelectedListener { useSoftware ->
+                displayVideo(
+                    currentVideo ?: return@setOnSoftwareDecoderSelectedListener,
+                    currentServer ?: return@setOnSoftwareDecoderSelectedListener
                 )
             }
 
@@ -1176,6 +1184,7 @@ class PlayerTvFragment : Fragment() {
         }
 
         private var currentExtraBuffering = false
+        private var currentSoftwareDecoder = false
 
         private fun initializePlayer(extraBuffering: Boolean) {
             if (::player.isInitialized) {
@@ -1200,7 +1209,14 @@ class PlayerTvFragment : Fragment() {
                 )
                 .build()
 
-            player = ExoPlayer.Builder(requireContext())
+            val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+                setEnableDecoderFallback(true)
+                if (currentSoftwareDecoder) {
+                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                }
+            }
+
+            player = ExoPlayer.Builder(requireContext(), renderersFactory)
                 .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
                 .setLoadControl(loadControl)
                 .build().also { player ->
@@ -1373,6 +1389,43 @@ class PlayerTvFragment : Fragment() {
             Log.w("BypassWS", "Ignoring bypass completion for stale token: $token")
             return
         }
+
+        val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
+        currentExtraBuffering = extraBuffering
+
+        val okHttpClient = NetworkClient.default
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+        
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            )
+            .build()
+
+        val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+            setEnableDecoderFallback(true)
+            if (currentSoftwareDecoder) {
+                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            }
+        }
+
+        player = ExoPlayer.Builder(requireContext(), renderersFactory)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
+            .build().also { player ->
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
+            }
 
         bypassDone = true
         waitingForBypass = false
