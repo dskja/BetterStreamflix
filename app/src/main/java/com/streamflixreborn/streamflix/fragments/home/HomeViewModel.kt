@@ -10,9 +10,15 @@ import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.ui.UserDataNotifier
 import com.streamflixreborn.streamflix.utils.HomeCacheStore
 import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
+import com.streamflixreborn.streamflix.utils.UserDataCache
+import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
+import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
+import com.streamflixreborn.streamflix.utils.UserDataCache.toTvShow
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.combine
 import kotlinx.coroutines.Dispatchers
@@ -22,9 +28,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
@@ -35,17 +41,37 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     private val _state = MutableStateFlow<State>(State.Loading)
     private val continueWatchingTvShowCache = ConcurrentHashMap<String, TvShow>()
     private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
+    private val _userDataCache = MutableStateFlow<UserDataCache.UserData?>(null)
+    private var currentProvider: Provider? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: Flow<State> = combine(
         _state,
 
-        // CONTINUE WATCHING
+        // CONTINUE WATCHING - from cache first, DB as fallback
         combine(
-            database.movieDao().getWatchingMovies(),
-            database.episodeDao().getWatchingEpisodes(),
-            database.episodeDao().getNextEpisodesToWatch(),
-            database.tvShowDao().getAll(),
+            _userDataCache.transformLatest { cache ->
+                if (cache != null && cache.continueWatchingMovies.isNotEmpty()) {
+                    emit(cache.continueWatchingMovies.map { it.toMovie() })
+                } else {
+                    emitAll(database.movieDao().getWatchingMovies())
+                }
+            }.flowOn(Dispatchers.IO),
+            _userDataCache.transformLatest { cache ->
+                if (cache != null && cache.continueWatchingEpisodes.isNotEmpty()) {
+                    emit(cache.continueWatchingEpisodes.map { it.toEpisode() })
+                } else {
+                    emitAll(database.episodeDao().getWatchingEpisodes())
+                }
+            }.flowOn(Dispatchers.IO),
+            _userDataCache.transformLatest { cache ->
+                if (cache != null && cache.continueWatchingEpisodes.isNotEmpty()) {
+                    emit(cache.continueWatchingEpisodes.map { it.toEpisode() })
+                } else {
+                    emitAll(database.episodeDao().getNextEpisodesToWatch())
+                }
+            }.flowOn(Dispatchers.IO),
+            database.tvShowDao().getAll().flowOn(Dispatchers.IO),
         ) { watchingMovies, watchingEpisodes, watchNextEpisodes, tvShows ->
 
             val allEpisodes = (watchingEpisodes + watchNextEpisodes)
@@ -75,10 +101,22 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             )
 
             (watchingMovies + enrichedEpisodes) as List<AppAdapter.Item>
-        },
+        }.flowOn(Dispatchers.IO),
 
-        database.movieDao().getFavorites(),
-        database.tvShowDao().getFavorites(),
+        // FAVORITES - from cache first, DB as fallback
+        _userDataCache.transformLatest { cache ->
+            if (cache != null) {
+                emit(cache.favoritesMovies.map { it.toMovie() })
+            }
+            emitAll(database.movieDao().getFavorites())
+        }.flowOn(Dispatchers.IO),
+        _userDataCache.transformLatest { cache ->
+            if (cache != null && cache.favoritesTvShows.isNotEmpty()) {
+                emit(cache.favoritesTvShows.map { it.toTvShow() })
+            } else {
+                emitAll(database.tvShowDao().getFavorites())
+            }
+        }.flowOn(Dispatchers.IO),
 
         // MOVIES DB
         _state.transformLatest { state ->
@@ -95,7 +133,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
                 else -> emit(emptyList<Movie>())
             }
-        },
+        }.flowOn(Dispatchers.IO),
 
         // TV SHOWS DB
         _state.transformLatest { state ->
@@ -112,16 +150,9 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
                 else -> emit(emptyList<TvShow>())
             }
-        },
+        }.flowOn(Dispatchers.IO),
 
-        ) {
-            state: State,
-            continueWatching: List<AppAdapter.Item>,
-            favoritesMovies: List<Movie>,
-            favoriteTvShows: List<TvShow>,
-            moviesDb: List<Movie>,
-            tvShowsDb: List<TvShow>
-        ->
+        ) { state, continueWatching, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -213,9 +244,21 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     }
 
     init {
+        val initialProvider = UserPreferences.currentProvider
+        if (initialProvider != null) {
+            currentProvider = initialProvider
+            loadUserDataCache(initialProvider)
+        }
         viewModelScope.launch {
             ProviderChangeNotifier.providerChangeFlow.collect {
                 getHome()
+            }
+        }
+
+        viewModelScope.launch {
+            UserDataNotifier.updates.collect {
+                val provider = UserPreferences.currentProvider ?: return@collect
+                loadUserDataCache(provider)
             }
         }
         getHome()
@@ -280,6 +323,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             _state.emit(State.FailedLoading(IllegalStateException("No provider selected")))
             return@launch
         }
+        currentProvider = provider
         val appContext = StreamFlixApp.instance.applicationContext
         val cachedCategories = HomeCacheStore.read(appContext, provider)
         if (!cachedCategories.isNullOrEmpty()) {
@@ -287,6 +331,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         } else {
             _state.emit(State.Loading)
         }
+
+        loadUserDataCache(provider)
 
         try {
             val categories = provider.getHome()
@@ -299,4 +345,29 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }
     }
+
+    private fun loadUserDataCache(provider: Provider) {
+        val appContext = StreamFlixApp.instance.applicationContext
+        val cached = UserDataCache.read(appContext, provider)
+        _userDataCache.value = cached
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(appContext)
+
+            val movies = db.movieDao().getFavorites().first()
+            val tvShows = db.tvShowDao().getFavorites().first()
+            val watchingMovies = db.movieDao().getWatchingMovies().first()
+            val watchingEpisodes = db.episodeDao().getWatchingEpisodes().first()
+
+            UserDataCache.writeMovies(appContext, provider, movies + watchingMovies)
+            UserDataCache.writeTvShows(appContext, provider, tvShows)
+            UserDataCache.writeEpisodes(appContext, provider, watchingEpisodes)
+
+            val newData = UserDataCache.read(appContext, provider)
+            if (_userDataCache.value != newData) {
+                _userDataCache.value = newData
+            }
+        }
+    }
 }
+

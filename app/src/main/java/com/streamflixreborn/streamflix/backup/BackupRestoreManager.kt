@@ -12,6 +12,9 @@ import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.utils.UserDataCache
+import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
@@ -21,7 +24,8 @@ data class ProviderBackupContext(
     val movieDao: MovieDao,
     val tvShowDao: TvShowDao,
     val episodeDao: EpisodeDao,
-    val seasonDao: SeasonDao // Aggiunto SeasonDao
+    val seasonDao: SeasonDao,
+    val provider: Provider
 )
 
 class BackupRestoreManager(
@@ -137,7 +141,7 @@ class BackupRestoreManager(
 
     // Eseguo l'intera operazione di importazione come transazione per l'atomicità
     @Transaction
-    fun importUserData(json: String): Boolean {
+    suspend fun importUserData(json: String): Boolean {
         return try {
             val obj = JSONObject(json)
             val providersArray = obj.optJSONArray("providers") ?: return false
@@ -242,6 +246,8 @@ class BackupRestoreManager(
                         Log.d(TAG, "IMPORT: [${providerName}] Episode: ${ep.title}. Watched: $isWatched, History: ${watchHistory != null}")
                     }
                 }
+
+                buildCacheForProvider(providerCtx)
             }
 
             Log.d(TAG, "Import completed successfully")
@@ -249,6 +255,22 @@ class BackupRestoreManager(
         } catch (t: Throwable) {
             Log.e(TAG, "Error during importUserData", t)
             false
+        }
+    }
+
+    private suspend fun buildCacheForProvider(providerCtx: ProviderBackupContext) {
+        try {
+            val movies = providerCtx.movieDao.getFavorites().first()
+            val tvShows = providerCtx.tvShowDao.getFavorites().first()
+            val watchingMovies = providerCtx.movieDao.getWatchingMovies().first()
+            val watchingEpisodes = providerCtx.episodeDao.getWatchingEpisodes().first()
+
+            UserDataCache.writeMovies(context, providerCtx.provider, movies + watchingMovies)
+            UserDataCache.writeTvShows(context, providerCtx.provider, tvShows)
+            UserDataCache.writeEpisodes(context, providerCtx.provider, watchingEpisodes)
+            Log.d(TAG, "CACHE: Built cache for provider ${providerCtx.name}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error building cache for provider ${providerCtx.name}", e)
         }
     }
 

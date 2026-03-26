@@ -176,6 +176,10 @@ class TvShowViewHolder(
                 }
             }
         }
+        binding.root.setOnLongClickListener {
+            ShowOptionsMobileDialog(context, tvShow).show()
+            true
+        }
         setPoster(binding.ivTvShowPoster)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
@@ -203,6 +207,10 @@ class TvShowViewHolder(
                         findNavController().navigate(R.id.tv_show, tvShowArgs())
                     }
                 }
+            }
+            setOnLongClickListener {
+                ShowOptionsTvDialog(context, tvShow).show()
+                true
             }
             setOnFocusChangeListener { _, hasFocus ->
                 val animation = if (hasFocus) AnimationUtils.loadAnimation(context, R.anim.zoom_in) else AnimationUtils.loadAnimation(context, R.anim.zoom_out)
@@ -240,6 +248,10 @@ class TvShowViewHolder(
                 }
             }
         }
+        binding.root.setOnLongClickListener {
+            ShowOptionsMobileDialog(context, tvShow).show()
+            true
+        }
         setPoster(binding.ivTvShowPoster)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
@@ -267,6 +279,10 @@ class TvShowViewHolder(
                         findNavController().navigate(R.id.tv_show, tvShowArgs())
                     }
                 }
+            }
+            setOnLongClickListener {
+                ShowOptionsTvDialog(context, tvShow).show()
+                true
             }
             setOnFocusChangeListener { _, hasFocus ->
                 val animation = if (hasFocus) AnimationUtils.loadAnimation(context, R.anim.zoom_in) else AnimationUtils.loadAnimation(context, R.anim.zoom_out)

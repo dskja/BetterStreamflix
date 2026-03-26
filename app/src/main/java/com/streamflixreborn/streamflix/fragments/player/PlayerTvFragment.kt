@@ -71,6 +71,7 @@ import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
@@ -776,19 +777,26 @@ class PlayerTvFragment : Fragment() {
 
                     when (videoType) {
                         is Video.Type.Movie -> {
+                            val provider = UserPreferences.currentProvider ?: return@setOnClickListener
                             (watchItem as? Movie)?.let { database.movieDao().update(it) }
+                            (watchItem as? Movie)?.let { UserDataCache.addMovieToContinueWatching(requireContext(), provider, it) }
                         }
 
                         is Video.Type.Episode -> {
+                            val provider = UserPreferences.currentProvider ?: return@setOnClickListener
                             (watchItem as? Episode)?.let { episode ->
                                 if (player.hasFinished()) {
                                     episode.isWatched = true
                                     episode.watchedDate = Calendar.getInstance()
                                     episode.watchHistory = null
                                     database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                                    UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, episode.id)
                                 }
 
                                 database.episodeDao().update(episode)
+                                if (!player.hasFinished()) {
+                                    (watchItem as? Episode)?.let { UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it) }
+                                }
 
                                 episode.tvShow?.let { tvShow ->
                                     database.tvShowDao().getById(tvShow.id)
@@ -1049,16 +1057,23 @@ class PlayerTvFragment : Fragment() {
 
                         when (videoType) {
                             is Video.Type.Movie -> {
+                                val provider = UserPreferences.currentProvider ?: return
                                 (watchItem as? Movie)?.let { database.movieDao().update(it) }
+                                (watchItem as? Movie)?.let { UserDataCache.addMovieToContinueWatching(requireContext(), provider, it) }
                             }
 
                             is Video.Type.Episode -> {
+                                val provider = UserPreferences.currentProvider ?: return
                                 (watchItem as? Episode)?.let { episode ->
                                     if (player.hasFinished()) {
                                         database.episodeDao()
                                             .resetProgressionFromEpisode(videoType.id)
+                                        UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, episode.id)
                                     }
                                     database.episodeDao().update(episode)
+                                    if (!player.hasFinished()) {
+                                        (watchItem as? Episode)?.let { UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it) }
+                                    }
 
                                     episode.tvShow?.let { tvShow ->
                                         database.tvShowDao().getById(tvShow.id)

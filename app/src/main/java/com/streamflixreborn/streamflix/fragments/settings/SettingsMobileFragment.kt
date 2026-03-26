@@ -134,7 +134,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                         movieDao = db.movieDao(),
                         tvShowDao = db.tvShowDao(),
                         episodeDao = db.episodeDao(),
-                        seasonDao = db.seasonDao()
+                        seasonDao = db.seasonDao(),
+                        provider = provider
                     )
                 } catch (e: Exception) {
                     Log.w("BackupRestore", "Skipping ${provider.name}: ${e.message}")

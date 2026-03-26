@@ -57,6 +57,7 @@ import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.ui.PlayerMobileView
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
@@ -715,53 +716,47 @@ class PlayerMobileFragment : Fragment() {
                 return
             }
 
-            button.setOnClickListener {
-                if (!hasEpisode()) return@setOnClickListener
+            button.setOnClickListener listener@{
+                if (!hasEpisode()) return@listener
 
                 val videoType = args.videoType
+
                 val watchItem: WatchItem? = when (videoType) {
                     is Video.Type.Movie -> database.movieDao().getById(videoType.id)
                     is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
                 }
 
-                watchItem?.apply {
-                    isWatched = false
-                    watchedDate = null
-                    watchHistory = WatchItem.WatchHistory(
-                        lastEngagementTimeUtcMillis = System.currentTimeMillis(),
-                        lastPlaybackPositionMillis = player.currentPosition,
-                        durationMillis = player.duration
-                    )
-                }
-
                 when (videoType) {
                     is Video.Type.Movie -> {
-                        watchItem?.let { database.movieDao().update(it as Movie) }
+                        val provider = UserPreferences.currentProvider ?: return@listener
+                        val movie = watchItem as? Movie
+                        movie?.let { database.movieDao().update(it) }
+                        movie?.let { UserDataCache.addMovieToContinueWatching(requireContext(), provider, it) }
                     }
 
                     is Video.Type.Episode -> {
-                        watchItem?.let { episode ->
+                        val provider = UserPreferences.currentProvider ?: return@listener
+                        val episode = watchItem as? Episode
+                        episode?.let {
                             if (player.hasFinished()) {
-                                episode.isWatched = true
-                                (episode as Episode).watchedDate = Calendar.getInstance()
-                                episode.watchHistory = null
                                 database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                                UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, it.id)
                             }
-                            database.episodeDao().update(episode as Episode)
+                            database.episodeDao().update(it)
 
-                            (episode as Episode).tvShow?.let { tvShow ->
+                            if (!player.hasFinished()) {
+                                UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it)
+                            }
+
+                            it.tvShow?.let { tvShow ->
                                 database.tvShowDao().getById(tvShow.id)
                             }?.let { tvShow ->
-                                
-                                val isWatchingValue = if (player.hasFinished()) {
-                                    database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
-                                } else {
-                                    true 
-                                }
+                                val episodeDao = database.episodeDao()
+                                val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
 
                                 database.tvShowDao().save(tvShow.copy().apply {
                                     merge(tvShow)
-                                    isWatching = isWatchingValue
+                                    isWatching = !player.hasReallyFinished() || isStillWatching
                                 })
                             }
                         }
@@ -975,17 +970,24 @@ class PlayerMobileFragment : Fragment() {
 
                     when (videoType) {
                         is Video.Type.Movie -> {
+                            val provider = UserPreferences.currentProvider ?: return
                             val movie = watchItem as? Movie
                             movie?.let { database.movieDao().update(it) }
+                            movie?.let { UserDataCache.addMovieToContinueWatching(requireContext(), provider, it) }
                         }
 
                         is Video.Type.Episode -> {
+                            val provider = UserPreferences.currentProvider ?: return
                             val episode = watchItem as? Episode
                             episode?.let {
                                 if (player.hasFinished()) {
                                     database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                                    UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, it.id)
                                 }
                                 database.episodeDao().update(it)
+                                if (!player.hasFinished()) {
+                                    episode?.let { UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it) }
+                                }
 
                                 it.tvShow?.let { tvShow ->
                                     database.tvShowDao().getById(tvShow.id)
