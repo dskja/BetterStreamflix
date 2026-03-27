@@ -229,6 +229,11 @@
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Help</string>
     <string name="settings_telegram">Telegram group</string>
+    <string name="settings_refresh_cache_title">Refresh cache from database</string>
+    <string name="settings_refresh_cache_summary">Reload watch history and app data from database</string>
+    <string name="settings_refresh_cache_confirm">Refresh cache?</string>
+    <string name="settings_refresh_cache_message">This will reload your watch history and app data from the database.</string>
+    <string name="settings_refresh_cache_success">Cache refreshed successfully</string>
     <string name="settings_category_streamingcommunity">StreamingCommunity settings</string>
     <string name="settings_category_streamingcommunity_domain">StreamingCommunity domain name</string>
     <string name="settings_streamingcommunity_domain_reset">Reset domain</string>

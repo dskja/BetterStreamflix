@@ -60,6 +60,7 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.QrUtils
 import com.streamflixreborn.streamflix.utils.ThemeManager
+import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.WebSocketBypassTestHelper
 import kotlinx.coroutines.launch
@@ -744,6 +745,25 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 }
                 true
             }
+        }
+
+        findPreference<Preference>("refresh_cache")?.setOnPreferenceClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.settings_refresh_cache_confirm)
+                .setMessage(R.string.settings_refresh_cache_message)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        UserDataCache.clearAll(requireContext())
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_refresh_cache_success,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            true
         }
     }
 

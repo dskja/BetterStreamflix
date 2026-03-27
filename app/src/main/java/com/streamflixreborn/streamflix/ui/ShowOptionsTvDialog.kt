@@ -141,7 +141,7 @@ class ShowOptionsTvDialog(
             setOnClickListener {
                 checkProviderAndRun(episode) {
                     val currentProvider = UserPreferences.currentProvider ?: return@checkProviderAndRun
-                    AppDatabase.getInstance(context).episodeDao().save(episode.copy().apply {
+                    val updatedEpisode = episode.copy().apply {
                         merge(episode)
                         isWatched = !isWatched
                         if (isWatched) {
@@ -150,7 +150,9 @@ class ShowOptionsTvDialog(
                         } else {
                             watchedDate = null
                         }
-                    })
+                    }
+                    AppDatabase.getInstance(context).episodeDao().save(updatedEpisode)
+                    UserDataCache.syncEpisodeToCache(context, currentProvider, updatedEpisode)
 
                     // NUOVA LOGICA: Aggiorna lo stato isWatching della serie TV madre
                     episode.tvShow?.let { tvShow ->
@@ -159,7 +161,7 @@ class ShowOptionsTvDialog(
 
                         // Se l'episodio è stato marcato come VISTO E non ci sono altri
                         // episodi con cronologia, impostiamo isWatching a false.
-                        if (episode.isWatched && !isStillWatching) {
+                        if (updatedEpisode.isWatched && !isStillWatching) {
                             AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
                                 merge(tvShow)
                                 isWatching = false
@@ -167,7 +169,7 @@ class ShowOptionsTvDialog(
                             UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                         }
                     }
-                    if (episode.isWatched) {
+                    if (updatedEpisode.isWatched) {
                         UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                     }
                 }
@@ -190,22 +192,24 @@ class ShowOptionsTvDialog(
                     val allEpisodes = episodeDao.getEpisodesByTvShowIdAndSeason(tvShowId, episode.season?.id).filter { it.number <= episodeNumber }
                     val targetState = !episode.isWatched // If current is watched, we unwatch; else, we mark watched
                     val now = Calendar.getInstance()
+                    val currentProvider = UserPreferences.currentProvider ?: return@checkProviderAndRun
 
                     for (ep in allEpisodes) {
                         if (ep.isWatched != targetState) {
-                            episodeDao.save(ep.copy().apply {
+                            val updatedEp = ep.copy().apply {
                                 merge(ep)
                                 isWatched = targetState
                                 watchedDate = if (targetState) now else null
                                 watchHistory = if (targetState) null else watchHistory
-                            })
+                            }
+                            episodeDao.save(updatedEp)
+                            UserDataCache.syncEpisodeToCache(context, currentProvider, updatedEp)
                         }
                     }
 
                     // Logica aggiuntiva per isWatching:
                     // Se l'obiettivo era marcare come VISTO, e non ci sono cronologie, si imposta isWatching a false.
-                    val currentProvider = UserPreferences.currentProvider
-                    if (targetState && currentProvider != null) {
+                    if (targetState) {
                         episode.tvShow?.let { tvShow ->
                             if (!episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)) {
                                 AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
@@ -241,11 +245,14 @@ class ShowOptionsTvDialog(
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
                 checkProviderAndRun(episode) {
-                    AppDatabase.getInstance(context).episodeDao().save(episode.copy().apply {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+                    val updatedEpisode = episode.copy().apply {
                         merge(episode)
                         watchHistory = null
-                    })
-                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+                    }
+                    AppDatabase.getInstance(context).episodeDao().save(updatedEpisode)
+                    UserDataCache.syncEpisodeToCache(context, provider, updatedEpisode)
+                    
                     episode.tvShow?.let { tvShow ->
                         // Rimuoviamo isWatching solo se NON ci sono altri episodi in corso
                         val episodeDao = AppDatabase.getInstance(context).episodeDao()
@@ -320,7 +327,7 @@ class ShowOptionsTvDialog(
             setOnClickListener {
                 checkProviderAndRun(freshMovie) {
                     val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
-                    AppDatabase.getInstance(context).movieDao().save(freshMovie.copy().apply {
+                    val updatedMovie = freshMovie.copy().apply {
                         merge(freshMovie)
                         isWatched = !isWatched
                         if (isWatched) {
@@ -329,8 +336,11 @@ class ShowOptionsTvDialog(
                         } else {
                             watchedDate = null
                         }
-                    })
-                    if (freshMovie.isWatched) {
+                    }
+                    AppDatabase.getInstance(context).movieDao().save(updatedMovie)
+                    UserDataCache.syncMovieToCache(context, provider, updatedMovie)
+                    
+                    if (updatedMovie.isWatched) {
                         UserDataCache.removeMovieFromContinueWatching(context, provider, freshMovie.id)
                     }
                 }
@@ -349,10 +359,12 @@ class ShowOptionsTvDialog(
             setOnClickListener {
                 checkProviderAndRun(freshMovie) {
                     val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
-                    AppDatabase.getInstance(context).movieDao().save(freshMovie.copy().apply {
+                    val updatedMovie = freshMovie.copy().apply {
                         merge(freshMovie)
                         watchHistory = null
-                    })
+                    }
+                    AppDatabase.getInstance(context).movieDao().save(updatedMovie)
+                    UserDataCache.syncMovieToCache(context, provider, updatedMovie)
                     UserDataCache.removeMovieFromContinueWatching(context, provider, freshMovie.id)
                 }
 

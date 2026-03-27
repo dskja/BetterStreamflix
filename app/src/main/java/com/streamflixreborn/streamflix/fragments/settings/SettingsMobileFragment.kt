@@ -42,6 +42,7 @@ import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.ThemeManager
+import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -687,6 +688,25 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 .remove("preferred_smarttube_package")
                 .apply()
             Toast.makeText(requireContext(), R.string.settings_trailer_player_reset, Toast.LENGTH_SHORT).show()
+            true
+        }
+
+        findPreference<Preference>("refresh_cache")?.setOnPreferenceClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.settings_refresh_cache_confirm)
+                .setMessage(R.string.settings_refresh_cache_message)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        UserDataCache.clearAll(requireContext())
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_refresh_cache_success,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
             true
         }
     }

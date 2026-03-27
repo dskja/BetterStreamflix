@@ -2,10 +2,16 @@ package com.streamflixreborn.streamflix.models
 
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 
-@Entity("seasons")
+@Entity(
+    "seasons",
+    indices = [
+        Index(value = ["tvShow", "number"]),
+    ]
+)
 class Season(
     @PrimaryKey
     var id: String = "",

@@ -95,6 +95,8 @@ import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
 import com.streamflixreborn.streamflix.utils.QrUtils
+import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
+import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -1066,8 +1068,10 @@ class PlayerTvFragment : Fragment() {
                         when (videoType) {
                             is Video.Type.Movie -> {
                                 val provider = UserPreferences.currentProvider ?: return
-                                (watchItem as? Movie)?.let { database.movieDao().update(it) }
-                                (watchItem as? Movie)?.let { UserDataCache.addMovieToContinueWatching(requireContext(), provider, it) }
+                                (watchItem as? Movie)?.let {
+                                    database.movieDao().update(it)
+                                    UserDataCache.syncMovieToCache(requireContext(), provider, it)
+                                }
                             }
 
                             is Video.Type.Episode -> {
@@ -1080,7 +1084,7 @@ class PlayerTvFragment : Fragment() {
                                     }
                                     database.episodeDao().update(episode)
                                     if (!player.hasFinished()) {
-                                        (watchItem as? Episode)?.let { UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it) }
+                                        UserDataCache.syncEpisodeToCache(requireContext(), provider, episode)
                                     }
 
                                     episode.tvShow?.let { tvShow ->
@@ -1116,10 +1120,27 @@ class PlayerTvFragment : Fragment() {
 
             if (currentPosition == 0L) {
                 val videoType = args.videoType
+                val provider = UserPreferences.currentProvider
+                
                 val watchItem: WatchItem? = when (videoType) {
-                    is Video.Type.Movie -> database.movieDao().getById(videoType.id)
-                    is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
+                    is Video.Type.Movie -> {
+                        // Try cache first, then DB
+                        var movie = if (provider != null) {
+                            UserDataCache.read(requireContext(), provider)?.continueWatchingMovies
+                                ?.find { it.id == videoType.id }?.toMovie()
+                        } else null
+                        movie ?: database.movieDao().getById(videoType.id)
+                    }
+                    is Video.Type.Episode -> {
+                        // Try cache first, then DB
+                        var episode = if (provider != null) {
+                            UserDataCache.read(requireContext(), provider)?.continueWatchingEpisodes
+                                ?.find { it.id == videoType.id }?.toEpisode()
+                        } else null
+                        episode ?: database.episodeDao().getById(videoType.id)
+                    }
                 }
+                
                 val lastPlaybackPositionMillis = watchItem?.watchHistory
                     ?.let { it.lastPlaybackPositionMillis - 10.seconds.inWholeMilliseconds }
 
@@ -1426,6 +1447,11 @@ class PlayerTvFragment : Fragment() {
                     true,
                 )
             }
+
+        // Bind new player to UI view
+        binding.pvPlayer.player = player
+        binding.settings.player = player
+        binding.settings.subtitleView = binding.pvPlayer.subtitleView
 
         bypassDone = true
         waitingForBypass = false

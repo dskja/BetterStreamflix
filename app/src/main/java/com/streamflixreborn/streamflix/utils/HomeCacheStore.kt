@@ -10,6 +10,7 @@ import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.providers.Provider
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -118,8 +119,24 @@ object HomeCacheStore {
         val seasonNumber: Int? = null,
         val seasonTitle: String? = null,
         val seasonPoster: String? = null,
+        val lastPlaybackPositionMillis: Long? = null,
+        val durationMillis: Long? = null,
+        val lastEngagementTimeUtcMillis: Long? = null,
     ) {
         fun toItemOrNull(): AppAdapter.Item? {
+            val watchHistory =
+                if (
+                    lastPlaybackPositionMillis != null &&
+                    durationMillis != null &&
+                    durationMillis > 0 &&
+                    lastEngagementTimeUtcMillis != null
+                ) {
+                    WatchItem.WatchHistory(
+                        lastEngagementTimeUtcMillis = lastEngagementTimeUtcMillis,
+                        lastPlaybackPositionMillis = lastPlaybackPositionMillis,
+                        durationMillis = durationMillis,
+                    )
+                } else null
             return when (type) {
                 "movie" -> Movie(
                     id = id,
@@ -132,7 +149,9 @@ object HomeCacheStore {
                     rating = rating,
                     poster = poster,
                     banner = banner,
-                )
+                ).apply {
+                    this.watchHistory = watchHistory
+                }
 
                 "tv" -> TvShow(
                     id = id,
@@ -170,7 +189,9 @@ object HomeCacheStore {
                             poster = seasonPoster,
                         )
                     }
-                )
+                ).apply {
+                    this.watchHistory = watchHistory
+                }
 
                 else -> null
             }
@@ -191,6 +212,9 @@ object HomeCacheStore {
                         rating = item.rating,
                         poster = item.poster,
                         banner = item.banner,
+                        lastPlaybackPositionMillis = item.watchHistory?.lastPlaybackPositionMillis,
+                        durationMillis = item.watchHistory?.durationMillis,
+                        lastEngagementTimeUtcMillis = item.watchHistory?.lastEngagementTimeUtcMillis,
                     )
 
                     is TvShow -> CachedItem(
@@ -223,6 +247,9 @@ object HomeCacheStore {
                         seasonNumber = item.season?.number,
                         seasonTitle = item.season?.title,
                         seasonPoster = item.season?.poster,
+                        lastPlaybackPositionMillis = item.watchHistory?.lastPlaybackPositionMillis,
+                        durationMillis = item.watchHistory?.durationMillis,
+                        lastEngagementTimeUtcMillis = item.watchHistory?.lastEngagementTimeUtcMillis,
                     )
 
                     else -> null

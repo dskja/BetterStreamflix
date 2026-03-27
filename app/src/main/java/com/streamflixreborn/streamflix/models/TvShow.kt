@@ -2,12 +2,18 @@ package com.streamflixreborn.streamflix.models
 
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.toCalendar
 
-@Entity("tv_shows")
+@Entity(
+    "tv_shows",
+    indices = [
+        Index(value = ["isWatching"]),
+    ]
+)
 class TvShow(
     @PrimaryKey
     var id: String = "",

@@ -24,7 +24,7 @@ import com.streamflixreborn.streamflix.utils.UserPreferences
         Season::class,
         TvShow::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -101,6 +101,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_2_3)
                 .addMigrations(MIGRATION_3_4)
                 .addMigrations(MIGRATION_4_5)
+                .addMigrations(MIGRATION_5_6)
                 .build()
         }
 
@@ -152,6 +153,17 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_4_5: Migration = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE episodes ADD COLUMN overview TEXT")
+            }
+        }
+
+        private val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Create indexes for query optimization
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_episodes_tvShow_isWatched` ON `episodes` (`tvShow`, `isWatched`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_episodes_tvShow_lastEngagementTimeUtcMillis` ON `episodes` (`tvShow`, `lastEngagementTimeUtcMillis`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_episodes_season_number` ON `episodes` (`season`, `number`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_seasons_tvShow_number` ON `seasons` (`tvShow`, `number`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tv_shows_isWatching` ON `tv_shows` (`isWatching`)")
             }
         }
     }

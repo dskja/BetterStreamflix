@@ -48,7 +48,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     val state: Flow<State> = combine(
         _state,
 
-        // CONTINUE WATCHING - from cache first, DB as fallback
+        // CONTINUE WATCHING - Cache-first (faster on slow DB devices), falls back to DB
         combine(
             _userDataCache.transformLatest { cache ->
                 if (cache != null && cache.continueWatchingMovies.isNotEmpty()) {

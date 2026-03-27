@@ -386,6 +386,13 @@
             app:iconSpaceReserved="false" />
 
         <Preference
+            android:icon="@drawable/ic_refresh"
+            android:key="refresh_cache"
+            android:title="@string/settings_refresh_cache_title"
+            android:summary="@string/settings_refresh_cache_summary"
+            app:iconSpaceReserved="false" />
+
+        <Preference
             android:icon="@drawable/ic_telegram"
             android:key="p_settings_telegram"
             android:title="@string/settings_telegram"
