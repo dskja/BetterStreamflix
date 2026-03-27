@@ -100,16 +100,12 @@ interface TvShowDao {
                 recommendations = if (tvShow.recommendations.isNotEmpty()) tvShow.recommendations else existing.recommendations,
                 isFavorite = favorite,
             )
-            updated.favoritedAtMillis = if (favorite) {
-                tvShow.favoritedAtMillis ?: existing.favoritedAtMillis ?: System.currentTimeMillis()
-            } else {
-                null
-            }
+            updated.favoritedAtMillis = if (favorite) System.currentTimeMillis() else null
             updated.isWatching = existing.isWatching
             update(updated)
         } else {
             tvShow.isFavorite = favorite
-            tvShow.favoritedAtMillis = if (favorite) tvShow.favoritedAtMillis ?: System.currentTimeMillis() else null
+            tvShow.favoritedAtMillis = if (favorite) System.currentTimeMillis() else null
             insert(tvShow)
         }
     }

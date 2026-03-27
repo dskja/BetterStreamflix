@@ -90,18 +90,14 @@ interface MovieDao {
                 recommendations = if (movie.recommendations.isNotEmpty()) movie.recommendations else existing.recommendations,
                 isFavorite = favorite,
             )
-            updated.favoritedAtMillis = if (favorite) {
-                movie.favoritedAtMillis ?: existing.favoritedAtMillis ?: System.currentTimeMillis()
-            } else {
-                null
-            }
+            updated.favoritedAtMillis = if (favorite) System.currentTimeMillis() else null
             updated.isWatched = existing.isWatched
             updated.watchedDate = existing.watchedDate
             updated.watchHistory = existing.watchHistory
             update(updated)
         } else {
             movie.isFavorite = favorite
-            movie.favoritedAtMillis = if (favorite) movie.favoritedAtMillis ?: System.currentTimeMillis() else null
+            movie.favoritedAtMillis = if (favorite) System.currentTimeMillis() else null
             insert(movie)
         }
     }
