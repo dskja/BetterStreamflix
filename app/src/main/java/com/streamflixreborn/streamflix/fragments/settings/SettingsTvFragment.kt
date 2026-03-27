@@ -793,12 +793,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<Preference>("key_backup_export_db_tv")?.setOnPreferenceClickListener {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val fileName = "streamflix_tv_db_backup_$timestamp.zip"
-            exportDbBackupLauncher.launch(fileName)
+            showDatabaseBackupExportOptions(fileName)
             true
         }
 
         findPreference<Preference>("key_backup_import_db_tv")?.setOnPreferenceClickListener {
-            importDbBackupLauncher.launch(arrayOf("application/zip"))
+            showDatabaseBackupImportOptions()
             true
         }
     }
@@ -913,6 +913,61 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             .show()
     }
 
+    private fun showDatabaseBackupExportOptions(fileName: String) {
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        if (hasCreateDocumentHandler("application/zip")) {
+            options += getString(R.string.backup_export_picker_option) to {
+                try {
+                    exportDbBackupLauncher.launch(fileName)
+                } catch (error: ActivityNotFoundException) {
+                    Log.w("BackupExportTV", "No document picker available for DB zip, using local fallback", error)
+                    Toast.makeText(requireContext(), getString(R.string.backup_picker_unavailable), Toast.LENGTH_LONG).show()
+                    exportDatabaseBackupToLocalFile(fileName)
+                }
+            }
+        }
+        options += getString(R.string.backup_export_local_option) to {
+            exportDatabaseBackupToLocalFile(fileName)
+        }
+        if (canWriteToDownloads()) {
+            options += getString(R.string.backup_export_downloads_option) to {
+                exportDatabaseBackupToDownloads(fileName)
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_db_export_option)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which ->
+                options[which].second.invoke()
+            }
+            .show()
+    }
+
+    private fun showDatabaseBackupImportOptions() {
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        if (hasOpenDocumentHandler("application/zip")) {
+            options += getString(R.string.backup_import_picker_option) to {
+                try {
+                    importDbBackupLauncher.launch(arrayOf("application/zip"))
+                } catch (error: ActivityNotFoundException) {
+                    Log.w("BackupImportTV", "No document picker available for DB zip, using local fallback", error)
+                    Toast.makeText(requireContext(), getString(R.string.backup_picker_unavailable), Toast.LENGTH_LONG).show()
+                    showLocalDatabaseBackupPicker()
+                }
+            }
+        }
+        options += getString(R.string.backup_import_local_option) to {
+            showLocalDatabaseBackupPicker()
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_db_import_option)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which ->
+                options[which].second.invoke()
+            }
+            .show()
+    }
+
     private fun exportBackupToLocalFile(fileName: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val jsonData = backupRestoreManager.exportUserData()
@@ -966,6 +1021,63 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }.onFailure { error ->
                 Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
                 Log.e("BackupExportTV", "Error writing backup to downloads", error)
+            }
+        }
+    }
+
+    private fun exportDatabaseBackupToLocalFile(fileName: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val zipData = backupRestoreManager.exportDatabaseZip()
+            if (zipData == null || zipData.isEmpty()) {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            runCatching {
+                val file = File(getBackupDirectory(), fileName).apply {
+                    parentFile?.mkdirs()
+                    writeBytes(zipData)
+                }
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.backup_export_saved_to, file.absolutePath),
+                    Toast.LENGTH_LONG
+                ).show()
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                Log.e("BackupExportTV", "Error writing local database backup file", error)
+            }
+        }
+    }
+
+    private fun exportDatabaseBackupToDownloads(fileName: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val zipData = backupRestoreManager.exportDatabaseZip()
+            if (zipData == null || zipData.isEmpty()) {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            runCatching {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/zip")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/StreamFlix")
+                }
+                val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: error("Unable to create download entry")
+                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(zipData)
+                } ?: error("Unable to open output stream")
+
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.backup_export_saved_to, "Downloads/StreamFlix/$fileName"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                Log.e("BackupExportTV", "Error writing database backup to downloads", error)
             }
         }
     }
@@ -1025,6 +1137,25 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             .show()
     }
 
+    private fun showLocalDatabaseBackupPicker() {
+        val backups = getBackupDirectory()
+            .listFiles { file -> file.isFile && file.extension.equals("zip", ignoreCase = true) }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+
+        if (backups.isEmpty()) {
+            Toast.makeText(requireContext(), getString(R.string.backup_import_no_local_files), Toast.LENGTH_LONG).show()
+            return
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.backup_db_import_option)
+            .setItems(backups.map(::buildBackupListLabel).toTypedArray()) { _, which ->
+                showLocalDatabaseBackupFileActions(backups[which])
+            }
+            .show()
+    }
+
     private fun showLocalBackupFileActions(file: File) {
         val options = arrayOf(
             getString(R.string.backup_import_action),
@@ -1036,6 +1167,24 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> importBackupFromFile(file)
+                    1 -> confirmDeleteLocalBackup(file)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showLocalDatabaseBackupFileActions(file: File) {
+        val options = arrayOf(
+            getString(R.string.backup_import_action),
+            getString(R.string.backup_delete_action),
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(file.name)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> importDatabaseBackupFromFile(file)
                     1 -> confirmDeleteLocalBackup(file)
                 }
             }
@@ -1090,6 +1239,27 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
     }
 
+    private fun importDatabaseBackupFromFile(file: File) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                val bytes = file.readBytes()
+                if (bytes.isEmpty()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val success = backupRestoreManager.importDatabaseZip(bytes)
+                Toast.makeText(
+                    requireContext(),
+                    if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
+                    Toast.LENGTH_LONG
+                ).show()
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                Log.e("BackupImportTV", "Error importing local database backup file", error)
+            }
+        }
+    }
+
     private fun getBackupDirectory(): File {
         return File(requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: requireContext().filesDir, "backups")
     }
@@ -1099,17 +1269,17 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         return "$timestamp  ${file.name}"
     }
 
-    private fun hasCreateDocumentHandler(): Boolean {
+    private fun hasCreateDocumentHandler(mimeType: String = "application/json"): Boolean {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType("application/json")
+            .setType(mimeType)
         return intent.resolveActivity(requireContext().packageManager) != null
     }
 
-    private fun hasOpenDocumentHandler(): Boolean {
+    private fun hasOpenDocumentHandler(mimeType: String = "application/json"): Boolean {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType("application/json")
+            .setType(mimeType)
         return intent.resolveActivity(requireContext().packageManager) != null
     }
 
