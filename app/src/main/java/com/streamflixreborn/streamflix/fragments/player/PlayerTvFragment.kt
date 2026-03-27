@@ -63,6 +63,8 @@ import com.streamflixreborn.streamflix.databinding.ContentExoControllerTvBinding
 import com.streamflixreborn.streamflix.databinding.FragmentPlayerTvBinding
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
+import com.streamflixreborn.streamflix.models.Season
+import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.ui.PlayerTvView
@@ -677,9 +679,7 @@ class PlayerTvFragment : Fragment() {
                 )
             }
 
-            binding.pvPlayer.controller.binding.tvExoTitle.text = args.title
-
-            binding.pvPlayer.controller.binding.tvExoSubtitle.text = args.subtitle
+            updatePlayerHeader()
 
             binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
                 Toast.makeText(
@@ -876,6 +876,7 @@ class PlayerTvFragment : Fragment() {
         private fun displayVideo(video: Video, server: Video.Server) {
             currentVideo = video
             currentServer = server
+            updatePlayerHeader()
             val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
             val softwareDecoder = PlayerSettingsView.Settings.SoftwareDecoder.isEnabled
             val needsReinit =
@@ -883,7 +884,7 @@ class PlayerTvFragment : Fragment() {
             if (needsReinit) {
                 initializePlayer(extraBuffering, softwareDecoder)
                 player.playlistMetadata = MediaMetadata.Builder()
-                    .setTitle(args.title)
+                    .setTitle(resolvePlayerTitle())
                     .setMediaServers(servers.map {
                         MediaServer(
                             id = it.id,
@@ -1085,6 +1086,7 @@ class PlayerTvFragment : Fragment() {
                                         database.episodeDao()
                                             .resetProgressionFromEpisode(videoType.id)
                                         UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, episode.id)
+                                        queueNextEpisodeForContinueWatching(provider)
                                     }
                                     database.episodeDao().update(episode)
                                     if (!player.hasFinished()) {
@@ -1169,6 +1171,74 @@ class PlayerTvFragment : Fragment() {
         private fun ExoPlayer.hasReallyFinished(): Boolean {
             return this.duration > 0 &&
                     this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
+        }
+
+        private fun currentVideoTypeForUi(): Video.Type = when (val type = args.videoType) {
+            is Video.Type.Episode -> EpisodeManager.getCurrentEpisode() ?: type
+            is Video.Type.Movie -> type
+        }
+
+        private fun resolvePlayerTitle(videoType: Video.Type = currentVideoTypeForUi()): String {
+            return when (videoType) {
+                is Video.Type.Movie -> videoType.title
+                is Video.Type.Episode -> videoType.tvShow.title.ifBlank { args.title }
+            }
+        }
+
+        private fun resolvePlayerSubtitle(videoType: Video.Type = currentVideoTypeForUi()): String {
+            return when (videoType) {
+                is Video.Type.Movie -> args.subtitle
+                is Video.Type.Episode -> {
+                    val episodeTitle = videoType.title?.takeUnless { it.isBlank() } ?: args.subtitle
+                    "S${videoType.season.number} E${videoType.number}  •  $episodeTitle"
+                }
+            }
+        }
+
+        private fun updatePlayerHeader(videoType: Video.Type = currentVideoTypeForUi()) {
+            binding.pvPlayer.controller.binding.tvExoTitle.text = resolvePlayerTitle(videoType)
+            binding.pvPlayer.controller.binding.tvExoSubtitle.text = resolvePlayerSubtitle(videoType)
+        }
+
+        private fun queueNextEpisodeForContinueWatching(provider: com.streamflixreborn.streamflix.providers.Provider) {
+            val nextEpisode = EpisodeManager.peekNextEpisode() ?: return
+            val episodeDao = database.episodeDao()
+            val persistedNextEpisode = episodeDao.getById(nextEpisode.id)?.apply {
+                isWatched = false
+                watchedDate = null
+                watchHistory = WatchItem.WatchHistory(
+                    lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                    lastPlaybackPositionMillis = 0L,
+                    durationMillis = 0L,
+                )
+            } ?: Episode(
+                id = nextEpisode.id,
+                number = nextEpisode.number,
+                title = nextEpisode.title,
+                poster = nextEpisode.poster,
+                overview = nextEpisode.overview,
+                tvShow = database.tvShowDao().getById(nextEpisode.tvShow.id) ?: TvShow(
+                    id = nextEpisode.tvShow.id,
+                    title = nextEpisode.tvShow.title,
+                    poster = nextEpisode.tvShow.poster,
+                    banner = nextEpisode.tvShow.banner,
+                ),
+                season = Season(
+                    number = nextEpisode.season.number,
+                    title = nextEpisode.season.title,
+                ),
+            ).apply {
+                isWatched = false
+                watchedDate = null
+                watchHistory = WatchItem.WatchHistory(
+                    lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                    lastPlaybackPositionMillis = 0L,
+                    durationMillis = 0L,
+                )
+            }
+
+            episodeDao.save(persistedNextEpisode)
+            UserDataCache.syncEpisodeToCache(requireContext(), provider, persistedNextEpisode)
         }
 
         private fun startProgressHandler() {

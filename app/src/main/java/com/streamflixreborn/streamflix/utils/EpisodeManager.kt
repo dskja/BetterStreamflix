@@ -58,6 +58,9 @@ object EpisodeManager {
     fun getCurrentEpisode(): Episode? =
         episodes.getOrNull(currentIndex)
 
+    fun peekNextEpisode(): Episode? =
+        episodes.getOrNull(currentIndex + 1)
+
     fun getNextEpisode(): Episode? {
         if (currentIndex + 1 < episodes.size) {
             currentIndex++
