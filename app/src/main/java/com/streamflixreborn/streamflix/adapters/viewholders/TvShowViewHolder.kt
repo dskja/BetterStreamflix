@@ -217,8 +217,12 @@ class TvShowViewHolder(
                 val animation = if (hasFocus) AnimationUtils.loadAnimation(context, R.anim.zoom_in) else AnimationUtils.loadAnimation(context, R.anim.zoom_out)
                 startAnimation(animation)
                 animation.fillAfter = true
-                if (hasFocus) {
-                    (context.toActivity()?.getCurrentFragment() as? HomeTvFragment)?.updateBackground(tvShow.banner)
+                (context.toActivity()?.getCurrentFragment() as? HomeTvFragment)?.let { fragment ->
+                    if (hasFocus) {
+                        fragment.pinBackground(tvShow.banner)
+                    } else {
+                        fragment.releasePinnedBackground()
+                    }
                 }
             }
         }

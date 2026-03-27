@@ -427,9 +427,13 @@ class EpisodeViewHolder(
                 binding.root.startAnimation(animation)
                 animation.fillAfter = true
 
-                if (hasFocus) {
-                    when (val fragment = context.toActivity()?.getCurrentFragment()) {
-                        is HomeTvFragment -> fragment.updateBackground(episode.tvShow?.banner)
+                when (val fragment = context.toActivity()?.getCurrentFragment()) {
+                    is HomeTvFragment -> {
+                        if (hasFocus) {
+                            fragment.pinBackground(episode.tvShow?.banner)
+                        } else {
+                            fragment.releasePinnedBackground()
+                        }
                     }
                 }
             }

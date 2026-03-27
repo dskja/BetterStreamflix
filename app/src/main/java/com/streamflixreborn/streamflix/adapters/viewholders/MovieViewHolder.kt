@@ -383,9 +383,13 @@ class MovieViewHolder(
                 binding.root.startAnimation(animation)
                 animation.fillAfter = true
 
-                if (hasFocus) {
-                    when (val fragment = context.toActivity()?.getCurrentFragment()) {
-                        is HomeTvFragment -> fragment.updateBackground(movie.banner)
+                when (val fragment = context.toActivity()?.getCurrentFragment()) {
+                    is HomeTvFragment -> {
+                        if (hasFocus) {
+                            fragment.pinBackground(movie.banner)
+                        } else {
+                            fragment.releasePinnedBackground()
+                        }
                     }
                 }
             }
