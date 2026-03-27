@@ -116,6 +116,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 is Settings.Quality.Auto -> {
                     player.trackSelectionParameters = player.trackSelectionParameters
                         .buildUpon()
+                        .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
                         .setMaxVideoBitrate(Int.MAX_VALUE)
                         .setForceHighestSupportedBitrate(false)
                         .build()
@@ -125,8 +126,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 is Settings.Quality.VideoTrackInformation -> {
                     player.trackSelectionParameters = player.trackSelectionParameters
                         .buildUpon()
-                        .setMaxVideoBitrate(quality.bitrate)
-                        .setForceHighestSupportedBitrate(true)
+                        .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                        .setOverrideForType(
+                            TrackSelectionOverride(
+                                quality.trackGroup.mediaTrackGroup,
+                                listOf(quality.trackIndex)
+                            )
+                        )
+                        .setForceHighestSupportedBitrate(false)
                         .build()
                     UserPreferences.qualityHeight = quality.height
                 }
@@ -533,19 +540,26 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                             .filter { it.type == C.TRACK_TYPE_VIDEO }
                             .flatMap { trackGroup ->
                                 trackGroup.trackFormats
-                                    .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .distinctBy { it.width to it.height }
-                                    .map { trackFormat ->
+                                    .mapIndexedNotNull { trackIndex, trackFormat ->
+                                        if (trackFormat.selectionFlags and C.SELECTION_FLAG_FORCED != 0) {
+                                            return@mapIndexedNotNull null
+                                        }
+                                        if (!trackGroup.isTrackSupported(trackIndex)) {
+                                            return@mapIndexedNotNull null
+                                        }
+
                                         VideoTrackInformation(
                                             name = DefaultTrackNameProvider(resources)
                                                 .getTrackName(trackFormat),
                                             width = trackFormat.width,
                                             height = trackFormat.height,
                                             bitrate = trackFormat.bitrate,
-
+                                            trackGroup = trackGroup,
+                                            trackIndex = trackIndex,
                                             player = player,
                                         )
                                     }
+                                    .distinctBy { it.width to it.height }
                             }
                             .sortedByDescending { it.height }
                     )
@@ -555,8 +569,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         ?.let {
                             player.trackSelectionParameters = player.trackSelectionParameters
                                 .buildUpon()
-                                .setMaxVideoBitrate(it.bitrate)
-                                .setForceHighestSupportedBitrate(true)
+                                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                                .setOverrideForType(
+                                    TrackSelectionOverride(
+                                        it.trackGroup.mediaTrackGroup,
+                                        listOf(it.trackIndex)
+                                    )
+                                )
+                                .setForceHighestSupportedBitrate(false)
                                 .build()
                         }
                 }
@@ -580,7 +600,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 val width: Int,
                 val height: Int,
                 val bitrate: Int,
-
+                val trackGroup: Tracks.Group,
+                val trackIndex: Int,
                 val player: ExoPlayer,
             ) : Quality() {
                 val isCurrentlyPlayed: Boolean
@@ -592,7 +613,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         return bitrateMatch || resolutionMatch
                     }
                 override val isSelected: Boolean
-                    get() = player.trackSelectionParameters.maxVideoBitrate == bitrate
+                    get() = trackGroup.isTrackSelected(trackIndex)
             }
         }
 

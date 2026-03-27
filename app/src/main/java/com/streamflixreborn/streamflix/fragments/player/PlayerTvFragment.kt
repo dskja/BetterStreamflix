@@ -670,6 +670,7 @@ class PlayerTvFragment : Fragment() {
                 )
             }
             binding.settings.setOnSoftwareDecoderSelectedListener { useSoftware ->
+                currentSoftwareDecoder = useSoftware
                 displayVideo(
                     currentVideo ?: return@setOnSoftwareDecoderSelectedListener,
                     currentServer ?: return@setOnSoftwareDecoderSelectedListener
@@ -876,9 +877,11 @@ class PlayerTvFragment : Fragment() {
             currentVideo = video
             currentServer = server
             val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
-            val needsReinit = extraBuffering != currentExtraBuffering
+            val softwareDecoder = PlayerSettingsView.Settings.SoftwareDecoder.isEnabled
+            val needsReinit =
+                extraBuffering != currentExtraBuffering || softwareDecoder != currentSoftwareDecoder
             if (needsReinit) {
-                initializePlayer(extraBuffering)
+                initializePlayer(extraBuffering, softwareDecoder)
                 player.playlistMetadata = MediaMetadata.Builder()
                     .setTitle(args.title)
                     .setMediaServers(servers.map {
@@ -1208,20 +1211,7 @@ class PlayerTvFragment : Fragment() {
         private var currentExtraBuffering = false
         private var currentSoftwareDecoder = false
 
-        private fun initializePlayer(extraBuffering: Boolean) {
-            if (::player.isInitialized) {
-                player.release()
-                mediaSession.release()
-            }
-            currentExtraBuffering = extraBuffering
-
-            val okHttpClient = OkHttpClient.Builder()
-                .dns(DnsResolver.doh)
-                .build()
-            httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-
-            dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-
+        private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
@@ -1231,17 +1221,40 @@ class PlayerTvFragment : Fragment() {
                 )
                 .build()
 
-            val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
-                setEnableDecoderFallback(true)
-                if (currentSoftwareDecoder) {
-                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            val baseBuilder = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1 && !currentSoftwareDecoder) {
+                ExoPlayer.Builder(requireContext())
+            } else {
+                val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+                    setEnableDecoderFallback(true)
+                    if (currentSoftwareDecoder) {
+                        setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                    }
                 }
+                ExoPlayer.Builder(requireContext(), renderersFactory)
             }
 
-            player = ExoPlayer.Builder(requireContext(), renderersFactory)
+            return baseBuilder
                 .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
                 .setLoadControl(loadControl)
-                .build().also { player ->
+                .build()
+        }
+
+        private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
+            if (::player.isInitialized) {
+                player.release()
+                mediaSession.release()
+            }
+            currentExtraBuffering = extraBuffering
+            currentSoftwareDecoder = softwareDecoder
+
+            val okHttpClient = OkHttpClient.Builder()
+                .dns(DnsResolver.doh)
+                .build()
+            httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+            dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+
+            player = buildPlayer(extraBuffering).also { player ->
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
@@ -1419,27 +1432,8 @@ class PlayerTvFragment : Fragment() {
         httpDataSource = OkHttpDataSource.Factory(okHttpClient)
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-        
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-            )
-            .build()
 
-        val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
-            setEnableDecoderFallback(true)
-            if (currentSoftwareDecoder) {
-                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-            }
-        }
-
-        player = ExoPlayer.Builder(requireContext(), renderersFactory)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .setLoadControl(loadControl)
-            .build().also { player ->
+        player = buildPlayer(extraBuffering).also { player ->
                 player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)

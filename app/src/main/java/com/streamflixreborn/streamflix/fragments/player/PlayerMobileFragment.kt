@@ -574,6 +574,7 @@ class PlayerMobileFragment : Fragment() {
             )
         }
         binding.settings.setOnSoftwareDecoderSelectedListener { useSoftware ->
+            currentSoftwareDecoder = useSoftware
             displayVideo(
                 currentVideo ?: return@setOnSoftwareDecoderSelectedListener,
                 currentServer ?: return@setOnSoftwareDecoderSelectedListener
@@ -825,9 +826,11 @@ class PlayerMobileFragment : Fragment() {
 
         val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
 
-        val needsReinit = extraBuffering != currentExtraBuffering
+        val softwareDecoder = PlayerSettingsView.Settings.SoftwareDecoder.isEnabled
+        val needsReinit =
+            extraBuffering != currentExtraBuffering || softwareDecoder != currentSoftwareDecoder
         if (needsReinit) {
-            initializePlayer(extraBuffering)
+            initializePlayer(extraBuffering, softwareDecoder)
             player.playlistMetadata = MediaMetadata.Builder()
                 .setTitle(args.title)
                 .setMediaServers(servers.map {
@@ -1133,18 +1136,7 @@ class PlayerMobileFragment : Fragment() {
     private var currentExtraBuffering = false
     private var currentSoftwareDecoder = false
 
-    private fun initializePlayer(extraBuffering: Boolean) {
-        if (::player.isInitialized) {
-            player.release()
-            mediaSession.release()
-        }
-        currentExtraBuffering = extraBuffering
-
-        val okHttpClient = NetworkClient.default
-        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
-
-        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
-
+    private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
@@ -1154,19 +1146,40 @@ class PlayerMobileFragment : Fragment() {
             )
             .build()
 
-        val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
-            setEnableDecoderFallback(true)
-            if (currentSoftwareDecoder) {
-                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+        val baseBuilder = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1 && !currentSoftwareDecoder) {
+            ExoPlayer.Builder(requireContext())
+        } else {
+            val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+                setEnableDecoderFallback(true)
+                if (currentSoftwareDecoder) {
+                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                }
             }
+            ExoPlayer.Builder(requireContext(), renderersFactory)
         }
 
-        player = ExoPlayer.Builder(requireContext(), renderersFactory)
+        return baseBuilder
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(10_000)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setLoadControl(loadControl)
-            .build().also { player ->
+            .build()
+    }
+
+    private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
+        if (::player.isInitialized) {
+            player.release()
+            mediaSession.release()
+        }
+        currentExtraBuffering = extraBuffering
+        currentSoftwareDecoder = softwareDecoder
+
+        val okHttpClient = NetworkClient.default
+        httpDataSource = OkHttpDataSource.Factory(okHttpClient)
+
+        dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
+
+        player = buildPlayer(extraBuffering).also { player ->
                 player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
