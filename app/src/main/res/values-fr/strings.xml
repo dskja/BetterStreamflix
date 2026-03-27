@@ -470,4 +470,17 @@
     <string name="theme_nord_frost">Nord Frost</string>
     <string name="theme_emerald_luxe">Emerald Luxe</string>
     <string name="theme_retro_neon">Retro Neon</string>
+    <string name="player_settings_software_decoder_title">Décodeur logiciel</string>
+    <string name="player_settings_software_decoder_label">Décodeur logiciel</string>
+    <string name="player_settings_software_decoder_on">Actif</string>
+    <string name="player_settings_software_decoder_off">Désactivé</string>
+    <string name="player_settings_software_decoder_forced_on">Actif (forcé)</string>
+    <string name="player_settings_software_decoder_forced_off">Désactivé (forcé)</string>
+    <string name="player_settings_software_decoder_auto_on">Actif (par défaut)</string>
+    <string name="player_settings_software_decoder_auto_off">Désactivé (par défaut)</string>
+    <string name="settings_refresh_cache_title">Actualiser le cache depuis la base de données</string>
+    <string name="settings_refresh_cache_summary">Recharger l\'historique de visionnage et les données de l\'application depuis la base de données</string>
+    <string name="settings_refresh_cache_confirm">Actualiser le cache ?</string>
+    <string name="settings_refresh_cache_message">Cela rechargera l\'historique de visionnage et les données de l\'application depuis la base de données.</string>
+    <string name="settings_refresh_cache_success">Cache actualisé avec succès</string>
 </resources>

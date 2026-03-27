@@ -463,4 +463,17 @@
     <string name="theme_nord_frost">صقيع الشمال</string>
     <string name="theme_emerald_luxe">زمرد فاخر</string>
     <string name="theme_retro_neon">نيون كلاسيكي</string>
+    <string name="player_settings_software_decoder_title">فك ترميز برمجي</string>
+    <string name="player_settings_software_decoder_label">فك ترميز برمجي</string>
+    <string name="player_settings_software_decoder_on">مفعّل</string>
+    <string name="player_settings_software_decoder_off">معطّل</string>
+    <string name="player_settings_software_decoder_forced_on">مفعّل (إجباري)</string>
+    <string name="player_settings_software_decoder_forced_off">معطّل (إجباري)</string>
+    <string name="player_settings_software_decoder_auto_on">مفعّل (افتراضي)</string>
+    <string name="player_settings_software_decoder_auto_off">معطّل (افتراضي)</string>
+    <string name="settings_refresh_cache_title">تحديث ذاكرة التخزين المؤقت من قاعدة البيانات</string>
+    <string name="settings_refresh_cache_summary">إعادة تحميل سجل المشاهدة وبيانات التطبيق من قاعدة البيانات</string>
+    <string name="settings_refresh_cache_confirm">تحديث ذاكرة التخزين المؤقت؟</string>
+    <string name="settings_refresh_cache_message">سيؤدي ذلك إلى إعادة تحميل سجل المشاهدة وبيانات التطبيق من قاعدة البيانات.</string>
+    <string name="settings_refresh_cache_success">تم تحديث ذاكرة التخزين المؤقت بنجاح</string>
 </resources>

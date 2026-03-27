@@ -508,6 +508,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.ExtraBuffering -> context.getString(item.stringId)
 
+                    is Settings.SoftwareDecoder -> context.getString(item.stringId)
+
                     is Settings.Gestures -> context.getString(item.stringId)
 
                     is Settings.KeepScreenOn -> context.getString(item.stringId)
@@ -691,6 +693,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                             Settings.Subtitle,
                             Settings.Speed,
                             Settings.ExtraBuffering,
+                            Settings.SoftwareDecoder,
                             Settings.Gestures,
                             Settings.KeepScreenOn,
                             Settings.Server -> View.VISIBLE

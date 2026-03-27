@@ -468,4 +468,17 @@
     <string name="theme_nord_frost">Nord Frost</string>
     <string name="theme_emerald_luxe">Emerald Luxe</string>
     <string name="theme_retro_neon">Retro Neon</string>
+    <string name="player_settings_software_decoder_title">Decodificatore software</string>
+    <string name="player_settings_software_decoder_label">Decodificatore software</string>
+    <string name="player_settings_software_decoder_on">Attivo</string>
+    <string name="player_settings_software_decoder_off">Disattivato</string>
+    <string name="player_settings_software_decoder_forced_on">Attivo (forzato)</string>
+    <string name="player_settings_software_decoder_forced_off">Disattivato (forzato)</string>
+    <string name="player_settings_software_decoder_auto_on">Attivo (predefinito)</string>
+    <string name="player_settings_software_decoder_auto_off">Disattivato (predefinito)</string>
+    <string name="settings_refresh_cache_title">Aggiorna cache dal database</string>
+    <string name="settings_refresh_cache_summary">Ricarica cronologia visione e dati dell\'app dal database</string>
+    <string name="settings_refresh_cache_confirm">Aggiornare la cache?</string>
+    <string name="settings_refresh_cache_message">Questo ricaricherà la cronologia visione e i dati dell\'app dal database.</string>
+    <string name="settings_refresh_cache_success">Cache aggiornata con successo</string>
 </resources>

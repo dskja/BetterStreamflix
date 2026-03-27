@@ -459,4 +459,17 @@
     <string name="theme_nord_frost">Nord Frost</string>
     <string name="theme_emerald_luxe">Emerald Luxe</string>
     <string name="theme_retro_neon">Retro Neon</string>
+    <string name="player_settings_software_decoder_title">Software-Dekodierer</string>
+    <string name="player_settings_software_decoder_label">Software-Dekodierer</string>
+    <string name="player_settings_software_decoder_on">Aktiv</string>
+    <string name="player_settings_software_decoder_off">Deaktiviert</string>
+    <string name="player_settings_software_decoder_forced_on">Aktiv (erzwungen)</string>
+    <string name="player_settings_software_decoder_forced_off">Deaktiviert (erzwungen)</string>
+    <string name="player_settings_software_decoder_auto_on">Aktiv (Standard)</string>
+    <string name="player_settings_software_decoder_auto_off">Deaktiviert (Standard)</string>
+    <string name="settings_refresh_cache_title">Cache aus der Datenbank aktualisieren</string>
+    <string name="settings_refresh_cache_summary">Wiedergabeverlauf und App-Daten aus der Datenbank neu laden</string>
+    <string name="settings_refresh_cache_confirm">Cache aktualisieren?</string>
+    <string name="settings_refresh_cache_message">Dadurch werden dein Wiedergabeverlauf und die App-Daten aus der Datenbank neu geladen.</string>
+    <string name="settings_refresh_cache_success">Cache erfolgreich aktualisiert</string>
 </resources>
