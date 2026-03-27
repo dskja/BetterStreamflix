@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.streamflixreborn.streamflix.adapters.AppAdapter
+import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
@@ -41,7 +42,7 @@ object UserDataCache {
 
     private fun cacheFile(context: Context, cacheKey: String): File {
         val safeName = cacheKey.replace(Regex("[^a-zA-Z0-9._-]+"), "_")
-        val file = File(context.cacheDir, "user-data-cache/$safeName.json")
+        val file = File(context.filesDir, "user-data-cache/$safeName.json")
         Log.d("CACHE_PATH", file.absolutePath)
         return file
     }
@@ -92,7 +93,7 @@ object UserDataCache {
 
     fun clearAll(context: Context) {
         memoryCache.clear()
-        val cacheDir = File(context.cacheDir, "user-data-cache")
+        val cacheDir = File(context.filesDir, "user-data-cache")
         if (cacheDir.exists()) {
             cacheDir.deleteRecursively()
         }
@@ -104,10 +105,17 @@ object UserDataCache {
 
     fun writeMovies(context: Context, provider: Provider, movies: List<Movie>) {
         val current = read(context, provider) ?: UserData()
+        val moviesById = movies.associateBy { it.id }
 
         val newData = current.copy(
-            favoritesMovies = movies.filter { it.isFavorite }.map { it.toCached() },
-            continueWatchingMovies = movies.filter { it.watchHistory != null }.map { it.toCached() }
+            favoritesMovies = current.favoritesMovies.mapNotNull { cached ->
+                moviesById[cached.id]?.takeIf { it.isFavorite }?.toCached()
+            } + movies.filter { it.isFavorite && current.favoritesMovies.none { cached -> cached.id == it.id } }
+                .map { it.toCached() },
+            continueWatchingMovies = current.continueWatchingMovies.mapNotNull { cached ->
+                moviesById[cached.id]?.takeIf { it.watchHistory != null }?.toCached()
+            } + movies.filter { it.watchHistory != null && current.continueWatchingMovies.none { cached -> cached.id == it.id } }
+                .map { it.toCached() }
         )
 
         write(context, provider, newData)
@@ -115,9 +123,13 @@ object UserDataCache {
 
     fun writeTvShows(context: Context, provider: Provider, tvShows: List<TvShow>) {
         val current = read(context, provider) ?: UserData()
+        val tvShowsById = tvShows.associateBy { it.id }
 
         val newData = current.copy(
-            favoritesTvShows = tvShows.filter { it.isFavorite }.map { it.toCached() }
+            favoritesTvShows = current.favoritesTvShows.mapNotNull { cached ->
+                tvShowsById[cached.id]?.takeIf { it.isFavorite }?.toCached()
+            } + tvShows.filter { it.isFavorite && current.favoritesTvShows.none { cached -> cached.id == it.id } }
+                .map { it.toCached() }
         )
 
         write(context, provider, newData)
@@ -125,9 +137,13 @@ object UserDataCache {
 
     fun writeEpisodes(context: Context, provider: Provider, episodes: List<Episode>) {
         val current = read(context, provider) ?: UserData()
+        val episodesById = episodes.associateBy { it.id }
 
         val newData = current.copy(
-            continueWatchingEpisodes = episodes.filter { it.watchHistory != null }.map { it.toCached() }
+            continueWatchingEpisodes = current.continueWatchingEpisodes.mapNotNull { cached ->
+                episodesById[cached.id]?.takeIf { it.watchHistory != null }?.toCached()
+            } + episodes.filter { it.watchHistory != null && current.continueWatchingEpisodes.none { cached -> cached.id == it.id } }
+                .map { it.toCached() }
         )
 
         write(context, provider, newData)
@@ -139,6 +155,16 @@ object UserDataCache {
 
     fun removeMovieFromContinueWatching(context: Context, provider: Provider, id: String) {
         val current = read(context, provider) ?: return
+
+        runCatching {
+            val db = AppDatabase.getInstance(context)
+            db.movieDao().getById(id)?.let { movie ->
+                movie.watchHistory = null
+                movie.isWatched = false
+                movie.watchedDate = null
+                db.movieDao().update(movie)
+            }
+        }
 
         write(context, provider, current.copy(
             continueWatchingMovies = current.continueWatchingMovies.filter { it.id != id }

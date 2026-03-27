@@ -62,7 +62,7 @@ object HomeCacheStore {
 
     private fun cacheFile(context: Context, cacheKey: String): File {
         val safeName = cacheKey.replace(Regex("[^a-zA-Z0-9._-]+"), "_")
-        return File(context.cacheDir, "home-cache/$safeName.json")
+        return File(context.filesDir, "home-cache/$safeName.json")
     }
 
     private fun cacheKey(provider: Provider): String {

@@ -16,6 +16,7 @@ import com.streamflixreborn.streamflix.utils.HomeCacheStore
 import com.streamflixreborn.streamflix.utils.ParentalControlUtils
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserDataCache
+import com.streamflixreborn.streamflix.utils.UserDataCache.toCached
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
 import com.streamflixreborn.streamflix.utils.UserDataCache.toTvShow
@@ -100,7 +101,23 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
             )
 
-            (watchingMovies + enrichedEpisodes) as List<AppAdapter.Item>
+            val orderIndex = buildMap<String, Int> {
+                _userDataCache.value?.continueWatchingMovies?.forEachIndexed { index, cached ->
+                    put("movie:${cached.id}", index)
+                }
+                _userDataCache.value?.continueWatchingEpisodes?.forEachIndexed { index, cached ->
+                    put("episode:${cached.id}", index)
+                }
+            }
+
+            (watchingMovies + enrichedEpisodes)
+                .sortedBy { item ->
+                    when (item) {
+                        is Movie -> orderIndex["movie:${item.id}"] ?: Int.MAX_VALUE
+                        is Episode -> orderIndex["episode:${item.id}"] ?: Int.MAX_VALUE
+                        else -> Int.MAX_VALUE
+                    }
+                } as List<AppAdapter.Item>
         }.flowOn(Dispatchers.IO),
 
         // FAVORITES - from cache first, DB as fallback
@@ -216,11 +233,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     // FAVORITES
                     Category(
                         name = Category.FAVORITE_MOVIES,
-                        list = favoritesMovies.reversed(),
+                        list = favoritesMovies,
                     ),
                     Category(
                         name = Category.FAVORITE_TV_SHOWS,
-                        list = favoriteTvShows.reversed(),
+                        list = favoriteTvShows,
                     ),
                 ) + state.categories
                     .filter { it.name != Category.FEATURED }
@@ -353,21 +370,32 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             val db = AppDatabase.getInstance(appContext)
+            val moviesDeferred = async { db.movieDao().getFavorites().first() }
+            val tvShowsDeferred = async { db.tvShowDao().getFavorites().first() }
+            val watchingMoviesDeferred = async { db.movieDao().getWatchingMovies().first() }
+            val watchingEpisodesDeferred = async { db.episodeDao().getWatchingEpisodes().first() }
 
-            val movies = db.movieDao().getFavorites().first()
-            val tvShows = db.tvShowDao().getFavorites().first()
-            val watchingMovies = db.movieDao().getWatchingMovies().first()
-            val watchingEpisodes = db.episodeDao().getWatchingEpisodes().first()
+            val movies = moviesDeferred.await()
+            val tvShows = tvShowsDeferred.await()
+            val watchingMovies = watchingMoviesDeferred.await()
+            val watchingEpisodes = watchingEpisodesDeferred.await()
 
-            UserDataCache.writeMovies(appContext, provider, movies + watchingMovies)
-            UserDataCache.writeTvShows(appContext, provider, tvShows)
-            UserDataCache.writeEpisodes(appContext, provider, watchingEpisodes)
+            val newData = UserDataCache.UserData(
+                favoritesMovies = movies.filter { it.isFavorite }.map { it.toCached() },
+                favoritesTvShows = tvShows.filter { it.isFavorite }.map { it.toCached() },
+                continueWatchingMovies = (movies + watchingMovies)
+                    .filter { it.watchHistory != null }
+                    .map { it.toCached() },
+                continueWatchingEpisodes = watchingEpisodes
+                    .filter { it.watchHistory != null }
+                    .map { it.toCached() },
+            )
 
-            val newData = UserDataCache.read(appContext, provider)
+            UserDataCache.write(appContext, provider, newData)
+
             if (_userDataCache.value != newData) {
                 _userDataCache.value = newData
             }
         }
     }
 }
-

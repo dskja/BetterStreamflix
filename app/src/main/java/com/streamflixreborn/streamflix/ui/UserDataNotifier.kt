@@ -11,8 +11,7 @@ object UserDataNotifier {
     )
 
     val updates = _updates
-        .debounce(300) // 🔥 key fix
-        .distinctUntilChanged()
+        .debounce(300)
 
     fun notifyChanged() {
         _updates.tryEmit(Unit)
