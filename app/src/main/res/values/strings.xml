@@ -319,6 +319,14 @@
     <string name="backup_export_summary">Save your data (favorites, watch history) to a file.</string>
     <string name="backup_import_title">Import user data</string>
     <string name="backup_import_summary">Restore your data from a backup file.</string>
+    <string name="backup_db_export_title">Export database backup</string>
+    <string name="backup_db_export_summary">Save a ZIP snapshot of the app databases.</string>
+    <string name="backup_db_import_title">Import database backup</string>
+    <string name="backup_db_import_summary">Restore the app databases from a ZIP snapshot.</string>
+    <string name="backup_db_export_option">Export database ZIP</string>
+    <string name="backup_db_import_option">Import database ZIP</string>
+    <string name="backup_db_export_success">Database ZIP exported successfully.</string>
+    <string name="backup_db_import_success">Database ZIP imported successfully.</string>
     
     <string name="backup_export_success">Backup exported successfully!</string>
     <string name="backup_export_error_write">Error while exporting the backup.</string>

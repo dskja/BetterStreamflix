@@ -730,6 +730,7 @@ class PlayerMobileFragment : Fragment() {
                 return
             }
 
+            button.isGone = false
             button.setOnClickListener listener@{
                 if (!hasEpisode()) return@listener
 

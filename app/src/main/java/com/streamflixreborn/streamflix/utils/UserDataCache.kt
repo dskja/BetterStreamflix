@@ -193,9 +193,13 @@ object UserDataCache {
 
     fun addMovieToFavorites(context: Context, provider: Provider, movie: Movie) {
         val current = read(context, provider) ?: UserData()
+        val favoritedMovie = movie.copy().apply {
+            isFavorite = true
+            favoritedAtMillis = favoritedAtMillis ?: System.currentTimeMillis()
+        }
 
         write(context, provider, current.copy(
-            favoritesMovies = (current.favoritesMovies + movie.toCached())
+            favoritesMovies = (current.favoritesMovies + favoritedMovie.toCached())
                 .distinctBy { it.id }
         ))
         UserDataNotifier.notifyChanged()
@@ -239,9 +243,13 @@ object UserDataCache {
 
     fun addTvShowToFavorites(context: Context, provider: Provider, tvShow: TvShow) {
         val current = read(context, provider) ?: UserData()
+        val favoritedTvShow = tvShow.copy().apply {
+            isFavorite = true
+            favoritedAtMillis = favoritedAtMillis ?: System.currentTimeMillis()
+        }
 
         write(context, provider, current.copy(
-            favoritesTvShows = (current.favoritesTvShows + tvShow.toCached())
+            favoritesTvShows = (current.favoritesTvShows + favoritedTvShow.toCached())
                 .distinctBy { it.id }
         ))
         UserDataNotifier.notifyChanged()
@@ -262,7 +270,11 @@ object UserDataCache {
         }
         
         val updatedFavorites = if (movie.isFavorite) {
-            (current.favoritesMovies.filter { it.id != movie.id } + movie.toCached())
+            (current.favoritesMovies.filter { it.id != movie.id } + movie.toCached().copy(
+                favoritedAtMillis = movie.favoritedAtMillis
+                    ?: current.favoritesMovies.firstOrNull { it.id == movie.id }?.favoritedAtMillis
+                    ?: System.currentTimeMillis()
+            ))
                 .distinctBy { it.id }
         } else {
             current.favoritesMovies.filter { it.id != movie.id }
@@ -291,6 +303,26 @@ object UserDataCache {
         UserDataNotifier.notifyChanged()
     }
 
+    fun syncTvShowToCache(context: Context, provider: Provider, tvShow: TvShow) {
+        val current = read(context, provider) ?: UserData()
+
+        val updatedFavorites = if (tvShow.isFavorite) {
+            (current.favoritesTvShows.filter { it.id != tvShow.id } + tvShow.toCached().copy(
+                favoritedAtMillis = tvShow.favoritedAtMillis
+                    ?: current.favoritesTvShows.firstOrNull { it.id == tvShow.id }?.favoritedAtMillis
+                    ?: System.currentTimeMillis()
+            ))
+                .distinctBy { it.id }
+        } else {
+            current.favoritesTvShows.filter { it.id != tvShow.id }
+        }
+
+        write(context, provider, current.copy(
+            favoritesTvShows = updatedFavorites
+        ))
+        UserDataNotifier.notifyChanged()
+    }
+
 
 
 
@@ -308,6 +340,7 @@ object UserDataCache {
         val banner: String? = null,
         val isFavorite: Boolean = false,
         val isWatched: Boolean = false,
+        val favoritedAtMillis: Long? = null,
         val lastEngagementTimeUtcMillis: Long? = null,
         val lastPlaybackPositionMillis: Long? = null,
         val durationMillis: Long? = null,
@@ -325,6 +358,7 @@ object UserDataCache {
         val poster: String? = null,
         val banner: String? = null,
         val isFavorite: Boolean = false,
+        val favoritedAtMillis: Long? = null,
     )
 
     data class CachedEpisode(
@@ -362,6 +396,7 @@ object UserDataCache {
         banner = banner,
     ).apply {
         isFavorite = this@toMovie.isFavorite
+        favoritedAtMillis = this@toMovie.favoritedAtMillis
         isWatched = this@toMovie.isWatched
         if (this@toMovie.lastEngagementTimeUtcMillis != null) {
             watchHistory = WatchItem.WatchHistory(
@@ -385,6 +420,7 @@ object UserDataCache {
         banner = banner,
     ).apply {
         isFavorite = this@toTvShow.isFavorite
+        favoritedAtMillis = this@toTvShow.favoritedAtMillis
     }
 
     fun CachedEpisode.toEpisode() = Episode(
@@ -433,6 +469,7 @@ object UserDataCache {
         banner = banner,
         isFavorite = isFavorite,
         isWatched = isWatched,
+        favoritedAtMillis = favoritedAtMillis,
         lastEngagementTimeUtcMillis = watchHistory?.lastEngagementTimeUtcMillis,
         lastPlaybackPositionMillis = watchHistory?.lastPlaybackPositionMillis,
         durationMillis = watchHistory?.durationMillis
@@ -448,7 +485,8 @@ object UserDataCache {
         rating = rating,
         poster = poster,
         banner = banner,
-        isFavorite = isFavorite
+        isFavorite = isFavorite,
+        favoritedAtMillis = favoritedAtMillis,
     )
     fun Episode.toCached() = UserDataCache.CachedEpisode(
         id = id,

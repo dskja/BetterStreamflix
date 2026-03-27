@@ -270,6 +270,14 @@
     <string name="backup_export_summary">Sichern Sie Ihre Daten (Favoriten, Verlauf) in einer Datei.</string>
     <string name="backup_import_title">Benutzerdaten importieren</string>
     <string name="backup_import_summary">Wiederherstellung aus einer Backup-Datei.</string>
+    <string name="backup_db_export_title">Datenbank-Backup exportieren</string>
+    <string name="backup_db_export_summary">Speichert einen ZIP-Schnappschuss der App-Datenbanken.</string>
+    <string name="backup_db_import_title">Datenbank-Backup importieren</string>
+    <string name="backup_db_import_summary">Stellt die App-Datenbanken aus einem ZIP-Schnappschuss wieder her.</string>
+    <string name="backup_db_export_option">Datenbank-ZIP exportieren</string>
+    <string name="backup_db_import_option">Datenbank-ZIP importieren</string>
+    <string name="backup_db_export_success">Datenbank-ZIP erfolgreich exportiert.</string>
+    <string name="backup_db_import_success">Datenbank-ZIP erfolgreich importiert.</string>
     <string name="backup_export_success">Sicherung erfolgreich exportiert!</string>
     <string name="backup_export_error_write">Fehler beim Exportieren der Sicherung.</string>
     <string name="backup_export_picker_option">Speicherort auswählen</string>

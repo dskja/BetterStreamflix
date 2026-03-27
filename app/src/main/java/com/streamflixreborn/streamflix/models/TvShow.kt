@@ -46,6 +46,7 @@ class TvShow(
 ) : Show, AppAdapter.Item {
 
     var released = released?.toCalendar()
+    var favoritedAtMillis: Long? = null
 
     var isWatching: Boolean = true
 
@@ -66,6 +67,7 @@ class TvShow(
 
     fun isSame(tvShow: TvShow): Boolean {
         if (isFavorite != tvShow.isFavorite) return false
+        if (favoritedAtMillis != tvShow.favoritedAtMillis) return false
         if (isWatching != tvShow.isWatching) return false
         return true
     }
@@ -143,6 +145,7 @@ class TvShow(
         if (recommendations != other.recommendations) return false
         if (released != other.released) return false
         if (isFavorite != other.isFavorite) return false
+        if (favoritedAtMillis != other.favoritedAtMillis) return false
         if (isWatching != other.isWatching) return false
         if (isFavorite != other.isFavorite) return false
         if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
@@ -167,6 +170,7 @@ class TvShow(
         result = 31 * result + recommendations.hashCode()
         result = 31 * result + (released?.hashCode() ?: 0)
         result = 31 * result + isFavorite.hashCode()
+        result = 31 * result + (favoritedAtMillis?.hashCode() ?: 0)
         result = 31 * result + isWatching.hashCode()
         result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
         return result

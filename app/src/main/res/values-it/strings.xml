@@ -282,6 +282,14 @@
     <string name="backup_export_summary">Salva i tuoi dati (preferiti, cronologia visione) in un file.</string>
     <string name="backup_import_title">Importa dati utente</string>
     <string name="backup_import_summary">Ripristina i tuoi dati da un file di backup.</string>
+    <string name="backup_db_export_title">Esporta backup database</string>
+    <string name="backup_db_export_summary">Salva uno snapshot ZIP dei database dell'app.</string>
+    <string name="backup_db_import_title">Importa backup database</string>
+    <string name="backup_db_import_summary">Ripristina i database dell'app da uno snapshot ZIP.</string>
+    <string name="backup_db_export_option">Esporta ZIP database</string>
+    <string name="backup_db_import_option">Importa ZIP database</string>
+    <string name="backup_db_export_success">Backup ZIP del database esportato con successo.</string>
+    <string name="backup_db_import_success">Backup ZIP del database importato con successo.</string>
 
     <string name="backup_export_success">Backup esportato con successo!</string>
     <string name="backup_export_error_write">Errore durante l\'esportazione del backup.</string>

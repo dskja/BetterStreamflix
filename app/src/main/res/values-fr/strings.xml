@@ -284,6 +284,14 @@
     <string name="backup_export_summary">Enregistrez vos données (favoris, historique) dans un fichier.</string>
     <string name="backup_import_title">Importer les données utilisateur</string>
     <string name="backup_import_summary">Restaurez vos données depuis un fichier de sauvegarde.</string>
+    <string name="backup_db_export_title">Exporter la sauvegarde de la base de données</string>
+    <string name="backup_db_export_summary">Enregistrez un instantané ZIP des bases de données de l'application.</string>
+    <string name="backup_db_import_title">Importer la sauvegarde de la base de données</string>
+    <string name="backup_db_import_summary">Restaurez les bases de données de l'application depuis un instantané ZIP.</string>
+    <string name="backup_db_export_option">Exporter le ZIP de la base de données</string>
+    <string name="backup_db_import_option">Importer le ZIP de la base de données</string>
+    <string name="backup_db_export_success">La sauvegarde ZIP de la base de données a été exportée avec succès.</string>
+    <string name="backup_db_import_success">La sauvegarde ZIP de la base de données a été importée avec succès.</string>
 
     <string name="backup_export_success">Sauvegarde exportée avec succès !</string>
     <string name="backup_export_error_write">Erreur lors de l\'exportation.</string>

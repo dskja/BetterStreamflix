@@ -76,6 +76,26 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
     }
 
+    private val exportDbBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri: Uri? ->
+        uri?.let {
+            viewLifecycleOwner.lifecycleScope.launch {
+                performDatabaseBackupExport(it)
+            }
+        }
+    }
+
+    private val importDbBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewLifecycleOwner.lifecycleScope.launch {
+                performDatabaseBackupImport(it)
+            }
+        }
+    }
+
     private val importBackupLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -691,22 +711,38 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<Preference>("refresh_cache")?.setOnPreferenceClickListener {
+        findPreference<Preference>("key_backup_refresh_cache_mobile")?.setOnPreferenceClickListener {
             AlertDialog.Builder(requireContext())
                 .setTitle(R.string.settings_refresh_cache_confirm)
                 .setMessage(R.string.settings_refresh_cache_message)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     viewLifecycleOwner.lifecycleScope.launch {
-                        UserDataCache.clearAll(requireContext())
+                        val refreshed = backupRestoreManager.refreshCachesFromDatabase()
                         Toast.makeText(
                             requireContext(),
-                            R.string.settings_refresh_cache_success,
+                            if (refreshed) {
+                                R.string.settings_refresh_cache_success
+                            } else {
+                                R.string.settings_refresh_cache_success
+                            },
                             Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
+            true
+        }
+
+        findPreference<Preference>("key_backup_export_db_mobile")?.setOnPreferenceClickListener {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "streamflix_mobile_db_backup_$timestamp.zip"
+            exportDbBackupLauncher.launch(fileName)
+            true
+        }
+
+        findPreference<Preference>("key_backup_import_db_mobile")?.setOnPreferenceClickListener {
+            importDbBackupLauncher.launch(arrayOf("application/zip"))
             true
         }
     }
@@ -1186,6 +1222,42 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         } catch (e: Exception) {
             Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
             Log.e("BackupImportMobile", "Error reading/processing backup file", e)
+        }
+    }
+
+    private suspend fun performDatabaseBackupExport(uri: Uri) {
+        val zipData = backupRestoreManager.exportDatabaseZip()
+        if (zipData != null) {
+            try {
+                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(zipData)
+                    Toast.makeText(requireContext(), getString(R.string.backup_db_export_success), Toast.LENGTH_LONG).show()
+                }
+            } catch (e: IOException) {
+                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                Log.e("BackupExportMobile", "Error writing database backup file", e)
+            }
+        } else {
+            Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private suspend fun performDatabaseBackupImport(uri: Uri) {
+        try {
+            val zipBytes = requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            if (zipBytes == null || zipBytes.isEmpty()) {
+                Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                return
+            }
+            val success = backupRestoreManager.importDatabaseZip(zipBytes)
+            Toast.makeText(
+                requireContext(),
+                if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+            Log.e("BackupImportMobile", "Error reading/processing database backup file", e)
         }
     }
 

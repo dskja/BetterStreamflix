@@ -27,7 +27,7 @@ interface TvShowDao {
     @Query("SELECT * FROM tv_shows WHERE id IN (:ids)")
     fun getByIds(ids: List<String>): Flow<List<TvShow>>
 
-    @Query("SELECT * FROM tv_shows WHERE isFavorite = 1")
+    @Query("SELECT * FROM tv_shows WHERE isFavorite = 1 ORDER BY favoritedAtMillis DESC")
     fun getFavorites(): Flow<List<TvShow>>
 
     @Query("SELECT * FROM tv_shows WHERE isFavorite = 1 OR poster IS NULL OR poster = '' OR banner IS NULL OR banner = ''")
@@ -74,7 +74,7 @@ interface TvShowDao {
     @Transaction
     fun setFavoriteWithLog(id: String, favorite: Boolean) {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
-        setFavorite(id, favorite)
+        setFavorite(id, favorite, if (favorite) System.currentTimeMillis() else null)
         Log.d("DatabaseVerify", "[$provider] REAL-TIME Favorite Toggled: ID $id -> $favorite")
     }
 
@@ -100,13 +100,20 @@ interface TvShowDao {
                 recommendations = if (tvShow.recommendations.isNotEmpty()) tvShow.recommendations else existing.recommendations,
                 isFavorite = favorite,
             )
+            updated.favoritedAtMillis = if (favorite) {
+                tvShow.favoritedAtMillis ?: existing.favoritedAtMillis ?: System.currentTimeMillis()
+            } else {
+                null
+            }
             updated.isWatching = existing.isWatching
             update(updated)
         } else {
-            insert(tvShow.copy(isFavorite = favorite))
+            tvShow.isFavorite = favorite
+            tvShow.favoritedAtMillis = if (favorite) tvShow.favoritedAtMillis ?: System.currentTimeMillis() else null
+            insert(tvShow)
         }
     }
 
-    @Query("UPDATE tv_shows SET isFavorite = :favorite WHERE id = :id")
-    fun setFavorite(id: String, favorite: Boolean)
+    @Query("UPDATE tv_shows SET isFavorite = :favorite, favoritedAtMillis = :favoritedAtMillis WHERE id = :id")
+    fun setFavorite(id: String, favorite: Boolean, favoritedAtMillis: Long?)
 }

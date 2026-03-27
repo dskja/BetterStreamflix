@@ -766,6 +766,7 @@ class PlayerTvFragment : Fragment() {
                     return
                 }
 
+                button.visibility = View.VISIBLE
                 button.setOnClickListener {
                     if (!hasEpisode()) return@setOnClickListener
 

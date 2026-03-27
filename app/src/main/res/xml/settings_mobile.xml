@@ -371,6 +371,24 @@
                 android:title="@string/backup_import_title"
                 android:summary="@string/backup_import_summary"
                 app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="key_backup_refresh_cache_mobile"
+                android:title="@string/settings_refresh_cache_title"
+                android:summary="@string/settings_refresh_cache_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="key_backup_export_db_mobile"
+                android:title="@string/backup_db_export_title"
+                android:summary="@string/backup_db_export_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="key_backup_import_db_mobile"
+                android:title="@string/backup_db_import_title"
+                android:summary="@string/backup_db_import_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
 
@@ -383,13 +401,6 @@
             android:title="@string/settings_update_check"
             android:summary="@string/settings_update_check_summary"
             android:defaultValue="true"
-            app:iconSpaceReserved="false" />
-
-        <Preference
-            android:icon="@drawable/ic_refresh"
-            android:key="refresh_cache"
-            android:title="@string/settings_refresh_cache_title"
-            android:summary="@string/settings_refresh_cache_summary"
             app:iconSpaceReserved="false" />
 
         <Preference

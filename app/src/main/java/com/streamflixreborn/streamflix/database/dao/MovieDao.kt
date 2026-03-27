@@ -27,7 +27,7 @@ interface MovieDao {
     @Query("SELECT * FROM movies WHERE id IN (:ids)")
     fun getByIds(ids: List<String>): Flow<List<Movie>>
 
-    @Query("SELECT * FROM movies WHERE isFavorite = 1")
+    @Query("SELECT * FROM movies WHERE isFavorite = 1 ORDER BY favoritedAtMillis DESC")
     fun getFavorites(): Flow<List<Movie>>
 
     @Query("SELECT * FROM movies WHERE isFavorite = 1 OR poster IS NULL OR poster = '' OR banner IS NULL OR banner = ''")
@@ -65,7 +65,7 @@ interface MovieDao {
     @Transaction
     fun setFavoriteWithLog(id: String, favorite: Boolean) {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
-        setFavorite(id, favorite)
+        setFavorite(id, favorite, if (favorite) System.currentTimeMillis() else null)
         Log.d("DatabaseVerify", "[$provider] REAL-TIME Favorite Toggled: ID $id -> $favorite")
     }
 
@@ -90,16 +90,23 @@ interface MovieDao {
                 recommendations = if (movie.recommendations.isNotEmpty()) movie.recommendations else existing.recommendations,
                 isFavorite = favorite,
             )
+            updated.favoritedAtMillis = if (favorite) {
+                movie.favoritedAtMillis ?: existing.favoritedAtMillis ?: System.currentTimeMillis()
+            } else {
+                null
+            }
             updated.isWatched = existing.isWatched
             updated.watchedDate = existing.watchedDate
             updated.watchHistory = existing.watchHistory
             update(updated)
         } else {
-            insert(movie.copy(isFavorite = favorite))
+            movie.isFavorite = favorite
+            movie.favoritedAtMillis = if (favorite) movie.favoritedAtMillis ?: System.currentTimeMillis() else null
+            insert(movie)
         }
     }
 
-    @Query("UPDATE movies SET isFavorite = :favorite WHERE id = :id")
-    fun setFavorite(id: String, favorite: Boolean)
+    @Query("UPDATE movies SET isFavorite = :favorite, favoritedAtMillis = :favoritedAtMillis WHERE id = :id")
+    fun setFavorite(id: String, favorite: Boolean, favoritedAtMillis: Long?)
 
 }

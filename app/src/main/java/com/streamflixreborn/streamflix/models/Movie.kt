@@ -41,6 +41,7 @@ class Movie(
 ) : Show, WatchItem, AppAdapter.Item {
 
     var released = released?.toCalendar()
+    var favoritedAtMillis: Long? = null
 
     override var isWatched: Boolean = false
     override var watchedDate: Calendar? = null
@@ -51,6 +52,7 @@ class Movie(
 
     fun isSame(movie: Movie): Boolean {
         if (isFavorite != movie.isFavorite) return false
+        if (favoritedAtMillis != movie.favoritedAtMillis) return false
         if (isWatched != movie.isWatched) return false
         if (watchedDate != movie.watchedDate) return false
         if (watchHistory != movie.watchHistory) return false
@@ -130,6 +132,7 @@ class Movie(
         if (isFavorite != other.isFavorite) return false
         if (released != other.released) return false
         if (isFavorite != other.isFavorite) return false
+        if (favoritedAtMillis != other.favoritedAtMillis) return false
         if (isWatched != other.isWatched) return false
         if (watchedDate != other.watchedDate) return false
         if (watchHistory != other.watchHistory) return false
@@ -154,6 +157,7 @@ class Movie(
         result = 31 * result + recommendations.hashCode()
         result = 31 * result + (released?.hashCode() ?: 0)
         result = 31 * result + isFavorite.hashCode()
+        result = 31 * result + (favoritedAtMillis?.hashCode() ?: 0)
         result = 31 * result + isWatched.hashCode()
         result = 31 * result + (watchedDate?.hashCode() ?: 0)
         result = 31 * result + (watchHistory?.hashCode() ?: 0)

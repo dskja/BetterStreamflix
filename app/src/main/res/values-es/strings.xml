@@ -268,6 +268,14 @@
     <string name="backup_export_summary">Guarda tus datos (favoritos, historial de visualización) en un archivo.</string>
     <string name="backup_import_title">Importar datos de usuario</string>
     <string name="backup_import_summary">Restaura tus datos desde un archivo de copia de seguridad.</string>
+    <string name="backup_db_export_title">Exportar copia de seguridad de la base de datos</string>
+    <string name="backup_db_export_summary">Guarda una instantánea ZIP de las bases de datos de la app.</string>
+    <string name="backup_db_import_title">Importar copia de seguridad de la base de datos</string>
+    <string name="backup_db_import_summary">Restaura las bases de datos de la app desde una instantánea ZIP.</string>
+    <string name="backup_db_export_option">Exportar ZIP de la base de datos</string>
+    <string name="backup_db_import_option">Importar ZIP de la base de datos</string>
+    <string name="backup_db_export_success">La copia ZIP de la base de datos se exportó correctamente.</string>
+    <string name="backup_db_import_success">La copia ZIP de la base de datos se importó correctamente.</string>
     <string name="backup_export_success">¡Copia de seguridad exportada correctamente!</string>
     <string name="backup_export_error_write">Error al exportar la copia de seguridad.</string>
     <string name="backup_export_picker_option">Elegir ubicación de guardado</string>

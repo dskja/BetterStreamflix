@@ -386,7 +386,7 @@ class ShowOptionsMobileDialog(
 
                         dao.upsertFavorite(resolvedTvShow, newValue)
                         if (newValue) {
-                            UserDataCache.addTvShowToFavorites(
+                            UserDataCache.syncTvShowToCache(
                                 context,
                                 provider,
                                 resolvedTvShow.copy().apply { isFavorite = true })

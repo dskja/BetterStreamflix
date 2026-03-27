@@ -177,6 +177,14 @@
 	<string name="backup_export_summary">احفظ بياناتك (المفضلة، سجل المشاهدة) in a file.</string>
 	<string name="backup_import_title">استيراد بيانات المستخدم</string>
 	<string name="backup_import_summary">استعد بياناتك من ملف النسخ الاحتياطي.</string>
+	<string name="backup_db_export_title">تصدير نسخة احتياطية لقاعدة البيانات</string>
+	<string name="backup_db_export_summary">احفظ لقطة ZIP لقواعد بيانات التطبيق.</string>
+	<string name="backup_db_import_title">استيراد نسخة احتياطية لقاعدة البيانات</string>
+	<string name="backup_db_import_summary">استعد قواعد بيانات التطبيق من لقطة ZIP.</string>
+	<string name="backup_db_export_option">تصدير ZIP لقاعدة البيانات</string>
+	<string name="backup_db_import_option">استيراد ZIP لقاعدة البيانات</string>
+	<string name="backup_db_export_success">تم تصدير ZIP لقاعدة البيانات بنجاح.</string>
+	<string name="backup_db_import_success">تم استيراد ZIP لقاعدة البيانات بنجاح.</string>
 
 	<string name="backup_export_success">تم تصدير النسخة الاحتياطية بنجاح!</string>
 	<string name="backup_export_error_write">حدث خطأ أثناء تصدير النسخة الاحتياطية.</string>

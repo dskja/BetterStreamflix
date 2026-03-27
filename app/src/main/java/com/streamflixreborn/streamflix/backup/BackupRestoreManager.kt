@@ -3,6 +3,7 @@ package com.streamflixreborn.streamflix.backup
 import android.content.Context
 import android.util.Log
 import androidx.room.Transaction
+import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.database.dao.EpisodeDao
 import com.streamflixreborn.streamflix.database.dao.MovieDao
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
@@ -17,7 +18,15 @@ import com.streamflixreborn.streamflix.utils.UserDataCache
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
 import java.util.Calendar
+import java.util.Locale
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 data class ProviderBackupContext(
     val name: String,
@@ -33,6 +42,42 @@ class BackupRestoreManager(
     private val providers: List<ProviderBackupContext>
 ) {
     private val TAG = "BackupVerify"
+
+    suspend fun refreshCachesFromDatabase(): Boolean {
+        return try {
+            providers.forEach { buildCacheForProvider(it) }
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error refreshing caches from database", t)
+            false
+        }
+    }
+
+    fun exportDatabaseZip(): ByteArray? {
+        return try {
+            val output = ByteArrayOutputStream()
+            ZipOutputStream(output).use { zip ->
+                providers.forEach { providerCtx ->
+                    addDatabaseFilesToZip(zip, providerCtx.name)
+                }
+            }
+            output.toByteArray()
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error exporting database zip", t)
+            null
+        }
+    }
+
+    suspend fun importDatabaseZip(zipBytes: ByteArray): Boolean {
+        return try {
+            AppDatabase.resetInstance()
+            restoreDatabaseZip(ByteArrayInputStream(zipBytes))
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error importing database zip", t)
+            false
+        }
+    }
 
     fun exportUserData(): String? {
         return try {
@@ -67,6 +112,7 @@ class BackupRestoreManager(
                         put("poster", movie.poster)
                         put("banner", movie.banner)
                         put("isFavorite", movie.isFavorite)
+                        put("favoritedAtMillis", movie.favoritedAtMillis ?: JSONObject.NULL)
                         put("isWatched", movie.isWatched)
                         put("watchedDate", movie.watchedDate?.timeInMillis ?: JSONObject.NULL)
                         put("watchHistory", movie.watchHistory?.toJson() ?: JSONObject.NULL)
@@ -85,6 +131,7 @@ class BackupRestoreManager(
                         put("poster", show.poster)
                         put("banner", show.banner)
                         put("isFavorite", show.isFavorite)
+                        put("favoritedAtMillis", show.favoritedAtMillis ?: JSONObject.NULL)
                         put("isWatching", show.isWatching)
                     }
                     tvShowsArray.put(obj)
@@ -183,6 +230,7 @@ class BackupRestoreManager(
                     for (j in 0 until arr.length()) {
                         val s = arr.optJSONObject(j) ?: continue
                         val isFavorite = s.optBoolean("isFavorite", false)
+                        val favoritedAtMillis = s.optLongOrNull("favoritedAtMillis")
                         val isWatching = s.optBoolean("isWatching", false) // Corretto il default a false
 
                         val tvShow = TvShow(
@@ -192,6 +240,7 @@ class BackupRestoreManager(
                             poster = s.optStringOrNull("poster")
                             banner = s.optStringOrNull("banner")
                             this.isFavorite = isFavorite
+                            this.favoritedAtMillis = favoritedAtMillis
                             this.isWatching = isWatching
                         }
                         providerCtx.tvShowDao.save(tvShow)
@@ -204,6 +253,7 @@ class BackupRestoreManager(
                     for (j in 0 until arr.length()) {
                         val m = arr.optJSONObject(j) ?: continue
                         val isFavorite = m.optBoolean("isFavorite", false)
+                        val favoritedAtMillis = m.optLongOrNull("favoritedAtMillis")
                         val isWatched = m.optBoolean("isWatched", false)
                         val watchedDate = m.optLongOrNull("watchedDate")?.toCalendar()
                         val watchHistory = m.optJSONObject("watchHistory")?.toWatchHistory()
@@ -215,6 +265,7 @@ class BackupRestoreManager(
                             poster = m.optStringOrNull("poster")
                             banner = m.optStringOrNull("banner")
                             this.isFavorite = isFavorite
+                            this.favoritedAtMillis = favoritedAtMillis
                             this.isWatched = isWatched
                             this.watchedDate = watchedDate
                             this.watchHistory = watchHistory
@@ -272,6 +323,43 @@ class BackupRestoreManager(
         } catch (e: Exception) {
             Log.e(TAG, "Error building cache for provider ${providerCtx.name}", e)
         }
+    }
+
+    private fun addDatabaseFilesToZip(zip: ZipOutputStream, providerName: String) {
+        val dbName = sanitizedDbName(providerName)
+        listOf("", "-wal", "-shm").forEach { suffix ->
+            val file = context.getDatabasePath("$dbName.db$suffix")
+            if (!file.exists()) return@forEach
+            zip.putNextEntry(ZipEntry("databases/${file.name}"))
+            file.inputStream().use { input -> input.copyTo(zip) }
+            zip.closeEntry()
+        }
+    }
+
+    private fun restoreDatabaseZip(input: InputStream) {
+        ZipInputStream(input).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory && entry.name.startsWith("databases/")) {
+                    val fileName = entry.name.removePrefix("databases/")
+                    val target = context.getDatabasePath(fileName)
+                    target.parentFile?.mkdirs()
+                    if (target.exists()) target.delete()
+                    target.outputStream().use { output ->
+                        zip.copyTo(output)
+                    }
+                }
+                zip.closeEntry()
+                entry = zip.nextEntry
+            }
+        }
+    }
+
+    private fun sanitizedDbName(providerName: String): String {
+        return providerName.lowercase(Locale.getDefault())
+            .replace("[^a-z0-9]".toRegex(), "_")
+            .replace("__+".toRegex(), "_")
+            .trim('_')
     }
 
 

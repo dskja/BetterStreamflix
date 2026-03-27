@@ -111,11 +111,15 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
 
             (watchingMovies + enrichedEpisodes)
-                .sortedBy { item ->
+                .sortedByDescending { item ->
                     when (item) {
-                        is Movie -> orderIndex["movie:${item.id}"] ?: Int.MAX_VALUE
-                        is Episode -> orderIndex["episode:${item.id}"] ?: Int.MAX_VALUE
-                        else -> Int.MAX_VALUE
+                        is Movie -> item.watchHistory?.lastEngagementTimeUtcMillis
+                            ?: item.watchedDate?.timeInMillis
+                            ?: 0L
+                        is Episode -> item.watchHistory?.lastEngagementTimeUtcMillis
+                            ?: item.watchedDate?.timeInMillis
+                            ?: 0L
+                        else -> 0L
                     }
                 } as List<AppAdapter.Item>
         }.flowOn(Dispatchers.IO),
@@ -233,11 +237,21 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     // FAVORITES
                     Category(
                         name = Category.FAVORITE_MOVIES,
-                        list = favoritesMovies,
+                        list = favoritesMovies.sortedByDescending {
+                            when (it) {
+                                is Movie -> it.favoritedAtMillis ?: 0L
+                                else -> 0L
+                            }
+                        },
                     ),
                     Category(
                         name = Category.FAVORITE_TV_SHOWS,
-                        list = favoriteTvShows,
+                        list = favoriteTvShows.sortedByDescending {
+                            when (it) {
+                                is TvShow -> it.favoritedAtMillis ?: 0L
+                                else -> 0L
+                            }
+                        },
                     ),
                 ) + state.categories
                     .filter { it.name != Category.FEATURED }
