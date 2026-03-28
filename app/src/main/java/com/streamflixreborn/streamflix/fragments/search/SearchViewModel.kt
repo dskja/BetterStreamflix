@@ -117,7 +117,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
             val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
             this@SearchViewModel.query = query
             page = 1
-            _state.emit(State.SuccessSearching(results, true))
+            _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
         } catch (e: Exception) {
             Log.e("SearchViewModel", "search: ", e)
             _state.emit(State.FailedSearching(e))
@@ -132,11 +132,16 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                 val results = ParentalControlUtils.filterItems(
                     UserPreferences.currentProvider!!.search(query, page + 1)
                 )
+                val existingKeys = currentState.results
+                    .asSequence()
+                    .map { it.searchIdentityKey() }
+                    .toHashSet()
+                val newUniqueResults = results.filterNot { it.searchIdentityKey() in existingKeys }
                 page += 1
                 _state.emit(
                     State.SuccessSearching(
-                        results = currentState.results + results,
-                        hasMore = results.isNotEmpty(),
+                        results = currentState.results + newUniqueResults,
+                        hasMore = newUniqueResults.isNotEmpty(),
                     )
                 )
             } catch (e: Exception) {
@@ -196,4 +201,10 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
             }
         }
     }
+}
+
+private fun AppAdapter.Item.searchIdentityKey(): String = when (this) {
+    is Movie -> "movie:$id"
+    is TvShow -> "tvshow:$id"
+    else -> "${this::class.java.name}:${hashCode()}"
 }
