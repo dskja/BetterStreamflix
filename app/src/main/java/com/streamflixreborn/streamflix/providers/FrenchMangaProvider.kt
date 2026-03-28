@@ -15,9 +15,11 @@ import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import okhttp3.ResponseBody
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.HttpException
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Field
@@ -25,7 +27,6 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
-import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Url
 import kotlin.math.round
@@ -481,6 +482,8 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                             .selectFirst("li.submenu:has(a:contains(ANIMES)) a")
                             ?.attr("href")
                         if (newUrl.isNullOrEmpty()) throw Exception()
+                        val finalUrl = addressService.followPage(newUrl)
+                        newUrl = finalUrl.raw().request.url.toString()
                         newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
                         UserPreferences.setProviderCache(this,UserPreferences.PROVIDER_URL, newUrl)
                         UserPreferences.setProviderCache(
@@ -539,6 +542,11 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Url url: String
         ): Document
 
+        @GET
+        suspend fun followPage(
+            @Url url: String
+        ): Response<ResponseBody>
+
         @GET(".")
         suspend fun getHome(
             @Header("cookie") cookie: String = "dle_skin=MGM"
@@ -568,26 +576,11 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Header("cookie") dle_skin: String = "dle_skin=MGV1"
         ): Document
 
-        @GET("{id}.html")
-        suspend fun getTvShow(@Path("id") id: String): Document
-
         @GET("engine/ajax/manga_episodes_api.php")
         suspend fun getEpisodesData(
             @Query("id") id: String,
             @Header("Cookie") cookie: String = "dle_skin=MGV1",
             @Header("X-Requested-With") requestedWith: String = "XMLHttpRequest"
         ): EpisodesData
-
-
-        @POST(".")
-        @FormUrlEncoded
-        suspend fun getPeople(
-            @Field("do") doAction: String = "search",
-            @Field("subaction") subAction: String = "search",
-            @Field("story") query: String,
-            @Field("search_start") searchStart: Int = -1,
-            @Field("result_from") resultFrom: Int = -1,
-            @Field("full_search") fullSearch: Int = 0
-        ): Document
     }
 }
