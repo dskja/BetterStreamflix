@@ -24,7 +24,7 @@
         app:show_previous_button="false"
         app:show_subtitle_button="true"
         app:show_timeout="2000"
-        app:surface_type="texture_view" />
+        app:surface_type="surface_view" />
 
     <com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsTvView
         android:id="@+id/settings"

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -359,7 +360,30 @@ class MovieViewHolder(
             setOnClickListener {
                 checkProviderAndRun {
                     when (context.toActivity()?.getCurrentFragment()) {
-                        is HomeTvFragment -> findNavController().navigate(HomeTvFragmentDirections.actionHomeToMovie(id = movie.id))
+                        is HomeTvFragment -> {
+                            if (movie.itemType == AppAdapter.Type.MOVIE_CONTINUE_WATCHING_TV_ITEM) {
+                                findNavController().navigate(
+                                    R.id.action_global_player,
+                                    Bundle().apply {
+                                        putString("id", movie.id)
+                                        putString("title", movie.title)
+                                        putString("subtitle", movie.released?.format("yyyy") ?: "")
+                                        putSerializable(
+                                            "videoType",
+                                            Video.Type.Movie(
+                                                id = movie.id,
+                                                title = movie.title,
+                                                releaseDate = movie.released?.format("yyyy-MM-dd") ?: "",
+                                                poster = movie.poster ?: movie.banner ?: "",
+                                                imdbId = movie.imdbId,
+                                            )
+                                        )
+                                    }
+                                )
+                            } else {
+                                findNavController().navigate(HomeTvFragmentDirections.actionHomeToMovie(id = movie.id))
+                            }
+                        }
                         is MoviesTvFragment -> findNavController().navigate(MoviesTvFragmentDirections.actionMoviesToMovie(id = movie.id))
                         is GenreTvFragment -> findNavController().navigate(GenreTvFragmentDirections.actionGenreToMovie(id = movie.id))
                         is SearchTvFragment -> findNavController().navigate(SearchTvFragmentDirections.actionSearchToMovie(id = movie.id))

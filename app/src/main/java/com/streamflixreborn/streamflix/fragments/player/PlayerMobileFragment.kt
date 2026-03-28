@@ -457,10 +457,9 @@ class PlayerMobileFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
-                    player.release()
-                    mediaSession.release()
+                viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
+                    releasePlayer()
                     isSetupDone = false
                     val action = PlayerMobileFragmentDirections
                         .actionPlayerMobileFragmentSelf(
@@ -499,7 +498,9 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        player.pause()
+        if (::player.isInitialized) {
+            player.pause()
+        }
     }
 
     override fun onDestroyView() {
@@ -516,8 +517,7 @@ class PlayerMobileFragment : Fragment() {
             show(WindowInsetsCompat.Type.systemBars())
         }
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        player.release()
-        mediaSession.release()
+        releasePlayer()
         try {
             requireContext().unregisterReceiver(chooserReceiver)
         } catch (ignored: Exception) {}
@@ -1237,10 +1237,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
-        if (::player.isInitialized) {
-            player.release()
-            mediaSession.release()
-        }
+        releasePlayer()
         currentExtraBuffering = extraBuffering
         currentSoftwareDecoder = softwareDecoder
 
@@ -1274,6 +1271,19 @@ class PlayerMobileFragment : Fragment() {
         binding.settings.subtitleView = binding.pvPlayer.subtitleView
         binding.settings.onSubtitlesClicked = {
             viewModel.getSubtitles(args.videoType)
+        }
+    }
+
+    private fun releasePlayer() {
+        stopProgressHandler()
+        binding.pvPlayer.player = null
+        binding.settings.player = null
+        binding.settings.subtitleView = null
+        if (::player.isInitialized) {
+            player.release()
+        }
+        if (::mediaSession.isInitialized) {
+            mediaSession.release()
         }
     }
 

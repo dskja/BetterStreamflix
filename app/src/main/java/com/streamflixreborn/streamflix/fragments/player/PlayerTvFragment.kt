@@ -525,8 +525,7 @@ class PlayerTvFragment : Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     viewModel.playPreviousOrNextEpisode.collect { nextEpisode ->
-                        player.release()
-                        mediaSession.release()
+                        releasePlayer()
                         isSetupDone = false
 
                         val args = Bundle().apply {
@@ -574,9 +573,7 @@ class PlayerTvFragment : Fragment() {
         override fun onDestroyView() {
             super.onDestroyView()
             clearBypassSession(dismissDialog = true)
-            if (::player.isInitialized) player.release()
-            if (::mediaSession.isInitialized) mediaSession.release()
-            stopProgressHandler()
+            releasePlayer()
             try {
                 requireContext().unregisterReceiver(chooserReceiver)
             } catch (ignored: Exception) {
@@ -611,29 +608,8 @@ class PlayerTvFragment : Fragment() {
             val playerResize = UserPreferences.playerResize
 
             binding.pvPlayer.resizeMode = playerResize.resizeMode
-
-            when (playerResize) {
-                UserPreferences.PlayerResize.Stretch43 -> {
-                    val scale = 1.33f
-                    videoSurfaceView?.scaleX = scale
-                    videoSurfaceView?.scaleY = 1f
-                }
-
-                UserPreferences.PlayerResize.StretchVertical -> {
-                    videoSurfaceView?.scaleX = 1f
-                    videoSurfaceView?.scaleY = 1.25f
-                }
-
-                UserPreferences.PlayerResize.SuperZoom -> {
-                    videoSurfaceView?.scaleX = 1.5f
-                    videoSurfaceView?.scaleY = 1.5f
-                }
-
-                else -> {
-                    videoSurfaceView?.scaleX = 1f
-                    videoSurfaceView?.scaleY = 1f
-                }
-            }
+            videoSurfaceView?.scaleX = 1f
+            videoSurfaceView?.scaleY = 1f
         }
 
         private fun initializeVideo() {
@@ -1310,10 +1286,7 @@ class PlayerTvFragment : Fragment() {
         }
 
         private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
-            if (::player.isInitialized) {
-                player.release()
-                mediaSession.release()
-            }
+            releasePlayer()
             currentExtraBuffering = extraBuffering
             currentSoftwareDecoder = softwareDecoder
 
@@ -1350,6 +1323,19 @@ class PlayerTvFragment : Fragment() {
             binding.settings.subtitleView = binding.pvPlayer.subtitleView
             binding.settings.onSubtitlesClicked = {
                 viewModel.getSubtitles(args.videoType)
+            }
+        }
+
+        private fun releasePlayer() {
+            stopProgressHandler()
+            binding.pvPlayer.player = null
+            binding.settings.player = null
+            binding.settings.subtitleView = null
+            if (::player.isInitialized) {
+                player.release()
+            }
+            if (::mediaSession.isInitialized) {
+                mediaSession.release()
             }
         }
 
