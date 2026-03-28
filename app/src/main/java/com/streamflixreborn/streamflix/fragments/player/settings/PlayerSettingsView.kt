@@ -613,7 +613,10 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         return bitrateMatch || resolutionMatch
                     }
                 override val isSelected: Boolean
-                    get() = trackGroup.isTrackSelected(trackIndex)
+                    get() = player.trackSelectionParameters.overrides.values.any { override ->
+                        override.mediaTrackGroup == trackGroup.mediaTrackGroup &&
+                            override.trackIndices.contains(trackIndex)
+                    }
             }
         }
 
