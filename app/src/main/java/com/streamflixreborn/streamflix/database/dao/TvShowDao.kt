@@ -62,7 +62,7 @@ interface TvShowDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         val existing = getById(tvShow.id)
         if (existing != null) {
-            val merged = existing.merge(tvShow)
+            val merged = tvShow.merge(existing)
             update(merged)
             Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE TV Show: ${merged.title} (Fav: ${merged.isFavorite}, Watching: ${merged.isWatching})")
         } else {

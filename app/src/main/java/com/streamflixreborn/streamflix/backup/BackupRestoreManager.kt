@@ -314,23 +314,7 @@ class BackupRestoreManager(
             val movies = providerCtx.movieDao.getFavorites().first()
             val tvShows = providerCtx.tvShowDao.getFavorites().first()
             val watchingMovies = providerCtx.movieDao.getWatchingMovies().first()
-            val watchingEpisodes = providerCtx.episodeDao.getWatchingEpisodes().first().map { episode ->
-                val hydratedTvShow = episode.tvShow?.id
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { providerCtx.tvShowDao.getById(it) }
-                    ?: episode.tvShow
-                val hydratedSeason = episode.season?.id
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { providerCtx.seasonDao.getById(it) }
-                    ?: episode.season
-
-                episode.copy(
-                    tvShow = hydratedTvShow,
-                    season = hydratedSeason,
-                ).apply {
-                    merge(episode)
-                }
-            }
+            val watchingEpisodes = providerCtx.episodeDao.getWatchingEpisodes().first()
 
             UserDataCache.writeMovies(context, providerCtx.provider, movies + watchingMovies)
             UserDataCache.writeTvShows(context, providerCtx.provider, tvShows)

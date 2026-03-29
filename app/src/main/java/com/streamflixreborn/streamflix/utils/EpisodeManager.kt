@@ -118,9 +118,6 @@ object EpisodeManager {
             val tvShowId = ep.tvShow?.id ?: ""
             val seasonFromDb = database.seasonDao().getById(seasonId)
             val tvShowFromDb = database.tvShowDao().getById(tvShowId)
-            val tvShowTitle = tvShowFromDb?.title?.takeUnless { it.isBlank() }
-                ?: ep.tvShow?.title
-                ?: ""
             Episode(
                 id = ep.id,
                 number = ep.number,
@@ -129,7 +126,7 @@ object EpisodeManager {
                 overview = ep.overview,
                 tvShow = Episode.TvShow(
                     id = tvShowId,
-                    title = tvShowTitle,
+                    title = tvShowFromDb?.title ?: "",
                     poster = tvShowFromDb?.poster ?: ep.tvShow?.poster,
                     banner = tvShowFromDb?.banner ?: ep.tvShow?.banner,
                     releaseDate = tvShowFromDb?.released?.format("yyyy-MM-dd") ?: ep.tvShow?.released?.format("yyyy-MM-dd"),

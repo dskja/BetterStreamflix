@@ -17,14 +17,11 @@ import com.streamflixreborn.streamflix.providers.AniWorldProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import java.io.FileNotFoundException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 object ArtworkRepair {
 
     private const val TAG = "ArtworkRepair"
     const val KEY_PROVIDER_NAME = "provider_name"
-    private val dbWriteMutex = Mutex()
 
     fun shouldRepair(url: String?, error: GlideException?): Boolean {
         if (url.isNullOrBlank()) return false
@@ -39,14 +36,14 @@ object ArtworkRepair {
         if (!favorite || hasUsableArtwork(movie.poster, movie.banner)) return movie
         val provider = UserPreferences.currentProvider ?: return movie
         val database = AppDatabase.getInstance(context)
-        return repairMovie(context, provider, database, movie, persistResult = false) ?: movie
+        return repairMovie(context, provider, database, movie) ?: movie
     }
 
     suspend fun resolveTvShowForFavorite(context: Context, tvShow: TvShow, favorite: Boolean): TvShow {
         if (!favorite || hasUsableArtwork(tvShow.poster, tvShow.banner)) return tvShow
         val provider = UserPreferences.currentProvider ?: return tvShow
         val database = AppDatabase.getInstance(context)
-        return repairTvShow(context, provider, database, tvShow, persistResult = false) ?: tvShow
+        return repairTvShow(context, provider, database, tvShow) ?: tvShow
     }
 
     suspend fun repairMovie(
@@ -54,7 +51,6 @@ object ArtworkRepair {
         provider: Provider,
         database: AppDatabase,
         movie: Movie,
-        persistResult: Boolean = true,
     ): Movie? {
         return runCatching {
             prepareProvider(context, provider)
@@ -65,17 +61,8 @@ object ArtworkRepair {
                     providerLanguage = provider.language,
                 )
             }
-            if (persistResult) {
-                val repairDatabase = AppDatabase.getInstanceForProvider(provider.name, context)
-                try {
-                    dbWriteMutex.withLock {
-                        repairDatabase.movieDao().getById(movie.id)?.let { refreshedMovie.merge(it) }
-                        repairDatabase.movieDao().insert(refreshedMovie)
-                    }
-                } finally {
-                    repairDatabase.close()
-                }
-            }
+            database.movieDao().getById(movie.id)?.let { refreshedMovie.merge(it) }
+            database.movieDao().insert(refreshedMovie)
             refreshedMovie
         }.onFailure { error ->
             Log.w(TAG, "Unable to refresh movie artwork for ${movie.id} on ${provider.name}", error)
@@ -87,7 +74,6 @@ object ArtworkRepair {
         provider: Provider,
         database: AppDatabase,
         tvShow: TvShow,
-        persistResult: Boolean = true,
     ): TvShow? {
         return runCatching {
             prepareProvider(context, provider)
@@ -98,17 +84,8 @@ object ArtworkRepair {
                     providerLanguage = provider.language,
                 )
             }
-            if (persistResult) {
-                val repairDatabase = AppDatabase.getInstanceForProvider(provider.name, context)
-                try {
-                    dbWriteMutex.withLock {
-                        repairDatabase.tvShowDao().getById(tvShow.id)?.let { refreshedTvShow.merge(it) }
-                        repairDatabase.tvShowDao().insert(refreshedTvShow)
-                    }
-                } finally {
-                    repairDatabase.close()
-                }
-            }
+            database.tvShowDao().getById(tvShow.id)?.let { refreshedTvShow.merge(it) }
+            database.tvShowDao().insert(refreshedTvShow)
             refreshedTvShow
         }.onFailure { error ->
             Log.w(TAG, "Unable to refresh tv show artwork for ${tvShow.id} on ${provider.name}", error)
