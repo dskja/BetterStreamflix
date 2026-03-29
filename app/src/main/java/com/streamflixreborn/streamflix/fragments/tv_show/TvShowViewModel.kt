@@ -28,12 +28,23 @@ class TvShowViewModel(
     private val fallbackBanner: String? = null,
 ) : ViewModel() {
 
+    private fun episodeSeasonKey(episode: Episode): String? {
+        return episode.id.substringBeforeLast("/", "")
+            .takeIf { it.isNotBlank() }
+    }
+
     private fun episodesForSeason(episodes: List<Episode>, season: Season): List<Episode> {
         return episodes
             .filter { episode ->
                 val episodeSeason = episode.season
-                episodeSeason?.id == season.id ||
-                    (episodeSeason?.number != null && episodeSeason.number == season.number)
+                val seasonKey = episodeSeasonKey(episode)
+                seasonKey == season.id ||
+                    episodeSeason?.id == season.id ||
+                    (
+                        episodeSeason?.number != null &&
+                            episodeSeason.number != 0 &&
+                            episodeSeason.number == season.number
+                        )
             }
             .sortedBy { it.number }
             .onEach { episode ->

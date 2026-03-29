@@ -61,6 +61,7 @@ class Movie(
 
     fun merge(movie: Movie): Movie {
         this.isFavorite = movie.isFavorite
+        this.favoritedAtMillis = movie.favoritedAtMillis
         this.isWatched = movie.isWatched
         this.watchedDate = movie.watchedDate
         this.watchHistory = movie.watchHistory

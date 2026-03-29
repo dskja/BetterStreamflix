@@ -58,12 +58,8 @@ class TvShow(
                     season.episodes
                         .sortedBy { it.number }
                         .onEach { episode ->
-                            if (episode.season == null) {
-                                episode.season = season
-                            }
-                            if (episode.tvShow == null) {
-                                episode.tvShow = this
-                            }
+                            episode.season = season
+                            episode.tvShow = this
                         }
                 }
             val episode = episodes
@@ -87,6 +83,7 @@ class TvShow(
 
     fun merge(tvShow: TvShow): TvShow {
         this.isFavorite = tvShow.isFavorite
+        this.favoritedAtMillis = tvShow.favoritedAtMillis
         this.isWatching = tvShow.isWatching
         return this
     }

@@ -29,6 +29,13 @@ object UserDataCache {
         val continueWatchingEpisodes: List<CachedEpisode> = emptyList(),
     )
 
+    private fun UserData.normalized(): UserData = copy(
+        favoritesMovies = favoritesMovies.sortedByDescending { it.favoritedAtMillis ?: 0L },
+        favoritesTvShows = favoritesTvShows.sortedByDescending { it.favoritedAtMillis ?: 0L },
+        continueWatchingMovies = continueWatchingMovies.sortedByDescending { it.lastEngagementTimeUtcMillis ?: 0L },
+        continueWatchingEpisodes = continueWatchingEpisodes.sortedByDescending { it.lastEngagementTimeUtcMillis ?: 0L },
+    )
+
     // -------------------------
     // CACHE FILE
     // -------------------------
@@ -60,7 +67,7 @@ object UserDataCache {
         if (!file.exists()) return null
 
         return runCatching {
-            gson.fromJson(file.readText(), UserData::class.java).also {
+            gson.fromJson(file.readText(), UserData::class.java).normalized().also {
                 memoryCache[key] = it
             }
         }.getOrNull()
@@ -68,17 +75,18 @@ object UserDataCache {
 
     fun write(context: Context, provider: Provider, newData: UserData) {
         val key = cacheKey(provider)
+        val normalizedData = newData.normalized()
         val oldData = memoryCache[key]
 
         // ✅ prevent spam
-        if (oldData == newData) return
+        if (oldData == normalizedData) return
 
-        memoryCache[key] = newData
+        memoryCache[key] = normalizedData
 
         runCatching {
             cacheFile(context, key).apply {
                 parentFile?.mkdirs()
-                writeText(gson.toJson(newData))
+                writeText(gson.toJson(normalizedData))
             }
         }
 

@@ -39,6 +39,19 @@ import java.util.concurrent.ConcurrentHashMap
 
 class HomeViewModel(database: AppDatabase) : ViewModel() {
 
+    private fun <T> preserveCacheOrder(
+        cached: List<T>,
+        incoming: List<T>,
+        idOf: (T) -> String,
+    ): List<T> {
+        val incomingById = incoming.associateBy(idOf)
+        val orderedExisting = cached.mapNotNull { cachedItem -> incomingById[idOf(cachedItem)] }
+        val appendedNew = incoming.filter { incomingItem ->
+            cached.none { cachedItem -> idOf(cachedItem) == idOf(incomingItem) }
+        }
+        return orderedExisting + appendedNew
+    }
+
     private val _state = MutableStateFlow<State>(State.Loading)
     private val continueWatchingTvShowCache = ConcurrentHashMap<String, TvShow>()
     private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
@@ -126,10 +139,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         // FAVORITES - from cache first, DB as fallback
         _userDataCache.transformLatest { cache ->
-            if (cache != null) {
+            if (cache != null && cache.favoritesMovies.isNotEmpty()) {
                 emit(cache.favoritesMovies.map { it.toMovie() })
+            } else {
+                emitAll(database.movieDao().getFavorites())
             }
-            emitAll(database.movieDao().getFavorites())
         }.flowOn(Dispatchers.IO),
         _userDataCache.transformLatest { cache ->
             if (cache != null && cache.favoritesTvShows.isNotEmpty()) {
@@ -395,14 +409,30 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             val watchingEpisodes = watchingEpisodesDeferred.await()
 
             val newData = UserDataCache.UserData(
-                favoritesMovies = movies.filter { it.isFavorite }.map { it.toCached() },
-                favoritesTvShows = tvShows.filter { it.isFavorite }.map { it.toCached() },
-                continueWatchingMovies = (movies + watchingMovies)
-                    .filter { it.watchHistory != null }
-                    .map { it.toCached() },
-                continueWatchingEpisodes = watchingEpisodes
-                    .filter { it.watchHistory != null }
-                    .map { it.toCached() },
+                favoritesMovies = preserveCacheOrder(
+                    cached = cached?.favoritesMovies ?: emptyList(),
+                    incoming = movies.filter { it.isFavorite }.map { it.toCached() },
+                    idOf = { it.id },
+                ),
+                favoritesTvShows = preserveCacheOrder(
+                    cached = cached?.favoritesTvShows ?: emptyList(),
+                    incoming = tvShows.filter { it.isFavorite }.map { it.toCached() },
+                    idOf = { it.id },
+                ),
+                continueWatchingMovies = preserveCacheOrder(
+                    cached = cached?.continueWatchingMovies ?: emptyList(),
+                    incoming = (movies + watchingMovies)
+                        .filter { it.watchHistory != null }
+                        .map { it.toCached() },
+                    idOf = { it.id },
+                ),
+                continueWatchingEpisodes = preserveCacheOrder(
+                    cached = cached?.continueWatchingEpisodes ?: emptyList(),
+                    incoming = watchingEpisodes
+                        .filter { it.watchHistory != null }
+                        .map { it.toCached() },
+                    idOf = { it.id },
+                ),
             )
 
             UserDataCache.write(appContext, provider, newData)
