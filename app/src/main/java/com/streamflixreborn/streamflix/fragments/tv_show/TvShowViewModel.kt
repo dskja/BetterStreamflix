@@ -28,6 +28,19 @@ class TvShowViewModel(
     private val fallbackBanner: String? = null,
 ) : ViewModel() {
 
+    private fun episodesForSeason(episodes: List<Episode>, season: Season): List<Episode> {
+        return episodes
+            .filter { episode ->
+                val episodeSeason = episode.season
+                episodeSeason?.id == season.id ||
+                    (episodeSeason?.number != null && episodeSeason.number == season.number)
+            }
+            .sortedBy { it.number }
+            .onEach { episode ->
+                episode.season = season
+            }
+    }
+
     private val _state = MutableStateFlow<State>(State.Loading)
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: Flow<State> = combine(
@@ -36,7 +49,7 @@ class TvShowViewModel(
                 is State.SuccessLoading -> {
                     val episodes = database.episodeDao().getByTvShowIdAsFlow(id).first()
                     state.tvShow.seasons.onEach { season ->
-                        season.episodes = episodes.filter { it.season?.id == season.id }
+                        season.episodes = episodesForSeason(episodes, season)
                     }
 
                     if (episodes.isEmpty() && state.tvShow.seasons.isNotEmpty()) {
@@ -123,9 +136,7 @@ class TvShowViewModel(
                             .takeIf { seasons -> seasons.flatMap { it.episodes } != episodesDb }
                             ?.map { season ->
                                 season.copy(
-                                    episodes = episodesDb
-                                        .filter { it.season?.id == season.id }
-                                        .onEach { it.season = season }
+                                    episodes = episodesForSeason(episodesDb, season)
                                 )
                             }
                             ?: state.tvShow.seasons)
