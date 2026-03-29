@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.providers
 
+import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
@@ -115,7 +116,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val results = document.select("div.search-item")
             .mapNotNull {
                 val id = it
-                    .attr("onclick").substringAfter("newsid=")
+                    .attr("onclick").substringAfter("newsid=").substringBefore("'")
                 if (id.isEmpty()) return@mapNotNull null
                 val title = it.selectFirst("div.search-title")
                     ?.text()?.replace("\\'","'")
