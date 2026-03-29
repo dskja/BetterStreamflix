@@ -9,12 +9,14 @@ import android.text.InputType
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.constraintlayout.widget.Group
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -44,7 +46,9 @@ import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -65,6 +69,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     private lateinit var settingsBackCallback: OnBackPressedCallback
 
     private lateinit var backupRestoreManager: BackupRestoreManager
+    private var backupLoadingDialog: AlertDialog? = null
 
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -1184,81 +1189,140 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     }
 
     private suspend fun performBackupExport(uri: Uri) {
-        val jsonData = backupRestoreManager.exportUserData()
-        if (jsonData != null) {
-            try {
-                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.writer().use { it.write(jsonData) }
-                    Toast.makeText(requireContext(), getString(R.string.backup_export_success), Toast.LENGTH_LONG).show()
-                }
-            } catch (e: IOException) {
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportMobile", "Error writing backup file", e)
+        withBackupLoading(R.string.backup_export_title) {
+            val jsonData = withContext(Dispatchers.IO) {
+                backupRestoreManager.exportUserData()
             }
-        } else {
-            Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            if (jsonData != null) {
+                try {
+                    requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.writer().use { it.write(jsonData) }
+                        Toast.makeText(requireContext(), getString(R.string.backup_export_success), Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: IOException) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportMobile", "Error writing backup file", e)
+                }
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     private suspend fun performBackupImport(uri: Uri) {
-        try {
-            val stringBuilder = StringBuilder()
-            requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
-                inputStream.bufferedReader().useLines { lines ->
-                    lines.forEach { stringBuilder.append(it) }
+        withBackupLoading(R.string.backup_import_title) {
+            try {
+                val jsonData = withContext(Dispatchers.IO) {
+                    val stringBuilder = StringBuilder()
+                    requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+                        inputStream.bufferedReader().useLines { lines ->
+                            lines.forEach { stringBuilder.append(it) }
+                        }
+                    }
+                    stringBuilder.toString()
                 }
-            }
-            val jsonData = stringBuilder.toString()
-            if (jsonData.isNotBlank()) {
-                val success = backupRestoreManager.importUserData(jsonData)
-                if (success) {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
+                if (jsonData.isNotBlank()) {
+                    val success = withContext(Dispatchers.IO) {
+                        backupRestoreManager.importUserData(jsonData)
+                    }
+                    if (success) {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
+                    }
                 } else {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
                 }
-            } else {
-                Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                Log.e("BackupImportMobile", "Error reading/processing backup file", e)
             }
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
-            Log.e("BackupImportMobile", "Error reading/processing backup file", e)
         }
     }
 
     private suspend fun performDatabaseBackupExport(uri: Uri) {
-        val zipData = backupRestoreManager.exportDatabaseZip()
-        if (zipData != null) {
-            try {
-                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(zipData)
-                    Toast.makeText(requireContext(), getString(R.string.backup_db_export_success), Toast.LENGTH_LONG).show()
-                }
-            } catch (e: IOException) {
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportMobile", "Error writing database backup file", e)
+        withBackupLoading(R.string.backup_db_export_title) {
+            val zipData = withContext(Dispatchers.IO) {
+                backupRestoreManager.exportDatabaseZip()
             }
-        } else {
-            Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            if (zipData != null) {
+                try {
+                    requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(zipData)
+                        Toast.makeText(requireContext(), getString(R.string.backup_db_export_success), Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: IOException) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportMobile", "Error writing database backup file", e)
+                }
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     private suspend fun performDatabaseBackupImport(uri: Uri) {
-        try {
-            val zipBytes = requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            if (zipBytes == null || zipBytes.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
-                return
+        withBackupLoading(R.string.backup_db_import_title) {
+            try {
+                val zipBytes = withContext(Dispatchers.IO) {
+                    requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }
+                if (zipBytes == null || zipBytes.isEmpty()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                    return@withBackupLoading
+                }
+                val success = withContext(Dispatchers.IO) {
+                    backupRestoreManager.importDatabaseZip(zipBytes)
+                }
+                Toast.makeText(
+                    requireContext(),
+                    if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                Log.e("BackupImportMobile", "Error reading/processing database backup file", e)
             }
-            val success = backupRestoreManager.importDatabaseZip(zipBytes)
-            Toast.makeText(
-                requireContext(),
-                if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
-                Toast.LENGTH_LONG
-            ).show()
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
-            Log.e("BackupImportMobile", "Error reading/processing database backup file", e)
         }
+    }
+
+    private suspend fun <T> withBackupLoading(titleRes: Int, block: suspend () -> T): T {
+        showBackupLoadingDialog(titleRes)
+        return try {
+            block()
+        } finally {
+            hideBackupLoadingDialog()
+        }
+    }
+
+    private fun showBackupLoadingDialog(titleRes: Int) {
+        if (!isAdded) return
+        if (backupLoadingDialog?.isShowing == true) {
+            backupLoadingDialog?.setTitle(titleRes)
+            return
+        }
+
+        val contentView = LayoutInflater.from(requireContext()).inflate(
+            R.layout.layout_is_loading_mobile,
+            null
+        )
+        contentView.findViewById<android.widget.TextView>(R.id.tv_is_loading_error)?.visibility = View.GONE
+        contentView.findViewById<Group>(R.id.g_is_loading_retry)?.visibility = View.GONE
+
+        backupLoadingDialog = AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setView(contentView)
+            .setCancelable(false)
+            .create()
+            .apply {
+                setCanceledOnTouchOutside(false)
+                show()
+            }
+    }
+
+    private fun hideBackupLoadingDialog() {
+        backupLoadingDialog?.dismiss()
+        backupLoadingDialog = null
     }
 
     override fun onResume() {

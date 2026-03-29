@@ -17,6 +17,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -27,6 +28,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.constraintlayout.widget.Group
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
@@ -63,7 +65,9 @@ import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.WebSocketBypassTestHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -90,6 +94,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     private lateinit var episodeDao: EpisodeDao
     private lateinit var seasonDao: SeasonDao
     private lateinit var backupRestoreManager: BackupRestoreManager
+    private var backupLoadingDialog: AlertDialog? = null
 
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -804,46 +809,56 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     }
 
     private suspend fun performBackupExport(uri: Uri) {
-        val jsonData = backupRestoreManager.exportUserData()
-        if (jsonData != null) {
-            try {
-                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.writer().use { it.write(jsonData) }
-                    Toast.makeText(requireContext(), getString(R.string.backup_export_success), Toast.LENGTH_LONG).show()
-                } ?: run {
-                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                }
-            } catch (e: IOException) {
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportTV", "Error writing backup file", e)
+        withBackupLoading(R.string.backup_export_title) {
+            val jsonData = withContext(Dispatchers.IO) {
+                backupRestoreManager.exportUserData()
             }
-        } else {
-            Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            if (jsonData != null) {
+                try {
+                    requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.writer().use { it.write(jsonData) }
+                        Toast.makeText(requireContext(), getString(R.string.backup_export_success), Toast.LENGTH_LONG).show()
+                    } ?: run {
+                        Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: IOException) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportTV", "Error writing backup file", e)
+                }
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     private suspend fun performBackupImport(uri: Uri) {
-        try {
-            val stringBuilder = StringBuilder()
-            requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
-                inputStream.bufferedReader().useLines { lines ->
-                    lines.forEach { stringBuilder.append(it) }
+        withBackupLoading(R.string.backup_import_title) {
+            try {
+                val jsonData = withContext(Dispatchers.IO) {
+                    val stringBuilder = StringBuilder()
+                    requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+                        inputStream.bufferedReader().useLines { lines ->
+                            lines.forEach { stringBuilder.append(it) }
+                        }
+                    }
+                    stringBuilder.toString()
                 }
-            }
-            val jsonData = stringBuilder.toString()
-            if (jsonData.isNotBlank()) {
-                val success = backupRestoreManager.importUserData(jsonData)
-                if (success) {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
+                if (jsonData.isNotBlank()) {
+                    val success = withContext(Dispatchers.IO) {
+                        backupRestoreManager.importUserData(jsonData)
+                    }
+                    if (success) {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
+                    }
                 } else {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
                 }
-            } else {
-                Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                Log.e("BackupImportTV", "Error reading/processing backup file", e)
             }
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
-            Log.e("BackupImportTV", "Error reading/processing backup file", e)
         }
     }
 
@@ -970,151 +985,181 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun exportBackupToLocalFile(fileName: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val jsonData = backupRestoreManager.exportUserData()
-            if (jsonData.isNullOrBlank()) {
-                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
-                return@launch
-            }
-
-            runCatching {
-                val file = File(getBackupDirectory(), fileName).apply {
-                    parentFile?.mkdirs()
-                    writeText(jsonData)
+            withBackupLoading(R.string.backup_export_title) {
+                val jsonData = withContext(Dispatchers.IO) {
+                    backupRestoreManager.exportUserData()
                 }
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.backup_export_saved_to, file.absolutePath),
-                    Toast.LENGTH_LONG
-                ).show()
-            }.onFailure { error ->
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportTV", "Error writing local backup file", error)
+                if (jsonData.isNullOrBlank()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                    return@withBackupLoading
+                }
+
+                runCatching {
+                    val file = withContext(Dispatchers.IO) {
+                        File(getBackupDirectory(), fileName).apply {
+                            parentFile?.mkdirs()
+                            writeText(jsonData)
+                        }
+                    }
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.backup_export_saved_to, file.absolutePath),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportTV", "Error writing local backup file", error)
+                }
             }
         }
     }
 
     private fun exportBackupToDownloads(fileName: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val jsonData = backupRestoreManager.exportUserData()
-            if (jsonData.isNullOrBlank()) {
-                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
-                return@launch
-            }
-
-            runCatching {
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.MIME_TYPE, "application/json")
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/StreamFlix")
+            withBackupLoading(R.string.backup_export_title) {
+                val jsonData = withContext(Dispatchers.IO) {
+                    backupRestoreManager.exportUserData()
                 }
-                val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: error("Unable to create download entry")
-                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.writer().use { it.write(jsonData) }
-                } ?: error("Unable to open output stream")
+                if (jsonData.isNullOrBlank()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                    return@withBackupLoading
+                }
 
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.backup_export_saved_to, "Downloads/StreamFlix/$fileName"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }.onFailure { error ->
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportTV", "Error writing backup to downloads", error)
+                runCatching {
+                    val values = ContentValues().apply {
+                        put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                        put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/StreamFlix")
+                    }
+                    val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                        ?: error("Unable to create download entry")
+                    requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.writer().use { it.write(jsonData) }
+                    } ?: error("Unable to open output stream")
+
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.backup_export_saved_to, "Downloads/StreamFlix/$fileName"),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportTV", "Error writing backup to downloads", error)
+                }
             }
         }
     }
 
     private fun exportDatabaseBackupToLocalFile(fileName: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val zipData = backupRestoreManager.exportDatabaseZip()
-            if (zipData == null || zipData.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
-                return@launch
-            }
-
-            runCatching {
-                val file = File(getBackupDirectory(), fileName).apply {
-                    parentFile?.mkdirs()
-                    writeBytes(zipData)
+            withBackupLoading(R.string.backup_db_export_title) {
+                val zipData = withContext(Dispatchers.IO) {
+                    backupRestoreManager.exportDatabaseZip()
                 }
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.backup_export_saved_to, file.absolutePath),
-                    Toast.LENGTH_LONG
-                ).show()
-            }.onFailure { error ->
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportTV", "Error writing local database backup file", error)
+                if (zipData == null || zipData.isEmpty()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                    return@withBackupLoading
+                }
+
+                runCatching {
+                    val file = withContext(Dispatchers.IO) {
+                        File(getBackupDirectory(), fileName).apply {
+                            parentFile?.mkdirs()
+                            writeBytes(zipData)
+                        }
+                    }
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.backup_export_saved_to, file.absolutePath),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportTV", "Error writing local database backup file", error)
+                }
             }
         }
     }
 
     private fun exportDatabaseBackupToDownloads(fileName: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val zipData = backupRestoreManager.exportDatabaseZip()
-            if (zipData == null || zipData.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
-                return@launch
-            }
-
-            runCatching {
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.MIME_TYPE, "application/zip")
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/StreamFlix")
+            withBackupLoading(R.string.backup_db_export_title) {
+                val zipData = withContext(Dispatchers.IO) {
+                    backupRestoreManager.exportDatabaseZip()
                 }
-                val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: error("Unable to create download entry")
-                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(zipData)
-                } ?: error("Unable to open output stream")
+                if (zipData == null || zipData.isEmpty()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+                    return@withBackupLoading
+                }
 
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.backup_export_saved_to, "Downloads/StreamFlix/$fileName"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }.onFailure { error ->
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportTV", "Error writing database backup to downloads", error)
+                runCatching {
+                    val values = ContentValues().apply {
+                        put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                        put(MediaStore.Downloads.MIME_TYPE, "application/zip")
+                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/StreamFlix")
+                    }
+                    val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                        ?: error("Unable to create download entry")
+                    requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(zipData)
+                    } ?: error("Unable to open output stream")
+
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.backup_export_saved_to, "Downloads/StreamFlix/$fileName"),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportTV", "Error writing database backup to downloads", error)
+                }
             }
         }
     }
 
     private suspend fun performDatabaseBackupExport(uri: Uri) {
-        val zipData = backupRestoreManager.exportDatabaseZip()
-        if (zipData != null) {
-            try {
-                requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(zipData)
-                } ?: error("Unable to open output stream")
-                Toast.makeText(requireContext(), getString(R.string.backup_db_export_success), Toast.LENGTH_LONG).show()
-            } catch (error: IOException) {
-                Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
-                Log.e("BackupExportTV", "Error writing database backup", error)
+        withBackupLoading(R.string.backup_db_export_title) {
+            val zipData = withContext(Dispatchers.IO) {
+                backupRestoreManager.exportDatabaseZip()
             }
-        } else {
-            Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            if (zipData != null) {
+                try {
+                    requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(zipData)
+                    } ?: error("Unable to open output stream")
+                    Toast.makeText(requireContext(), getString(R.string.backup_db_export_success), Toast.LENGTH_LONG).show()
+                } catch (error: IOException) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_export_error_write), Toast.LENGTH_LONG).show()
+                    Log.e("BackupExportTV", "Error writing database backup", error)
+                }
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.backup_data_not_generated), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     private suspend fun performDatabaseBackupImport(uri: Uri) {
-        try {
-            val bytes = requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            if (bytes == null || bytes.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
-                return
+        withBackupLoading(R.string.backup_db_import_title) {
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }
+                if (bytes == null || bytes.isEmpty()) {
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                    return@withBackupLoading
+                }
+                val success = withContext(Dispatchers.IO) {
+                    backupRestoreManager.importDatabaseZip(bytes)
+                }
+                Toast.makeText(
+                    requireContext(),
+                    if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (error: Exception) {
+                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                Log.e("BackupImportTV", "Error reading database backup file", error)
             }
-            val success = backupRestoreManager.importDatabaseZip(bytes)
-            Toast.makeText(
-                requireContext(),
-                if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
-                Toast.LENGTH_LONG
-            ).show()
-        } catch (error: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
-            Log.e("BackupImportTV", "Error reading database backup file", error)
         }
     }
 
@@ -1220,48 +1265,99 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun importBackupFromFile(file: File) {
         viewLifecycleOwner.lifecycleScope.launch {
-            runCatching {
-                val jsonData = file.readText()
-                if (jsonData.isBlank()) {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
-                    return@launch
+            withBackupLoading(R.string.backup_import_title) {
+                runCatching {
+                    val jsonData = withContext(Dispatchers.IO) {
+                        file.readText()
+                    }
+                    if (jsonData.isBlank()) {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                        return@withBackupLoading
+                    }
+                    val success = withContext(Dispatchers.IO) {
+                        backupRestoreManager.importUserData(jsonData)
+                    }
+                    if (success) {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
+                    }
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                    Log.e("BackupImportTV", "Error importing local backup file", error)
                 }
-                val success = backupRestoreManager.importUserData(jsonData)
-                if (success) {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_success), Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_error), Toast.LENGTH_LONG).show()
-                }
-            }.onFailure { error ->
-                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
-                Log.e("BackupImportTV", "Error importing local backup file", error)
             }
         }
     }
 
     private fun importDatabaseBackupFromFile(file: File) {
         viewLifecycleOwner.lifecycleScope.launch {
-            runCatching {
-                val bytes = file.readBytes()
-                if (bytes.isEmpty()) {
-                    Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
-                    return@launch
+            withBackupLoading(R.string.backup_db_import_title) {
+                runCatching {
+                    val bytes = withContext(Dispatchers.IO) {
+                        file.readBytes()
+                    }
+                    if (bytes.isEmpty()) {
+                        Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
+                        return@withBackupLoading
+                    }
+                    val success = withContext(Dispatchers.IO) {
+                        backupRestoreManager.importDatabaseZip(bytes)
+                    }
+                    Toast.makeText(
+                        requireContext(),
+                        if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
+                    Log.e("BackupImportTV", "Error importing local database backup file", error)
                 }
-                val success = backupRestoreManager.importDatabaseZip(bytes)
-                Toast.makeText(
-                    requireContext(),
-                    if (success) getString(R.string.backup_db_import_success) else getString(R.string.backup_import_error),
-                    Toast.LENGTH_LONG
-                ).show()
-            }.onFailure { error ->
-                Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
-                Log.e("BackupImportTV", "Error importing local database backup file", error)
             }
         }
     }
 
     private fun getBackupDirectory(): File {
         return File(requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: requireContext().filesDir, "backups")
+    }
+
+    private suspend fun <T> withBackupLoading(titleRes: Int, block: suspend () -> T): T {
+        showBackupLoadingDialog(titleRes)
+        return try {
+            block()
+        } finally {
+            hideBackupLoadingDialog()
+        }
+    }
+
+    private fun showBackupLoadingDialog(titleRes: Int) {
+        if (!isAdded) return
+        if (backupLoadingDialog?.isShowing == true) {
+            backupLoadingDialog?.setTitle(titleRes)
+            return
+        }
+
+        val contentView = LayoutInflater.from(requireContext()).inflate(
+            R.layout.layout_is_loading_tv,
+            null
+        )
+        contentView.findViewById<TextView>(R.id.tv_is_loading_error)?.visibility = View.GONE
+        contentView.findViewById<Group>(R.id.g_is_loading_retry)?.visibility = View.GONE
+
+        backupLoadingDialog = AlertDialog.Builder(requireContext())
+            .setTitle(titleRes)
+            .setView(contentView)
+            .setCancelable(false)
+            .create()
+            .apply {
+                setCanceledOnTouchOutside(false)
+                show()
+            }
+    }
+
+    private fun hideBackupLoadingDialog() {
+        backupLoadingDialog?.dismiss()
+        backupLoadingDialog = null
     }
 
     private fun buildBackupListLabel(file: File): String {
