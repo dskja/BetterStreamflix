@@ -44,6 +44,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
     private val _userDataCache = MutableStateFlow<UserDataCache.UserData?>(null)
     private var currentProvider: Provider? = null
+    @Volatile private var isResumeRepairRunning = false
+    private var lastResumeRepairKey: String? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: Flow<State> = combine(
@@ -54,23 +56,20 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             _userDataCache.transformLatest { cache ->
                 if (cache != null && cache.continueWatchingMovies.isNotEmpty()) {
                     emit(cache.continueWatchingMovies.map { it.toMovie() })
-                } else {
-                    emitAll(database.movieDao().getWatchingMovies())
                 }
+                emitAll(database.movieDao().getWatchingMovies())
             }.flowOn(Dispatchers.IO),
             _userDataCache.transformLatest { cache ->
                 if (cache != null && cache.continueWatchingEpisodes.isNotEmpty()) {
                     emit(cache.continueWatchingEpisodes.map { it.toEpisode() })
-                } else {
-                    emitAll(database.episodeDao().getWatchingEpisodes())
                 }
+                emitAll(database.episodeDao().getWatchingEpisodes())
             }.flowOn(Dispatchers.IO),
             _userDataCache.transformLatest { cache ->
                 if (cache != null && cache.continueWatchingEpisodes.isNotEmpty()) {
                     emit(cache.continueWatchingEpisodes.map { it.toEpisode() })
-                } else {
-                    emitAll(database.episodeDao().getNextEpisodesToWatch())
                 }
+                emitAll(database.episodeDao().getNextEpisodesToWatch())
             }.flowOn(Dispatchers.IO),
             database.tvShowDao().getAll().flowOn(Dispatchers.IO),
         ) { watchingMovies, watchingEpisodes, watchNextEpisodes, tvShows ->
@@ -134,9 +133,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         _userDataCache.transformLatest { cache ->
             if (cache != null && cache.favoritesTvShows.isNotEmpty()) {
                 emit(cache.favoritesTvShows.map { it.toTvShow() })
-            } else {
-                emitAll(database.tvShowDao().getFavorites())
             }
+            emitAll(database.tvShowDao().getFavorites())
         }.flowOn(Dispatchers.IO),
 
         // MOVIES DB
@@ -279,9 +277,13 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         if (initialProvider != null) {
             currentProvider = initialProvider
             loadUserDataCache(initialProvider)
+            repairResumeStateIfNeeded(initialProvider)
         }
         viewModelScope.launch {
             ProviderChangeNotifier.providerChangeFlow.collect {
+                UserPreferences.currentProvider?.let { provider ->
+                    repairResumeStateIfNeeded(provider, force = true)
+                }
                 getHome()
             }
         }
@@ -364,6 +366,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         }
 
         loadUserDataCache(provider)
+        repairResumeStateIfNeeded(provider)
 
         try {
             val categories = provider.getHome()
@@ -409,6 +412,78 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
             if (_userDataCache.value != newData) {
                 _userDataCache.value = newData
+            }
+        }
+    }
+
+    private fun repairResumeStateIfNeeded(provider: Provider, force: Boolean = false) {
+        val providerKey = "${provider.name}__${provider.baseUrl.trim().trimEnd('/')}"
+        if (!force && lastResumeRepairKey == providerKey) return
+        if (isResumeRepairRunning) return
+
+        isResumeRepairRunning = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val appContext = StreamFlixApp.instance.applicationContext
+                val db = AppDatabase.getInstance(appContext)
+                val episodeDao = db.episodeDao()
+                val tvShowDao = db.tvShowDao()
+                val seasonDao = db.seasonDao()
+
+                val candidateEpisodes = (
+                    episodeDao.getWatchingEpisodes().first() +
+                        episodeDao.getNextEpisodesToWatch().first()
+                    )
+                    .distinctBy { it.id }
+                    .filter { !it.tvShow?.id.isNullOrBlank() }
+
+                val candidateTvShowIds = candidateEpisodes
+                    .mapNotNull { it.tvShow?.id }
+                    .distinct()
+
+                candidateTvShowIds.forEach { tvShowId ->
+                    runCatching {
+                        val refreshedTvShow = provider.getTvShow(tvShowId)
+                        val storedTvShow = tvShowDao.getById(tvShowId)
+                        storedTvShow?.let { refreshedTvShow.merge(it) }
+                        tvShowDao.insert(refreshedTvShow)
+
+                        val tvShowCopy = refreshedTvShow.copy()
+                        refreshedTvShow.seasons.forEach { season ->
+                            season.tvShow = tvShowCopy
+                        }
+                        seasonDao.insertAll(refreshedTvShow.seasons)
+
+                        val seasonsByNumber = refreshedTvShow.seasons.associateBy { it.number }
+                        val tvShowEpisodes = episodeDao.getByTvShowId(tvShowId)
+
+                        tvShowEpisodes.forEach { episode ->
+                            val storedSeasonNumber = episode.season?.number
+                            val refreshedSeason = when {
+                                storedSeasonNumber != null -> seasonsByNumber[storedSeasonNumber]
+                                else -> null
+                            }
+                            val needsRepair =
+                                episode.tvShow?.title.isNullOrBlank() ||
+                                    (refreshedSeason != null && episode.season?.id != refreshedSeason.id)
+
+                            if (needsRepair) {
+                                episode.tvShow = tvShowCopy
+                                if (refreshedSeason != null) {
+                                    episode.season = refreshedSeason
+                                }
+                                episodeDao.update(episode)
+                            }
+                        }
+                    }.onFailure { error ->
+                        Log.w("HomeViewModel", "repairResumeStateIfNeeded failed for $tvShowId", error)
+                    }
+                }
+
+                lastResumeRepairKey = providerKey
+                loadUserDataCache(provider)
+            } finally {
+                isResumeRepairRunning = false
             }
         }
     }

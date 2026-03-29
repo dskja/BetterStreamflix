@@ -52,7 +52,20 @@ class TvShow(
 
     val episodeToWatch: Episode?
         get() {
-            val episodes = seasons.flatMap { it.episodes }
+            val episodes = seasons
+                .sortedWith(compareBy<Season> { it.number == 0 }.thenBy { it.number })
+                .flatMap { season ->
+                    season.episodes
+                        .sortedBy { it.number }
+                        .onEach { episode ->
+                            if (episode.season == null) {
+                                episode.season = season
+                            }
+                            if (episode.tvShow == null) {
+                                episode.tvShow = this
+                            }
+                        }
+                }
             val episode = episodes
                 .filter { it.watchHistory != null }
                 .sortedByDescending { it.watchHistory?.lastEngagementTimeUtcMillis }

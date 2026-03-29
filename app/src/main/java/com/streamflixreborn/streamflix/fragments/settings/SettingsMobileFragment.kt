@@ -11,6 +11,9 @@ import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.OnBackPressedCallback
@@ -717,16 +720,22 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 .setMessage(R.string.settings_refresh_cache_message)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     viewLifecycleOwner.lifecycleScope.launch {
-                        val refreshed = backupRestoreManager.refreshCachesFromDatabase()
-                        Toast.makeText(
-                            requireContext(),
-                            if (refreshed) {
-                                R.string.settings_refresh_cache_success
-                            } else {
-                                R.string.settings_refresh_cache_success
-                            },
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val loadingDialog = createRefreshCacheLoadingDialog()
+                        loadingDialog.show()
+                        try {
+                            val refreshed = backupRestoreManager.refreshCachesFromDatabase()
+                            Toast.makeText(
+                                requireContext(),
+                                if (refreshed) {
+                                    R.string.settings_refresh_cache_success
+                                } else {
+                                    R.string.settings_refresh_cache_success
+                                },
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } finally {
+                            loadingDialog.dismiss()
+                        }
                     }
                 }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -1181,6 +1190,36 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     private fun lockRemainingMinutes(): Int {
         val millis = UserPreferences.parentalControlLockRemainingMillis
         return ((millis + 60_000L - 1L) / 60_000L).toInt().coerceAtLeast(1)
+    }
+
+    private fun createRefreshCacheLoadingDialog(): AlertDialog {
+        val padding = (24 * resources.displayMetrics.density).toInt()
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(padding, padding, padding, padding)
+        }
+        val progressBar = ProgressBar(requireContext()).apply {
+            isIndeterminate = true
+        }
+        val message = TextView(requireContext()).apply {
+            text = getString(R.string.settings_refresh_cache_message)
+            setPadding(padding, 0, 0, 0)
+        }
+        container.addView(progressBar)
+        container.addView(
+            message,
+            LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        return AlertDialog.Builder(requireContext())
+            .setTitle(R.string.settings_refresh_cache_title)
+            .setView(container)
+            .setCancelable(false)
+            .create()
     }
 
     private suspend fun performBackupExport(uri: Uri) {
