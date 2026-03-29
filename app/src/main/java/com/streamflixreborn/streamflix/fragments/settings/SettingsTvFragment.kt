@@ -864,9 +864,6 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun showBackupExportOptions(fileName: String) {
         val options = mutableListOf<Pair<String, () -> Unit>>()
-        options += getString(R.string.backup_db_export_option) to {
-            exportDbBackupLauncher.launch("streamflix_tv_db_backup_${fileName.substringBeforeLast(".")}.zip")
-        }
         if (hasCreateDocumentHandler()) {
             options += getString(R.string.backup_export_picker_option) to {
                 try {
@@ -897,14 +894,6 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun showBackupImportOptions() {
         val options = mutableListOf<Pair<String, () -> Unit>>()
-        options += getString(R.string.backup_db_import_option) to {
-            try {
-                importDbBackupLauncher.launch(arrayOf("application/zip"))
-            } catch (error: ActivityNotFoundException) {
-                Log.w("BackupImportTV", "No document picker available for DB zip", error)
-                Toast.makeText(requireContext(), getString(R.string.backup_picker_unavailable), Toast.LENGTH_LONG).show()
-            }
-        }
         if (hasOpenDocumentHandler()) {
             options += getString(R.string.backup_import_picker_option) to {
                 try {
