@@ -18,6 +18,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.webkit.CookieManager
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -42,6 +43,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
@@ -607,9 +609,61 @@ class PlayerTvFragment : Fragment() {
             val videoSurfaceView = binding.pvPlayer.videoSurfaceView
             val playerResize = UserPreferences.playerResize
 
+            // Let PlayerView handle aspect ratio changes via resizeMode. Manual scale transforms on the
+            // underlying surface can leave stale geometry behind after a quality switch, which is what
+            // causes smaller variants to render in the top-left corner.
             binding.pvPlayer.resizeMode = playerResize.resizeMode
-            videoSurfaceView?.scaleX = 1f
-            videoSurfaceView?.scaleY = 1f
+
+            videoSurfaceView?.apply {
+                scaleX = 1f
+                scaleY = 1f
+                translationX = 0f
+                translationY = 0f
+                pivotX = width / 2f
+                pivotY = height / 2f
+
+                (layoutParams as? FrameLayout.LayoutParams)?.let { params ->
+                    if (
+                        params.width != FrameLayout.LayoutParams.MATCH_PARENT ||
+                        params.height != FrameLayout.LayoutParams.MATCH_PARENT ||
+                        params.gravity != Gravity.CENTER
+                    ) {
+                        layoutParams = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            Gravity.CENTER
+                        )
+                    }
+                }
+
+                requestLayout()
+            }
+            binding.pvPlayer.requestLayout()
+        }
+
+        private fun reloadCurrentVideoForQualityChange() {
+            val video = currentVideo ?: return
+            val server = currentServer ?: return
+            val resumePosition = player.currentPosition
+            val shouldPlay = player.isPlaying || player.playWhenReady
+
+            initializePlayer(currentExtraBuffering, currentSoftwareDecoder)
+            player.playlistMetadata = MediaMetadata.Builder()
+                .setTitle(resolvePlayerTitle())
+                .setMediaServers(servers.map {
+                    MediaServer(
+                        id = it.id,
+                        name = it.name,
+                    )
+                })
+                .build()
+
+            displayVideo(
+                video = video,
+                server = server,
+                startPositionMs = resumePosition,
+                shouldPlay = shouldPlay,
+            )
         }
 
         private fun initializeVideo() {
@@ -714,6 +768,9 @@ class PlayerTvFragment : Fragment() {
             }
             binding.settings.setOnSubDLSubtitleSelectedListener { subtitle ->
                 viewModel.downloadSubDLSubtitle(subtitle.subDLSubtitle)
+            }
+            binding.settings.setOnQualitySelectedListener {
+                reloadCurrentVideoForQualityChange()
             }
             binding.settings.setOnExtraBufferingSelectedListener {
                 displayVideo(
@@ -849,7 +906,12 @@ class PlayerTvFragment : Fragment() {
             }
         }
 
-        private fun displayVideo(video: Video, server: Video.Server) {
+        private fun displayVideo(
+            video: Video,
+            server: Video.Server,
+            startPositionMs: Long? = null,
+            shouldPlay: Boolean = true,
+        ) {
             currentVideo = video
             currentServer = server
             updatePlayerHeader()
@@ -870,7 +932,7 @@ class PlayerTvFragment : Fragment() {
                     .build()
             }
 
-            val currentPosition = player.currentPosition
+            val currentPosition = startPositionMs ?: player.currentPosition
 
             httpDataSource.setDefaultRequestProperties(
                 mapOf(
@@ -1004,7 +1066,29 @@ class PlayerTvFragment : Fragment() {
 
                     if (playbackState == Player.STATE_READY) {
                         binding.pvPlayer.controller.binding.exoPlayPause.nextFocusDownId = -1
+                        val videoFormat = player.videoFormat
+                        updatePlayerScale()
                     }
+                }
+
+                override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                    super.onTracksChanged(tracks)
+                    val videoGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
+                    val videoTracks = videoGroups.sumOf { it.length }
+                    val selectedHeights = buildList {
+                        videoGroups.forEach { group ->
+                            for (i in 0 until group.length) {
+                                if (group.isTrackSelected(i)) {
+                                    add(group.getTrackFormat(i).height)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    super.onVideoSizeChanged(videoSize)
+                    updatePlayerScale()
                 }
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -1100,7 +1184,9 @@ class PlayerTvFragment : Fragment() {
                 }
             })
 
-            if (currentPosition == 0L) {
+            if (startPositionMs != null) {
+                player.seekTo(startPositionMs)
+            } else if (currentPosition == 0L) {
                 val videoType = args.videoType
                 val provider = UserPreferences.currentProvider
                 
@@ -1132,7 +1218,7 @@ class PlayerTvFragment : Fragment() {
             }
 
             player.prepare()
-            player.play()
+            player.playWhenReady = shouldPlay
         }
 
 

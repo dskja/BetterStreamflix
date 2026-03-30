@@ -138,7 +138,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     UserPreferences.qualityHeight = quality.height
                 }
             }
+
+            qualitySelectionListener?.invoke(quality)
         }
+
+    protected var qualitySelectionListener: ((Settings.Quality) -> Unit)? = null
+    fun setOnQualitySelectedListener(listener: (Settings.Quality) -> Unit) {
+        qualitySelectionListener = listener
+    }
 
     protected var onAudioSelected: ((Settings.Audio) -> Unit) =
         fun(audio) {
