@@ -270,6 +270,14 @@
     <string name="backup_export_summary">Sichern Sie Ihre Daten (Favoriten, Verlauf) in einer Datei.</string>
     <string name="backup_import_title">Benutzerdaten importieren</string>
     <string name="backup_import_summary">Wiederherstellung aus einer Backup-Datei.</string>
+    <string name="backup_db_export_title">Datenbank-Backup exportieren</string>
+    <string name="backup_db_export_summary">Speichert einen ZIP-Schnappschuss der App-Datenbanken.</string>
+    <string name="backup_db_import_title">Datenbank-Backup importieren</string>
+    <string name="backup_db_import_summary">Stellt die App-Datenbanken aus einem ZIP-Schnappschuss wieder her.</string>
+    <string name="backup_db_export_option">Datenbank-ZIP exportieren</string>
+    <string name="backup_db_import_option">Datenbank-ZIP importieren</string>
+    <string name="backup_db_export_success">Datenbank-ZIP erfolgreich exportiert.</string>
+    <string name="backup_db_import_success">Datenbank-ZIP erfolgreich importiert.</string>
     <string name="backup_export_success">Sicherung erfolgreich exportiert!</string>
     <string name="backup_export_error_write">Fehler beim Exportieren der Sicherung.</string>
     <string name="backup_export_picker_option">Speicherort auswählen</string>
@@ -451,4 +459,17 @@
     <string name="theme_nord_frost">Nord Frost</string>
     <string name="theme_emerald_luxe">Emerald Luxe</string>
     <string name="theme_retro_neon">Retro Neon</string>
+    <string name="player_settings_software_decoder_title">Software-Dekodierer</string>
+    <string name="player_settings_software_decoder_label">Software-Dekodierer</string>
+    <string name="player_settings_software_decoder_on">Aktiv</string>
+    <string name="player_settings_software_decoder_off">Deaktiviert</string>
+    <string name="player_settings_software_decoder_forced_on">Aktiv (erzwungen)</string>
+    <string name="player_settings_software_decoder_forced_off">Deaktiviert (erzwungen)</string>
+    <string name="player_settings_software_decoder_auto_on">Aktiv (Standard)</string>
+    <string name="player_settings_software_decoder_auto_off">Deaktiviert (Standard)</string>
+    <string name="settings_refresh_cache_title">Cache aus der Datenbank aktualisieren</string>
+    <string name="settings_refresh_cache_summary">Wiedergabeverlauf und App-Daten aus der Datenbank neu laden</string>
+    <string name="settings_refresh_cache_confirm">Cache aktualisieren?</string>
+    <string name="settings_refresh_cache_message">Dadurch werden dein Wiedergabeverlauf und die App-Daten aus der Datenbank neu geladen.</string>
+    <string name="settings_refresh_cache_success">Cache erfolgreich aktualisiert</string>
 </resources>

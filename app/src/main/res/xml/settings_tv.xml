@@ -305,6 +305,21 @@
                 android:key="key_backup_import_tv"
                 android:title="@string/backup_import_title"
                 android:summary="@string/backup_import_summary" />
+
+            <Preference
+                android:key="key_backup_refresh_cache_tv"
+                android:title="@string/settings_refresh_cache_title"
+                android:summary="@string/settings_refresh_cache_summary" />
+
+            <Preference
+                android:key="key_backup_export_db_tv"
+                android:title="@string/backup_db_export_title"
+                android:summary="@string/backup_db_export_summary" />
+
+            <Preference
+                android:key="key_backup_import_db_tv"
+                android:title="@string/backup_db_import_title"
+                android:summary="@string/backup_db_import_summary" />
         </PreferenceCategory>
     </PreferenceScreen>
 

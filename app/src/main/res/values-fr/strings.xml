@@ -284,6 +284,14 @@
     <string name="backup_export_summary">Enregistrez vos données (favoris, historique) dans un fichier.</string>
     <string name="backup_import_title">Importer les données utilisateur</string>
     <string name="backup_import_summary">Restaurez vos données depuis un fichier de sauvegarde.</string>
+    <string name="backup_db_export_title">Exporter la sauvegarde de la base de données</string>
+    <string name="backup_db_export_summary">Enregistrez un instantané ZIP des bases de données de l\'application.</string>
+    <string name="backup_db_import_title">Importer la sauvegarde de la base de données</string>
+    <string name="backup_db_import_summary">Restaurez les bases de données de l\'application depuis un instantané ZIP.</string>
+    <string name="backup_db_export_option">Exporter le ZIP de la base de données</string>
+    <string name="backup_db_import_option">Importer le ZIP de la base de données</string>
+    <string name="backup_db_export_success">La sauvegarde ZIP de la base de données a été exportée avec succès.</string>
+    <string name="backup_db_import_success">La sauvegarde ZIP de la base de données a été importée avec succès.</string>
 
     <string name="backup_export_success">Sauvegarde exportée avec succès !</string>
     <string name="backup_export_error_write">Erreur lors de l\'exportation.</string>
@@ -462,4 +470,17 @@
     <string name="theme_nord_frost">Nord Frost</string>
     <string name="theme_emerald_luxe">Emerald Luxe</string>
     <string name="theme_retro_neon">Retro Neon</string>
+    <string name="player_settings_software_decoder_title">Décodeur logiciel</string>
+    <string name="player_settings_software_decoder_label">Décodeur logiciel</string>
+    <string name="player_settings_software_decoder_on">Actif</string>
+    <string name="player_settings_software_decoder_off">Désactivé</string>
+    <string name="player_settings_software_decoder_forced_on">Actif (forcé)</string>
+    <string name="player_settings_software_decoder_forced_off">Désactivé (forcé)</string>
+    <string name="player_settings_software_decoder_auto_on">Actif (par défaut)</string>
+    <string name="player_settings_software_decoder_auto_off">Désactivé (par défaut)</string>
+    <string name="settings_refresh_cache_title">Actualiser le cache depuis la base de données</string>
+    <string name="settings_refresh_cache_summary">Recharger l\'historique de visionnage et les données de l\'application depuis la base de données</string>
+    <string name="settings_refresh_cache_confirm">Actualiser le cache ?</string>
+    <string name="settings_refresh_cache_message">Cela rechargera l\'historique de visionnage et les données de l\'application depuis la base de données.</string>
+    <string name="settings_refresh_cache_success">Cache actualisé avec succès</string>
 </resources>

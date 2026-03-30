@@ -43,6 +43,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val subDLAdapter = SettingsAdapter(this, Settings.Subtitle.SubDLSubtitles.list)
     private val speedAdapter = SettingsAdapter(this, Settings.Speed.list)
     private val extraBufferingAdapter = SettingsAdapter(this, Settings.ExtraBuffering.list)
+    private val softwareDecoderAdapter = SettingsAdapter(this, Settings.SoftwareDecoder.list)
     private val gesturesAdapter = SettingsAdapter(this, Settings.Gestures.list)
     private val keepScreenOnAdapter = SettingsAdapter(this, Settings.KeepScreenOn.list)
     private val serversAdapter = SettingsAdapter(this, Settings.Server.list)
@@ -71,6 +72,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.GESTURES,
             Setting.KEEP_SCREEN_ON,
             Setting.EXTRA_BUFFERING,
+            Setting.SOFTWARE_DECODER,
             Setting.MANUAL_ZOOM -> displaySettings(Setting.MAIN)
             Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
             Setting.CAPTION_STYLE_FONT_COLOR,
@@ -120,6 +122,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.SUBDL -> context.getString(R.string.player_settings_subdl_title)
                 Setting.SPEED -> context.getString(R.string.player_settings_speed_title)
                 Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
+                Setting.SOFTWARE_DECODER -> context.getString(R.string.player_settings_software_decoder_title)
                 Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
                 Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
                 Setting.GESTURES -> context.getString(R.string.player_settings_gestures_title)
@@ -148,6 +151,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.SUBDL -> subDLAdapter
             Setting.SPEED -> speedAdapter
             Setting.EXTRA_BUFFERING -> extraBufferingAdapter
+            Setting.SOFTWARE_DECODER -> softwareDecoderAdapter
             Setting.SERVERS -> serversAdapter
             Setting.CAPTION_STYLE_MARGIN -> marginAdapter
             Setting.GESTURES -> gesturesAdapter
@@ -205,6 +209,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 Settings.Subtitle -> settingsView.displaySettings(Setting.SUBTITLES)
                                 Settings.Speed -> settingsView.displaySettings(Setting.SPEED)
                                 Settings.ExtraBuffering -> settingsView.displaySettings(Setting.EXTRA_BUFFERING)
+                                Settings.SoftwareDecoder -> settingsView.displaySettings(Setting.SOFTWARE_DECODER)
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
                                 Settings.Gestures -> settingsView.displaySettings(Setting.GESTURES)
                                 Settings.KeepScreenOn -> settingsView.displaySettings(Setting.KEEP_SCREEN_ON)
@@ -354,6 +359,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                             settingsView.displaySettings(Setting.MAIN)
                         }
 
+                        is Settings.SoftwareDecoder -> {
+                            settingsView.onSoftwareDecoderSelected.invoke(item)
+                            settingsView.displaySettings(Setting.MAIN)
+                        }
+
                         is Settings.Gestures -> {
                             when (item) {
                                 is Settings.Gestures.On -> com.streamflixreborn.streamflix.utils.UserPreferences.playerGestures = true
@@ -405,6 +415,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Subtitle -> if (Settings.Subtitle.selected is Settings.Subtitle.TextTrackInformation) R.drawable.ic_player_settings_subtitle_on else R.drawable.ic_player_settings_subtitle_off
                         Settings.Speed -> R.drawable.ic_player_settings_playback_speed
                         Settings.ExtraBuffering -> R.drawable.ic_player_settings_extra_buffer
+                        Settings.SoftwareDecoder -> R.drawable.ic_player_settings_extra_buffer
                         Settings.Server -> R.drawable.ic_player_settings_servers
                         Settings.Gestures -> R.drawable.ic_player_settings_gestures
                         Settings.KeepScreenOn -> R.drawable.ic_brightness
@@ -421,6 +432,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Subtitle -> context.getString(R.string.player_settings_subtitles_label)
                         Settings.Speed -> context.getString(R.string.player_settings_speed_label)
                         Settings.ExtraBuffering -> context.getString(R.string.player_settings_extra_buffer_server_label)
+                        Settings.SoftwareDecoder -> context.getString(R.string.player_settings_software_decoder_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
                         Settings.Gestures -> context.getString(R.string.player_settings_gestures_title)
                         Settings.KeepScreenOn -> context.getString(R.string.player_settings_keep_screen_on_title)
@@ -496,6 +508,8 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.ExtraBuffering -> context.getString(item.stringId)
 
+                    is Settings.SoftwareDecoder -> context.getString(item.stringId)
+
                     is Settings.Gestures -> context.getString(item.stringId)
 
                     is Settings.KeepScreenOn -> context.getString(item.stringId)
@@ -528,6 +542,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         }
                         Settings.Speed -> context.getString(Settings.Speed.selected.stringId)
                         Settings.ExtraBuffering -> context.getString(Settings.ExtraBuffering.selected.stringId)
+                        Settings.SoftwareDecoder -> context.getString(Settings.SoftwareDecoder.selected.stringId)
                         Settings.Gestures -> context.getString(Settings.Gestures.selected.stringId)
                         Settings.KeepScreenOn -> context.getString(Settings.KeepScreenOn.selected.stringId)
                         Settings.Server -> Settings.Server.selected?.name ?: ""
@@ -645,6 +660,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         else -> View.GONE
                     }
 
+                    is Settings.SoftwareDecoder -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
                     is Settings.Gestures -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
@@ -673,6 +693,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                             Settings.Subtitle,
                             Settings.Speed,
                             Settings.ExtraBuffering,
+                            Settings.SoftwareDecoder,
                             Settings.Gestures,
                             Settings.KeepScreenOn,
                             Settings.Server -> View.VISIBLE

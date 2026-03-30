@@ -19,6 +19,9 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.NetworkClient
@@ -50,7 +53,13 @@ class BypassWebViewActivity : AppCompatActivity() {
         setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bypass_webview)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(0, systemBars.top, 0, systemBars.bottom)
+            insets
+        }
         webView = findViewById(R.id.bypass_webview)
         progressBar = findViewById(R.id.bypass_progress)
         statusView = findViewById(R.id.bypass_status)

@@ -282,6 +282,14 @@
     <string name="backup_export_summary">Salva i tuoi dati (preferiti, cronologia visione) in un file.</string>
     <string name="backup_import_title">Importa dati utente</string>
     <string name="backup_import_summary">Ripristina i tuoi dati da un file di backup.</string>
+    <string name="backup_db_export_title">Esporta backup database</string>
+    <string name="backup_db_export_summary">Salva uno snapshot ZIP dei database dell\'app.</string>
+    <string name="backup_db_import_title">Importa backup database</string>
+    <string name="backup_db_import_summary">Ripristina i database dell\'app da uno snapshot ZIP.</string>
+    <string name="backup_db_export_option">Esporta ZIP database</string>
+    <string name="backup_db_import_option">Importa ZIP database</string>
+    <string name="backup_db_export_success">Backup ZIP del database esportato con successo.</string>
+    <string name="backup_db_import_success">Backup ZIP del database importato con successo.</string>
 
     <string name="backup_export_success">Backup esportato con successo!</string>
     <string name="backup_export_error_write">Errore durante l\'esportazione del backup.</string>
@@ -460,4 +468,17 @@
     <string name="theme_nord_frost">Nord Frost</string>
     <string name="theme_emerald_luxe">Emerald Luxe</string>
     <string name="theme_retro_neon">Retro Neon</string>
+    <string name="player_settings_software_decoder_title">Decodificatore software</string>
+    <string name="player_settings_software_decoder_label">Decodificatore software</string>
+    <string name="player_settings_software_decoder_on">Attivo</string>
+    <string name="player_settings_software_decoder_off">Disattivato</string>
+    <string name="player_settings_software_decoder_forced_on">Attivo (forzato)</string>
+    <string name="player_settings_software_decoder_forced_off">Disattivato (forzato)</string>
+    <string name="player_settings_software_decoder_auto_on">Attivo (predefinito)</string>
+    <string name="player_settings_software_decoder_auto_off">Disattivato (predefinito)</string>
+    <string name="settings_refresh_cache_title">Aggiorna cache dal database</string>
+    <string name="settings_refresh_cache_summary">Ricarica cronologia visione e dati dell\'app dal database</string>
+    <string name="settings_refresh_cache_confirm">Aggiornare la cache?</string>
+    <string name="settings_refresh_cache_message">Questo ricaricherà la cronologia visione e i dati dell\'app dal database.</string>
+    <string name="settings_refresh_cache_success">Cache aggiornata con successo</string>
 </resources>

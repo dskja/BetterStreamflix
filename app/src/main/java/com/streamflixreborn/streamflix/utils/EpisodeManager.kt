@@ -1,12 +1,10 @@
 package com.streamflixreborn.streamflix.utils
 
-import android.content.Context
 import com.streamflixreborn.streamflix.database.AppDatabase
-import com.streamflixreborn.streamflix.database.dao.EpisodeDao
+import com.streamflixreborn.streamflix.models.Season
+import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.Video.Type.Episode
-import kotlin.collections.map
-import com.streamflixreborn.streamflix.utils.format
 
 object EpisodeManager {
     private val episodes = mutableListOf<Episode>()
@@ -23,6 +21,25 @@ object EpisodeManager {
         val tvShowId = type.tvShow.id
         val seasonNumber = type.season.number
         var episodesFromDb = database.episodeDao().getByTvShowIdAndSeasonNumber(tvShowId, seasonNumber)
+        val tvShowContext = database.tvShowDao().getById(tvShowId)?.let { storedTvShow ->
+            TvShow(
+                id = storedTvShow.id,
+                title = storedTvShow.title,
+                poster = storedTvShow.poster,
+                banner = storedTvShow.banner,
+                released = storedTvShow.released?.format("yyyy-MM-dd"),
+                imdbId = storedTvShow.imdbId
+            )
+        } ?: TvShow(
+            id = type.tvShow.id,
+            title = type.tvShow.title,
+            poster = type.tvShow.poster,
+            banner = type.tvShow.banner,
+            imdbId = type.tvShow.imdbId
+        )
+        val seasonContext = Season(id = "", number = seasonNumber, title = type.season.title).apply {
+            tvShow = tvShowContext
+        }
         val provider = UserPreferences.currentProvider
         if (provider != null) {
             try {
@@ -31,6 +48,10 @@ object EpisodeManager {
                 if (season != null) {
                     val fetchedEpisodes = provider.getEpisodesBySeason(season.id)
                     if (fetchedEpisodes.isNotEmpty()) {
+                        fetchedEpisodes.forEach { episode ->
+                            episode.tvShow = episode.tvShow ?: tvShow
+                            episode.season = episode.season ?: season
+                        }
                         database.episodeDao().insertAll(fetchedEpisodes)
                         episodesFromDb = fetchedEpisodes
                     }
@@ -41,6 +62,10 @@ object EpisodeManager {
         }
 
         if (episodesFromDb.isNotEmpty()) {
+            episodesFromDb.forEach { episode ->
+                episode.tvShow = episode.tvShow ?: tvShowContext
+                episode.season = episode.season ?: seasonContext
+            }
             addEpisodes(convertToVideoTypeEpisodes(episodesFromDb, database, seasonNumber))
         }
     }
@@ -57,6 +82,9 @@ object EpisodeManager {
 
     fun getCurrentEpisode(): Episode? =
         episodes.getOrNull(currentIndex)
+
+    fun peekNextEpisode(): Episode? =
+        episodes.getOrNull(currentIndex + 1)
 
     fun getNextEpisode(): Episode? {
         if (currentIndex + 1 < episodes.size) {
@@ -90,6 +118,9 @@ object EpisodeManager {
             val tvShowId = ep.tvShow?.id ?: ""
             val seasonFromDb = database.seasonDao().getById(seasonId)
             val tvShowFromDb = database.tvShowDao().getById(tvShowId)
+            val tvShowTitle = tvShowFromDb?.title?.takeUnless { it.isBlank() }
+                ?: ep.tvShow?.title
+                ?: ""
             Episode(
                 id = ep.id,
                 number = ep.number,
@@ -98,7 +129,7 @@ object EpisodeManager {
                 overview = ep.overview,
                 tvShow = Episode.TvShow(
                     id = tvShowId,
-                    title = tvShowFromDb?.title ?: "",
+                    title = tvShowTitle,
                     poster = tvShowFromDb?.poster ?: ep.tvShow?.poster,
                     banner = tvShowFromDb?.banner ?: ep.tvShow?.banner,
                     releaseDate = tvShowFromDb?.released?.format("yyyy-MM-dd") ?: ep.tvShow?.released?.format("yyyy-MM-dd"),

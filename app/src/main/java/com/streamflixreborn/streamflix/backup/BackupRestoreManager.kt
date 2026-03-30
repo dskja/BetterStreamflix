@@ -3,6 +3,7 @@ package com.streamflixreborn.streamflix.backup
 import android.content.Context
 import android.util.Log
 import androidx.room.Transaction
+import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.database.dao.EpisodeDao
 import com.streamflixreborn.streamflix.database.dao.MovieDao
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
@@ -12,16 +13,28 @@ import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.utils.UserDataCache
+import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
 import java.util.Calendar
+import java.util.Locale
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 data class ProviderBackupContext(
     val name: String,
     val movieDao: MovieDao,
     val tvShowDao: TvShowDao,
     val episodeDao: EpisodeDao,
-    val seasonDao: SeasonDao // Aggiunto SeasonDao
+    val seasonDao: SeasonDao,
+    val provider: Provider
 )
 
 class BackupRestoreManager(
@@ -29,6 +42,42 @@ class BackupRestoreManager(
     private val providers: List<ProviderBackupContext>
 ) {
     private val TAG = "BackupVerify"
+
+    suspend fun refreshCachesFromDatabase(): Boolean {
+        return try {
+            providers.forEach { buildCacheForProvider(it) }
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error refreshing caches from database", t)
+            false
+        }
+    }
+
+    fun exportDatabaseZip(): ByteArray? {
+        return try {
+            val output = ByteArrayOutputStream()
+            ZipOutputStream(output).use { zip ->
+                providers.forEach { providerCtx ->
+                    addDatabaseFilesToZip(zip, providerCtx.name)
+                }
+            }
+            output.toByteArray()
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error exporting database zip", t)
+            null
+        }
+    }
+
+    suspend fun importDatabaseZip(zipBytes: ByteArray): Boolean {
+        return try {
+            AppDatabase.resetInstance()
+            restoreDatabaseZip(ByteArrayInputStream(zipBytes))
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error importing database zip", t)
+            false
+        }
+    }
 
     fun exportUserData(): String? {
         return try {
@@ -63,6 +112,7 @@ class BackupRestoreManager(
                         put("poster", movie.poster)
                         put("banner", movie.banner)
                         put("isFavorite", movie.isFavorite)
+                        put("favoritedAtMillis", movie.favoritedAtMillis ?: JSONObject.NULL)
                         put("isWatched", movie.isWatched)
                         put("watchedDate", movie.watchedDate?.timeInMillis ?: JSONObject.NULL)
                         put("watchHistory", movie.watchHistory?.toJson() ?: JSONObject.NULL)
@@ -81,6 +131,7 @@ class BackupRestoreManager(
                         put("poster", show.poster)
                         put("banner", show.banner)
                         put("isFavorite", show.isFavorite)
+                        put("favoritedAtMillis", show.favoritedAtMillis ?: JSONObject.NULL)
                         put("isWatching", show.isWatching)
                     }
                     tvShowsArray.put(obj)
@@ -137,7 +188,7 @@ class BackupRestoreManager(
 
     // Eseguo l'intera operazione di importazione come transazione per l'atomicità
     @Transaction
-    fun importUserData(json: String): Boolean {
+    suspend fun importUserData(json: String): Boolean {
         return try {
             val obj = JSONObject(json)
             val providersArray = obj.optJSONArray("providers") ?: return false
@@ -179,6 +230,7 @@ class BackupRestoreManager(
                     for (j in 0 until arr.length()) {
                         val s = arr.optJSONObject(j) ?: continue
                         val isFavorite = s.optBoolean("isFavorite", false)
+                        val favoritedAtMillis = s.optLongOrNull("favoritedAtMillis")
                         val isWatching = s.optBoolean("isWatching", false) // Corretto il default a false
 
                         val tvShow = TvShow(
@@ -188,6 +240,7 @@ class BackupRestoreManager(
                             poster = s.optStringOrNull("poster")
                             banner = s.optStringOrNull("banner")
                             this.isFavorite = isFavorite
+                            this.favoritedAtMillis = favoritedAtMillis
                             this.isWatching = isWatching
                         }
                         providerCtx.tvShowDao.save(tvShow)
@@ -200,6 +253,7 @@ class BackupRestoreManager(
                     for (j in 0 until arr.length()) {
                         val m = arr.optJSONObject(j) ?: continue
                         val isFavorite = m.optBoolean("isFavorite", false)
+                        val favoritedAtMillis = m.optLongOrNull("favoritedAtMillis")
                         val isWatched = m.optBoolean("isWatched", false)
                         val watchedDate = m.optLongOrNull("watchedDate")?.toCalendar()
                         val watchHistory = m.optJSONObject("watchHistory")?.toWatchHistory()
@@ -211,6 +265,7 @@ class BackupRestoreManager(
                             poster = m.optStringOrNull("poster")
                             banner = m.optStringOrNull("banner")
                             this.isFavorite = isFavorite
+                            this.favoritedAtMillis = favoritedAtMillis
                             this.isWatched = isWatched
                             this.watchedDate = watchedDate
                             this.watchHistory = watchHistory
@@ -242,6 +297,8 @@ class BackupRestoreManager(
                         Log.d(TAG, "IMPORT: [${providerName}] Episode: ${ep.title}. Watched: $isWatched, History: ${watchHistory != null}")
                     }
                 }
+
+                buildCacheForProvider(providerCtx)
             }
 
             Log.d(TAG, "Import completed successfully")
@@ -250,6 +307,59 @@ class BackupRestoreManager(
             Log.e(TAG, "Error during importUserData", t)
             false
         }
+    }
+
+    private suspend fun buildCacheForProvider(providerCtx: ProviderBackupContext) {
+        try {
+            val movies = providerCtx.movieDao.getFavorites().first()
+            val tvShows = providerCtx.tvShowDao.getFavorites().first()
+            val watchingMovies = providerCtx.movieDao.getWatchingMovies().first()
+            val watchingEpisodes = providerCtx.episodeDao.getWatchingEpisodes().first()
+
+            UserDataCache.writeMovies(context, providerCtx.provider, movies + watchingMovies)
+            UserDataCache.writeTvShows(context, providerCtx.provider, tvShows)
+            UserDataCache.writeEpisodes(context, providerCtx.provider, watchingEpisodes)
+            Log.d(TAG, "CACHE: Built cache for provider ${providerCtx.name}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error building cache for provider ${providerCtx.name}", e)
+        }
+    }
+
+    private fun addDatabaseFilesToZip(zip: ZipOutputStream, providerName: String) {
+        val dbName = sanitizedDbName(providerName)
+        listOf("", "-wal", "-shm").forEach { suffix ->
+            val file = context.getDatabasePath("$dbName.db$suffix")
+            if (!file.exists()) return@forEach
+            zip.putNextEntry(ZipEntry("databases/${file.name}"))
+            file.inputStream().use { input -> input.copyTo(zip) }
+            zip.closeEntry()
+        }
+    }
+
+    private fun restoreDatabaseZip(input: InputStream) {
+        ZipInputStream(input).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory && entry.name.startsWith("databases/")) {
+                    val fileName = entry.name.removePrefix("databases/")
+                    val target = context.getDatabasePath(fileName)
+                    target.parentFile?.mkdirs()
+                    if (target.exists()) target.delete()
+                    target.outputStream().use { output ->
+                        zip.copyTo(output)
+                    }
+                }
+                zip.closeEntry()
+                entry = zip.nextEntry
+            }
+        }
+    }
+
+    private fun sanitizedDbName(providerName: String): String {
+        return providerName.lowercase(Locale.getDefault())
+            .replace("[^a-z0-9]".toRegex(), "_")
+            .replace("__+".toRegex(), "_")
+            .trim('_')
     }
 
 
@@ -263,12 +373,17 @@ private fun WatchItem.WatchHistory.toJson(): JSONObject =
         put("durationMillis", durationMillis)
     }
 
-private fun JSONObject.toWatchHistory(): WatchItem.WatchHistory =
-    WatchItem.WatchHistory(
-        optLong("lastEngagementTimeUtcMillis", 0L),
-        optLong("lastPlaybackPositionMillis", 0L),
-        optLong("durationMillis", 0L)
+private fun JSONObject.toWatchHistory(): WatchItem.WatchHistory? {
+    val duration = optLong("durationMillis", 0L)
+
+    if (duration <= 0) return null
+
+    return WatchItem.WatchHistory(
+        lastEngagementTimeUtcMillis = optLong("lastEngagementTimeUtcMillis", 0L),
+        lastPlaybackPositionMillis = optLong("lastPlaybackPositionMillis", 0L),
+        durationMillis = duration
     )
+}
 
 
 private fun JSONObject.optLongOrNull(name: String): Long? {

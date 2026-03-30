@@ -2,12 +2,18 @@ package com.streamflixreborn.streamflix.models
 
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.utils.format
 import com.streamflixreborn.streamflix.utils.toCalendar
 
-@Entity("tv_shows")
+@Entity(
+    "tv_shows",
+    indices = [
+        Index(value = ["isWatching"]),
+    ]
+)
 class TvShow(
     @PrimaryKey
     var id: String = "",
@@ -40,12 +46,22 @@ class TvShow(
 ) : Show, AppAdapter.Item {
 
     var released = released?.toCalendar()
+    var favoritedAtMillis: Long? = null
 
     var isWatching: Boolean = true
 
     val episodeToWatch: Episode?
         get() {
-            val episodes = seasons.flatMap { it.episodes }
+            val episodes = seasons
+                .sortedWith(compareBy<Season> { it.number == 0 }.thenBy { it.number })
+                .flatMap { season ->
+                    season.episodes
+                        .sortedBy { it.number }
+                        .onEach { episode ->
+                            episode.season = season
+                            episode.tvShow = this
+                        }
+                }
             val episode = episodes
                 .filter { it.watchHistory != null }
                 .sortedByDescending { it.watchHistory?.lastEngagementTimeUtcMillis }
@@ -60,12 +76,14 @@ class TvShow(
 
     fun isSame(tvShow: TvShow): Boolean {
         if (isFavorite != tvShow.isFavorite) return false
+        if (favoritedAtMillis != tvShow.favoritedAtMillis) return false
         if (isWatching != tvShow.isWatching) return false
         return true
     }
 
     fun merge(tvShow: TvShow): TvShow {
         this.isFavorite = tvShow.isFavorite
+        this.favoritedAtMillis = tvShow.favoritedAtMillis
         this.isWatching = tvShow.isWatching
         return this
     }
@@ -137,6 +155,7 @@ class TvShow(
         if (recommendations != other.recommendations) return false
         if (released != other.released) return false
         if (isFavorite != other.isFavorite) return false
+        if (favoritedAtMillis != other.favoritedAtMillis) return false
         if (isWatching != other.isWatching) return false
         if (isFavorite != other.isFavorite) return false
         if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
@@ -161,6 +180,7 @@ class TvShow(
         result = 31 * result + recommendations.hashCode()
         result = 31 * result + (released?.hashCode() ?: 0)
         result = 31 * result + isFavorite.hashCode()
+        result = 31 * result + (favoritedAtMillis?.hashCode() ?: 0)
         result = 31 * result + isWatching.hashCode()
         result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
         return result

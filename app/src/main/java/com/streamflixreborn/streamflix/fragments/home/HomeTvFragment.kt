@@ -53,6 +53,7 @@ class HomeTvFragment : Fragment() {
     private val appAdapter = AppAdapter()
 
     private val swiperHandler = Handler(Looper.getMainLooper())
+    private var isBackgroundPinned = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -150,6 +151,7 @@ class HomeTvFragment : Fragment() {
 
     private var swiperHasLastFocus: Boolean = false
     fun updateBackground(uri: String?, swiperHasFocus: Boolean? = false) {
+        if (swiperHasFocus == null && isBackgroundPinned) return
         if (swiperHasFocus == null && !swiperHasLastFocus) return
 
         Glide.with(requireContext())
@@ -157,6 +159,20 @@ class HomeTvFragment : Fragment() {
             .transition(DrawableTransitionOptions.withCrossFade())
             .into(binding.ivHomeBackground)
         swiperHasLastFocus = swiperHasFocus ?: swiperHasLastFocus
+    }
+
+    fun pinBackground(uri: String?) {
+        isBackgroundPinned = true
+        Glide.with(requireContext())
+            .load(uri)
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .into(binding.ivHomeBackground)
+    }
+
+    fun releasePinnedBackground() {
+        if (!isBackgroundPinned) return
+        isBackgroundPinned = false
+        syncFeaturedBackground()
     }
 
     private fun initializeHome() {
@@ -242,6 +258,11 @@ class HomeTvFragment : Fragment() {
         swiperHandler.removeCallbacksAndMessages(null)
         swiperHandler.postDelayed(object : Runnable {
             override fun run() {
+                if (isBackgroundPinned) {
+                    swiperHandler.postDelayed(this, 8_000)
+                    return
+                }
+
                 val position = appAdapter.items
                     .filterIsInstance<Category>()
                     .find { it.name == Category.FEATURED }
@@ -273,5 +294,23 @@ class HomeTvFragment : Fragment() {
                 swiperHandler.postDelayed(this, 8_000)
             }
         }, 8_000)
+    }
+
+    private fun syncFeaturedBackground() {
+        val featured = appAdapter.items
+            .filterIsInstance<Category>()
+            .find { it.name == Category.FEATURED }
+            ?: return
+
+        val currentItem = featured.list.getOrNull(featured.selectedIndex)
+        val poster = when (currentItem) {
+            is Movie -> currentItem.banner
+            is TvShow -> currentItem.banner
+            else -> null
+        }
+
+        if (poster != null) {
+            updateBackground(poster, null)
+        }
     }
 }

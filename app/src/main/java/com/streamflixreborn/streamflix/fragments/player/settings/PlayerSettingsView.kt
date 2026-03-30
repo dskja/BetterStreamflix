@@ -26,7 +26,7 @@ import com.streamflixreborn.streamflix.utils.mediaServerId
 import com.streamflixreborn.streamflix.utils.mediaServers
 import com.streamflixreborn.streamflix.utils.setAlpha
 import com.streamflixreborn.streamflix.utils.setRgb
-import com.streamflixreborn.streamflix.utils.trackFormats
+import com.streamflixreborn.streamflix.utils.supportedTrackFormats
 import kotlin.math.roundToInt
 
 abstract class PlayerSettingsView @JvmOverloads constructor(
@@ -101,6 +101,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         SUBDL,
         SPEED,
         EXTRA_BUFFERING,
+        SOFTWARE_DECODER,
         SERVERS,
         GESTURES,
         KEEP_SCREEN_ON,
@@ -115,6 +116,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 is Settings.Quality.Auto -> {
                     player.trackSelectionParameters = player.trackSelectionParameters
                         .buildUpon()
+                        .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
                         .setMaxVideoBitrate(Int.MAX_VALUE)
                         .setForceHighestSupportedBitrate(false)
                         .build()
@@ -124,13 +126,26 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 is Settings.Quality.VideoTrackInformation -> {
                     player.trackSelectionParameters = player.trackSelectionParameters
                         .buildUpon()
-                        .setMaxVideoBitrate(quality.bitrate)
-                        .setForceHighestSupportedBitrate(true)
+                        .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                        .setOverrideForType(
+                            TrackSelectionOverride(
+                                quality.trackGroup.mediaTrackGroup,
+                                listOf(quality.trackIndex)
+                            )
+                        )
+                        .setForceHighestSupportedBitrate(false)
                         .build()
                     UserPreferences.qualityHeight = quality.height
                 }
             }
+
+            qualitySelectionListener?.invoke(quality)
         }
+
+    protected var qualitySelectionListener: ((Settings.Quality) -> Unit)? = null
+    fun setOnQualitySelectedListener(listener: (Settings.Quality) -> Unit) {
+        qualitySelectionListener = listener
+    }
 
     protected var onAudioSelected: ((Settings.Audio) -> Unit) =
         fun(audio) {
@@ -334,6 +349,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         this.onExtraBufferingListener = listener
     }
 
+    protected var onSoftwareDecoderListener: ((Boolean) -> Unit)? = null
+    fun setOnSoftwareDecoderSelectedListener(listener: (Boolean) -> Unit) {
+        this.onSoftwareDecoderListener = listener
+    }
+
     protected var onExtraBufferingSelected: ((Settings.ExtraBuffering) -> Unit) =
         fun(extraBuffering) {
             val newValue = when (extraBuffering) {
@@ -342,6 +362,16 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
             }
             Settings.ExtraBuffering.selectedValue = if (newValue == Settings.ExtraBuffering.isDefaultEnabled) null else newValue
             onExtraBufferingListener?.invoke(newValue)
+        }
+
+    protected var onSoftwareDecoderSelected: ((Settings.SoftwareDecoder) -> Unit) =
+        fun(softwareDecoder) {
+            val newValue = when (softwareDecoder) {
+                is Settings.SoftwareDecoder.On -> true
+                is Settings.SoftwareDecoder.Off -> false
+            }
+            Settings.SoftwareDecoder.selectedValue = if (newValue == Settings.SoftwareDecoder.isDefaultEnabled) null else newValue
+            onSoftwareDecoderListener?.invoke(newValue)
         }
 
     protected var onServerSelected: ((Settings.Server) -> Unit)? = null
@@ -362,6 +392,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Speed,
                 Server,
                 ExtraBuffering,
+                SoftwareDecoder,
                 Gestures,
                 KeepScreenOn,
                 ManualZoom,
@@ -373,6 +404,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Speed,
                 Server,
                 ExtraBuffering,
+                SoftwareDecoder,
                 ManualZoom,
             )
         }
@@ -457,6 +489,48 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
             }
         }
 
+        sealed class SoftwareDecoder : Item {
+            companion object : Settings() {
+                var isDefaultEnabled = false
+                var selectedValue: Boolean? = null
+
+                val isEnabled: Boolean get() = selectedValue ?: (isDefaultEnabled)
+
+                val list = listOf(On, Off)
+
+                val selected: SoftwareDecoder
+                    get() = if (isEnabled) On else Off
+
+                fun init(defaultEnabled: Boolean) {
+                    isDefaultEnabled = defaultEnabled
+                    selectedValue = null
+                }
+            }
+
+            abstract val isSelected: Boolean
+            abstract val stringId: Int
+
+            data object On : SoftwareDecoder() {
+                override val isSelected: Boolean get() = isEnabled
+                override val stringId: Int
+                    get() = when {
+                        selectedValue == null && isDefaultEnabled -> R.string.player_settings_software_decoder_auto_on
+                        selectedValue == true && !isDefaultEnabled -> R.string.player_settings_software_decoder_forced_on
+                        else -> R.string.player_settings_software_decoder_on
+                    }
+            }
+
+            data object Off : SoftwareDecoder() {
+                override val isSelected: Boolean get() = !isEnabled
+                override val stringId: Int
+                    get() = when {
+                        selectedValue == null && !isDefaultEnabled -> R.string.player_settings_software_decoder_auto_off
+                        selectedValue == false && isDefaultEnabled -> R.string.player_settings_software_decoder_forced_off
+                        else -> R.string.player_settings_software_decoder_off
+                    }
+            }
+        }
+
         sealed class Quality : Item {
 
             companion object : Settings() {
@@ -472,20 +546,25 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         player.currentTracks.groups
                             .filter { it.type == C.TRACK_TYPE_VIDEO }
                             .flatMap { trackGroup ->
-                                trackGroup.trackFormats
-                                    .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .distinctBy { it.width to it.height }
-                                    .map { trackFormat ->
+                                (0 until trackGroup.length)
+                                    .mapNotNull { trackIndex ->
+                                        val trackFormat = trackGroup.getTrackFormat(trackIndex)
+                                        if (trackFormat.selectionFlags and C.SELECTION_FLAG_FORCED != 0) {
+                                            return@mapNotNull null
+                                        }
+
                                         VideoTrackInformation(
                                             name = DefaultTrackNameProvider(resources)
                                                 .getTrackName(trackFormat),
                                             width = trackFormat.width,
                                             height = trackFormat.height,
                                             bitrate = trackFormat.bitrate,
-
+                                            trackGroup = trackGroup,
+                                            trackIndex = trackIndex,
                                             player = player,
                                         )
                                     }
+                                    .distinctBy { it.width to it.height }
                             }
                             .sortedByDescending { it.height }
                     )
@@ -495,8 +574,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         ?.let {
                             player.trackSelectionParameters = player.trackSelectionParameters
                                 .buildUpon()
-                                .setMaxVideoBitrate(it.bitrate)
-                                .setForceHighestSupportedBitrate(true)
+                                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                                .setOverrideForType(
+                                    TrackSelectionOverride(
+                                        it.trackGroup.mediaTrackGroup,
+                                        listOf(it.trackIndex)
+                                    )
+                                )
+                                .setForceHighestSupportedBitrate(false)
                                 .build()
                         }
                 }
@@ -520,7 +605,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 val width: Int,
                 val height: Int,
                 val bitrate: Int,
-
+                val trackGroup: Tracks.Group,
+                val trackIndex: Int,
                 val player: ExoPlayer,
             ) : Quality() {
                 val isCurrentlyPlayed: Boolean
@@ -532,7 +618,10 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         return bitrateMatch || resolutionMatch
                     }
                 override val isSelected: Boolean
-                    get() = player.trackSelectionParameters.maxVideoBitrate == bitrate
+                    get() = player.trackSelectionParameters.overrides.values.any { override ->
+                        override.mediaTrackGroup == trackGroup.mediaTrackGroup &&
+                            override.trackIndices.contains(trackIndex)
+                    }
             }
         }
 
@@ -558,9 +647,9 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         player.currentTracks.groups
                             .filter { it.type == C.TRACK_TYPE_AUDIO }
                             .flatMap { trackGroup ->
-                                trackGroup.trackFormats
-                                    .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .mapIndexed { trackIndex, trackFormat ->
+                                trackGroup.supportedTrackFormats
+                                    .filter { it.format.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
+                                    .map { (trackIndex, trackFormat) ->
                                         val trackName = DefaultTrackNameProvider(resources)
                                             .getTrackName(trackFormat)
                                         
@@ -619,9 +708,9 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         player.currentTracks.groups
                             .filter { it.type == C.TRACK_TYPE_TEXT }
                             .flatMap { trackGroup ->
-                                trackGroup.trackFormats
-                                    .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .mapIndexed { trackIndex, trackFormat ->
+                                trackGroup.supportedTrackFormats
+                                    .filter { it.format.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
+                                    .map { (trackIndex, trackFormat) ->
                                         TextTrackInformation(
                                             name = DefaultTrackNameProvider(resources)
                                                 .getTrackName(trackFormat),

@@ -35,6 +35,10 @@ class PlayerTvView @JvmOverloads constructor(
 
     fun exitManualZoomMode() {
         isManualZoomEnabled = false
+        videoSurfaceView?.apply {
+            scaleX = 1f
+            scaleY = 1f
+        }
         zoomToast?.cancel()
         player?.play()
     }

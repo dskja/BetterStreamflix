@@ -44,7 +44,9 @@ import com.streamflixreborn.streamflix.fragments.genre.GenreTvFragmentDirections
 import com.streamflixreborn.streamflix.fragments.people.PeopleMobileFragmentDirections
 import com.streamflixreborn.streamflix.fragments.people.PeopleTvFragmentDirections
 import com.streamflixreborn.streamflix.fragments.home.HomeMobileFragmentDirections
+import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
+import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.ui.SpacingItemDecoration
@@ -158,6 +160,24 @@ class TvShowViewHolder(
         }
     }
 
+    private fun resolveEpisodeSeason(episode: Episode?): Season? {
+        if (episode == null) return null
+
+        val currentSeason = episode.season
+        val seasonKey = episode.id.substringBeforeLast("/", "")
+            .takeIf { it.isNotBlank() }
+        if (currentSeason != null && currentSeason.number != 0) {
+            return currentSeason
+        }
+
+        return tvShow.seasons.firstOrNull { season ->
+            season.id == seasonKey ||
+                season.id == currentSeason?.id ||
+                season.episodes.any { it.id == episode.id } ||
+                (episode.number != 0 && season.episodes.any { it.number == episode.number && it.title == episode.title })
+        } ?: currentSeason
+    }
+
     private fun setPoster(imageView: ImageView) {
         imageView.scaleType = if (isIptvProvider()) ImageView.ScaleType.FIT_CENTER else ImageView.ScaleType.CENTER_CROP
         imageView.loadTvShowPoster(tvShow) {
@@ -176,6 +196,10 @@ class TvShowViewHolder(
                 }
             }
         }
+        binding.root.setOnLongClickListener {
+            ShowOptionsMobileDialog(context, tvShow).show()
+            true
+        }
         setPoster(binding.ivTvShowPoster)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
@@ -184,7 +208,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -204,12 +229,20 @@ class TvShowViewHolder(
                     }
                 }
             }
+            setOnLongClickListener {
+                ShowOptionsTvDialog(context, tvShow).show()
+                true
+            }
             setOnFocusChangeListener { _, hasFocus ->
                 val animation = if (hasFocus) AnimationUtils.loadAnimation(context, R.anim.zoom_in) else AnimationUtils.loadAnimation(context, R.anim.zoom_out)
                 startAnimation(animation)
                 animation.fillAfter = true
-                if (hasFocus) {
-                    (context.toActivity()?.getCurrentFragment() as? HomeTvFragment)?.updateBackground(tvShow.banner)
+                (context.toActivity()?.getCurrentFragment() as? HomeTvFragment)?.let { fragment ->
+                    if (hasFocus) {
+                        fragment.pinBackground(tvShow.banner)
+                    } else {
+                        fragment.releasePinnedBackground()
+                    }
                 }
             }
         }
@@ -221,7 +254,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -240,6 +274,10 @@ class TvShowViewHolder(
                 }
             }
         }
+        binding.root.setOnLongClickListener {
+            ShowOptionsMobileDialog(context, tvShow).show()
+            true
+        }
         setPoster(binding.ivTvShowPoster)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
@@ -248,7 +286,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -268,6 +307,10 @@ class TvShowViewHolder(
                     }
                 }
             }
+            setOnLongClickListener {
+                ShowOptionsTvDialog(context, tvShow).show()
+                true
+            }
             setOnFocusChangeListener { _, hasFocus ->
                 val animation = if (hasFocus) AnimationUtils.loadAnimation(context, R.anim.zoom_in) else AnimationUtils.loadAnimation(context, R.anim.zoom_out)
                 startAnimation(animation)
@@ -282,7 +325,8 @@ class TvShowViewHolder(
         binding.pbTvShowProgress.apply {
             val watchHistory = tvShow.episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 ->
+                    (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
                 else -> 0
             }
             isVisible = watchHistory != null
@@ -485,6 +529,7 @@ class TvShowViewHolder(
 
         binding.tvTvShowOverview.text = tvShow.overview
         val episodeToWatch = tvShow.episodeToWatch
+        val episodeSeason = resolveEpisodeSeason(episodeToWatch)
         binding.btnTvShowWatchNow.apply {
             isVisible = episodeToWatch != null
             setOnClickListener {
@@ -506,8 +551,8 @@ class TvShowViewHolder(
                             imdbId = tvShow.imdbId,
                         ),
                         season = Video.Type.Episode.Season(
-                            number = episodeToWatch.season?.number ?: 1,
-                            title = episodeToWatch.season?.title ?: "",
+                            number = episodeSeason?.number ?: 1,
+                            title = episodeSeason?.title ?: "",
                         ),
                     )
                     val args = Bundle().apply {
@@ -519,7 +564,7 @@ class TvShowViewHolder(
                     findNavController().navigate(R.id.player, args)
                 }
             }
-            text = if (isIptvProvider()) context.getString(R.string.movie_watch_now) else context.getString(R.string.tv_show_watch_season_episode, episodeToWatch?.season?.number ?: 1, episodeToWatch?.number ?: 1)
+            text = if (isIptvProvider()) context.getString(R.string.movie_watch_now) else context.getString(R.string.tv_show_watch_season_episode, episodeSeason?.number ?: 1, episodeToWatch?.number ?: 1)
         }
 
         binding.pbTvShowProgressEpisode.apply {
@@ -618,6 +663,7 @@ class TvShowViewHolder(
 
         binding.tvTvShowOverview.text = tvShow.overview
         val episodeToWatch = tvShow.episodeToWatch
+        val episodeSeason = resolveEpisodeSeason(episodeToWatch)
         binding.btnTvShowWatchNow.apply {
             isVisible = episodeToWatch != null
             setOnClickListener {
@@ -639,8 +685,8 @@ class TvShowViewHolder(
                             imdbId = tvShow.imdbId,
                         ),
                         season = Video.Type.Episode.Season(
-                            number = episodeToWatch.season?.number ?: 1,
-                            title = episodeToWatch.season?.title ?: "",
+                            number = episodeSeason?.number ?: 1,
+                            title = episodeSeason?.title ?: "",
                         ),
                     )
                     val args = Bundle().apply {
@@ -652,7 +698,7 @@ class TvShowViewHolder(
                     findNavController().navigate(R.id.player, args)
                 }
             }
-            text = if (isIptvProvider()) context.getString(R.string.movie_watch_now) else context.getString(R.string.tv_show_watch_season_episode, episodeToWatch?.season?.number ?: 1, episodeToWatch?.number ?: 1)
+            text = if (isIptvProvider()) context.getString(R.string.movie_watch_now) else context.getString(R.string.tv_show_watch_season_episode, episodeSeason?.number ?: 1, episodeToWatch?.number ?: 1)
         }
 
         binding.pbTvShowProgressEpisode.apply {

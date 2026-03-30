@@ -17,17 +17,11 @@ import com.streamflixreborn.streamflix.fragments.home.HomeMobileFragmentDirectio
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
-import com.streamflixreborn.streamflix.utils.loadMoviePoster
-import com.streamflixreborn.streamflix.utils.loadTvShowPoster
-import com.streamflixreborn.streamflix.utils.ArtworkRepair
-import com.streamflixreborn.streamflix.utils.UserPreferences
-import com.streamflixreborn.streamflix.utils.format
-import com.streamflixreborn.streamflix.utils.getCurrentFragment
-import com.streamflixreborn.streamflix.utils.toActivity
 import com.streamflixreborn.streamflix.providers.Provider
-import java.util.Calendar
+import com.streamflixreborn.streamflix.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.*
 
 class ShowOptionsMobileDialog(
     context: Context,
@@ -40,7 +34,7 @@ class ShowOptionsMobileDialog(
         get() = AppDatabase.getInstance(context)
 
     private fun checkProviderAndRun(show: AppAdapter.Item, action: () -> Unit) {
-        val providerName = when(show){
+        val providerName = when (show) {
             is Movie -> show.providerName
             is TvShow -> show.providerName
             is Episode -> show.tvShow?.providerName
@@ -74,6 +68,8 @@ class ShowOptionsMobileDialog(
 
 
     private fun displayEpisode(episode: Episode) {
+        val provider = UserPreferences.currentProvider
+
         Glide.with(context)
             .load(episode.poster ?: episode.tvShow?.poster)
             .fitCenter()
@@ -128,7 +124,8 @@ class ShowOptionsMobileDialog(
         binding.btnOptionShowWatched.apply {
             setOnClickListener {
                 checkProviderAndRun(episode) {
-                    AppDatabase.getInstance(context).episodeDao().save(episode.copy().apply {
+                    val currentProvider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+                    val updatedEpisode = episode.copy().apply {
                         merge(episode)
                         isWatched = !isWatched
                         if (isWatched) {
@@ -137,7 +134,9 @@ class ShowOptionsMobileDialog(
                         } else {
                             watchedDate = null
                         }
-                    })
+                    }
+                    AppDatabase.getInstance(context).episodeDao().save(updatedEpisode)
+                    UserDataCache.syncEpisodeToCache(context, currentProvider, updatedEpisode)
 
                     // NUOVA LOGICA: Aggiorna lo stato isWatching della serie TV madre
                     episode.tvShow?.let { tvShow ->
@@ -146,12 +145,16 @@ class ShowOptionsMobileDialog(
 
                         // Se l'episodio è stato marcato come VISTO E non ci sono altri
                         // episodi con cronologia, impostiamo isWatching a false.
-                        if (episode.isWatched && !isStillWatching) {
+                        if (updatedEpisode.isWatched && !isStillWatching) {
                             AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
                                 merge(tvShow)
                                 isWatching = false
                             })
+                            UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                         }
+                    }
+                    if (updatedEpisode.isWatched) {
+                        UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                     }
                 }
 
@@ -170,19 +173,21 @@ class ShowOptionsMobileDialog(
                     val episodeDao = AppDatabase.getInstance(context).episodeDao()
                     val episodeNumber = episode.number
                     val tvShowId = episode.tvShow?.id ?: return@checkProviderAndRun
-                    val allEpisodes = episodeDao.getEpisodesByTvShowId(tvShowId)
-
+                    val allEpisodes = episodeDao.getEpisodesByTvShowIdAndSeason(tvShowId, episode.season?.id).filter { it.number <= episodeNumber }
                     val targetState = !episode.isWatched // If current is watched, we unwatch; else, we mark watched
                     val now = Calendar.getInstance()
+                    val currentProvider = UserPreferences.currentProvider ?: return@checkProviderAndRun
 
                     for (ep in allEpisodes) {
-                        if (ep.number <= episodeNumber && ep.isWatched != targetState) {
-                            episodeDao.save(ep.copy().apply {
+                        if (ep.isWatched != targetState) {
+                            val updatedEp = ep.copy().apply {
                                 merge(ep)
                                 isWatched = targetState
                                 watchedDate = if (targetState) now else null
                                 watchHistory = if (targetState) null else watchHistory
-                            })
+                            }
+                            episodeDao.save(updatedEp)
+                            UserDataCache.syncEpisodeToCache(context, currentProvider, updatedEp)
                         }
                     }
 
@@ -195,8 +200,10 @@ class ShowOptionsMobileDialog(
                                     merge(tvShow)
                                     isWatching = false
                                 })
+                                UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                             }
                         }
+                        UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                     }
                     // Se l'obiettivo era marcare come NON VISTO, impostiamo isWatching a true per farlo riapparire.
                     if (!targetState) {
@@ -219,13 +226,18 @@ class ShowOptionsMobileDialog(
             visibility = View.VISIBLE
         }
 
+
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
                 checkProviderAndRun(episode) {
-                    AppDatabase.getInstance(context).episodeDao().save(episode.copy().apply {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+                    val updatedEpisode = episode.copy().apply {
                         merge(episode)
                         watchHistory = null
-                    })
+                    }
+                    AppDatabase.getInstance(context).episodeDao().save(updatedEpisode)
+                    UserDataCache.syncEpisodeToCache(context, provider, updatedEpisode)
+                    
                     episode.tvShow?.let { tvShow ->
                         // Rimuoviamo isWatching solo se NON ci sono altri episodi in corso
                         val episodeDao = AppDatabase.getInstance(context).episodeDao()
@@ -234,8 +246,10 @@ class ShowOptionsMobileDialog(
                                 merge(tvShow)
                                 isWatching = false
                             })
+                            UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                         }
                     }
+                    UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                 }
 
                 hide()
@@ -261,16 +275,23 @@ class ShowOptionsMobileDialog(
 
         binding.btnOptionEpisodeOpenTvShow.visibility = View.GONE
 
+        val freshMovie = database.movieDao().getById(movie.id) ?: movie
+
         binding.btnOptionShowFavorite.apply {
             setOnClickListener {
-                checkProviderAndRun(movie) {
+                checkProviderAndRun(freshMovie) {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
                     context.toActivity()?.lifecycleScope?.launch(Dispatchers.IO) {
-                        val newValue = !movie.isFavorite
+                        val dao = database.movieDao()
+                        val current = dao.getById(movie.id)?.isFavorite ?: false
+                        val newValue = !current
                         val resolvedMovie = ArtworkRepair.resolveMovieForFavorite(context, movie, newValue)
-                        AppDatabase.getInstance(context).movieDao().save(resolvedMovie.copy().apply {
-                            merge(resolvedMovie)
-                            isFavorite = newValue
-                        })
+                        dao.upsertFavorite(resolvedMovie, newValue)
+                        if (newValue) {
+                            UserDataCache.addMovieToFavorites(context, provider, resolvedMovie.copy().apply { isFavorite = true })
+                        } else {
+                            UserDataCache.removeMovieFromFavorites(context, provider, freshMovie.id)
+                        }
                     }
                 }
 
@@ -278,7 +299,7 @@ class ShowOptionsMobileDialog(
             }
 
             text = when {
-                movie.isFavorite -> context.getString(R.string.option_show_unfavorite)
+                freshMovie.isFavorite -> context.getString(R.string.option_show_unfavorite)
                 else -> context.getString(R.string.option_show_favorite)
             }
             visibility = View.VISIBLE
@@ -286,9 +307,10 @@ class ShowOptionsMobileDialog(
 
         binding.btnOptionShowWatched.apply {
             setOnClickListener {
-                checkProviderAndRun(movie) {
-                    AppDatabase.getInstance(context).movieDao().save(movie.copy().apply {
-                        merge(movie)
+                checkProviderAndRun(freshMovie) {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+                    val updatedMovie = freshMovie.copy().apply {
+                        merge(freshMovie)
                         isWatched = !isWatched
                         if (isWatched) {
                             watchedDate = Calendar.getInstance()
@@ -296,14 +318,20 @@ class ShowOptionsMobileDialog(
                         } else {
                             watchedDate = null
                         }
-                    })
+                    }
+                    AppDatabase.getInstance(context).movieDao().save(updatedMovie)
+                    UserDataCache.syncMovieToCache(context, provider, updatedMovie)
+                    
+                    if (updatedMovie.isWatched) {
+                        UserDataCache.removeMovieFromContinueWatching(context, provider, freshMovie.id)
+                    }
                 }
 
                 hide()
             }
 
             text = when {
-                movie.isWatched -> context.getString(R.string.option_show_unwatched)
+                freshMovie.isWatched -> context.getString(R.string.option_show_unwatched)
                 else -> context.getString(R.string.option_show_watched)
             }
             visibility = View.VISIBLE
@@ -311,18 +339,22 @@ class ShowOptionsMobileDialog(
 
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
-                checkProviderAndRun(movie) {
-                    AppDatabase.getInstance(context).movieDao().save(movie.copy().apply {
-                        merge(movie)
+                checkProviderAndRun(freshMovie) {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+                    val updatedMovie = freshMovie.copy().apply {
+                        merge(freshMovie)
                         watchHistory = null
-                    })
+                    }
+                    AppDatabase.getInstance(context).movieDao().save(updatedMovie)
+                    UserDataCache.syncMovieToCache(context, provider, updatedMovie)
+                    UserDataCache.removeMovieFromContinueWatching(context, provider, freshMovie.id)
                 }
 
                 hide()
             }
 
             visibility = when {
-                movie.watchHistory != null -> View.VISIBLE
+                freshMovie.watchHistory != null -> View.VISIBLE
                 else -> View.GONE
             }
         }
@@ -340,31 +372,39 @@ class ShowOptionsMobileDialog(
 
         binding.btnOptionEpisodeOpenTvShow.visibility = View.GONE
 
+        val freshTvShow = database.tvShowDao().getById(tvShow.id) ?: tvShow
+
         binding.btnOptionShowFavorite.apply {
             setOnClickListener {
-                checkProviderAndRun(tvShow) {
+                checkProviderAndRun(freshTvShow) {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
                     context.toActivity()?.lifecycleScope?.launch(Dispatchers.IO) {
-                        val newValue = !tvShow.isFavorite
+                        val dao = database.tvShowDao()
+                        val current = dao.getById(tvShow.id)?.isFavorite ?: false
+                        val newValue = !current
                         val resolvedTvShow = ArtworkRepair.resolveTvShowForFavorite(context, tvShow, newValue)
-                        AppDatabase.getInstance(context).tvShowDao().save(resolvedTvShow.copy().apply {
-                            merge(resolvedTvShow)
-                            isFavorite = newValue
-                        })
+
+                        dao.upsertFavorite(resolvedTvShow, newValue)
+                        if (newValue) {
+                            UserDataCache.syncTvShowToCache(
+                                context,
+                                provider,
+                                resolvedTvShow.copy().apply { isFavorite = true })
+                        } else {
+                            UserDataCache.removeTvShowFromFavorites(context, provider, freshTvShow.id)
+                        }
                     }
                 }
 
                 hide()
             }
 
-            text = when {
-                tvShow.isFavorite -> context.getString(R.string.option_show_unfavorite)
-                else -> context.getString(R.string.option_show_favorite)
+            text = if (freshTvShow.isFavorite) {
+                context.getString(R.string.option_show_unfavorite)
+            } else {
+                context.getString(R.string.option_show_favorite)
             }
             visibility = View.VISIBLE
         }
-
-        binding.btnOptionShowWatched.visibility = View.GONE
-
-        binding.btnOptionProgramClear.visibility = View.GONE
     }
 }

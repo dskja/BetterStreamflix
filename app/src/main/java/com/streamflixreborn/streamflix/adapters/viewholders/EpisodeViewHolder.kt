@@ -427,9 +427,13 @@ class EpisodeViewHolder(
                 binding.root.startAnimation(animation)
                 animation.fillAfter = true
 
-                if (hasFocus) {
-                    when (val fragment = context.toActivity()?.getCurrentFragment()) {
-                        is HomeTvFragment -> fragment.updateBackground(episode.tvShow?.banner)
+                when (val fragment = context.toActivity()?.getCurrentFragment()) {
+                    is HomeTvFragment -> {
+                        if (hasFocus) {
+                            fragment.pinBackground(episode.tvShow?.banner)
+                        } else {
+                            fragment.releasePinnedBackground()
+                        }
                     }
                 }
             }
@@ -478,13 +482,10 @@ class EpisodeViewHolder(
     }
 
     private fun ImageView.loadContinueWatchingArtwork(withFallback: Boolean = false) {
-        val episodePoster = episode.poster
         val tvShow = episode.tvShow
-        val shouldUseEpisodePoster = UserPreferences.enableTmdb && !episodePoster.isNullOrBlank()
-
-        if (shouldUseEpisodePoster || tvShow == null) {
+        if (tvShow == null) {
             Glide.with(context)
-                .load(episodePoster)
+                .load(episode.poster)
                 .error(R.drawable.glide_fallback_cover)
                 .apply {
                     if (withFallback) fallback(R.drawable.glide_fallback_cover)

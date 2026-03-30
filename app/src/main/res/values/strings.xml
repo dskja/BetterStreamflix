@@ -229,6 +229,11 @@
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Help</string>
     <string name="settings_telegram">Telegram group</string>
+    <string name="settings_refresh_cache_title">Refresh cache from database</string>
+    <string name="settings_refresh_cache_summary">Reload watch history and app data from database</string>
+    <string name="settings_refresh_cache_confirm">Refresh cache?</string>
+    <string name="settings_refresh_cache_message">This will reload your watch history and app data from the database.</string>
+    <string name="settings_refresh_cache_success">Cache refreshed successfully</string>
     <string name="settings_category_streamingcommunity">StreamingCommunity settings</string>
     <string name="settings_category_streamingcommunity_domain">StreamingCommunity domain name</string>
     <string name="settings_streamingcommunity_domain_reset">Reset domain</string>
@@ -314,6 +319,14 @@
     <string name="backup_export_summary">Save your data (favorites, watch history) to a file.</string>
     <string name="backup_import_title">Import user data</string>
     <string name="backup_import_summary">Restore your data from a backup file.</string>
+    <string name="backup_db_export_title">Export database backup</string>
+    <string name="backup_db_export_summary">Save a ZIP snapshot of the app databases.</string>
+    <string name="backup_db_import_title">Import database backup</string>
+    <string name="backup_db_import_summary">Restore the app databases from a ZIP snapshot.</string>
+    <string name="backup_db_export_option">Export database ZIP</string>
+    <string name="backup_db_import_option">Import database ZIP</string>
+    <string name="backup_db_export_success">Database ZIP exported successfully.</string>
+    <string name="backup_db_import_success">Database ZIP imported successfully.</string>
     
     <string name="backup_export_success">Backup exported successfully!</string>
     <string name="backup_export_error_write">Error while exporting the backup.</string>
@@ -373,6 +386,14 @@
     <string name="player_settings_extra_buffer_forced_off">Disabled (Forced)</string>
     <string name="player_settings_extra_buffer_auto_on">Active (Default)</string>
     <string name="player_settings_extra_buffer_auto_off">Disabled (Default)</string>
+    <string name="player_settings_software_decoder_title">Software Decoder</string>
+    <string name="player_settings_software_decoder_label">Software Decoder</string>
+    <string name="player_settings_software_decoder_on">Active</string>
+    <string name="player_settings_software_decoder_off">Disabled</string>
+    <string name="player_settings_software_decoder_forced_on">Active (Forced)</string>
+    <string name="player_settings_software_decoder_forced_off">Disabled (Forced)</string>
+    <string name="player_settings_software_decoder_auto_on">Active (Default)</string>
+    <string name="player_settings_software_decoder_auto_off">Disabled (Default)</string>
 
     <string name="error_dialog_title">Error Details</string>
     <string name="error_dialog_message">Error Message</string>
@@ -461,7 +482,6 @@
     <string name="settings_parental_locked_hard">Parental controls are locked. Use the admin PIN to unlock them.</string>
     <string name="settings_parental_unlocked">Parental controls unlocked.</string>
     <string name="settings_parental_tmdb_disable_blocked">You must unlock parental controls before disabling TMDb.</string>
-
     <string name="settings_force_extra_buffer_title">Global Extra Buffering</string>
     <string name="settings_force_extra_buffer_summary">Enable extra buffering for all servers by default</string>
 </resources>
