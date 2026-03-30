@@ -97,7 +97,9 @@ object LaCartoonsProvider : Provider {
                 val doc = service.getPage(baseUrl)
                 val genres = doc.select("ul.botontes-categorias li form").mapNotNull { form ->
                     val value = form.selectFirst("input[name=Categoria_id]")?.attr("value") ?: return@mapNotNull null
-                    val name = form.selectFirst("input[type=submit]")?.attr("value") ?: return@mapNotNull null
+                    val name = form.selectFirst("button[type=submit]")?.text()
+                        ?: form.selectFirst("input[type=submit]")?.attr("value")
+                        ?: return@mapNotNull null
                     Genre(id = value, name = name)
                 }
                 genres
@@ -107,7 +109,7 @@ object LaCartoonsProvider : Provider {
         // Title search: site returns all results; return them all on page 1, none afterwards
         return try {
             val encoded = URLEncoder.encode(query, "UTF-8")
-            val url = "$baseUrl/?utf8=%E2%9C%93&Titulo=$encoded"
+            val url = "$baseUrl/?Titulo=$encoded"
             val doc = service.getPage(url)
             val all = parseHomeShows(doc)
             if (page > 1) emptyList() else all
@@ -212,7 +214,10 @@ object LaCartoonsProvider : Provider {
             val home = service.getPage(baseUrl)
             val name = home.select("ul.botontes-categorias li form").firstOrNull { form ->
                 form.selectFirst("input[name=Categoria_id]")?.attr("value") == id
-            }?.selectFirst("input[type=submit]")?.attr("value") ?: id
+            }?.let { form ->
+                form.selectFirst("button[type=submit]")?.text()
+                    ?: form.selectFirst("input[type=submit]")?.attr("value")
+            } ?: id
 
             val url = if (page <= 1) "$baseUrl/?Categoria_id=$id" else "$baseUrl/?Categoria_id=$id&page=$page"
             val doc = service.getPage(url)
