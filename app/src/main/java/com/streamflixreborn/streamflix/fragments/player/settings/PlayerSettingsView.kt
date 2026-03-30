@@ -26,7 +26,7 @@ import com.streamflixreborn.streamflix.utils.mediaServerId
 import com.streamflixreborn.streamflix.utils.mediaServers
 import com.streamflixreborn.streamflix.utils.setAlpha
 import com.streamflixreborn.streamflix.utils.setRgb
-import com.streamflixreborn.streamflix.utils.trackFormats
+import com.streamflixreborn.streamflix.utils.supportedTrackFormats
 import kotlin.math.roundToInt
 
 abstract class PlayerSettingsView @JvmOverloads constructor(
@@ -539,13 +539,11 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         player.currentTracks.groups
                             .filter { it.type == C.TRACK_TYPE_VIDEO }
                             .flatMap { trackGroup ->
-                                trackGroup.trackFormats
-                                    .mapIndexedNotNull { trackIndex, trackFormat ->
+                                (0 until trackGroup.length)
+                                    .mapNotNull { trackIndex ->
+                                        val trackFormat = trackGroup.getTrackFormat(trackIndex)
                                         if (trackFormat.selectionFlags and C.SELECTION_FLAG_FORCED != 0) {
-                                            return@mapIndexedNotNull null
-                                        }
-                                        if (!trackGroup.isTrackSupported(trackIndex)) {
-                                            return@mapIndexedNotNull null
+                                            return@mapNotNull null
                                         }
 
                                         VideoTrackInformation(
@@ -642,9 +640,9 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         player.currentTracks.groups
                             .filter { it.type == C.TRACK_TYPE_AUDIO }
                             .flatMap { trackGroup ->
-                                trackGroup.trackFormats
-                                    .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .mapIndexed { trackIndex, trackFormat ->
+                                trackGroup.supportedTrackFormats
+                                    .filter { it.format.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
+                                    .map { (trackIndex, trackFormat) ->
                                         val trackName = DefaultTrackNameProvider(resources)
                                             .getTrackName(trackFormat)
                                         
@@ -703,9 +701,9 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                         player.currentTracks.groups
                             .filter { it.type == C.TRACK_TYPE_TEXT }
                             .flatMap { trackGroup ->
-                                trackGroup.trackFormats
-                                    .filter { it.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
-                                    .mapIndexed { trackIndex, trackFormat ->
+                                trackGroup.supportedTrackFormats
+                                    .filter { it.format.selectionFlags and C.SELECTION_FLAG_FORCED == 0 }
+                                    .map { (trackIndex, trackFormat) ->
                                         TextTrackInformation(
                                             name = DefaultTrackNameProvider(resources)
                                                 .getTrackName(trackFormat),

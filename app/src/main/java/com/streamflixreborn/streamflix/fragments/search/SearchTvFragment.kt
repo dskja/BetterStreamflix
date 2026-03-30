@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.KeyEvent
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.inputmethod.EditorInfo
@@ -155,6 +156,19 @@ class SearchTvFragment : Fragment() {
         _binding = null
     }
 
+    private fun submitSearch(): Boolean {
+        val query = binding.etSearch.text?.toString().orEmpty()
+        hideKeyboard()
+
+        if (isGlobalSearchChecked) {
+            val currentLanguage = UserPreferences.currentProvider?.language ?: "es"
+            viewModel.searchGlobal(query, currentLanguage)
+        } else {
+            viewModel.search(query)
+        }
+        return true
+    }
+
     private fun initializeSearch() {
         binding.llGlobalSearch.setOnClickListener {
             isGlobalSearchChecked = !isGlobalSearchChecked
@@ -164,20 +178,38 @@ class SearchTvFragment : Fragment() {
         }
 
         binding.etSearch.apply {
-            setOnEditorActionListener { _, actionId, _ ->
-                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    val query = text.toString()
-                    hideKeyboard()
+            setOnEditorActionListener { _, actionId, event ->
+                val isSubmitAction =
+                    actionId == EditorInfo.IME_ACTION_SEARCH ||
+                        actionId == EditorInfo.IME_ACTION_DONE ||
+                        actionId == EditorInfo.IME_NULL
+                val isSubmitKey =
+                    event?.action == KeyEvent.ACTION_DOWN &&
+                        (event.keyCode == KeyEvent.KEYCODE_ENTER ||
+                            event.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
+                            event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER)
 
-                    if (isGlobalSearchChecked) {
-                        val currentLanguage = UserPreferences.currentProvider?.language ?: "es"
-                        viewModel.searchGlobal(query, currentLanguage)
-                    } else {
-                        viewModel.search(query)
-                    }
-                    return@setOnEditorActionListener true
+                if (isSubmitAction || isSubmitKey) {
+                    return@setOnEditorActionListener submitSearch()
                 }
                 return@setOnEditorActionListener false
+            }
+
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action != KeyEvent.ACTION_DOWN) {
+                    return@setOnKeyListener false
+                }
+
+                if (
+                    keyCode == KeyEvent.KEYCODE_ENTER ||
+                    keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
+                    keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                    keyCode == KeyEvent.KEYCODE_SEARCH
+                ) {
+                    return@setOnKeyListener submitSearch()
+                }
+
+                false
             }
 
             addTextChangedListener(object : TextWatcher {

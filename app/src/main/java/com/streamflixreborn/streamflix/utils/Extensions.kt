@@ -136,6 +136,28 @@ val Tracks.Group.trackFormats: List<Format>
         return trackFormats
     }
 
+data class SupportedTrackFormat(
+    val index: Int,
+    val format: Format,
+)
+
+val Tracks.Group.supportedTrackFormats: List<SupportedTrackFormat>
+    get() {
+        val trackFormats = mutableListOf<SupportedTrackFormat>()
+        for (trackIndex in 0 until this.length) {
+            if (!this.isTrackSupported(trackIndex)) {
+                continue
+            }
+            trackFormats.add(
+                SupportedTrackFormat(
+                    index = trackIndex,
+                    format = this.getTrackFormat(trackIndex)
+                )
+            )
+        }
+        return trackFormats
+    }
+
 fun <T> List<T>.findClosest(value: Float, selector: (T) -> Float): T? {
     return minByOrNull { abs(value - selector(it)) }
 }
