@@ -24,7 +24,7 @@ import com.streamflixreborn.streamflix.utils.UserPreferences
         Season::class,
         TvShow::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -103,6 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_4_5)
                 .addMigrations(MIGRATION_5_6)
                 .addMigrations(MIGRATION_6_7)
+                .addMigrations(MIGRATION_7_8)
                 .build()
         }
 
@@ -172,6 +173,13 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE movies ADD COLUMN favoritedAtMillis INTEGER")
                 db.execSQL("ALTER TABLE tv_shows ADD COLUMN favoritedAtMillis INTEGER")
+            }
+        }
+
+        private val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // No SQL changes needed as indices were already created in previous migrations 
+                // but are now formally declared in Entity classes, requiring a version bump.
             }
         }
     }

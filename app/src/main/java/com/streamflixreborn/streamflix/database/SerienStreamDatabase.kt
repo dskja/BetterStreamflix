@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import com.streamflixreborn.streamflix.database.dao.TvShowDao
 import com.streamflixreborn.streamflix.models.TvShow
 
-@Database(entities = [TvShow::class], version = 4, exportSchema = false)
+@Database(entities = [TvShow::class], version = 5, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class SerienStreamDatabase: RoomDatabase() {
     abstract fun tvShowDao(): TvShowDao
@@ -23,7 +23,8 @@ abstract class SerienStreamDatabase: RoomDatabase() {
                     SerienStreamDatabase::class.java,
                     "serien_stream.db"
                 )
-                .build()
+                    .fallbackToDestructiveMigration()
+                    .build()
                 .also { instance = it }
             }
         }
