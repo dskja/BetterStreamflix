@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Streamflix</string>
+
     <string name="loading_error_title">Ha ocurrido un error</string>
     <string name="loading_error_retry">Reintentar</string>
     <string name="loading_error_details">Detalles del error</string>
     <string name="loading_error_clear_cache">Vaciar caché</string>
+
     <string name="update_title">Actualización disponible</string>
     <string name="update_message">Una nueva versión de la aplicación está disponible</string>
     <string name="update_current_version_label">Versión actual</string>
@@ -12,13 +14,18 @@
     <string name="update_release_notes">Notas de la versión</string>
     <string name="update_later">Más tarde</string>
     <string name="update">Actualizar</string>
+    <string name="settings_update_check">Búsqueda de actualizaciones automática</string>
+    <string name="settings_update_check_summary">Buscar nuevas versiones de la aplicación automáticamente</string>
+
     <string name="app_layout">Diseño de la aplicación</string>
     <string name="app_layout_auto">Automático</string>
     <string name="app_layout_mobile">Diseño para móviles</string>
     <string name="app_layout_tv">Diseño para TV</string>
-    <string name="app_layout_apply">Aplicar</string> 
+    <string name="app_layout_apply">Aplicar</string>
+
     <string name="providers_all_languages">Todos los idiomas</string>
     <string name="providers_choose_title">Seleccionar proveedor</string>
+
     <string name="main_menu_change_provider">Cambiar proveedor</string>
     <string name="main_menu_search">Buscar</string>
     <string name="main_menu_home">Inicio</string>
@@ -29,6 +36,15 @@
     <string name="main_menu_theme_change">Cambiar tema</string>
     <string name="theme_default">Predeterminado</string>
     <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
+    <string name="theme_sunset_cinema">Sunset Cinema</string>
+    <string name="theme_steel_blue">Steel Blue</string>
+    <string name="theme_forest_night">Forest Night</string>
+    <string name="theme_crimson_noir">Crimson Noir</string>
+    <string name="theme_midnight_violet">Midnight Violet</string>
+    <string name="theme_nord_frost">Nord Frost</string>
+    <string name="theme_emerald_luxe">Emerald Luxe</string>
+    <string name="theme_retro_neon">Retro Neon</string>
+    
     <string name="search_input_hint">Buscar película, serie</string>
     <string name="global_search">Búsqueda global</string>
     <string name="searching">Buscando...</string>
@@ -36,11 +52,13 @@
     <string name="result">Resultado</string>
     <string name="results">Resultados</string>
     <string name="switching_to_provider">Cambiando a %s</string>
+
     <string name="home_swiper_watch_now">Ver ahora</string>
     <string name="home_continue_watching">Continuar viendo</string>
     <string name="home_favorite_movies">Películas favoritas</string>
     <string name="home_favorite_tv_shows">Series favoritas</string>
-    <string name="option_episode_open_tv_show">Ir a serie</string>
+
+    <string name="option_episode_open_tv_show">Ir a la serie</string>
     <string name="option_show_favorite">Añadir a favoritos</string>
     <string name="option_show_unfavorite">Quitar de favoritos</string>
     <string name="option_show_watched">Marcar como visto</string>
@@ -49,11 +67,14 @@
     <string name="option_show_unwatched">Marcar como no visto</string>
     <string name="option_clear_program">Quitar de continuar viendo</string>
     <string name="option_cancel">Cancelar</string>
+
     <string name="episode_item_info">T%d E%d • %s</string>
     <string name="episode_item_info_episode_only">E%d • %s</string>
+
     <string name="tv_show_item_episode_number">E%d</string>
     <string name="tv_show_item_season_number_episode_number">T%d E%d</string>
     <string name="tv_show_item_type">Serie</string>
+
     <string name="tv_show_runtime_hours_minutes">%d h %d min</string>
     <string name="tv_show_runtime_minutes">%d min</string>
     <string name="tv_show_watch_season_episode">Ver T%d E%d</string>
@@ -63,6 +84,7 @@
     <string name="tv_show_cast">Elenco</string>
     <string name="tv_show_directors">Director</string>
     <string name="tv_show_you_may_also_like">Quizás también te guste</string>
+
     <string name="movie_item_type">Película</string>
     <string name="movie_runtime_hours_minutes">%d h %d min</string>
     <string name="movie_runtime_minutes">%d min</string>
@@ -71,14 +93,18 @@
     <string name="movie_cast">Elenco</string>
     <string name="movie_directors">Director</string>
     <string name="movie_you_may_also_like">Quizás también te guste</string>
+
     <string name="season_number">Temporada %d</string>
     <string name="episode_number">Episodio %d</string>
+
     <string name="people_birthday">Fecha de nacimiento</string>
     <string name="people_deathday">Fecha de deceso</string>
     <string name="people_birthplace">Lugar de nacimiento</string>
     <string name="people_biography">Biografía</string>
     <string name="people_read_more">Leer más ></string>
-    <string name="genre_header_name">%s Películas y Series</string>
+
+    <string name="genre_header_name">%s películas y series</string>
+
     <string name="player_subtitle_tv_show">T%d E%d • %s</string>
     <string name="player_subtitle_tv_show_episode_only">E%d • %s</string>
     <string name="player_picture_in_picture_not_supported">PIP no es compatible con tu dispositivo</string>
@@ -195,19 +221,23 @@
     <string name="player_settings_speed_2">× 2</string>
     <string name="player_settings_servers_title">Servidores</string>
     <string name="player_settings_servers_label">Servidores</string>
+
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_version">Versión</string>
     <string name="settings_version_tv">Versión para TV</string>
     <string name="settings_version_mobile">Versión para móviles</string>
-    <string name="settings_update_check">Búsqueda de actualizaciones automática</string>
-    <string name="settings_update_check_summary">Buscar nuevas versiones de la aplicación automáticamente</string>
     <string name="settings_about_version_name">Versión %s</string>
     <string name="settings_help">Ayuda</string>
     <string name="settings_telegram">Grupo de Telegram</string>
+    <string name="settings_refresh_cache_title">Actualizar caché desde la base de datos</string>
+    <string name="settings_refresh_cache_summary">Recargar el historial de visualización y los datos de la app desde la base de datos</string>
+    <string name="settings_refresh_cache_confirm">¿Actualizar la caché?</string>
+    <string name="settings_refresh_cache_message">Esto recargará el historial de visualización y los datos de la app desde la base de datos.</string>
+    <string name="settings_refresh_cache_success">Caché actualizada correctamente</string>
     <string name="settings_category_streamingcommunity">Ajustes de StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Dominio de StreamingCommunity</string>
     <string name="settings_streamingcommunity_domain_reset">Restablecer dominio</string>
-    <string name="settings_streamingcommunity_domain_reset_summary">Restaurar el nombre de dominio predeterminado</string>
+    <string name="settings_streamingcommunity_domain_reset_summary">Restaurar al dominio predeterminado</string>
     <string name="settings_streamingcommunity_domain_reset_done">Dominio restaurado al predeterminado</string>
     <string name="settings_streamingcommunity_domain_blocked">Dominio bloqueado detectado, restaurado al predeterminado</string>
     <string name="settings_category_cuevana">Ajustes de Cuevana 3</string>
@@ -216,28 +246,45 @@
     <string name="settings_category_poseidon_domain">Dominio de Poseidonhd2</string>
     <string name="settings_close_app">Cerrer aplicación</string>
     <string name="settings_category_streamingcommunity_dnsOverHttps">Usar DNS seguro</string>
-    <string name="settings_category_network_title">Ajustes de red</string>
+    <string name="settings_section_content_title">Contenido y seguridad</string>
+    <string name="settings_screen_content_summary">Acceso a TMDb, control parental y restricciones de contenido</string>
+    <string name="settings_category_network_title">Conexión y servicios</string>
+    <string name="settings_screen_network_summary">DNS, bypass para TV y claves de servicios de subtitulos</string>
+    <string name="settings_scan_resolver_qr_title">Escanear QR de bypass TV</string>
+    <string name="settings_scan_resolver_qr_summary">Abre la cámara y escanea el código QR mostrado en la TV</string>
+    <string name="settings_scan_resolver_invalid_qr">Este código QR no es un enlace de bypass de StreamFlix.</string>
+    <string name="settings_scan_resolver_failed">No se pudo iniciar el escáner QR en este dispositivo.</string>
+    <string name="settings_scan_resolver_camera_permission_denied">Se necesita permiso de la cámara para escanear el codigo QR.</string>
+    <string name="settings_scan_resolver_camera_unavailable">No hay una cámara disponible en este dispositivo.</string>
     <string name="settings_category_provider_title">Ajustes del proveedor</string>
+    <string name="settings_provider_connection_title">Ajustes para el proveedor actual</string>
+    <string name="settings_screen_provider_summary">Dominio principal, portal y opciones de recuperación específicas del proveedor</string>
+    <string name="settings_screen_provider_summary_with_name">Dominio, portal y opciones de recuperación específicas de %1$s</string>
+    <string name="settings_provider_connection_category_title">Conexión de %1$s</string>
+    <string name="settings_provider_no_options_title">No hay opciones disponibles para el proveedor</string>
+    <string name="settings_provider_no_options_summary">Este proveedor no expone ninguna configuración adicional en este momento.</string>
     <string name="settings_category_provider_url">URL principal</string>
+    <string name="settings_category_provider_url_manual">Ingresar manualmente</string>
     <string name="settings_category_provider_update_url">URL del portal</string>
     <string name="settings_autoupdate">Actualizar URL principal al inicio</string>
     <string name="settings_autoupdate_on">Activado</string>
     <string name="settings_autoupdate_off">Desactivado</string>
     <string name="settings_autoupdate_now">Actualizar URL principal ahora</string>
     <string name="settings_autoplay">Reproducción automática del siguiente episodio</string>
-    <string name="settings_section_content_title">Contenido y seguridad</string>
     <string name="settings_autoplay_on">Activado</string>
     <string name="settings_autoplay_off">Desactivado</string>
     <string name="settings_autoplay_buffer_title">Búfer de reproducción automática</string>
     <string name="settings_autoplay_buffer_dialog_message">Establece cuántos segundos antes del final del episodio quieres para cambiar al siguiente.</string>
     <string name="autoplay_settings">Ajustes de reproducción automatica</string>
     <string name="player_settings">Ajustes del reproductor</string>
+    <string name="settings_screen_playback_summary">Reproducción automatica, búfer, reproducción de tráilers y comportamiento del reproductor</string>
     <string name="settings_player_gestures">Gestos del reproductor</string>
     <string name="settings_player_gestures_on">Activado</string>
     <string name="settings_player_gestures_off">Desactivado</string>
     <string name="settings_keep_screen_on_when_paused">Mantener pantalla encendida en pausa</string>
     <string name="settings_keep_screen_on_when_paused_summary">Evita que la pantalla se apague cuando un vídeo está en pausa</string>
     <string name="miscelaneous_title">Varios</string>
+    <string name="settings_screen_misc_summary">Información de versión, enlaces de ayuda y accesos a la comunidad</string>
     <string name="clear_cache_done">Caché vaciada</string>
     <string name="clear_cache_done_409">Caché vaciada automáticamente por error HTTP 409</string>
     <string name="player_skip_intro">Omitir intro</string>
@@ -252,18 +299,22 @@
     <string name="voice_error_generic">Ocurrió un error al iniciar el reconocimiento de voz.</string>
     <string name="voice_error_no_result">No se detectó ninguna entrada de voz.</string>
     <string name="voice_prompt">Habla ahora</string>
+
     <string name="watch_trailer_with">Ver tráiler con...</string>
     <string name="youtube">YouTube</string>
     <string name="smarttube">SmartTube</string>
     <string name="smarttube_stable">SmartTube Estable</string>
     <string name="smarttube_beta">SmartTube Beta</string>
     <string name="choose_smarttube_version">Elige la versión de SmartTube</string>
+
     <string name="settings_trailer_player_title">Reproductor de tráiler</string>
     <string name="settings_trailer_player_summary">Elige tu reproductor preferido para los tráilers</string>
     <string name="settings_trailer_player_ask">Preguntar siempre</string>
     <string name="settings_trailer_player_reset">Restablecer versión de SmartTube</string>
     <string name="settings_trailer_player_reset_summary">Obliga a la aplicación a preguntar de nuevo qué versión de SmartTube (Estable/Beta) usar.</string>
+
     <string name="backup_category_title">Copia de seguridad y restauración</string>
+    <string name="settings_screen_backup_summary">Exporta o restaura favoritos, historial y datos guardados de la app</string>
     <string name="backup_export_title">Exportar datos de usuario</string>
     <string name="backup_export_summary">Guarda tus datos (favoritos, historial de visualización) en un archivo.</string>
     <string name="backup_import_title">Importar datos de usuario</string>
@@ -276,6 +327,7 @@
     <string name="backup_db_import_option">Importar ZIP de la base de datos</string>
     <string name="backup_db_export_success">La copia ZIP de la base de datos se exportó correctamente.</string>
     <string name="backup_db_import_success">La copia ZIP de la base de datos se importó correctamente.</string>
+
     <string name="backup_export_success">¡Copia de seguridad exportada correctamente!</string>
     <string name="backup_export_error_write">Error al exportar la copia de seguridad.</string>
     <string name="backup_export_picker_option">Elegir ubicación de guardado</string>
@@ -286,33 +338,46 @@
     <string name="backup_import_success">¡Copia de seguridad importada correctamente! Reinicia la app para aplicar los cambios.</string>
     <string name="backup_import_error">Error al importar la copia de seguridad.</string>
     <string name="backup_import_empty_file">Error: el archivo de copia de seguridad está vacío o no se puede leer.</string>
+    <string name="backup_import_read_error">Error al leer o procesar el archivo de copia de seguridad.</string>
     <string name="backup_import_picker_option">Elegir archivo de copia</string>
     <string name="backup_import_local_option">Restaurar desde copias locales</string>
     <string name="backup_import_no_local_files">No se encontraron archivos de copia locales.</string>
     <string name="backup_picker_unavailable">No hay selector de archivos disponible. Se usarán las copias locales.</string>
-    <string name="backup_import_read_error">Error al leer o procesar el archivo de copia de seguridad.</string>
+    <string name="backup_import_action">Importar</string>
+    <string name="backup_delete_action">Eliminar</string>
+    <string name="backup_delete_confirm_title">Eliminar copia de seguridad</string>
+    <string name="backup_delete_confirm_message">¿Eliminar %1$s de las copias locales?</string>
+    <string name="backup_delete_success">Copia de seguridad eliminada.</string>
+    <string name="backup_delete_error">No se pudo eliminar la copia de seguridad.</string>
+
     <string name="screen_scale_category_title">Relleno de pantalla</string>
     <string name="screen_scale_x_title">Relleno horizontal</string>
     <string name="screen_scale_x_summary">Ajusta el relleno izquierdo y derecho de la pantalla</string>
     <string name="screen_scale_y_title">Relleno vertical</string>
     <string name="screen_scale_y_summary">Ajusta el relleno superior e inferior de la pantalla</string>
+
     <string name="doh_provider_updated">¡Ajustes de DNS sobre HTTPS actualizado! Reinicia la app para aplicar los cambios.</string>
+
     <string name="settings_category_frenchstream">Ajustes de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface">Usar la nueva interfaz de FrenchStream</string>
     <string name="settings_frenchstream_use_new_interface_on">Activado</string>
     <string name="settings_frenchstream_use_new_interface_off">Desactivado</string>
+
     <string name="settings_server_voe_category">Ajustes del servidor VOE</string>
     <string name="settings_server_voe_title">Desactivar subtítulos automáticos del servidor</string>
     <string name="settings_server_voe_summary">Si está activado, los subtítulos de los servidores VOE, Vidnest y Vidzy no se activarán automáticamente aunque estén disponibles y tengan el valor predeterminado true</string>
+    
     <string name="settings_category_interface_title">Ajustes de la interfaz</string>
     <string name="settings_immersive_mode">Modo inmersivo</string>
     <string name="settings_immersive_mode_summary">Oculta las barras de estado y navegación</string>
     <string name="settings_immersive_mode_on">Activado (barras ocultas)</string>
     <string name="settings_immersive_mode_off">Desactivado (barras visibles)</string>
+
     <string name="player_brightness">Brillo</string>
     <string name="player_volume">Volumen</string>
     <string name="percentage_format">%d%%</string>
     <string name="player_settings_extra_buffer_title">Servidor con búfer extra</string>
+
     <string name="player_settings_extra_buffer_server_label">Servidor con búfer extra</string>
     <string name="player_settings_extra_buffer_on">Activado</string>
     <string name="player_settings_extra_buffer_off">Desactivado</string>
@@ -320,6 +385,15 @@
     <string name="player_settings_extra_buffer_forced_off">Desactivado (forzado)</string>
     <string name="player_settings_extra_buffer_auto_on">Activado (predeterminado)</string>
     <string name="player_settings_extra_buffer_auto_off">Desactivado (predeterminado)</string>
+    <string name="player_settings_software_decoder_title">Decodificado por software</string>
+    <string name="player_settings_software_decoder_label">Decodificado por software</string>
+    <string name="player_settings_software_decoder_on">Activado</string>
+    <string name="player_settings_software_decoder_off">Desactivado</string>
+    <string name="player_settings_software_decoder_forced_on">Activado (forzado)</string>
+    <string name="player_settings_software_decoder_forced_off">Desactivado (forzado)</string>
+    <string name="player_settings_software_decoder_auto_on">Activado (predeterminado)</string>
+    <string name="player_settings_software_decoder_auto_off">Desactivado (predeterminado)</string>
+
     <string name="error_dialog_title">Detalles del error</string>
     <string name="error_dialog_message">Mensaje de error</string>
     <string name="error_dialog_cause">Causa</string>
@@ -328,29 +402,43 @@
     <string name="error_dialog_copied">¡Copiado al portapapeles!</string>
     <string name="error_dialog_unknown">Error desconocido</string>
     <string name="error_dialog_no_cause">Sin causa</string>
+
     <string name="settings_category_appearance">Apariencia</string>
+    <string name="settings_screen_appearance_summary">Tema, modo inmersivo y ajustes del diseño de pantalla</string>
     <string name="settings_theme_title">Tema de la aplicación</string>
+    <string name="settings_app_language_title">Idioma de la app</string>
+    <string name="settings_app_language_summary">Elige qué traducción incluida debe usar la app</string>
+    <string name="settings_app_language_system">Predeterminado del sistema</string>
+    <string name="settings_app_language_english">Inglés</string>
+    <string name="settings_app_language_arabic">Árabe</string>
+    <string name="settings_app_language_german">Alemán</string>
+    <string name="settings_app_language_spanish">Español</string>
+    <string name="settings_app_language_french">Francés</string>
+    <string name="settings_app_language_italian">Italiano</string>
     <string name="player_settings_gestures_title">Gestos</string>
     <string name="player_settings_keep_screen_on_title">Mantener pantalla encendida en pausa</string>
+
     <string name="settings_category_tmdb">Ajustes de TMDB</string>
     <string name="settings_tmdb_api_key">Clave API de TMDB personalizada</string>
     <string name="settings_tmdb_api_key_summary">Déjalo vacío para usar la clave API predeterminada proporcionada con la aplicación</string>
     <string name="settings_tmdb_api_key_success">Clave API actualizada correctamente</string>
     <string name="settings_tmdb_api_key_reset">Usar clave API de TMDB predeterminada</string>
+
     <string name="settings_category_subdl">Ajustes de SubDL</string>
     <string name="settings_subdl_api_key">Clave API de SubDL</string>
     <string name="settings_subdl_api_key_summary">Ingresa tu clave API personal de SubDL para activar SubDL en los ajustes de subtítulos del reproductor</string>
     <string name="settings_subdl_api_key_success">Clave API de SubDL guardada correctamente</string>
     <string name="settings_subdl_api_key_reset">Clave API de SubDL eliminada</string>
+
+    <string name="player_settings_manual_zoom_label">Zoom manual</string>
+    <string name="player_manual_zoom_hint">Usar ARRIBA/ABAJO para el zoom vertical, IZQUIERDA/DERECHA para el horizontal y ATRÁS para salir</string>
+
     <string name="bypass_tv_instructions">MUEVE EL CURSOR POR ENCIMA DEL reCAPTCHA\nY PULSA EN OK PARA DESBLOQUEAR</string>
+
     <string name="settings_enable_tmdb_summary">Activar o desactivar el uso de TMDB</string>
     <string name="settings_enable_tmdb_title">Activar TMDB</string>
     <string name="settings_enable_tmdb_enabled">TMDB activado</string>
     <string name="settings_enable_tmdb_disabled">TMDB desactivado</string>
-    <string name="settings_scan_resolver_qr_title">Escanear QR de bypass TV</string>
-    <string name="settings_scan_resolver_qr_summary">Abre la cámara y escanea el código QR mostrado en la TV</string>
-    <string name="settings_scan_resolver_invalid_qr">Este código QR no es un enlace de bypass de StreamFlix.</string>
-    <string name="settings_scan_resolver_failed">No se pudo iniciar el escáner QR en este dispositivo.</string>
     <string name="settings_category_parental_control">Control parental</string>
     <string name="settings_parental_pin_title">PIN parental</string>
     <string name="settings_parental_pin_summary">Configura un PIN para proteger los cambios del control parental</string>
@@ -362,10 +450,14 @@
     <string name="settings_parental_admin_pin_set">PIN de administrador configurado</string>
     <string name="settings_parental_unlock_title">Desbloquear control parental</string>
     <string name="settings_parental_unlock_summary">Usa el PIN de administrador para quitar el bloqueo del control parental</string>
+    <string name="settings_parental_remove_pin_title">Eliminar PIN parental</string>
+    <string name="settings_parental_remove_pin_summary">Desactiva la protección por PIN y borra el límite de edad</string>
+    <string name="settings_parental_remove_admin_pin_title">Eliminar PIN de administrador</string>
+    <string name="settings_parental_remove_admin_pin_summary">Elimina el PIN de recuperación usado para desbloquear el control parental</string>
     <string name="settings_parental_max_age_title">Clasificación de edad máxima</string>
-    <string name="settings_parental_max_age_summary">Mostrar solo títulos con esta clasificación de edad de TMDb o inferior</string>
+    <string name="settings_parental_max_age_summary">Mostrar solo títulos con esta clasificación de edad de TMDB o inferior</string>
     <string name="settings_parental_max_age_disabled">Desactivado</string>
-    <string name="settings_parental_requires_tmdb">El control parental solo funciona cuando TMDb está activado.</string>
+    <string name="settings_parental_requires_tmdb">El control parental solo funciona cuando TMDB está activado.</string>
     <string name="settings_parental_set_pin_first">Configura primero un PIN parental antes de elegir una edad máxima.</string>
     <string name="settings_parental_set_admin_pin_first">Configura primero un PIN de administrador para poder recuperar el acceso tras un bloqueo.</string>
     <string name="settings_parental_pin_saved">PIN parental guardado.</string>
@@ -373,14 +465,14 @@
     <string name="settings_parental_admin_pin_saved">PIN de administrador guardado.</string>
     <string name="settings_parental_admin_pin_removed">PIN de administrador eliminado.</string>
     <string name="settings_parental_max_age_saved">Edad máxima actualizada.</string>
-    <string name="settings_parental_enter_current_pin_title">Introducir PIN actual</string>
+    <string name="settings_parental_enter_current_pin_title">Ingresar PIN actual</string>
     <string name="settings_parental_enter_current_pin_message">Introduce el PIN parental actual para cambiar estos ajustes.</string>
-    <string name="settings_parental_enter_admin_pin_title">Introducir PIN de administrador</string>
-    <string name="settings_parental_enter_admin_pin_message">Introduce el PIN de administrador para desbloquear el control parental.</string>
-    <string name="settings_parental_set_new_pin_message">Introduce un nuevo PIN parental.</string>
-    <string name="settings_parental_change_pin_message">Introduce un nuevo PIN parental. Déjalo vacío para eliminar el PIN actual.</string>
-    <string name="settings_parental_set_new_admin_pin_message">Introduce un nuevo PIN de administrador.</string>
-    <string name="settings_parental_change_admin_pin_message">Introduce un nuevo PIN de administrador. Déjalo vacío para eliminar el PIN de administrador actual.</string>
+    <string name="settings_parental_enter_admin_pin_title">Ingresar PIN de administrador</string>
+    <string name="settings_parental_enter_admin_pin_message">Ingresa el PIN de administrador para desbloquear el control parental.</string>
+    <string name="settings_parental_set_new_pin_message">Ingresa un nuevo PIN parental.</string>
+    <string name="settings_parental_change_pin_message">Ingresa un nuevo PIN parental. Déjalo vacío para eliminar el PIN actual.</string>
+    <string name="settings_parental_set_new_admin_pin_message">Ingresa un nuevo PIN de administrador.</string>
+    <string name="settings_parental_change_admin_pin_message">Ingresa un nuevo PIN de administrador. Déjalo vacío para eliminar el PIN de administrador actual.</string>
     <string name="settings_parental_invalid_pin">PIN parental incorrecto.</string>
     <string name="settings_parental_invalid_admin_pin">PIN de administrador incorrecto.</string>
     <string name="settings_parental_pin_hint">4 dígitos o más</string>
@@ -388,61 +480,7 @@
     <string name="settings_parental_locked_temporary">Demasiados intentos de PIN incorrectos. Vuelve a intentarlo en %1$d minutos.</string>
     <string name="settings_parental_locked_hard">El control parental está bloqueado. Usa el PIN de administrador para desbloquearlo.</string>
     <string name="settings_parental_unlocked">Control parental desbloqueado.</string>
-    <string name="settings_parental_tmdb_disable_blocked">Debes desbloquear el control parental antes de desactivar TMDb.</string>
-    <string name="settings_screen_content_summary">Acceso a TMDb, control parental y restricciones de contenido</string>
-    <string name="settings_screen_network_summary">DNS, bypass para TV y claves de servicios de subtitulos</string>
-    <string name="settings_provider_connection_title">Ajustes para el proveedor actual</string>
-    <string name="settings_screen_provider_summary">Dominio principal, portal y opciones de recuperación específicas del proveedor</string>
-    <string name="settings_screen_provider_summary_with_name">Dominio, portal y opciones de recuperación específicas de %1$s</string>
-    <string name="settings_provider_connection_category_title">Conexión de %1$s</string>
-    <string name="settings_provider_no_options_title">No hay opciones disponibles para el proveedor</string>
-    <string name="settings_provider_no_options_summary">Este proveedor no expone ninguna configuración adicional en este momento.</string>
-    <string name="settings_screen_playback_summary">Autoplay, búfer, reproducción de tráileres y comportamiento del reproductor</string>
-    <string name="settings_screen_misc_summary">Información de versión, enlaces de ayuda y accesos a la comunidad</string>
-    <string name="settings_screen_backup_summary">Exporta o restaura favoritos, historial y datos guardados de la app</string>
-    <string name="settings_screen_appearance_summary">Tema, modo inmersivo y ajustes del diseño de pantalla</string>
-    <string name="settings_parental_remove_pin_title">Eliminar PIN parental</string>
-    <string name="settings_parental_remove_pin_summary">Desactiva la protección por PIN y borra el límite de edad</string>
-    <string name="settings_parental_remove_admin_pin_title">Eliminar PIN de administrador</string>
-    <string name="settings_parental_remove_admin_pin_summary">Elimina el PIN de recuperación usado para desbloquear el control parental</string>
-    <string name="settings_app_language_title">Idioma de la app</string>
-    <string name="settings_app_language_summary">Elige que traduccion incluida debe usar la app</string>
-    <string name="settings_app_language_system">Predeterminado del sistema</string>
-    <string name="settings_app_language_english">Ingles</string>
-    <string name="settings_app_language_arabic">Arabe</string>
-    <string name="settings_app_language_german">Aleman</string>
-    <string name="settings_app_language_spanish">Espanol</string>
-    <string name="settings_app_language_french">Frances</string>
-    <string name="settings_app_language_italian">Italiano</string>
-    <string name="settings_scan_resolver_camera_permission_denied">Se necesita permiso de camara para escanear el codigo QR.</string>
-    <string name="settings_scan_resolver_camera_unavailable">No hay una camara disponible en este dispositivo.</string>
-    <string name="backup_import_action">Importar</string>
-    <string name="backup_delete_action">Eliminar</string>
-    <string name="backup_delete_confirm_title">Eliminar copia de seguridad</string>
-    <string name="backup_delete_confirm_message">Eliminar %1$s de las copias locales?</string>
-    <string name="backup_delete_success">Copia de seguridad eliminada.</string>
-    <string name="backup_delete_error">No se pudo eliminar la copia de seguridad.</string>
-    <string name="theme_sunset_cinema">Sunset Cinema</string>
-    <string name="theme_steel_blue">Steel Blue</string>
-    <string name="theme_forest_night">Forest Night</string>
-    <string name="theme_crimson_noir">Crimson Noir</string>
-    <string name="theme_midnight_violet">Midnight Violet</string>
-    <string name="theme_nord_frost">Nord Frost</string>
-    <string name="theme_emerald_luxe">Emerald Luxe</string>
-    <string name="theme_retro_neon">Retro Neon</string>
+    <string name="settings_parental_tmdb_disable_blocked">Debes desbloquear el control parental antes de desactivar TMDB.</string>
     <string name="settings_force_extra_buffer_title">Búfer extra global</string>
     <string name="settings_force_extra_buffer_summary">Activa búfer extra para todos los servidores de forma predeterminada</string>
-    <string name="player_settings_software_decoder_title">Decodificador de software</string>
-    <string name="player_settings_software_decoder_label">Decodificador de software</string>
-    <string name="player_settings_software_decoder_on">Activo</string>
-    <string name="player_settings_software_decoder_off">Desactivado</string>
-    <string name="player_settings_software_decoder_forced_on">Activo (forzado)</string>
-    <string name="player_settings_software_decoder_forced_off">Desactivado (forzado)</string>
-    <string name="player_settings_software_decoder_auto_on">Activo (predeterminado)</string>
-    <string name="player_settings_software_decoder_auto_off">Desactivado (predeterminado)</string>
-    <string name="settings_refresh_cache_title">Actualizar caché desde la base de datos</string>
-    <string name="settings_refresh_cache_summary">Recargar el historial de visionado y los datos de la app desde la base de datos</string>
-    <string name="settings_refresh_cache_confirm">¿Actualizar la caché?</string>
-    <string name="settings_refresh_cache_message">Esto recargará el historial de visionado y los datos de la app desde la base de datos.</string>
-    <string name="settings_refresh_cache_success">Caché actualizada correctamente</string>
 </resources>
