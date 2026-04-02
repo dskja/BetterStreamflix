@@ -435,6 +435,19 @@
     <string name="player_manual_zoom_hint">Use UP/DOWN for vertical zoom, LEFT/RIGHT for horizontal, BACK to exit</string>
 
     <string name="bypass_tv_instructions">MOVE THE CURSOR OVER THE reCAPTCHA\nAND PRESS OK TO UNLOCK</string>
+    <string name="bypass_status_complete_bypass_first">Complete the bypass first.</string>
+    <string name="bypass_status_missing_url">Missing bypass URL.</string>
+    <string name="bypass_status_external_redirect_blocked">Blocked an external redirect. Complete verification first.</string>
+    <string name="bypass_status_completed_continue">Bypass completed. Tap Continue to continue.</string>
+    <string name="bypass_status_cookies_detected">Verification cookies detected. If the page looks solved, tap Continue.</string>
+    <string name="bypass_status_complete_in_page">Complete the captchas, tap Weiter in the popup, then tap the button at the bottom.</string>
+    <string name="bypass_status_complete_captchas_then_weiter_continue">Complete the captchas, tap Weiter in the popup, then tap the button at the bottom.</string>
+    <string name="bypass_status_submitted_wait">Verification submitted. Wait for the redirect to complete.</string>
+    <string name="bypass_status_complete_captcha_modal">Complete the captchas in the popup, tap Weiter there, then tap the button at the bottom.</string>
+    <string name="bypass_status_loading_captcha">Loading captcha requests.</string>
+    <string name="bypass_status_waiting_modal">Waiting for the s.to verification modal to finish loading.</string>
+    <string name="bypass_action_cancel">Cancel</string>
+    <string name="bypass_action_continue">Continue</string>
 
     <string name="settings_enable_tmdb_summary">Enable or disable TMDb usage</string>
     <string name="settings_enable_tmdb_title">Enable TMDb</string>

@@ -374,6 +374,19 @@
     <string name="player_manual_zoom_hint">Utilisez HAUT/BAS per zoom vertical, GAUCHE/DROITE pour horizontal, RETOUR pour quitter</string>
 
     <string name="bypass_tv_instructions">DÉPLACEZ LE CURSEUR SUR LA CASE\nET APPUYEZ SUR OK POUR DÉBLOQUER</string>
+    <string name="bypass_status_complete_bypass_first">Termine d’abord le contournement.</string>
+    <string name="bypass_status_missing_url">URL de contournement manquante.</string>
+    <string name="bypass_status_external_redirect_blocked">Redirection externe bloquée. Termine d’abord la vérification.</string>
+    <string name="bypass_status_completed_continue">Contournement terminé. Appuie sur Continue pour continuer.</string>
+    <string name="bypass_status_cookies_detected">Cookies de vérification détectés. Si la page semble validée, appuie sur Continue.</string>
+    <string name="bypass_status_complete_in_page">Termine les captchas, appuie sur Weiter dans la fenêtre, puis sur le bouton en bas.</string>
+    <string name="bypass_status_complete_captchas_then_weiter_continue">Termine les captchas, appuie sur Weiter dans la fenêtre, puis sur le bouton en bas.</string>
+    <string name="bypass_status_submitted_wait">Vérification envoyée. Attends la fin de la redirection.</string>
+    <string name="bypass_status_complete_captcha_modal">Termine les captchas dans la fenêtre, appuie sur Weiter dedans, puis sur le bouton en bas.</string>
+    <string name="bypass_status_loading_captcha">Chargement des vérifications captcha.</string>
+    <string name="bypass_status_waiting_modal">Attente du chargement complet de la fenêtre de vérification s.to.</string>
+    <string name="bypass_action_cancel">Annuler</string>
+    <string name="bypass_action_continue">Continuer</string>
 
     <string name="settings_enable_tmdb_summary">Activer ou désactiver l\'utilisation de TMDb</string>
     <string name="settings_enable_tmdb_title">Activer TMDb</string>

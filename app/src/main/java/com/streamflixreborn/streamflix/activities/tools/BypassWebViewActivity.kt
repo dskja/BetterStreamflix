@@ -86,7 +86,7 @@ class BypassWebViewActivity : AppCompatActivity() {
             if (cookies.isBlank()) {
                 Toast.makeText(
                     this,
-                    "Complete the bypass first.",
+                    getString(R.string.bypass_status_complete_bypass_first),
                     Toast.LENGTH_SHORT
                 ).show()
                 return@setOnClickListener
@@ -103,7 +103,7 @@ class BypassWebViewActivity : AppCompatActivity() {
         webView.addJavascriptInterface(BypassJavascriptBridge(), "AndroidBypass")
 
         if (targetUrl.isBlank()) {
-            Toast.makeText(this, "Missing bypass URL.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.bypass_status_missing_url), Toast.LENGTH_SHORT).show()
             setResult(Activity.RESULT_CANCELED)
             finish()
             return
@@ -164,7 +164,7 @@ class BypassWebViewActivity : AppCompatActivity() {
                 if (cookies.isNotBlank()) {
                     completeBypass(cookies)
                 } else {
-                    statusView.text = "Blocked an external redirect. Complete verification first."
+                    statusView.text = getString(R.string.bypass_status_external_redirect_blocked)
                 }
                 return true
             }
@@ -201,17 +201,13 @@ class BypassWebViewActivity : AppCompatActivity() {
         val hasClearance = cookies.contains("cf_clearance")
         continueButton.isEnabled = cookies.isNotBlank()
         statusView.text = when {
-            hasClearance -> "Bypass completed. Tap Continue to send access to the TV."
-            cookies.isNotBlank() -> "Cookies detected. If the page looks solved, tap Continue."
-            else -> "Complete the bypass in the page below, then tap Continue."
+            hasClearance -> getString(R.string.bypass_status_completed_continue)
+            cookies.isNotBlank() -> getString(R.string.bypass_status_cookies_detected)
+            else -> getString(R.string.bypass_status_complete_in_page)
         }
 
         if (!currentUrl.isNullOrBlank()) {
             title = Uri.parse(currentUrl).host ?: getString(R.string.app_name)
-        }
-
-        if (hasClearance && !isAllowedBypassHost(currentUrl ?: targetUrl)) {
-            completeBypass(cookies)
         }
     }
 
@@ -349,6 +345,21 @@ class BypassWebViewActivity : AppCompatActivity() {
                 };
               }
 
+              function getAltchaState() {
+                var container = document.getElementById('player-prepare-altcha');
+                if (!container) {
+                  return {
+                    present: false,
+                    visible: false
+                  };
+                }
+                var visible = window.getComputedStyle(container).display !== 'none';
+                return {
+                  present: true,
+                  visible: visible
+                };
+              }
+
               function applyToken() {
                 if (!streamflixToken) {
                   return false;
@@ -360,28 +371,6 @@ class BypassWebViewActivity : AppCompatActivity() {
                 }
                 tokenInput.value = streamflixToken;
                 form.setAttribute('action', '/r');
-                return true;
-              }
-
-              function submitFormIfReady() {
-                if (window.__streamflixSubmitted) {
-                  return true;
-                }
-                var form = document.getElementById('player-prepare-form');
-                var turnstile = getTurnstileResponse();
-                if (!form || !turnstile.solved) {
-                  return false;
-                }
-                window.__streamflixSubmitted = true;
-                form.removeAttribute('target');
-                form.setAttribute('target', '_self');
-                setTimeout(function() {
-                  try {
-                    form.submit();
-                  } catch (e) {
-                    window.__streamflixSubmitted = false;
-                  }
-                }, 250);
                 return true;
               }
 
@@ -398,17 +387,19 @@ class BypassWebViewActivity : AppCompatActivity() {
                 var continueButton = document.querySelector('#playerPrepareModal .btn-primary, #playerPrepareModal button[type="submit"], #playerPrepareModal input[type="submit"]');
                 var form = document.getElementById('player-prepare-form');
                 var turnstile = getTurnstileResponse();
-                var submitted = submitFormIfReady();
+                var altcha = getAltchaState();
                 var state = {
                   modalPresent: !!modal,
                   modalVisible: !!(modal && (modal.classList.contains('show') || (window.getComputedStyle(modal).display !== 'none'))),
                   turnstilePresent: !!frame,
                   turnstileResponsePresent: turnstile.present,
                   turnstileSolved: turnstile.solved,
+                  altchaPresent: altcha.present,
+                  altchaVisible: altcha.visible,
                   continueVisible: !!(continueButton && continueButton.offsetParent !== null),
                   formPresent: !!form,
                   tokenInjected: applyToken(),
-                  formSubmitted: submitted || window.__streamflixSubmitted,
+                  formSubmitted: window.__streamflixSubmitted,
                   turnstileRendered: rendered || !!frame || window.__streamflixTurnstileRendered
                 };
                 if (window.AndroidBypass && window.AndroidBypass.onDomState) {
@@ -425,7 +416,6 @@ class BypassWebViewActivity : AppCompatActivity() {
                 ensureModalVisible();
                 reportState();
                 if (window.__streamflixTickCount < 45 &&
-                    !window.__streamflixSubmitted &&
                     !document.cookie.match(/(?:^|; )cf_clearance=/)) {
                   window.setTimeout(tick, 1000);
                 }
@@ -510,6 +500,7 @@ class BypassWebViewActivity : AppCompatActivity() {
             val turnstilePresent = state.optBoolean("turnstilePresent")
             val turnstileResponsePresent = state.optBoolean("turnstileResponsePresent")
             val turnstileSolved = state.optBoolean("turnstileSolved")
+            val altchaVisible = state.optBoolean("altchaVisible")
             val continueVisible = state.optBoolean("continueVisible")
             val formPresent = state.optBoolean("formPresent")
             val formSubmitted = state.optBoolean("formSubmitted")
@@ -517,20 +508,21 @@ class BypassWebViewActivity : AppCompatActivity() {
 
             if (hasClearance) {
                 continueButton.isEnabled = true
-                statusView.text = "Bypass completed. Tap Continue to send access to the TV."
-                completeBypass(cookies)
+                statusView.text = getString(R.string.bypass_status_completed_continue)
                 return@runOnUiThread
             }
 
             statusView.text = when {
-                formSubmitted -> "Verification submitted. Wait for the redirect to complete."
-                turnstileSolved && continueVisible -> "Cloudflare check passed. Finalizing verification."
-                turnstilePresent && modalVisible -> "Complete the Cloudflare check in the modal."
-                turnstileRendered && modalVisible -> "Loading the Cloudflare check."
-                turnstileResponsePresent && formPresent -> "Verification token detected. Tap Weiter in the page to finish."
-                modalPresent -> "Waiting for the s.to verification modal to finish loading."
-                continueVisible -> "Verification step is ready. Complete it, then tap Weiter."
-                else -> "Complete the bypass in the page below, then tap Continue."
+                altchaVisible && turnstilePresent -> getString(R.string.bypass_status_complete_captchas_then_weiter_continue)
+                altchaVisible -> getString(R.string.bypass_status_complete_captchas_then_weiter_continue)
+                formSubmitted -> getString(R.string.bypass_status_submitted_wait)
+                turnstileSolved && continueVisible -> getString(R.string.bypass_status_complete_captchas_then_weiter_continue)
+                turnstilePresent && modalVisible -> getString(R.string.bypass_status_complete_captcha_modal)
+                turnstileRendered && modalVisible -> getString(R.string.bypass_status_loading_captcha)
+                turnstileResponsePresent && formPresent -> getString(R.string.bypass_status_complete_captchas_then_weiter_continue)
+                modalPresent -> getString(R.string.bypass_status_waiting_modal)
+                continueVisible -> getString(R.string.bypass_status_complete_captchas_then_weiter_continue)
+                else -> getString(R.string.bypass_status_complete_in_page)
             }
         }
     }

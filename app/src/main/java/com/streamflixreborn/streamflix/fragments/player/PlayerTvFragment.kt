@@ -644,6 +644,7 @@ class PlayerTvFragment : Fragment() {
         return when (args.videoType) {
             is Video.Type.Episode -> {
                 if (!EpisodeManager.hasNextEpisode()) return false
+                persistCurrentEpisodeProgress(forceMarkWatched = true)
                 viewModel.playNextEpisode()
                 true
             }
@@ -837,10 +838,11 @@ class PlayerTvFragment : Fragment() {
             val btnPrevious = binding.pvPlayer.controller.binding.btnCustomPrev
             val btnNext = binding.pvPlayer.controller.binding.btnCustomNext
 
-            fun handleNavigationButton(
+        fun handleNavigationButton(
                 button: ImageView,
                 hasEpisode: () -> Boolean,
-                playEpisode: () -> Unit
+                playEpisode: () -> Unit,
+                forceMarkWatched: Boolean = false
             ) {
                 if (!hasEpisode()) {
                     button.visibility = View.GONE
@@ -858,13 +860,20 @@ class PlayerTvFragment : Fragment() {
                     }
 
                     watchItem?.apply {
-                        isWatched = false
-                        watchedDate = null
-                        watchHistory = WatchItem.WatchHistory(
-                            lastEngagementTimeUtcMillis = System.currentTimeMillis(),
-                            lastPlaybackPositionMillis = player.currentPosition,
-                            durationMillis = player.duration
-                        )
+                        val shouldMarkWatched = forceMarkWatched || player.hasFinished()
+                        if (shouldMarkWatched) {
+                            isWatched = true
+                            watchedDate = Calendar.getInstance()
+                            watchHistory = null
+                        } else {
+                            isWatched = false
+                            watchedDate = null
+                            watchHistory = WatchItem.WatchHistory(
+                                lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                                lastPlaybackPositionMillis = player.currentPosition,
+                                durationMillis = player.duration
+                            )
+                        }
                     }
 
                     when (videoType) {
@@ -877,16 +886,14 @@ class PlayerTvFragment : Fragment() {
                         is Video.Type.Episode -> {
                             val provider = UserPreferences.currentProvider ?: return@setOnClickListener
                             (watchItem as? Episode)?.let { episode ->
-                                if (player.hasFinished()) {
-                                    episode.isWatched = true
-                                    episode.watchedDate = Calendar.getInstance()
-                                    episode.watchHistory = null
+                                val shouldMarkWatched = forceMarkWatched || player.hasFinished()
+                                if (shouldMarkWatched) {
                                     database.episodeDao().resetProgressionFromEpisode(videoType.id)
                                     UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, episode.id)
                                 }
 
                                 database.episodeDao().update(episode)
-                                if (!player.hasFinished()) {
+                                if (!shouldMarkWatched) {
                                     (watchItem as? Episode)?.let { UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it) }
                                 }
 
@@ -894,7 +901,7 @@ class PlayerTvFragment : Fragment() {
                                     database.tvShowDao().getById(tvShow.id)
                                 }?.let { tvShow ->
 
-                                    val isWatchingValue = if (player.hasFinished()) {
+                                    val isWatchingValue = if (shouldMarkWatched) {
                                         database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
                                     } else {
                                         true
@@ -921,8 +928,45 @@ class PlayerTvFragment : Fragment() {
             handleNavigationButton(
                 btnNext,
                 EpisodeManager::hasNextEpisode,
-                viewModel::playNextEpisode
+                viewModel::playNextEpisode,
+                forceMarkWatched = true
             )
+        }
+
+        private fun persistCurrentEpisodeProgress(forceMarkWatched: Boolean = false) {
+            val videoType = args.videoType as? Video.Type.Episode ?: return
+            val provider = UserPreferences.currentProvider ?: return
+            val episode = database.episodeDao().getById(videoType.id) ?: return
+            val shouldMarkWatched = forceMarkWatched || player.hasFinished()
+
+            if (shouldMarkWatched) {
+                episode.isWatched = true
+                episode.watchedDate = Calendar.getInstance()
+                episode.watchHistory = null
+                database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, episode.id)
+            } else {
+                episode.isWatched = false
+                episode.watchedDate = null
+                episode.watchHistory = WatchItem.WatchHistory(
+                    lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                    lastPlaybackPositionMillis = player.currentPosition,
+                    durationMillis = player.duration
+                )
+                UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, episode)
+            }
+
+            database.episodeDao().update(episode)
+
+            episode.tvShow?.let { tvShow ->
+                database.tvShowDao().getById(tvShow.id)
+            }?.let { tvShow ->
+                val isStillWatching = database.episodeDao().hasAnyWatchHistoryForTvShow(tvShow.id)
+                database.tvShowDao().save(tvShow.copy().apply {
+                    merge(tvShow)
+                    isWatching = !shouldMarkWatched || isStillWatching
+                })
+            }
         }
 
         private fun decodeBase64Uri(uri: String): String? {

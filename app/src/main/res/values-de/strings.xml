@@ -348,6 +348,19 @@
     <string name="player_manual_zoom_hint">HOCH/RUNTER für vertikalen Zoom, LINKS/RECHTS für horizontalen, ZURÜCK zum Beenden</string>
 
     <string name="bypass_tv_instructions">DEN CURSOR ÜBER DAS KÄSTCHEN BEWEGEN\nUND OK DRÜCKEN ZUM FREISCHALTEN</string>
+    <string name="bypass_status_complete_bypass_first">Schließe zuerst die Umgehung ab.</string>
+    <string name="bypass_status_missing_url">Bypass-URL fehlt.</string>
+    <string name="bypass_status_external_redirect_blocked">Externe Weiterleitung blockiert. Schließe zuerst die Verifizierung ab.</string>
+    <string name="bypass_status_completed_continue">Bypass abgeschlossen. Tippe auf Continue, um fortzufahren.</string>
+    <string name="bypass_status_cookies_detected">Verifizierungs-Cookies erkannt. Wenn die Seite gelöst aussieht, tippe auf Continue.</string>
+    <string name="bypass_status_complete_in_page">Schließe die Captchas ab, tippe im Popup auf Weiter und danach unten auf die Schaltfläche.</string>
+    <string name="bypass_status_complete_captchas_then_weiter_continue">Schließe die Captchas ab, tippe im Popup auf Weiter und danach unten auf die Schaltfläche.</string>
+    <string name="bypass_status_submitted_wait">Verifizierung gesendet. Warte, bis die Weiterleitung abgeschlossen ist.</string>
+    <string name="bypass_status_complete_captcha_modal">Schließe die Captchas im Popup ab, tippe dort auf Weiter und danach unten auf die Schaltfläche.</string>
+    <string name="bypass_status_loading_captcha">Captcha-Abfragen werden geladen.</string>
+    <string name="bypass_status_waiting_modal">Warte, bis der s.to-Verifizierungsdialog fertig geladen ist.</string>
+    <string name="bypass_action_cancel">Abbrechen</string>
+    <string name="bypass_action_continue">Weiter</string>
     <string name="player_not_available_it_message">Auf italienischen Servern nicht verfügbar, suche es auf TMDB in anderen Sprachen</string>
     <string name="settings_category_poseidon">Poseidonhd2-Einstellungen</string>
     <string name="settings_category_poseidon_domain">Poseidonhd2-Domainname</string>
