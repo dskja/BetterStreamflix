@@ -37,6 +37,12 @@ object LatanimeProvider : Provider {
         val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
         val clientBuilder = OkHttpClient.Builder()
             .cache(appCache)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .build()
+                chain.proceed(request)
+            }
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
 
@@ -52,6 +58,7 @@ object LatanimeProvider : Provider {
         return try {
             coroutineScope {
                 val homeDeferred = async { service.getPage(baseUrl) }
+                val animes2026Deferred = async { service.getPage("$baseUrl/animes?fecha=2026") }
                 val animes2025Deferred = async { service.getPage("$baseUrl/animes?fecha=2025") }
                 val animes2024Deferred = async { service.getPage("$baseUrl/animes?fecha=2024") }
                 val animes2023Deferred = async { service.getPage("$baseUrl/animes?fecha=2023") }
@@ -89,6 +96,12 @@ object LatanimeProvider : Provider {
                             poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
                         )
                     }
+                }
+
+                try {
+                    val animes2026Document = animes2026Deferred.await()
+                    categories.add(Category(name = "Animes del 2026", list = parseAnimesFromPage(animes2026Document).take(12)))
+                } catch (e: Exception) {
                 }
 
                 try {

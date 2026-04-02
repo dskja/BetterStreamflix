@@ -397,7 +397,15 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             }
         }
 
-        val res = resDeferred.await()
+        var res = resDeferred.await()
+        if (res.props == null) {
+            Log.w(TAG, "Inertia getDetails returned null props, falling back to HTML parsing")
+            val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/", language)
+            val json = InertiaUtils.parseInertiaData(doc)
+            res = Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
+                if (version != it.version) version = it.version ?: ""
+            }
+        }
         val title = res.props.title
         val tmdbMovieDeferred = async { title.tmdbId?.let { TmdbUtils.getMovieById(it, language = language) } }
         val tmdbMovie = tmdbMovieDeferred.await()
@@ -435,7 +443,15 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             }
         }
 
-        val res = resDeferred.await()
+        var res = resDeferred.await()
+        if (res.props == null) {
+            Log.w(TAG, "Inertia getDetails returned null props, falling back to HTML parsing")
+            val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/", language)
+            val json = InertiaUtils.parseInertiaData(doc)
+            res = Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
+                if (version != it.version) version = it.version ?: ""
+            }
+        }
         val title = res.props.title
         val tmdbShowDeferred = async { title.tmdbId?.let { TmdbUtils.getTvShowById(it, language = language) } }
         val tmdbShow = tmdbShowDeferred.await()
