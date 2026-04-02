@@ -749,8 +749,7 @@ class PlayerMobileFragment : Fragment() {
         fun handleNavigationButton(
             button: ImageView,
             hasEpisode: () -> Boolean,
-            playEpisode: () -> Unit,
-            forceMarkWatched: Boolean = false
+            playEpisode: () -> Unit
         ) {
             if (!hasEpisode()) {
                 button.isGone = true
@@ -780,17 +779,13 @@ class PlayerMobileFragment : Fragment() {
                         val provider = UserPreferences.currentProvider ?: return@listener
                         val episode = watchItem as? Episode
                         episode?.let {
-                            val shouldMarkWatched = forceMarkWatched || player.hasFinished()
-                            if (shouldMarkWatched) {
-                                it.isWatched = true
-                                it.watchedDate = Calendar.getInstance()
-                                it.watchHistory = null
+                            if (player.hasFinished()) {
                                 database.episodeDao().resetProgressionFromEpisode(videoType.id)
                                 UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, it.id)
                             }
                             database.episodeDao().update(it)
 
-                            if (!shouldMarkWatched) {
+                            if (!player.hasFinished()) {
                                 UserDataCache.addEpisodeToContinueWatching(requireContext(), provider, it)
                             }
 
@@ -802,7 +797,7 @@ class PlayerMobileFragment : Fragment() {
 
                                 database.tvShowDao().save(tvShow.copy().apply {
                                     merge(tvShow)
-                                    isWatching = !shouldMarkWatched || isStillWatching
+                                    isWatching = !player.hasReallyFinished() || isStillWatching
                                 })
                             }
                         }
@@ -818,12 +813,7 @@ class PlayerMobileFragment : Fragment() {
             EpisodeManager::hasPreviousEpisode,
             viewModel::playPreviousEpisode
         )
-        handleNavigationButton(
-            btnNext,
-            EpisodeManager::hasNextEpisode,
-            viewModel::playNextEpisode,
-            forceMarkWatched = true
-        )
+        handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, viewModel::playNextEpisode)
     }
 
     private fun decodeBase64Uri(uri: String): String? {
