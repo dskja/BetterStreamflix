@@ -1121,7 +1121,7 @@ class PlayerMobileFragment : Fragment() {
 
 
     private fun ExoPlayer.hasStarted(): Boolean {
-        return (this.currentPosition > (this.duration * 0.03) || this.currentPosition > 2.minutes.inWholeMilliseconds)
+        return (this.currentPosition > (this.duration * 0.005) || this.currentPosition > 20.seconds.inWholeMilliseconds)
     }
 
     private fun ExoPlayer.hasFinished(): Boolean {

@@ -162,7 +162,8 @@ class BypassWebViewActivity : AppCompatActivity() {
 
                 val cookies = collectCookieHeader()
                 if (cookies.isNotBlank()) {
-                    completeBypass(cookies)
+                    continueButton.isEnabled = true
+                    statusView.text = getString(R.string.bypass_status_completed_continue)
                 } else {
                     statusView.text = getString(R.string.bypass_status_external_redirect_blocked)
                 }
@@ -475,16 +476,6 @@ class BypassWebViewActivity : AppCompatActivity() {
         val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
         return host.equals("s.to", ignoreCase = true) ||
             host.equals("challenges.cloudflare.com", ignoreCase = true)
-    }
-
-    private fun completeBypass(cookies: String) {
-        if (isCleaningUp || isFinishing || isDestroyed) return
-        isCleaningUp = true
-        setResult(
-            Activity.RESULT_OK,
-            Intent().putExtra(EXTRA_COOKIE_HEADER, cookies)
-        )
-        finish()
     }
 
     private fun updateStatusFromDom(stateJson: String?) {
