@@ -18,8 +18,8 @@ class BypassWebSocketServer(
     private val sessions = ConcurrentHashMap<String, String>()
     private val startedLatch = CountDownLatch(1)
 
-    fun registerSession(token: String, url: String) {
-        sessions[token] = url
+    fun registerSession(token: String, payload: String) {
+        sessions[token] = payload
     }
 
     fun clearSession(token: String) {
@@ -44,9 +44,9 @@ class BypassWebSocketServer(
         when {
             message.startsWith("resolve:") -> {
                 val token = message.substringAfter("resolve:")
-                val url = sessions[token]
-                if (url != null) {
-                    conn.send("url:$url")
+                val payload = sessions[token]
+                if (payload != null) {
+                    conn.send("payload:$payload")
                 } else {
                     conn.send("error:unknown_session")
                 }

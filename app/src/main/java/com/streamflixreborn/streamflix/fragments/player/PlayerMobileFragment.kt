@@ -48,6 +48,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.streamflixreborn.streamflix.R
+import com.streamflixreborn.streamflix.activities.tools.BypassWebViewActivity
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.databinding.ContentExoControllerMobileBinding
 import com.streamflixreborn.streamflix.databinding.FragmentPlayerMobileBinding
@@ -77,13 +78,13 @@ import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
+import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import java.util.Base64 
 import java.io.File
 import java.io.FileOutputStream
+import android.webkit.CookieManager
 import androidx.core.content.FileProvider
 import androidx.navigation.NavOptions
-import com.streamflixreborn.streamflix.StreamFlixApp
-import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
@@ -95,7 +96,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.internal.userAgent
-import java.net.CookieManager
 import java.util.Locale
 
 class PlayerMobileFragment : Fragment() {
@@ -125,9 +125,34 @@ class PlayerMobileFragment : Fragment() {
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
     private var isIgnoringPip = false
-    private val customTabHelper = CustomTabHelper()
     private var waitingForBypass = false
     private var bypassDone = false
+
+    private val bypassWebViewLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val cookies =
+                result.data?.getStringExtra(BypassWebViewActivity.EXTRA_COOKIE_HEADER)?.trim()
+
+            if (result.resultCode != android.app.Activity.RESULT_OK || cookies.isNullOrBlank()) {
+                waitingForBypass = false
+                return@registerForActivityResult
+            }
+
+            val bypassUrl = servers.firstOrNull { isSerienStreamBypassUrl(it.id) }?.id
+            if (bypassUrl.isNullOrBlank()) {
+                waitingForBypass = false
+                return@registerForActivityResult
+            }
+
+            applyBypassCookies(bypassUrl, cookies)
+            waitingForBypass = false
+            bypassDone = true
+
+            lifecycleScope.launch {
+                delay(300)
+                viewModel.reloadServersAfterBypass()
+            }
+        }
 
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -194,15 +219,6 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        //s.to specific stuff
-        if (waitingForBypass) {
-            waitingForBypass = false
-            bypassDone = true
-            lifecycleScope.launch {
-                delay(3000) // give time for redirect after "Weiter"
-                viewModel.reloadServersAfterBypass()
-            }
-        }
         if (!isSetupDone) {
             requireActivity().requestedOrientation =
                 ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -240,7 +256,6 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        customTabHelper.warmup(StreamFlixApp.instance)
         initializePlayer(false)
         initializeVideo()
         gestureHelper = PlayerGestureHelper(
@@ -266,9 +281,20 @@ class PlayerMobileFragment : Fragment() {
                         }
 
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
-                            waitingForBypass = true
+                            val bypassUrl = buildSerienStreamBypassUrl()
+                            val bypassToken = extractSerienStreamBypassToken(sToServer.id)
+                            if (bypassUrl.isNullOrBlank()) {
+                                waitingForBypass = false
+                                Toast.makeText(requireContext(), "Unable to open s.to bypass page.", Toast.LENGTH_SHORT).show()
+                                return@collect
+                            }
 
-                            customTabHelper.open(requireActivity(), sToServer.id)
+                            waitingForBypass = true
+                            bypassWebViewLauncher.launch(
+                                Intent(requireContext(), BypassWebViewActivity::class.java)
+                                    .putExtra(BypassWebViewActivity.EXTRA_URL, bypassUrl)
+                                    .putExtra(BypassWebViewActivity.EXTRA_S_TO_TOKEN, bypassToken)
+                            )
                         } else {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
                             val isTmdb = providerName.contains("TMDb", ignoreCase = true)
@@ -521,7 +547,6 @@ class PlayerMobileFragment : Fragment() {
         try {
             requireContext().unregisterReceiver(chooserReceiver)
         } catch (ignored: Exception) {}
-        customTabHelper.release()
         _binding = null
         isSetupDone = false
     }
@@ -1086,7 +1111,7 @@ class PlayerMobileFragment : Fragment() {
 
 
     private fun ExoPlayer.hasStarted(): Boolean {
-        return (this.currentPosition > (this.duration * 0.03) || this.currentPosition > 2.minutes.inWholeMilliseconds)
+        return (this.currentPosition > (this.duration * 0.005) || this.currentPosition > 20.seconds.inWholeMilliseconds)
     }
 
     private fun ExoPlayer.hasFinished(): Boolean {
@@ -1291,5 +1316,45 @@ class PlayerMobileFragment : Fragment() {
         return runCatching {
             Uri.parse(url).host.equals("s.to", ignoreCase = true)
         }.getOrDefault(false)
+    }
+
+    private fun buildSerienStreamBypassUrl(): String? {
+        val provider = UserPreferences.currentProvider ?: return null
+        if (provider != SerienStreamProvider) return null
+
+        val episodeId = when (val type = args.videoType) {
+            is Video.Type.Episode -> type.id
+            is Video.Type.Movie -> return null
+        }
+
+        return "${SerienStreamProvider.baseUrl}serie/$episodeId"
+    }
+
+    private fun extractSerienStreamBypassToken(url: String): String {
+        return runCatching {
+            Uri.parse(url).getQueryParameter("t").orEmpty()
+        }.getOrDefault("")
+    }
+
+    private fun applyBypassCookies(url: String, cookieHeader: String) {
+        val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
+        val targets = linkedSetOf<String>().apply {
+            add(url)
+            if (host.isNotBlank()) {
+                add("https://$host/")
+                add("http://$host/")
+            }
+        }
+
+        val cookieManager = CookieManager.getInstance()
+        cookieHeader.split(";")
+            .map { it.trim() }
+            .filter { it.contains("=") }
+            .forEach { cookie ->
+                targets.forEach { target ->
+                    cookieManager.setCookie(target, cookie)
+                }
+            }
+        cookieManager.flush()
     }
 }

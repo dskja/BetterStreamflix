@@ -434,6 +434,19 @@
     <string name="player_manual_zoom_hint">Usar ARRIBA/ABAJO para el zoom vertical, IZQUIERDA/DERECHA para el horizontal y ATRÁS para salir</string>
 
     <string name="bypass_tv_instructions">MUEVE EL CURSOR POR ENCIMA DEL reCAPTCHA\nY PULSA EN OK PARA DESBLOQUEAR</string>
+    <string name="bypass_status_complete_bypass_first">Completa primero el bypass.</string>
+    <string name="bypass_status_missing_url">Falta la URL del bypass.</string>
+    <string name="bypass_status_external_redirect_blocked">Se bloqueó una redirección externa. Completa primero la verificación.</string>
+    <string name="bypass_status_completed_continue">Bypass completado. Pulsa Continue para continuar.</string>
+    <string name="bypass_status_cookies_detected">Se detectaron cookies de verificación. Si la página parece resuelta, pulsa Continue.</string>
+    <string name="bypass_status_complete_in_page">Completa los captchas, pulsa Weiter en la ventana y luego el botón de abajo.</string>
+    <string name="bypass_status_complete_captchas_then_weiter_continue">Completa los captchas, pulsa Weiter en la ventana y luego el botón de abajo.</string>
+    <string name="bypass_status_submitted_wait">Verificación enviada. Espera a que termine la redirección.</string>
+    <string name="bypass_status_complete_captcha_modal">Completa los captchas en la ventana, pulsa allí Weiter y luego el botón de abajo.</string>
+    <string name="bypass_status_loading_captcha">Cargando solicitudes de captcha.</string>
+    <string name="bypass_status_waiting_modal">Esperando a que termine de cargarse el cuadro de verificación de s.to.</string>
+    <string name="bypass_action_cancel">Cancelar</string>
+    <string name="bypass_action_continue">Continuar</string>
 
     <string name="settings_enable_tmdb_summary">Activar o desactivar el uso de TMDB</string>
     <string name="settings_enable_tmdb_title">Activar TMDB</string>

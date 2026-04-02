@@ -25,6 +25,9 @@ class PlayerTvView @JvmOverloads constructor(
     var isManualZoomEnabled: Boolean = false
         private set
 
+    var onMediaPreviousClicked: (() -> Boolean)? = null
+    var onMediaNextClicked: (() -> Boolean)? = null
+
     private var zoomToast: Toast? = null
 
     fun enterManualZoomMode() {
@@ -82,6 +85,24 @@ class PlayerTvView @JvmOverloads constructor(
 
         val player = player ?: return super.dispatchKeyEvent(event)
 
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                return if (event.action == KeyEvent.ACTION_DOWN) {
+                    onMediaPreviousClicked?.invoke() ?: false
+                } else {
+                    true
+                }
+            }
+
+            KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                return if (event.action == KeyEvent.ACTION_DOWN) {
+                    onMediaNextClicked?.invoke() ?: false
+                } else {
+                    true
+                }
+            }
+        }
+
         if (player.isCommandAvailable(Player.COMMAND_GET_CURRENT_MEDIA_ITEM) && player.isPlayingAd) {
             return super.dispatchKeyEvent(event)
         }
@@ -102,7 +123,6 @@ class PlayerTvView @JvmOverloads constructor(
                 }
                 true
             }
-
             else -> super.dispatchKeyEvent(event)
         }
     }

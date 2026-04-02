@@ -47,6 +47,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import org.json.JSONObject
 import java.util.Base64
 import kotlin.coroutines.resume
 
@@ -55,6 +56,11 @@ class MainMobileActivity : FragmentActivity() {
     private companion object {
         const val RESOLVER_TIMEOUT_MS = 12_000L
     }
+
+    private data class ResolverPayload(
+        val url: String,
+        val sToToken: String = "",
+    )
 
     private var _binding: ActivityMainMobileBinding? = null
     private val binding get() = _binding!!
@@ -82,7 +88,6 @@ class MainMobileActivity : FragmentActivity() {
 
     private var pendingWs: String? = null
     private var pendingToken: String? = null
-    private var pendingUrl: String? = null
 
     private var updateAppDialog: UpdateAppMobileDialog? = null
 
@@ -249,7 +254,6 @@ class MainMobileActivity : FragmentActivity() {
     private fun clearResolverState() {
         pendingWs = null
         pendingToken = null
-        pendingUrl = null
     }
 
     private fun showUpdateDialog(state: MainViewModel.State.SuccessCheckingUpdate) {
@@ -339,7 +343,7 @@ class MainMobileActivity : FragmentActivity() {
         }
     }
 
-    private suspend fun requestResolvedUrl(wsUrl: String, token: String): String? =
+    private suspend fun requestResolverPayload(wsUrl: String, token: String): ResolverPayload? =
         withContext(Dispatchers.IO) {
             withTimeoutOrNull(RESOLVER_TIMEOUT_MS) {
                 suspendCancellableCoroutine { continuation ->
@@ -356,13 +360,33 @@ class MainMobileActivity : FragmentActivity() {
 
                             override fun onMessage(webSocket: WebSocket, text: String) {
                                 when {
+                                    text.startsWith("payload:") -> {
+                                        val payload = text.substringAfter("payload:").trim()
+                                        val parsed = runCatching {
+                                            val json = JSONObject(payload)
+                                            ResolverPayload(
+                                                url = json.optString("url"),
+                                                sToToken = json.optString("sToToken"),
+                                            )
+                                        }.getOrNull()
+
+                                        if (continuation.isActive) {
+                                            continuation.resume(
+                                                parsed?.takeUnless {
+                                                    it.url.isBlank() || it.url.equals("null", ignoreCase = true)
+                                                }
+                                            )
+                                        }
+                                        webSocket.close(1000, null)
+                                    }
+
                                     text.startsWith("url:") -> {
                                         val url = text.substringAfter("url:").trim()
                                         if (continuation.isActive) {
                                             continuation.resume(
                                                 url.takeUnless {
                                                     it.isEmpty() || it.equals("null", ignoreCase = true)
-                                                }
+                                                }?.let { ResolverPayload(url = it) }
                                             )
                                         }
                                         webSocket.close(1000, null)
@@ -476,16 +500,16 @@ class MainMobileActivity : FragmentActivity() {
         pendingToken = token
 
         lifecycleScope.launch {
-            val url = requestResolvedUrl(ws, token)
-            if (url == null) {
+            val payload = requestResolverPayload(ws, token)
+            if (payload == null) {
                 showResolverConnectionErrorDialog(ws, token)
                 return@launch
             }
 
-            pendingUrl = url
             bypassWebViewLauncher.launch(
                 Intent(this@MainMobileActivity, BypassWebViewActivity::class.java)
-                    .putExtra(BypassWebViewActivity.EXTRA_URL, url)
+                    .putExtra(BypassWebViewActivity.EXTRA_URL, payload.url)
+                    .putExtra(BypassWebViewActivity.EXTRA_S_TO_TOKEN, payload.sToToken)
             )
         }
     }

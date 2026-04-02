@@ -69,6 +69,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.ui.PlayerTvView
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
@@ -104,6 +105,7 @@ import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.util.Locale
 import java.util.UUID
 
@@ -112,6 +114,8 @@ class PlayerTvFragment : Fragment() {
     private data class BypassSession(
         val token: String,
         val serverUrl: String,
+        val bypassUrl: String,
+        val bypassToken: String,
     )
 
     private var _binding: FragmentPlayerTvBinding? = null
@@ -241,6 +245,8 @@ class PlayerTvFragment : Fragment() {
 
         initializePlayer(false)
         initializeVideo()
+        binding.pvPlayer.onMediaPreviousClicked = ::handleMediaPrevious
+        binding.pvPlayer.onMediaNextClicked = ::handleMediaNext
         gestureHelper = PlayerGestureHelper(
             requireContext(),
             binding.pvPlayer,
@@ -266,9 +272,22 @@ class PlayerTvFragment : Fragment() {
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
 
+                            val bypassUrl = buildSerienStreamBypassUrl()
+                            if (bypassUrl.isNullOrBlank()) {
+                                waitingForBypass = false
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Unable to prepare TV bypass page.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@collect
+                            }
+
                             val session = BypassSession(
                                 token = UUID.randomUUID().toString(),
                                 serverUrl = sToServer.id,
+                                bypassUrl = bypassUrl,
+                                bypassToken = extractSerienStreamBypassToken(sToServer.id),
                             )
                             activeBypassSession = session
 
@@ -288,7 +307,13 @@ class PlayerTvFragment : Fragment() {
 
                             val qrContent = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
 
-                            wsServer?.registerSession(session.token, session.serverUrl)
+                            wsServer?.registerSession(
+                                session.token,
+                                JSONObject()
+                                    .put("url", session.bypassUrl)
+                                    .put("sToToken", session.bypassToken)
+                                    .toString()
+                            )
                             requireActivity().runOnUiThread {
                                 showQrDialog(qrContent)
                                 Log.d("Bypass", "Advertised WS URL: $wsUrl")
@@ -602,6 +627,28 @@ class PlayerTvFragment : Fragment() {
         }
 
         else -> false
+    }
+
+    private fun handleMediaPrevious(): Boolean {
+        return when (args.videoType) {
+            is Video.Type.Episode -> {
+                if (!EpisodeManager.hasPreviousEpisode()) return false
+                viewModel.playPreviousEpisode()
+                true
+            }
+            is Video.Type.Movie -> false
+        }
+    }
+
+    private fun handleMediaNext(): Boolean {
+        return when (args.videoType) {
+            is Video.Type.Episode -> {
+                if (!EpisodeManager.hasNextEpisode()) return false
+                viewModel.playNextEpisode()
+                true
+            }
+            is Video.Type.Movie -> false
+        }
     }
 
 
@@ -1223,7 +1270,7 @@ class PlayerTvFragment : Fragment() {
 
 
         private fun ExoPlayer.hasStarted(): Boolean {
-            return (this.currentPosition > (this.duration * 0.03) || this.currentPosition > 2.minutes.inWholeMilliseconds)
+            return (this.currentPosition > (this.duration * 0.005) || this.currentPosition > 20.seconds.inWholeMilliseconds)
         }
 
         private fun ExoPlayer.hasFinished(): Boolean {
@@ -1501,6 +1548,24 @@ class PlayerTvFragment : Fragment() {
         return runCatching {
             Uri.parse(url).host.equals("s.to", ignoreCase = true)
         }.getOrDefault(false)
+    }
+
+    private fun buildSerienStreamBypassUrl(): String? {
+        val provider = UserPreferences.currentProvider ?: return null
+        if (provider != SerienStreamProvider) return null
+
+        val episodeId = when (val type = args.videoType) {
+            is Video.Type.Episode -> type.id
+            is Video.Type.Movie -> return null
+        }
+
+        return "${SerienStreamProvider.baseUrl}serie/$episodeId"
+    }
+
+    private fun extractSerienStreamBypassToken(url: String): String {
+        return runCatching {
+            Uri.parse(url).getQueryParameter("t").orEmpty()
+        }.getOrDefault("")
     }
 
     private fun startWebSocketServer(): Int {
