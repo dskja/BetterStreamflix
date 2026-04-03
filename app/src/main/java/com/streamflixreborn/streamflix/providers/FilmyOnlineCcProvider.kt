@@ -20,6 +20,10 @@ import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Query
 import retrofit2.http.Url
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import java.text.Normalizer
 import java.util.concurrent.TimeUnit
 
 object FilmyOnlineCcProvider : Provider {
@@ -110,7 +114,12 @@ object FilmyOnlineCcProvider : Provider {
             ?: throw Exception("Missing title data")
 
         return (toItem(title) as? Movie)?.copy(
-            id = parsed.withType("movie"),
+            id = buildEncodedId(
+                type = "movie",
+                titleId = parsed.titleId,
+                primaryVideoId = parsed.primaryVideoId,
+                titleSlug = parsed.titleSlug ?: slugifyTitle(title.optString("name"))
+            ),
             runtime = watchPage.optJSONObject("video")?.optInt("runtime").takeIf { it != null && it > 0 }
                 ?: (toItem(title) as? Movie)?.runtime,
             poster = title.optString("poster").ifBlank { null },
@@ -122,82 +131,68 @@ object FilmyOnlineCcProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val parsed = parseEncodedId(id)
-        val watchId = parsed.primaryVideoId
-            ?: throw Exception("FilmyOnline show is missing a playable episode")
-        val root = getBootstrapRoot(service.getDocument("$baseUrl/watch/$watchId"))
-        val watchPage = root.optJSONObject("loaders")?.optJSONObject("watchPage")
+        val titleSlug = resolveTitleSlug(parsed)
+            ?: throw Exception("Unable to resolve FilmyOnline show slug")
+        val root = getBootstrapRoot(service.getDocument(buildTitleUrl(parsed.titleId, titleSlug)))
+        val titlePage = root.optJSONObject("loaders")?.optJSONObject("titlePage")
             ?: throw Exception("Unable to load FilmyOnline show")
-        val title = watchPage.optJSONObject("title")
-            ?: watchPage.optJSONObject("video")?.optJSONObject("title")
+        val title = titlePage.optJSONObject("title")
             ?: throw Exception("Missing title data")
 
-        val video = watchPage.optJSONObject("video")
-        val episode = watchPage.optJSONObject("episode")
-        val seasonNumber = episode?.optInt("season_number")?.takeIf { it > 0 }
-            ?: video?.optInt("season_num")?.takeIf { it > 0 }
-            ?: 1
-
-        val episodeNumber = episode?.optInt("episode_number")?.takeIf { it > 0 }
-            ?: video?.optInt("episode_num")?.takeIf { it > 0 }
-            ?: 1
-
-        val episodeItem = Episode(
-            id = watchId.toString(),
-            number = episodeNumber,
-            title = episode?.optString("name")?.ifBlank { null }
-                ?: video?.optString("name")?.ifBlank { null }
-                ?: "Odcinek $episodeNumber",
-            released = episode?.optString("release_date")?.ifBlank { null },
-            poster = episode?.optString("poster")?.ifBlank { null }
-                ?: title.optString("poster").ifBlank { null },
-            overview = episode?.optString("description")?.ifBlank { null }
-        )
-
-        val seasons = listOf(
-            Season(
-                id = buildSeasonId(parsed.titleId, watchId, seasonNumber),
-                number = seasonNumber,
-                title = "Sezon $seasonNumber",
-                poster = title.optString("poster").ifBlank { null },
-                episodes = listOf(episodeItem)
-            )
-        )
+        val seasons = titlePage.optJSONObject("seasons")
+            ?.optJSONArray("data")
+            ?.toSeasonObjects()
+            .orEmpty()
+            .sortedBy { it.optInt("number") }
+            .let { seasonObjects ->
+                if (seasonObjects.isEmpty()) {
+                    emptyList()
+                } else {
+                    coroutineScope {
+                        seasonObjects.map { seasonObject ->
+                            async {
+                                val seasonNumber = seasonObject.optInt("number").takeIf { it > 0 } ?: return@async null
+                                Season(
+                                    id = buildSeasonId(parsed.titleId, titleSlug, seasonNumber),
+                                    number = seasonNumber,
+                                    title = "Sezon $seasonNumber",
+                                    poster = seasonObject.optString("poster").ifBlank { title.optString("poster").ifBlank { null } },
+                                    episodes = fetchSeasonEpisodes(parsed.titleId, titleSlug, seasonNumber, title)
+                                )
+                            }
+                        }.awaitAll().filterNotNull().sortedBy { it.number }
+                    }
+                }
+            }
 
         return (toItem(title) as? TvShow)?.copy(
-            id = parsed.withType("tv"),
+            id = buildEncodedId(
+                type = "tv",
+                titleId = parsed.titleId,
+                primaryVideoId = parsed.primaryVideoId,
+                titleSlug = titleSlug
+            ),
             poster = title.optString("poster").ifBlank { null },
             banner = title.optString("backdrop").ifBlank { null },
             genres = title.optJSONArray("genres")?.toGenres().orEmpty(),
             seasons = seasons,
-            recommendations = watchPage.optJSONArray("related_videos").toRecommendationItems(),
+            recommendations = titlePage.optJSONArray("related_videos").toRecommendationItems(),
         ) ?: throw Exception("Unable to build FilmyOnline show")
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val parts = seasonId.split("|")
         if (parts.size < 3) return emptyList()
-        val watchId = parts[2].toIntOrNull() ?: return emptyList()
-        val root = getBootstrapRoot(service.getDocument("$baseUrl/watch/$watchId"))
-        val watchPage = root.optJSONObject("loaders")?.optJSONObject("watchPage") ?: return emptyList()
-        val episode = watchPage.optJSONObject("episode")
-        val title = watchPage.optJSONObject("title")
+        val titleId = parts[0].toIntOrNull() ?: return emptyList()
+        val titleSlug = parts.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val seasonNumber = parts.getOrNull(2)?.toIntOrNull() ?: return emptyList()
+        val titleRoot = getBootstrapRoot(service.getDocument(buildTitleUrl(titleId, titleSlug)))
+        val title = titleRoot.optJSONObject("loaders")
+            ?.optJSONObject("titlePage")
+            ?.optJSONObject("title")
+            ?: return emptyList()
 
-        val episodeNumber = episode?.optInt("episode_number")?.takeIf { it > 0 }
-            ?: watchPage.optJSONObject("video")?.optInt("episode_num")?.takeIf { it > 0 }
-            ?: 1
-
-        return listOf(
-            Episode(
-                id = watchId.toString(),
-                number = episodeNumber,
-                title = episode?.optString("name")?.ifBlank { null }
-                    ?: watchPage.optJSONObject("video")?.optString("name")?.ifBlank { null },
-                released = episode?.optString("release_date")?.ifBlank { null },
-                poster = episode?.optString("poster")?.ifBlank { null }
-                    ?: title?.optString("poster")?.ifBlank { null },
-                overview = episode?.optString("description")?.ifBlank { null }
-            )
-        ).sortedBy { it.number }
+        return fetchSeasonEpisodes(titleId, titleSlug, seasonNumber, title)
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
@@ -331,7 +326,8 @@ object FilmyOnlineCcProvider : Provider {
         val encodedId = buildEncodedId(
             type = if (title.optBoolean("is_series")) "tv" else "movie",
             titleId = titleId,
-            primaryVideoId = primaryVideo?.optInt("id")?.takeIf { it > 0 }
+            primaryVideoId = primaryVideo?.optInt("id")?.takeIf { it > 0 },
+            titleSlug = slugifyTitle(title.optString("name"))
         )
 
         val commonTitle = title.optString("name")
@@ -461,6 +457,30 @@ object FilmyOnlineCcProvider : Provider {
         return (0 until length()).mapNotNull { index -> optJSONObject(index) }
     }
 
+    private fun JSONArray.toSeasonObjects(): List<JSONObject> {
+        return (0 until length()).mapNotNull { index -> optJSONObject(index) }
+    }
+
+    private fun JSONArray.toEpisodeItems(fallbackPoster: String?): List<Episode> {
+        return (0 until length()).mapNotNull { index ->
+            val episode = optJSONObject(index) ?: return@mapNotNull null
+            val primaryVideoId = episode.optJSONObject("primary_video")
+                ?.optInt("id")
+                ?.takeIf { it > 0 }
+                ?: return@mapNotNull null
+            val episodeNumber = episode.optInt("episode_number").takeIf { it > 0 } ?: return@mapNotNull null
+
+            Episode(
+                id = primaryVideoId.toString(),
+                number = episodeNumber,
+                title = episode.optString("name").ifBlank { "Odcinek $episodeNumber" },
+                released = episode.optString("release_date").ifBlank { null },
+                poster = episode.optString("poster").ifBlank { fallbackPoster },
+                overview = episode.optString("description").ifBlank { null }
+            )
+        }
+    }
+
     private fun itemKey(item: AppAdapter.Item): String {
         return when (item) {
             is Movie -> "movie:${item.id}"
@@ -470,28 +490,93 @@ object FilmyOnlineCcProvider : Provider {
         }
     }
 
-    private fun buildEncodedId(type: String, titleId: Int, primaryVideoId: Int?): String {
-        return listOf(type, titleId.toString(), primaryVideoId?.toString().orEmpty()).joinToString("|")
+    private fun buildEncodedId(type: String, titleId: Int, primaryVideoId: Int?, titleSlug: String?): String {
+        return listOf(
+            type,
+            titleId.toString(),
+            primaryVideoId?.toString().orEmpty(),
+            titleSlug.orEmpty()
+        ).joinToString("|")
     }
 
-    private fun buildSeasonId(titleId: Int, watchId: Int, seasonNumber: Int): String {
-        return listOf(titleId.toString(), seasonNumber.toString(), watchId.toString()).joinToString("|")
+    private suspend fun fetchSeasonEpisodes(
+        titleId: Int,
+        titleSlug: String,
+        seasonNumber: Int,
+        title: JSONObject
+    ): List<Episode> {
+        val root = getBootstrapRoot(service.getDocument(buildSeasonUrl(titleId, titleSlug, seasonNumber)))
+        val seasonPage = root.optJSONObject("loaders")?.optJSONObject("seasonPage") ?: return emptyList()
+        val seasonPoster = seasonPage.optJSONObject("season")?.optString("poster")
+        val fallbackPoster = seasonPoster?.ifBlank { null }
+            ?: title.optString("poster").ifBlank { null }
+
+        return seasonPage.optJSONObject("episodes")
+            ?.optJSONArray("data")
+            ?.toEpisodeItems(fallbackPoster)
+            .orEmpty()
+            .sortedBy { it.number }
+    }
+
+    private fun buildSeasonId(titleId: Int, titleSlug: String, seasonNumber: Int): String {
+        return listOf(titleId.toString(), titleSlug, seasonNumber.toString()).joinToString("|")
+    }
+
+    private fun buildTitleUrl(titleId: Int, titleSlug: String): String {
+        return "$baseUrl/titles/$titleId/$titleSlug"
+    }
+
+    private fun buildSeasonUrl(titleId: Int, titleSlug: String, seasonNumber: Int): String {
+        return "${buildTitleUrl(titleId, titleSlug)}/season/$seasonNumber"
+    }
+
+    private suspend fun resolveTitleSlug(parsed: ParsedId): String? {
+        parsed.titleSlug?.let { return it }
+
+        val watchId = parsed.primaryVideoId ?: return null
+        val root = getBootstrapRoot(service.getDocument("$baseUrl/watch/$watchId"))
+        val watchTitle = root.optJSONObject("loaders")
+            ?.optJSONObject("watchPage")
+            ?.optJSONObject("title")
+            ?.optString("name")
+            ?.ifBlank { null }
+            ?: root.optJSONObject("loaders")
+                ?.optJSONObject("watchPage")
+                ?.optJSONObject("video")
+                ?.optJSONObject("title")
+                ?.optString("name")
+                ?.ifBlank { null }
+
+        return slugifyTitle(watchTitle)
+    }
+
+    private fun slugifyTitle(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+
+        val normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+            .lowercase()
+            .replace("&", " and ")
+            .replace(Regex("[^a-z0-9]+"), "-")
+            .trim('-')
+
+        return normalized.ifBlank { null }
     }
 
     private data class ParsedId(
         val type: String,
         val titleId: Int,
-        val primaryVideoId: Int?
-    ) {
-        fun withType(nextType: String): String = buildEncodedId(nextType, titleId, primaryVideoId)
-    }
+        val primaryVideoId: Int?,
+        val titleSlug: String?
+    )
 
     private fun parseEncodedId(id: String): ParsedId {
         val parts = id.split("|")
         return ParsedId(
             type = parts.getOrNull(0).orEmpty(),
             titleId = parts.getOrNull(1)?.toIntOrNull() ?: 0,
-            primaryVideoId = parts.getOrNull(2)?.toIntOrNull()
+            primaryVideoId = parts.getOrNull(2)?.toIntOrNull(),
+            titleSlug = parts.getOrNull(3)?.takeIf { it.isNotBlank() }
         )
     }
 
