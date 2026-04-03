@@ -26,6 +26,7 @@ abstract class Extractor {
             RabbitstreamExtractor.PremiumEmbedingExtractor(),
             UpzoneExtractor(),
             StreamhubExtractor(),
+            VtubeExtractor(),
             VoeExtractor(),
             StreamtapeExtractor(),
             VidozaExtractor(),
