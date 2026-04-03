@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.utils
 
 import android.content.Context
 import android.content.res.Configuration
+import android.os.Build
 import com.streamflixreborn.streamflix.BuildConfig
 import com.streamflixreborn.streamflix.R
 import java.util.Locale
@@ -51,7 +52,13 @@ object AppLanguageManager {
     }
 
     fun buildLanguageEntries(context: Context): Array<CharSequence> {
-        val displayLocale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+        val configuration = context.resources.configuration
+        val displayLocale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            configuration.locales[0]
+        } else {
+            @Suppress("DEPRECATION")
+            configuration.locale
+        } ?: Locale.getDefault()
         return buildList {
             add(context.getString(R.string.settings_app_language_system))
             addAll(
