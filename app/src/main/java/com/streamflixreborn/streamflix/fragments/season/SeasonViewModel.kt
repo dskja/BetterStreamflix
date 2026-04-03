@@ -54,7 +54,7 @@ class SeasonViewModel(
                             ?.takeIf { !episode.isSame(it) }
                             ?.let { episode.copy().merge(it) }
                             ?: episode
-                    }.onEach {
+                    }.sortedBy { it.number }.onEach {
                         it.tvShow = tvShow
                         it.season = season
                     }
@@ -79,7 +79,9 @@ class SeasonViewModel(
         _state.emit(State.LoadingEpisodes)
 
         try {
-            val episodes = UserPreferences.currentProvider!!.getEpisodesBySeason(seasonId)
+            val episodes = UserPreferences.currentProvider!!
+                .getEpisodesBySeason(seasonId)
+                .sortedBy { it.number }
             val ids = episodes.map { it.id }
             val episodeMap = episodes.associateBy { it.id }
 

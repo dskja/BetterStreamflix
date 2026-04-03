@@ -52,8 +52,9 @@ class TvShow(
 
     val episodeToWatch: Episode?
         get() {
-            val episodes = seasons
+            val sortedSeasons = seasons
                 .sortedWith(compareBy<Season> { it.number == 0 }.thenBy { it.number })
+            val episodes = sortedSeasons
                 .flatMap { season ->
                     season.episodes
                         .sortedBy { it.number }
@@ -69,7 +70,10 @@ class TvShow(
                 ?: episodes.indexOfLast { it.isWatched }
                     .takeIf { it != -1 && it + 1 < episodes.size }
                     ?.let { episodes.getOrNull(it + 1) }
-                ?: seasons.firstOrNull { it.number != 0 }?.episodes?.firstOrNull()
+                ?: sortedSeasons.firstOrNull { it.number != 0 }
+                    ?.episodes
+                    ?.sortedBy { it.number }
+                    ?.firstOrNull()
                 ?: episodes.firstOrNull()
             return episode
         }

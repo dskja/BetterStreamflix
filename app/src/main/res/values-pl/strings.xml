@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Streamflix</string>
+
+    <string name="loading_error_title">Wystapil blad</string>
+    <string name="loading_error_retry">Sprobuj ponownie</string>
+    <string name="loading_error_clear_cache">Wyczysc pamiec podreczna</string>
+    <string name="loading_error_details">Szczegoly bledu</string>
+
+    <string name="update_title">Dostepna jest nowa aktualizacja</string>
+    <string name="update_message">Dostepna jest nowa wersja aplikacji!</string>
+    <string name="update_current_version_label">Biezaca wersja</string>
+    <string name="update_new_version_label">Nowa wersja</string>
+    <string name="update_release_notes">Informacje o wydaniu</string>
+    <string name="update_later">Pozniej</string>
+    <string name="update">Aktualizuj</string>
+
+    <string name="providers_all_languages">Wszystkie jezyki</string>
+    <string name="providers_choose_title">Wybierz dostawce</string>
+
+    <string name="main_menu_change_provider">Zmien dostawce</string>
+    <string name="main_menu_search">Szukaj</string>
+    <string name="main_menu_home">Start</string>
+    <string name="main_menu_movies">Filmy</string>
+    <string name="main_menu_tv_shows">Seriale</string>
+    <string name="main_menu_all_channels">Wszystkie kanaly</string>
+    <string name="main_menu_settings">Ustawienia</string>
+    <string name="main_menu_theme_change">Zmien motyw</string>
+
+    <string name="search_input_hint">Szukaj filmow i seriali</string>
+    <string name="global_search">Wyszukiwanie globalne</string>
+    <string name="searching">Wyszukiwanie...</string>
+    <string name="search_error">Blad</string>
+    <string name="result">Wynik</string>
+    <string name="results">Wyniki</string>
+    <string name="switching_to_provider">Przelaczanie na %s</string>
+
+    <string name="home_swiper_watch_now">Ogladaj teraz</string>
+    <string name="home_continue_watching">Kontynuuj ogladanie</string>
+    <string name="home_favorite_movies">Ulubione filmy</string>
+    <string name="home_favorite_tv_shows">Ulubione seriale</string>
+
+    <string name="option_episode_open_tv_show">Przejdz do serialu</string>
+    <string name="option_show_favorite">Dodaj do ulubionych</string>
+    <string name="option_show_unfavorite">Usun z ulubionych</string>
+    <string name="option_show_watched">Oznacz jako obejrzane</string>
+    <string name="option_show_mark_all_previous_watched">Oznacz jako obejrzane do tego miejsca</string>
+    <string name="option_show_mark_all_previous_unwatched">Oznacz jako nieobejrzane do tego miejsca</string>
+    <string name="option_show_unwatched">Oznacz jako nieobejrzane</string>
+    <string name="option_clear_program">Usun z kontynuuj ogladanie</string>
+    <string name="option_cancel">Anuluj</string>
+
+    <string name="episode_item_info">S%d E%d • %s</string>
+    <string name="episode_item_info_episode_only">E%d • %s</string>
+
+    <string name="tv_show_item_episode_number">E%d</string>
+    <string name="tv_show_item_season_number_episode_number">S%d E%d</string>
+    <string name="tv_show_item_type">Serial</string>
+    <string name="tv_show_runtime_hours_minutes">%d godz. %d min</string>
+    <string name="tv_show_runtime_minutes">%d min</string>
+    <string name="tv_show_watch_season_episode">Ogladaj S%d E%d</string>
+    <string name="tv_show_watch_episode">Ogladaj E%d</string>
+    <string name="tv_show_trailer">Zwiastun</string>
+    <string name="tv_show_seasons">Sezony</string>
+    <string name="tv_show_cast">Obsada</string>
+    <string name="tv_show_directors">Rezyser</string>
+    <string name="tv_show_you_may_also_like">Moze Ci sie spodobac</string>
+
+    <string name="movie_item_type">Film</string>
+    <string name="movie_watch_now">Ogladaj teraz</string>
+    <string name="movie_trailer">Zwiastun</string>
+    <string name="movie_cast">Obsada</string>
+    <string name="movie_directors">Rezyser</string>
+    <string name="movie_you_may_also_like">Moze Ci sie spodobac</string>
+
+    <string name="season_number">Sezon %d</string>
+    <string name="episode_number">Odcinek %d</string>
+
+    <string name="people_birthday">Data urodzenia</string>
+    <string name="people_deathday">Data smierci</string>
+    <string name="people_birthplace">Miejsce urodzenia</string>
+    <string name="people_biography">Biografia</string>
+    <string name="people_read_more">Czytaj wiecej &gt;</string>
+
+    <string name="player_picture_in_picture_not_supported">Tryb PiP nie jest obslugiwany na tym urzadzeniu</string>
+    <string name="player_external_player_title">Odtworz za pomoca</string>
+    <string name="player_external_player_error_video">Film nie jest jeszcze zaladowany</string>
+    <string name="player_retry_later_message">Wideo jest obecnie niedostepne u tego dostawcy. Sprobuj ponownie pozniej</string>
+    <string name="player_subtitle_tv_show">S%d E%d • %s</string>
+    <string name="player_subtitle_tv_show_episode_only">E%d • %s</string>
+    <string name="player_settings_title">Ustawienia</string>
+    <string name="player_settings_quality_title">Jakosc dla biezacego wideo</string>
+    <string name="player_settings_quality_label">Jakosc</string>
+    <string name="player_settings_quality_auto">Auto</string>
+    <string name="player_settings_audio_title">Audio</string>
+    <string name="player_settings_audio_label">Audio</string>
+    <string name="player_settings_subtitles_title">Napisy</string>
+    <string name="player_settings_subtitles_label">Napisy</string>
+    <string name="player_settings_subtitles_off">Wylaczone</string>
+    <string name="player_settings_speed_title">Predkosc odtwarzania</string>
+    <string name="player_settings_speed_label">Predkosc</string>
+    <string name="player_settings_servers_title">Serwery</string>
+    <string name="player_settings_servers_label">Serwery</string>
+    <string name="player_skip_intro">Pomin intro</string>
+
+    <string name="settings_about">O aplikacji</string>
+    <string name="settings_about_version">Wersja</string>
+    <string name="settings_help">Pomoc</string>
+    <string name="settings_telegram">Grupa Telegram</string>
+    <string name="settings_close_app">Zamknij aplikacje</string>
+    <string name="settings_category_provider_title">Ustawienia dostawcy</string>
+    <string name="settings_provider_connection_title">Ustawienia biezacego dostawcy</string>
+    <string name="settings_category_provider_url">Glowny adres URL</string>
+    <string name="settings_category_provider_url_manual">Wpisz recznie</string>
+    <string name="settings_category_provider_update_url">Adres portalu</string>
+    <string name="settings_autoupdate">Odswiez glowny adres URL przy starcie</string>
+    <string name="settings_autoupdate_on">Wl.</string>
+    <string name="settings_autoupdate_off">Wyl.</string>
+    <string name="settings_autoupdate_now">Odswiez glowny adres URL teraz</string>
+    <string name="settings_autoplay">Autoodtwarzanie nastepnego odcinka</string>
+    <string name="settings_autoplay_on">Wl.</string>
+    <string name="settings_autoplay_off">Wyl.</string>
+    <string name="autoplay_settings">Ustawienia autoodtwarzania</string>
+    <string name="player_settings">Ustawienia odtwarzacza</string>
+    <string name="miscelaneous_title">Rozne</string>
+    <string name="clear_cache_done">Pamiec podreczna wyczyszczona</string>
+
+    <string name="voice_search">Wyszukiwanie glosowe</string>
+    <string name="voice_error_no_match">Nic nie rozpoznano</string>
+    <string name="voice_error_timeout">Przekroczono limit czasu</string>
+    <string name="voice_error_audio">Blad audio</string>
+    <string name="voice_error_clear">Wyczysc historie wyszukiwania</string>
+    <string name="voice_error_permission_denied">Brak zgody na mikrofon</string>
+    <string name="voice_permission_title">Wymagane uprawnienie</string>
+    <string name="voice_permission_rationale">Dostep do mikrofonu jest potrzebny do wyszukiwania glosowego.</string>
+    <string name="voice_error_generic">Wystapil blad podczas uruchamiania rozpoznawania mowy.</string>
+    <string name="voice_error_no_result">Nie wykryto zadnego polecenia glosowego.</string>
+    <string name="voice_prompt">Mow teraz</string>
+
+    <string name="backup_category_title">Kopia zapasowa i przywracanie</string>
+    <string name="backup_export_title">Eksportuj dane uzytkownika</string>
+    <string name="backup_import_title">Importuj dane uzytkownika</string>
+    <string name="backup_export_success">Kopia zapasowa zostala wyeksportowana!</string>
+    <string name="backup_import_success">Kopia zapasowa zostala zaimportowana! Uruchom aplikacje ponownie, aby zastosowac zmiany.</string>
+
+    <string name="settings_category_appearance">Wyglad</string>
+    <string name="settings_theme_title">Motyw aplikacji</string>
+    <string name="settings_app_language_title">Jezyk aplikacji</string>
+    <string name="settings_app_language_summary">Wybierz dolaczone tlumaczenie, z ktorego ma korzystac aplikacja</string>
+    <string name="settings_app_language_system">Domyslny systemowy</string>
+    <string name="settings_app_language_english">Angielski</string>
+    <string name="settings_app_language_arabic">Arabski</string>
+    <string name="settings_app_language_german">Niemiecki</string>
+    <string name="settings_app_language_spanish">Hiszpanski</string>
+    <string name="settings_app_language_french">Francuski</string>
+    <string name="settings_app_language_italian">Wloski</string>
+    <string name="settings_app_language_polish">Polski</string>
+</resources>

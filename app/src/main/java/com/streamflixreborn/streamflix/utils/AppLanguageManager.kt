@@ -16,6 +16,7 @@ object AppLanguageManager {
         "es",
         "fr",
         "it",
+        "pl",
     )
 
     fun wrap(context: Context): Context {
@@ -102,6 +103,7 @@ object AppLanguageManager {
             "es" -> R.string.settings_app_language_spanish
             "fr" -> R.string.settings_app_language_french
             "it" -> R.string.settings_app_language_italian
+            "pl" -> R.string.settings_app_language_polish
             else -> null
         }
 

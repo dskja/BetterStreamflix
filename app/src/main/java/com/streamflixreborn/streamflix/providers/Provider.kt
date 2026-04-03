@@ -93,6 +93,8 @@ interface Provider {
             EinschaltenProvider to ProviderSupport(movies = true, tvShows = false),
             HDFilmeProvider to ProviderSupport(movies = true, tvShows = true),
             MEGAKinoProvider to ProviderSupport(movies = true, tvShows = true),
+            EkinoTVProvider to ProviderSupport(movies = true, tvShows = true),
+            FilmyOnlineCcProvider to ProviderSupport(movies = true, tvShows = true),
             UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true),
             TvporinternetHDProvider to ProviderSupport(movies = false, tvShows = true),
             FrembedProvider to ProviderSupport(movies = true, tvShows = true),
