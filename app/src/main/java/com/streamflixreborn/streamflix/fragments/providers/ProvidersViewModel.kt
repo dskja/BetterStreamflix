@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamflixreborn.streamflix.models.Provider as ModelProvider
 import com.streamflixreborn.streamflix.providers.Provider
-import com.streamflixreborn.streamflix.providers.TmdbProvider // Importa TmdbProvider
+import com.streamflixreborn.streamflix.providers.TmdbProvider
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -35,16 +35,14 @@ class ProvidersViewModel : ViewModel() {
             val providers = Provider.providers.keys
                 .filter { language == null || it.language == language }
                 .sortedBy { it.name }
-                .toMutableList() // Converti in MutableList per poter aggiungere elementi
+                .toMutableList()
 
             if (language == null) {
-                // Se nessuna lingua è selezionata, aggiungi un provider TMDb per ogni lingua disponibile
                 val availableLanguages = Provider.providers.keys.map { it.language }.distinct()
                 availableLanguages.forEach { lang ->
                     providers.add(TmdbProvider(lang))
                 }
             } else {
-                // Se è selezionata una lingua, aggiungi solo il provider TMDb per quella lingua
                 providers.add(TmdbProvider(language))
             }
 
@@ -59,7 +57,10 @@ class ProvidersViewModel : ViewModel() {
                     language = it.language,
                     provider = it,
                 )
-            }.sortedBy { it.name } // Ordina di nuovo dopo aver aggiunto i provider TMDb
+            }.sortedWith(
+                compareBy<ModelProvider> { it.provider is TmdbProvider }
+                    .thenBy { it.name.lowercase(Locale.ROOT) }
+            )
 
             _state.emit(State.SuccessLoading(modelProviders))
         } catch (e: Exception) {
