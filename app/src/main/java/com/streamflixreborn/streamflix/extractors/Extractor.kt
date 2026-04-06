@@ -108,9 +108,7 @@ abstract class Extractor {
             HxfileExtractor(),
             ZillaExtractor(),
             PDrainExtractor(),
-            //MegaExtractor(),
             UpnShareExtractor()
-            //MP4UploadExtractor()
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

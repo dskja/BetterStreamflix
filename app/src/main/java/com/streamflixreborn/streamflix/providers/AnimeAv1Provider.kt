@@ -398,16 +398,10 @@ object AnimeAv1Provider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return try {
             val url = "$baseUrl/media/$id"
-            Log.d("AnimeAV1", "Id: $id")
-            Log.d("AnimeAV1", "URL: $url")
             val jsonUrl = "$url/__data.json"
-            Log.d("AnimeAV1", "jsonURL: $jsonUrl")
 
             val response = service.getRaw(jsonUrl)
             val jsonText = response.body()?.string() ?: return emptyList()
-
-            Log.d("AnimeAV1", "Tiene embeds: ${jsonText.contains("embeds")}")
-            Log.d("AnimeAV1", "JSON preview: $jsonText")
 
             val servers = mutableListOf<Video.Server>()
 
@@ -470,12 +464,9 @@ object AnimeAv1Provider : Provider {
             extractFromIndex(subIndex, "SUB")
             extractFromIndex(dubIndex, "DUB")
 
-            Log.d("AnimeAV1", "Servers: $servers")
-
             servers.distinctBy { it.id }
 
         } catch (e: Exception) {
-            Log.e("AnimeAV1", "ERROR", e)
             emptyList()
         }
     }
