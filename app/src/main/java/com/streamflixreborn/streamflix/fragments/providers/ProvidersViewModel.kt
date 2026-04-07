@@ -40,10 +40,14 @@ class ProvidersViewModel : ViewModel() {
             if (language == null) {
                 val availableLanguages = Provider.providers.keys.map { it.language }.distinct()
                 availableLanguages.forEach { lang ->
-                    providers.add(TmdbProvider(lang))
+                    if (lang != "pl") {
+                        providers.add(TmdbProvider(lang))
+                    }
                 }
             } else {
-                providers.add(TmdbProvider(language))
+                if (language != "pl") {
+                    providers.add(TmdbProvider(language))
+                }
             }
 
             val modelProviders = providers.map {
