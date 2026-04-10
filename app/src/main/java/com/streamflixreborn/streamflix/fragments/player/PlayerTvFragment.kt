@@ -643,11 +643,36 @@ class PlayerTvFragment : Fragment() {
     private fun handleMediaNext(): Boolean {
         return when (args.videoType) {
             is Video.Type.Episode -> {
-                if (!EpisodeManager.hasNextEpisode()) return false
-                viewModel.playNextEpisode()
+                playNextEpisodeAcrossSeasons()
                 true
             }
             is Video.Type.Movie -> false
+        }
+    }
+
+    private fun refreshEpisodeNavigation(type: Video.Type.Episode) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            EpisodeManager.ensureNextEpisodeAvailable(type, database)
+            withContext(Dispatchers.Main) {
+                setupEpisodeNavigationButtons()
+            }
+        }
+    }
+
+    private fun playNextEpisodeAcrossSeasons(autoplay: Boolean = false) {
+        val type = args.videoType as? Video.Type.Episode ?: return
+
+        lifecycleScope.launch {
+            val hasNextEpisode = withContext(Dispatchers.IO) {
+                EpisodeManager.ensureNextEpisodeAvailable(type, database)
+            }
+
+            setupEpisodeNavigationButtons()
+
+            if (!hasNextEpisode) return@launch
+            if (autoplay && !UserPreferences.autoplay) return@launch
+
+            viewModel.playNextEpisode()
         }
     }
 
@@ -723,11 +748,13 @@ class PlayerTvFragment : Fragment() {
                             withContext(Dispatchers.Main) {
                                 EpisodeManager.setCurrentEpisode(type)
                                 setupEpisodeNavigationButtons()
+                                refreshEpisodeNavigation(type)
                             }
                         }
                     } else {
                         EpisodeManager.setCurrentEpisode(type)
                         setupEpisodeNavigationButtons()
+                        refreshEpisodeNavigation(type)
                     }
                 }
 
@@ -921,7 +948,7 @@ class PlayerTvFragment : Fragment() {
             handleNavigationButton(
                 btnNext,
                 EpisodeManager::hasNextEpisode,
-                viewModel::playNextEpisode
+                ::playNextEpisodeAcrossSeasons
             )
         }
 
@@ -1219,7 +1246,7 @@ class PlayerTvFragment : Fragment() {
                         }
                         if (player.hasReallyFinished()) {
                             if (UserPreferences.autoplay) {
-                                viewModel.autoplayNextEpisode()
+                                playNextEpisodeAcrossSeasons(autoplay = true)
                             }
                         }
                     }

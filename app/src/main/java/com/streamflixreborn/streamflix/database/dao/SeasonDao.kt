@@ -26,6 +26,9 @@ interface SeasonDao {
     @Query("SELECT * FROM seasons WHERE tvShow = :tvShowId")
     fun getByTvShowIdAsFlow(tvShowId: String): Flow<List<Season>>
 
+    @Query("SELECT * FROM seasons WHERE tvShow = :tvShowId ORDER BY number")
+    fun getByTvShowId(tvShowId: String): List<Season>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(season: Season)
 

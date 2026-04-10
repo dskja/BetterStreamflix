@@ -17,6 +17,22 @@ object EpisodeManager {
         currentIndex = 0
     }
 
+    private fun mergeEpisodes(list: List<Episode>) {
+        if (list.isEmpty()) return
+
+        val currentEpisodeId = getCurrentEpisode()?.id
+        val merged = (episodes + list)
+            .distinctBy { it.id }
+            .sortedWith(compareBy({ it.season.number }, { it.number }))
+
+        episodes.clear()
+        episodes.addAll(merged)
+
+        currentIndex = currentEpisodeId
+            ?.let { id -> episodes.indexOfFirst { it.id == id }.takeIf { it >= 0 } }
+            ?: 0
+    }
+
     suspend fun addEpisodesFromDb(type: Video.Type.Episode, database: AppDatabase) {
         val tvShowId = type.tvShow.id
         val seasonNumber = type.season.number
@@ -68,6 +84,66 @@ object EpisodeManager {
             }
             addEpisodes(convertToVideoTypeEpisodes(episodesFromDb, database, seasonNumber))
         }
+    }
+
+    suspend fun ensureNextEpisodeAvailable(type: Video.Type.Episode, database: AppDatabase): Boolean {
+        if (hasNextEpisode()) return true
+
+        val currentEpisode = getCurrentEpisode()
+            ?.takeIf { current -> current.id == type.id }
+            ?: type
+        val provider = UserPreferences.currentProvider ?: return false
+        val tvShowId = currentEpisode.tvShow.id
+        val currentSeasonNumber = currentEpisode.season.number
+
+        fun nextSeasonFrom(seasons: List<Season>): Season? =
+            seasons
+                .filter { season -> season.number > currentSeasonNumber }
+                .sortedBy { season -> season.number }
+                .firstOrNull()
+
+        var nextSeason = nextSeasonFrom(database.seasonDao().getByTvShowId(tvShowId))
+
+        if (nextSeason == null) {
+            runCatching { provider.getTvShow(tvShowId) }
+                .getOrNull()
+                ?.also { tvShow ->
+                    database.tvShowDao().save(tvShow)
+                    tvShow.seasons.forEach { season ->
+                        season.tvShow = tvShow
+                    }
+                    database.seasonDao().insertAll(tvShow.seasons)
+                    nextSeason = nextSeasonFrom(tvShow.seasons)
+                }
+        }
+
+        val seasonToLoad = nextSeason ?: return false
+        var nextSeasonEpisodes = database.episodeDao()
+            .getByTvShowIdAndSeasonNumber(tvShowId, seasonToLoad.number)
+
+        if (nextSeasonEpisodes.isEmpty() && seasonToLoad.id.isNotBlank()) {
+            nextSeasonEpisodes = runCatching {
+                provider.getEpisodesBySeason(seasonToLoad.id)
+            }.getOrDefault(emptyList()).also { fetchedEpisodes ->
+                if (fetchedEpisodes.isNotEmpty()) {
+                    fetchedEpisodes.forEach { episode ->
+                        episode.tvShow = episode.tvShow ?: seasonToLoad.tvShow
+                        episode.season = episode.season ?: seasonToLoad
+                    }
+                    database.episodeDao().insertAll(fetchedEpisodes)
+                }
+            }
+        }
+
+        if (nextSeasonEpisodes.isEmpty()) return false
+
+        nextSeasonEpisodes.forEach { episode ->
+            episode.tvShow = episode.tvShow ?: seasonToLoad.tvShow
+            episode.season = episode.season ?: seasonToLoad
+        }
+
+        mergeEpisodes(convertToVideoTypeEpisodes(nextSeasonEpisodes, database, seasonToLoad.number))
+        return hasNextEpisode()
     }
     fun clearEpisodes(){
         episodes.clear()
