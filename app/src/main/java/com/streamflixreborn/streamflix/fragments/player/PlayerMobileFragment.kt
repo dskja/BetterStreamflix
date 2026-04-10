@@ -575,10 +575,12 @@ class PlayerMobileFragment : Fragment() {
         when (val type = args.videoType) {
             is Video.Type.Episode -> {
                 if (EpisodeManager.listIsEmpty(type)) {
+                    EpisodeManager.clearEpisodes()
                     lifecycleScope.launch(Dispatchers.IO) {
                         EpisodeManager.addEpisodesFromDb(type, database)
                         withContext(Dispatchers.Main) {
                             EpisodeManager.setCurrentEpisode(type)
+                            updatePlayerHeader(type)
                             setupEpisodeNavigationButtons()
                         }
                     }
@@ -1124,7 +1126,9 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private fun currentVideoTypeForUi(): Video.Type = when (val type = args.videoType) {
-        is Video.Type.Episode -> EpisodeManager.getCurrentEpisode() ?: type
+        is Video.Type.Episode -> EpisodeManager.getCurrentEpisode()
+            ?.takeIf { currentEpisode -> currentEpisode.id == type.id }
+            ?: type
         is Video.Type.Movie -> type
     }
 
