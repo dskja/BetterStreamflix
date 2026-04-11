@@ -582,11 +582,13 @@ class PlayerMobileFragment : Fragment() {
                             EpisodeManager.setCurrentEpisode(type)
                             updatePlayerHeader(type)
                             setupEpisodeNavigationButtons()
+                            refreshEpisodeNavigation(type)
                         }
                     }
                 } else {
                     EpisodeManager.setCurrentEpisode(type)
                     setupEpisodeNavigationButtons()
+                    refreshEpisodeNavigation(type)
                 }
             }
             is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
@@ -815,7 +817,33 @@ class PlayerMobileFragment : Fragment() {
             EpisodeManager::hasPreviousEpisode,
             viewModel::playPreviousEpisode
         )
-        handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, viewModel::playNextEpisode)
+        handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, ::playNextEpisodeAcrossSeasons)
+    }
+
+    private fun refreshEpisodeNavigation(type: Video.Type.Episode) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            EpisodeManager.ensureNextEpisodeAvailable(type, database)
+            withContext(Dispatchers.Main) {
+                setupEpisodeNavigationButtons()
+            }
+        }
+    }
+
+    private fun playNextEpisodeAcrossSeasons(autoplay: Boolean = false) {
+        val type = args.videoType as? Video.Type.Episode ?: return
+
+        lifecycleScope.launch {
+            val hasNextEpisode = withContext(Dispatchers.IO) {
+                EpisodeManager.ensureNextEpisodeAvailable(type, database)
+            }
+
+            setupEpisodeNavigationButtons()
+
+            if (!hasNextEpisode) return@launch
+            if (autoplay && !UserPreferences.autoplay) return@launch
+
+            viewModel.playNextEpisode()
+        }
     }
 
     private fun decodeBase64Uri(uri: String): String? {
@@ -1054,7 +1082,7 @@ class PlayerMobileFragment : Fragment() {
                             }
                     if (player.hasReallyFinished()) {
                         if (UserPreferences.autoplay) {
-                            viewModel.autoplayNextEpisode()
+                            playNextEpisodeAcrossSeasons(autoplay = true)
                         }
                     }
                 }
