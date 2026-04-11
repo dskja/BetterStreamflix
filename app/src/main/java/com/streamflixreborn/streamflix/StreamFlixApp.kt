@@ -12,6 +12,7 @@ import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.ArtworkRepairScheduler
 import com.streamflixreborn.streamflix.utils.CacheUtils
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.IsrgRootTrustProvider
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +38,11 @@ class StreamFlixApp : Application() {
         // 0. Initialize Conscrypt for modern SSL on old Android
         Security.insertProviderAt(Conscrypt.newProvider(), 1)
 
-        // 1. Inizializzazione preferenze (con applicationContext)
+        // 1. Install ISRG Root X1 globally for Let's Encrypt. On Android < 7 (API 24)
+        // network_security_config.xml is not supported so the certificate must be injected manually.
+        IsrgRootTrustProvider.install()
+
+        // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
 
@@ -61,3 +66,4 @@ class StreamFlixApp : Application() {
         }
     }
 }
+

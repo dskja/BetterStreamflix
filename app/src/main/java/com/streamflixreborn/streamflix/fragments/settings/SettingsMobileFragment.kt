@@ -238,7 +238,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
             setOnPreferenceChangeListener { preference, newValue ->
                 val typed = (newValue as String).trim()
-                val BLOCKED = listOf("streamingcommunityz.green", "streamingunity.club")
+                val BLOCKED = listOf("streamingcommunityz.green", "streamingunity.club", "streamingunity.bike", "streamingcommunityz.buzz")
                 val effectiveDomain = if (BLOCKED.any { typed.contains(it) }) DEFAULT_DOMAIN_VALUE else typed
                 UserPreferences.streamingcommunityDomain = effectiveDomain
                 preference.summary = effectiveDomain
