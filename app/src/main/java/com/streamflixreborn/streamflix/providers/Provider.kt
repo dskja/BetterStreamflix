@@ -78,6 +78,7 @@ interface Provider {
             LaCartoonsProvider to ProviderSupport(movies = false, tvShows = true),
             AnimefenixProvider to ProviderSupport(movies = false, tvShows = true),
             AnimeFlvProvider to ProviderSupport(movies = false, tvShows = true),
+            AnimeAv1Provider to ProviderSupport(movies = false, tvShows = true),
             SoloLatinoProvider to ProviderSupport(movies = true, tvShows = true),
             Cine24hProvider to ProviderSupport(movies = true, tvShows = true),
             PelisplustoProvider to ProviderSupport(movies = true, tvShows = true),
