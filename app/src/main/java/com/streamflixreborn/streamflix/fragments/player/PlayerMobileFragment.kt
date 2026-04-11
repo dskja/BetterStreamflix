@@ -58,6 +58,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
+import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.ui.PlayerMobileView
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.UserPreferences
@@ -78,7 +79,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsView
-import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import java.util.Base64 
 import java.io.File
 import java.io.FileOutputStream
@@ -282,7 +282,6 @@ class PlayerMobileFragment : Fragment() {
 
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             val bypassUrl = buildSerienStreamBypassUrl()
-                            val bypassToken = extractSerienStreamBypassToken(sToServer.id)
                             if (bypassUrl.isNullOrBlank()) {
                                 waitingForBypass = false
                                 Toast.makeText(requireContext(), "Unable to open s.to bypass page.", Toast.LENGTH_SHORT).show()
@@ -293,7 +292,6 @@ class PlayerMobileFragment : Fragment() {
                             bypassWebViewLauncher.launch(
                                 Intent(requireContext(), BypassWebViewActivity::class.java)
                                     .putExtra(BypassWebViewActivity.EXTRA_URL, bypassUrl)
-                                    .putExtra(BypassWebViewActivity.EXTRA_S_TO_TOKEN, bypassToken)
                             )
                         } else {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
@@ -1360,12 +1358,6 @@ class PlayerMobileFragment : Fragment() {
         }
 
         return "${SerienStreamProvider.baseUrl}serie/$episodeId"
-    }
-
-    private fun extractSerienStreamBypassToken(url: String): String {
-        return runCatching {
-            Uri.parse(url).getQueryParameter("t").orEmpty()
-        }.getOrDefault("")
     }
 
     private fun applyBypassCookies(url: String, cookieHeader: String) {

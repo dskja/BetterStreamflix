@@ -115,7 +115,6 @@ class PlayerTvFragment : Fragment() {
         val token: String,
         val serverUrl: String,
         val bypassUrl: String,
-        val bypassToken: String,
     )
 
     private var _binding: FragmentPlayerTvBinding? = null
@@ -287,7 +286,6 @@ class PlayerTvFragment : Fragment() {
                                 token = UUID.randomUUID().toString(),
                                 serverUrl = sToServer.id,
                                 bypassUrl = bypassUrl,
-                                bypassToken = extractSerienStreamBypassToken(sToServer.id),
                             )
                             activeBypassSession = session
 
@@ -311,7 +309,6 @@ class PlayerTvFragment : Fragment() {
                                 session.token,
                                 JSONObject()
                                     .put("url", session.bypassUrl)
-                                    .put("sToToken", session.bypassToken)
                                     .toString()
                             )
                             requireActivity().runOnUiThread {
@@ -1591,12 +1588,6 @@ class PlayerTvFragment : Fragment() {
         }
 
         return "${SerienStreamProvider.baseUrl}serie/$episodeId"
-    }
-
-    private fun extractSerienStreamBypassToken(url: String): String {
-        return runCatching {
-            Uri.parse(url).getQueryParameter("t").orEmpty()
-        }.getOrDefault("")
     }
 
     private fun startWebSocketServer(): Int {

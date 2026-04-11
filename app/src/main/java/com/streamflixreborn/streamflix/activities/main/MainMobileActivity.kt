@@ -59,7 +59,6 @@ class MainMobileActivity : FragmentActivity() {
 
     private data class ResolverPayload(
         val url: String,
-        val sToToken: String = "",
     )
 
     private var _binding: ActivityMainMobileBinding? = null
@@ -366,7 +365,6 @@ class MainMobileActivity : FragmentActivity() {
                                             val json = JSONObject(payload)
                                             ResolverPayload(
                                                 url = json.optString("url"),
-                                                sToToken = json.optString("sToToken"),
                                             )
                                         }.getOrNull()
 
@@ -509,7 +507,6 @@ class MainMobileActivity : FragmentActivity() {
             bypassWebViewLauncher.launch(
                 Intent(this@MainMobileActivity, BypassWebViewActivity::class.java)
                     .putExtra(BypassWebViewActivity.EXTRA_URL, payload.url)
-                    .putExtra(BypassWebViewActivity.EXTRA_S_TO_TOKEN, payload.sToToken)
             )
         }
     }
