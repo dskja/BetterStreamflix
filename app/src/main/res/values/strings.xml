@@ -416,6 +416,7 @@
     <string name="settings_app_language_spanish">Spanish</string>
     <string name="settings_app_language_french">French</string>
     <string name="settings_app_language_italian">Italian</string>
+    <string name="settings_app_language_polish">Polish</string>
     <string name="player_settings_gestures_title">Gestures</string>
     <string name="player_settings_keep_screen_on_title">Keep screen on when paused</string>
 
