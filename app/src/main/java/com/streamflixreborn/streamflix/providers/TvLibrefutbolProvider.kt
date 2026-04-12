@@ -19,14 +19,14 @@ import retrofit2.http.Header
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
-object TvporinternetHDProvider : Provider {
+object TvLibrefutbolProvider : Provider {
 
-    override val name = "TvporinternetHD"
-    override val baseUrl = "https://www.tvporinternet2.com"
-    override val logo = "https://i.ibb.co/yndhPSyq/imagen-2026-01-25-210504580.png"
+    override val name = "Tv Libre Futbol"
+    override val baseUrl = "https://www.librefutbol2.com"
+    override val logo = "https://i.ibb.co/q3v6R9qQ/librefutbol.jpg"
     override val language = "es"
 
-    private const val TAG = "TvporinternetHD"
+    private const val TAG = "TvLibrefutbol"
     private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
 
     private val client = OkHttpClient.Builder()

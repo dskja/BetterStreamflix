@@ -2,6 +2,7 @@ package com.streamflixreborn.streamflix.providers
 
 import android.util.Base64
 import android.util.Log
+import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.models.cablevisionhd.toTvShows
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
@@ -64,7 +65,10 @@ object CableVisionHDProvider : Provider {
         } catch (e: Exception) { emptyList() }
     }
 
-    override suspend fun search(query: String, page: Int): List<Show> = try { service.getPage(baseUrl).toTvShows(name).filter { it.title.contains(query, true) } } catch (_: Exception) { emptyList() }
+    override suspend fun search(query: String, page: Int): List<AppAdapter.Item> = try {
+        service.getPage(baseUrl).toTvShows(name).filter { it.title.contains(query, true) }
+    } catch (_: Exception) { emptyList() }
+
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()
     override suspend fun getTvShows(page: Int): List<TvShow> = if (page > 1) emptyList() else try { service.getPage(baseUrl).toTvShows(name) } catch (_: Exception) { emptyList() }
     override suspend fun getMovie(id: String): Movie = throw Exception("Not supported")
@@ -81,44 +85,116 @@ object CableVisionHDProvider : Provider {
     override suspend fun getPeople(id: String, page: Int): People = throw Exception("Not supported")
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> = try {
-        val doc = service.getPage(if (id.startsWith("http")) id else "$baseUrl/$id")
-        val res = doc.select("a.btn.btn-md[target=iframe]").map { Video.Server(it.attr("href"), it.text().ifEmpty { "Opción" }) }.toMutableList()
-        if (res.isEmpty() && doc.select("iframe").isNotEmpty()) res.add(Video.Server(if (id.startsWith("http")) id else "$baseUrl/$id", "Directo"))
-        res
-    } catch (_: Exception) { emptyList() }
+        val url = if (id.startsWith("http")) id else "$baseUrl/$id"
+        val doc = service.getPage(url)
+        val servers = mutableListOf<Video.Server>()
+
+        doc.select("a").forEach { link ->
+            val text = link.text().trim()
+            val href = link.attr("abs:href").ifEmpty { link.attr("href") }
+
+            if (href.isNotEmpty() && (text.contains("Opción", true) || text.contains("Servidor", true))) {
+                val finalUrl = if (href.startsWith("http")) href else "$baseUrl/${href.removePrefix("/")}"
+                servers.add(Video.Server(finalUrl, text))
+            }
+        }
+
+        if (servers.isEmpty() && doc.select("iframe").isNotEmpty()) {
+            servers.add(Video.Server(url, "Opción 1"))
+        }
+
+        servers.distinctBy { it.id }
+    } catch (e: Exception) { emptyList() }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        var u = server.id; var ref = baseUrl; var depth = 0
+        var currentUrl = server.id
+        var currentReferer = baseUrl
+        var depth = 0
+
         val patterns = listOf(
             Regex("""["'](https?://[^"']+\.m3u8[^"']*)["']"""),
             Regex("""source\s*:\s*["']([^"']+)["']"""),
             Regex("""file\s*:\s*["']([^"']+)["']"""),
             Regex("""var\s+src\s*=\s*["']([^"']+)["']"""),
-            Regex("""["'](https?://[^"']+\.mp4[^"']*)["']""")
+            Regex("""["'](https?://[^"']+\.mp4[^"']*)["']"""),
+            Regex("""src\s*:\s*["']([^"']+)["']""")
         )
-        while (depth < 5) {
-            depth++; try {
-                val doc = service.getPage(u, ref); val html = doc.html()
-                for (r in patterns) r.find(html)?.let { return Video(it.groupValues[1].replace("\\/", "/"), headers = mapOf("Referer" to u, "User-Agent" to USER_AGENT)) }
-                doc.select("script").forEach { if (it.data().contains("eval(function")) { val unp = JsUnpacker(it.data()).unpack() ?: ""; for (r in patterns) r.find(unp)?.let { m -> return Video(m.groupValues[1].replace("\\/", "/"), headers = mapOf("Referer" to u, "User-Agent" to USER_AGENT)) } } }
-                if (html.contains("const decodedURL")) { 
-                    doc.select("script").forEach { s ->
-                        if (s.data().contains("const decodedURL")) {
-                            val enc = s.data().substringAfter("atob(\"").substringBefore("\"))))")
-                            val dec = String(Base64.decode(String(Base64.decode(String(Base64.decode(enc, Base64.DEFAULT)), Base64.DEFAULT)), Base64.DEFAULT))
-                            if (dec.startsWith("http")) return Video(dec, headers = mapOf("Referer" to u, "User-Agent" to USER_AGENT))
+
+        while (depth < 6) {
+            depth++
+            try {
+                val doc = service.getPage(currentUrl, currentReferer)
+                val html = doc.html()
+
+                for (pattern in patterns) {
+                    pattern.find(html)?.let { match ->
+                        val foundUrl = match.groupValues[1].replace("\\/", "/")
+                        if (foundUrl.startsWith("http")) {
+                            return Video(foundUrl, headers = mapOf("Referer" to currentUrl, "User-Agent" to USER_AGENT))
                         }
                     }
                 }
-                val next = doc.select("iframe").attr("src"); if (next.isNotEmpty() && next != u) { ref = u; u = if (next.startsWith("http")) next else "$baseUrl/${next.removePrefix("/")}" } else break
-            } catch (_: Exception) { break }
+
+                doc.select("script").forEach { script ->
+                    val scriptData = script.data()
+                    if (scriptData.contains("eval(function")) {
+                        val unpacked = JsUnpacker(scriptData).unpack() ?: ""
+                        for (pattern in patterns) {
+                            pattern.find(unpacked)?.let { match ->
+                                val foundUrl = match.groupValues[1].replace("\\/", "/")
+                                if (foundUrl.startsWith("http")) {
+                                    return Video(foundUrl, headers = mapOf("Referer" to currentUrl, "User-Agent" to USER_AGENT))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (html.contains("const decodedURL") || html.contains("atob(")) {
+                    doc.select("script").forEach { s ->
+                        val data = s.data()
+                        if (data.contains("atob(")) {
+                            try {
+                                val enc = data.substringAfter("atob(\"").substringBefore("\")")
+                                var dec = String(Base64.decode(enc, Base64.DEFAULT))
+                                repeat(2) {
+                                    if (dec.contains("atob(")) {
+                                        val innerEnc = dec.substringAfter("atob(\"").substringBefore("\")")
+                                        dec = String(Base64.decode(innerEnc, Base64.DEFAULT))
+                                    } else if (!dec.startsWith("http")) {
+                                        try { dec = String(Base64.decode(dec, Base64.DEFAULT)) } catch (_: Exception) {}
+                                    }
+                                }
+                                if (dec.startsWith("http")) {
+                                    return Video(dec, headers = mapOf("Referer" to currentUrl, "User-Agent" to USER_AGENT))
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                }
+
+                val iframes = doc.select("iframe")
+                val nextIframe = iframes.firstOrNull { it.attr("src").isNotEmpty() }?.attr("src")
+                    ?: iframes.firstOrNull { it.attr("data-src").isNotEmpty() }?.attr("data-src") ?: ""
+
+                if (nextIframe.isNotEmpty() && nextIframe != currentUrl) {
+                    currentReferer = currentUrl
+                    currentUrl = if (nextIframe.startsWith("http")) nextIframe else "$baseUrl/${nextIframe.removePrefix("/")}"
+                } else {
+                    break
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Fallo en nivel $depth: ${e.message}")
+                break
+            }
         }
         return Video("", emptyList())
     }
 
     private fun getInfoItem(id: String): TvShow {
         val t = if(id == "creador-info") "Reportar problemas" else "Apoya al Proveedor"
-        val p = if(id == "creador-info") "https://i.ibb.co/dsknGBHT/Imagen-de-Whats-App-2025-09-06-a-las-19-00-50-e8e5bcaa.jpg" else "https://i.ibb.co/GQypMpS7/aPOYA.png"
+        val p = if(id == "creador-info") "https://i.ibb.co/dsknGBHT/Imagen-de-Whats-App-2025-09-06-a-las-19-00-50-e8e5bcaa.jpg" else "https://i.ibb.co/B5gKLkqS/nuevo-formato-2-K-202604112205.jpg"
         return TvShow(id, t, poster = p, banner = p, overview = if(id == "creador-info") "@NandoGT" else "Apoya el proyecto.", providerName = name)
     }
 }
