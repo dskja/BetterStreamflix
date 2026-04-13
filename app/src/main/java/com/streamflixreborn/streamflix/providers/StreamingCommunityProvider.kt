@@ -225,7 +225,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             }
         } catch (e: Exception) { throw e }
 
-        val sliders = res.props.sliders ?: listOf()
+        val sliders = res.props?.sliders ?: listOf()
         val categories = mutableListOf<Category>()
 
         // Helper per il mapping
@@ -266,11 +266,11 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
         // 3. Aggiungiamo i fallback da props (se non già aggiunti dagli slider)
         val propsMapping = listOf(
-            "I titoli del momento" to (res.props.trendingTitles ?: res.props.trending),
-            "Film aggiunti di recente" to res.props.latestMovies,
-            "Serie TV aggiunte di recente" to res.props.latestTvShows,
-            "Top 10 titoli di oggi" to (res.props.top10Titles ?: res.props.top10),
-            "In arrivo" to (res.props.upcomingTitles ?: res.props.upcoming)
+            "I titoli del momento" to (res.props?.trendingTitles ?: res.props?.trending),
+            "Film aggiunti di recente" to res.props?.latestMovies,
+            "Serie TV aggiunte di recente" to res.props?.latestTvShows,
+            "Top 10 titoli di oggi" to (res.props?.top10Titles ?: res.props?.top10),
+            "In arrivo" to (res.props?.upcomingTitles ?: res.props?.upcoming)
         )
         propsMapping.forEach { (name, list) ->
             if (list != null && list.isNotEmpty()) {
@@ -287,11 +287,11 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
         // 5. Aggiungiamo le sezioni ArchivePage
         val archiveSections = listOf(
-            "Film" to res.props.movies,
-            "Serie TV" to res.props.tvShows,
-            "Titoli" to res.props.titles,
-            "TV" to res.props.tv,
-            "Archivio" to res.props.archive
+            "Film" to res.props?.movies,
+            "Serie TV" to res.props?.tvShows,
+            "Titoli" to res.props?.titles,
+            "TV" to res.props?.tv,
+            "Archivio" to res.props?.archive
         )
         archiveSections.forEach { (name, page) ->
             page?.data?.let { if (it.isNotEmpty()) categories.add(Category(name, mapTitles(it))) }
@@ -312,7 +312,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
             }
             if (version != res.version) version = res.version ?: ""
-            return res.props.genres.map { Genre(id = it.id, name = it.name) }.sortedBy { it.name }
+            return res.props?.genres?.map { Genre(id = it.id, name = it.name) }?.sortedBy { it.name } ?: listOf()
         }
         val res = withSslFallback { it.search(query, page, LANG) }
         if (res.currentPage == null || (res.lastPage != null && res.currentPage > res.lastPage)) return listOf()
