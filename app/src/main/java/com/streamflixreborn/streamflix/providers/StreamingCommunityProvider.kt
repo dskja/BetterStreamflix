@@ -230,8 +230,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
         // Helper per il mapping
         fun mapTitles(titles: List<StreamingCommunityService.Show>) = titles.map {
-            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename))
-            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename))
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename))
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(it.images.find { img -> img.type == "background" }?.filename))
         }
 
         // 1. Identifichiamo il carosello in evidenza (Hero)
@@ -314,12 +314,12 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             if (version != res.version) version = res.version ?: ""
             return res.props.genres.map { Genre(id = it.id, name = it.name) }.sortedBy { it.name }
         }
-        val res = withSslFallback { it.search(query, (page - 1) * MAX_SEARCH_RESULTS, LANG) }
-        if (res.currentPage == null || res.lastPage == null || res.currentPage > res.lastPage) return listOf()
+        val res = withSslFallback { it.search(query, page, LANG) }
+        if (res.currentPage == null || (res.lastPage != null && res.currentPage > res.lastPage)) return listOf()
         return res.data.map {
             val poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename)
-            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
-            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
         }
     }
 
@@ -356,7 +356,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         }
 
         return shows.map { title ->
-            Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
+            Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score?.toDoubleOrNull(), poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
         }.distinctBy { it.id }
     }
 
@@ -375,7 +375,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         }
 
         return shows.map { title ->
-            TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
+            TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score?.toDoubleOrNull(), poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename))
         }.distinctBy { it.id }
     }
 
@@ -406,12 +406,12 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         }
-        val title = res.props.title
+        val title = res.props!!.title
         val tmdbMovieDeferred = async { title.tmdbId?.let { TmdbUtils.getMovieById(it, language = language) } }
         val tmdbMovie = tmdbMovieDeferred.await()
 
         return@coroutineScope Movie(
-            id = id, title = tmdbMovie?.title ?: title.name, overview = tmdbMovie?.overview ?: title.plot, released = title.lastAirDate, rating = title.score, quality = title.quality, runtime = title.runtime, 
+            id = id, title = tmdbMovie?.title ?: title.name, overview = tmdbMovie?.overview ?: title.plot, released = title.lastAirDate, rating = title.score?.toDoubleOrNull(), quality = title.quality, runtime = title.runtime, 
             poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(title.images.find { img -> img.type == "background" }?.filename), 
             genres = title.genres?.map { Genre(id = it.id, name = it.name) } ?: listOf(), 
             cast = title.actors?.map { actor ->
@@ -420,8 +420,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             } ?: listOf(), 
             trailer = title.trailers?.find { t -> t.youtubeId != "" }?.youtubeId?.let { yid -> "https://youtube.com/watch?v=$yid" }, 
             recommendations = res.props.sliders?.find { it.titles.isNotEmpty() }?.titles?.map { 
-                if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
-                else TvShow(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+                if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, rating = it.score?.toDoubleOrNull(), poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+                else TvShow(id = it.id + "-" + it.slug, title = it.name, rating = it.score?.toDoubleOrNull(), poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
             } ?: listOf()
         )
     }
@@ -452,11 +452,11 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         }
-        val title = res.props.title
+        val title = res.props!!.title
         val tmdbShowDeferred = async { title.tmdbId?.let { TmdbUtils.getTvShowById(it, language = language) } }
         val tmdbShow = tmdbShowDeferred.await()
 
-        return@coroutineScope TvShow(id = id, title = tmdbShow?.title ?: title.name, overview = tmdbShow?.overview ?: title.plot, released = title.lastAirDate, rating = title.score, quality = title.quality, 
+        return@coroutineScope TvShow(id = id, title = tmdbShow?.title ?: title.name, overview = tmdbShow?.overview ?: title.plot, released = title.lastAirDate, rating = title.score?.toDoubleOrNull(), quality = title.quality, 
             poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename), banner = getImageLink(title.images.find { img -> img.type == "background" }?.filename), 
             genres = title.genres?.map { Genre(id = it.id, name = it.name) } ?: listOf(), 
             cast = title.actors?.map { actor ->
@@ -465,8 +465,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             } ?: listOf(), 
             trailer = title.trailers?.find { t -> t.youtubeId != "" }?.youtubeId?.let { yid -> "https://youtube.com/watch?v=$yid" }, 
             recommendations = res.props.sliders?.find { it.titles.isNotEmpty() }?.titles?.map {
-                if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
-                else TvShow(id = it.id + "-" + it.slug, title = it.name, rating = it.score, poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+                if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, rating = it.score?.toDoubleOrNull(), poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
+                else TvShow(id = it.id + "-" + it.slug, title = it.name, rating = it.score?.toDoubleOrNull(), poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename))
             } ?: listOf(), 
             seasons = title.seasons?.map { s ->
                 val seasonNumber = s.number.toIntOrNull() ?: (title.seasons.indexOf(s) + 1)
@@ -488,8 +488,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         }
-        return res.props.loadedSeason.episodes.map {
-            Episode(id = "${seasonId.substringBefore("-")}?episode_id=${it.id}", number = it.number.toIntOrNull() ?: (res.props.loadedSeason.episodes.indexOf(it) + 1), title = it.name, poster = getImageLink(it.images.find { img -> img.type == "cover" }?.filename), overview = it.plot)
+        return res.props!!.loadedSeason.episodes.map {
+            Episode(id = "${seasonId.substringBefore("-")}?episode_id=${it.id}", number = it.number.toIntOrNull() ?: (res.props!!.loadedSeason.episodes.indexOf(it) + 1), title = it.name, poster = getImageLink(it.images.find { img -> img.type == "cover" }?.filename), overview = it.plot)
         }
     }
 
@@ -521,18 +521,18 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
         return Genre(id = id, name = name, shows = shows.map { title ->
             val poster = getImageLink(title.images.find { img -> img.type == "poster" }?.filename)
-            if (title.type == "movie") Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = poster)
-            else TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score, poster = poster)
+            if (title.type == "movie") Movie(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score?.toDoubleOrNull(), poster = poster)
+            else TvShow(id = title.id + "-" + title.slug, title = title.name, released = title.lastAirDate, rating = title.score?.toDoubleOrNull(), poster = poster)
         })
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        val res = withSslFallback { it.search(id, (page - 1) * MAX_SEARCH_RESULTS, LANG) }
-        if (res.currentPage == null || res.lastPage == null || res.currentPage > res.lastPage) return People(id = id, name = id)
+        val res = withSslFallback { it.search(id, page, LANG) }
+        if (res.currentPage == null || (res.lastPage != null && res.currentPage > res.lastPage)) return People(id = id, name = id)
         return People(id = id, name = id, filmography = res.data.map {
             val poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename)
-            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
-            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score, poster = poster)
+            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
+            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
         })
     }
 
@@ -676,7 +676,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         @GET("./") suspend fun getHome(@Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): HomeRes
         @GET("archive?type=movie") suspend fun getMoviesHtml(): Document
         @GET("archive?type=tv") suspend fun getTvShowsHtml(): Document
-        @GET("/api/search") suspend fun search(@Query("q", encoded = true) keyword: String, @Query("offset") offset: Int = 0, @Query("lang") language: String): SearchRes
+        @GET("search") suspend fun search(@Query("q", encoded = true) keyword: String, @Query("page") page: Int = 1, @Query("lang") language: String, @Header("Accept") accept: String = "application/json, text/plain, */*"): SearchRes
         @GET("/api/archive") suspend fun getArchiveApi(@Query("lang") lang: String, @Query("offset") offset: Int, @Query("genre[]") genreId: String? = null, @Query("type") type: String? = null): ApiArchiveRes
         @GET("archive") suspend fun getArchiveHtml(@Query("genre[]") genreId: String): Document
         @GET("titles/{id}") suspend fun getDetails(@Path("id") id: String, @Header("x-inertia") xInertia: String = "true", @Header("x-inertia-version") version: String, @Query("lang") language: String, @Header("X-Requested-With") xRequestedWith: String = "XMLHttpRequest"): HomeRes
@@ -687,7 +687,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         data class Actor(val id: String, val name: String)
         data class Trailer(@SerializedName("youtube_id") val youtubeId: String?)
         data class Season(val number: String, val name: String?)
-        data class Show(val id: String, val name: String, val type: String, @SerializedName("tmdb_id") val tmdbId: Int?, val score: Double, val lastAirDate: String, val images: List<Image>, val slug: String, val plot: String?, val genres: List<Genre>?, @SerializedName("main_actors") val actors: List<Actor>?, val trailers: List<Trailer>?, val seasons: List<Season>?, val quality: String?, val runtime: Int?)
+        data class Show(val id: String, val name: String, val type: String, @SerializedName("tmdb_id") val tmdbId: Int?, val score: String?, @SerializedName("last_air_date") val lastAirDate: String?, val images: List<Image>, val slug: String, val plot: String?, val genres: List<Genre>?, @SerializedName("main_actors") val actors: List<Actor>?, val trailers: List<Trailer>?, val seasons: List<Season>?, val quality: String?, val runtime: Int?)
         data class Slider(val label: String?, val name: String, val titles: List<Show>)
         data class Props(
             val genres: List<Genre>,
@@ -707,12 +707,12 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             @SerializedName("upcoming") val upcoming: List<Show>?,
             val title: Show
         )
-        data class HomeRes(val version: String, val props: Props)
+        data class HomeRes(val version: String?, val props: Props?)
         data class SearchRes(val data: List<Show>, @SerializedName("current_page") val currentPage: Int?, @SerializedName("last_page") val lastPage: Int?)
         data class SeasonPropsEpisodes(val id: String, val images: List<Image>, val name: String, val number: String, val plot: String? = null)
         data class SeasonPropsDetails(val episodes: List<SeasonPropsEpisodes>)
         data class SeasonProps(val loadedSeason: SeasonPropsDetails)
-        data class SeasonRes(val version: String, val props: SeasonProps)
+        data class SeasonRes(val version: String?, val props: SeasonProps?)
         data class ArchivePage(val data: List<Show>?, @SerializedName("current_page") val currentPage: Int?, @SerializedName("last_page") val lastPage: Int?)
         data class ArchiveProps(val archive: ArchivePage?, val titles: ArchivePage?, val movies: ArchivePage?, val tv: ArchivePage?, @SerializedName("tv_shows") val tvShows: ArchivePage?)
         data class ArchiveRes(val version: String, val props: ArchiveProps?)
