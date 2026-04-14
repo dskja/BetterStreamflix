@@ -7,6 +7,7 @@ import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Url
 
 class LuluVdoExtractor : Extractor() {
@@ -40,6 +41,10 @@ class LuluVdoExtractor : Extractor() {
         return Video(
             source = source,
             subtitles = subtitles,
+            headers = mapOf(
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Accept-Language" to "en-US,en;q=0.9"
+            )
         )
     }
 
@@ -64,6 +69,10 @@ class LuluVdoExtractor : Extractor() {
 
 
         @GET
+        @Headers(
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept-Language: en-US,en;q=0.9"
+        )
         suspend fun get(@Url url: String): Document
     }
 }

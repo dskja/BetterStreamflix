@@ -12,6 +12,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Url
@@ -29,16 +30,40 @@ class VixSrcExtractor : Extractor() {
             id = name,
             name = name,
             src = when (videoType) {
-                is Video.Type.Episode -> "$mainUrl/tv/${videoType.tvShow.id}/${videoType.season.number}/${videoType.number}"
-                is Video.Type.Movie -> "$mainUrl/movie/${videoType.id}"
+                is Video.Type.Episode -> "$mainUrl/api/tv/${videoType.tvShow.id}/${videoType.season.number}/${videoType.number}"
+                is Video.Type.Movie -> "$mainUrl/api/movie/${videoType.id}"
             },
         )
     }
 
     override suspend fun extract(link: String): Video {
         val service = VixSrcExtractorService.build(mainUrl)
-        val source = service.getSource(link.replace(mainUrl, ""))
-
+        val providerLang = UserPreferences.currentProvider?.language ?: "en"
+        
+        val apiPath = link.substringAfter(mainUrl) + "?lang=$providerLang"
+        
+        Log.i("VixSrcDebug", "Calling API: $mainUrl/$apiPath")
+        val apiResponse = try {
+            service.getSourceApi(apiPath)
+        } catch (e: Exception) {
+            Log.e("VixSrcDebug", "API call failed: ${e.message}")
+            throw e
+        }
+        
+        var currentEmbedPath = apiResponse.src.trimStart('/')
+        Log.i("VixSrcDebug", "Embed path from API: $currentEmbedPath")
+        
+        val source = try {
+            service.getSource(currentEmbedPath)
+        } catch (e: Exception) {
+            val isGone = (e as? retrofit2.HttpException)?.code() == 410 || e.message?.contains("410") == true
+            if (isGone) {
+                Log.w("VixSrcDebug", "410 Gone detected, retrying API call...")
+                val retryApiResponse = service.getSourceApi(apiPath)
+                currentEmbedPath = retryApiResponse.src.trimStart('/')
+                service.getSource(currentEmbedPath)
+            } else throw e
+        }
         val scriptText = source.body().selectFirst("script")?.data() ?: ""
         
         val videoId = scriptText
@@ -72,8 +97,6 @@ class VixSrcExtractor : Extractor() {
 
         if (hasBParam) masterParams["b"] = "1"
         if (canPlayFHD) masterParams["h"] = "1"
-
-        val providerLang = UserPreferences.currentProvider?.language ?: "en"
         masterParams["lang"] = providerLang
 
         val baseUrl = "https://vixsrc.to/playlist/${videoId}"
@@ -82,7 +105,7 @@ class VixSrcExtractor : Extractor() {
         masterParams.forEach { (key, value) -> httpUrlBuilder.addQueryParameter(key, value) }
         val finalUrl = httpUrlBuilder.build().toString()
 
-        val finalHeaders = mutableMapOf("Referer" to mainUrl, "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        val finalHeaders = mutableMapOf("Referer" to "$mainUrl/$currentEmbedPath", "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         
         var videoSource = finalUrl
 
@@ -198,10 +221,19 @@ class VixSrcExtractor : Extractor() {
                     .baseUrl(baseUrl)
                     .client(client)
                     .addConverterFactory(JsoupConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build()
                     .create(VixSrcExtractorService::class.java)
             }
         }
+
+        @GET
+        @Headers(
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept: application/json, text/plain, */*",
+            "X-Requested-With: XMLHttpRequest"
+        )
+        suspend fun getSourceApi(@Url url: String): VixSrcApiResponse
 
         @GET
         @Headers(
@@ -211,6 +243,8 @@ class VixSrcExtractor : Extractor() {
             "X-Requested-With: XMLHttpRequest"
         )
         suspend fun getSource(@Url url: String): Document
+
+        data class VixSrcApiResponse(val src: String)
 
         data class WindowVideo(
             @SerializedName("id") val id: Int,
