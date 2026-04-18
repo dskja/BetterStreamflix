@@ -99,6 +99,11 @@
 
     <string name="player_subtitle_tv_show">S%d E%d • %s</string>
     <string name="player_subtitle_tv_show_episode_only">E%d • %s</string>
+    <string name="player_next_episode_up_next">In arrivo</string>
+    <string name="player_next_episode_action">Riproduci ora</string>
+    <string name="player_next_episode_dismiss">Nascondi</string>
+    <string name="player_next_episode_ready">Prossimo episodio pronto</string>
+    <string name="player_next_episode_autoplay_in">Riproduzione del prossimo tra %ds</string>
     <string name="player_picture_in_picture_not_supported">Il PiP non è supportato dal dispositivo in uso</string>
     <string name="player_external_player_title">Avvia con</string>
     <string name="player_external_player_error_video">Video non ancora caricato</string>
