@@ -116,7 +116,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val results = document.select("div.search-item")
             .mapNotNull {
                 val id = it
-                    .attr("onclick").substringAfter("newsid=").substringBefore("'")
+                    .attr("onclick").substringAfter("/").substringBefore("'")
                 if (id.isEmpty()) return@mapNotNull null
                 val title = it.selectFirst("div.search-title")
                     ?.text()?.replace("\\'","'")
@@ -125,7 +125,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     ?.attr("src")
                     ?: ""
 
-                if (title.contains(" - Saison "))
+                if (title.contains(" - Saison ") || title.contains(" - Intégrale "))
                     TvShow(
                         id = id,
                         title = title,
