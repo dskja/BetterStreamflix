@@ -110,7 +110,7 @@ class TvShowViewHolder(
 
     private fun isIptvProvider(): Boolean {
         val name = tvShow.providerName ?: UserPreferences.currentProvider?.name ?: ""
-        return name == "CableVisionHD" || name == "TvporinternetHD"
+        return name == "CableVisionHD" || name == "TvporinternetHD"|| name == "IPTV Spain"|| name == "IPTV-All World" || name == "Tv Libre Futbol"
     }
 
     private fun checkProviderAndRun(action: () -> Unit) {

@@ -101,7 +101,10 @@ interface Provider {
             FrembedProvider to ProviderSupport(movies = true, tvShows = true),
             AfterDarkProvider to ProviderSupport(movies = true, tvShows = true),
             KidrazProvider to ProviderSupport(movies = true, tvShows = false),
-            FrenchMangaProvider to ProviderSupport(movies = false, tvShows = true)
+            FrenchMangaProvider to ProviderSupport(movies = false, tvShows = true),
+            IptvOrgProvider to ProviderSupport(movies = false, tvShows = true),
+            IptvSpainProvider to ProviderSupport(movies = false, tvShows = true),
+            TvLibrefutbolProvider to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support

@@ -194,7 +194,7 @@ class MainTvActivity : FragmentActivity() {
             binding.navMain.menu.findItem(R.id.movies)?.isVisible = Provider.supportsMovies(provider)
             val tvShowsItem = binding.navMain.menu.findItem(R.id.tv_shows)
             tvShowsItem?.isVisible = Provider.supportsTvShows(provider)
-            tvShowsItem?.title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD") 
+            tvShowsItem?.title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD"|| provider.name == "IPTV Spain"|| provider.name == "IPTV-All World"|| provider.name == "Tv Libre Futbol")
                 getString(R.string.main_menu_all_channels) else getString(R.string.main_menu_tv_shows)
         }
     }

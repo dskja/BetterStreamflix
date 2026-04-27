@@ -4,7 +4,6 @@ import android.util.Base64
 import android.util.Log
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.models.*
-import com.streamflixreborn.streamflix.models.cablevisionhd.toTvShows
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.utils.JsUnpacker
 import kotlinx.coroutines.async
@@ -13,20 +12,21 @@ import kotlinx.coroutines.coroutineScope
 import okhttp3.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
-object CableVisionHDProvider : Provider {
+object TvLibrefutbolProvider : Provider {
 
-    override val name = "CableVisionHD"
-    override val baseUrl = "https://www.cablevisionhd.com"
-    override val logo = "https://i.ibb.co/4gMQkN2b/imagen-2025-09-05-212536248.png"
+    override val name = "Tv Libre Futbol"
+    override val baseUrl = "https://www.librefutbol2.com"
+    override val logo = "https://i.ibb.co/q3v6R9qQ/librefutbol.jpg"
     override val language = "es"
 
-    private const val TAG = "CableVisionHDProvider"
+    private const val TAG = "TvLibrefutbol"
     private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
 
     private val client = OkHttpClient.Builder()
@@ -43,7 +43,7 @@ object CableVisionHDProvider : Provider {
         .build()
 
     private val service = Retrofit.Builder()
-        .baseUrl(CableVisionHDProvider.baseUrl)
+        .baseUrl(baseUrl)
         .addConverterFactory(JsoupConverterFactory.create())
         .client(client)
         .build()
@@ -57,9 +57,11 @@ object CableVisionHDProvider : Provider {
         ): Document
     }
 
+    // --- BÚSQUEDA DEL TESORO: PARSER DE CARGA DINÁMICA MEJORADO ---
     private fun parseChannels(doc: Document): List<TvShow> {
         val results = mutableListOf<TvShow>()
 
+        // 1. MÉTODO QUIRÚRGICO: Extraer canales del Script (homeChannels)
         doc.select("script").forEach { script ->
             val data = script.data()
             if (data.contains("homeChannels") || data.contains("const channels")) {
@@ -71,6 +73,7 @@ object CableVisionHDProvider : Provider {
                             val link = a.attr("href")
                             val title = a.text().trim().ifEmpty { a.selectFirst("img")?.attr("alt") ?: "" }
 
+                            // --- CORRECCIÓN DE LOGOS (FILTRADO DE PAYPAL) ---
                             val imgElement = a.select("img").firstOrNull { img ->
                                 val src = img.attr("src").lowercase()
                                 !src.contains("paypal") && !src.contains("pago") &&
@@ -80,20 +83,21 @@ object CableVisionHDProvider : Provider {
                             } ?: a.selectFirst("img")
 
                             val rawImg = imgElement?.attr("src") ?: ""
-                            val img = if (rawImg.startsWith("http")) rawImg else "${CableVisionHDProvider.baseUrl}/${rawImg.removePrefix("/")}"
+                            val img = if (rawImg.startsWith("http")) rawImg else "$baseUrl/${rawImg.removePrefix("/")}"
 
                             if (isValidChannel(link, title)) {
-                                val finalUrl = if (link.startsWith("http")) link else "${CableVisionHDProvider.baseUrl}/${link.removePrefix("/")}"
-                                results.add(TvShow(id = finalUrl, title = title, poster = img, banner = img, providerName = CableVisionHDProvider.name))
+                                val finalUrl = if (link.startsWith("http")) link else "$baseUrl/${link.removePrefix("/")}"
+                                results.add(TvShow(id = finalUrl, title = title, poster = img, banner = img, providerName = name))
                             }
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(CableVisionHDProvider.TAG, "Error procesando script de canales: ${e.message}")
+                    Log.e(TAG, "Error procesando script de canales: ${e.message}")
                 }
             }
         }
 
+        // 2. FALLBACK: Si el script falló, barremos los enlaces estáticos con el mismo filtro
         if (results.isEmpty()) {
             doc.select("a:has(img)").forEach { a ->
                 val link = a.attr("abs:href").ifEmpty { a.attr("href") }
@@ -108,7 +112,7 @@ object CableVisionHDProvider : Provider {
                 val poster = imgElement?.attr("abs:src") ?: imgElement?.attr("src") ?: ""
 
                 if (isValidChannel(link, title)) {
-                    results.add(TvShow(id = link, title = title, poster = poster, banner = poster, providerName = TvporinternetHDProvider.name))
+                    results.add(TvShow(id = link, title = title, poster = poster, banner = poster, providerName = name))
                 }
             }
         }
@@ -184,20 +188,20 @@ object CableVisionHDProvider : Provider {
 
         val t = doc.selectFirst("h1, h2, .title, .entry-title")?.text() ?: "Canal en Vivo"
 
-
+        // --- FILTRADO DE ÉLITE EN DETALLES (RECUPERA LOGO REAL) ---
         val forbidden = listOf(
             "paypal", "pago", "donar", "pay.png", "qr", "cafecito", "mercado", "donate",
             "buy", "telegram", "whatsapp", "facebook", "twitter", "instagram",
             "share", "ads", "banner", "pixel", "button", "btn", "favicon"
         )
 
-
+        // 1. Prioridad: Imagen destacada oficial de WordPress (Evita logos de pago)
         var imgElement = doc.select("img.wp-post-image, img.attachment-post-thumbnail").firstOrNull { img ->
             val src = img.attr("src").lowercase()
             forbidden.none { it in src }
         }
 
-
+        // 2. Segunda opción: Imagen en el contenido principal que coincida con el título
         if (imgElement == null) {
             val titleKeywords = t.lowercase().split(" ").filter { it.length > 3 }
             imgElement = doc.select(".entry-content img, .post-content img, article img").firstOrNull { img ->
@@ -207,7 +211,7 @@ object CableVisionHDProvider : Provider {
             }
         }
 
-
+        // 3. Tercera opción: Cualquier imagen en el contenido que no sea prohibida
         if (imgElement == null) {
             imgElement = doc.select(".entry-content img, .card-body img").firstOrNull { img ->
                 val src = img.attr("src").lowercase()

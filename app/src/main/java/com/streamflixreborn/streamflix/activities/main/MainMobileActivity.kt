@@ -288,7 +288,7 @@ class MainMobileActivity : FragmentActivity() {
         binding.bnvMain.menu.findItem(R.id.movies)?.isVisible = supportsMovies
         binding.bnvMain.menu.findItem(R.id.tv_shows)?.apply {
             isVisible = supportsTvShows
-            title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD") {
+            title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD"|| provider.name == "IPTV Spain"|| provider.name == "IPTV-All World"|| provider.name == "Tv Libre Futbol") {
                 getString(R.string.main_menu_all_channels)
             } else {
                 getString(R.string.main_menu_tv_shows)
