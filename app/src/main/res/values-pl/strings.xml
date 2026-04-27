@@ -88,6 +88,11 @@
     <string name="player_retry_later_message">Wideo jest obecnie niedostepne u tego dostawcy. Sprobuj ponownie pozniej</string>
     <string name="player_subtitle_tv_show">S%d E%d • %s</string>
     <string name="player_subtitle_tv_show_episode_only">E%d • %s</string>
+    <string name="player_next_episode_up_next">Następny</string>
+    <string name="player_next_episode_action">Odtwórz teraz</string>
+    <string name="player_next_episode_dismiss">Ukryj</string>
+    <string name="player_next_episode_ready">Następny odcinek gotowy</string>
+    <string name="player_next_episode_autoplay_in">Następny odcinek za %ds</string>
     <string name="player_settings_title">Ustawienia</string>
     <string name="player_settings_quality_title">Jakosc dla biezacego wideo</string>
     <string name="player_settings_quality_label">Jakosc</string>

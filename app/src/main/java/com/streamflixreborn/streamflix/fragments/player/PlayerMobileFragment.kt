@@ -85,6 +85,8 @@ import java.io.FileOutputStream
 import android.webkit.CookieManager
 import androidx.core.content.FileProvider
 import androidx.navigation.NavOptions
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
@@ -92,6 +94,7 @@ import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -99,6 +102,10 @@ import okhttp3.internal.userAgent
 import java.util.Locale
 
 class PlayerMobileFragment : Fragment() {
+    companion object {
+        private const val NEXT_EPISODE_PREFETCH_THRESHOLD_MS = 60_000L
+        private const val NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS = 30_000L
+    }
 
     private var _binding: FragmentPlayerMobileBinding? = null
     private val binding get() = _binding!!
@@ -127,6 +134,9 @@ class PlayerMobileFragment : Fragment() {
     private var isIgnoringPip = false
     private var waitingForBypass = false
     private var bypassDone = false
+    private var nextEpisodePrefetchTargetId: String? = null
+    private var nextEpisodePrefetchJob: Job? = null
+    private var nextEpisodeOverlayDismissed = false
 
     private val bypassWebViewLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -493,6 +503,7 @@ class PlayerMobileFragment : Fragment() {
                             subtitle = "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
                         )
 
+                    hideNextEpisodeOverlay()
                     findNavController().navigate(
                         action,
                         NavOptions.Builder()
@@ -529,6 +540,7 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        nextEpisodePrefetchJob?.cancel()
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
@@ -572,6 +584,8 @@ class PlayerMobileFragment : Fragment() {
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         when (val type = args.videoType) {
             is Video.Type.Episode -> {
+                nextEpisodeOverlayDismissed = false
+                nextEpisodePrefetchTargetId = null
                 if (EpisodeManager.listIsEmpty(type)) {
                     EpisodeManager.clearEpisodes()
                     lifecycleScope.launch(Dispatchers.IO) {
@@ -589,7 +603,12 @@ class PlayerMobileFragment : Fragment() {
                     refreshEpisodeNavigation(type)
                 }
             }
-            is Video.Type.Movie -> {EpisodeManager.clearEpisodes()}
+            is Video.Type.Movie -> {
+                nextEpisodeOverlayDismissed = false
+                nextEpisodePrefetchTargetId = null
+                EpisodeManager.clearEpisodes()
+                hideNextEpisodeOverlay()
+            }
         }
 
 
@@ -708,6 +727,15 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
             player.seekTo(player.currentPosition + 85000)
             it.isGone = true
+        }
+
+        binding.btnNextEpisodeAction.setOnClickListener {
+            hideNextEpisodeOverlay()
+            playNextEpisodeAcrossSeasons()
+        }
+        binding.btnNextEpisodeDismiss.setOnClickListener {
+            nextEpisodeOverlayDismissed = true
+            hideNextEpisodeOverlay()
         }
 
         binding.settings.onManualZoomClicked = {
@@ -1226,6 +1254,7 @@ class PlayerMobileFragment : Fragment() {
             if (player.isPlaying) {
                 val show = player.currentPosition in 3000..120000
                 showSkipIntroButton(show)
+                updateNextEpisodeOverlay()
             }
             progressHandler.postDelayed(progressRunnable, 1000)
         }
@@ -1235,6 +1264,100 @@ class PlayerMobileFragment : Fragment() {
     private fun stopProgressHandler() {
         if (::progressHandler.isInitialized) {
             progressHandler.removeCallbacks(progressRunnable)
+        }
+    }
+
+    private fun updateNextEpisodeOverlay() {
+        val currentEpisode = currentVideoTypeForUi() as? Video.Type.Episode ?: run {
+            hideNextEpisodeOverlay()
+            return
+        }
+        val duration = player.duration.takeIf { it > 0 } ?: run {
+            hideNextEpisodeOverlay()
+            return
+        }
+        val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
+
+        if (nextEpisodeOverlayDismissed) {
+            hideNextEpisodeOverlay()
+            return
+        }
+
+        if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
+            ensureNextEpisodePrepared(currentEpisode)
+        }
+
+        val nextEpisode = EpisodeManager.peekNextEpisode()
+        val overlayThresholdMs = maxOf(
+            NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS,
+            UserPreferences.autoplayBuffer * 1000L
+        )
+        if (nextEpisode == null || remainingMs == 0L || remainingMs > overlayThresholdMs) {
+            hideNextEpisodeOverlay()
+            return
+        }
+
+        showNextEpisodeOverlay(nextEpisode, remainingMs)
+    }
+
+    private fun ensureNextEpisodePrepared(currentEpisode: Video.Type.Episode) {
+        if (EpisodeManager.peekNextEpisode() != null) return
+        if (nextEpisodePrefetchTargetId == currentEpisode.id && nextEpisodePrefetchJob?.isActive == true) {
+            return
+        }
+
+        nextEpisodePrefetchTargetId = currentEpisode.id
+        nextEpisodePrefetchJob?.cancel()
+        nextEpisodePrefetchJob = lifecycleScope.launch(Dispatchers.IO) {
+            val loaded = EpisodeManager.ensureNextEpisodeAvailable(currentEpisode, database)
+            withContext(Dispatchers.Main) {
+                if (!isAdded || _binding == null) return@withContext
+                setupEpisodeNavigationButtons()
+                if (loaded && player.isPlaying) {
+                    updateNextEpisodeOverlay()
+                }
+            }
+        }
+    }
+
+    private fun showNextEpisodeOverlay(nextEpisode: Video.Type.Episode, remainingMs: Long) {
+        binding.tvNextEpisodeMeta.text = getString(
+            R.string.tv_show_item_season_number_episode_number,
+            nextEpisode.season.number,
+            nextEpisode.number
+        )
+        binding.tvNextEpisodeTitle.text = nextEpisode.title
+            ?: getString(R.string.episode_number, nextEpisode.number)
+        binding.tvNextEpisodeCountdown.text = if (UserPreferences.autoplay) {
+            getString(
+                R.string.player_next_episode_autoplay_in,
+                ((remainingMs + 999L) / 1000L).toInt()
+            )
+        } else {
+            getString(R.string.player_next_episode_ready)
+        }
+
+        Glide.with(this)
+            .load(nextEpisode.poster ?: nextEpisode.tvShow.poster)
+            .error(R.drawable.glide_fallback_cover)
+            .fallback(R.drawable.glide_fallback_cover)
+            .centerCrop()
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .into(binding.ivNextEpisodePoster)
+
+        if (binding.layoutNextEpisodeOverlay.isGone) {
+            val fadeIn = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
+            binding.layoutNextEpisodeOverlay.startAnimation(fadeIn)
+            binding.layoutNextEpisodeOverlay.isVisible = true
+        }
+    }
+
+    private fun hideNextEpisodeOverlay() {
+        if (_binding == null) return
+        if (binding.layoutNextEpisodeOverlay.isVisible) {
+            val fadeOut = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
+            binding.layoutNextEpisodeOverlay.startAnimation(fadeOut)
+            binding.layoutNextEpisodeOverlay.isGone = true
         }
     }
 
@@ -1256,6 +1379,7 @@ class PlayerMobileFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         stopProgressHandler()
+        hideNextEpisodeOverlay()
     }
 
     private var currentExtraBuffering = false
