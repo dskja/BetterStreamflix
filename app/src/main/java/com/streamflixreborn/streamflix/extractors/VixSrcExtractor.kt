@@ -40,7 +40,16 @@ class VixSrcExtractor : Extractor() {
         val service = VixSrcExtractorService.build(mainUrl)
         val providerLang = UserPreferences.currentProvider?.language ?: "en"
         
-        val apiPath = link.substringAfter(mainUrl) + "?lang=$providerLang"
+        var apiPath = link.substringAfter(mainUrl).trimStart('/')
+        if (!apiPath.startsWith("api/")) {
+            apiPath = "api/$apiPath"
+        }
+        
+        // Add language parameter if not already present
+        if (!apiPath.contains("lang=")) {
+            val separator = if (apiPath.contains("?")) "&" else "?"
+            apiPath += "${separator}lang=$providerLang"
+        }
         
         Log.i("VixSrcDebug", "Calling API: $mainUrl/$apiPath")
         val apiResponse = try {

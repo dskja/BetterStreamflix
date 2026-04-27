@@ -19,7 +19,7 @@ class VidzeeExtractor : Extractor() {
     override val name = "Vidzee"
     override val mainUrl = "https://player.vidzee.wtf"
     private val coreApi = "https://core.vidzee.wtf"
-    private val staticPass = "b3f2a9d4c6e1f8a7b"
+    private val staticPass = "4f2a9c7d1e8b3a6f0d5c2e9a7b1f4d8c"
 
     private val client = OkHttpClient.Builder().build()
 

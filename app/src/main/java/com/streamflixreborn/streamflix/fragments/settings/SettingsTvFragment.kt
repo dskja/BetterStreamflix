@@ -80,7 +80,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         val title: String?,
     )
 
-    private val DEFAULT_DOMAIN_VALUE = "streamingunity.biz"
+    private val DEFAULT_DOMAIN_VALUE = "streamingunity.dog"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
