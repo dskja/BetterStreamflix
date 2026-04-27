@@ -754,7 +754,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val movieServers = mutableListOf<Video.Server>()
 
                 if (filmData?.players != null) {
-                    val langOrder = listOf("vostfr", "vfq", "vff", "vo")
+                    val langOrder = listOf("vff", "vfq", "vostfr", "vo")
 
                     filmData.players.forEach { (provider, langMap) ->
 

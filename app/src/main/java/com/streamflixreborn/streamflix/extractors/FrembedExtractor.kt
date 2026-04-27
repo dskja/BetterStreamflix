@@ -23,7 +23,7 @@ import kotlinx.coroutines.withContext
 class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
     override val name = "Frembed"
-    val defaultUrl = "https://frembed.work"
+    val defaultUrl = "https://frembed.cyou"
     override var mainUrl = newUrl.ifBlank { defaultUrl }
 
     data class listLinks (
@@ -58,7 +58,9 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
             .replace("lauradaydo", "voe")
             .replace("lancewhosedifficult", "voe")
             .replace("dianaavoidthey", "voe")
+            .replace("jefferycontrolmodel", "voe")
             .replace("myvidplay", "dood")
+            .replace("playmogo", "dood")
             .replaceFirstChar { it.uppercase() }
     }
 

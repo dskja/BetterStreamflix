@@ -568,7 +568,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 ?.text()
                                 ?: "",
                             src = it.attr("onclick")
-                                .substringAfter("loadVideo('").substringBeforeLast("')"),
+                                .substringAfter("loadVideo('").substringBeforeLast("'"),
                     )
                 }
             }
@@ -587,7 +587,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 ?.text()
                                 ?: "",
                             src = it.attr("onclick")
-                                .substringAfter("loadVideo('").substringBeforeLast("')"),
+                                .substringAfter("loadVideo('").substringBeforeLast("'"),
                     )
                 }
             }

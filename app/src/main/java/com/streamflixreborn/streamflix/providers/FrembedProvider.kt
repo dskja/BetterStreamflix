@@ -1,6 +1,5 @@
 package com.streamflixreborn.streamflix.providers
 
-import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
@@ -133,8 +132,10 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val imdb: String?,
         val tmdb: Int?,
         val overview: String?,
+        val overview_fr: String?,
         val rating: Double?,
         val title: String?,
+        val title_fr: String?,
         val trailer: String?,
         val year: String?,
         val poster: String?,
@@ -147,6 +148,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val id: Int?,
         val imdb: String?,
         val title: String?,
+        val title_fr: String?,
         val name: String?,
         val director: String,
         val cast: List<FrembedCastItem>,
@@ -159,6 +161,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val rating: Double?,
         var sa: Int?,
         var overview: String?,
+        var overview_fr: String?,
         var trailer: String?,
         var media_type: String?,
     )
@@ -174,7 +177,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             TvShow(
                 id = (tmdb?:id).toString(),
                 title = buildString {
-                    append(title?:name?:"TvShow")
+                    append(title_fr?:title?:name?:"TvShow")
                     if (sa != null) {
                         append(" - S${sa}")
                     } },
@@ -185,7 +188,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         else {
             Movie(
                 id = (tmdb?:id).toString(),
-                title = title?:name?:"Movie",
+                title = title_fr?:title?:name?:"Movie",
                 poster = (poster?.w500)?:poster_path,
                 banner = poster?.original,
                 rating = rating
@@ -251,7 +254,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             val mostViewedSeasons = service.getApiView("most-viewed-seasons")
             categories.add(mostViewedSeasons.toCategorie("Meilleures séries"))
 
-        } catch (e: Exception) { Log.e("ERROR", "ERROR => "+e) }
+        } catch (e: Exception) { }
 
         return categories
     }
@@ -296,8 +299,8 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return service.getMovie(id).let { movie ->
             Movie(
                 id = movie.tmdb.toString(),
-                title = movie.title?:"Movie",
-                overview = movie.overview,
+                title = movie.title_fr?:movie.title?:"Movie",
+                overview = movie.overview_fr?:movie.overview,
                 released = movie.year,
                 trailer = movie.trailer?.let { "https://www.youtube.com/watch?v=${movie.trailer}" },
                 rating = movie.rating,
@@ -347,8 +350,8 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         return tvshowp.let { tvshow ->
                 TvShow(
                     id = tvshow.tmdb.toString(),
-                    title = tvshow.title ?: "TvShow",
-                    overview = tvshow.overview,
+                    title = tvshow.title_fr ?: tvshow.title ?: "TvShow",
+                    overview = tvshow.overview_fr ?: tvshow.overview,
                     released = tvshow.year,
                     trailer = tvshow.trailer?.let { "https://www.youtube.com/watch?v=${tvshow.trailer}" },
                     rating = tvshow.rating,
