@@ -38,6 +38,7 @@
 
     <string name="search_input_hint">Filme / Serien suchen</string>
     <string name="global_search">Globale Suche</string>
+    <string name="search_empty_query">Bitte geben Sie einen Suchbegriff ein</string>
     <string name="searching">Suche läuft...</string>
     <string name="search_error">Fehler</string>
     <string name="result">Ergebnis</string>

@@ -33,6 +33,7 @@
 
 	<string name="search_input_hint">ابحث عن الأفلام أو المسلسلات</string>
 	<string name="global_search">بحث شامل</string>
+	<string name="search_empty_query">يرجى إدخال نص للبحث</string>
 	<string name="searching">جاري البحث...</string>
 	<string name="search_error">خطأ</string>
 	<string name="result">نتيجة</string>

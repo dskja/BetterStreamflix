@@ -47,6 +47,7 @@
     
     <string name="search_input_hint">Buscar película, serie</string>
     <string name="global_search">Búsqueda global</string>
+    <string name="search_empty_query">Por favor, introduce un término de búsqueda</string>
     <string name="searching">Buscando...</string>
     <string name="search_error">Error</string>
     <string name="result">Resultado</string>

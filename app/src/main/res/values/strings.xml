@@ -47,6 +47,7 @@
 
     <string name="search_input_hint">Search movies, TV shows</string>
     <string name="global_search">Global search</string>
+    <string name="search_empty_query">Please enter a search query</string>
     <string name="searching">Searching...</string>
     <string name="search_error">Error</string>
     <string name="result">Result</string>

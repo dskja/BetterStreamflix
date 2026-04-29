@@ -109,7 +109,8 @@ abstract class Extractor {
             VidsonicExtractor(),
             HxfileExtractor(),
             ZillaExtractor(),
-            PDrainExtractor()
+            PDrainExtractor(),
+            MaxstreamExtractor(),
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

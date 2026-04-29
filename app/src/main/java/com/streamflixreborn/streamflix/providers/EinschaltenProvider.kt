@@ -141,7 +141,7 @@ object EinschaltenProvider : Provider {
 
         try {
             // Neue Filme
-            val neueResponse = service.getMovies(genreId = 12, page = 1, order = "new")
+            val neueResponse = service.getMovies(genreId = null, page = 1, order = "new")
             val neueJson = JSONObject(neueResponse.string())
             val neueArray = neueJson.optJSONArray("data") ?: JSONArray()
             val neueMovies = parseMoviesFromJsonArray(neueArray)

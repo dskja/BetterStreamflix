@@ -39,6 +39,7 @@
 
     <string name="search_input_hint">Cerca film, serie TV</string>
     <string name="global_search">Ricerca globale</string>
+    <string name="search_empty_query">Inserisci una query di ricerca</string>
     <string name="searching">Ricerca in corso...</string>
     <string name="search_error">Errore</string>
     <string name="result">Risultato</string>

@@ -1,13 +1,15 @@
 package com.streamflixreborn.streamflix.extractors
 
 import com.google.gson.JsonParser
+import com.google.gson.annotations.SerializedName
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
-import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.POST
 import java.net.URL
 
 class VidaraExtractor : Extractor() {
@@ -24,18 +26,18 @@ class VidaraExtractor : Extractor() {
 
         val baseUrl = URL(link).protocol + "://" + URL(link).host
         val service = Service.build(baseUrl)
-        
-        val responseBody = service.getStream(
-            fileCode = fileCode
+
+        val responseBody = service.postStream(
+            StreamRequest(filecode = fileCode, device = "web")
         )
         val responseString = responseBody.string()
-        
+
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject
         } catch (e: Exception) {
             throw Exception("Failed to parse API response: ${e.message}")
         }
-        
+
         val streamingUrl = jsonObject.get("streaming_url")?.asString
             ?: throw Exception("Streaming URL not found in API response")
 
@@ -69,6 +71,11 @@ class VidaraExtractor : Extractor() {
         )
     }
 
+    data class StreamRequest(
+        @SerializedName("filecode") val filecode: String,
+        @SerializedName("device") val device: String
+    )
+
     private interface Service {
 
         companion object {
@@ -80,15 +87,16 @@ class VidaraExtractor : Extractor() {
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .client(client)
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build()
 
                 return retrofit.create(Service::class.java)
             }
         }
 
-        @GET("api/stream")
-        suspend fun getStream(
-            @Query("filecode") fileCode: String
+        @POST("api/stream")
+        suspend fun postStream(
+            @Body request: StreamRequest
         ): ResponseBody
     }
 }

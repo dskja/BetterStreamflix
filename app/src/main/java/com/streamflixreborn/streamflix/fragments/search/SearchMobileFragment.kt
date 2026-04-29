@@ -137,6 +137,11 @@ class SearchMobileFragment : Fragment() {
                     val query = binding.etSearch.text.toString()
                     hideKeyboard()
 
+                    if (query.isBlank()) {
+                        Toast.makeText(requireContext(), getString(R.string.search_empty_query), Toast.LENGTH_SHORT).show()
+                        return@setOnEditorActionListener true
+                    }
+
                     if (binding.swGlobalSearch.isChecked) {
                         val currentLanguage = UserPreferences.currentProvider?.language ?: "es"
                         viewModel.searchGlobal(query, currentLanguage)

@@ -463,7 +463,8 @@ object CB01Provider : Provider {
                         val baseName = a.text().trim().ifBlank { "Server" }
                         val normalized = href
                         val lowerName = baseName.lowercase()
-                        if (!lowerName.contains("mixdrop")) continue
+                        if (!lowerName.contains("mixdrop") && !lowerName.contains("maxstream")) continue
+                        if (lowerName.contains("maxstream") && !normalized.contains("uprot.net", ignoreCase = true)) continue
 
                         fun addServer(finalUrl: String) {
                             val labeled = when {
@@ -500,6 +501,15 @@ object CB01Provider : Provider {
                                     if (!mixdropUrl.isNullOrBlank()) addServer(mixdropUrl)
                                 } catch (_: Exception) { }
                             }
+                        } else if (normalized.contains("uprot.net", ignoreCase = true)) {
+                            val uprotUrl = normalized.replace("/msf/", "/mse/")
+                            try {
+                                val doc = service.getPage(uprotUrl)
+                                val maxstreamUrl = doc.selectFirst("#ads_space center a[href]")?.attr("href")
+                                if (!maxstreamUrl.isNullOrBlank()) {
+                                    addServer(maxstreamUrl)
+                                }
+                            } catch (_: Exception) { }
                         } else {
                             addServer(normalized)
                         }
