@@ -8,22 +8,19 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Header
-import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Url
-import java.net.URL
 import java.util.concurrent.TimeUnit
 import kotlin.text.replaceFirstChar
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
     override val name = "Frembed"
-    val defaultUrl = "https://frembed.cyou"
+    val defaultUrl = "https://frembed.one"
     override var mainUrl = newUrl.ifBlank { defaultUrl }
 
     data class listLinks (
@@ -59,6 +56,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
             .replace("lancewhosedifficult", "voe")
             .replace("dianaavoidthey", "voe")
             .replace("jefferycontrolmodel", "voe")
+            .replace("richardquestionbuilding", "voe")
             .replace("myvidplay", "dood")
             .replace("playmogo", "dood")
             .replaceFirstChar { it.uppercase() }
