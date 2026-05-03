@@ -27,9 +27,11 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import okhttp3.ResponseBody
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.Header
 import retrofit2.http.Query
+import retrofit2.http.Url
 import kotlin.collections.map
 
 object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
@@ -43,7 +45,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://frembed.bond/"
+    override val defaultBaseUrl: String = "https://frembed.one/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -457,13 +459,22 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         ?.attr("href")
                         ?.trim()
                     if (!newUrl.isNullOrEmpty()) {
-                        val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-                        UserPreferences.setProviderCache(this,UserPreferences.PROVIDER_URL, newUrl)
-                        UserPreferences.setProviderCache(
-                            this,
-                            UserPreferences.PROVIDER_LOGO,
-                            newUrl + "/favicon-32x32.png"
-                        )
+                        val raw = addressService.loadPageRaw(newUrl)
+
+                        if (raw.isSuccessful) {
+                            val newUrl = raw.raw().request.url.toString()
+
+                            UserPreferences.setProviderCache(
+                                this,
+                                UserPreferences.PROVIDER_URL,
+                                newUrl
+                            )
+                            UserPreferences.setProviderCache(
+                                this,
+                                UserPreferences.PROVIDER_LOGO,
+                                newUrl + "/favicon-32x32.png"
+                            )
+                        }
                     }
                 } catch (e: Exception) {
                     // In case of failure, we'll use the default URL
@@ -525,6 +536,11 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         suspend fun getPortalHome(
             @Header("user-agent") user_agent: String = "Mozilla"
         ): Document
+
+        @GET
+        suspend fun loadPageRaw(
+            @Url url: String
+        ): Response<ResponseBody>
 
         @GET("api/public/movies/{section}")
         suspend fun getApiPublic(
