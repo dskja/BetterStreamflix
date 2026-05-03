@@ -1289,6 +1289,12 @@ class PlayerTvFragment : Fragment() {
                 override fun onPlayerError(error: PlaybackException) {
                     super.onPlayerError(error)
                     Log.e("PlayerTvFragment", "onPlayerError: ", error)
+
+                    val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
+                    if (nextServer != null) {
+                        Log.i("PlayerTvFragment", "Playback failed, trying next server: ${nextServer.name}")
+                        viewModel.getVideo(nextServer)
+                    }
                 }
             })
 

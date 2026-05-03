@@ -1117,6 +1117,12 @@ class PlayerMobileFragment : Fragment() {
             override fun onPlayerError(error: PlaybackException) {
                 super.onPlayerError(error)
                 Log.e("PlayerMobileFragment", "onPlayerError: ", error)
+                
+                val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
+                if (nextServer != null) {
+                    Log.i("PlayerMobileFragment", "Playback failed, trying next server: ${nextServer.name}")
+                    viewModel.getVideo(nextServer)
+                }
             }
         })
 

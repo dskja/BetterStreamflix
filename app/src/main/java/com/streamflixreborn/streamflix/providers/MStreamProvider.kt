@@ -152,13 +152,17 @@ object MStreamProvider : Provider {
         val channelContent =
             json.getJSONObject("channel").getJSONObject("content").getJSONArray("data")
         return channelContent.map {
-            Category(name = (if (it?.getString("id") == "354") Category.FEATURED
-            else it?.getString("name")).toString(),
-                list = (it?.optJSONObject("content")?.optJSONArray("data"))?.map {
-                    if (it?.optBoolean("is_series") == true) getTvShowObj(it)
-                    else getMovieObj(it, true)
-                } ?: emptyList())
-        }
+            if (it?.optJSONObject("config")?.optString("contentModel") == "newsArticle") {
+                null
+            } else {
+                Category(name = (if (it?.getString("id") == "354") Category.FEATURED
+                else it?.getString("name")).toString(),
+                    list = (it?.optJSONObject("content")?.optJSONArray("data"))?.map {
+                        if (it?.optBoolean("is_series") == true) getTvShowObj(it)
+                        else getMovieObj(it, true)
+                    } ?: emptyList())
+            }
+        }.filterNotNull()
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -294,24 +298,46 @@ object MStreamProvider : Provider {
             document = service.getEpisodeStreams(titleId, seasonNumber, episodeNumber)
             val json = JSONObject(document.string())
             return json.getJSONObject("episode").getJSONArray("videos").map {
+                val src = it?.optString("src").orEmpty()
+                val resolveUrl = it?.optString("playback_resolve_url").orEmpty()
+                if (src.isBlank() && resolveUrl.isBlank()) return@map null
+
+                val finalSrc = if (src.isNotBlank()) src else "$URL/api/v1/$resolveUrl"
+                val name = if (src.isNotBlank()) {
+                    try { URL(src).host } catch (e: Exception) { "Server" } + " ( " + it?.getString("name") + ")"
+                } else {
+                    it?.optString("name") ?: "Premium"
+                }
+
                 Server(
                     id = it?.getString("id") ?: "",
-                    name = URL(it?.getString("src")).host + " ( " + it?.getString("name") + ")",
-                    src = it?.getString("src") ?: ""
+                    name = name,
+                    src = finalSrc
                 )
-            }
+            }.filterNotNull()
         } else {
             val idSplit = id.split("#")
             val watchId = idSplit[1]
             document = service.getStreams(watchId)
             val json = JSONObject(document.string())
             return json.getJSONArray("alternative_videos").map {
+                val src = it?.optString("src").orEmpty()
+                val resolveUrl = it?.optString("playback_resolve_url").orEmpty()
+                if (src.isBlank() && resolveUrl.isBlank()) return@map null
+
+                val finalSrc = if (src.isNotBlank()) src else "$URL/api/v1/$resolveUrl"
+                val name = if (src.isNotBlank()) {
+                    try { URL(src).host } catch (e: Exception) { "Server" } + " ( " + it?.getString("name") + ")"
+                } else {
+                    it?.optString("name").orEmpty()
+                }
+
                 Server(
                     id = it?.getString("id") ?: "",
-                    name = URL(it?.getString("src")).host + " ( " + it?.getString("name") + ")",
-                    src = it?.getString("src") ?: ""
+                    name = name,
+                    src = finalSrc
                 )
-            }
+            }.filterNotNull()
         }
     }
 

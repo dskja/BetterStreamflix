@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.extractors
 
 import android.util.Base64
+import androidx.media3.common.MimeTypes
 import com.streamflixreborn.streamflix.models.Video
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -39,11 +40,17 @@ class MoflixExtractor : Extractor() {
             val response = service.getResponse(url, referer = mainUrl)
             val videos = response.videos ?: response.title?.videos ?: response.episode?.videos ?: emptyList()
             
-            videos.map { video ->
+            videos.mapNotNull { video ->
+                val src = video.src ?: ""
+                val resolveUrl = video.playback_resolve_url ?: ""
+                if (src.isBlank() && resolveUrl.isBlank()) return@mapNotNull null
+
+                val finalSrc = if (resolveUrl.isNotBlank()) "$mainUrl/api/v1/$resolveUrl" else src
+                
                 Video.Server(
                     id = "Moflix-${video.id}",
                     name = "Moflix - ${video.name ?: "Mirror"}",
-                    src = video.src ?: ""
+                    src = finalSrc
                 )
             }
         } catch (e: Exception) {
@@ -52,6 +59,24 @@ class MoflixExtractor : Extractor() {
     }
 
     override suspend fun extract(link: String): Video {
+        if (link.contains("/playback") || link.contains(".m3u8")) {
+            val source = if (link.contains("/playback")) {
+                val videoId = link.substringAfter("videos/").substringBefore("/playback")
+                try {
+                    Service.build(mainUrl).getPlayback(link, referer = "$mainUrl/watch/$videoId").src ?: ""
+                } catch (e: Exception) {
+                    ""
+                }
+            } else {
+                link
+            }
+
+            return Video(
+                source = source,
+                type = MimeTypes.APPLICATION_M3U8
+            )
+        }
+
         return Extractor.extract(link)
     }
 
@@ -81,6 +106,13 @@ class MoflixExtractor : Extractor() {
             @Header("Accept-Language") acceptLanguage: String = "en-US,en;q=0.5",
             @Header("Connection") connection: String = "keep-alive"
         ): MoflixResponse
+
+        @GET
+        suspend fun getPlayback(
+            @Url url: String,
+            @Header("Referer") referer: String,
+            @Header("User-Agent") userAgent: String = DEFAULT_USER_AGENT
+        ): MoflixPlaybackResponse
     }
 
 
@@ -102,6 +134,13 @@ class MoflixExtractor : Extractor() {
             val name: String? = null,
             val src: String? = null,
             val type: String? = null,
+            val playback_resolve_url: String? = null,
         )
     }
+
+    data class MoflixPlaybackResponse(
+        val src: String? = null,
+        val type: String? = null,
+        val status: String? = null,
+    )
 }

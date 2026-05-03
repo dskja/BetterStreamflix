@@ -38,7 +38,6 @@ abstract class Extractor {
             MyFileStorageExtractor(),
             MoflixExtractor(),
             MStreamDayExtractor(),
-            MStreamClickExtractor(),
             VidsrcNetExtractor(),
             StreamWishExtractor(),
             StreamWishExtractor.UqloadsXyz(),

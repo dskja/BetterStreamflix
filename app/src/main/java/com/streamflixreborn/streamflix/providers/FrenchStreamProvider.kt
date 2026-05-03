@@ -48,7 +48,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://fs14.lol/"
+    override val defaultBaseUrl: String = "https://fs03.lol/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -69,7 +69,8 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         initializeService()
-        val isNewInterface = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false"
+        // val isNewInterface = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_NEW_INTERFACE) != "false"
+        val isNewInterface = false // Forced false for now
         val document = if (isNewInterface) {
             service.postHome()
         } else {
@@ -324,7 +325,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override suspend fun getMovie(id: String): Movie {
         initializeService()
         val document = service.getItem(id)
-        val itemId = id.substringBefore("-")
+        val itemId = id.substringAfter("newsid=")
 
         val actors = extractActors(document)
         val filmData = try {
@@ -404,7 +405,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         initializeService()
         val document = service.getItem(id, "dle_skin=VFV25")
         val actors = extractActors(document)
-        val itemId = id.substringBefore("-")
+        val itemId = id.substringAfter("newsid=")
 
         val tvShowData = try {
             service.getFilmData(itemId)
@@ -736,7 +737,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             }
 
             is Video.Type.Movie -> {
-                val itemId = id.substringBefore("-")
+                val itemId = id.substringAfter("newsid=")
                 val filmData = try {
                     service.getFilmData(itemId)
                 } catch (e: Exception) {
@@ -925,38 +926,38 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         @GET("s-tv/page/{page}")
         suspend fun getTvShows(@Path("page") page: Int): Document
 
-        @GET("/{id}")
+        @GET
         suspend fun getItem(
-            @Path("id") id: String,
+            @Url url: String,
             @Header("Cookie") cookie: String = "dle_skin=VFV1"
         ): Document
 
         @GET("films/{id}")
         suspend fun getMovie(
-            @Path("id") id: String,
+            @Path(value = "id", encoded = true) id: String,
             @Header("Cookie") cookie: String = "dle_skin=VFV1"
         ): Document
 
         @GET("s-tv/{id}")
         suspend fun getTvShow(
-            @Path("id") id: String,
+            @Path(value = "id", encoded = true) id: String,
             @Header("Cookie") cookie: String = "dle_skin=VFV1"
         ): Document
 
 
         @GET("film-en-streaming/{genre}/page/{page}")
         suspend fun getGenre(
-            @Path("genre") genre: String,
+            @Path(value = "genre", encoded = true) genre: String,
             @Path("page") page: Int,
         ): Document
 
         @GET("xfsearch/actors/{id}/page/{page}")
         suspend fun getPeople(
-            @Path("id") id: String,
+            @Path(value = "id", encoded = true) id: String,
             @Path("page") page: Int,
         ): Document
 
-        @GET("engine/ajax/episodes_np.php")
+        @GET("engine/ajax/sx.php")
         suspend fun getEpisodesData(
             @Query("id") id: String,
             @Header("Cookie") cookie: String = "dle_skin=VFV1",
