@@ -278,8 +278,9 @@ object AnimeAv1Provider : Provider {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
+        val cleanId = if (id.contains("/")) id.substringBefore("/") else id
         return try {
-            val document = service.getShowDetails(id)
+            val document = service.getShowDetails(cleanId)
 
             val title = document.selectFirst("h1")?.text() ?: ""
             val overview = document.selectFirst("div.entry p")?.text()
@@ -294,7 +295,7 @@ object AnimeAv1Provider : Provider {
 
             // Intento obtener episodios desde el JSON para evitar paginación
             try {
-                val jsonUrl = "$baseUrl/media/$id/__data.json"
+                val jsonUrl = "$baseUrl/media/$cleanId/__data.json"
                 val response = service.getRaw(jsonUrl)
                 val jsonText = response.body()?.string()
                 if (jsonText != null) {
@@ -369,7 +370,7 @@ object AnimeAv1Provider : Provider {
             )
 
             TvShow(
-                id = id,
+                id = cleanId,
                 title = title,
                 overview = overview,
                 poster = finalPoster,
@@ -379,7 +380,7 @@ object AnimeAv1Provider : Provider {
                 seasons = seasons
             )
         } catch (e: Exception) {
-            TvShow(id = id, title = "Error al cargar")
+            TvShow(id = cleanId, title = "Error al cargar")
         }
     }
 
