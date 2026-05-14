@@ -8,12 +8,8 @@ import com.streamflixreborn.streamflix.models.*
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import okhttp3.Cache
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.http.GET
@@ -21,11 +17,12 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Url
 import okhttp3.ResponseBody
-import okhttp3.Request
 import retrofit2.Response
 import retrofit2.http.Headers
 import java.io.File
 import java.util.concurrent.TimeUnit
+import org.json.JSONObject
+import org.json.JSONArray
 
 object AnimeAv1Provider : Provider {
 
@@ -43,11 +40,6 @@ object AnimeAv1Provider : Provider {
         .build()
 
     private val service = retrofit.create(AnimeAv1Service::class.java)
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        coerceInputValues = true
-    }
 
     private fun getOkHttpClient(): OkHttpClient {
         val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
@@ -287,39 +279,84 @@ object AnimeAv1Provider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         return try {
-            val document = AnimeAv1Provider.service.getShowDetails(id)
+            val document = service.getShowDetails(id)
 
             val title = document.selectFirst("h1")?.text() ?: ""
             val overview = document.selectFirst("div.entry p")?.text()
             val poster = document.selectFirst("img[src*=/covers/]")?.attr("src")
+            val finalPoster = if (poster?.startsWith("http") == true) poster else poster?.let { "$baseUrl$it" }
             val rating = document.selectFirst("div.text-2xl.font-bold")?.text()?.toDoubleOrNull()
             val genres = document.select("a[href*=/catalogo?genre=]").map {
                 Genre(id = it.attr("href").substringAfterLast("/"), name = it.text())
             }
 
-            val episodes = document
-                .select("section:has(h2:contains(Episodios)) article")
-                .mapIndexedNotNull { index, element ->
+            val episodes = mutableListOf<Episode>()
 
-                    val url = element.selectFirst("a[href*=/media/]")?.attr("href")
-                        ?: return@mapIndexedNotNull null
+            // Intento obtener episodios desde el JSON para evitar paginación
+            try {
+                val jsonUrl = "$baseUrl/media/$id/__data.json"
+                val response = service.getRaw(jsonUrl)
+                val jsonText = response.body()?.string()
+                if (jsonText != null) {
+                    val root = JSONObject(jsonText)
+                    val nodes = root.getJSONArray("nodes")
+                    val mediaNode = nodes.optJSONObject(2)
+                    if (mediaNode != null) {
+                        val dataArray = mediaNode.getJSONArray("data")
+                        val mediaMap = dataArray.getJSONObject(1)
+                        val numericId = dataArray.get(mediaMap.getInt("id")).toString()
+                        val slug = dataArray.optString(mediaMap.optInt("slug", -1), id)
 
-                    val number = element
-                        .selectFirst("div.bg-line span")
-                        ?.text()
-                        ?.toIntOrNull()
-                        ?: (index + 1)
+                        val episodesIndex = mediaMap.optInt("episodes", -1)
+                        val episodeIndices = if (episodesIndex != -1) dataArray.getJSONArray(episodesIndex) else null
 
-                    val poster = element.selectFirst("img")?.attr("src")
+                        if (episodeIndices != null) {
+                            for (i in 0 until episodeIndices.length()) {
+                                val epObjIndex = episodeIndices.getInt(i)
+                                val epObj = dataArray.getJSONObject(epObjIndex)
+                                val number = try {
+                                    val numIndex = epObj.getInt("number")
+                                    val value = dataArray.get(numIndex)
+                                    if (value is Int) value else value.toString().toIntOrNull() ?: (i + 1)
+                                } catch (e: Exception) { i + 1 }
 
-                    Episode(
-                        id = url.substringAfter("/media/"),
-                        number = number,
-                        title = "Episodio $number",
-                        poster = poster
-                    )
+                                episodes.add(
+                                    Episode(
+                                        id = "$slug/$number",
+                                        number = number,
+                                        title = "Episodio $number",
+                                        poster = getEpisodePoster(numericId, number.toString())
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                // Si falla el JSON, no hacemos nada aquí, ya que el siguiente bloque usará Jsoup
+            }
 
+            // Si el JSON no devolvió episodios, usamos Jsoup como fallback
+            if (episodes.isEmpty()) {
+                val jsoupEpisodes = document
+                    .select("section:has(h2:contains(Episodios)) article")
+                    .mapIndexedNotNull { index, element ->
+                        val url = element.selectFirst("a[href*=/media/]")?.attr("href")
+                            ?: return@mapIndexedNotNull null
+                        val number = element.selectFirst("div.bg-line span")?.text()?.toIntOrNull()
+                            ?: (index + 1)
+                        val epPoster = element.selectFirst("img")?.attr("src")
+                        Episode(
+                            id = url.substringAfter("/media/"),
+                            number = number,
+                            title = "Episodio $number",
+                            poster = epPoster
+                        )
+                    }
+                episodes.addAll(jsoupEpisodes)
+            } else {
+                episodes.sortBy { it.number }
+            }
 
             val seasons = listOf(
                 Season(
@@ -327,7 +364,7 @@ object AnimeAv1Provider : Provider {
                     number = 1,
                     title = "Episodios",
                     episodes = episodes,
-                    poster = if (poster?.startsWith("http") == true) poster else poster?.let { "${AnimeAv1Provider.baseUrl}$it" }
+                    poster = finalPoster
                 )
             )
 
@@ -335,7 +372,8 @@ object AnimeAv1Provider : Provider {
                 id = id,
                 title = title,
                 overview = overview,
-                poster = if (poster?.startsWith("http") == true) poster else poster?.let { "${AnimeAv1Provider.baseUrl}$it" },
+                poster = finalPoster,
+                banner = finalPoster,
                 rating = rating,
                 genres = genres,
                 seasons = seasons
@@ -347,11 +385,41 @@ object AnimeAv1Provider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val show = getTvShow(id)
+        var moviePlaybackId = id
+
+        try {
+            val jsonUrl = "$baseUrl/media/$id/__data.json"
+            val response = service.getRaw(jsonUrl)
+            val jsonText = response.body()?.string()
+            if (jsonText != null) {
+                val root = JSONObject(jsonText)
+                val nodes = root.getJSONArray("nodes")
+                val mediaNode = nodes.optJSONObject(2)
+                if (mediaNode != null) {
+                    val dataArray = mediaNode.getJSONArray("data")
+                    val mediaMap = dataArray.getJSONObject(1)
+
+                    val slug = dataArray.optString(mediaMap.optInt("slug", -1), id)
+                    val episodesCount = mediaMap.optInt("episodesCount", -1)
+                    val countValue = if (episodesCount != -1) {
+                        val value = dataArray.get(episodesCount)
+                        if (value is Int) value else value.toString().toIntOrNull() ?: 1
+                    } else 1
+
+                    moviePlaybackId = "$slug/$countValue"
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback al primer episodio si el JSON falla
+            moviePlaybackId = show.seasons.firstOrNull()?.episodes?.firstOrNull()?.id ?: id
+        }
+
         return Movie(
-            id = show.id,
+            id = moviePlaybackId,
             title = show.title,
             overview = show.overview,
             poster = show.poster,
+            banner = show.poster,
             rating = show.rating,
             genres = show.genres,
             cast = emptyList(),
@@ -405,7 +473,7 @@ object AnimeAv1Provider : Provider {
 
             val servers = mutableListOf<Video.Server>()
 
-            val root = org.json.JSONObject(jsonText)
+            val root = JSONObject(jsonText)
             val nodes = root.getJSONArray("nodes")
 
             // Nodo donde vive episode
@@ -420,7 +488,7 @@ object AnimeAv1Provider : Provider {
             val subIndex = embeds.optInt("SUB", -1)
             val dubIndex = embeds.optInt("DUB", -1)
 
-            fun resolveList(index: Int): org.json.JSONArray? {
+            fun resolveList(index: Int): JSONArray? {
                 return if (index >= 0) dataArray.optJSONArray(index) else null
             }
 
@@ -471,13 +539,7 @@ object AnimeAv1Provider : Provider {
         }
     }
 
-
-
     override suspend fun getVideo(server: Video.Server): Video {
         return Extractor.extract(server.id, server)
     }
-}
-
-private fun String.body() {
-    TODO("Not yet implemented")
 }
