@@ -110,6 +110,7 @@ abstract class Extractor {
             ZillaExtractor(),
             PDrainExtractor(),
             MaxstreamExtractor(),
+            VidxGoExtractor()
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {

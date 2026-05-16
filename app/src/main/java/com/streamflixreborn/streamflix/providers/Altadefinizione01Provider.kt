@@ -1,5 +1,8 @@
 package com.streamflixreborn.streamflix.providers
 
+import android.util.Log
+import android.net.Uri
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.models.Category
@@ -24,6 +27,7 @@ import retrofit2.http.Headers
 import retrofit2.http.Url
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Header
 
 object Altadefinizione01Provider : Provider {
 
@@ -96,7 +100,20 @@ object Altadefinizione01Provider : Provider {
 
         @Headers(USER_AGENT)
         @GET
-        suspend fun getPage(@Url url: String): Document
+        suspend fun getPage(
+            @Url url: String,
+            @Header("Referer") referer: String = "",
+            @Header("sec-fetch-dest") secFetchDest: String = "document"
+        ): Document
+
+        @Headers(USER_AGENT)
+        @GET("https://v.vidxgo.co/seasons.php")
+        suspend fun getVidxGoSeasons(
+            @Query("imdb") imdbId: String,
+            @Query("season") seasonNumber: Int,
+            @Header("Referer") referer: String = "",
+            @Header("sec-fetch-dest") secFetchDest: String = "empty"
+        ): okhttp3.ResponseBody
     }
 
     private val service = Altadefinizione01Service.build(baseUrl)
@@ -300,6 +317,72 @@ object Altadefinizione01Provider : Provider {
             )
         }
 
+        if (seasons.isEmpty()) {
+            val vidxgoIframe = doc.selectFirst("iframe#vidxgo-player")
+            if (vidxgoIframe != null) {
+                val scripts = doc.select("script")
+                val imdbId = scripts.firstNotNullOfOrNull { script ->
+                    Regex("var\\s+imdb\\s*=\\s*['\"]tt(\\d+)['\"]").find(script.html())?.groupValues?.get(1)
+                }
+                if (imdbId != null) {
+                    try {
+                        val uri = Uri.parse(id)
+                        val referer = "${uri.scheme}://${uri.host}/"
+                        val vidxgoDoc = service.getPage("https://v.vidxgo.co/$imdbId", referer, "iframe")
+                        val seasonTabs = vidxgoDoc.select(".ep-season-tab")
+                        if (seasonTabs.isNotEmpty()) {
+                            seasonTabs.forEach { tab ->
+                                val sNum = tab.attr("data-season").toIntOrNull() ?: return@forEach
+                                seasons.add(
+                                    Season(
+                                        id = "$id#season-$sNum",
+                                        number = sNum,
+                                        episodes = emptyList(),
+                                        poster = tmdbTvShow?.seasons?.find { it.number == sNum }?.poster
+                                    )
+                                )
+                            }
+                            seasons.sortBy { it.number }
+                        } else {
+                            val episodesList = vidxgoDoc.select("#episodesList a.ep-item")
+                            val groupedEpisodes = episodesList.mapNotNull { a ->
+                                val href = a.attr("href")
+                                val parts = href.trim('/').split('/')
+                                if (parts.size < 3) return@mapNotNull null
+                                val s = parts[1].toIntOrNull() ?: return@mapNotNull null
+                                val e = parts[2].toIntOrNull() ?: return@mapNotNull null
+                                val epName = a.selectFirst(".ep-name")?.text()?.trim()
+                                val epPlot = a.selectFirst(".ep-plot")?.text()?.trim()
+                                val epPoster = a.selectFirst("img.ep-thumb")?.attr("src")
+                                
+                                Triple(s, e, Episode(
+                                    id = "$id#s${s}e$e",
+                                    number = e,
+                                    title = epName,
+                                    overview = epPlot,
+                                    poster = epPoster
+                                ))
+                            }.groupBy { it.first }
+                            
+                            groupedEpisodes.forEach { (sNum, eps) ->
+                                seasons.add(
+                                    Season(
+                                        id = "$id#season-$sNum",
+                                        number = sNum,
+                                        episodes = eps.map { it.third }.sortedBy { it.number },
+                                        poster = tmdbTvShow?.seasons?.find { it.number == sNum }?.poster
+                                    )
+                                )
+                            }
+                            seasons.sortBy { it.number }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Altadefinizione01", "Error fetching VidxGo episodes: ${e.message}")
+                    }
+                }
+            }
+        }
+
         return TvShow(
             id = id,
             title = title,
@@ -325,17 +408,15 @@ object Altadefinizione01Provider : Provider {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showUrl = seasonId.substringBefore("#")
         val seasonNumber = seasonId.substringAfter("#season-").toIntOrNull() ?: 0
-        val doc = service.getPage(showUrl)
+        val doc = try { service.getPage(showUrl) } catch (e: Exception) { null } ?: return emptyList()
 
         val paneId = "season-$seasonNumber"
         val seasonPane = doc.selectFirst("#${paneId}")
-            ?: return emptyList()
-
-        val episodes = mutableListOf<Episode>()
-        seasonPane.select("ul > li > a[allowfullscreen][data-link]").forEach { ep ->
+        val episodes = seasonPane?.select("ul > li > a[allowfullscreen][data-link]")?.map { ep ->
             val epNum = ep.attr("data-num").substringAfter('x').toIntOrNull()
                 ?: ep.text().trim().toIntOrNull() ?: 0
             val (epTitle, epOverview) = parseEpisodeTitleAndOverview(ep.attr("data-title"))
+            
             val episodeMirrors = ep.parent()?.select("a[data-link]")?.filter { link ->
                 link.text().contains("Dropload", true)
             } ?: emptyList()
@@ -344,17 +425,76 @@ object Altadefinizione01Provider : Provider {
                 val droploadId = link.substringAfter("/e/")
                 "https://img.dropcdn.io/$droploadId.jpg"
             }
-            episodes.add(
-                Episode(
-                    id = "$showUrl#s${seasonNumber}e$epNum",
-                    number = epNum,
-                    title = epTitle,
-                    poster = episodePoster,
-                    overview = epOverview
-                )
+            
+            Episode(
+                id = "$showUrl#s${seasonNumber}e$epNum",
+                number = epNum,
+                title = epTitle,
+                poster = episodePoster,
+                overview = epOverview
             )
         }
-        return episodes
+
+        if (episodes.isNullOrEmpty()) {
+            val vidxgoIframe = doc.selectFirst("iframe#vidxgo-player")
+            if (vidxgoIframe != null) {
+                val scripts = doc.select("script")
+                val imdbId = scripts.firstNotNullOfOrNull { script ->
+                    Regex("var\\s+imdb\\s*=\\s*['\"]tt(\\d+)['\"]").find(script.html())?.groupValues?.get(1)
+                }
+                if (imdbId != null) {
+                    try {
+                        val uri = Uri.parse(showUrl)
+                        val referer = "${uri.scheme}://${uri.host}/"
+                        val responseBody = service.getVidxGoSeasons(imdbId, seasonNumber, referer)
+                        val json = org.json.JSONObject(responseBody.string())
+                        if (json.optInt("ok") == 1) {
+                            val episodesArray = json.getJSONArray("episodes")
+                            val resultList = mutableListOf<Episode>()
+                            for (i in 0 until episodesArray.length()) {
+                                val ep = episodesArray.getJSONObject(i)
+                                val eNum = ep.getInt("number")
+                                resultList.add(Episode(
+                                    id = "$showUrl#s${seasonNumber}e${eNum}",
+                                    number = eNum,
+                                    title = ep.optString("name"),
+                                    overview = ep.optString("overview"),
+                                    poster = ep.optString("still")
+                                ))
+                            }
+                            return resultList
+                        }
+                        
+                        // Fallback to scraping the page if JSON fails or season is 1
+                        val vidxgoDoc = service.getPage("https://v.vidxgo.co/$imdbId", referer, "iframe")
+                        return vidxgoDoc.select("#episodesList a.ep-item").mapNotNull { a ->
+                            val href = a.attr("href")
+                            val parts = href.trim('/').split('/')
+                            if (parts.size < 3) return@mapNotNull null
+                            val s = parts[1].toIntOrNull() ?: return@mapNotNull null
+                            val e = parts[2].toIntOrNull() ?: return@mapNotNull null
+                            if (s != seasonNumber) return@mapNotNull null
+                            
+                            val epName = a.selectFirst(".ep-name")?.text()?.trim()
+                            val epPlot = a.selectFirst(".ep-plot")?.text()?.trim()
+                            val epPoster = a.selectFirst("img.ep-thumb")?.attr("src")
+                            
+                            Episode(
+                                id = "$showUrl#s${s}e${e}",
+                                number = e,
+                                title = epName,
+                                overview = epPlot,
+                                poster = epPoster
+                            )
+                        }.sortedBy { it.number }
+                    } catch (e: Exception) {
+                        Log.e("Altadefinizione01", "Error fetching VidxGo episodes for season $seasonNumber: ${e.message}")
+                    }
+                }
+            }
+        }
+        
+        return episodes ?: emptyList()
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
@@ -401,50 +541,102 @@ object Altadefinizione01Provider : Provider {
                 val seasonNum = sPart.substringAfter('s').substringBefore('e').toIntOrNull() ?: 0
                 val epNum = sPart.substringAfter('e').toIntOrNull() ?: 0
                 val doc = service.getPage(showUrl)
-                val pane = doc.selectFirst("#season-$seasonNum") ?: return emptyList()
-                val epAnchor = pane.select("ul > li > a[allowfullscreen][data-link]")
-                    .firstOrNull { a ->
-                        val numAttr = a.attr("data-num")
-                        val n = numAttr.substringAfter('x').toIntOrNull() ?: a.text().trim().toIntOrNull() ?: -1
-                        n == epNum
-                    } ?: return emptyList()
-                val mirrors = epAnchor.parent()?.select(".mirrors a[data-link]") ?: emptyList()
-                mirrors
-                    .filterNot { m -> m.text().contains("4K", true) }
-                    .mapNotNull { m ->
-                        val link = m.attr("data-link").trim()
-                        if (link.isBlank()) return@mapNotNull null
-                        val normalized = when {
-                            link.startsWith("//") -> "https:$link"
-                            link.startsWith("http") -> link
-                            else -> link
+                val results = mutableListOf<Video.Server>()
+
+                try {
+                    val pane = doc.selectFirst("#season-$seasonNum")
+                    val epAnchor = pane?.select("ul > li > a[allowfullscreen][data-link]")
+                        ?.firstOrNull { a ->
+                            val numAttr = a.attr("data-num")
+                            val n = numAttr.substringAfter('x').toIntOrNull() ?: a.text().trim().toIntOrNull() ?: -1
+                            n == epNum
                         }
-                        val name = m.text().trim().ifBlank { "Server" }
-                        Video.Server(id = normalized, name = name, src = normalized)
+                    
+                    val mirrors = epAnchor?.parent()?.select(".mirrors a[data-link]") ?: emptyList()
+                    mirrors
+                        .filterNot { m -> m.text().contains("4K", true) }
+                        .mapNotNull { m ->
+                            val link = m.attr("data-link").trim()
+                            if (link.isBlank()) return@mapNotNull null
+                            val normalized = when {
+                                link.startsWith("//") -> "https:$link"
+                                link.startsWith("http") -> link
+                                else -> link
+                            }
+                            val name = m.text().trim().ifBlank { "Server" }
+                            Video.Server(id = normalized, name = name, src = normalized)
+                        }.forEach { results.add(it) }
+                } catch (_: Exception) {}
+
+                val vidxgoIframe = doc.selectFirst("iframe#vidxgo-player")
+                if (vidxgoIframe != null) {
+                    val scripts = doc.select("script")
+                    val imdbId = scripts.firstNotNullOfOrNull { script ->
+                        Regex("var\\s+imdb\\s*=\\s*['\"]tt(\\d+)['\"]").find(script.html())?.groupValues?.get(1)
                     }
+                    if (imdbId != null) {
+                        val vidxgoUrl = "https://v.vidxgo.co/t/$imdbId/$seasonNum/$epNum"
+                        results.add(
+                            Video.Server(
+                                id = vidxgoUrl,
+                                name = "VidxGo",
+                                src = vidxgoUrl
+                            )
+                        )
+                    }
+                }
+                results
             } catch (_: Exception) { emptyList() }
         }
 
-        val doc = service.getPage(id)
-        val iframeSrc = doc.selectFirst("iframe[src*='guardahd.stream']")?.attr("src")
-            ?: throw Exception("Embed iframe not found")
-        val embedUrl = normalizeUrl(iframeSrc)
-        val embedDoc = service.getPage(embedUrl)
-        return embedDoc.select("ul._player-mirrors li[data-link]")
-            .filterNot { li -> li.hasClass("fullhd") || li.text().contains("4K", true) }
-            .mapNotNull { li ->
-                val dataLink = li.attr("data-link").trim()
-                if (dataLink.isBlank()) return@mapNotNull null
-                val normalized = when {
-                    dataLink.startsWith("//") -> "https:$dataLink"
-                    dataLink.startsWith("http") -> dataLink
-                    else -> "https://$dataLink"
-                }
-                val nameText = li.ownText().ifBlank { li.text() }.trim()
-                val name = nameText.ifBlank { "Server" }
-                Video.Server(id = normalized, name = name, src = normalized)
+        val doc = try { service.getPage(id) } catch (e: Exception) { null } ?: throw Exception("Failed to load page")
+        
+        val guardahdIframe = doc.selectFirst("iframe[src*='guardahd.stream']")
+        if (guardahdIframe != null) {
+            val iframeSrc = guardahdIframe.attr("src")
+            val embedUrl = normalizeUrl(iframeSrc)
+            try {
+                val embedDoc = service.getPage(embedUrl)
+                val servers = embedDoc.select("ul._player-mirrors li[data-link]")
+                    .filterNot { li -> li.hasClass("fullhd") || li.text().contains("4K", true) }
+                    .mapNotNull { li ->
+                        val dataLink = li.attr("data-link").trim()
+                        if (dataLink.isBlank()) return@mapNotNull null
+                        val normalized = when {
+                            dataLink.startsWith("//") -> "https:$dataLink"
+                            dataLink.startsWith("http") -> dataLink
+                            else -> "https://$dataLink"
+                        }
+                        val nameText = li.ownText().ifBlank { li.text() }.trim()
+                        val name = nameText.ifBlank { "Server" }
+                        Video.Server(id = normalized, name = name, src = normalized)
+                    }
+                    .filter { it.src.isNotBlank() }
+                if (servers.isNotEmpty()) return servers
+            } catch (e: Exception) {
+                Log.e("Altadefinizione01", "Error fetching guardahd servers: ${e.message}")
             }
-            .filter { it.src.isNotBlank() }
+        }
+
+        val vidxgoIframe = doc.selectFirst("iframe#vidxgo-player-film")
+        if (vidxgoIframe != null) {
+            val scripts = doc.select("script")
+            val imdbId = scripts.firstNotNullOfOrNull { script ->
+                Regex("var\\s+imdb\\s*=\\s*['\"]tt(\\d+)['\"]").find(script.html())?.groupValues?.get(1)
+            }
+            if (imdbId != null) {
+                val vidxgoUrl = "https://v.vidxgo.co/$imdbId"
+                return listOf(
+                    Video.Server(
+                        id = vidxgoUrl,
+                        name = "VidxGo",
+                        src = vidxgoUrl
+                    )
+                )
+            }
+        }
+
+        throw Exception("Embed iframe not found")
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
