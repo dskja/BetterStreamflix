@@ -359,15 +359,18 @@ object AnimeAv1Provider : Provider {
                 episodes.sortBy { it.number }
             }
 
-            val seasons = listOf(
+            val seasons = episodes.chunked(50).mapIndexed { index, seasonEpisodes ->
+                val seasonNumber = index + 1
+                val start = (index * 50) + 1
+                val end = (index * 50) + seasonEpisodes.size
                 Season(
-                    id = id,
-                    number = 1,
-                    title = "Episodios",
-                    episodes = episodes,
+                    id = "$cleanId/season/$seasonNumber",
+                    number = seasonNumber,
+                    title = if (start == end) "$start" else "$start - $end",
+                    episodes = seasonEpisodes,
                     poster = finalPoster
                 )
-            )
+            }
 
             TvShow(
                 id = cleanId,
@@ -429,8 +432,10 @@ object AnimeAv1Provider : Provider {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val show = getTvShow(seasonId)
-        return show.seasons.firstOrNull()?.episodes ?: emptyList()
+        val cleanId = seasonId.substringBefore("/season/")
+        val seasonNumber = seasonId.substringAfter("/season/", "1").toIntOrNull() ?: 1
+        val show = getTvShow(cleanId)
+        return show.seasons.find { it.number == seasonNumber }?.episodes ?: emptyList()
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
