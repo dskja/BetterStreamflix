@@ -726,7 +726,6 @@ class TmdbProvider(override val language: String) : Provider {
             "it" -> {
                 // Se la lingua è italiano, includiamo solo i server noti per l'italiano.
                 servers.add(VixSrcExtractor().server(videoType))
-                VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
             }
             "de" -> {
                 // Solo server tedeschi
@@ -740,7 +739,6 @@ class TmdbProvider(override val language: String) : Provider {
                 // Solo server francesi
                 servers.addAll(FrembedExtractor(UserPreferences.getProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL)).servers(videoType))
                 servers.addAll(AfterDarkExtractor(UserPreferences.getProviderCache(AfterDarkProvider, UserPreferences.PROVIDER_URL)).servers(videoType))
-                VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
             }
             "es" -> {
                 // TMDB Spagnolo: Utilizza ESCLUSIVAMENTE server certificati con audio spagnolo ([LAT] o [CAST])

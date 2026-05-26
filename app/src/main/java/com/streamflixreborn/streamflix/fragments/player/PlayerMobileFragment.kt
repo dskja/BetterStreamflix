@@ -100,6 +100,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.internal.userAgent
 import java.util.Locale
+import com.streamflixreborn.streamflix.extractors.TokenManager
 
 class PlayerMobileFragment : Fragment() {
     companion object {
@@ -1426,7 +1427,29 @@ class PlayerMobileFragment : Fragment() {
         currentExtraBuffering = extraBuffering
         currentSoftwareDecoder = softwareDecoder
 
-        val okHttpClient = NetworkClient.default
+        var tokenLogged = false
+        val okHttpClient = NetworkClient.default.newBuilder()
+            .addInterceptor { chain ->
+                var request = chain.request()
+                
+                if (currentVideo?.maintainToken == true) {
+                    val latestQuery = TokenManager.latestQuery
+                    if (latestQuery != null) {
+                        val origHttpUrl = request.url
+                        val updatedHttpUrl = origHttpUrl.newBuilder().query(latestQuery).build()
+                        request = request.newBuilder().url(updatedHttpUrl).build()
+                        if (!tokenLogged) {
+                            android.util.Log.d("TokenManager", "[MOBILE-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                            tokenLogged = true
+                        }
+                    } else {
+                        android.util.Log.w("TokenManager", "[MOBILE-INTERCEPTOR] maintainToken=true but latestQuery is null! URL: ${request.url.host}")
+                    }
+                }
+                
+                chain.proceed(request)
+            }
+            .build()
         httpDataSource = OkHttpDataSource.Factory(okHttpClient)
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)

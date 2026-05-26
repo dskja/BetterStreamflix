@@ -19,12 +19,10 @@ class VideasyExtractor : Extractor() {
     )
 
     private val englishServers = listOf(
-        ServerConfig("Neon", "myflixerzupcloud"),
+        ServerConfig("Neon", "mb-flix"),
         ServerConfig("Yoru", "cdn", movieOnly = true),
-        ServerConfig("Cypher", "moviebox"),
+        ServerConfig("Cypher", "downloader2"),
         ServerConfig("Sage", "1movies"),
-        ServerConfig("Jett", "primesrcme"),
-        ServerConfig("Reyna", "primewire"),
         ServerConfig("Breach", "m4uhd"),
         ServerConfig("Vyse", "hdmovie")
     )
@@ -56,24 +54,15 @@ class VideasyExtractor : Extractor() {
             else -> {
                 val serverName = when (language) {
                     "de" -> "Killjoy (Videasy)"
-                    "it" -> "Harbor (Videasy)"
-                    "fr" -> if (videoType is Video.Type.Movie) "Chamber (Videasy)" else return emptyList()
-                    "es" -> "Kayo (Videasy)"
                     else -> return emptyList()
                 }
                 
                 val videasyLang = when (language) {
                     "de" -> "german"
-                    "it" -> "italian"
-                    "fr" -> "french"
-                    "es" -> "spanish"
                     else -> return emptyList()
                 }
 
-                val endpoint = when (language) {
-                    "es" -> "cuevana-spanish"
-                    else -> "meine"
-                }
+                val endpoint = "meine"
 
                 val url = when (videoType) {
                     is Video.Type.Movie -> {
