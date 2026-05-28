@@ -23,10 +23,15 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import java.security.MessageDigest
+import MyCookieJar
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.json.JSONObject
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+
 
 object SoloLatinoProvider : Provider {
 
@@ -54,6 +59,7 @@ object SoloLatinoProvider : Provider {
                     .build()
                 chain.proceed(request)
             }
+            .cookieJar(MyCookieJar())
             .cache(appCache)
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -451,8 +457,68 @@ object SoloLatinoProvider : Provider {
                 val serverUrl = btn.attr("data-server-url")
                 val playerId = btn.attr("data-player-id")
                 val playerModel = btn.attr("data-player-model")
+                val playerToken = btn.attr("data-player-token")
                 
-                if (serverUrl.isNotEmpty()) {
+                if (playerToken.isNotEmpty()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val payload = JSONObject().put("t", playerToken)
+                            val requestBody = payload.toString().toRequestBody("application/json".toMediaType())
+                            
+                            var requestBuilder = Request.Builder()
+                                .url("$baseUrl/api/player-url")
+                                .post(requestBody)
+                                .header("Referer", id)
+                                .header("X-Requested-With", "XMLHttpRequest")
+                                .header("Content-Type", "application/json")
+                                .header("Accept", "application/json")
+                            
+                            fun addXsrfHeader(builder: Request.Builder) {
+                                val cookies = client.cookieJar.loadForRequest(baseUrl.toHttpUrl())
+                                val xsrfCookie = cookies.firstOrNull { it.name == "XSRF-TOKEN" }?.value
+                                if (xsrfCookie != null) {
+                                    val decoded = java.net.URLDecoder.decode(xsrfCookie, "UTF-8")
+                                    builder.header("X-XSRF-TOKEN", decoded)
+                                }
+                            }
+                            
+                            addXsrfHeader(requestBuilder)
+                            var response = client.newCall(requestBuilder.build()).execute()
+                            
+                            if (response.code == 419 || response.code == 403) {
+                                response.close()
+                                // Fetch CSRF cookie
+                                val csrfReq = Request.Builder()
+                                    .url("$baseUrl/sanctum/csrf-cookie")
+                                    .build()
+                                client.newCall(csrfReq).execute().close()
+                                
+                                // Rebuild request and add new XSRF header
+                                requestBuilder = Request.Builder()
+                                    .url("$baseUrl/api/player-url")
+                                    .post(requestBody)
+                                    .header("Referer", id)
+                                    .header("X-Requested-With", "XMLHttpRequest")
+                                    .header("Content-Type", "application/json")
+                                    .header("Accept", "application/json")
+                                addXsrfHeader(requestBuilder)
+                                response = client.newCall(requestBuilder.build()).execute()
+                            }
+                            
+                            val jsonText = response.body?.string() ?: ""
+                            response.close()
+                            
+                            val jsonObject = JSONObject(jsonText)
+                            val resolvedUrl = jsonObject.optString("url")
+                            if (resolvedUrl.isNotEmpty()) {
+                                val nested = processIframe(resolvedUrl, id)
+                                allServers.addAll(nested)
+                            }
+                        } catch (e: Exception) {
+                            // Ignore single network errors
+                        }
+                    }
+                } else if (serverUrl.isNotEmpty()) {
                     val nested = processIframe(serverUrl, id)
                     allServers.addAll(nested)
                 } else if (playerId.isNotEmpty() && playerModel.isNotEmpty()) {
