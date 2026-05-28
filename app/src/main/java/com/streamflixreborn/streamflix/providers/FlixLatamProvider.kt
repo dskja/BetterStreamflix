@@ -9,6 +9,10 @@ import com.streamflixreborn.streamflix.models.flixlatam.DataLinkItem
 import com.streamflixreborn.streamflix.models.flixlatam.PlayerResponse
 // import com.streamflixreborn.streamflix.utils.CryptoAES
 import android.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+import java.security.MessageDigest
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
@@ -207,8 +211,16 @@ object FlixLatamProvider : Provider {
             val page = service.getPage(url, baseUrl)
 
             page.select("div.pframe iframe").forEach { iframe ->
-                val src = iframe.attr("src")
+                var src = iframe.attr("src")
                 if (src.isNotEmpty()) {
+                    // Resolve relative main iframe URLs
+                    if (src.startsWith("//")) {
+                        src = "https:$src"
+                    } else if (src.startsWith("/")) {
+                        src = "$baseUrl$src"
+                    } else if (!src.startsWith("http")) {
+                        src = "$baseUrl/$src"
+                    }
                     servers.addAll(processIframe(src))
                 }
             }
@@ -218,12 +230,57 @@ object FlixLatamProvider : Provider {
         return servers.distinctBy { it.id }
     }
 
+    private fun solvePoW(challenge: String, difficulty: Int, salt: String): ByteArray {
+        val prefix = "0".repeat(difficulty)
+        var nonce = 0
+        val md = MessageDigest.getInstance("SHA-256")
+        while (true) {
+            val input = challenge + nonce
+            val hashBytes = md.digest(input.toByteArray(Charsets.UTF_8))
+            val hashStr = hashBytes.joinToString("") { "%02x".format(it) }
+            if (hashStr.startsWith(prefix)) {
+                val keyMaterial = challenge + nonce + salt
+                return md.digest(keyMaterial.toByteArray(Charsets.UTF_8))
+            }
+            nonce++
+        }
+    }
+
+    private fun decryptAES(encrypted: String, aesKey: ByteArray): String? {
+        return try {
+            val decoded = Base64.decode(encrypted, Base64.DEFAULT)
+            val iv = decoded.copyOfRange(0, 16)
+            val cipherText = decoded.copyOfRange(16, decoded.size)
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(aesKey, "AES"), IvParameterSpec(iv))
+            String(cipher.doFinal(cipherText), Charsets.UTF_8)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private suspend fun processIframe(embedUrl: String): List<Video.Server> {
         val servers = mutableListOf<Video.Server>()
         val embedDocument = try { 
             service.getEmbedPage(embedUrl, mapOf("Referer" to baseUrl)) 
         } catch (e: Exception) { return emptyList() }
         
+        val embedHtml = embedDocument.html()
+
+        // Try to resolve PoW parameters
+        var aesKey: ByteArray? = null
+        try {
+            val challenge = Regex("""const\s+POW_CHALLENGE\s*=\s*'([^']+)';""").find(embedHtml)?.groupValues?.get(1)
+            val difficulty = Regex("""const\s+POW_DIFFICULTY\s*=\s*(\d+);""").find(embedHtml)?.groupValues?.get(1)?.toIntOrNull()
+            val salt = Regex("""const\s+POW_SALT\s*=\s*'([^']+)';""").find(embedHtml)?.groupValues?.get(1)
+            
+            if (challenge != null && difficulty != null && salt != null) {
+                aesKey = solvePoW(challenge, difficulty, salt)
+            }
+        } catch (e: Exception) {
+            // PoW solving error
+        }
+
         // 1. DataLink case
         try {
             val scriptData = embedDocument.selectFirst("script:containsData(dataLink)")?.data() ?: ""
@@ -232,11 +289,22 @@ object FlixLatamProvider : Provider {
                 servers.addAll(json.decodeFromString<List<DataLinkItem>>(dataLinkJsonString).flatMap { item ->
                     item.sortedEmbeds.mapNotNull { embed ->
                         if (embed.servername.equals("download", ignoreCase = true)) return@mapNotNull null
-                        decodeBase64Link(embed.link)?.let { decryptedLink ->
+                        
+                        val decryptedLink = if (embed.link.contains(".") && embed.link.split(".").size == 3) {
+                            decodeBase64Link(embed.link)
+                        } else if (aesKey != null) {
+                            decryptAES(embed.link, aesKey)
+                        } else {
+                            null
+                        }
+                        
+                        if (decryptedLink != null) {
                             Video.Server(
                                 id = decryptedLink,
                                 name = "${embed.servername.replaceFirstChar { it.titlecase(Locale.ROOT) }} [${item.video_language}]"
                             )
+                        } else {
+                            null
                         }
                     }
                 })
@@ -251,10 +319,21 @@ object FlixLatamProvider : Provider {
                     val onclick = dom.attr("onclick")
                     val m = Regex("""go_to_playerVast\(\s*'([^']+)'""").find(onclick)
                     val finalUrl = m?.groupValues?.getOrNull(1)?.trim() ?: return@mapNotNull null
+                    
+                    // Resolve relative child player URLs
+                    var resolvedUrl = finalUrl
+                    if (finalUrl.startsWith("//")) {
+                        resolvedUrl = "https:$finalUrl"
+                    } else if (finalUrl.startsWith("/")) {
+                        resolvedUrl = "$baseUrl$finalUrl"
+                    } else if (!finalUrl.startsWith("http")) {
+                        resolvedUrl = "$baseUrl/$finalUrl"
+                    }
+                    
                     val serverName = dom.selectFirst("span")?.text()?.trim() ?: "Opción"
                     if (serverName.contains("download", ignoreCase = true) || serverName.contains("1fichier", ignoreCase = true)) return@mapNotNull null
-                    if (servers.any { it.id == finalUrl }) return@mapNotNull null
-                    Video.Server(id = finalUrl, name = serverName)
+                    if (servers.any { it.id == resolvedUrl }) return@mapNotNull null
+                    Video.Server(id = resolvedUrl, name = serverName)
                 }
             )
         } catch (e: Exception) { /* DOM error - continue */ }
@@ -262,9 +341,19 @@ object FlixLatamProvider : Provider {
         // 3. Direct Iframe Case
         try {
             embedDocument.selectFirst("iframe")?.attr("src")?.takeIf { it.isNotEmpty() }?.let { src ->
-                val name = src.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
-                if (servers.none { it.id == src }) {
-                    servers.add(Video.Server(id = src, name = name))
+                // Resolve relative direct iframe URLs
+                var resolvedSrc = src
+                if (src.startsWith("//")) {
+                    resolvedSrc = "https:$src"
+                } else if (src.startsWith("/")) {
+                    resolvedSrc = "$baseUrl$src"
+                } else if (!src.startsWith("http")) {
+                    resolvedSrc = "$baseUrl/$src"
+                }
+                
+                val name = resolvedSrc.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
+                if (servers.none { it.id == resolvedSrc }) {
+                    servers.add(Video.Server(id = resolvedSrc, name = name))
                 }
             }
         } catch (e: Exception) { /* Fallback error */ }

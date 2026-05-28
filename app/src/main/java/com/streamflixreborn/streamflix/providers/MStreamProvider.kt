@@ -300,7 +300,10 @@ object MStreamProvider : Provider {
             return json.getJSONObject("episode").getJSONArray("videos").map {
                 val src = it?.optString("src").orEmpty()
                 val resolveUrl = it?.optString("playback_resolve_url").orEmpty()
+                // Skip entries with no playable URL
                 if (src.isBlank() && resolveUrl.isBlank()) return@map null
+                // Skip entries locked behind a paywall
+                if (it?.optBoolean("premium_locked", false) == true) return@map null
 
                 val finalSrc = if (src.isNotBlank()) src else "$URL/api/v1/$resolveUrl"
                 val name = if (src.isNotBlank()) {
@@ -323,7 +326,10 @@ object MStreamProvider : Provider {
             return json.getJSONArray("alternative_videos").map {
                 val src = it?.optString("src").orEmpty()
                 val resolveUrl = it?.optString("playback_resolve_url").orEmpty()
+                // Skip entries with no playable URL
                 if (src.isBlank() && resolveUrl.isBlank()) return@map null
+                // Skip entries locked behind a paywall
+                if (it?.optBoolean("premium_locked", false) == true) return@map null
 
                 val finalSrc = if (src.isNotBlank()) src else "$URL/api/v1/$resolveUrl"
                 val name = if (src.isNotBlank()) {

@@ -43,7 +43,10 @@ class MoflixExtractor : Extractor() {
             videos.mapNotNull { video ->
                 val src = video.src ?: ""
                 val resolveUrl = video.playback_resolve_url ?: ""
+                // Skip entries with no playable URL
                 if (src.isBlank() && resolveUrl.isBlank()) return@mapNotNull null
+                // Skip entries locked behind a paywall
+                if (video.premium_locked == true) return@mapNotNull null
 
                 val finalSrc = if (resolveUrl.isNotBlank()) "$mainUrl/api/v1/$resolveUrl" else src
                 
@@ -135,6 +138,7 @@ class MoflixExtractor : Extractor() {
             val src: String? = null,
             val type: String? = null,
             val playback_resolve_url: String? = null,
+            val premium_locked: Boolean? = null,
         )
     }
 

@@ -19,9 +19,14 @@ import retrofit2.http.GET
 import retrofit2.http.Url
 import java.io.File
 import java.util.concurrent.TimeUnit
-// import javax.crypto.Cipher
-// import javax.crypto.spec.IvParameterSpec
-// import javax.crypto.spec.SecretKeySpec
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+import java.security.MessageDigest
+import okhttp3.Request
+import org.json.JSONObject
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 object SoloLatinoProvider : Provider {
 
@@ -444,9 +449,32 @@ object SoloLatinoProvider : Provider {
             val serverBtns = doc.select("button.server-btn")
             for (btn in serverBtns) {
                 val serverUrl = btn.attr("data-server-url")
+                val playerId = btn.attr("data-player-id")
+                val playerModel = btn.attr("data-player-model")
+                
                 if (serverUrl.isNotEmpty()) {
                     val nested = processIframe(serverUrl, id)
                     allServers.addAll(nested)
+                } else if (playerId.isNotEmpty() && playerModel.isNotEmpty()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val request = Request.Builder()
+                                .url("$baseUrl/api/player-url/$playerModel/$playerId")
+                                .header("Referer", id)
+                                .header("X-Requested-With", "XMLHttpRequest")
+                                .build()
+                            val response = client.newCall(request).execute()
+                            val jsonText = response.body?.string() ?: ""
+                            val jsonObject = JSONObject(jsonText)
+                            val resolvedUrl = jsonObject.optString("url")
+                            if (resolvedUrl.isNotEmpty()) {
+                                val nested = processIframe(resolvedUrl, id)
+                                allServers.addAll(nested)
+                            }
+                        } catch (e: Exception) {
+                            // Ignore single network errors
+                        }
+                    }
                 }
             }
             
@@ -456,11 +484,54 @@ object SoloLatinoProvider : Provider {
         }
     }
 
+    private fun solvePoW(challenge: String, difficulty: Int, salt: String): ByteArray {
+        val prefix = "0".repeat(difficulty)
+        var nonce = 0
+        val md = MessageDigest.getInstance("SHA-256")
+        while (true) {
+            val input = challenge + nonce
+            val hashBytes = md.digest(input.toByteArray(Charsets.UTF_8))
+            val hashStr = hashBytes.joinToString("") { "%02x".format(it) }
+            if (hashStr.startsWith(prefix)) {
+                val keyMaterial = challenge + nonce + salt
+                return md.digest(keyMaterial.toByteArray(Charsets.UTF_8))
+            }
+            nonce++
+        }
+    }
+
+    private fun decryptAES(encrypted: String, aesKey: ByteArray): String? {
+        return try {
+            val decoded = Base64.decode(encrypted, Base64.DEFAULT)
+            val iv = decoded.copyOfRange(0, 16)
+            val cipherText = decoded.copyOfRange(16, decoded.size)
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(aesKey, "AES"), IvParameterSpec(iv))
+            String(cipher.doFinal(cipherText), Charsets.UTF_8)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private suspend fun processIframe(iframeUrl: String, referer: String): List<Video.Server> {
         return try {
             val iframeDoc = service.getPage(iframeUrl)
             val iframeHtml = iframeDoc.html()
             val servers = mutableListOf<Video.Server>()
+
+            // Try to resolve PoW parameters
+            var aesKey: ByteArray? = null
+            try {
+                val challenge = Regex("""const\s+POW_CHALLENGE\s*=\s*'([^']+)';""").find(iframeHtml)?.groupValues?.get(1)
+                val difficulty = Regex("""const\s+POW_DIFFICULTY\s*=\s*(\d+);""").find(iframeHtml)?.groupValues?.get(1)?.toIntOrNull()
+                val salt = Regex("""const\s+POW_SALT\s*=\s*'([^']+)';""").find(iframeHtml)?.groupValues?.get(1)
+                
+                if (challenge != null && difficulty != null && salt != null) {
+                    aesKey = solvePoW(challenge, difficulty, salt)
+                }
+            } catch (e: Exception) {
+                // PoW solving error
+            }
 
             // 1. DataLink case
             try {
@@ -477,8 +548,18 @@ object SoloLatinoProvider : Provider {
                         }
                         for (embed in item.sortedEmbeds) {
                             if (embed.servername.equals("download", ignoreCase = true)) continue
-                            val decryptedLink = decodeBase64Link(embed.link) ?: continue
-                            servers.add(Video.Server(id = decryptedLink, name = "${embed.servername} $lang".trim()))
+                            
+                            val decryptedLink = if (embed.link.contains(".") && embed.link.split(".").size == 3) {
+                                decodeBase64Link(embed.link)
+                            } else if (aesKey != null) {
+                                decryptAES(embed.link, aesKey)
+                            } else {
+                                null
+                            }
+                            
+                            if (decryptedLink != null) {
+                                servers.add(Video.Server(id = decryptedLink, name = "${embed.servername} $lang".trim()))
+                            }
                         }
                     }
                 }
@@ -513,20 +594,6 @@ object SoloLatinoProvider : Provider {
             emptyList()
         }
     }
-
-    // private fun decryptAES(encrypted: String): String? {
-    //     return try {
-    //         val key = "Ak7qrvvH4WKYxV2OgaeHAEg2a5eh16vE".toByteArray()
-    //         val decoded = Base64.decode(encrypted, Base64.DEFAULT)
-    //         val iv = decoded.copyOfRange(0, 16)
-    //         val cipherText = decoded.copyOfRange(16, decoded.size)
-    //         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-    //         cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(iv))
-    //         String(cipher.doFinal(cipherText))
-    //     } catch (e: Exception) {
-    //         null
-    //     }
-    // }
 
     private fun decodeBase64Link(encryptedLink: String): String? {
         return try {
