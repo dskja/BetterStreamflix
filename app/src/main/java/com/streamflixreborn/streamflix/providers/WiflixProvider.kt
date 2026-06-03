@@ -38,7 +38,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty{ field }
         }
 
-    override val defaultBaseUrl: String = "http://flemmix.best/"
+    override val defaultBaseUrl: String = "https://flemmix.team/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -616,7 +616,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     val document = addressService.getHome()
 
                     // Cerchiamo l'URL tra i vari elementi che solitamente contengono il link attivo
-                    val newUrl = document.select("div.alert-success a, div.alert-info a, a.btn-success, div.entry-content a")
+                    val newUrl = document.select("div.card-featured-wrap a.card-featured, div.alert-success a, div.alert-info a, a.btn-success, div.entry-content a")
                         .map { it.attr("href").trim() }
                         .firstOrNull { link ->
                             // Escludiamo i link interni, i social e il portale stesso

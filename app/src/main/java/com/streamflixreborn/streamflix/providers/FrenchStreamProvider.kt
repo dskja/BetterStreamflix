@@ -40,7 +40,7 @@ import kotlin.math.round
 object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override val name = "FrenchStream"
 
-    override val defaultPortalUrl: String = "http://fstream.info/"
+    override val defaultPortalUrl: String = "https://fstream.info/"
 
     override val portalUrl: String = defaultPortalUrl
         get() {
@@ -48,7 +48,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://fs03.lol/"
+    override val defaultBaseUrl: String = "https://fs17.lol/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)

@@ -20,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
     override val name = "Frembed"
-    val defaultUrl = "https://frembed.one"
+    val defaultUrl = "https://frembed.click"
     override var mainUrl = newUrl.ifBlank { defaultUrl }
 
     data class listLinks (
