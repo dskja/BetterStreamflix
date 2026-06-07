@@ -12,7 +12,6 @@ import kotlinx.coroutines.coroutineScope
 import okhttp3.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -23,11 +22,16 @@ object TvporinternetHDProvider : Provider {
 
     override val name = "TvporinternetHD"
     override val baseUrl = "https://www.tvporinternet2.com"
-    override val logo = "https://i.ibb.co/yndhPSyq/imagen-2026-01-25-210504580.png"
+    override val logo = "https://i.ibb.co/xtCZS8fR/tvporinternet.png"
     override val language = "es"
 
     private const val TAG = "TvporinternetHD"
     private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+
+    // --- SISTEMA DE CACHÉ EN MEMORIA ---
+    private var channelsCache: List<TvShow> = emptyList()
+    private var lastFetchTime: Long = 0
+    private const val CACHE_VALIDITY = 2 * 60 * 60 * 1000L // 2 horas de caché
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -57,62 +61,59 @@ object TvporinternetHDProvider : Provider {
         ): Document
     }
 
+    // --- FUNCIÓN DE CACHÉ INTERNA ---
+    private suspend fun getCachedOrFetchChannels(): List<TvShow> {
+        val currentTime = System.currentTimeMillis()
+        if (channelsCache.isNotEmpty() && (currentTime - lastFetchTime) < CACHE_VALIDITY) {
+            Log.d(TAG, "⚡ Usando lista de canales desde la memoria caché (${channelsCache.size} canales)")
+            return channelsCache
+        }
+
+        Log.d(TAG, "🌐 Obteniendo canales desde la web (Caché vacía o expirada)")
+        return try {
+            val doc = service.getPage(baseUrl)
+            val parsed = parseChannels(doc)
+            if (parsed.isNotEmpty()) {
+                channelsCache = parsed
+                lastFetchTime = currentTime
+            }
+            parsed
+        } catch (e: Exception) {
+            Log.e(TAG, "Error obteniendo canales web: ${e.message}")
+            channelsCache // Retorna la caché antigua si la petición falla
+        }
+    }
+
     // --- BÚSQUEDA DEL TESORO: PARSER DE CARGA DINÁMICA MEJORADO ---
     private fun parseChannels(doc: Document): List<TvShow> {
         val results = mutableListOf<TvShow>()
+        val forbidden = listOf("paypal", "donar", "pago", "qr", "cafecito", "pay.png", "donate")
 
-        // 1. MÉTODO QUIRÚRGICO: Extraer canales del Script (homeChannels)
-        doc.select("script").forEach { script ->
-            val data = script.data()
-            if (data.contains("homeChannels") || data.contains("const channels")) {
-                try {
-                    val htmlInsideScript = data.substringAfter("`").substringBeforeLast("`")
-                    if (htmlInsideScript.length > 100) {
-                        val scriptDoc = Jsoup.parse(htmlInsideScript)
-                        scriptDoc.select("a").forEach { a ->
-                            val link = a.attr("href")
-                            val title = a.text().trim().ifEmpty { a.selectFirst("img")?.attr("alt") ?: "" }
+        // MÉTODO UNIVERSAL RESILIENTE (Ignora Scripts, escanea el DOM directo)
+        doc.select("a").forEach { a ->
+            val link = a.attr("abs:href").ifEmpty { a.attr("href") }
+            val imgElement = a.selectFirst("img")
 
-                            // --- CORRECCIÓN DE LOGOS (FILTRADO DE PAYPAL) ---
-                            val imgElement = a.select("img").firstOrNull { img ->
-                                val src = img.attr("src").lowercase()
-                                !src.contains("paypal") && !src.contains("pago") &&
-                                        !src.contains("donar") && !src.contains("pay.png") &&
-                                        !src.contains("cafecito") && !src.contains("qr") &&
-                                        src.isNotEmpty()
-                            } ?: a.selectFirst("img")
+            if (imgElement != null) {
+                // LA CLAVE: Buscar atributos de Lazy Load
+                val rawImg = imgElement.attr("data-src")
+                    .ifEmpty { imgElement.attr("data-lazy-src") }
+                    .ifEmpty { imgElement.attr("abs:src") }
+                    .ifEmpty { imgElement.attr("src") }
 
-                            val rawImg = imgElement?.attr("src") ?: ""
-                            val img = if (rawImg.startsWith("http")) rawImg else "$baseUrl/${rawImg.removePrefix("/")}"
+                val title = a.attr("title")
+                    .ifEmpty { imgElement.attr("alt") }
+                    .ifEmpty { a.text() }
+                    .trim()
 
-                            if (isValidChannel(link, title)) {
-                                val finalUrl = if (link.startsWith("http")) link else "$baseUrl/${link.removePrefix("/")}"
-                                results.add(TvShow(id = finalUrl, title = title, poster = img, banner = img, providerName = name))
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error procesando script de canales: ${e.message}")
-                }
-            }
-        }
+                // Filtrar imágenes basura
+                val isForbiddenImg = forbidden.any { it in rawImg.lowercase() }
 
-        // 2. FALLBACK: Si el script falló, barremos los enlaces estáticos con el mismo filtro
-        if (results.isEmpty()) {
-            doc.select("a:has(img)").forEach { a ->
-                val link = a.attr("abs:href").ifEmpty { a.attr("href") }
+                if (!isForbiddenImg && isValidChannel(link, title)) {
+                    val finalUrl = if (link.startsWith("http")) link else "$baseUrl/${link.removePrefix("/")}"
+                    val finalImg = if (rawImg.startsWith("http")) rawImg else "$baseUrl/${rawImg.removePrefix("/")}"
 
-                val imgElement = a.select("img").firstOrNull { img ->
-                    val src = img.attr("src").lowercase()
-                    !src.contains("paypal") && !src.contains("donar") && !src.contains("pago") &&
-                            !src.contains("qr") && src.isNotEmpty()
-                } ?: a.selectFirst("img")
-
-                val title = imgElement?.attr("alt")?.trim() ?: a.text().trim()
-                val poster = imgElement?.attr("abs:src") ?: imgElement?.attr("src") ?: ""
-
-                if (isValidChannel(link, title)) {
-                    results.add(TvShow(id = link, title = title, poster = poster, banner = poster, providerName = name))
+                    results.add(TvShow(id = finalUrl, title = title, poster = finalImg, banner = finalImg, providerName = name))
                 }
             }
         }
@@ -140,9 +141,8 @@ object TvporinternetHDProvider : Provider {
 
     override suspend fun getHome(): List<Category> = coroutineScope {
         try {
-            val doc = service.getPage(baseUrl)
-            val all = parseChannels(doc)
-
+            // Obtenemos de la caché instantánea
+            val all = getCachedOrFetchChannels()
             val categories = mutableListOf<Category>()
 
             if (all.isNotEmpty()) {
@@ -178,7 +178,8 @@ object TvporinternetHDProvider : Provider {
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()
 
     override suspend fun getTvShows(page: Int): List<TvShow> = try {
-        parseChannels(service.getPage(baseUrl))
+        // También usamos caché aquí para la pestaña de TV
+        getCachedOrFetchChannels()
     } catch (_: Exception) { emptyList() }
 
     override suspend fun getMovie(id: String): Movie = throw Exception("Not supported")
@@ -195,31 +196,12 @@ object TvporinternetHDProvider : Provider {
             "share", "ads", "banner", "pixel", "button", "btn", "favicon"
         )
 
-        // 1. Prioridad: Imagen destacada oficial de WordPress (Evita logos de pago)
-        var imgElement = doc.select("img.wp-post-image, img.attachment-post-thumbnail").firstOrNull { img ->
-            val src = img.attr("src").lowercase()
-            forbidden.none { it in src }
+        var imgElement = doc.select("img.wp-post-image, img.attachment-post-thumbnail, .entry-content img, .post-content img").firstOrNull { img ->
+            val src = img.attr("data-src").ifEmpty { img.attr("src") }.lowercase()
+            forbidden.none { it in src } && src.isNotEmpty()
         }
 
-        // 2. Segunda opción: Imagen en el contenido principal que coincida con el título
-        if (imgElement == null) {
-            val titleKeywords = t.lowercase().split(" ").filter { it.length > 3 }
-            imgElement = doc.select(".entry-content img, .post-content img, article img").firstOrNull { img ->
-                val alt = img.attr("alt").lowercase()
-                val src = img.attr("src").lowercase()
-                titleKeywords.any { it in alt || it in src } && forbidden.none { it in src }
-            }
-        }
-
-        // 3. Tercera opción: Cualquier imagen en el contenido que no sea prohibida
-        if (imgElement == null) {
-            imgElement = doc.select(".entry-content img, .card-body img").firstOrNull { img ->
-                val src = img.attr("src").lowercase()
-                forbidden.none { it in src } && src.isNotEmpty()
-            }
-        }
-
-        val rawImg = imgElement?.attr("abs:src")?.ifEmpty { imgElement?.attr("src") } ?: ""
+        val rawImg = imgElement?.let { it.attr("data-src").ifEmpty { it.attr("abs:src") }.ifEmpty { it.attr("src") } } ?: ""
         val p = if (rawImg.startsWith("http")) rawImg else if (rawImg.isNotEmpty()) "$baseUrl/${rawImg.removePrefix("/")}" else ""
 
         TvShow(
