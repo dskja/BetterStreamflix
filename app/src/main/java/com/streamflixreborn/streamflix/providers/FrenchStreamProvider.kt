@@ -811,8 +811,8 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val finalUrl = if (server.src.contains("kokoflix.lol", ignoreCase = true)) {
-            val response = service.getRedirectLink(server.src)
+        val finalUrl = if (server.src.contains("kokoflix.lol", ignoreCase = true) || server.src.contains("kakaflix.lol", ignoreCase = true) || server.src.contains("newPlayer.php", ignoreCase = true)) {
+            val response = service.getRedirectLink(server.src, baseUrl)
                 .let { response -> response.raw() as okhttp3.Response }
             response.request.url.toString()
         } else {
@@ -980,6 +980,10 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         ): List<SeasonData>
 
         @GET
-        suspend fun getRedirectLink(@Url url: String): Response<ResponseBody>
+        suspend fun getRedirectLink(
+            @Url url: String,
+            @Header("Referer") referer: String,
+            @Header("User-Agent") userAgent: String = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+        ): Response<ResponseBody>
     }
 }
