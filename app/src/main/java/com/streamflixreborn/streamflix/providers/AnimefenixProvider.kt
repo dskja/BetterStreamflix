@@ -8,9 +8,7 @@ import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -18,6 +16,7 @@ import retrofit2.http.GET
 import retrofit2.http.Url
 import java.io.File
 import java.util.concurrent.TimeUnit
+import android.util.Log
 
 object AnimefenixProvider : Provider {
 
@@ -201,22 +200,75 @@ object AnimefenixProvider : Provider {
             val poster = document.selectFirst("#anime_image")?.let {
                 it.attr("data-src").ifEmpty { it.attr("src") }
             }
-            val overview = document.selectFirst(".mb-6 p.text-gray-300")?.text()
-            val genres = document.select("a.bg-gray-800").map {
-                Genre(id = it.attr("href").substringAfterLast("/"), name = it.text())
+
+            // 1. Mejora en la sinopsis para el nuevo tema Neo
+            val overview = document.selectFirst("h2:contains(Sinopsis) + p")?.text()
+                ?: document.selectFirst(".mb-6 p.text-gray-300")?.text()
+
+            // 2. Mejora en los géneros
+            val genres = document.select("a[href*=/directorio/anime?genero=]").map {
+                Genre(id = it.attr("href").substringAfterLast("/"), name = it.text().trim())
             }
 
-            val episodes = document.select(".divide-y li > a").mapNotNull { a ->
-                val titleEp = a.selectFirst(".font-semibold")?.text() ?: return@mapNotNull null
-                Episode(
-                    id = a.attr("href"),
-                    number = titleEp.substringAfter("Episodio ").toIntOrNull() ?: 0,
-                    title = titleEp
-                )
-            }.reversed()
+            // 3. Extracción de episodios AJAX usando la técnica de Corrutinas
+            val episodes = mutableListOf<Episode>()
+            val slug = id.substringAfterLast("/")
+
+            // Buscamos los botones de las páginas (Ej: "1 - 50", "51 - 100")
+            val episodeButtons = document.select(".episode-navigation button.episode-btn")
+            val startValues = if (episodeButtons.isNotEmpty()) {
+                episodeButtons.mapNotNull { btn ->
+                    Regex("""loadEpisodes\((\d+)""").find(btn.attr("onclick"))?.groupValues?.get(1)
+                }.distinct()
+            } else {
+                listOf("0") // Valor por defecto si solo hay una página
+            }
+
+            // Descargamos las páginas en paralelo
+            coroutineScope {
+                val deferredEpisodes = startValues.map { start ->
+                    async {
+                        try {
+                            // Imita la llamada AJAX de la página web
+                            val ajaxUrl = "$id?id=$slug&load=episodes&start=$start"
+                            val epDoc = service.getPage(ajaxUrl)
+
+                            epDoc.select(".episode-card").mapNotNull { epEl ->
+                                val rawHref = epEl.attr("href")
+                                if (rawHref.isNullOrBlank()) return@mapNotNull null
+                                val epUrl = if (rawHref.startsWith("http")) rawHref else "$baseUrl$rawHref"
+
+                                val epTitle = epEl.selectFirst(".ep-title")?.text()?.trim() ?: "Episodio"
+                                val epImg = epEl.selectFirst("img")?.let { img ->
+                                    img.attr("data-src").ifEmpty { img.attr("src") }
+                                } ?: ""
+                                val epNum = Regex("""\d+""").find(epTitle)?.value?.toIntOrNull() ?: 0
+
+                                Episode(
+                                    id = epUrl,
+                                    number = epNum,
+                                    title = epTitle,
+                                    poster = epImg
+                                )
+                            }
+                        } catch (e: Exception) {
+                            emptyList<Episode>()
+                        }
+                    }
+                }
+
+                deferredEpisodes.map { it.await() }.forEach { episodes.addAll(it) }
+            }
+
+            // Aseguramos el orden correcto (menor a mayor)
+            episodes.sortBy { it.number }
 
             TvShow(
-                id = id, title = title, poster = poster, overview = overview, genres = genres,
+                id = id,
+                title = title,
+                poster = poster,
+                overview = overview,
+                genres = genres,
                 seasons = listOf(Season(id = id, number = 1, title = "Episodios", episodes = episodes))
             )
         } catch (e: Exception) {
