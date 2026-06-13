@@ -104,6 +104,20 @@ class ProvidersMobileFragment : Fragment() {
                 }
                 .sortedBy { it.name.lowercase() }
 
+            val spinnerAdapter = ArrayAdapter(
+                this.context,
+                android.R.layout.simple_spinner_item,
+                mutableListOf(
+                    context.getString(R.string.providers_all_languages),
+                    context.getString(R.string.providers_favorites)
+                ).apply {
+                    addAll(languages.map { it.name })
+                }.toTypedArray()
+            ).also {
+                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            setAdapter(spinnerAdapter)
+
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(
                     parent: AdapterView<*>?,
@@ -111,35 +125,35 @@ class ProvidersMobileFragment : Fragment() {
                     position: Int,
                     id: Long
                 ) {
-                    if (position == 0) {
-                        viewModel.getProviders()
-                        UserPreferences.providerLanguage = null
-                    } else {
-                        viewModel.getProviders(languages[position - 1].code)
-                        UserPreferences.providerLanguage = languages[position - 1].code
+                    when (position) {
+                        0 -> {
+                            viewModel.getProviders()
+                            UserPreferences.providerLanguage = null
+                        }
+                        1 -> {
+                            viewModel.getProviders("favorites")
+                            UserPreferences.providerLanguage = "favorites"
+                        }
+                        else -> {
+                            val langCode = languages[position - 2].code
+                            viewModel.getProviders(langCode)
+                            UserPreferences.providerLanguage = langCode
+                        }
                     }
                 }
 
-                override fun onNothingSelected(parent: AdapterView<*>?) {
-                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
-
-            // CORREZIONE: Usiamo il contesto dello Spinner (che ha il tema scuro) invece di requireContext()
-            val spinnerAdapter = ArrayAdapter(
-                this.context,
-                android.R.layout.simple_spinner_item,
-                languages.map { it.name }.toMutableList()
-                    .also { it.add(0, context.getString(R.string.providers_all_languages)) }
-                    .toTypedArray()
-            ).also {
-                it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
-            setAdapter(spinnerAdapter)
 
             setSelection(
-                UserPreferences.providerLanguage?.let {
-                    languages.indexOfFirst { language -> language.code == it } + 1
-                } ?: 0
+                when (val lang = UserPreferences.providerLanguage) {
+                    null -> 0
+                    "favorites" -> 1
+                    else -> {
+                        val index = languages.indexOfFirst { it.code == lang }
+                        if (index != -1) index + 2 else 0
+                    }
+                }
             )
         }
 

@@ -22,6 +22,8 @@ interface ProviderConfigUrl {
     val changeUrlMutex: Mutex
 }
 
+interface IptvProvider : Provider
+
 interface Provider {
 
     val baseUrl: String

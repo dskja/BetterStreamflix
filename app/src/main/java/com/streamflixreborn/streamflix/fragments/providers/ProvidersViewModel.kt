@@ -32,16 +32,28 @@ class ProvidersViewModel : ViewModel() {
         _state.emit(State.Loading)
 
         try {
+            val isFavoritesFilter = language == "favorites"
+            val favorites = UserPreferences.favoriteProviders
+
             val providers = Provider.providers.keys
-                .filter { language == null || it.language == language }
+                .filter { 
+                    if (isFavoritesFilter) {
+                        favorites.contains(it.name)
+                    } else {
+                        language == null || it.language == language 
+                    }
+                }
                 .sortedBy { it.name }
                 .toMutableList()
 
-            if (language == null) {
+            if (language == null || isFavoritesFilter) {
                 val availableLanguages = Provider.providers.keys.map { it.language }.distinct()
                 availableLanguages.forEach { lang ->
                     if (lang != "pl") {
-                        providers.add(TmdbProvider(lang))
+                        val tmdbName = "TMDb (${getLanguageDisplayName(lang)})"
+                        if (!isFavoritesFilter || favorites.contains(tmdbName)) {
+                            providers.add(TmdbProvider(lang))
+                        }
                     }
                 }
             } else {
@@ -51,15 +63,17 @@ class ProvidersViewModel : ViewModel() {
             }
 
             val modelProviders = providers.map {
+                val name = if (it is TmdbProvider) {
+                    "TMDb (${getLanguageDisplayName(it.language)})"
+                } else {
+                    it.name
+                }
                 ModelProvider(
-                    name = if (it is TmdbProvider) {
-                        "TMDb (${getLanguageDisplayName(it.language)})"
-                    } else {
-                        it.name
-                    },
+                    name = name,
                     logo = it.logo,
                     language = it.language,
                     provider = it,
+                    isFavorite = favorites.contains(name)
                 )
             }.sortedWith(
                 compareBy<ModelProvider> { it.provider is TmdbProvider }

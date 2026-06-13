@@ -30,6 +30,7 @@ import com.streamflixreborn.streamflix.activities.tools.BypassWebViewActivity
 import com.streamflixreborn.streamflix.databinding.ActivityMainMobileBinding
 import com.streamflixreborn.streamflix.fragments.player.PlayerMobileFragment
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
+import com.streamflixreborn.streamflix.providers.IptvProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
@@ -288,7 +289,7 @@ class MainMobileActivity : FragmentActivity() {
         binding.bnvMain.menu.findItem(R.id.movies)?.isVisible = supportsMovies
         binding.bnvMain.menu.findItem(R.id.tv_shows)?.apply {
             isVisible = supportsTvShows
-            title = if (provider.name == "CableVisionHD" || provider.name == "TvporinternetHD"|| provider.name == "IPTV Spain"|| provider.name == "IPTV-All World"|| provider.name == "Tv Libre Futbol") {
+            title = if (provider is IptvProvider) {
                 getString(R.string.main_menu_all_channels)
             } else {
                 getString(R.string.main_menu_tv_shows)

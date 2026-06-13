@@ -7,7 +7,7 @@ import com.streamflixreborn.streamflix.models.*
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
-object IptvSpainProvider : Provider {
+object IptvSpainProvider : IptvProvider {
 
     override val name = "IPTV Spain"
     override val baseUrl = "https://iptv-org.github.io/iptv/languages/spa.m3u"

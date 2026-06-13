@@ -433,6 +433,12 @@ object UserPreferences {
         get() = Key.SCREEN_PADDING_Y.getInt() ?: 0
         set(value) = Key.SCREEN_PADDING_Y.setInt(value)
 
+    var favoriteProviders: Set<String>
+        get() = Key.FAVORITE_PROVIDERS.getStringSet() ?: emptySet()
+        set(value) {
+            Key.FAVORITE_PROVIDERS.setStringSet(value)
+        }
+
     private enum class Key {
         APP_LAYOUT,
         CURRENT_LANGUAGE,
@@ -474,7 +480,20 @@ object UserPreferences {
         SELECTED_THEME,
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
-        PROVIDER_LANGUAGE;
+        PROVIDER_LANGUAGE,
+        FAVORITE_PROVIDERS;
+
+        fun getStringSet(): Set<String>? = when {
+            prefs.contains(name) -> prefs.getStringSet(name, null)
+            else -> null
+        }
+
+        fun setStringSet(value: Set<String>?) = value?.let {
+            with(prefs.edit()) {
+                putStringSet(name, value)
+                apply()
+            }
+        } ?: remove()
 
         fun getBoolean(): Boolean? = when {
             prefs.contains(name) -> prefs.getBoolean(name, false)

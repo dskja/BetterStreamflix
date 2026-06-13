@@ -18,7 +18,7 @@ import retrofit2.http.Header
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
-object TvporinternetHDProvider : Provider {
+object TvporinternetHDProvider : IptvProvider {
 
     override val name = "TvporinternetHD"
     override val baseUrl = "https://www.tvporinternet2.com"
@@ -171,8 +171,8 @@ object TvporinternetHDProvider : Provider {
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> = try {
-        val doc = service.getPage("$baseUrl/?s=$query")
-        parseChannels(doc)
+        val allChannels = getTvShows(1)
+        allChannels.filter { it.title.contains(query, ignoreCase = true) }
     } catch (_: Exception) { emptyList() }
 
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()

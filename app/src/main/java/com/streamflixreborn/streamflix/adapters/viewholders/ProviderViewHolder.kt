@@ -45,7 +45,14 @@ class ProviderViewHolder(
                     finish()
                 }
             }
+            setOnLongClickListener {
+                toggleFavorite(provider)
+                binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
+                true
+            }
         }
+        
+        binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
 
         Glide.with(context)
             .load(provider.logo.takeIf { it.isNotEmpty() }
@@ -75,7 +82,14 @@ class ProviderViewHolder(
                     finish()
                 }
             }
+            setOnLongClickListener {
+                toggleFavorite(provider)
+                binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
+                true
+            }
         }
+        
+        binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
 
         Glide.with(context)
             .load(provider.logo.takeIf { it.isNotEmpty() }
@@ -89,5 +103,16 @@ class ProviderViewHolder(
         binding.tvProviderLanguage.text = Locale.forLanguageTag(provider.language)
             .let { it.getDisplayLanguage(it) }
             .replaceFirstChar { it.titlecase() }
+    }
+    
+    private fun toggleFavorite(provider: Provider) {
+        provider.isFavorite = !provider.isFavorite
+        val favorites = UserPreferences.favoriteProviders.toMutableSet()
+        if (provider.isFavorite) {
+            favorites.add(provider.name)
+        } else {
+            favorites.remove(provider.name)
+        }
+        UserPreferences.favoriteProviders = favorites
     }
 }

@@ -19,7 +19,7 @@ import retrofit2.http.Header
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
-object TvLibrefutbolProvider : Provider {
+object TvLibrefutbolProvider : IptvProvider {
 
     override val name = "Tv Libre Futbol"
     override val baseUrl = "https://www.librefutbol2.com"
@@ -171,8 +171,8 @@ object TvLibrefutbolProvider : Provider {
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> = try {
-        val doc = service.getPage("$baseUrl/?s=$query")
-        parseChannels(doc)
+        val allChannels = getTvShows(1)
+        allChannels.filter { it.title.contains(query, ignoreCase = true) }
     } catch (_: Exception) { emptyList() }
 
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()

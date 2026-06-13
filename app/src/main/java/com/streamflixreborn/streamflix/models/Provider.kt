@@ -8,6 +8,7 @@ open class Provider(
     val language: String,
 
     val provider: com.streamflixreborn.streamflix.providers.Provider,
+    var isFavorite: Boolean = false,
 ) : AppAdapter.Item {
 
 

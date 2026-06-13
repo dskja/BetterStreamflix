@@ -23,6 +23,7 @@
     <string name="app_layout_apply">Anwenden</string> 
 
     <string name="providers_all_languages">Alle Sprachen</string>
+    <string name="providers_favorites">Favoriten</string>
     <string name="providers_choose_title">Anbieter auswählen</string>
 
     <string name="main_menu_change_provider">Anbieter wechseln</string>
@@ -37,6 +38,7 @@
     <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
 
     <string name="search_input_hint">Filme / Serien suchen</string>
+    <string name="search_input_hint_iptv">Kanäle suchen</string>
     <string name="global_search">Globale Suche</string>
     <string name="search_empty_query">Bitte geben Sie einen Suchbegriff ein</string>
     <string name="searching">Suche läuft...</string>

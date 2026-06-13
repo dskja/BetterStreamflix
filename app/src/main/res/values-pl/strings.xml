@@ -16,6 +16,7 @@
     <string name="update">Aktualizuj</string>
 
     <string name="providers_all_languages">Wszystkie jezyki</string>
+    <string name="providers_favorites">Ulubione</string>
     <string name="providers_choose_title">Wybierz dostawce</string>
 
     <string name="main_menu_change_provider">Zmien dostawce</string>
@@ -28,6 +29,7 @@
     <string name="main_menu_theme_change">Zmien motyw</string>
 
     <string name="search_input_hint">Szukaj filmow i seriali</string>
+    <string name="search_input_hint_iptv">Szukaj kanałów</string>
     <string name="global_search">Wyszukiwanie globalne</string>
     <string name="search_empty_query">Wpisz frazę wyszukiwania</string>
     <string name="searching">Wyszukiwanie...</string>

@@ -34,6 +34,7 @@ import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 import androidx.navigation.fragment.findNavController
 import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.providers.IptvProvider
 
 class SearchTvFragment : Fragment() {
 
@@ -176,6 +177,10 @@ class SearchTvFragment : Fragment() {
     }
 
     private fun initializeSearch() {
+        val isIptv = UserPreferences.currentProvider is IptvProvider
+        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
+        binding.etSearch.hint = getString(hintStringRes)
+
         binding.llGlobalSearch.nextFocusUpId = binding.etSearch.id
         binding.vgvSearch.nextFocusUpId = binding.llGlobalSearch.id
 
@@ -226,7 +231,9 @@ class SearchTvFragment : Fragment() {
             addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     if (s.isNullOrBlank()) {
-                        binding.etSearch.hint = getString(R.string.search_input_hint)
+                                val isIptv = UserPreferences.currentProvider is IptvProvider
+        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
+        binding.etSearch.hint = getString(hintStringRes)
                     }
                 }
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -250,7 +257,9 @@ class SearchTvFragment : Fragment() {
             onError = { msg ->
                 Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                 binding.btnSearchVoice.clearAnimation()
-                binding.etSearch.hint = getString(R.string.search_input_hint)
+                        val isIptv = UserPreferences.currentProvider is IptvProvider
+        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
+        binding.etSearch.hint = getString(hintStringRes)
             },
             onListeningStateChanged = { isListening ->
                 binding.btnSearchVoice.startAnimation(blink)
@@ -276,7 +285,9 @@ class SearchTvFragment : Fragment() {
 
         binding.btnSearchClear.setOnClickListener {
             binding.etSearch.setText("")
-            binding.etSearch.hint = getString(R.string.search_input_hint)
+                    val isIptv = UserPreferences.currentProvider is IptvProvider
+        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
+        binding.etSearch.hint = getString(hintStringRes)
             viewModel.search("")
         }
 

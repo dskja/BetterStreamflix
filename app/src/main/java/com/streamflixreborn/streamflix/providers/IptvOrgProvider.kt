@@ -7,7 +7,7 @@ import com.streamflixreborn.streamflix.models.*
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
-object IptvOrgProvider : Provider {
+object IptvOrgProvider : IptvProvider {
 
     override val name = "IPTV-All World"
     override val baseUrl = "https://iptv-org.github.io/iptv"

@@ -18,6 +18,7 @@ import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.streamflixreborn.streamflix.providers.IptvProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.streamflixreborn.streamflix.R
@@ -110,7 +111,8 @@ class TvShowViewHolder(
 
     private fun isIptvProvider(): Boolean {
         val name = tvShow.providerName ?: UserPreferences.currentProvider?.name ?: ""
-        return name == "CableVisionHD" || name == "TvporinternetHD"|| name == "IPTV Spain"|| name == "IPTV-All World" || name == "Tv Libre Futbol"
+        val provider = Provider.providers.keys.find { it.name == name }
+        return provider is IptvProvider
     }
 
     private fun checkProviderAndRun(action: () -> Unit) {
