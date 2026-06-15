@@ -156,6 +156,9 @@ class AppAdapter(
     }
 
     private val states = mutableMapOf<Int, Parcelable?>()
+    private var itemIdentities: List<String> = emptyList()
+    private var itemIdentityCounts: MutableMap<String, Int> = mutableMapOf()
+    private var itemStableIds: LongArray = longArrayOf()
 
     var isLoading = false
     private var header: Header<ViewBinding>? = null
@@ -559,8 +562,8 @@ class AppAdapter(
         if (header != null && position == 0) return Long.MIN_VALUE
 
         val adjustedPosition = header?.let { position - 1 } ?: position
-        if (adjustedPosition in items.indices) {
-            return items.stableIdAt(adjustedPosition)
+        if (adjustedPosition in itemStableIds.indices) {
+            return itemStableIds[adjustedPosition]
         }
 
         val loadMorePosition = itemCount - 1 - (if (footer != null) 1 else 0)
@@ -600,11 +603,17 @@ class AppAdapter(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
 
-        states[holder.layoutPosition] = when (holder) {
+        val state = when (holder) {
             is CategoryViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
             is MovieViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
             is TvShowViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
             else -> null
+        }
+
+        if (state != null) {
+            states[holder.layoutPosition] = state
+        } else {
+            states.remove(holder.layoutPosition)
         }
     }
 
@@ -612,54 +621,101 @@ class AppAdapter(
         for (position in items.indices) {
             val holder = recyclerView.findViewHolderForAdapterPosition(position) ?: continue
 
-            states[position] = when (holder) {
+            val state = when (holder) {
                 is CategoryViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
                 is MovieViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
                 is TvShowViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
                 else -> null
+            }
+
+            if (state != null) {
+                states[position] = state
+            } else {
+                states.remove(position)
             }
         }
     }
 
 
     fun submitList(list: List<Item>) {
+        val oldItems = items.toList()
+        val newItemCount = list.size
+
+        if (oldItems.isNotEmpty() &&
+            oldItems.size <= newItemCount &&
+            oldItems == list.subList(0, oldItems.size)
+        ) {
+            val appendedItems = list.subList(oldItems.size, newItemCount)
+            if (appendedItems.isEmpty()) {
+                return
+            }
+
+            val appendedIdentityState = appendedItems.buildIdentityState(itemIdentityCounts)
+
+            items.addAll(appendedItems)
+            itemIdentities = itemIdentities + appendedIdentityState.identities
+            itemIdentityCounts = appendedIdentityState.counts
+            itemStableIds = itemStableIds + appendedIdentityState.stableIds
+
+            notifyItemRangeInserted(
+                oldItems.size + (header?.let { 1 } ?: 0),
+                appendedItems.size
+            )
+            return
+        }
+
+        val oldIdentities = itemIdentities
+        val newIdentityState = list.buildIdentityState()
+        val newIdentities = newIdentityState.identities
+
         val result = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize() = items.size
 
             override fun getNewListSize() = list.size
 
             override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = items[oldItemPosition]
+                val oldItem = oldItems[oldItemPosition]
                 val newItem = list[newItemPosition]
-                return items.identityAt(oldItemPosition) == list.identityAt(newItemPosition) &&
+                return oldIdentities.getOrNull(oldItemPosition) == newIdentities.getOrNull(newItemPosition) &&
                         oldItem::class == newItem::class
             }
 
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = items[oldItemPosition]
+                val oldItem = oldItems[oldItemPosition]
                 val newItem = list[newItemPosition]
                 return oldItem == newItem
             }
         })
 
+        val newStates = mutableMapOf<Int, Parcelable?>()
         if (items.size < list.size) {
             for (newItemPosition in list.indices.reversed()) {
                 val oldItemPosition = result.convertNewPositionToOld(newItemPosition)
                     .takeIf { it != -1 } ?: continue
 
-                states[newItemPosition] = states[oldItemPosition]
+                states[oldItemPosition]?.let { newStates[newItemPosition] = it }
             }
         } else if (items.size > list.size) {
             for (oldItemPosition in items.indices) {
                 val newItemPosition = result.convertOldPositionToNew(oldItemPosition)
                     .takeIf { it != -1 } ?: continue
 
-                states[newItemPosition] = states[oldItemPosition]
+                states[oldItemPosition]?.let { newStates[newItemPosition] = it }
+            }
+        } else {
+            for (index in list.indices) {
+                states[index]?.let { newStates[index] = it }
             }
         }
 
+        states.clear()
+        states.putAll(newStates)
+
         items.clear()
         items.addAll(list)
+        itemIdentities = newIdentities
+        itemIdentityCounts = newIdentityState.counts
+        itemStableIds = newIdentityState.stableIds
         result.dispatchUpdatesTo(this)
     }
 
@@ -724,19 +780,37 @@ class AppAdapter(
         val bind: ((binding: T) -> Unit)? = null,
     )
 
-    private fun List<Item>.stableIdAt(position: Int): Long {
-        return identityAt(position).fold(1125899906842597L) { acc, char ->
-            31L * acc + char.code
-        }
-    }
+    private data class IdentityState(
+        val identities: List<String>,
+        val counts: MutableMap<String, Int>,
+        val stableIds: LongArray,
+    )
 
-    private fun List<Item>.identityAt(position: Int): String {
-        val item = this[position]
-        val baseKey = item.baseIdentityKey()
-        val occurrenceIndex = subList(0, position).count {
-            it.itemType == item.itemType && it.baseIdentityKey() == baseKey
+    private fun List<Item>.buildIdentityState(
+        startingCounts: Map<String, Int> = emptyMap()
+    ): IdentityState {
+        val occurrenceCounts = startingCounts.toMutableMap()
+        val identities = ArrayList<String>(size)
+        val stableIds = LongArray(size)
+
+        forEachIndexed { index, item ->
+            val baseKey = item.baseIdentityKey()
+            val key = "${item.itemType.ordinal}:$baseKey"
+            val occurrenceIndex = occurrenceCounts.getOrDefault(key, 0)
+            occurrenceCounts[key] = occurrenceIndex + 1
+
+            val identity = "$key:$occurrenceIndex"
+            identities.add(identity)
+            stableIds[index] = identity.fold(1125899906842597L) { acc, char ->
+                31L * acc + char.code
+            }
         }
-        return "${item.itemType.ordinal}:$baseKey:$occurrenceIndex"
+
+        return IdentityState(
+            identities = identities,
+            counts = occurrenceCounts,
+            stableIds = stableIds,
+        )
     }
 
     private fun Item.baseIdentityKey(): String = when (this) {

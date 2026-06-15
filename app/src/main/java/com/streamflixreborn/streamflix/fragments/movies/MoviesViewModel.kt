@@ -87,7 +87,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
 
             page = 1
 
-            _state.emit(State.SuccessLoading(movies, true))
+            _state.emit(State.SuccessLoading(movies, movies.isNotEmpty()))
         } catch (e: Exception) {
             Log.e("MoviesViewModel", "getMovies: ", e)
             _state.emit(State.FailedLoading(e))
