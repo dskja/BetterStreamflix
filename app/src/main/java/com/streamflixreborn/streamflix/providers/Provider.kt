@@ -107,7 +107,8 @@ interface Provider {
             IptvOrgProvider to ProviderSupport(movies = false, tvShows = true),
             IptvSpainProvider to ProviderSupport(movies = false, tvShows = true),
             TvLibrefutbolProvider to ProviderSupport(movies = false, tvShows = true),
-            PelotaLibreTvHdProvider to ProviderSupport(movies = false, tvShows = true)
+            PelotaLibreTvHdProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvMxProvider to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support
