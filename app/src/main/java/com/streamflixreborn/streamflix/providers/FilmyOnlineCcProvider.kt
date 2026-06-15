@@ -1,5 +1,8 @@
 package com.streamflixreborn.streamflix.providers
 
+import android.content.Context
+import android.util.Log
+import android.webkit.CookieManager
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.Category
@@ -11,11 +14,18 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.StreamFlixApp
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
-import okhttp3.OkHttpClient
+import com.streamflixreborn.streamflix.utils.NetworkClient
+import com.streamflixreborn.streamflix.utils.WebViewResolver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import java.net.URLEncoder
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -23,47 +33,90 @@ import retrofit2.http.Url
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import java.text.Normalizer
 import java.util.concurrent.TimeUnit
+import okhttp3.Request
 
 object FilmyOnlineCcProvider : Provider {
 
     override val name = "FilmyOnline"
-    override val baseUrl = "https://filmyonline.cc"
+    override val baseUrl = "http://filmyonline.cc"
     override val logo = "$baseUrl/favicon/icon-144x144.png?v=1703232212"
     override val language = "pl"
 
+    private var webViewResolver: WebViewResolver? = null
+    private val providerMutex = Mutex()
+    private const val TAG = "FilmyOnlineBypass"
+
     private val service = FilmyOnlineCcService.build()
 
-    override suspend fun getHome(): List<Category> {
-        val root = getBootstrapRoot(service.getDocument(baseUrl))
-        val channels = sequenceOf(
-            root.optJSONObject("loaders")
-                ?.optJSONObject("homePage")
-                ?.optJSONArray("channels")
-                ?.toJsonObjectList(),
-            root.optJSONObject("loaders")
-                ?.optJSONObject("channelPage")
-                ?.optJSONObject("channels")
-                ?.optJSONArray("data")
-                ?.toJsonObjectList(),
-            collectChannelObjects(root)
-        ).firstOrNull { !it.isNullOrEmpty() }.orEmpty()
+    fun init(context: Context) {
+        webViewResolver = WebViewResolver(context)
+    }
 
-        return channels.mapNotNull { channel ->
-            val items = channel.optJSONObject("content")
-                ?.optJSONArray("data")
-                ?.toTitleItems()
-                .orEmpty()
-                .take(20)
-
-            if (items.isEmpty()) return@mapNotNull null
-
-            Category(
-                name = channel.optString("name").ifBlank { "FilmyOnline" },
-                list = items
-            )
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(StreamFlixApp.instance).also {
+            webViewResolver = it
         }
+    }
+
+    private suspend fun fetchApiJson(url: String): JSONObject = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(url)
+            .header("Referer", baseUrl)
+            .build()
+
+        NetworkClient.default.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                if (response.code == 403) {
+                    providerMutex.withLock { getResolver().get(baseUrl) }
+                    return@withContext fetchApiJson(url)
+                }
+                throw Exception("FilmyOnline API request failed: ${response.code}")
+            }
+            JSONObject(body)
+        }
+    }
+
+    private suspend fun getDocument(url: String): Document {
+        return try {
+            val document = service.getDocument(url)
+            val html = document.outerHtml()
+            if (requiresClearance(html)) {
+                throw Exception("FilmyOnline Cloudflare challenge detected")
+            }
+            document
+        } catch (_: Exception) {
+            Log.d(TAG, "Using WebView bypass for $url")
+            val html = providerMutex.withLock { getResolver().get(url) }
+            FilmyOnlineCfClearanceStore.update(
+                CookieManager.getInstance().getCookie(url)
+            )
+            Jsoup.parse(html).apply { setBaseUri(baseUrl) }
+        }
+    }
+
+    override suspend fun getHome(): List<Category> {
+        val root = fetchApiJson("$baseUrl/api/v1/channel/homepage?channelType=channel&restriction=&loader=channelPage")
+        return root.optJSONObject("channel")
+            ?.optJSONObject("content")
+            ?.optJSONArray("data")
+            ?.toJsonObjectList()
+            ?.mapNotNull { channel ->
+                val items = channel.optJSONObject("content")
+                    ?.optJSONArray("data")
+                    ?.toTitleItems()
+                    .orEmpty()
+                    .take(20)
+
+                if (items.isEmpty()) null else Category(
+                    name = channel.optString("name").ifBlank { "FilmyOnline" },
+                    list = items
+                )
+            }
+            .orEmpty()
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -74,70 +127,69 @@ object FilmyOnlineCcProvider : Provider {
             )
         }
 
-        val root = getBootstrapRoot(service.search(query))
-        val loaders = root.optJSONObject("loaders") ?: return emptyList()
+        val root = fetchApiJson("$baseUrl/api/v1/channel/homepage?channelType=channel&restriction=&loader=channelPage")
+        val channels = root.optJSONObject("channel")
+            ?.optJSONObject("content")
+            ?.optJSONArray("data")
+            .orEmptyJsonArray()
+            .toJsonObjectList()
 
-        val directResults = sequenceOf(
-            loaders.optJSONObject("searchPage")?.optJSONArray("results"),
-            loaders.optJSONObject("searchPage")?.optJSONObject("pagination")?.optJSONArray("data"),
-            loaders.optJSONObject("searchPage")?.optJSONObject("titles")?.optJSONArray("data"),
-            loaders.optJSONObject("channelPage")?.optJSONObject("channel")?.optJSONObject("content")?.optJSONArray("data")
-        ).firstOrNull { it != null }?.toTitleItems().orEmpty()
-
-        if (directResults.isNotEmpty()) return directResults.distinctBy(::itemKey)
-
-        return collectTitleObjects(root)
-            .filter { title ->
-                title.optString("name").contains(query, ignoreCase = true)
+        return channels.flatMap { channel ->
+            channel.optJSONObject("content")
+                ?.optJSONArray("data")
+                .orEmptyJsonArray()
+                .toTitleItems()
+        }.filter { item ->
+            when (item) {
+                is Movie -> item.title.contains(query, ignoreCase = true)
+                is TvShow -> item.title.contains(query, ignoreCase = true)
+                else -> false
             }
-            .mapNotNull(::toItem)
-            .distinctBy(::itemKey)
+        }.distinctBy(::itemKey)
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        return getChannelItems("$baseUrl/movies?page=$page").filterIsInstance<Movie>()
+        val root = fetchApiJson("$baseUrl/api/v1/channel/movies?channelType=channel&restriction=&loader=channelPage")
+        return root.optJSONObject("channel")
+            ?.optJSONObject("content")
+            ?.optJSONArray("data")
+            .orEmptyJsonArray()
+            .toTitleItems()
+            .filterIsInstance<Movie>()
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        return getChannelItems("$baseUrl/series?page=$page").filterIsInstance<TvShow>()
+        val root = fetchApiJson("$baseUrl/api/v1/channel/series?channelType=channel&restriction=&loader=channelPage")
+        return root.optJSONObject("channel")
+            ?.optJSONObject("content")
+            ?.optJSONArray("data")
+            .orEmptyJsonArray()
+            .toTitleItems()
+            .filterIsInstance<TvShow>()
     }
 
     override suspend fun getMovie(id: String): Movie {
         val parsed = parseEncodedId(id)
-        val watchId = parsed.primaryVideoId
-            ?: throw Exception("FilmyOnline movie is missing a playable source")
-        val root = getBootstrapRoot(service.getDocument("$baseUrl/watch/$watchId"))
-        val watchPage = root.optJSONObject("loaders")?.optJSONObject("watchPage")
+        val title = fetchApiJson("$baseUrl/api/v1/titles/${parsed.titleId}?loader=titlePage")
+            .optJSONObject("title")
             ?: throw Exception("Unable to load FilmyOnline movie")
-        val title = watchPage.optJSONObject("title")
-            ?: watchPage.optJSONObject("video")?.optJSONObject("title")
-            ?: throw Exception("Missing title data")
 
         return (toItem(title) as? Movie)?.copy(
             id = buildEncodedId(
                 type = "movie",
                 titleId = parsed.titleId,
-                primaryVideoId = parsed.primaryVideoId,
+                primaryVideoId = parsed.primaryVideoId ?: title.firstPlayableVideoId(),
                 titleSlug = parsed.titleSlug ?: slugifyTitle(title.optString("name"))
-            ),
-            runtime = watchPage.optJSONObject("video")?.optInt("runtime").takeIf { it != null && it > 0 }
-                ?: (toItem(title) as? Movie)?.runtime,
-            poster = title.optString("poster").ifBlank { null },
-            banner = title.optString("backdrop").ifBlank { null },
-            genres = title.optJSONArray("genres")?.toGenres().orEmpty(),
-            recommendations = watchPage.optJSONArray("related_videos").toRecommendationItems(),
+            )
         ) ?: throw Exception("Unable to build FilmyOnline movie")
     }
 
     override suspend fun getTvShow(id: String): TvShow {
         val parsed = parseEncodedId(id)
-        val titleSlug = resolveTitleSlug(parsed)
-            ?: throw Exception("Unable to resolve FilmyOnline show slug")
-        val root = getBootstrapRoot(service.getDocument(buildTitleUrl(parsed.titleId, titleSlug)))
-        val titlePage = root.optJSONObject("loaders")?.optJSONObject("titlePage")
-            ?: throw Exception("Unable to load FilmyOnline show")
+        val titlePage = fetchApiJson("$baseUrl/api/v1/titles/${parsed.titleId}?loader=titlePage")
         val title = titlePage.optJSONObject("title")
             ?: throw Exception("Missing title data")
+        val titleSlug = parsed.titleSlug ?: slugifyTitle(title.optString("name")).orEmpty()
 
         val seasons = titlePage.optJSONObject("seasons")
             ?.optJSONArray("data")
@@ -157,7 +209,7 @@ object FilmyOnlineCcProvider : Provider {
                                     number = seasonNumber,
                                     title = "Sezon $seasonNumber",
                                     poster = seasonObject.optString("poster").ifBlank { title.optString("poster").ifBlank { null } },
-                                    episodes = fetchSeasonEpisodes(parsed.titleId, titleSlug, seasonNumber, title)
+                                    episodes = getEpisodesBySeason(buildSeasonId(parsed.titleId, titleSlug, seasonNumber))
                                 )
                             }
                         }.awaitAll().filterNotNull().sortedBy { it.number }
@@ -170,13 +222,9 @@ object FilmyOnlineCcProvider : Provider {
                 type = "tv",
                 titleId = parsed.titleId,
                 primaryVideoId = parsed.primaryVideoId,
-                titleSlug = titleSlug
+                titleSlug = parsed.titleSlug ?: slugifyTitle(title.optString("name"))
             ),
-            poster = title.optString("poster").ifBlank { null },
-            banner = title.optString("backdrop").ifBlank { null },
-            genres = title.optJSONArray("genres")?.toGenres().orEmpty(),
             seasons = seasons,
-            recommendations = titlePage.optJSONArray("related_videos").toRecommendationItems(),
         ) ?: throw Exception("Unable to build FilmyOnline show")
     }
 
@@ -184,15 +232,13 @@ object FilmyOnlineCcProvider : Provider {
         val parts = seasonId.split("|")
         if (parts.size < 3) return emptyList()
         val titleId = parts[0].toIntOrNull() ?: return emptyList()
-        val titleSlug = parts.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return emptyList()
         val seasonNumber = parts.getOrNull(2)?.toIntOrNull() ?: return emptyList()
-        val titleRoot = getBootstrapRoot(service.getDocument(buildTitleUrl(titleId, titleSlug)))
-        val title = titleRoot.optJSONObject("loaders")
-            ?.optJSONObject("titlePage")
-            ?.optJSONObject("title")
-            ?: return emptyList()
-
-        return fetchSeasonEpisodes(titleId, titleSlug, seasonNumber, title)
+        val seasonPage = fetchApiJson("$baseUrl/api/v1/titles/$titleId/seasons/$seasonNumber?loader=seasonPage")
+        val title = seasonPage.optJSONObject("title") ?: return emptyList()
+        return seasonPage.optJSONObject("episodes")
+            ?.optJSONArray("data")
+            ?.toEpisodeItems(title.optString("poster").ifBlank { null })
+            .orEmpty()
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
@@ -222,33 +268,29 @@ object FilmyOnlineCcProvider : Provider {
             is Video.Type.Episode -> id.toIntOrNull()
         } ?: return emptyList()
 
-        val root = getBootstrapRoot(service.getDocument("$baseUrl/watch/$watchId"))
-        val watchPage = root.optJSONObject("loaders")?.optJSONObject("watchPage") ?: return emptyList()
-
+        val watchPage = fetchApiJson("$baseUrl/api/v1/watch/$watchId")
         val collected = linkedMapOf<String, Video.Server>()
-        fun addServer(video: JSONObject?) {
-            if (video == null) return
-            val source = video.optString("src").ifBlank { return }
+        val videos = watchPage.optJSONArray("videos").orEmptyJsonArray()
+        for (index in 0 until videos.length()) {
+            val video = videos.optJSONObject(index) ?: continue
+            val source = video.optString("src").ifBlank { continue }
             val serverName = buildString {
                 append(video.optString("quality").ifBlank { "default" }.uppercase())
                 val lang = video.optString("language").ifBlank { null }
                 if (lang != null) append(" [$lang]")
             }
-            collected.putIfAbsent(
-                source,
-                Video.Server(
-                    id = source,
-                    name = serverName
-                )
-            )
+            collected.putIfAbsent(source, Video.Server(id = source, name = serverName, src = source))
         }
-
-        addServer(watchPage.optJSONObject("video"))
-        watchPage.optJSONArray("alternative_videos")?.let { videos ->
-            for (index in 0 until videos.length()) addServer(videos.optJSONObject(index))
+        if (collected.isEmpty()) {
+            watchPage.optJSONObject("video")?.optString("src")?.takeIf { it.isNotBlank() }?.let { source ->
+                collected[source] = Video.Server(id = source, name = "default", src = source)
+            }
         }
-
         return collected.values.toList()
+    }
+
+    private fun parsedMovieId(id: String): Int? {
+        return parseEncodedId(id).primaryVideoId
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
@@ -256,7 +298,7 @@ object FilmyOnlineCcProvider : Provider {
     }
 
     private suspend fun getChannelItems(url: String): List<AppAdapter.Item> {
-        val root = getBootstrapRoot(service.getDocument(url))
+        val root = getBootstrapRoot(getDocument(url))
         return root.optJSONObject("loaders")
             ?.optJSONObject("channelPage")
             ?.optJSONObject("channel")
@@ -457,6 +499,10 @@ object FilmyOnlineCcProvider : Provider {
         return (0 until length()).mapNotNull { index -> optJSONObject(index) }
     }
 
+    private fun JSONArray?.orEmptyJsonArray(): JSONArray {
+        return this ?: JSONArray()
+    }
+
     private fun JSONArray.toSeasonObjects(): List<JSONObject> {
         return (0 until length()).mapNotNull { index -> optJSONObject(index) }
     }
@@ -479,6 +525,26 @@ object FilmyOnlineCcProvider : Provider {
                 overview = episode.optString("description").ifBlank { null }
             )
         }
+    }
+
+    private fun JSONObject.firstPlayableVideoId(): Int? {
+        optJSONObject("primary_video")
+            ?.optInt("id")
+            ?.takeIf { it > 0 }
+            ?.let { return it }
+
+        val videos = optJSONArray("videos").orEmptyJsonArray()
+        for (index in 0 until videos.length()) {
+            val video = videos.optJSONObject(index) ?: continue
+            if (video.optString("category").equals("full", ignoreCase = true) ||
+                video.optString("type").equals("full", ignoreCase = true)
+            ) {
+                val id = video.optInt("id").takeIf { it > 0 }
+                if (id != null) return id
+            }
+        }
+
+        return videos.optJSONObject(0)?.optInt("id")?.takeIf { it > 0 }
     }
 
     private fun itemKey(item: AppAdapter.Item): String {
@@ -505,7 +571,7 @@ object FilmyOnlineCcProvider : Provider {
         seasonNumber: Int,
         title: JSONObject
     ): List<Episode> {
-        val root = getBootstrapRoot(service.getDocument(buildSeasonUrl(titleId, titleSlug, seasonNumber)))
+        val root = getBootstrapRoot(getDocument(buildSeasonUrl(titleId, titleSlug, seasonNumber)))
         val seasonPage = root.optJSONObject("loaders")?.optJSONObject("seasonPage") ?: return emptyList()
         val seasonPoster = seasonPage.optJSONObject("season")?.optString("poster")
         val fallbackPoster = seasonPoster?.ifBlank { null }
@@ -534,7 +600,7 @@ object FilmyOnlineCcProvider : Provider {
         parsed.titleSlug?.let { return it }
 
         val watchId = parsed.primaryVideoId ?: return null
-        val root = getBootstrapRoot(service.getDocument("$baseUrl/watch/$watchId"))
+        val root = getBootstrapRoot(getDocument("$baseUrl/watch/$watchId"))
         val watchTitle = root.optJSONObject("loaders")
             ?.optJSONObject("watchPage")
             ?.optJSONObject("title")
@@ -563,6 +629,13 @@ object FilmyOnlineCcProvider : Provider {
         return normalized.ifBlank { null }
     }
 
+    private fun requiresClearance(html: String): Boolean {
+        return html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("Just a moment...", ignoreCase = true) ||
+            html.contains("cloudflare", ignoreCase = true) && !html.contains("window.bootstrapData =")
+    }
+
     private data class ParsedId(
         val type: String,
         val titleId: Int,
@@ -589,18 +662,40 @@ object FilmyOnlineCcProvider : Provider {
 
         companion object {
             fun build(): FilmyOnlineCcService {
-                val client = OkHttpClient.Builder()
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .build()
-
                 return Retrofit.Builder()
                     .baseUrl("$baseUrl/")
-                    .client(client)
+                    .client(NetworkClient.default.newBuilder()
+                        .readTimeout(30, TimeUnit.SECONDS)
+                        .connectTimeout(30, TimeUnit.SECONDS)
+                        .addInterceptor { chain ->
+                            val request = chain.request()
+                            val cookieHeader = FilmyOnlineCfClearanceStore.cookieHeader()
+                            if (cookieHeader.isNullOrBlank() || request.header("Cookie") != null) {
+                                chain.proceed(request)
+                            } else {
+                                chain.proceed(
+                                    request.newBuilder()
+                                        .header("Cookie", cookieHeader)
+                                        .build()
+                                )
+                            }
+                        }
+                        .build())
                     .addConverterFactory(JsoupConverterFactory.create())
                     .build()
                     .create(FilmyOnlineCcService::class.java)
             }
         }
     }
+}
+
+private object FilmyOnlineCfClearanceStore {
+    @Volatile
+    private var cookieHeader: String? = null
+
+    fun update(cookieHeader: String?) {
+        this.cookieHeader = cookieHeader?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    fun cookieHeader(): String? = cookieHeader
 }
