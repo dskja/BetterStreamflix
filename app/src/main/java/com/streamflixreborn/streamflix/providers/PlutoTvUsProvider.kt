@@ -7,15 +7,15 @@ import com.streamflixreborn.streamflix.models.*
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
-object PlutoTvMxProvider : IptvProvider {
+object PlutoTvUsProvider : IptvProvider {
 
-    override val name = "Pluto TV MX"
+    override val name = "Pluto TV Us"
     override val baseUrl = "https://raw.githubusercontent.com"
-    override val logo = "https://i.ibb.co/9mGNwYVS/Logo-Pluto-TV.jpg"
-    override val language = "es"
+    override val logo = "https://i.ibb.co/qz7jJF1/plutotv.png"
+    override val language = "en"
 
     private const val TAG = "PlutoTvMxProvider"
-    private const val PLAYLIST_URL = "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_mx.m3u"
+    private const val PLAYLIST_URL = "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_us.m3u"
 
     // 🛡️ La Vacuna Anti-Bots (Edición IPTV con CookieJar integrado) 🛡️
     private val client = OkHttpClient.Builder()
