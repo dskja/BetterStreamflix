@@ -106,7 +106,15 @@ interface Provider {
             FrenchMangaProvider to ProviderSupport(movies = false, tvShows = true),
             IptvOrgProvider to ProviderSupport(movies = false, tvShows = true),
             IptvSpainProvider to ProviderSupport(movies = false, tvShows = true),
-            TvLibrefutbolProvider to ProviderSupport(movies = false, tvShows = true)
+            TvLibrefutbolProvider to ProviderSupport(movies = false, tvShows = true),
+            PelotaLibreTvHdProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvMxProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvArProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvDeProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvEsProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvFrProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvItProvider to ProviderSupport(movies = false, tvShows = true),
+            PlutoTvUsProvider to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support
