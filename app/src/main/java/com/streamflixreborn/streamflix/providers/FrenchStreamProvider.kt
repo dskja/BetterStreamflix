@@ -874,6 +874,17 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .dns(DnsResolver.doh)
+                .addInterceptor { chain ->
+                    val original = chain.request()
+                    val cookie = original.header("Cookie")
+                    val requestBuilder = original.newBuilder()
+                    if (cookie != null) {
+                        requestBuilder.header("Cookie", "$cookie; fsschal=1")
+                    } else {
+                        requestBuilder.header("Cookie", "fsschal=1")
+                    }
+                    chain.proceed(requestBuilder.build())
+                }
                 .build()
 
             fun buildAddressFetcher(): Service {

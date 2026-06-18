@@ -134,6 +134,10 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         initializeService()
 
+        if (page <= 1) {
+            hasMore = true
+        }
+
         if (query.isEmpty()) {
             val document = service.getHome()
 
@@ -156,20 +160,13 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val document = service.search(
             story = query,
             searchStart = page,
-            resultFrom = 1 + 20 * (page - 1)
         )
 
-        document.selectFirst("div.berrors")?.text()?.let { resultText ->
-            val totalResults = resultText.substringAfter("trouvé ")
-                .substringBefore(" réponses").toIntOrNull() ?: 0
-            val currentRange = resultText.substringAfter("Résultats de la requête ")
-                .substringBefore(")").split(" - ")
-            val receivedItems = currentRange.getOrNull(1)?.toIntOrNull() ?: 0
-
-            hasMore = receivedItems < totalResults
-        }
-
-        val results = document.select("div.mov").mapNotNull {
+        // Exclude div.mov elements inside #no-results-rec (these are hidden recommendations,
+        // shown via JS only when there are no real search results).
+        val results = document.select("div.mov")
+            .filter { el -> el.parents().none { parent -> parent.id() == "no-results-rec" } }
+            .mapNotNull {
             val showId = it.selectFirst("a.mov-t")
                 ?.attr("href")?.substringAfterLast("/")
                 ?: ""
@@ -199,6 +196,16 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             } else {
                 null
             }
+        }
+
+        val navElement = document.selectFirst(".navigation")
+        hasMore = if (navElement != null) {
+            val pageNumbers = navElement.select("a, span")
+                .mapNotNull { it.text().trim().toIntOrNull() }
+            val maxPage = pageNumbers.maxOrNull() ?: 1
+            maxPage > page
+        } else {
+            results.size >= 20
         }
 
         return results
@@ -666,6 +673,12 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .dns(DnsResolver.doh)
+                .addInterceptor { chain ->
+                    val newRequest = chain.request().newBuilder()
+                        .header("Cookie", "h_check=25")
+                        .build()
+                    chain.proceed(newRequest)
+                }
                 .build()
 
             fun buildAddressFetcher(): Service {
@@ -701,8 +714,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             @Field("do") doo: String = "search",
             @Field("subaction") subaction: String = "search",
             @Field("search_start") searchStart: Int = 0,
-            @Field("full_search") fullSearch: Int = 0,
-            @Field("result_from") resultFrom: Int = 1,
+            @Field("full_search") fullSearch: Int = 1,
         ): Document
 
         @GET("film-en-streaming/page/{page}")
