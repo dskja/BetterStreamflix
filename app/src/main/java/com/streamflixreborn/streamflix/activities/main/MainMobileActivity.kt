@@ -30,6 +30,7 @@ import com.streamflixreborn.streamflix.activities.tools.BypassWebViewActivity
 import com.streamflixreborn.streamflix.databinding.ActivityMainMobileBinding
 import com.streamflixreborn.streamflix.fragments.player.PlayerMobileFragment
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
+import com.streamflixreborn.streamflix.providers.FilmyOnlineCcProvider
 import com.streamflixreborn.streamflix.providers.IptvProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.UpdateAppMobileDialog
@@ -101,6 +102,7 @@ class MainMobileActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         Cine24hProvider.init(this)
+        FilmyOnlineCcProvider.init(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val palette = ThemeManager.palette(UserPreferences.selectedTheme)
