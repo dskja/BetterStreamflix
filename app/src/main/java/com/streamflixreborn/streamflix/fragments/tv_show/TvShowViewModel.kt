@@ -151,14 +151,7 @@ class TvShowViewModel(
                                 )
                             }
                             ?: state.tvShow.seasons)
-                            .sortedWith { season1, season2 ->
-                                when {
-                                    season1.number == 0 && season2.number == 0 -> 0
-                                    season1.number == 0 -> 1
-                                    season2.number == 0 -> -1
-                                    else -> season1.number.compareTo(season2.number)
-                                }
-                            },
+                            .sortedWith(::compareSeasonsForDisplay),
                         recommendations = state.tvShow.recommendations.map { show ->
                             when (show) {
                                 is Movie -> moviesById[show.id]
@@ -202,6 +195,33 @@ class TvShowViewModel(
         getTvShow(id)
     }
 
+    private fun compareSeasonsForDisplay(season1: Season, season2: Season): Int {
+        val key1 = season1.displaySortKey()
+        val key2 = season2.displaySortKey()
+        return compareValuesBy(key1, key2, SeasonSortKey::group, SeasonSortKey::seasonNumber, SeasonSortKey::partNumber)
+    }
+
+    private fun Season.displaySortKey(): SeasonSortKey {
+        val title = title.orEmpty()
+        val seasonMatch = Regex("""\bSeason\s+(\d+)\b""", RegexOption.IGNORE_CASE).find(title)
+        val partMatch = Regex("""\bPart\s+(\d+)\b""", RegexOption.IGNORE_CASE).find(title)
+        val isNumberedSeason = title.isBlank() || seasonMatch != null
+        val seasonNumber = seasonMatch?.groupValues?.getOrNull(1)?.toIntOrNull() ?: number
+        val partNumber = partMatch?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+
+        return when {
+            !isNumberedSeason -> SeasonSortKey(group = 1, seasonNumber = seasonNumber.takeIf { it != 0 } ?: Int.MAX_VALUE, partNumber = partNumber)
+            seasonNumber == 0 -> SeasonSortKey(group = 2, seasonNumber = Int.MAX_VALUE, partNumber = partNumber)
+            else -> SeasonSortKey(group = 0, seasonNumber = seasonNumber, partNumber = partNumber)
+        }
+    }
+
+    private data class SeasonSortKey(
+        val group: Int,
+        val seasonNumber: Int,
+        val partNumber: Int,
+    )
+
 
     fun getTvShow(id: String) = viewModelScope.launch(Dispatchers.IO) {
         _state.emit(State.Loading)
@@ -222,15 +242,18 @@ class TvShowViewModel(
             database.tvShowDao().getById(tvShow.id)?.let { tvShowDb ->
                 tvShow.merge(tvShowDb)
             }
-            database.tvShowDao().insert(tvShow)
+            val orderedSeasons = tvShow.seasons.sortedWith(::compareSeasonsForDisplay)
+            val orderedTvShow = tvShow.copy(seasons = orderedSeasons)
 
-            val tvShowCopy = tvShow.copy()
-            tvShow.seasons.forEach { season ->
+            database.tvShowDao().insert(orderedTvShow)
+
+            val tvShowCopy = orderedTvShow.copy()
+            orderedTvShow.seasons.forEach { season ->
                 season.tvShow = tvShowCopy
             }
-            database.seasonDao().insertAll(tvShow.seasons)
+            database.seasonDao().insertAll(orderedTvShow.seasons)
 
-            _state.emit(State.SuccessLoading(tvShow))
+            _state.emit(State.SuccessLoading(orderedTvShow))
         } catch (e: Exception) {
             Log.e("TvShowViewModel", "getTvShow: ", e)
             _state.emit(State.FailedLoading(e))

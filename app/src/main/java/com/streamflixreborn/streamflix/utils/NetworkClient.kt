@@ -78,6 +78,8 @@ object NetworkClient {
             .addInterceptor { chain ->
                 val original = chain.request()
                 val requestBuilder = original.newBuilder()
+                val isCorsRequest = original.header("Sec-Fetch-Mode") == "cors" ||
+                        original.header("Sec-Fetch-Dest") == "empty"
                 // Only set default headers if not already provided by the caller (e.g. an extractor)
                 if (original.header("User-Agent") == null)
                     requestBuilder.header("User-Agent", USER_AGENT)
@@ -85,13 +87,13 @@ object NetworkClient {
                     requestBuilder.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
                 if (original.header("Accept-Language") == null)
                     requestBuilder.header("Accept-Language", "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7")
-                if (original.header("Sec-Fetch-Dest") == null)
+                if (!isCorsRequest && original.header("Sec-Fetch-Dest") == null)
                     requestBuilder.header("Sec-Fetch-Dest", "document")
-                if (original.header("Sec-Fetch-Mode") == null)
+                if (!isCorsRequest && original.header("Sec-Fetch-Mode") == null)
                     requestBuilder.header("Sec-Fetch-Mode", "navigate")
-                if (original.header("Sec-Fetch-Site") == null)
+                if (!isCorsRequest && original.header("Sec-Fetch-Site") == null)
                     requestBuilder.header("Sec-Fetch-Site", "none")
-                if (original.header("Upgrade-Insecure-Requests") == null)
+                if (!isCorsRequest && original.header("Upgrade-Insecure-Requests") == null)
                     requestBuilder.header("Upgrade-Insecure-Requests", "1")
                 chain.proceed(requestBuilder.build())
             }
