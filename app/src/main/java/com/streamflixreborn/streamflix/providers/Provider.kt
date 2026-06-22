@@ -65,6 +65,7 @@ interface Provider {
             StreamingCommunityProvider("it") to ProviderSupport(movies = true, tvShows = true),
             StreamingCommunityProvider("en") to ProviderSupport(movies = true, tvShows = true),
             AnimeWorldProvider to ProviderSupport(movies = true, tvShows = true),
+            MkissaProvider to ProviderSupport(movies = false, tvShows = true),
             AniWorldProvider to ProviderSupport(movies = false, tvShows = true),
             RidomoviesProvider to ProviderSupport(movies = true, tvShows = true),
             WiflixProvider to ProviderSupport(movies = true, tvShows = true),
