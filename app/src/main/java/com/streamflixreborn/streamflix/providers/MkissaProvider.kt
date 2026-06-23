@@ -50,6 +50,7 @@ object MkissaProvider : Provider {
     private const val HOME_ROW_LIMIT = 20
     private const val HOME_TAG_LIMIT = 20
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+    private val translationTypes = listOf("sub", "dub", "raw")
 
     private val SHOW_FIELDS = """
         _id
@@ -311,7 +312,7 @@ object MkissaProvider : Provider {
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isBlank()) return genres
-        return searchShows(mapOf("query" to query), limit = 26, page = page)
+        return searchItems(mapOf("query" to query), limit = 26, page = page)
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
@@ -359,7 +360,7 @@ object MkissaProvider : Provider {
 
         val detail = showJson(showId)
         val available = detail.optJSONObject("availableEpisodes")
-        return listOf("sub", "dub")
+        return translationTypes
             .filter { translation ->
                 requestedTranslation == null || requestedTranslation == translation
             }
@@ -369,7 +370,7 @@ object MkissaProvider : Provider {
             .map { translation ->
                 Video.Server(
                     id = listOf(showId, episode, translation).joinToString("|"),
-                    name = if (translation == "dub") "MKissa Dub" else "MKissa Sub"
+                    name = "MKissa ${translation.uppercase()}"
                 )
             }
     }
@@ -540,6 +541,18 @@ object MkissaProvider : Provider {
         return parseShows(api(variables, hash, SEARCH_QUERY))
     }
 
+    private suspend fun searchItems(
+        search: Map<String, Any?>,
+        limit: Int,
+        page: Int
+    ): List<AppAdapter.Item> {
+        val variables = JSONObject()
+            .put("search", JSONObject(search))
+            .put("limit", limit)
+            .put("page", page)
+        return parseSearchItems(api(variables, SEARCH_HASH, SEARCH_QUERY))
+    }
+
     private suspend fun searchMovies(page: Int, limit: Int = 26): List<Movie> {
         val variables = JSONObject()
             .put("search", JSONObject(mapOf("sortBy" to "Popular", "types" to listOf("Movie"))))
@@ -599,6 +612,19 @@ object MkissaProvider : Provider {
             .toList()
     }
 
+    private fun parseSearchItems(response: JSONObject): List<AppAdapter.Item> {
+        return showEdges(response)
+            .mapNotNull { it as? JSONObject }
+            .mapNotNull { show ->
+                if (show.stringOrNull("type").equals("Movie", ignoreCase = true)) {
+                    show.toMovieOrNull(forceMovie = true)
+                } else {
+                    show.toTvShow(detailed = false)
+                }
+            }
+            .toList()
+    }
+
     private fun showEdges(response: JSONObject): Sequence<Any?> {
         val edges = response.optJSONObject("data")
             ?.optJSONObject("shows")
@@ -640,11 +666,7 @@ object MkissaProvider : Provider {
         val id = if (isMovie) "movie:$rawId" else rawId
         val title = displayTitleOrNull() ?: return null
         val overview = stringOrNull("description")?.let { Jsoup.parse(it).text() }
-        val episodeCount = optJSONObject("availableEpisodes")?.optInt("sub", 0)
-            ?.takeIf { it > 0 }
-            ?: stringOrNull("episodeCount")?.toIntOrNull()
-            ?: optJSONObject("lastEpisodeInfo")?.optJSONObject("sub")?.optString("episodeString")?.toIntOrNull()
-            ?: if (isMovie) 1 else 0
+        val availableEpisodes = availableEpisodeTranslation(isMovie = isMovie)
         val runtime = stringOrNull("episodeDuration")?.toLongOrNull()?.let { (it / 60000L).toInt() }
 
         return TvShow(
@@ -661,19 +683,46 @@ object MkissaProvider : Provider {
                 ?.map { Genre(id = it.lowercase().replace(" ", "_"), name = it) }
                 ?.toList()
                 ?: emptyList(),
-            seasons = if (detailed || episodeCount > 0) {
+            seasons = if (availableEpisodes != null) {
                 listOf(
                     Season(
-                        id = "$rawId|sub",
+                        id = "$rawId|${availableEpisodes.translation}",
                         number = 1,
                         title = "Episodes",
-                        episodes = buildEpisodes(rawId, episodeCount, "sub")
+                        episodes = buildEpisodes(rawId, availableEpisodes.count, availableEpisodes.translation)
                     )
                 )
             } else {
                 emptyList()
             }
         )
+    }
+
+    private fun JSONObject.availableEpisodeTranslation(isMovie: Boolean): AvailableEpisodes? {
+        return translationTypes
+            .firstNotNullOfOrNull { translation ->
+                val count = availableEpisodeCount(translation = translation, isMovie = isMovie)
+                if (count > 0) AvailableEpisodes(translation = translation, count = count) else null
+            }
+    }
+
+    private fun JSONObject.availableEpisodeCount(translation: String, isMovie: Boolean): Int {
+        val available = optJSONObject("availableEpisodes")
+        if (available != null && available.has(translation) && !available.isNull(translation)) {
+            return available.optInt(translation, 0).coerceAtLeast(0)
+        }
+
+        optJSONObject("availableEpisodesDetail")
+            ?.optJSONArray(translation)
+            ?.let { return it.length().coerceAtLeast(0) }
+
+        return stringOrNull("episodeCount")?.toIntOrNull()?.coerceAtLeast(0)
+            ?: optJSONObject("lastEpisodeInfo")
+                ?.optJSONObject(translation)
+                ?.optString("episodeString")
+                ?.toIntOrNull()
+                ?.coerceAtLeast(0)
+            ?: if (isMovie) 1 else 0
     }
 
     private fun JSONObject.toMovieOrNull(forceMovie: Boolean = false): Movie? {
@@ -724,7 +773,8 @@ object MkissaProvider : Provider {
     }
 
     private fun buildEpisodes(showId: String, count: Int, translation: String): List<Episode> {
-        return (1..count.coerceAtLeast(1)).map { number ->
+        if (count <= 0) return emptyList()
+        return (1..count).map { number ->
             Episode(
                 id = listOf(showId, number.toString(), translation).joinToString("|"),
                 number = number,
@@ -862,6 +912,11 @@ object MkissaProvider : Provider {
         val slug: String,
         val name: String,
         val tagType: String? = null
+    )
+
+    private data class AvailableEpisodes(
+        val translation: String,
+        val count: Int
     )
 
     private val fallbackHomeTags = listOf(
