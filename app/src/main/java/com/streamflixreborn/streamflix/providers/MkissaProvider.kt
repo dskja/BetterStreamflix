@@ -11,6 +11,7 @@ import com.streamflixreborn.streamflix.models.People
 import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -45,6 +46,9 @@ object MkissaProvider : Provider {
     private const val DETAIL_HASH = "043448386c7a686bc2aabfbb6b80f6074e795d350df48015023b079527b0848a"
     private const val SOURCE_HASH = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
     private const val GENRE_HASH = "ff61a63ff776f334f80c1e6ad1aa49ef71eab831e235e5d6ec679eae5b83450f"
+    private const val IMAGE_URL = "https://aln.youtube-anime.com"
+    private const val HOME_ROW_LIMIT = 20
+    private const val HOME_TAG_LIMIT = 20
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
     private val SHOW_FIELDS = """
@@ -53,6 +57,9 @@ object MkissaProvider : Provider {
         englishName
         name
         nativeName
+        nameOnlyString
+        altNames
+        slugTime
         description
         availableEpisodes
         episodeCount
@@ -125,21 +132,57 @@ object MkissaProvider : Provider {
         }
     """.trimIndent()
 
+    private val TAGS_QUERY = """
+        query(
+          ${ '$' }page: Int
+          ${ '$' }offset: Int
+          ${ '$' }limit: Int
+          ${ '$' }search: TagSearchInput
+        ) {
+          queryTags(
+            page: ${ '$' }page
+            offset: ${ '$' }offset
+            limit: ${ '$' }limit
+            search: ${ '$' }search
+          ) {
+            pageInfo { total }
+            edges {
+              _id
+              name
+              slug
+              tagType
+            }
+          }
+        }
+    """.trimIndent()
+
     private val DETAIL_QUERY = """
         query(${ '$' }_id: String!) {
           show(_id: ${ '$' }_id) {
             $SHOW_FIELDS
             status
-            altNames
             averageScore
             rating
             airedEnd
             studios
             countryOfOrigin
             availableEpisodesDetail
-            nameOnlyString
             isAdult
             tags
+          }
+        }
+    """.trimIndent()
+
+    private val RANDOM_QUERY = """
+        query(
+          ${ '$' }format: String!
+          ${ '$' }allowAdult: Boolean
+        ) {
+          queryRandomRecommendation(
+            format: ${ '$' }format
+            allowAdult: ${ '$' }allowAdult
+          ) {
+            $SHOW_FIELDS
           }
         }
     """.trimIndent()
@@ -220,48 +263,48 @@ object MkissaProvider : Provider {
             )
         }
 
-        val currentSeason = category("This Season") {
+        val dynamicTags = try {
+            homeTags()
+        } catch (_: Exception) {
+            fallbackHomeTags
+        }
+
+        val newSeries = category("New Series") {
             val now = java.util.Calendar.getInstance()
             searchShows(
                 search = mapOf(
                     "season" to currentAnimeSeason(now.get(java.util.Calendar.MONTH) + 1),
                     "year" to now.get(java.util.Calendar.YEAR)
                 ),
-                limit = 12,
+                limit = HOME_ROW_LIMIT,
                 page = 1,
                 countryOrigin = "JP"
             )
         }
 
-        listOf(
-            category(Category.FEATURED) { popularShows(page = 1, size = 12).take(10) },
-            category("Popular Today") { popularByDateRange(dateRange = 1, page = 1, size = 12) },
-            category("Recently Updated") { searchShows(mapOf("sortBy" to "Recent"), limit = 12, page = 1) },
-            currentSeason,
-            category("TV Anime") { searchShows(mapOf("sortBy" to "Popular", "types" to listOf("TV")), limit = 12, page = 1) },
-            category("Anime Movies") { searchShows(mapOf("sortBy" to "Popular", "types" to listOf("Movie")), limit = 12, page = 1) },
-            category("OVAs") { searchShows(mapOf("sortBy" to "Popular", "types" to listOf("OVA")), limit = 12, page = 1) },
-            category("ONAs") { searchShows(mapOf("sortBy" to "Popular", "types" to listOf("ONA")), limit = 12, page = 1) },
-            category("Specials") { searchShows(mapOf("sortBy" to "Popular", "types" to listOf("Special")), limit = 12, page = 1) },
-            category("Shounen Action") {
-                searchShows(
-                    search = mapOf(
-                        "genres" to listOf(
-                            "Action", "Adventure", "Comedy", "Super Power", "Drama",
-                            "Fantasy", "Shounen", "Samurai", "Isekai"
+        val categories = buildList {
+            add(category("Latest Updates (Sub)") {
+                searchShows(mapOf("sortBy" to "Recent"), limit = HOME_ROW_LIMIT, page = 1)
+            })
+            add(newSeries)
+            add(category("Random") { randomShows(limit = HOME_ROW_LIMIT) })
+            addAll(
+                dynamicTags.map { tag ->
+                    category(tag.name) {
+                        tagShows(
+                            slug = tag.slug,
+                            name = tag.name,
+                            tagType = tag.tagType,
+                            limit = HOME_ROW_LIMIT,
+                            page = 1
                         )
-                    ),
-                    limit = 12,
-                    page = 1
-                )
-            },
-            category("Isekai") { tagShows(slug = "isekai", name = "Isekai") },
-            category("Magic") { tagShows(slug = "magic", name = "Magic") },
-            category("School") { tagShows(slug = "school", name = "School") },
-            category("Reincarnation") { tagShows(slug = "reincarnation", name = "Reincarnation") },
-            category("Female Protagonist") { tagShows(slug = "female_protagonist", name = "Female Protagonist") },
-            category("Anti-Hero") { tagShows(slug = "anti_hero", name = "Anti-Hero") }
-        )
+                    }
+                }
+            )
+            add(category("Trending Activity") { popularByDateRange(dateRange = 1, page = 1, size = HOME_ROW_LIMIT) })
+        }
+
+        categories
             .map { it.await() }
             .filter { it.list.isNotEmpty() }
     }
@@ -272,14 +315,11 @@ object MkissaProvider : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        return searchShows(mapOf("sortBy" to "Popular"), limit = 50, page = page)
-            .filter { it.id.startsWith("movie:") }
-            .map { it.toMovie() }
+        return searchMovies(page = page)
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        return searchShows(mapOf("sortBy" to "Popular"), limit = 26, page = page)
-            .filterNot { it.id.startsWith("movie:") }
+        return searchShows(mapOf("sortBy" to "Popular", "types" to listOf("TV")), limit = 26, page = page)
     }
 
     override suspend fun getMovie(id: String): Movie {
@@ -369,7 +409,7 @@ object MkissaProvider : Provider {
         var lastError: Exception? = null
         for (sourceObject in sources.sortedByDescending { it.optDouble("priority", 0.0) }) {
             val source = sourceObject.sourceUrl()
-            val sourceServer = server.copy(name = sourceObject.optString("sourceName").ifBlank { server.name })
+            val sourceServer = server.copy(name = sourceObject.stringOrNull("sourceName") ?: server.name)
             try {
                 if (source.contains(".m3u8", ignoreCase = true) || source.contains(".mp4", ignoreCase = true)) {
                     return Video(
@@ -414,18 +454,74 @@ object MkissaProvider : Provider {
         return parsePopular(api(variables, POPULAR_DAILY_HASH, POPULAR_DAILY_QUERY))
     }
 
-    private suspend fun tagShows(slug: String, name: String, limit: Int = 10, page: Int = 1): List<TvShow> {
+    private suspend fun tagShows(
+        slug: String,
+        name: String,
+        tagType: String? = null,
+        limit: Int = HOME_ROW_LIMIT,
+        page: Int = 1
+    ): List<TvShow> {
+        val search = JSONObject()
+            .put("slug", slug)
+            .put("format", "anime")
+            .put("page", page)
+            .put("limit", limit)
+            .put("name", name)
+            .put("allowAdult", false)
+            .put("allowUnknown", false)
+        if (!tagType.isNullOrBlank()) search.put("tagType", tagType.normalizedTagType())
+        val variables = JSONObject().put("search", search)
+        return parseShows(api(variables, GENRE_HASH, TAG_QUERY))
+    }
+
+    private suspend fun homeTags(): List<HomeTag> {
         val variables = JSONObject()
+            .put("page", 1)
+            .put("limit", HOME_TAG_LIMIT)
             .put(
                 "search",
                 JSONObject()
-                    .put("slug", slug)
                     .put("format", "anime")
-                    .put("page", page)
-                    .put("limit", limit)
-                    .put("name", name)
+                    .put("sortBy", "Recommendation")
+                    .put("allowAdult", false)
+                    .put("allowUnknown", false)
             )
-        return parseShows(api(variables, GENRE_HASH, TAG_QUERY))
+        val response = postQuery(TAGS_QUERY, variables)
+        val edges = response.optJSONObject("data")
+            ?.optJSONObject("queryTags")
+            ?.optJSONArray("edges")
+            ?: JSONArray()
+        return edges.asSequence()
+            .mapNotNull { it as? JSONObject }
+            .mapNotNull { tag ->
+                val slug = tag.stringOrNull("slug") ?: tag.stringOrNull("name")?.slugify() ?: return@mapNotNull null
+                val name = tag.stringOrNull("name") ?: return@mapNotNull null
+                if (slug == "movie-anime") return@mapNotNull null
+                HomeTag(
+                    slug = slug,
+                    name = name,
+                    tagType = tag.stringOrNull("tagType")?.normalizedTagType()
+                )
+            }
+            .distinctBy { it.slug }
+            .toList()
+    }
+
+    private suspend fun randomShows(limit: Int): List<TvShow> {
+        val response = postQuery(
+            RANDOM_QUERY,
+            JSONObject()
+                .put("format", "anime")
+                .put("allowAdult", false)
+        )
+        val items = response.optJSONObject("data")
+            ?.optJSONArray("queryRandomRecommendation")
+            ?: JSONArray()
+        return items.asSequence()
+            .mapNotNull { it as? JSONObject }
+            .mapNotNull { it.toTvShow(detailed = false) }
+            .take(limit)
+            .toList()
     }
 
     private suspend fun searchShows(
@@ -444,9 +540,21 @@ object MkissaProvider : Provider {
         return parseShows(api(variables, hash, SEARCH_QUERY))
     }
 
+    private suspend fun searchMovies(page: Int, limit: Int = 26): List<Movie> {
+        val variables = JSONObject()
+            .put("search", JSONObject(mapOf("sortBy" to "Popular", "types" to listOf("Movie"))))
+            .put("limit", limit)
+            .put("page", page)
+            .put("translationType", "sub")
+        return showEdges(api(variables, SEARCH_HASH, SEARCH_QUERY))
+            .mapNotNull { it as? JSONObject }
+            .mapNotNull { it.toMovieOrNull(forceMovie = true) }
+            .toList()
+    }
+
     private suspend fun showDetails(id: String): TvShow {
         val show = showJson(id)
-        return show.toTvShow(detailed = true)
+        return show.toTvShow(detailed = true) ?: throw Exception("MKissa show is missing required metadata")
     }
 
     private suspend fun showJson(id: String): JSONObject {
@@ -475,7 +583,23 @@ object MkissaProvider : Provider {
         return JSONObject(service.apiPost(body))
     }
 
+    private suspend fun postQuery(query: String, variables: JSONObject): JSONObject {
+        val body = JSONObject()
+            .put("query", query)
+            .put("variables", variables)
+            .toString()
+            .toRequestBody(JSON_MEDIA_TYPE)
+        return JSONObject(service.apiPost(body))
+    }
+
     private fun parseShows(response: JSONObject): List<TvShow> {
+        return showEdges(response)
+            .mapNotNull { it as? JSONObject }
+            .mapNotNull { it.toTvShow(detailed = false) }
+            .toList()
+    }
+
+    private fun showEdges(response: JSONObject): Sequence<Any?> {
         val edges = response.optJSONObject("data")
             ?.optJSONObject("shows")
             ?.optJSONArray("edges")
@@ -484,9 +608,6 @@ object MkissaProvider : Provider {
                 ?.optJSONArray("edges")
             ?: JSONArray()
         return edges.asSequence()
-            .mapNotNull { it as? JSONObject }
-            .map { it.toTvShow(detailed = false) }
-            .toList()
     }
 
     private fun JSONObject.shouldRetryWithQueryBody(): Boolean {
@@ -509,24 +630,22 @@ object MkissaProvider : Provider {
             ?: JSONArray()
         return recommendations.asSequence()
             .mapNotNull { (it as? JSONObject)?.optJSONObject("anyCard") }
-            .map { it.toTvShow(detailed = false) }
+            .mapNotNull { it.toTvShow(detailed = false) }
             .toList()
     }
 
-    private fun JSONObject.toTvShow(detailed: Boolean): TvShow {
-        val rawId = optString("_id")
-        val isMovie = optString("type").equals("Movie", ignoreCase = true)
+    private fun JSONObject.toTvShow(detailed: Boolean): TvShow? {
+        val rawId = stringOrNull("_id") ?: return null
+        val isMovie = stringOrNull("type").equals("Movie", ignoreCase = true)
         val id = if (isMovie) "movie:$rawId" else rawId
-        val title = optString("englishName")
-            .ifBlank { optString("name") }
-            .ifBlank { optString("nativeName") }
-        val overview = optString("description").takeIf { it.isNotBlank() }?.let { Jsoup.parse(it).text() }
+        val title = displayTitleOrNull() ?: return null
+        val overview = stringOrNull("description")?.let { Jsoup.parse(it).text() }
         val episodeCount = optJSONObject("availableEpisodes")?.optInt("sub", 0)
             ?.takeIf { it > 0 }
-            ?: optString("episodeCount").toIntOrNull()
+            ?: stringOrNull("episodeCount")?.toIntOrNull()
             ?: optJSONObject("lastEpisodeInfo")?.optJSONObject("sub")?.optString("episodeString")?.toIntOrNull()
             ?: if (isMovie) 1 else 0
-        val runtime = optString("episodeDuration").toLongOrNull()?.let { (it / 60000L).toInt() }
+        val runtime = stringOrNull("episodeDuration")?.toLongOrNull()?.let { (it / 60000L).toInt() }
 
         return TvShow(
             id = id,
@@ -535,8 +654,8 @@ object MkissaProvider : Provider {
             released = dateString(optJSONObject("airedStart")),
             runtime = runtime,
             rating = optDoubleOrNull("score"),
-            poster = imageUrl(optString("thumbnail")),
-            banner = imageUrl(optString("banner")),
+            poster = imageUrl(stringOrNull("thumbnail")),
+            banner = imageUrl(stringOrNull("banner")),
             genres = optJSONArray("genres")?.asSequence()
                 ?.mapNotNull { it as? String }
                 ?.map { Genre(id = it.lowercase().replace(" ", "_"), name = it) }
@@ -555,6 +674,39 @@ object MkissaProvider : Provider {
                 emptyList()
             }
         )
+    }
+
+    private fun JSONObject.toMovieOrNull(forceMovie: Boolean = false): Movie? {
+        val rawId = stringOrNull("_id") ?: return null
+        val isMovie = stringOrNull("type").equals("Movie", ignoreCase = true)
+        if (!forceMovie && !isMovie) return null
+        val title = displayTitleOrNull() ?: return null
+        val overview = stringOrNull("description")?.let { Jsoup.parse(it).text() }
+        val runtime = stringOrNull("episodeDuration")?.toLongOrNull()?.let { (it / 60000L).toInt() }
+        return Movie(
+            id = "movie:$rawId",
+            title = title,
+            overview = overview,
+            released = dateString(optJSONObject("airedStart")),
+            runtime = runtime,
+            rating = optDoubleOrNull("score"),
+            poster = imageUrl(stringOrNull("thumbnail")),
+            banner = imageUrl(stringOrNull("banner")),
+            genres = optJSONArray("genres")?.asSequence()
+                ?.mapNotNull { it as? String }
+                ?.map { Genre(id = it.lowercase().replace(" ", "_"), name = it) }
+                ?.toList()
+                ?: emptyList()
+        )
+    }
+
+    private fun JSONObject.displayTitleOrNull(): String? {
+        return stringOrNull("englishName")
+            ?: stringOrNull("name")
+            ?: stringOrNull("nativeName")
+            ?: firstStringOrNull("altNames")
+            ?: stringOrNull("nameOnlyString")?.humanizeSlug()
+            ?: stringOrNull("slugTime")?.humanizeSlug()
     }
 
     private fun TvShow.toMovie(): Movie {
@@ -583,10 +735,28 @@ object MkissaProvider : Provider {
 
     private fun imageUrl(value: String?): String? {
         val image = value?.takeIf { it.isNotBlank() } ?: return null
-        return when {
+        val url = when {
+            image.contains("/_tbs/") || image.contains("_tbs/") -> image
+                .removePrefix("https://wp.youtube-anime.com/")
+                .removePrefix("https://aln.youtube-anime.com/")
+                .removePrefix("/")
+                .substringBefore("?")
+                .let { "$IMAGE_URL/$it?w=250" }
             image.startsWith("http") -> image
             image.startsWith("//") -> "https:$image"
-            else -> "https://wp.youtube-anime.com/$image?w=250"
+            image.startsWith("images") -> "$IMAGE_URL/$image?w=250"
+            else -> "$IMAGE_URL/images/$image?w=250"
+        }
+        return if (url.contains("youtube-anime.com")) {
+            ArtworkRequestHeaders.withHeaders(
+                url = url,
+                referer = baseUrl,
+                origin = "https://mkissa.to",
+                userAgent = "Mozilla/5.0",
+                accept = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+            )
+        } else {
+            url
         }
     }
 
@@ -602,9 +772,33 @@ object MkissaProvider : Provider {
     }
 
     private fun JSONObject.sourceUrl(): String {
-        return optString("sourceUrl")
-            .ifBlank { optString("url") }
-            .ifBlank { optString("source") }
+        return stringOrNull("sourceUrl")
+            ?: stringOrNull("url")
+            ?: stringOrNull("source")
+            ?: ""
+    }
+
+    private fun JSONObject.stringOrNull(key: String): String? {
+        if (!has(key) || isNull(key)) return null
+        return optString(key)
+            .trim()
+            .takeUnless {
+                it.isBlank() ||
+                    it.equals("null", ignoreCase = true) ||
+                    it.equals("undefined", ignoreCase = true)
+            }
+    }
+
+    private fun JSONObject.firstStringOrNull(key: String): String? {
+        val values = optJSONArray(key) ?: return null
+        return values.asSequence()
+            .mapNotNull { it as? String }
+            .map { it.trim() }
+            .firstOrNull {
+                it.isNotBlank() &&
+                    !it.equals("null", ignoreCase = true) &&
+                    !it.equals("undefined", ignoreCase = true)
+            }
     }
 
     private fun decryptTobeParsed(value: String): JSONObject {
@@ -634,6 +828,64 @@ object MkissaProvider : Provider {
             else -> "Fall"
         }
     }
+
+    private fun String.normalizedTagType(): String {
+        return when (this) {
+            "genre", "tag" -> "generic"
+            "all" -> ""
+            else -> this
+        }
+    }
+
+    private fun String.slugify(): String {
+        return lowercase()
+            .replace("'", "")
+            .replace(Regex("[^a-z0-9]+"), "_")
+            .trim('_')
+    }
+
+    private fun String.humanizeSlug(): String {
+        return replace('_', ' ')
+            .replace('-', ' ')
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { word ->
+                word.replaceFirstChar { char ->
+                    if (char.isLowerCase()) char.titlecase() else char.toString()
+                }
+            }
+            .takeIf { it.isNotBlank() }
+            ?: this
+    }
+
+    private data class HomeTag(
+        val slug: String,
+        val name: String,
+        val tagType: String? = null
+    )
+
+    private val fallbackHomeTags = listOf(
+        "Isekai",
+        "Boys' Love",
+        "Female Harem",
+        "Yuri",
+        "Reincarnation",
+        "Male Protagonist",
+        "Overpowered Protagonist",
+        "Yandere",
+        "Gyaru",
+        "Cultivation",
+        "Female Protagonist",
+        "Full Color",
+        "Magic",
+        "Anti-Hero",
+        "School",
+        "POV",
+        "Post-Apocalyptic",
+        "Succubus",
+        "Primarily Adult Cast",
+        "Gender Bending"
+    ).map { HomeTag(slug = it.slugify(), name = it) }
 
     private val genres = listOf(
         "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Isekai", "Magic", "Mystery",
