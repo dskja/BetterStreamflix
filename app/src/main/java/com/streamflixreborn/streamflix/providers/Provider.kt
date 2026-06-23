@@ -111,7 +111,8 @@ interface Provider {
             PlutoTvEsProvider to ProviderSupport(movies = false, tvShows = true),
             PlutoTvFrProvider to ProviderSupport(movies = false, tvShows = true),
             PlutoTvItProvider to ProviderSupport(movies = false, tvShows = true),
-            PlutoTvUsProvider to ProviderSupport(movies = false, tvShows = true)
+            PlutoTvUsProvider to ProviderSupport(movies = false, tvShows = true),
+            CineCityProvider to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support
