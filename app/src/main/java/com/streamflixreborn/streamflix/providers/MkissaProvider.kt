@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.providers
 
 import android.util.Base64
+import android.util.Log
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
 import com.streamflixreborn.streamflix.models.Category
@@ -39,6 +40,7 @@ import javax.crypto.spec.SecretKeySpec
 
 object MkissaProvider : Provider {
 
+    private const val TAG = "MkissaProvider"
     private const val API_URL = "https://api.allanime.day/"
     private const val SEARCH_HASH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
     private const val POPULAR_DAILY_HASH = "a0aca6827cc9a3ad7bc711da4d200a04adea8f1a7545dc418d5e92e74c3aad15"
@@ -51,6 +53,7 @@ object MkissaProvider : Provider {
     private const val HOME_TAG_LIMIT = 20
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     private val translationTypes = listOf("sub", "dub", "raw")
+    private val browseTranslationTypes = listOf("sub", "dub")
 
     private val SHOW_FIELDS = """
         _id
@@ -71,6 +74,7 @@ object MkissaProvider : Provider {
         thumbnail
         banner
         genres
+        isAdult
     """.trimIndent()
 
     private val SEARCH_QUERY = """
@@ -80,6 +84,7 @@ object MkissaProvider : Provider {
           ${'$'}page: Int
           ${'$'}translationType: VaildTranslationTypeEnumType
           ${'$'}countryOrigin: VaildCountryOriginEnumType
+          ${'$'}allowAdult: Boolean
         ) {
           shows(
             search: ${'$'}search
@@ -87,6 +92,7 @@ object MkissaProvider : Provider {
             page: ${'$'}page
             translationType: ${'$'}translationType
             countryOrigin: ${'$'}countryOrigin
+            allowAdult: ${'$'}allowAdult
           ) {
             pageInfo { total }
             edges { $SHOW_FIELDS }
@@ -284,7 +290,7 @@ object MkissaProvider : Provider {
         }
 
         val categories = buildList {
-            add(category("Latest Updates (Sub)") {
+            add(category("Latest Updates (Sub/Dub)") {
                 searchShows(mapOf("sortBy" to "Recent"), limit = HOME_ROW_LIMIT, page = 1)
             })
             add(newSeries)
@@ -532,13 +538,21 @@ object MkissaProvider : Provider {
         countryOrigin: String? = null,
         hash: String = SEARCH_HASH
     ): List<TvShow> {
-        val variables = JSONObject()
-            .put("search", JSONObject(search))
-            .put("limit", limit)
-            .put("page", page)
-            .put("translationType", "sub")
-        if (countryOrigin != null) variables.put("countryOrigin", countryOrigin)
-        return parseShows(api(variables, hash, SEARCH_QUERY))
+        val shows = buildList {
+            for (translation in browseTranslationTypes) {
+                val variables = JSONObject()
+                    .put("search", JSONObject(search))
+                    .put("limit", limit)
+                    .put("page", page)
+                    .put("translationType", translation)
+                    .put("allowAdult", false)
+                if (countryOrigin != null) variables.put("countryOrigin", countryOrigin)
+                addAll(parseShows(api(variables, hash, SEARCH_QUERY)))
+            }
+        }
+        return shows
+            .distinctBy { it.id }
+            .take(limit)
     }
 
     private suspend fun searchItems(
@@ -546,23 +560,49 @@ object MkissaProvider : Provider {
         limit: Int,
         page: Int
     ): List<AppAdapter.Item> {
-        val variables = JSONObject()
-            .put("search", JSONObject(search))
-            .put("limit", limit)
-            .put("page", page)
-        return parseSearchItems(api(variables, SEARCH_HASH, SEARCH_QUERY))
+        val items = buildList {
+            for (translation in browseTranslationTypes) {
+                val variables = JSONObject()
+                    .put("search", JSONObject(search))
+                    .put("limit", limit)
+                    .put("page", page)
+                    .put("translationType", translation)
+                    .put("allowAdult", false)
+                addAll(parseSearchItems(api(variables, SEARCH_HASH, SEARCH_QUERY)))
+            }
+        }
+        return items
+            .distinctBy { item ->
+                when (item) {
+                    is Movie -> item.id
+                    is TvShow -> item.id
+                    else -> item.itemType
+                }
+            }
+            .take(limit)
     }
 
     private suspend fun searchMovies(page: Int, limit: Int = 26): List<Movie> {
-        val variables = JSONObject()
-            .put("search", JSONObject(mapOf("sortBy" to "Popular", "types" to listOf("Movie"))))
-            .put("limit", limit)
-            .put("page", page)
-            .put("translationType", "sub")
-        return showEdges(api(variables, SEARCH_HASH, SEARCH_QUERY))
-            .mapNotNull { it as? JSONObject }
-            .mapNotNull { it.toMovieOrNull(forceMovie = true) }
-            .toList()
+        val movies = buildList {
+            for (translation in browseTranslationTypes) {
+                val variables = JSONObject()
+                    .put("search", JSONObject(mapOf("sortBy" to "Popular", "types" to listOf("Movie"))))
+                    .put("limit", limit)
+                    .put("page", page)
+                    .put("translationType", translation)
+                    .put("allowAdult", false)
+                addAll(
+                    showEdges(api(variables, SEARCH_HASH, SEARCH_QUERY))
+                        .asSequence()
+                        .mapNotNull { it as? JSONObject }
+                        .mapNotNull { it.toMovieOrNull(forceMovie = true) }
+                        .toList()
+                )
+            }
+        }
+        return movies
+            .distinctBy { it.id }
+            .take(limit)
     }
 
     private suspend fun showDetails(id: String): TvShow {
@@ -571,10 +611,12 @@ object MkissaProvider : Provider {
     }
 
     private suspend fun showJson(id: String): JSONObject {
-        return api(JSONObject().put("_id", id), DETAIL_HASH, DETAIL_QUERY)
+        val show = api(JSONObject().put("_id", id), DETAIL_HASH, DETAIL_QUERY)
             .optJSONObject("data")
             ?.optJSONObject("show")
             ?: throw Exception("MKissa show not found")
+        if (show.isAdultContent()) throw Exception("MKissa show not found")
+        return show
     }
 
     private suspend fun api(variables: JSONObject, hash: String, fallbackQuery: String? = null): JSONObject {
@@ -608,14 +650,23 @@ object MkissaProvider : Provider {
     private fun parseShows(response: JSONObject): List<TvShow> {
         return showEdges(response)
             .mapNotNull { it as? JSONObject }
+            .filterNot { it.isAdultContent() }
             .mapNotNull { it.toTvShow(detailed = false) }
             .toList()
     }
 
     private fun parseSearchItems(response: JSONObject): List<AppAdapter.Item> {
-        return showEdges(response)
+        val items = showEdges(response)
             .mapNotNull { it as? JSONObject }
+            .filterNot { it.isAdultContent() }
             .mapNotNull { show ->
+                val title = show.displayTitleOrNull() ?: "?"
+                val type = show.stringOrNull("type") ?: "?"
+                val genres = (0 until (show.optJSONArray("genres")?.length() ?: 0))
+                    .map { show.optJSONArray("genres")!!.optString(it) }
+                    .joinToString(",")
+                val isAdult = show.opt("isAdult")
+                Log.d(TAG, "RAW show: _id=${show.stringOrNull("_id")}, title=$title, type=$type, genres=[$genres], isAdult=$isAdult")
                 if (show.stringOrNull("type").equals("Movie", ignoreCase = true)) {
                     show.toMovieOrNull(forceMovie = true)
                 } else {
@@ -623,6 +674,15 @@ object MkissaProvider : Provider {
                 }
             }
             .toList()
+        Log.d(TAG, "parseSearchItems: ${items.size} items parsed from search")
+        items.forEach { item ->
+            when (item) {
+                is Movie -> Log.d(TAG, "  Movie: ${item.title} (genres: ${item.genres.map { it.name }})")
+                is TvShow -> Log.d(TAG, "  TvShow: ${item.title} (genres: ${item.genres.map { it.name }})")
+                else -> Log.d(TAG, "  Other: ${item.itemType}")
+            }
+        }
+        return items
     }
 
     private fun showEdges(response: JSONObject): Sequence<Any?> {
@@ -661,6 +721,7 @@ object MkissaProvider : Provider {
     }
 
     private fun JSONObject.toTvShow(detailed: Boolean): TvShow? {
+        if (isAdultContent()) return null
         val rawId = stringOrNull("_id") ?: return null
         val isMovie = stringOrNull("type").equals("Movie", ignoreCase = true)
         val id = if (isMovie) "movie:$rawId" else rawId
@@ -726,6 +787,7 @@ object MkissaProvider : Provider {
     }
 
     private fun JSONObject.toMovieOrNull(forceMovie: Boolean = false): Movie? {
+        if (isAdultContent()) return null
         val rawId = stringOrNull("_id") ?: return null
         val isMovie = stringOrNull("type").equals("Movie", ignoreCase = true)
         if (!forceMovie && !isMovie) return null
@@ -819,6 +881,16 @@ object MkissaProvider : Provider {
 
     private fun JSONObject.optDoubleOrNull(key: String): Double? {
         return if (has(key) && !isNull(key)) optDouble(key) else null
+    }
+
+    private fun JSONObject.isAdultContent(): Boolean {
+        if (!has("isAdult") || isNull("isAdult")) return false
+        return when (val value = opt("isAdult")) {
+            is Boolean -> value
+            is Number -> value.toInt() != 0
+            is String -> value.equals("true", ignoreCase = true) || value == "1"
+            else -> false
+        }
     }
 
     private fun JSONObject.sourceUrl(): String {
