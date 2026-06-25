@@ -71,6 +71,8 @@ abstract class Extractor {
             StreamSBExtractor(),
             Mp4UploadExtractor(),
             StreamlareExtractor(),
+            NinjaStreamExtractor(),
+            UchExtractor(),
             VixSrcExtractor(),
             GoodstreamExtractor(),
             LamovieExtractor(),

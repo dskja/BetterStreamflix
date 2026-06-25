@@ -19,6 +19,7 @@ import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -42,6 +43,7 @@ object MkissaProvider : Provider {
 
     private const val TAG = "MkissaProvider"
     private const val API_URL = "https://api.allanime.day/"
+    private const val CLOCK_URL = "https://allanime.day"
     private const val SEARCH_HASH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
     private const val POPULAR_DAILY_HASH = "a0aca6827cc9a3ad7bc711da4d200a04adea8f1a7545dc418d5e92e74c3aad15"
     private const val POPULAR_HASH = "ac2c75884a11fca5707ce4ad10f2e3e2aae31e42af5e4d9c511a4a5e708e4c6d"
@@ -234,6 +236,12 @@ object MkissaProvider : Provider {
         .build()
         .create(MkissaService::class.java)
 
+    private val sourceResolverClient = OkHttpClient.Builder()
+        .dns(DnsResolver.doh)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
+
     private interface MkissaService {
         @Headers(
             "Accept: application/json",
@@ -373,19 +381,35 @@ object MkissaProvider : Provider {
             .filter { translation ->
                 (available?.optInt(translation, 0) ?: if (translation == "sub") 1 else 0) > 0
             }
-            .map { translation ->
-                Video.Server(
-                    id = listOf(showId, episode, translation).joinToString("|"),
-                    name = "MKissa ${translation.uppercase()}"
-                )
+            .flatMap { translation ->
+                val sources = getSourceEntries(showId = showId, episode = episode, translation = translation)
+                sources.map { sourceObject ->
+                    val sourceName = sourceObject.stringOrNull("sourceName") ?: "MKissa"
+                    val sourceUrl = sourceObject.sourceUrl()
+                    Video.Server(
+                        id = sourceUrl,
+                        name = "$sourceName ${translation.uppercase()}".trim(),
+                        src = sourceUrl
+                    )
+                }
             }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val parts = server.id.split("|")
-        val showId = parts.getOrNull(0).orEmpty()
-        val episode = parts.getOrNull(1) ?: "1"
-        val translation = parts.getOrNull(2) ?: "sub"
+        val source = resolveSourceUrl(server.src.ifBlank { server.id })
+            ?: throw Exception("Selected MKissa source could not be resolved")
+
+        if (source.contains(".m3u8", ignoreCase = true) || source.contains(".mp4", ignoreCase = true)) {
+            return Video(
+                source = source,
+                headers = directPlaybackHeaders()
+            )
+        }
+
+        return Extractor.extract(source, server)
+    }
+
+    private suspend fun getSourceEntries(showId: String, episode: String, translation: String): List<JSONObject> {
         val response = api(
             variables = JSONObject()
                 .put("showId", showId)
@@ -399,41 +423,16 @@ object MkissaProvider : Provider {
             data = decryptTobeParsed(data.optString("tobeparsed"))
         }
 
-        val sources = sequenceOf(
+        return sequenceOf(
             data.optJSONArray("sourceUrls"),
             data.optJSONObject("episode")?.optJSONArray("sourceUrls")
         )
             .filterNotNull()
             .flatMap { it.asSequence() }
             .mapNotNull { it as? JSONObject }
-            .filter {
-                it.sourceUrl().let { url -> url.isNotBlank() && !url.startsWith("--") }
-            }
+            .filter { it.sourceUrl().isNotBlank() }
+//            .filterNot { it.isKnownDeadEmbedSource() }
             .toList()
-
-        if (sources.isEmpty()) throw Exception("No playable MKissa source found")
-
-        var lastError: Exception? = null
-        for (sourceObject in sources.sortedByDescending { it.optDouble("priority", 0.0) }) {
-            val source = sourceObject.sourceUrl()
-            val sourceServer = server.copy(name = sourceObject.stringOrNull("sourceName") ?: server.name)
-            try {
-                if (source.contains(".m3u8", ignoreCase = true) || source.contains(".mp4", ignoreCase = true)) {
-                    return Video(
-                        source = source,
-                        headers = mapOf(
-                            "Referer" to baseUrl,
-                            "User-Agent" to "Mozilla/5.0"
-                        )
-                    )
-                }
-                return Extractor.extract(source, sourceServer)
-            } catch (error: Exception) {
-                lastError = error
-            }
-        }
-
-        throw Exception("No MKissa source could be extracted", lastError)
     }
 
     private suspend fun popularShows(page: Int, size: Int): List<TvShow> {
@@ -898,6 +897,78 @@ object MkissaProvider : Provider {
             ?: stringOrNull("url")
             ?: stringOrNull("source")
             ?: ""
+    }
+
+    private fun JSONObject.isKnownDeadEmbedSource(): Boolean {
+        val source = sourceUrl().lowercase()
+        return source.contains("streamsb.net") ||
+            source.contains("streamlare.com")
+    }
+
+    private suspend fun resolveSourceUrl(value: String): String? {
+        if (value.isBlank()) return null
+
+        val decoded = decodePackedSourceUrl(value)
+        val normalized = when {
+            decoded.startsWith("//") -> "https:$decoded"
+            decoded.startsWith("http", ignoreCase = true) -> decoded
+            decoded.startsWith("/apivtwo/", ignoreCase = true) -> resolveAllanimeClockSource(decoded)
+            else -> decoded.takeIf { it.isNotBlank() }
+        }
+
+        return normalized?.takeIf { it.isNotBlank() }
+    }
+
+    private fun decodePackedSourceUrl(value: String): String {
+        if (!value.startsWith("--")) return value
+
+        val bytes = runCatching {
+            value.removePrefix("--")
+                .chunked(2)
+                .map { pair -> pair.toInt(16).xor(56).toByte() }
+                .toByteArray()
+        }.getOrNull() ?: return value
+
+        return bytes.toString(Charsets.UTF_8).trim()
+    }
+
+    private suspend fun resolveAllanimeClockSource(path: String): String? {
+        val normalizedPath = path.replace("/apivtwo/clock?", "/apivtwo/clock.json?")
+        val request = Request.Builder()
+            .url("$CLOCK_URL$normalizedPath")
+            .header("Accept", "application/json")
+            .header("Origin", CLOCK_URL)
+            .header("Referer", "$CLOCK_URL/player.html")
+            .header("User-Agent", "Mozilla/5.0")
+            .build()
+
+        val body = sourceResolverClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return null
+            response.body?.string()
+        } ?: return null
+
+        val json = runCatching { JSONObject(body) }.getOrNull() ?: return null
+        val links = json.optJSONArray("links") ?: return null
+
+        for (i in 0 until links.length()) {
+            val linkObject = links.optJSONObject(i) ?: continue
+            val link = linkObject.stringOrNull("link")
+                ?: linkObject.stringOrNull("url")
+                ?: linkObject.stringOrNull("sourceUrl")
+                ?: linkObject.stringOrNull("file")
+            if (!link.isNullOrBlank()) return link
+        }
+
+        return null
+    }
+
+    private fun directPlaybackHeaders(): Map<String, String> {
+        return mapOf(
+            "Accept" to "*/*",
+            "Origin" to CLOCK_URL,
+            "Referer" to "$CLOCK_URL/",
+            "User-Agent" to "Mozilla/5.0"
+        )
     }
 
     private fun JSONObject.stringOrNull(key: String): String? {

@@ -19,39 +19,81 @@ abstract class GenericPackedSourceExtractor : Extractor() {
 
     override suspend fun extract(link: String): Video {
         val baseUrl = URL(link).let { "${it.protocol}://${it.host}" }
-        val document = Service.build(baseUrl).get(
-            url = link,
-            referer = "$refererUrl/",
-            userAgent = USER_AGENT
-        )
-        val source = findSource(document.toString())
-            ?: document.select("script")
-                .asSequence()
-                .mapNotNull { JsUnpacker(it.html()).unpack() }
-                .mapNotNull { findSource(it) }
-                .firstOrNull()
-            ?: throw Exception("Can't extract video source from $name")
+        val service = Service.build(baseUrl)
+        var currentUrl = link
+        var referer = "$refererUrl/"
+        var source: String? = null
+
+        for (attempt in 0 until MAX_REDIRECT_HOPS) {
+            val document = service.get(
+                url = currentUrl,
+                referer = referer,
+                userAgent = USER_AGENT
+            )
+
+            val html = document.html()
+            source = findSource(html)
+                ?: document.select("script")
+                    .asSequence()
+                    .mapNotNull { JsUnpacker(it.html()).unpack() }
+                    .mapNotNull { findSource(it) }
+                    .firstOrNull()
+
+            if (source != null) {
+                break
+            }
+
+            val redirectUrl = findRedirectUrl(html)
+                ?: document.select("script")
+                    .asSequence()
+                    .mapNotNull { JsUnpacker(it.html()).unpack() }
+                    .mapNotNull { findRedirectUrl(it) }
+                    .firstOrNull()
+
+            if (redirectUrl == null) {
+                break
+            }
+
+            val resolvedUrl = URL(URL(currentUrl), redirectUrl).toString()
+            referer = currentUrl
+            currentUrl = resolvedUrl
+        }
+
+        val videoSource = source ?: throw Exception("Can't extract video source from $name")
+        val playbackBaseUrl = URL(currentUrl).let { "${it.protocol}://${it.host}" }
 
         return Video(
-            source = source,
+            source = videoSource,
             headers = mapOf(
-                "Referer" to "$baseUrl/",
-                "Origin" to baseUrl,
+                "Referer" to "$playbackBaseUrl/",
+                "Origin" to playbackBaseUrl,
                 "User-Agent" to USER_AGENT
             )
         )
     }
 
+    private fun findRedirectUrl(text: String): String? {
+        val decoded = normalize(text)
+        return redirectPatterns
+            .asSequence()
+            .mapNotNull { it.find(decoded)?.groupValues?.getOrNull(1) }
+            .firstOrNull { it.isNotBlank() }
+    }
+
     private fun findSource(text: String): String? {
-        val decoded = text
-            .replace("\\/", "/")
-            .replace("\\u0026", "&")
-            .replace("&amp;", "&")
+        val decoded = normalize(text)
 
         return sourcePatterns
             .asSequence()
             .mapNotNull { it.find(decoded)?.groupValues?.getOrNull(1) }
             .firstOrNull { it.startsWith("http") }
+    }
+
+    private fun normalize(text: String): String {
+        return text
+            .replace("\\/", "/")
+            .replace("\\u0026", "&")
+            .replace("&amp;", "&")
     }
 
     private interface Service {
@@ -78,8 +120,18 @@ abstract class GenericPackedSourceExtractor : Extractor() {
     }
 
     companion object {
+        private const val MAX_REDIRECT_HOPS = 5
         private const val USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+        private val redirectPatterns = listOf(
+            Regex("""(?is)window\.location(?:\.href)?\.replace\(\s*['"]([^'"]+)['"]\s*\)"""),
+            Regex("""(?is)window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]"""),
+            Regex("""(?is)location\.replace\(\s*['"]([^'"]+)['"]\s*\)"""),
+            Regex("""(?is)location\.href\s*=\s*['"]([^'"]+)['"]"""),
+            Regex("""(?is)<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"'>]+)["']"""),
+            Regex("""(?is)document\.write\([^)]*?href\s*=\s*["']([^"']+)["']""")
+        )
 
         private val sourcePatterns = listOf(
             Regex("""(?i)(?:file|src)\s*[:=]\s*["'](https?://[^"']+\.(?:m3u8|mp4)(?:\?[^"']*)?)["']"""),
@@ -100,6 +152,16 @@ class StreamSBExtractor : GenericPackedSourceExtractor() {
         "https://ssbstream.net",
         "https://streamsss.net"
     )
+
+    override suspend fun extract(link: String): Video {
+        return runCatching { super.extract(link) }
+            .getOrElse { error ->
+                throw Exception(
+                    "StreamSB did not return a player page. The current domain redirects to parked/ad content.",
+                    error
+                )
+            }
+    }
 }
 
 class Mp4UploadExtractor : GenericPackedSourceExtractor() {
@@ -111,4 +173,26 @@ class Mp4UploadExtractor : GenericPackedSourceExtractor() {
 class StreamlareExtractor : GenericPackedSourceExtractor() {
     override val name = "Streamlare"
     override val mainUrl = "https://streamlare.com"
+
+    override suspend fun extract(link: String): Video {
+        return runCatching { super.extract(link) }
+            .getOrElse { error ->
+                throw Exception(
+                    "Streamlare did not return a player page. The current domain is served by ParkLogic parking.",
+                    error
+                )
+            }
+    }
+}
+
+class NinjaStreamExtractor : GenericPackedSourceExtractor() {
+    override val name = "NinjaStream"
+    override val mainUrl = "https://ninjastream"
+    override val rotatingDomain = listOf(Regex("""(^|\.)ninjastream(\.|/)"""))
+}
+
+class UchExtractor : GenericPackedSourceExtractor() {
+    override val name = "Uch"
+    override val mainUrl = "https://uch"
+    override val rotatingDomain = listOf(Regex("""(^|\.)uch(\.|/)"""))
 }
