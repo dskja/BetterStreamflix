@@ -85,6 +85,7 @@ interface Provider {
             SoloLatinoProvider to ProviderSupport(movies = true, tvShows = true),
             Cine24hProvider to ProviderSupport(movies = true, tvShows = true),
             PelisplustoProvider to ProviderSupport(movies = true, tvShows = true),
+            PelisflixHdProvider to ProviderSupport(movies = true, tvShows = true),
             CableVisionHDProvider to ProviderSupport(movies = false, tvShows = true),
             Altadefinizione01Provider to ProviderSupport(movies = true, tvShows = true),
             GuardaFlixProvider to ProviderSupport(movies = true, tvShows = false),

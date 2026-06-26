@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.extractors
 
 import android.util.Base64
+import androidx.media3.common.MimeTypes
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.JsUnpacker
@@ -51,8 +52,16 @@ class NuuploadExtractor : Extractor() {
             return Extractor.extract(delegated)
         }
 
-        val sourceUrl = findDirectSource(document, page.finalUrl, htmlCandidates)
+        val rawSourceUrl = findDirectSource(document, page.finalUrl, htmlCandidates)
             ?: throw Exception("No playable source found for Nuupload")
+        val sourceUrl = resolvePlayableUrl(rawSourceUrl, page.finalUrl)
+
+        val videoType = when {
+            sourceUrl.contains(".m3u8", ignoreCase = true) -> MimeTypes.APPLICATION_M3U8
+            isLikelyHlsSessionUrl(sourceUrl, page.finalUrl, htmlCandidates) -> MimeTypes.APPLICATION_M3U8
+            sourceUrl.contains(".mp4", ignoreCase = true) -> MimeTypes.VIDEO_MP4
+            else -> null
+        }
 
         val subtitles = document.select("track[src]").mapNotNull { track ->
             val src = track.attr("src").trim()
@@ -71,7 +80,8 @@ class NuuploadExtractor : Extractor() {
             headers = mapOf(
                 "Referer" to "${URL(page.finalUrl).protocol}://${URL(page.finalUrl).host}/",
                 "Origin" to "${URL(page.finalUrl).protocol}://${URL(page.finalUrl).host}"
-            )
+            ),
+            type = videoType
         )
     }
 
@@ -90,6 +100,8 @@ class NuuploadExtractor : Extractor() {
         )
 
         htmlCandidates.forEach { html ->
+            extractObfuscatedNuuploadSource(html, pageUrl)?.let { return it }
+
             directPatterns.forEach { pattern ->
                 val match = pattern.find(html)?.groupValues?.lastOrNull()?.takeIf { it.isNotBlank() }
                 if (match != null) {
@@ -108,6 +120,103 @@ class NuuploadExtractor : Extractor() {
         }
 
         return null
+    }
+
+    private fun extractObfuscatedNuuploadSource(html: String, pageUrl: String): String? {
+        val offset = Regex("""String\.fromCharCode\(parseInt\(atob\(value\)\.replace\(/\\D/g,''\)\)\s*-\s*(\d+)\)""")
+            .find(html)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toIntOrNull()
+            ?: return null
+
+        val arrayContent = Regex("""var\s+\w+\s*=\s*\[((?:"[^"]*"|'[^']*')(?:\s*,\s*(?:"[^"]*"|'[^']*'))*)]""")
+            .find(html)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?: return null
+
+        val encodedParts = Regex("""["']([^"']+)["']""")
+            .findAll(arrayContent)
+            .map { it.groupValues[1] }
+            .toList()
+
+        if (encodedParts.isEmpty()) {
+            return null
+        }
+
+        val baseUrl = buildString {
+            encodedParts.forEach { encoded ->
+                val decoded = safeBase64Decode(encoded) ?: return@forEach
+                val numeric = decoded.replace(Regex("""\D"""), "")
+                val codePoint = numeric.toIntOrNull()?.minus(offset) ?: return@forEach
+                append(codePoint.toChar())
+            }
+        }.trim()
+
+        if (!baseUrl.startsWith("http")) {
+            return null
+        }
+
+        val session = Regex("""var\s+sesz\s*=\s*["']([^"']+)["']""")
+            .find(html)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+
+        val finalUrl = if (!session.isNullOrBlank()) {
+            val separator = if ('?' in baseUrl) '&' else '?'
+            "$baseUrl${separator}s=$session"
+        } else {
+            baseUrl
+        }
+
+        return absolutize(finalUrl, pageUrl)
+    }
+
+    private fun isLikelyHlsSessionUrl(sourceUrl: String, pageUrl: String, htmlCandidates: List<String>): Boolean {
+        if (!pageUrl.contains("/watch/")) return false
+        if (!sourceUrl.contains("?s=")) return false
+
+        return htmlCandidates.any { html ->
+            html.contains("jwplayer(", ignoreCase = true) &&
+                html.contains("type:\"hls\"", ignoreCase = true) ||
+                html.contains("type:'hls'", ignoreCase = true) ||
+                html.contains("type:\"application/vnd.apple.mpegurl\"", ignoreCase = true) ||
+                html.contains("file:", ignoreCase = true) && html.contains("?s=", ignoreCase = true)
+        }
+    }
+
+    private fun resolvePlayableUrl(sourceUrl: String, pageUrl: String): String {
+        if (!sourceUrl.startsWith("http")) {
+            return sourceUrl
+        }
+
+        val client = OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        val originUrl = URL(pageUrl)
+        val referer = "${originUrl.protocol}://${originUrl.host}/"
+        val origin = "${originUrl.protocol}://${originUrl.host}"
+
+        return runCatching {
+            client.newCall(
+                Request.Builder()
+                    .url(sourceUrl)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Referer", referer)
+                    .header("Origin", origin)
+                    .header("Accept", "*/*")
+                    .build()
+            ).execute().use { response ->
+                response.request.url.toString()
+            }
+        }.getOrDefault(sourceUrl)
     }
 
     private fun findDelegatedLink(document: Document, pageUrl: String, htmlCandidates: List<String>): String? {
