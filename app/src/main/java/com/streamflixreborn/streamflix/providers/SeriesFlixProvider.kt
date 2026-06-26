@@ -240,22 +240,19 @@ object SeriesFlixProvider : Provider {
         val servers = mutableListOf<Video.Server>()
 
         document.select(".optns-bx .drpdn").forEach { group ->
-            val languageLabel = group.selectFirst("button.bstd")?.ownText()?.trim()
-                ?.ifBlank { group.selectFirst("button.bstd")?.text()?.trim() }
-                .orEmpty()
+            val languageLabel = normalizeLanguageLabel(
+                group.selectFirst("button.bstd")?.text().orEmpty()
+            )
 
             group.select(".Button.sgty[data-url]").forEachIndexed { index, serverButton ->
                 val decodedUrl = decodeBase64Url(serverButton.attr("data-url")) ?: return@forEachIndexed
                 val playableUrl = unwrapPlayableUrl(decodedUrl)
                 val hostLabel = extractHostLabel(playableUrl)
-                val serverTitle = serverButton.text().trim().ifBlank { "Server ${index + 1}" }
 
                 servers.add(
                     Video.Server(
                         id = playableUrl,
-                        name = listOf(languageLabel, hostLabel, serverTitle)
-                            .filter { it.isNotBlank() }
-                            .joinToString(" - "),
+                        name = buildServerLabel(languageLabel, hostLabel, index + 1),
                         src = playableUrl
                     )
                 )
@@ -344,8 +341,33 @@ object SeriesFlixProvider : Provider {
             val host = value.toHttpUrlOrNull()?.host.orEmpty()
                 .removePrefix("www.")
                 .substringBefore(".")
-            host.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+            when {
+                host.contains("voe", ignoreCase = true) -> "Voe"
+                host.contains("nupload", ignoreCase = true) -> "Nupload"
+                host.contains("waaw", ignoreCase = true) -> "Waaw"
+                host.contains("upstream", ignoreCase = true) -> "Upstream"
+                host.contains("streamtape", ignoreCase = true) -> "Streamtape"
+                host.isBlank() -> "Server"
+                else -> host.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+            }
         }.getOrDefault("Server")
+    }
+
+    private fun normalizeLanguageLabel(raw: String): String {
+        val upper = raw.uppercase(Locale.ROOT)
+        return when {
+            "LATINO" in upper -> "Latino"
+            "CASTELLANO" in upper || "ESPANOL" in upper || "ESPAÑOL" in upper -> "Castellano"
+            "SUBTITULADO" in upper || "SUBTITLED" in upper -> "Subtitulado"
+            raw.isBlank() -> "Server"
+            else -> raw.trim().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        }
+    }
+
+    private fun buildServerLabel(languageLabel: String, hostLabel: String, optionNumber: Int): String {
+        return listOf(languageLabel, "$hostLabel $optionNumber")
+            .filter { it.isNotBlank() }
+            .joinToString(" - ")
     }
 
     private fun normalizeImageUrl(url: String?): String? {
