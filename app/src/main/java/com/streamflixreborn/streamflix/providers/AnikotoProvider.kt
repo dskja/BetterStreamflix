@@ -18,6 +18,7 @@ import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -25,6 +26,8 @@ import retrofit2.http.Header
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Url
+import java.text.Normalizer
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object AnikotoProvider : Provider {
@@ -80,8 +83,14 @@ object AnikotoProvider : Provider {
             }.distinctBy { it.id }.sortedBy { it.name }
         }
 
-        val document = service.getPage("$baseUrl/filter?keyword=${query.replace(" ", "+")}&page=$page")
+        val document = try {
+            service.getPage("$baseUrl/filter?keyword=${Uri.encode(query)}&page=$page")
+        } catch (e: HttpException) {
+            if (page > 1 && e.code() == 404) return emptyList()
+            throw e
+        }
         return parseCards(document.select(".item, .flw-item"))
+            .filter { it.matchesSearchQuery(query) }
             .distinctBy { it.itemId() }
     }
 
@@ -385,6 +394,29 @@ object AnikotoProvider : Provider {
         is TvShow -> id
         is Genre -> id
         else -> hashCode().toString()
+    }
+
+    private fun AppAdapter.Item.matchesSearchQuery(query: String): Boolean {
+        val title = when (this) {
+            is Movie -> title
+            is TvShow -> title
+            else -> return true
+        }.toSearchText()
+        val normalizedQuery = query.toSearchText()
+        if (normalizedQuery.isBlank()) return true
+        if (title.contains(normalizedQuery)) return true
+
+        val queryTokens = normalizedQuery.split(" ").filter { it.length > 1 }
+        return queryTokens.isNotEmpty() && queryTokens.all { it in title }
+    }
+
+    private fun String.toSearchText(): String {
+        return Normalizer.normalize(this, Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[^a-z0-9]+"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
     }
 
     private fun inferSeasonNumber(title: String): Int {
