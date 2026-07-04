@@ -14,6 +14,7 @@ import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import java.util.concurrent.TimeUnit
+import android.util.Log
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
@@ -459,26 +460,57 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         ?.attr("href")
                         ?.trim()
                     if (!newUrl.isNullOrEmpty()) {
+                        Log.d("FrembedProvider", "Fetched newUrl from portal: $newUrl")
                         val raw = addressService.loadPageRaw(newUrl)
 
                         if (raw.isSuccessful) {
-                            val newUrl = raw.raw().request.url.toString()
+                            val resolvedUrl = raw.raw().request.url.toString()
+                            Log.d("FrembedProvider", "Portal resolved to: $resolvedUrl")
 
                             UserPreferences.setProviderCache(
                                 this,
                                 UserPreferences.PROVIDER_URL,
-                                newUrl
+                                resolvedUrl
                             )
                             UserPreferences.setProviderCache(
                                 this,
                                 UserPreferences.PROVIDER_LOGO,
-                                newUrl + "/favicon-32x32.png"
+                                resolvedUrl + "/favicon-32x32.png"
                             )
                         }
                     }
                 } catch (e: Exception) {
-                    // In case of failure, we'll use the default URL
-                    // No need to throw as we already have a fallback URL
+                    Log.w("FrembedProvider", "Portal fetch failed: ${e.message}. Trying redirect fallback resolution.")
+                    try {
+                        val currentOrFallback = if (baseUrl.isNotEmpty()) baseUrl else defaultBaseUrl
+                        Log.d("FrembedProvider", "Trying fallback redirect resolution for: $currentOrFallback")
+                        val raw = addressService.loadPageRaw(currentOrFallback)
+                        if (raw.isSuccessful) {
+                            val finalUrl = raw.raw().request.url.toString()
+                            Log.d("FrembedProvider", "Fallback resolved to finalUrl: $finalUrl")
+                            if (finalUrl != baseUrl) {
+                                Log.i("FrembedProvider", "Updating cached URL from $baseUrl to $finalUrl")
+                                UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, finalUrl)
+                                UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_LOGO, finalUrl.removeSuffix("/") + "/favicon-32x32.png")
+                            }
+                        }
+                    } catch (ex: Exception) {
+                        Log.w("FrembedProvider", "Fallback redirect resolution for current baseUrl ($baseUrl) failed: ${ex.message}. Trying defaultBaseUrl.")
+                        try {
+                            if (baseUrl != defaultBaseUrl) {
+                                Log.d("FrembedProvider", "Trying fallback redirect resolution for defaultBaseUrl: $defaultBaseUrl")
+                                val raw = addressService.loadPageRaw(defaultBaseUrl)
+                                if (raw.isSuccessful) {
+                                    val finalUrl = raw.raw().request.url.toString()
+                                    Log.i("FrembedProvider", "Resolved defaultBaseUrl redirect to finalUrl: $finalUrl. Saving to cache.")
+                                    UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, finalUrl)
+                                    UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_LOGO, finalUrl.removeSuffix("/") + "/favicon-32x32.png")
+                                }
+                            }
+                        } catch (ex2: Exception) {
+                            Log.e("FrembedProvider", "All redirection fallbacks failed: ${ex2.message}")
+                        }
+                    }
                 }
             }
             service = Service.build(baseUrl)
@@ -493,6 +525,10 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             if (serviceInitialized) return
             onChangeUrl()
         }
+    }
+
+    fun rebuildService() {
+        serviceInitialized = false
     }
 
     private interface Service {

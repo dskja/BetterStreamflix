@@ -16,6 +16,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
+import android.util.Log
+import com.streamflixreborn.streamflix.providers.FrembedProvider
+import com.streamflixreborn.streamflix.utils.UserPreferences
 
 class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
@@ -57,6 +60,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
             .replace("dianaavoidthey", "voe")
             .replace("jefferycontrolmodel", "voe")
             .replace("richardquestionbuilding", "voe")
+            .replace("juliewomanwish", "voe")
             .replace("myvidplay", "dood")
             .replace("playmogo", "dood")
             .replaceFirstChar { it.uppercase() }
@@ -139,34 +143,62 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
     }
 
     suspend fun servers(videoType: Video.Type): List<Video.Server> {
+        Log.d("FrembedExtractor", "Fetching servers for videoType: $videoType using mainUrl: $mainUrl")
         return try {
             val ret = when(videoType) { is Video.Type.Movie -> service.getMovieLinks( videoType.id)
                                         is Video.Type.Episode -> service.getTvShowLinks(videoType.tvShow.id, videoType.season.number, videoType.number) }
             val initialServers = ret.toServers()
+            Log.d("FrembedExtractor", "Initial servers found: ${initialServers.size}")
 
             coroutineScope {
                 initialServers.map { server ->
                     async(Dispatchers.IO) {
                         try {
+                            Log.d("FrembedExtractor", "Resolving redirect for server: ${server.name} - src: ${server.src}")
                             val response = service.getStreamLinks(server.src)
                             val redirect = response.headers()["Location"]
                             if (!redirect.isNullOrEmpty()) {
                                 val fullRedirect = if (redirect.startsWith("//")) "https:$redirect" else redirect
                                 val lang = server.name.substringAfter(" (").substringBefore(")")
+                                val resolvedName = "${getExtractorName(fullRedirect)} ($lang)"
+                                Log.d("FrembedExtractor", "Resolved server ${server.name} to: $resolvedName - redirect: $fullRedirect")
                                 server.copy(
-                                    name = "${getExtractorName(fullRedirect)} ($lang)",
+                                    name = resolvedName,
                                     src = fullRedirect
                                 )
                             } else {
+                                Log.d("FrembedExtractor", "No redirect for server: ${server.name}")
                                 server
                             }
                         } catch (e: Exception) {
+                            Log.w("FrembedExtractor", "Failed to resolve redirect for server ${server.name}: ${e.message}")
                             server
                         }
                     }
                 }.awaitAll()
             }
         } catch (e: Exception) {
+            if (e is retrofit2.HttpException) {
+                val redirect = e.response()?.headers()?.get("Location")
+                if (!redirect.isNullOrEmpty()) {
+                    val fullRedirect = if (redirect.startsWith("//")) "https:$redirect" else redirect
+                    if (fullRedirect.startsWith("http")) {
+                        try {
+                            val uri = java.net.URI(fullRedirect)
+                            val newBaseUrl = "${uri.scheme}://${uri.host}/"
+                            Log.i("FrembedExtractor", "API redirected to a new domain. Updating cache to: $newBaseUrl")
+                            UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL, newBaseUrl)
+                            UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_LOGO, newBaseUrl + "favicon-32x32.png")
+                            FrembedProvider.rebuildService()
+                            
+                            return FrembedExtractor(newBaseUrl).servers(videoType)
+                        } catch (ex: Exception) {
+                            Log.e("FrembedExtractor", "Failed to parse URI from redirect Location: $fullRedirect", ex)
+                        }
+                    }
+                }
+            }
+            Log.e("FrembedExtractor", "Error fetching servers: ${e.message}", e)
             emptyList()
         }
     }
