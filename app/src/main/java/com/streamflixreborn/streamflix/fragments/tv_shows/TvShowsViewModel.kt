@@ -88,7 +88,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
 
             page = 1
 
-            _state.emit(State.SuccessLoading(tvShows, true))
+            _state.emit(State.SuccessLoading(tvShows, tvShows.isNotEmpty()))
         } catch (e: Exception) {
             Log.e("TvShowsViewModel", "getTvShows: ", e)
             _state.emit(State.FailedLoading(e))
