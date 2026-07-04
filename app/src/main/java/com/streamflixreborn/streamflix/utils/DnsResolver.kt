@@ -48,7 +48,14 @@ object DnsResolver : Dns {
             addresses
         } catch (e: Exception) {
             Log.e(TAG, "Failed to resolve $hostname with $providerName: ${e.message}")
-            throw e
+            if (_internalDoh === Dns.SYSTEM) {
+                throw e
+            }
+
+            Log.w(TAG, "Falling back to system DNS for host: $hostname")
+            val fallbackAddresses = Dns.SYSTEM.lookup(hostname)
+            Log.d(TAG, "System DNS resolved $hostname to: ${fallbackAddresses.joinToString { it.hostAddress ?: "" }}")
+            fallbackAddresses
         }
     }
 

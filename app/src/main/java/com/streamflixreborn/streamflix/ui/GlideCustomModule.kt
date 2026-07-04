@@ -6,6 +6,7 @@ import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.module.AppGlideModule
+import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import okhttp3.Cache
 import okhttp3.OkHttpClient
@@ -42,6 +43,22 @@ class GlideCustomModule : AppGlideModule() {
             .cache(appCache)
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val headers = ArtworkRequestHeaders.headersFor(request.url)
+                val strippedUrl = ArtworkRequestHeaders.stripHeaders(request.url)
+                val fixedRequest = if (headers.isNotEmpty() || strippedUrl != request.url) {
+                    request.newBuilder()
+                        .url(strippedUrl)
+                        .apply {
+                            headers.forEach { (name, value) -> header(name, value) }
+                        }
+                        .build()
+                } else {
+                    request
+                }
+                chain.proceed(fixedRequest)
+            }
             .addInterceptor(logging)
             .sslSocketFactory(sslContext.socketFactory, trustManager)
             .hostnameVerifier { _, _ -> true }
