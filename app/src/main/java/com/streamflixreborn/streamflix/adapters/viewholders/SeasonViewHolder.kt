@@ -43,7 +43,7 @@ class SeasonViewHolder(
                         tvShowBanner = season.tvShow?.banner,
                         seasonId = season.id,
                         seasonNumber = season.number,
-                        seasonTitle = season.title,
+                        seasonTitle = season.displayTitle(),
                     )
                 )
             }
@@ -60,10 +60,7 @@ class SeasonViewHolder(
                 .into(this)
         }
 
-        binding.tvSeasonTitle.text = season.title ?: context.getString(
-            R.string.season_number,
-            season.number
-        )
+        binding.tvSeasonTitle.text = season.displayTitle()
     }
 
     private fun displayTvItem(binding: ItemSeasonTvBinding) {
@@ -77,7 +74,7 @@ class SeasonViewHolder(
                         tvShowBanner = season.tvShow?.banner,
                         seasonId = season.id,
                         seasonNumber = season.number,
-                        seasonTitle = season.title,
+                        seasonTitle = season.displayTitle(),
                     )
                 )
             }
@@ -102,9 +99,10 @@ class SeasonViewHolder(
                 .into(this)
         }
 
-        binding.tvSeasonTitle.text = season.title ?: context.getString(
-            R.string.season_number,
-            season.number
-        )
+        binding.tvSeasonTitle.text = season.displayTitle()
+    }
+
+    private fun Season.displayTitle(): String {
+        return title ?: context.getString(R.string.season_number, number)
     }
 }
