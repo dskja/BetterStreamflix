@@ -27,6 +27,7 @@ abstract class Extractor {
             UpzoneExtractor(),
             StreamhubExtractor(),
             VtubeExtractor(),
+            NuuploadExtractor(),
             VoeExtractor(),
             StreamtapeExtractor(),
             VidozaExtractor(),
