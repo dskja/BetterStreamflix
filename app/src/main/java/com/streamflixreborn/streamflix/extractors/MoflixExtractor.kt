@@ -3,6 +3,7 @@ package com.streamflixreborn.streamflix.extractors
 import android.util.Base64
 import androidx.media3.common.MimeTypes
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.providers.MStreamProvider
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -12,7 +13,14 @@ import retrofit2.http.Url
 class MoflixExtractor : Extractor() {
 
     override val name = "Moflix"
-    override val mainUrl = "https://moflix-stream.xyz"
+    override val mainUrl: String
+        get() = MStreamProvider.baseUrl
+    override val aliasUrls = listOf(
+        "https://moflix-stream.xyz",
+        "https://moflix-stream.link",
+        "https://moflix-stream.click",
+        "https://moflix-stream.fans",
+    )
 
     suspend fun servers(videoType: Video.Type): List<Video.Server> {
         val service = Service.build(mainUrl)

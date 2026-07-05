@@ -38,6 +38,8 @@ import com.streamflixreborn.streamflix.providers.FrenchStreamProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
 import com.streamflixreborn.streamflix.providers.ProviderPortalUrl
+import com.streamflixreborn.streamflix.providers.MStreamProvider
+import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.providers.StreamingCommunityProvider
 import com.streamflixreborn.streamflix.providers.TmdbProvider
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
@@ -61,6 +63,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     )
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.dog"
+    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "s.to"
+    private val DEFAULT_MOFLIX_DOMAIN_VALUE = "moflix-stream.xyz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
@@ -275,6 +279,78 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     }
                 }
             }
+            true
+        }
+
+        findPreference<EditTextPreference>("provider_serienstream_domain")?.apply {
+            val currentValue = UserPreferences.serienstreamDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_SERIENSTREAM_DOMAIN_VALUE || currentValue == PREFS_ERROR_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val typed = (newValue as String).trim()
+                val effectiveDomain = typed.ifBlank { DEFAULT_SERIENSTREAM_DOMAIN_VALUE }
+                UserPreferences.serienstreamDomain = effectiveDomain
+                preference.summary = effectiveDomain
+                if (UserPreferences.currentProvider is SerienStreamProvider) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        SerienStreamProvider.reloadService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
+                    }
+                }
+                true
+            }
+        }
+
+        findPreference<Preference>("provider_serienstream_domain_reset")?.setOnPreferenceClickListener {
+            UserPreferences.serienstreamDomain = DEFAULT_SERIENSTREAM_DOMAIN_VALUE
+            findPreference<EditTextPreference>("provider_serienstream_domain")?.apply {
+                summary = DEFAULT_SERIENSTREAM_DOMAIN_VALUE
+                text = null
+            }
+            Toast.makeText(requireContext(), getString(R.string.settings_serienstream_domain_reset_done), Toast.LENGTH_SHORT).show()
+            if (UserPreferences.currentProvider is SerienStreamProvider) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    SerienStreamProvider.reloadService()
+                    requireActivity().apply {
+                        finish()
+                        startActivity(Intent(this, this::class.java))
+                    }
+                }
+            }
+            true
+        }
+
+        findPreference<EditTextPreference>("provider_moflix_domain")?.apply {
+            val currentValue = UserPreferences.moflixDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_MOFLIX_DOMAIN_VALUE || currentValue == PREFS_ERROR_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val typed = (newValue as String).trim()
+                val effectiveDomain = typed.ifBlank { DEFAULT_MOFLIX_DOMAIN_VALUE }
+                UserPreferences.moflixDomain = effectiveDomain
+                preference.summary = effectiveDomain
+                true
+            }
+        }
+
+        findPreference<Preference>("provider_moflix_domain_reset")?.setOnPreferenceClickListener {
+            UserPreferences.moflixDomain = DEFAULT_MOFLIX_DOMAIN_VALUE
+            findPreference<EditTextPreference>("provider_moflix_domain")?.apply {
+                summary = DEFAULT_MOFLIX_DOMAIN_VALUE
+                text = null
+            }
+            Toast.makeText(requireContext(), getString(R.string.settings_moflix_domain_reset_done), Toast.LENGTH_SHORT).show()
             true
         }
 
@@ -773,15 +849,17 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
     private fun updateProviderVisibilityState() {
         val isStreamingCommunity = UserPreferences.currentProvider is StreamingCommunityProvider
+        val isSerienStream = UserPreferences.currentProvider is SerienStreamProvider
+        val isMoflix = UserPreferences.currentProvider is MStreamProvider
         val isCuevana = UserPreferences.currentProvider?.name == "Cuevana 3"
         val isPoseidon = UserPreferences.currentProvider?.name == "Poseidonhd2"
-        val hasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
-        val hasSpecificOptions = isStreamingCommunity || isCuevana || isPoseidon
 
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible = isStreamingCommunity
+        findPreference<PreferenceCategory>("pc_serienstream_settings")?.isVisible = isSerienStream
+        findPreference<PreferenceCategory>("pc_moflix_settings")?.isVisible = isMoflix
         findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible = isCuevana
         findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible = isPoseidon
-        findPreference<PreferenceCategory>("pc_provider_empty_state")?.isVisible = !hasConfigProvider && !hasSpecificOptions
+        findPreference<PreferenceCategory>("pc_provider_empty_state")?.isVisible = false
     }
 
     private fun setupParentalControlPreferences() {

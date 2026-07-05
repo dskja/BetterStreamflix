@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.providers
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.content.Context
 import android.util.Base64
 import android.util.Log
@@ -20,6 +21,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.TmdbUtils
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -52,20 +54,21 @@ import javax.net.ssl.X509TrustManager
 
 object SerienStreamProvider : Provider {
 
-    private val URL = Base64.decode(
-        "aHR0cHM6Ly9z", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8) + Base64.decode(
-        "LnRvLw==", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8)
-    override val baseUrl = URL
+    private const val DEFAULT_DOMAIN = "s.to"
+
+    override val baseUrl: String
+        get() = currentBaseUrl()
     @SuppressLint("StaticFieldLeak")
     override val name = Base64.decode(
         "U2VyaWVuU3RyZWFt", Base64.NO_WRAP
     ).toString(Charsets.UTF_8)
-    override val logo =
-        "$URL/public/img/logo-sto-serienstream-sx-to-serien-online-streaming-vod.png"
+    override val logo
+        get() = "${currentBaseUrl()}public/img/logo-sto-serienstream-sx-to-serien-online-streaming-vod.png"
     override val language = "de"
-    private val service = SerienStreamService.build()
+    @Volatile
+    private var service: SerienStreamService? = null
+    @Volatile
+    private var serviceBaseUrl: String? = null
 
 
     private var tvShowDao: TvShowDao? = null
@@ -85,32 +88,60 @@ object SerienStreamProvider : Provider {
         return tvShowDao ?: throw IllegalStateException("SerienStreamProvider not initialized")
     }
 
+    fun reloadService() {
+        service = null
+        serviceBaseUrl = null
+    }
+
+    private fun currentDomain(): String {
+        return UserPreferences.serienstreamDomain.trim().ifBlank { DEFAULT_DOMAIN }
+    }
+
+    private fun currentBaseUrl(): String {
+        val domain = currentDomain()
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .trimEnd('/')
+        return "https://$domain/"
+    }
+
+    private fun getService(): SerienStreamService {
+        val currentBase = currentBaseUrl()
+        val cached = service
+        if (cached != null && serviceBaseUrl == currentBase) {
+            return cached
+        }
+
+        synchronized(this) {
+            val synced = service
+            if (synced != null && serviceBaseUrl == currentBase) {
+                return synced
+            }
+            return SerienStreamService.build(currentBase).also {
+                service = it
+                serviceBaseUrl = currentBase
+            }
+        }
+    }
+
 
     private fun getTvShowIdFromLink(link: String): String {
-        val linkWithoutStaticPrefix = link.removePrefix(URL).removePrefix("/").removePrefix("serie/")
-        val linkWithSplitData = linkWithoutStaticPrefix.split("/")
-        return linkWithSplitData[0]
+        return link.pathSegments().firstOrNull().orEmpty()
     }
 
     private fun getSeasonIdFromLink(link: String): String {
-        val linkWithoutStaticPrefix = link.removePrefix(URL).removePrefix("/").removePrefix("serie/")
-        val linkWithSplitData = linkWithoutStaticPrefix.split("/")
-        val justTvShowId = linkWithSplitData[0]
-        val justTvShowSeason = linkWithSplitData[1]
-        return "$justTvShowId/$justTvShowSeason"
+        val segments = link.pathSegments()
+        val justTvShowId = segments.getOrNull(0).orEmpty()
+        val justTvShowSeason = segments.getOrNull(1).orEmpty()
+        return listOf(justTvShowId, justTvShowSeason).filter { it.isNotBlank() }.joinToString("/")
     }
 
     private fun getEpisodeIdFromLink(link: String): String {
-        val linkWithoutStaticPrefix = link.removePrefix(URL).removePrefix("/").removePrefix("serie/")
-        val linkWithSplitData = linkWithoutStaticPrefix.split("/")
-        val justTvShowId = linkWithSplitData[0]
-        val justTvShowSeason = linkWithSplitData[1]
-        val justTvShowEpisode = linkWithSplitData[2]
-        return "$justTvShowId/$justTvShowSeason/$justTvShowEpisode"
+        return link.pathSegments().take(3).joinToString("/")
     }
 
     override suspend fun getHome(): List<Category> {
-        val document = service.getHome()
+        val document = getService().getHome()
         val categories = mutableListOf<Category>()
         categories.add(
             Category(name = Category.FEATURED,
@@ -187,7 +218,7 @@ object SerienStreamProvider : Provider {
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
-            val document = service.getSeriesListWithCategories()
+            val document = getService().getSeriesListWithCategories()
             return document
                 .select("div[data-group='genres'] .list-inline-item a")
                 .map {
@@ -197,7 +228,7 @@ object SerienStreamProvider : Provider {
                     )
                 }
         }
-        val document = service.search(query, page)
+        val document = getService().search(query, page)
         return document
             .select("div.search-results-list div.card.cover-card")
             .mapNotNull { card ->
@@ -218,7 +249,7 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val document = service.getAllTvShows(page)
+        val document = getService().getAllTvShows(page)
         return document
             .select("div.search-results-list div.card.cover-card")
             .mapNotNull { card ->
@@ -238,14 +269,14 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val document = service.getTvShow(id)
+        val document = getService().getTvShow(id)
         val title = document.selectFirst("h1")?.text()?.trim() ?: ""
         
         val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
         
         val localRating = if (tmdbTvShow?.rating == null) {
             val imdbTitleUrl = document.selectFirst("a[href*='imdb.com']")?.attr("href") ?: ""
-            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { service.getCustomUrl(imdbTitleUrl) } catch (e: Exception) { null } else null
+            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { getService().getCustomUrl(imdbTitleUrl) } catch (e: Exception) { null } else null
             imdbDocument?.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
                 ?.text()?.toDoubleOrNull() ?: document.selectFirst(".text-white-50:contains(Bewertungen)")?.text()?.split(" ")?.firstOrNull()?.toDoubleOrNull() ?: 0.0
         } else {
@@ -256,7 +287,7 @@ object SerienStreamProvider : Provider {
             val actorName = it.text()
             val tmdbPerson = tmdbTvShow?.cast?.find { person -> person.name.equals(actorName, ignoreCase = true) }
             People(
-                id = it.attr("href").removePrefix(URL).removePrefix("/"),
+                id = getTvShowIdFromLink(it.attr("href")),
                 name = actorName,
                 image = tmdbPerson?.image
             )
@@ -271,7 +302,7 @@ object SerienStreamProvider : Provider {
             runtime = tmdbTvShow?.runtime,
             directors = document.select(".series-group:contains(Regisseur) a").map {
                 People(
-                    id = it.attr("href").removePrefix(URL).removePrefix("/"),
+                    id = getTvShowIdFromLink(it.attr("href")),
                     name = it.text()
                 )
             },
@@ -307,7 +338,7 @@ object SerienStreamProvider : Provider {
         val seasonNumberStr = linkWithSplitData[1]
         val seasonNumber = Regex("""\d+""").find(seasonNumberStr)!!.value.toInt()
 
-        val document = service.getTvShowEpisodes(showName, seasonNumberStr)
+        val document = getService().getTvShowEpisodes(showName, seasonNumberStr)
         
         // Get show title for TMDB lookup
         val title = (document.selectFirst("h1")?.text()?.trim() ?: "").split(" Staffel").firstOrNull()?.trim() ?: ""
@@ -341,7 +372,7 @@ object SerienStreamProvider : Provider {
 
         try {
             val shows = mutableListOf<TvShow>()
-            val document = service.getGenre(id, page)
+            val document = getService().getGenre(id, page)
             document.select("div.row.g-3 > div").map {
                 shows.add(
                     TvShow(
@@ -360,7 +391,7 @@ object SerienStreamProvider : Provider {
 
     override suspend fun getPeople(id: String, page: Int): People {
         if (page > 1) return People(id, "")
-        val document = service.getPeople(id)
+        val document = getService().getPeople(id)
         return People(id = id,
             name = document.selectFirst("h1 strong")?.text() ?: "",
             filmography = document.select("div.row.g-3 > div").map {
@@ -378,7 +409,7 @@ object SerienStreamProvider : Provider {
         val showName = linkWithSplitData[0]
         val seasonNumber = linkWithSplitData[1]
         val episodeNumber = linkWithSplitData[2]
-        val document = service.getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
+        val document = getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
 
         val elements = document.select("button.link-box")
         for (element in elements) {
@@ -389,12 +420,12 @@ object SerienStreamProvider : Provider {
             if (href.isEmpty()) continue
 
             try {
-                val redirectUrl = URL + href.removePrefix("/")
+                val redirectUrl = currentBaseUrl() + href.removePrefix("/")
 
                 val serverAfterRedirect = try {
-                    service.getRedirectLink(redirectUrl)
+                    getService().getRedirectLink(redirectUrl)
                 } catch (exception: Exception) {
-                    val unsafeOkHttpClient = SerienStreamService.buildUnsafe()
+                    val unsafeOkHttpClient = SerienStreamService.buildUnsafe(currentBaseUrl())
                     unsafeOkHttpClient.getRedirectLink(redirectUrl)
                 }
                 val videoUrl = (serverAfterRedirect.raw() as okhttp3.Response).request.url
@@ -481,10 +512,10 @@ object SerienStreamProvider : Provider {
                 }
             }
 
-            fun build(): SerienStreamService {
+            fun build(baseUrl: String): SerienStreamService {
                 val client = getOkHttpClient()
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(URL)
+                    .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)
@@ -492,10 +523,10 @@ object SerienStreamProvider : Provider {
                 return retrofit.create(SerienStreamService::class.java)
             }
 
-            fun buildUnsafe(): SerienStreamService {
+            fun buildUnsafe(baseUrl: String): SerienStreamService {
                 val client = getUnsafeOkHttpClient()
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(URL)
+                    .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)
@@ -677,7 +708,19 @@ object SerienStreamProvider : Provider {
     fun normalizeImageUrl(url: String?): String? {
         if (url.isNullOrBlank()) return null
         return if (url.startsWith("http")) url
-        else "https://s.to$url"
+        else currentBaseUrl().trimEnd('/') + "/" + url.removePrefix("/")
+    }
+
+    private fun String.pathSegments(): List<String> {
+        val uri = runCatching {
+            when {
+                startsWith("http://", ignoreCase = true) || startsWith("https://", ignoreCase = true) -> Uri.parse(this)
+                else -> Uri.parse("https://$this")
+            }
+        }.getOrNull() ?: return emptyList()
+        return uri.pathSegments
+            .map { it.trim() }
+            .filter { it.isNotBlank() && it != "serie" }
     }
 
 

@@ -3,6 +3,8 @@ package com.streamflixreborn.streamflix.providers
 import android.util.Base64
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
+import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Genre
@@ -33,22 +35,56 @@ import java.util.concurrent.TimeUnit
 import kotlin.String
 
 object MStreamProvider : Provider {
-    private val URL = Base64.decode(
+    private const val DEFAULT_DOMAIN = "moflix-stream.xyz"
+
+    private val LEGACY_URL = Base64.decode(
         "aHR0cHM6Ly9tb2ZsaXg=", Base64.NO_WRAP
     ).toString(Charsets.UTF_8) + Base64.decode(
         "LXN0cmVhbS54eXo=", Base64.NO_WRAP
     ).toString(Charsets.UTF_8)
-    override val baseUrl = URL
+    override val baseUrl: String
+        get() = currentBaseUrl()
     override val name = Base64.decode(
         "TW9mbGl4", Base64.NO_WRAP
     ).toString(Charsets.UTF_8) + Base64.decode(
         "LXN0cmVhbQ==", Base64.NO_WRAP
     ).toString(Charsets.UTF_8)
 
-    override val logo = "$URL/storage/branding_media/b0d168ea-8d1b-4b40-9292-65e9a600d3c6.png"
+    override val logo
+        get() = "${currentBaseUrl()}storage/branding_media/b0d168ea-8d1b-4b40-9292-65e9a600d3c6.png"
     override val language = "de"
 
-    private val service = MStreamService.build()
+    @Volatile
+    private var service: MStreamService? = null
+    @Volatile
+    private var serviceBaseUrl: String? = null
+
+    private fun currentDomain(): String {
+        return UserPreferences.moflixDomain.trim().ifBlank { DEFAULT_DOMAIN }
+    }
+
+    private fun currentBaseUrl(): String {
+        val domain = currentDomain()
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .trimEnd('/')
+        return "https://$domain/"
+    }
+
+    private fun getService(): MStreamService {
+        val currentBase = currentBaseUrl()
+        val cached = service
+        if (cached != null && serviceBaseUrl == currentBase) return cached
+
+        synchronized(this) {
+            val synced = service
+            if (synced != null && serviceBaseUrl == currentBase) return synced
+            return MStreamService.build(currentBase).also {
+                service = it
+                serviceBaseUrl = currentBase
+            }
+        }
+    }
 
     inline fun <R> JSONArray.map(transform: (JSONObject?) -> R): List<R> {
         val result = mutableListOf<R>()
@@ -66,12 +102,12 @@ object MStreamProvider : Provider {
             title = jsonTitle?.optString("name") ?: "unknown title",
             poster = (((if (jsonTitle?.optString("poster")
                     ?.contains("http") == false
-            ) ("$URL/") else "") + jsonTitle?.optString("poster"))).replace(
+            ) ("${currentBaseUrl()}") else "") + jsonTitle?.optString("poster"))).replace(
                 "original", if (reducePosterSize == true) "original" else "w300"
             ),
             banner = (if (jsonTitle?.optString("backdrop")
                     ?.contains("http") == false
-            ) ("$URL/") else "") + jsonTitle?.optString("backdrop"),
+            ) ("${currentBaseUrl()}") else "") + jsonTitle?.optString("backdrop"),
             overview = jsonTitle?.optString("description"),
             released = jsonTitle?.optString("year"),
             rating = jsonTitle?.optDouble("rating"),
@@ -107,10 +143,10 @@ object MStreamProvider : Provider {
             title = jsonTitle?.optString("name") ?: "unknown title",
             poster = ((if (jsonTitle?.optString("poster")
                     ?.contains("http") == false
-            ) ("$URL/") else "") + jsonTitle?.optString("poster")),
+            ) ("${currentBaseUrl()}") else "") + jsonTitle?.optString("poster")),
             banner = (if (jsonTitle?.optString("backdrop")
                     ?.contains("http") == false
-            ) ("$URL/") else "") + jsonTitle?.optString("backdrop"),
+            ) ("${currentBaseUrl()}") else "") + jsonTitle?.optString("backdrop"),
             overview = jsonTitle?.optString("description"),
             released = jsonTitle?.optString("year"),
             rating = jsonTitle?.optDouble("rating"),
@@ -147,7 +183,7 @@ object MStreamProvider : Provider {
 
     override suspend fun getHome(): List<Category> {
         val homepageChannel = "350"
-        val document = service.getChannel(homepageChannel)
+        val document = getService().getChannel(homepageChannel)
         val json = JSONObject(document.string())
         val channelContent =
             json.getJSONObject("channel").getJSONObject("content").getJSONArray("data")
@@ -198,7 +234,7 @@ object MStreamProvider : Provider {
         }
         if (page > 1) return emptyList()
 
-        val document = service.getSearch(query)
+        val document = getService().getSearch(query)
         val json = JSONObject(document.string())
         return (json.getJSONArray("results").map {
             if (it?.optBoolean("is_series") == true) getTvShowObj(it)
@@ -211,7 +247,7 @@ object MStreamProvider : Provider {
 
     override suspend fun getMovies(page: Int): List<Movie> {
         val homepageChannel = "345"
-        val document = service.getChannelWithPage(homepageChannel, page.toString())
+        val document = getService().getChannelWithPage(homepageChannel, page.toString())
         val json = JSONObject(document.string())
         val channelContent = json.getJSONObject("pagination").getJSONArray("data")
         return channelContent.map { getMovieObj(it, false) }
@@ -219,7 +255,7 @@ object MStreamProvider : Provider {
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
         val homepageChannel = "346"
-        val document = service.getChannelWithPage(homepageChannel, page.toString())
+        val document = getService().getChannelWithPage(homepageChannel, page.toString())
         val json = JSONObject(document.string())
         val channelContent = json.getJSONObject("pagination").getJSONArray("data")
         return channelContent.map { getTvShowObj(it) }
@@ -227,13 +263,13 @@ object MStreamProvider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val idCleaned = id.split("#")[0]
-        val document = service.getTitle(idCleaned)
+        val document = getService().getTitle(idCleaned)
         val json = JSONObject(document.string())
         return getMovieObj(json, false)
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val document = service.getTitle(id)
+        val document = getService().getTitle(id)
         val json = JSONObject(document.string())
         return getTvShowObj(json)
     }
@@ -241,7 +277,7 @@ object MStreamProvider : Provider {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val titleId = seasonId.split("_")[0]
         val seasonNumber = seasonId.split("_")[1]
-        val document = service.getEpisodes(titleId, seasonNumber)
+        val document = getService().getEpisodes(titleId, seasonNumber)
         val json = JSONObject(document.string())
         return json.getJSONObject("pagination").getJSONArray("data").map {
             Episode(
@@ -256,7 +292,7 @@ object MStreamProvider : Provider {
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
-        val document = service.getGenre(id)
+        val document = getService().getGenre(id)
         val json = JSONObject(document.string())
         val genres = json.getJSONObject("channel").getJSONObject("content").getJSONArray("data")
         return Genre(id,
@@ -269,7 +305,7 @@ object MStreamProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        val document = service.getPerson(id)
+        val document = getService().getPerson(id)
         val json = JSONObject(document.string())
         val person = json.getJSONObject("person")
         val knownFor = json.getJSONArray("knownFor")
@@ -295,7 +331,7 @@ object MStreamProvider : Provider {
             val titleId = idSplit[0]
             val seasonNumber = if (idSplit.size > 1) idSplit[1] else ""
             val episodeNumber = if (idSplit.size > 1) idSplit[2] else ""
-            document = service.getEpisodeStreams(titleId, seasonNumber, episodeNumber)
+            document = getService().getEpisodeStreams(titleId, seasonNumber, episodeNumber)
             val json = JSONObject(document.string())
             return json.getJSONObject("episode").getJSONArray("videos").map {
                 val src = it?.optString("src").orEmpty()
@@ -305,7 +341,7 @@ object MStreamProvider : Provider {
                 // Skip entries locked behind a paywall
                 if (it?.optBoolean("premium_locked", false) == true) return@map null
 
-                val finalSrc = if (src.isNotBlank()) src else "$URL/api/v1/$resolveUrl"
+                val finalSrc = if (src.isNotBlank()) src else "${currentBaseUrl()}api/v1/$resolveUrl"
                 val name = if (src.isNotBlank()) {
                     try { URL(src).host } catch (e: Exception) { "Server" } + " ( " + it?.getString("name") + ")"
                 } else {
@@ -321,7 +357,7 @@ object MStreamProvider : Provider {
         } else {
             val idSplit = id.split("#")
             val watchId = idSplit[1]
-            document = service.getStreams(watchId)
+            document = getService().getStreams(watchId)
             val json = JSONObject(document.string())
             return json.getJSONArray("alternative_videos").map {
                 val src = it?.optString("src").orEmpty()
@@ -331,7 +367,7 @@ object MStreamProvider : Provider {
                 // Skip entries locked behind a paywall
                 if (it?.optBoolean("premium_locked", false) == true) return@map null
 
-                val finalSrc = if (src.isNotBlank()) src else "$URL/api/v1/$resolveUrl"
+                val finalSrc = if (src.isNotBlank()) src else "${currentBaseUrl()}api/v1/$resolveUrl"
                 val name = if (src.isNotBlank()) {
                     try { URL(src).host } catch (e: Exception) { "Server" } + " ( " + it?.getString("name") + ")"
                 } else {
@@ -356,20 +392,24 @@ object MStreamProvider : Provider {
         companion object {
             private fun getOkHttpClient(): OkHttpClient {
                 val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-                val clientBuilder = Builder().cache(appCache).readTimeout(30, TimeUnit.SECONDS)
+                val clientBuilder = NetworkClient.default.newBuilder()
+                    .cache(appCache)
+                    .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
                 clientBuilder.addInterceptor { chain ->
                     val original = chain.request()
-                    val requestWithHeaders = original.newBuilder().header("Referer", URL).build()
+                    val requestWithHeaders = original.newBuilder()
+                        .header("Referer", currentBaseUrl())
+                        .build()
                     chain.proceed(requestWithHeaders)
                 }
                 val clientToReturn = clientBuilder.dns(DnsResolver.doh).build()
                 return clientToReturn
             }
 
-            fun build(): MStreamService {
+            fun build(baseUrl: String): MStreamService {
                 val client = getOkHttpClient()
-                val retrofit = Retrofit.Builder().client(client).baseUrl(URL)
+                val retrofit = Retrofit.Builder().client(client).baseUrl(baseUrl)
                     .addConverterFactory(GsonConverterFactory.create()).build()
                 return retrofit.create(MStreamService::class.java)
             }
