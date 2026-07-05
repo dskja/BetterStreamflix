@@ -7,71 +7,45 @@ import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.module.AppGlideModule
 import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
-import com.streamflixreborn.streamflix.utils.DnsResolver
-import okhttp3.Cache
-import okhttp3.OkHttpClient
-import okhttp3.OkHttpClient.Builder
-import okhttp3.logging.HttpLoggingInterceptor
-import java.io.File
+import com.streamflixreborn.streamflix.utils.NetworkClient
 import java.io.InputStream
-import java.util.concurrent.TimeUnit
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
-import javax.net.ssl.SSLContext
-import java.security.SecureRandom
 
 @GlideModule
 class GlideCustomModule : AppGlideModule() {
-    private fun getOkHttpClient(): OkHttpClient {
-        val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-
-        val logging = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC)
-
-        // Always trust-all for image loading AND use DoH for resolution
-        val trustAllCerts = arrayOf<TrustManager>(
-            object : X509TrustManager {
-                override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+    private fun getOkHttpClient() = NetworkClient.default.newBuilder()
+        .cookieJar(NetworkClient.cookieJar)
+        .addInterceptor { chain ->
+            val request = chain.request()
+            val headers = ArtworkRequestHeaders.headersFor(request.url)
+            val strippedUrl = ArtworkRequestHeaders.stripHeaders(request.url)
+            val fixedRequest = if (headers.isNotEmpty() || strippedUrl != request.url) {
+                request.newBuilder()
+                    .url(strippedUrl)
+                    .apply {
+                        headers.forEach { (name, value) -> header(name, value) }
+                        header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+                        header("Sec-Fetch-Dest", "image")
+                        header("Sec-Fetch-Mode", "no-cors")
+                        header("Sec-Fetch-Site", "same-origin")
+                        removeHeader("Upgrade-Insecure-Requests")
+                    }
+                    .build()
+            } else {
+                request
             }
-        )
-        val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, SecureRandom()) }
-        val trustManager = trustAllCerts[0] as X509TrustManager
-
-        // Build a base client (trust-all) to bootstrap DoH
-        return Builder()
-            .cache(appCache)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val request = chain.request()
-                val headers = ArtworkRequestHeaders.headersFor(request.url)
-                val strippedUrl = ArtworkRequestHeaders.stripHeaders(request.url)
-                val fixedRequest = if (headers.isNotEmpty() || strippedUrl != request.url) {
-                    request.newBuilder()
-                        .url(strippedUrl)
-                        .apply {
-                            headers.forEach { (name, value) -> header(name, value) }
-                        }
-                        .build()
-                } else {
-                    request
-                }
-                chain.proceed(fixedRequest)
-            }
-            .addInterceptor(logging)
-            .sslSocketFactory(sslContext.socketFactory, trustManager)
-            .hostnameVerifier { _, _ -> true }
-            .dns(DnsResolver.doh)
-            .build()
-    }
+            chain.proceed(fixedRequest)
+        }
+        .build()
 
     override fun registerComponents(
-        context: Context, glide: Glide, registry: com.bumptech.glide.Registry
+        context: Context,
+        glide: Glide,
+        registry: com.bumptech.glide.Registry
     ) {
-        val okHttpClient = getOkHttpClient()
         registry.replace(
-            GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okHttpClient)
+            GlideUrl::class.java,
+            InputStream::class.java,
+            OkHttpUrlLoader.Factory(getOkHttpClient())
         )
     }
 }
