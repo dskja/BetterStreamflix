@@ -2,6 +2,7 @@
 
 import android.content.Context
 import android.util.Log
+import android.webkit.CookieManager
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.StreamFlixApp
 import com.streamflixreborn.streamflix.adapters.AppAdapter
@@ -15,6 +16,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.Show
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.WebViewResolver
@@ -52,6 +54,8 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private val providerMutex = Mutex()
     private var webViewResolver: WebViewResolver? = null
+    @Volatile
+    private var challengeSessionReady: Boolean = false
 
     private val service = AnimeOnlineNinjaService.build()
 
@@ -65,20 +69,108 @@ object AnimeOnlineNinjaProvider : Provider {
         }
     }
 
+    private class ChallengeRequiredException(message: String, cause: Throwable? = null) :
+        IllegalStateException(message, cause)
+
     private suspend fun getDocument(url: String): Document {
-        return try {
+        return withChallengeRecovery(url) {
             val document = service.getDocument(url)
             val html = document.outerHtml()
             if (requiresClearance(html)) {
-                throw Exception("AnimeOnline Ninja Cloudflare challenge detected")
+                throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected")
             }
-            document
-        } catch (e: Exception) {
-            if (e !is HttpException || e.code() != 403) throw e
-            Log.d(TAG, "Using WebView bypass for $url")
-            val html = providerMutex.withLock { getResolver().get(url) }
-            Jsoup.parse(html, url)
+            document.apply { setBaseUri(url) }
         }
+    }
+
+    private suspend fun <T> withChallengeRecovery(url: String, block: suspend () -> T): T {
+        if (!challengeSessionReady) {
+            completeChallenge(url)
+        }
+
+        return try {
+            block()
+        } catch (error: Exception) {
+            if (!isChallengeFailure(error)) throw error
+
+            challengeSessionReady = false
+            Log.w(TAG, "Retrying after WebView challenge completion -> url=$url", error)
+            completeChallenge(url, force = true)
+            block()
+        }
+    }
+
+    private suspend fun completeChallenge(targetUrl: String, force: Boolean = false) {
+        providerMutex.withLock {
+            if (!force && challengeSessionReady) return
+
+            val challengeUrl = challengeEntryUrl(targetUrl)
+            Log.d(TAG, "Opening WebView challenge gate -> url=$challengeUrl target=$targetUrl")
+            val result = getResolver().getResult(
+                url = challengeUrl,
+                headers = pageHeaders(challengeUrl),
+                completion = { currentUrl, html, _ ->
+                    val challenge = requiresClearance(html) || currentUrl.contains("/cdn-cgi/", ignoreCase = true)
+                    val usable = hasUsableSiteContent(html, currentUrl)
+                    Log.d(TAG, "Challenge poll -> url=$currentUrl challenge=$challenge usable=$usable")
+                    !challenge && usable
+                }
+            )
+
+            val finalUrl = result.finalUrl ?: challengeUrl
+            if (requiresClearance(result.html) || !hasUsableSiteContent(result.html, finalUrl)) {
+                challengeSessionReady = false
+                throw ChallengeRequiredException("AnimeOnline Ninja WebView did not reach usable content for $targetUrl")
+            }
+
+            CookieManager.getInstance().flush()
+            challengeSessionReady = true
+            Log.d(TAG, "WebView challenge completed -> finalUrl=$finalUrl")
+        }
+    }
+
+    private fun isChallengeFailure(error: Throwable): Boolean {
+        if (error is ChallengeRequiredException) return true
+        if (error is HttpException && error.code() == 403) return true
+
+        val message = error.message.orEmpty()
+        return message.contains("403") ||
+                message.contains("cloudflare", ignoreCase = true) ||
+                message.contains("browser-verification", ignoreCase = true) ||
+                message.contains("challenge", ignoreCase = true) ||
+                message.contains("Just a moment", ignoreCase = true)
+    }
+
+    private fun challengeEntryUrl(targetUrl: String): String {
+        return if (targetUrl.contains("/wp-json/", ignoreCase = true)) {
+            "$baseUrl/inicio/"
+        } else {
+            targetUrl
+        }
+    }
+
+    private fun pageHeaders(referer: String): Map<String, String> {
+        return mapOf(
+            "User-Agent" to NetworkClient.USER_AGENT,
+            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language" to "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Referer" to referer,
+        )
+    }
+
+    private fun hasUsableSiteContent(html: String, currentUrl: String): Boolean {
+        if (html.length < 1000) return false
+        if (currentUrl.contains("/wp-json/", ignoreCase = true)) {
+            return html.trimStart().startsWith("{") || html.trimStart().startsWith("[")
+        }
+
+        return html.contains("wp-content", ignoreCase = true) ||
+                html.contains("dooplay", ignoreCase = true) ||
+                html.contains("TPost", ignoreCase = true) ||
+                html.contains("result-item", ignoreCase = true) ||
+                html.contains("module", ignoreCase = true) ||
+                html.contains("episodios", ignoreCase = true) ||
+                html.contains("post-", ignoreCase = true)
     }
 
     private fun artworkUrl(url: String?, referer: String = baseUrl): String? {
@@ -102,30 +194,26 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private suspend fun fetchJson(url: String): JSONObject = withContext(Dispatchers.IO) {
-        try {
+        withChallengeRecovery(url) {
             service.getJson(url).use { responseBody ->
                 val body = responseBody.string()
                 if (requiresClearance(body)) {
-                    throw Exception("AnimeOnline Ninja Cloudflare challenge detected")
+                    throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected")
                 }
                 JSONObject(body)
             }
-        } catch (e: Exception) {
-            throw e
         }
     }
 
     private suspend fun fetchJsonArray(url: String): JSONArray = withContext(Dispatchers.IO) {
-        try {
+        withChallengeRecovery(url) {
             service.getJson(url).use { responseBody ->
                 val body = responseBody.string()
                 if (requiresClearance(body)) {
-                    throw Exception("AnimeOnline Ninja Cloudflare challenge detected")
+                    throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected")
                 }
                 JSONArray(body)
             }
-        } catch (e: Exception) {
-            throw e
         }
     }
 
@@ -222,14 +310,14 @@ object AnimeOnlineNinjaProvider : Provider {
         if (apiShow != null && document != null) {
             val seasons = parseSeasons(document, url, apiShow.poster)
             val recommendations = document.select("#single_relacionados article, #single_relacionados .item")
-            .mapNotNull { parseListingItem(it) }
-            .filterIsInstance<Show>()
-            .distinctBy { item ->
-                when (item) {
-                    is Movie -> "movie:${item.id}"
-                    is TvShow -> "tv:${item.id}"
+                .mapNotNull { parseListingItem(it) }
+                .filterIsInstance<Show>()
+                .distinctBy { item ->
+                    when (item) {
+                        is Movie -> "movie:${item.id}"
+                        is TvShow -> "tv:${item.id}"
+                    }
                 }
-            }
 
             return TvShow(
                 id = normalizeId(url, "/online/"),
@@ -305,7 +393,7 @@ object AnimeOnlineNinjaProvider : Provider {
             }
             val poster = element.selectFirst("img")?.let { image ->
                 image.absUrl("data-src").ifBlank { image.absUrl("src") }.ifBlank { image.attr("src") }
-            }?.takeIf { it.isNotBlank() }
+            }?.takeIf { it.isNotBlank() }?.let { artworkUrl(it, href) }
 
             Episode(
                 id = href,
@@ -661,8 +749,8 @@ object AnimeOnlineNinjaProvider : Provider {
     private fun looksGenericTitle(title: String): Boolean {
         val normalized = cleanTitle(title)
         return normalized.equals("Ver Anime", ignoreCase = true) ||
-            normalized.contains("Ver Anime", ignoreCase = true) ||
-            normalized.equals(baseUrl.substringAfterLast('/'), ignoreCase = true)
+                normalized.contains("Ver Anime", ignoreCase = true) ||
+                normalized.equals(baseUrl.substringAfterLast('/'), ignoreCase = true)
     }
 
     private fun slugify(value: String): String {
@@ -835,9 +923,9 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private fun requiresClearance(html: String): Boolean {
         return html.contains("cf-browser-verification", ignoreCase = true) ||
-            html.contains("Just a moment...", ignoreCase = true) ||
-            html.contains("Checking your browser", ignoreCase = true) ||
-            (html.contains("cloudflare", ignoreCase = true) && !html.contains("wp-json/dooplayer", ignoreCase = true))
+                html.contains("Just a moment...", ignoreCase = true) ||
+                html.contains("Checking your browser", ignoreCase = true) ||
+                (html.contains("cloudflare", ignoreCase = true) && !html.contains("wp-json/dooplayer", ignoreCase = true))
     }
 
     private fun itemKey(item: AppAdapter.Item): String {

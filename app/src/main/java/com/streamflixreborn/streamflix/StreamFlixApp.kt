@@ -1,8 +1,10 @@
 package com.streamflixreborn.streamflix
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Bundle
 import java.security.Security
 import org.conscrypt.Conscrypt
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -23,6 +25,10 @@ class StreamFlixApp : Application() {
     companion object {
         lateinit var instance: StreamFlixApp
             private set
+
+        @Volatile
+        var currentActivity: Activity? = null
+            private set
     }
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -34,6 +40,31 @@ class StreamFlixApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+            override fun onActivityStarted(activity: Activity) = Unit
+
+            override fun onActivityResumed(activity: Activity) {
+                currentActivity = activity
+            }
+
+            override fun onActivityPaused(activity: Activity) {
+                if (currentActivity === activity) {
+                    currentActivity = null
+                }
+            }
+
+            override fun onActivityStopped(activity: Activity) = Unit
+
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+            override fun onActivityDestroyed(activity: Activity) {
+                if (currentActivity === activity) {
+                    currentActivity = null
+                }
+            }
+        })
 
         // 0. Initialize Conscrypt for modern SSL on old Android
         Security.insertProviderAt(Conscrypt.newProvider(), 1)
@@ -66,4 +97,3 @@ class StreamFlixApp : Application() {
         }
     }
 }
-
