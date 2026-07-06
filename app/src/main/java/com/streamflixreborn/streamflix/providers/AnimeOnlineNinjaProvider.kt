@@ -3,7 +3,6 @@
 import android.content.Context
 import android.util.Log
 import android.webkit.CookieManager
-import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.StreamFlixApp
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
@@ -19,13 +18,8 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.WebViewResolver
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import okhttp3.ResponseBody
-import org.json.JSONArray
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -33,11 +27,6 @@ import org.jsoup.nodes.Element
 import java.net.URL
 import java.net.URLEncoder
 import java.text.Normalizer
-import java.util.concurrent.TimeUnit
-import retrofit2.HttpException
-import retrofit2.Retrofit
-import retrofit2.http.GET
-import retrofit2.http.Url
 
 object AnimeOnlineNinjaProvider : Provider {
 
@@ -54,10 +43,6 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private val providerMutex = Mutex()
     private var webViewResolver: WebViewResolver? = null
-    @Volatile
-    private var challengeSessionReady: Boolean = false
-
-    private val service = AnimeOnlineNinjaService.build()
 
     fun init(context: Context) {
         webViewResolver = WebViewResolver(context)
@@ -69,88 +54,29 @@ object AnimeOnlineNinjaProvider : Provider {
         }
     }
 
-    private class ChallengeRequiredException(message: String, cause: Throwable? = null) :
-        IllegalStateException(message, cause)
+    private class ChallengeRequiredException(message: String) : IllegalStateException(message)
 
     private suspend fun getDocument(url: String): Document {
-        return withChallengeRecovery(url) {
-            val document = service.getDocument(url)
-            val html = document.outerHtml()
-            if (requiresClearance(html)) {
-                throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected")
-            }
-            document.apply { setBaseUri(url) }
-        }
-    }
-
-    private suspend fun <T> withChallengeRecovery(url: String, block: suspend () -> T): T {
-        if (!challengeSessionReady) {
-            completeChallenge(url)
-        }
-
-        return try {
-            block()
-        } catch (error: Exception) {
-            if (!isChallengeFailure(error)) throw error
-
-            challengeSessionReady = false
-            Log.w(TAG, "Retrying after WebView challenge completion -> url=$url", error)
-            completeChallenge(url, force = true)
-            block()
-        }
-    }
-
-    private suspend fun completeChallenge(targetUrl: String, force: Boolean = false) {
-        providerMutex.withLock {
-            if (!force && challengeSessionReady) return
-
-            val challengeUrl = challengeEntryUrl(targetUrl)
-            Log.d(TAG, "Opening WebView challenge gate -> url=$challengeUrl target=$targetUrl")
-            val result = getResolver().getResult(
-                url = challengeUrl,
-                headers = pageHeaders(challengeUrl),
+        val result = providerMutex.withLock {
+            Log.d(TAG, "Loading page through WebView -> url=$url")
+            getResolver().getResult(
+                url = url,
+                headers = pageHeaders(url),
                 completion = { currentUrl, html, _ ->
                     val challenge = requiresClearance(html) || currentUrl.contains("/cdn-cgi/", ignoreCase = true)
                     val usable = hasUsableSiteContent(html, currentUrl)
-                    Log.d(TAG, "Challenge poll -> url=$currentUrl challenge=$challenge usable=$usable")
+                    Log.d(TAG, "WebView page poll -> url=$currentUrl challenge=$challenge usable=$usable")
                     !challenge && usable
                 }
             )
-
-            val finalUrl = result.finalUrl ?: challengeUrl
-            if (requiresClearance(result.html) || !hasUsableSiteContent(result.html, finalUrl)) {
-                challengeSessionReady = false
-                throw ChallengeRequiredException("AnimeOnline Ninja WebView did not reach usable content for $targetUrl")
-            }
-
-            CookieManager.getInstance().flush()
-            if (!waitForClearanceCookie(targetUrl, finalUrl)) {
-                challengeSessionReady = false
-                throw ChallengeRequiredException("AnimeOnline Ninja clearance cookie was not visible after WebView completion for $targetUrl")
-            }
-            challengeSessionReady = true
-            Log.d(TAG, "WebView challenge completed -> finalUrl=$finalUrl")
         }
-    }
 
-    private fun isChallengeFailure(error: Throwable): Boolean {
-        if (error is ChallengeRequiredException) return true
-        if (error is HttpException && error.code() == 403) return true
-
-        val message = error.message.orEmpty()
-        return message.contains("403") ||
-                message.contains("cloudflare", ignoreCase = true) ||
-                message.contains("browser-verification", ignoreCase = true) ||
-                message.contains("challenge", ignoreCase = true) ||
-                message.contains("Just a moment", ignoreCase = true)
-    }
-
-    private fun challengeEntryUrl(targetUrl: String): String {
-        return if (targetUrl.contains("/wp-json/", ignoreCase = true)) {
-            "$baseUrl/inicio/"
-        } else {
-            targetUrl
+        val finalUrl = result.finalUrl ?: url
+        if (requiresClearance(result.html) || !hasUsableSiteContent(result.html, finalUrl)) {
+            throw ChallengeRequiredException("AnimeOnline Ninja WebView did not reach usable content for $url")
         }
+        CookieManager.getInstance().flush()
+        return Jsoup.parse(result.html, finalUrl).apply { setBaseUri(finalUrl) }
     }
 
     private fun pageHeaders(referer: String): Map<String, String> {
@@ -197,56 +123,42 @@ object AnimeOnlineNinjaProvider : Provider {
         )
     }
 
-    private suspend fun waitForClearanceCookie(targetUrl: String, finalUrl: String?): Boolean {
-        val cookieManager = CookieManager.getInstance()
-        val candidates = linkedSetOf<String>()
-        listOfNotNull(
-            targetUrl.takeIf { it.isNotBlank() },
-            finalUrl?.takeIf { it.isNotBlank() },
-            challengeEntryUrl(targetUrl),
-            baseUrl,
-            siteRootUrl(targetUrl),
-            siteRootUrl(finalUrl ?: targetUrl),
-        ).forEach { candidate -> candidates += candidate }
-
-        repeat(10) {
-            val cookieHeader = candidates
-                .mapNotNull { candidate -> cookieManager.getCookie(candidate)?.trim() }
-                .firstOrNull { it.isNotBlank() }
-                .orEmpty()
-
-            if (cookieHeader.contains("cf_clearance=", ignoreCase = true)) {
-                return true
-            }
-
-            delay(250)
-        }
-
-        return false
+    private suspend fun fetchJson(url: String): JSONObject {
+        val body = getJsonBody(url)
+        return JSONObject(body)
     }
 
-    private suspend fun fetchJson(url: String): JSONObject = withContext(Dispatchers.IO) {
-        withChallengeRecovery(url) {
-            service.getJson(url).use { responseBody ->
-                val body = responseBody.string()
-                if (requiresClearance(body)) {
-                    throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected")
+    private suspend fun getJsonBody(url: String): String {
+        val result = providerMutex.withLock {
+            Log.d(TAG, "Loading JSON through WebView -> url=$url")
+            getResolver().getResult(
+                url = url,
+                headers = pageHeaders(url),
+                completion = { currentUrl, html, _ ->
+                    val jsonBody = extractJsonBody(html)
+                    val jsonReady = jsonBody.startsWith("{") || jsonBody.startsWith("[")
+                    val challenge = requiresClearance(html) || currentUrl.contains("/cdn-cgi/", ignoreCase = true)
+                    Log.d(TAG, "WebView JSON poll -> url=$currentUrl challenge=$challenge jsonReady=$jsonReady")
+                    !challenge && jsonReady
                 }
-                JSONObject(body)
-            }
+            )
         }
+
+        val body = extractJsonBody(result.html)
+
+        if (requiresClearance(body)) {
+            throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected for $url")
+        }
+        return body
     }
 
-    private suspend fun fetchJsonArray(url: String): JSONArray = withContext(Dispatchers.IO) {
-        withChallengeRecovery(url) {
-            service.getJson(url).use { responseBody ->
-                val body = responseBody.string()
-                if (requiresClearance(body)) {
-                    throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected")
-                }
-                JSONArray(body)
-            }
-        }
+    private fun extractJsonBody(html: String): String {
+        val preBody = Regex("""<pre[^>]*>(.*?)</pre>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+            .find(html)
+            ?.groupValues
+            ?.getOrNull(1)
+
+        return Jsoup.parse(preBody ?: html).text().trim()
     }
 
     override suspend fun getHome(): List<Category> {
@@ -274,51 +186,27 @@ object AnimeOnlineNinjaProvider : Provider {
 
         if (page > 1) return emptyList()
         val encoded = URLEncoder.encode(query, "UTF-8")
-        val apiResults = linkedMapOf<String, AppAdapter.Item>()
-        listOf("movies" to true, "tvshows" to false).forEach { (type, isMovie) ->
-            val items = runCatching {
-                fetchJsonArray("$baseUrl/wp-json/wp/v2/$type?search=$encoded&per_page=20&page=$page&_embed=1")
-            }.getOrNull()?.let { parseApiItems(it, isMovie) }.orEmpty()
-
-            items.forEach { item -> apiResults.putIfAbsent(itemKey(item), item) }
-        }
-
-        if (apiResults.isNotEmpty()) {
-            return apiResults.values.toList()
-        }
-
         val document = getDocument("$baseUrl/?s=$encoded")
         return parseListingItems(document)
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        return runCatching { getApiListing("movies", page, isMovie = true).filterIsInstance<Movie>() }
-            .getOrDefault(emptyList())
-            .ifEmpty { getListing(listingUrl("pelicula", page)).filterIsInstance<Movie>() }
+        return getListing(listingUrl("pelicula", page)).filterIsInstance<Movie>()
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        return runCatching { getApiListing("tvshows", page, isMovie = false).filterIsInstance<TvShow>() }
-            .getOrDefault(emptyList())
-            .ifEmpty { getListing(listingUrl("online", page)).filterIsInstance<TvShow>() }
+        return getListing(listingUrl("online", page)).filterIsInstance<TvShow>()
     }
 
     override suspend fun getMovie(id: String): Movie {
-        val slug = normalizeId(id, "/pelicula/")
         val url = toAbsoluteUrl(id, "/pelicula/")
-        val apiMovie = runCatching { getApiDetail("movies", slug, isMovie = true) as? Movie }.getOrNull()
-        val document = if (apiMovie == null || looksGenericTitle(apiMovie.title)) {
-            runCatching { getDocument(url) }.getOrNull()
-        } else null
+        val document = getDocument(url)
 
-        val title = document?.extractDetailTitle() ?: apiMovie?.title ?: id
-        val overview = extractOverview(document, title, apiMovie?.overview)
-        val poster = document?.selectFirst("meta[property='og:image']")?.attr("content")?.trim()
+        val title = document.extractDetailTitle().ifBlank { id }
+        val overview = extractOverview(document, title)
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")?.trim()
             ?.let { artworkUrl(it, url) }
-            ?: apiMovie?.poster
-        val banner = poster ?: apiMovie?.banner
-        val released = document?.selectFirst("meta[property='article:published_time']")?.attr("content")?.take(10)
-            ?: apiMovie?.released?.toString()?.take(10)
+        val released = document.selectFirst("meta[property='article:published_time']")?.attr("content")?.take(10)
 
         return Movie(
             id = normalizeId(url, "/pelicula/"),
@@ -326,56 +214,20 @@ object AnimeOnlineNinjaProvider : Provider {
             overview = overview,
             released = released,
             poster = poster,
-            banner = banner
+            banner = poster
         )
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val slug = normalizeId(id, "/online/")
-        val apiShow = runCatching { getApiDetail("tvshows", slug, isMovie = false) as? TvShow }.getOrNull()
         val url = toAbsoluteUrl(id, "/online/")
-        val document = if (apiShow == null || looksGenericTitle(apiShow.title)) {
-            runCatching { getDocument(url) }.getOrNull()
-        } else null
-
-        if (apiShow != null && document != null) {
-            val seasons = parseSeasons(document, url, apiShow.poster)
-            val recommendations = document.select("#single_relacionados article, #single_relacionados .item")
-                .mapNotNull { parseListingItem(it) }
-                .filterIsInstance<Show>()
-                .distinctBy { item ->
-                    when (item) {
-                        is Movie -> "movie:${item.id}"
-                        is TvShow -> "tv:${item.id}"
-                    }
-                }
-
-            return TvShow(
-                id = normalizeId(url, "/online/"),
-                title = cleanTitle(document.extractDetailTitle().ifBlank { apiShow.title }),
-                overview = extractOverview(document, apiShow.title, apiShow.overview),
-                released = document.selectFirst("meta[property='article:published_time']")?.attr("content")?.take(10)
-                    ?: apiShow.released?.toString()?.take(10),
-                poster = artworkUrl(document.selectFirst("meta[property='og:image']")?.attr("content")?.trim(), url)
-                    ?: apiShow.poster,
-                banner = artworkUrl(document.selectFirst("meta[property='og:image']")?.attr("content")?.trim(), url)
-                    ?: apiShow.banner,
-                seasons = seasons,
-                recommendations = recommendations,
-                isFavorite = apiShow.isFavorite
-            )
-        }
-
-        if (apiShow != null) return apiShow
-
-        val documentFallback = getDocument(url)
-        val title = documentFallback.extractDetailTitle().ifBlank { id }
-        val overview = extractOverview(documentFallback, title, apiShow?.overview)
-        val poster = artworkUrl(documentFallback.selectFirst("meta[property='og:image']")?.attr("content")?.trim(), url)
+        val document = getDocument(url)
+        val title = document.extractDetailTitle().ifBlank { id }
+        val overview = extractOverview(document, title)
+        val poster = artworkUrl(document.selectFirst("meta[property='og:image']")?.attr("content")?.trim(), url)
         val banner = poster
-        val released = documentFallback.selectFirst("meta[property='article:published_time']")?.attr("content")?.take(10)
-        val seasons = parseSeasons(documentFallback, url, poster)
-        val recommendations = documentFallback.select("#single_relacionados article, #single_relacionados .item")
+        val released = document.selectFirst("meta[property='article:published_time']")?.attr("content")?.take(10)
+        val seasons = parseSeasons(document, url, poster)
+        val recommendations = document.select("#single_relacionados article, #single_relacionados .item")
             .mapNotNull { parseListingItem(it) }
             .filterIsInstance<Show>()
             .distinctBy { item ->
@@ -524,22 +376,7 @@ object AnimeOnlineNinjaProvider : Provider {
             }?.let { return it }
         }
 
-        val slug = when (videoType) {
-            is Video.Type.Movie -> normalizeId(pageUrl, "/pelicula/")
-            is Video.Type.Episode -> normalizeId(pageUrl, "/episodio/")
-        }
-        val endpoint = when (videoType) {
-            is Video.Type.Movie -> "movies"
-            is Video.Type.Episode -> "episodes"
-        }
-
-        return runCatching {
-            fetchJsonArray("$baseUrl/wp-json/wp/v2/$endpoint?slug=${URLEncoder.encode(slug, "UTF-8")}&per_page=1")
-                .optJSONObject(0)
-                ?.optInt("id")
-                ?.takeIf { it > 0 }
-                ?.toString()
-        }.getOrNull()
+        return null
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
@@ -548,75 +385,6 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private suspend fun getListing(url: String): List<AppAdapter.Item> {
         return getDocument(url).let(::parseListingItems)
-    }
-
-    private suspend fun getApiListing(type: String, page: Int, isMovie: Boolean): List<AppAdapter.Item> {
-        val array = fetchJsonArray("$baseUrl/wp-json/wp/v2/$type?per_page=24&page=$page&_embed=1")
-        return parseApiItems(array, isMovie)
-    }
-
-    private suspend fun getApiDetail(type: String, slug: String, isMovie: Boolean): Show? {
-        val array = fetchJsonArray("$baseUrl/wp-json/wp/v2/$type?slug=$slug&_embed=1")
-        return array.optJSONObject(0)?.let { parseApiItem(it, isMovie, detailed = true) as? Show }
-    }
-
-    private fun parseApiItems(array: JSONArray, isMovie: Boolean): List<AppAdapter.Item> {
-        return (0 until array.length()).mapNotNull { index ->
-            array.optJSONObject(index)?.let { parseApiItem(it, isMovie, detailed = false) }
-        }
-    }
-
-    private fun parseApiItem(item: JSONObject, isMovie: Boolean, detailed: Boolean): AppAdapter.Item? {
-        val link = item.optString("link").takeIf { it.isNotBlank() }
-        val slug = item.optString("slug").takeIf { it.isNotBlank() }
-            ?: link?.substringBeforeLast("/")?.substringAfterLast("/")
-            ?: return null
-
-        val title = item.renderedText("title").takeIf { it.isNotBlank() } ?: slug.replace('-', ' ')
-        val poster = item.apiPosterUrl(link ?: baseUrl)
-        val overview = if (detailed) {
-            item.renderedText("content").ifBlank { item.renderedText("excerpt") }.takeIf { it.isNotBlank() }
-        } else {
-            null
-        }
-        val released = item.optString("date").take(10).takeIf { it.length == 10 }
-
-        return if (isMovie) {
-            Movie(
-                id = slug,
-                title = cleanTitle(title),
-                overview = overview,
-                released = released,
-                poster = poster,
-                banner = poster
-            )
-        } else {
-            TvShow(
-                id = slug,
-                title = cleanTitle(title),
-                overview = overview,
-                released = released,
-                poster = poster,
-                banner = poster
-            )
-        }
-    }
-
-    private fun JSONObject.renderedText(key: String): String {
-        val rendered = optJSONObject(key)?.optString("rendered").orEmpty()
-        return Jsoup.parse(rendered).text().trim()
-    }
-
-    private fun JSONObject.apiPosterUrl(referer: String): String? {
-        val embedded = optJSONObject("_embedded")
-            ?.optJSONArray("wp:featuredmedia")
-            ?.optJSONObject(0)
-
-        val source = embedded?.optString("source_url")?.takeIf { it.isNotBlank() }
-            ?: optJSONObject("better_featured_image")?.optString("source_url")?.takeIf { it.isNotBlank() }
-            ?: optString("jetpack_featured_media_url").takeIf { it.isNotBlank() }
-
-        return artworkUrl(source, referer)
     }
 
     private fun listingUrl(path: String, page: Int): String {
@@ -765,11 +533,10 @@ object AnimeOnlineNinjaProvider : Provider {
             .trim()
     }
 
-    private fun extractOverview(document: Document?, title: String?, apiOverview: String?): String? {
-        val synopsis = document?.let { extractSynopsisText(it, title) }
+    private fun extractOverview(document: Document, title: String?): String? {
+        val synopsis = extractSynopsisText(document, title)
         return synopsis?.takeIf { it.isNotBlank() }
-            ?: apiOverview?.trim()?.takeIf { it.isNotBlank() }
-            ?: document?.selectFirst("meta[name='description']")?.attr("content")?.trim()?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("meta[name='description']")?.attr("content")?.trim()?.takeIf { it.isNotBlank() }
     }
 
     private fun extractSynopsisText(document: Document, title: String?): String? {
@@ -822,12 +589,6 @@ object AnimeOnlineNinjaProvider : Provider {
         return normalized
     }
 
-    private fun siteRootUrl(url: String): String? {
-        val host = runCatching { URL(url).host }.getOrNull()?.trim().orEmpty()
-        if (host.isBlank()) return null
-        return "https://$host/"
-    }
-
     private fun Document.extractDetailTitle(): String {
         return selectFirst(".sheader .data h1, .sheader h1, #single h1, main h1, h1[itemprop='name'], meta[property='og:title'], meta[name='twitter:title']")
             ?.let { element ->
@@ -837,13 +598,6 @@ object AnimeOnlineNinjaProvider : Provider {
                 }
             }
             .orEmpty()
-    }
-
-    private fun looksGenericTitle(title: String): Boolean {
-        val normalized = cleanTitle(title)
-        return normalized.equals("Ver Anime", ignoreCase = true) ||
-                normalized.contains("Ver Anime", ignoreCase = true) ||
-                normalized.equals(baseUrl.substringAfterLast('/'), ignoreCase = true)
     }
 
     private fun slugify(value: String): String {
@@ -1030,44 +784,4 @@ object AnimeOnlineNinjaProvider : Provider {
         }
     }
 
-    private interface AnimeOnlineNinjaService {
-        @GET
-        suspend fun getDocument(@Url url: String): Document
-
-        @GET
-        suspend fun getJson(@Url url: String): ResponseBody
-
-        companion object {
-            fun build(): AnimeOnlineNinjaService {
-                val client = NetworkClient.default.newBuilder()
-                    .connectTimeout(20, TimeUnit.SECONDS)
-                    .readTimeout(20, TimeUnit.SECONDS)
-                    .followRedirects(true)
-                    .followSslRedirects(true)
-                    .addInterceptor { chain ->
-                        val originalRequest = chain.request()
-                        val requestBuilder = originalRequest.newBuilder()
-                        if (originalRequest.header("Referer") == null) {
-                            requestBuilder.header("Referer", SITE_BASE_URL)
-                        }
-                        if (originalRequest.url.encodedPath.contains("/wp-json/")) {
-                            requestBuilder.header(
-                                "Accept",
-                                "application/json, text/javascript, */*; q=0.1"
-                            )
-                        }
-                        chain.proceed(requestBuilder.build())
-                    }
-                    .build()
-
-                val retrofit = Retrofit.Builder()
-                    .baseUrl("$SITE_BASE_URL/")
-                    .client(client)
-                    .addConverterFactory(JsoupConverterFactory.create())
-                    .build()
-
-                return retrofit.create(AnimeOnlineNinjaService::class.java)
-            }
-        }
-    }
 }
