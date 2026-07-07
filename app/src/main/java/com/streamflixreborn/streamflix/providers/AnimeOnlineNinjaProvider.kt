@@ -75,7 +75,7 @@ object AnimeOnlineNinjaProvider : Provider {
         if (requiresClearance(result.html) || !hasUsableSiteContent(result.html, finalUrl)) {
             throw ChallengeRequiredException("AnimeOnline Ninja WebView did not reach usable content for $url")
         }
-        CookieManager.getInstance().flush()
+        promoteClearanceCookies(finalUrl)
         return Jsoup.parse(result.html, finalUrl).apply { setBaseUri(finalUrl) }
     }
 
@@ -169,18 +169,22 @@ object AnimeOnlineNinjaProvider : Provider {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isBlank()) {
             return listOf(
+                Genre("anime-castellano", "Audio castellano"),
+                Genre("audio-latino", "Audio latino"),
+                Genre("en-emision-1", "En emisión"),
+                Genre("blu-ray-dvd-2", "BluRay-DVD"),
+                Genre("live-action", "Live action"),
+                Genre("tendencias", "Popular en la web"),
+                Genre("ratings", "Mejores valorados"),
+                Genre("audio-latino", "Audio latino"),
+                Genre("award-winning-anime", "Ganadores de premios"),
                 Genre("accion", "Accion"),
                 Genre("aventura", "Aventura"),
                 Genre("comedia", "Comedia"),
-                Genre("drama", "Drama"),
-                Genre("fantasia", "Fantasia"),
-                Genre("isekai", "Isekai"),
-                Genre("misterio", "Misterio"),
-                Genre("romance", "Romance"),
                 Genre("shonen", "Shonen"),
                 Genre("terror", "Terror"),
                 Genre("ver-anime", "Ver Anime"),
-                Genre("pelicula", "Peliculas")
+                Genre("pelicula", "Peliculas"),
             )
         }
 
@@ -782,6 +786,47 @@ object AnimeOnlineNinjaProvider : Provider {
             is Genre -> "genre:${item.id}"
             else -> item.toString()
         }
+
+    }
+    private fun promoteClearanceCookies(sourceUrl: String) {
+        val cookieManager = CookieManager.getInstance()
+        val cookieHeader = listOf(
+            sourceUrl,
+            SITE_BASE_URL,
+            "$SITE_BASE_URL/",
+            baseUrl,
+            "$baseUrl/"
+        ).firstNotNullOfOrNull { candidate ->
+            cookieManager.getCookie(candidate)?.takeIf { it.isNotBlank() }
+        }.orEmpty()
+
+        if (cookieHeader.isBlank()) {
+            cookieManager.flush()
+            return
+        }
+
+        val targets = listOf(
+            SITE_BASE_URL,
+            "$SITE_BASE_URL/",
+            baseUrl,
+            "$baseUrl/",
+            sourceUrl
+        ).distinct()
+
+        cookieHeader.split(";")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { cookie ->
+                val rootCookie = if (cookie.contains("Path=", ignoreCase = true)) {
+                    cookie
+                } else {
+                    "$cookie; Path=/"
+                }
+                targets.forEach { target ->
+                    cookieManager.setCookie(target, rootCookie)
+                }
+            }
+        cookieManager.flush()
     }
 
 }
