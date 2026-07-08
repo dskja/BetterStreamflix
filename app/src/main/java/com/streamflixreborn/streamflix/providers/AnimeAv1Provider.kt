@@ -483,7 +483,15 @@ object AnimeAv1Provider : Provider {
             val nodes = root.getJSONArray("nodes")
 
             // Nodo donde vive episode
-            val episodeNode = nodes.getJSONObject(3)
+            val episodeNode = (0 until nodes.length())
+                .mapNotNull(nodes::optJSONObject)
+                .firstOrNull { node ->
+                    val first = node.optJSONArray("data")?.optJSONObject(0)
+                    first != null &&
+                            first.has("media") &&
+                            first.has("episode") &&
+                            first.has("embeds")
+                } ?: error("Episode data node not found")
             val dataArray = episodeNode.getJSONArray("data")
 
             val episodeObj = dataArray.getJSONObject(0)
@@ -520,7 +528,7 @@ object AnimeAv1Provider : Provider {
                     val (name, videoUrl) = result
 
                     // Omitir servidores que no funcionan correctamente (Mega y MP4Upload)
-                    if (name.contains("Mega", ignoreCase = true) || name.contains("MP4Upload", ignoreCase = true)) {
+                    if (name.contains("Mega", ignoreCase = true)) {
                         continue
                     }
 
