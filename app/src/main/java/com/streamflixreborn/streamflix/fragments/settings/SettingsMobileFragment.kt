@@ -63,7 +63,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     )
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.dog"
-    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "s.to"
+    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "serienstream.to"
     private val DEFAULT_MOFLIX_DOMAIN_VALUE = "moflix-stream.xyz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
