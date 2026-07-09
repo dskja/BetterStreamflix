@@ -54,7 +54,7 @@ import javax.net.ssl.X509TrustManager
 
 object SerienStreamProvider : Provider {
 
-    private const val DEFAULT_DOMAIN = "s.to"
+    private const val DEFAULT_DOMAIN = "serienstream.to"
 
     override val baseUrl: String
         get() = currentBaseUrl()
