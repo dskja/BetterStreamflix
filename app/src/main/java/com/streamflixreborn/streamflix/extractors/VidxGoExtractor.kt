@@ -121,12 +121,12 @@ class VidxGoExtractor : Extractor() {
         val scriptRegex = Regex("<script[\\s\\S]*?>[\\s\\S]*?\\(function\\(\\)\\s*\\{[\\s\\S]*?\\}\\s*\\)\\(\\);[\\s\\S]*?</script>", RegexOption.IGNORE_CASE)
         val scriptMatches = scriptRegex.findAll(html).toList()
         
-        if (scriptMatches.size < 3) {
+        if (scriptMatches.size < 5) {
             Log.e("VidxGoExtractor", "Could not find enough encrypted scripts. Found: ${scriptMatches.size}")
-            throw Exception("VidxGo: Could not find third encrypted script")
+            throw Exception("VidxGo: Could not find fifth encrypted script")
         }
 
-        val targetScript = scriptMatches[2].value
+        val targetScript = scriptMatches[4].value
 
         val k = Regex("var\\s+k\\s*=\\s*['\"]([^'\"]+)['\"]").find(targetScript)?.groupValues?.get(1)
             ?: throw Exception("VidxGo: Could not find key 'k'")

@@ -257,6 +257,36 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_serienstream_settings"
+            android:title="@string/settings_category_serienstream">
+
+            <EditTextPreference
+                android:key="provider_serienstream_domain"
+                android:title="@string/settings_category_serienstream_domain"
+                android:inputType="text" />
+
+            <Preference
+                android:key="provider_serienstream_domain_reset"
+                android:title="@string/settings_serienstream_domain_reset"
+                android:summary="@string/settings_serienstream_domain_reset_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_moflix_settings"
+            android:title="@string/settings_category_moflix">
+
+            <EditTextPreference
+                android:key="provider_moflix_domain"
+                android:title="@string/settings_category_moflix_domain"
+                android:inputType="text" />
+
+            <Preference
+                android:key="provider_moflix_domain_reset"
+                android:title="@string/settings_moflix_domain_reset"
+                android:summary="@string/settings_moflix_domain_reset_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_cuevana_settings"
             android:title="@string/settings_category_cuevana">
 
