@@ -34,6 +34,7 @@ import com.streamflixreborn.streamflix.activities.tools.QrScannerActivity
 import com.streamflixreborn.streamflix.backup.BackupRestoreManager
 import com.streamflixreborn.streamflix.backup.ProviderBackupContext
 import com.streamflixreborn.streamflix.database.AppDatabase
+import com.streamflixreborn.streamflix.providers.AnimeOnlineNinjaProvider
 import com.streamflixreborn.streamflix.providers.FrenchStreamProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.ProviderConfigUrl
@@ -321,6 +322,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 true
             }
         }
+
+        bindAnimeOnlineNinjaPreferredServer()
 
         findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
             summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
@@ -775,13 +778,40 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         val isStreamingCommunity = UserPreferences.currentProvider is StreamingCommunityProvider
         val isCuevana = UserPreferences.currentProvider?.name == "Cuevana 3"
         val isPoseidon = UserPreferences.currentProvider?.name == "Poseidonhd2"
+        val isAnimeOnlineNinja = UserPreferences.currentProvider is AnimeOnlineNinjaProvider
         val hasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
-        val hasSpecificOptions = isStreamingCommunity || isCuevana || isPoseidon
+        val hasSpecificOptions = isStreamingCommunity || isCuevana || isPoseidon || isAnimeOnlineNinja
 
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible = isStreamingCommunity
         findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible = isCuevana
         findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible = isPoseidon
+        findPreference<PreferenceCategory>("pc_animeonlineninja_settings")?.isVisible = isAnimeOnlineNinja
         findPreference<PreferenceCategory>("pc_provider_empty_state")?.isVisible = !hasConfigProvider && !hasSpecificOptions
+    }
+
+    private fun bindAnimeOnlineNinjaPreferredServer() {
+        val preference = findPreference<ListPreference>("provider_animeonlineninja_preferred_server") ?: return
+        val currentValue = UserPreferences.getProviderCache(
+            AnimeOnlineNinjaProvider,
+            UserPreferences.PROVIDER_PREFERRED_SERVER
+        )
+        preference.value = currentValue
+        preference.summary = preference.entries
+            ?.getOrNull(preference.findIndexOfValue(currentValue))
+            ?: getString(R.string.settings_provider_animeonlineninja_preferred_server_summary)
+        preference.setOnPreferenceChangeListener { pref, newValue ->
+            val value = (newValue as String).trim()
+            UserPreferences.setProviderCache(
+                AnimeOnlineNinjaProvider,
+                UserPreferences.PROVIDER_PREFERRED_SERVER,
+                value
+            )
+            if (pref is ListPreference) {
+                pref.summary = pref.entries?.getOrNull(pref.findIndexOfValue(value))
+                    ?: getString(R.string.settings_provider_animeonlineninja_preferred_server_summary)
+            }
+            true
+        }
     }
 
     private fun setupParentalControlPreferences() {

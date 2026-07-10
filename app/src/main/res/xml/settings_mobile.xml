@@ -337,6 +337,21 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_animeonlineninja_settings"
+            android:title="@string/settings_category_animeonlineninja"
+            app:iconSpaceReserved="false">
+
+            <ListPreference
+                android:key="provider_animeonlineninja_preferred_server"
+                android:title="@string/settings_provider_animeonlineninja_preferred_server"
+                android:summary="@string/settings_provider_animeonlineninja_preferred_server_summary"
+                android:defaultValue=""
+                android:entries="@array/animeonlineninja_preferred_server_entries"
+                android:entryValues="@array/animeonlineninja_preferred_server_values"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_provider_empty_state"
             android:title="@string/settings_provider_connection_title"
             app:iconSpaceReserved="false">

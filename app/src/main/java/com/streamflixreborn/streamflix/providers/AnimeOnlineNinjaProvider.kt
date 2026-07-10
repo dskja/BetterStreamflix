@@ -18,6 +18,8 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.WebViewResolver
+import com.streamflixreborn.streamflix.utils.UserPreferences
+import okhttp3.Request
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
@@ -27,6 +29,7 @@ import org.jsoup.nodes.Element
 import java.net.URL
 import java.net.URLEncoder
 import java.text.Normalizer
+import java.util.concurrent.ConcurrentHashMap
 
 object AnimeOnlineNinjaProvider : Provider {
 
@@ -40,9 +43,14 @@ object AnimeOnlineNinjaProvider : Provider {
     override val language = "es"
 
     private const val TAG = "AnimeOnlineNinja"
+    private const val MAIN_HOST = "ww3.animeonline.ninja"
+    private const val DOCUMENT_CACHE_TTL_MS = 2 * 60 * 1000L
 
     private val providerMutex = Mutex()
     private var webViewResolver: WebViewResolver? = null
+    private val documentCache = ConcurrentHashMap<String, CachedDocument>()
+    @Volatile
+    private var clearanceCookieHeader: String? = null
 
     fun init(context: Context) {
         webViewResolver = WebViewResolver(context)
@@ -57,14 +65,24 @@ object AnimeOnlineNinjaProvider : Provider {
     private class ChallengeRequiredException(message: String) : IllegalStateException(message)
 
     private suspend fun getDocument(url: String): Document {
+        cachedDocument(url)?.let { cached ->
+            return cached.document.clone().apply { setBaseUri(cached.finalUrl) }
+        }
+
+        runCatching { fetchDocumentDirect(url) }.getOrNull()?.let { directResult ->
+            cacheDocument(url, directResult)
+            return directResult.clone()
+        }
+
         val result = providerMutex.withLock {
             Log.d(TAG, "Loading page through WebView -> url=$url")
             getResolver().getResult(
                 url = url,
                 headers = pageHeaders(url),
-                completion = { currentUrl, html, _ ->
+                completion = { currentUrl, html, cookies ->
                     val challenge = requiresClearance(html) || currentUrl.contains("/cdn-cgi/", ignoreCase = true)
                     val usable = hasUsableSiteContent(html, currentUrl)
+                    promoteClearanceCookieHeader(cookies)
                     Log.d(TAG, "WebView page poll -> url=$currentUrl challenge=$challenge usable=$usable")
                     !challenge && usable
                 }
@@ -76,16 +94,19 @@ object AnimeOnlineNinjaProvider : Provider {
             throw ChallengeRequiredException("AnimeOnline Ninja WebView did not reach usable content for $url")
         }
         promoteClearanceCookies(finalUrl)
-        return Jsoup.parse(result.html, finalUrl).apply { setBaseUri(finalUrl) }
+        return Jsoup.parse(result.html, finalUrl).apply { setBaseUri(finalUrl) }.also {
+            cacheDocument(url, it)
+        }
     }
 
     private fun pageHeaders(referer: String): Map<String, String> {
-        return mapOf(
-            "User-Agent" to NetworkClient.USER_AGENT,
-            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language" to "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer" to referer,
-        )
+        return buildMap {
+            put("User-Agent", NetworkClient.USER_AGENT)
+            put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            put("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+            put("Referer", referer)
+            currentClearanceCookie()?.takeIf { it.isNotBlank() }?.let { put("Cookie", it) }
+        }
     }
 
     private fun hasUsableSiteContent(html: String, currentUrl: String): Boolean {
@@ -119,7 +140,8 @@ object AnimeOnlineNinjaProvider : Provider {
             referer = referer,
             origin = SITE_BASE_URL,
             userAgent = NetworkClient.USER_AGENT,
-            accept = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+            accept = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            cookie = currentClearanceCookie()
         )
     }
 
@@ -129,6 +151,10 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private suspend fun getJsonBody(url: String): String {
+        runCatching { fetchJsonDirect(url) }.getOrNull()?.let { body ->
+            return body
+        }
+
         val result = providerMutex.withLock {
             Log.d(TAG, "Loading JSON through WebView -> url=$url")
             getResolver().getResult(
@@ -150,6 +176,27 @@ object AnimeOnlineNinjaProvider : Provider {
             throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected for $url")
         }
         return body
+    }
+
+    private fun fetchJsonDirect(url: String): String? {
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .header("User-Agent", NetworkClient.USER_AGENT)
+            .header("Accept", "application/json,text/plain,*/*")
+            .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Referer", url)
+
+        currentClearanceCookie()?.takeIf { it.isNotBlank() }?.let { cookie ->
+            requestBuilder.header("Cookie", cookie)
+        }
+
+        NetworkClient.default.newCall(requestBuilder.build()).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful || body.isBlank()) return null
+            if (requiresClearance(body)) return null
+            val trimmed = body.trim()
+            return if (trimmed.startsWith("{") || trimmed.startsWith("[")) trimmed else null
+        }
     }
 
     private fun extractJsonBody(html: String): String {
@@ -359,7 +406,7 @@ object AnimeOnlineNinjaProvider : Provider {
             }
         }
 
-        return collected.values.toList()
+        return prioritizeServers(collected.values.toList())
     }
 
     private suspend fun resolvePostId(pageUrl: String, document: Document?, videoType: Video.Type): String? {
@@ -772,6 +819,30 @@ object AnimeOnlineNinjaProvider : Provider {
         return servers.values.toList()
     }
 
+    private fun prioritizeServers(servers: List<Video.Server>): List<Video.Server> {
+        val preferred = UserPreferences
+            .getProviderCache(this, UserPreferences.PROVIDER_PREFERRED_SERVER)
+            .trim()
+            .uppercase()
+
+        if (preferred.isBlank()) return servers
+
+        val (preferredServers, fallbackServers) = servers.partition { server ->
+            serverMatchesPreference(server, preferred)
+        }
+
+        return if (preferredServers.isEmpty()) servers else preferredServers + fallbackServers
+    }
+
+    private fun serverMatchesPreference(server: Video.Server, preferred: String): Boolean {
+        val tokens = server.name
+            .uppercase()
+            .split(Regex("""[^A-Z0-9]+"""))
+            .filter { it.isNotBlank() }
+            .toSet()
+        return preferred in tokens
+    }
+
     private fun requiresClearance(html: String): Boolean {
         return html.contains("cf-browser-verification", ignoreCase = true) ||
                 html.contains("Just a moment...", ignoreCase = true) ||
@@ -805,6 +876,8 @@ object AnimeOnlineNinjaProvider : Provider {
             return
         }
 
+        promoteClearanceCookieHeader(cookieHeader)
+
         val targets = listOf(
             SITE_BASE_URL,
             "$SITE_BASE_URL/",
@@ -825,8 +898,98 @@ object AnimeOnlineNinjaProvider : Provider {
                 targets.forEach { target ->
                     cookieManager.setCookie(target, rootCookie)
                 }
-            }
+        }
         cookieManager.flush()
     }
 
+    private fun currentClearanceCookie(): String? {
+        AnimeOnlineNinjaClearanceStore.cookieHeader()?.takeIf { it.isNotBlank() }?.let {
+            clearanceCookieHeader = it
+            return it
+        }
+
+        clearanceCookieHeader?.takeIf { it.isNotBlank() }?.let { return it }
+
+        val cookieManager = CookieManager.getInstance()
+        val candidates = listOf(
+            "$SITE_BASE_URL/",
+            SITE_BASE_URL,
+            "$baseUrl/",
+            baseUrl
+        )
+
+        return candidates.firstNotNullOfOrNull { candidate ->
+            cookieManager.getCookie(candidate)?.takeIf { it.isNotBlank() }
+        }?.also {
+            clearanceCookieHeader = it
+            AnimeOnlineNinjaClearanceStore.update(it)
+        }
+    }
+
+    fun clearanceCookieForGlide(): String? {
+        return currentClearanceCookie()
+    }
+
+    private fun fetchDocumentDirect(url: String): Document? {
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .header("User-Agent", NetworkClient.USER_AGENT)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Referer", url)
+
+        currentClearanceCookie()?.takeIf { it.isNotBlank() }?.let { cookie ->
+            requestBuilder.header("Cookie", cookie)
+        }
+
+        NetworkClient.default.newCall(requestBuilder.build()).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful || body.isBlank()) return null
+            if (requiresClearance(body) || !hasUsableSiteContent(body, url)) return null
+
+            val finalUrl = response.request.url.toString()
+            return Jsoup.parse(body, finalUrl).apply { setBaseUri(finalUrl) }
+        }
+    }
+
+    private fun cacheDocument(requestUrl: String, document: Document) {
+        documentCache[requestUrl] = CachedDocument(
+            document = document.clone(),
+            finalUrl = document.baseUri(),
+            expiresAt = System.currentTimeMillis() + DOCUMENT_CACHE_TTL_MS
+        )
+    }
+
+    private fun cachedDocument(url: String): CachedDocument? {
+        val cached = documentCache[url] ?: return null
+        if (cached.expiresAt < System.currentTimeMillis()) {
+            documentCache.remove(url)
+            return null
+        }
+        return cached
+    }
+
+    private fun promoteClearanceCookieHeader(cookieHeader: String?) {
+        val normalized = cookieHeader?.trim()?.takeIf { it.isNotBlank() } ?: return
+        clearanceCookieHeader = normalized
+        AnimeOnlineNinjaClearanceStore.update(normalized)
+    }
+
+    private data class CachedDocument(
+        val document: Document,
+        val finalUrl: String,
+        val expiresAt: Long,
+    )
+
+}
+
+private object AnimeOnlineNinjaClearanceStore {
+    @Volatile
+    private var cookieHeader: String? = null
+
+    fun update(cookieHeader: String?) {
+        this.cookieHeader = cookieHeader?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    fun cookieHeader(): String? = cookieHeader
 }

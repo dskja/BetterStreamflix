@@ -13,6 +13,7 @@ object ArtworkRequestHeaders {
         origin: String? = null,
         userAgent: String? = null,
         accept: String? = null,
+        cookie: String? = null,
     ): String? {
         val imageUrl = url?.takeIf { it.isNotBlank() } ?: return null
         val headers = JSONObject()
@@ -20,6 +21,7 @@ object ArtworkRequestHeaders {
         origin?.takeIf { it.isNotBlank() }?.let { headers.put("Origin", it) }
         userAgent?.takeIf { it.isNotBlank() }?.let { headers.put("User-Agent", it) }
         accept?.takeIf { it.isNotBlank() }?.let { headers.put("Accept", it) }
+        cookie?.takeIf { it.isNotBlank() }?.let { headers.put("Cookie", it) }
         if (headers.length() == 0) return imageUrl
 
         val encoded = Base64.encodeToString(

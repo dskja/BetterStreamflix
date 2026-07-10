@@ -10,6 +10,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.load.HttpException
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
@@ -25,7 +26,9 @@ object ArtworkRepair {
 
     fun shouldRepair(url: String?, error: GlideException?): Boolean {
         if (url.isNullOrBlank()) return false
-        return !isRemoteArtworkUrl(url) || containsFileNotFound(error)
+        return !isRemoteArtworkUrl(url) ||
+                containsFileNotFound(error) ||
+                isAnimeOnlineNinjaArtwork(url) && containsAuthFailure(error)
     }
 
     fun isRemoteArtworkUrl(url: String?): Boolean {
@@ -192,9 +195,27 @@ object ArtworkRepair {
     private fun containsFileNotFound(error: GlideException?): Boolean {
         if (error == null) return false
         if (generateSequence(error.cause) { it.cause }.any { it is FileNotFoundException }) return true
-        return error.rootCauses.any { root ->
+        return error.rootCauses.any { root -> 
             root is FileNotFoundException || generateSequence(root.cause) { it.cause }.any { it is FileNotFoundException }
         }
+    }
+
+    private fun containsAuthFailure(error: GlideException?): Boolean {
+        if (error == null) return false
+        if (generateSequence(error.cause) { it.cause }.any { it.isHttpAuthFailure() }) return true
+        return error.rootCauses.any { root ->
+            root.isHttpAuthFailure() || generateSequence(root.cause) { it.cause }.any { it.isHttpAuthFailure() }
+        }
+    }
+
+    private fun Throwable.isHttpAuthFailure(): Boolean {
+        val httpException = this as? HttpException ?: return false
+        return httpException.statusCode == 401 || httpException.statusCode == 403
+    }
+
+    private fun isAnimeOnlineNinjaArtwork(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains("ww3.animeonline.ninja")
     }
 }
 
