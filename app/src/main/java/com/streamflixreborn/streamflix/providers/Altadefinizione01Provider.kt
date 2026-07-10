@@ -247,9 +247,12 @@ object Altadefinizione01Provider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val doc = service.getPage(id)
-        val title = doc.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
+        val title = (doc.selectFirst("#single .data h1")?.text()?.trim()
+            ?: doc.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
             ?: doc.selectFirst("h1,h2,title")?.text()?.trim()
-            ?: ""
+            ?: "")
+            .replace("Streaming HD - Altadefinizione01", "")
+            .trim()
 
         val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
@@ -279,9 +282,13 @@ object Altadefinizione01Provider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val doc = service.getPage(id)
-        val title = doc.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
+        val title = (doc.selectFirst("#single .data h1")?.text()?.trim()
+            ?: doc.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
             ?: doc.selectFirst("h1,h2,title")?.text()?.trim()
-            ?: ""
+            ?: "")
+            .replace("Streaming Gratis - Serie TV - Altadefinizione01", "")
+            .replace(" - Serie TV", "")
+            .trim()
 
         val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
 

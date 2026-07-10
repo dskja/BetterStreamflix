@@ -170,7 +170,7 @@ class VixcloudExtractor(
         masterParams.forEach { (key, value) -> httpUrlBuilder.addQueryParameter(key, value) }
         val finalUrl = httpUrlBuilder.build().toString()
 
-        val finalHeaders = mutableMapOf("Referer" to currentMainUrl, "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        val finalHeaders = mutableMapOf("Referer" to currentMainUrl, "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36")
         
         preferredLanguage?.let { lang ->
             finalHeaders["Accept-Language"] = if (lang == "en") "en-US,en;q=0.9" else "it-IT,it;q=0.9"
@@ -274,7 +274,7 @@ class VixcloudExtractor(
 
         @GET
         @Headers(
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
             "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language: it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
         )
