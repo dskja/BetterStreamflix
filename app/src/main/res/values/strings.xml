@@ -248,6 +248,16 @@
     <string name="settings_streamingcommunity_domain_reset_summary">Restore the default domain name</string>
     <string name="settings_streamingcommunity_domain_reset_done">Domain restored to default</string>
     <string name="settings_streamingcommunity_domain_blocked">Blocked domain detected, restored to default</string>
+    <string name="settings_category_serienstream">SerienStream settings</string>
+    <string name="settings_category_serienstream_domain">SerienStream domain name</string>
+    <string name="settings_serienstream_domain_reset">Reset domain</string>
+    <string name="settings_serienstream_domain_reset_summary">Restore the default domain name</string>
+    <string name="settings_serienstream_domain_reset_done">Domain restored to default</string>
+    <string name="settings_category_moflix">Moflix settings</string>
+    <string name="settings_category_moflix_domain">Moflix domain name</string>
+    <string name="settings_moflix_domain_reset">Reset domain</string>
+    <string name="settings_moflix_domain_reset_summary">Restore the default domain name</string>
+    <string name="settings_moflix_domain_reset_done">Domain restored to default</string>
     <string name="settings_category_cuevana">Cuevana 3 settings</string>
     <string name="settings_category_cuevana_domain">Cuevana 3 domain name</string>
     <string name="settings_category_poseidon">Poseidonhd2 settings</string>
