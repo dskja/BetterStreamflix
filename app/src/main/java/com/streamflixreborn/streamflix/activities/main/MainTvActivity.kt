@@ -31,6 +31,7 @@ import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.getCurrentFragment
+import com.streamflixreborn.streamflix.providers.AnimeOnlineNinjaProvider
 import kotlinx.coroutines.launch
 
 class MainTvActivity : FragmentActivity() {
@@ -53,6 +54,7 @@ class MainTvActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         
         // Inizializza il provider con il context dell'attività per gestire eventuali bypass visibili
+        AnimeOnlineNinjaProvider.init(this)
         Cine24hProvider.init(this)
         FilmyOnlineCcProvider.init(this)
         

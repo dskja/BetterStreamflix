@@ -384,6 +384,13 @@
     <string name="settings_server_voe_category">VOE server settings</string>
     <string name="settings_server_voe_title">Disable server auto subtitles</string>
     <string name="settings_server_voe_summary">If enabled, subtitles from VOE, Vidnest and Vidzy servers will not be active by default even if they are available and have a default true value</string>
+    <string name="settings_category_animeonlineninja">Anime Online Ninja settings</string>
+    <string name="settings_provider_animeonlineninja_preferred_server">Preferred server</string>
+    <string name="settings_provider_animeonlineninja_preferred_server_summary">Prefer a specific server label when Anime Online Ninja exposes it, and fall back to the default order if it is not available.</string>
+    <string name="settings_provider_animeonlineninja_preferred_server_default">Default</string>
+    <string name="settings_provider_animeonlineninja_preferred_server_es">ES</string>
+    <string name="settings_provider_animeonlineninja_preferred_server_lat">LAT</string>
+    <string name="settings_provider_animeonlineninja_preferred_server_sub">SUB</string>
 
     <string name="settings_category_interface_title">Interface settings</string>
     <string name="settings_immersive_mode">Immersive Mode</string>

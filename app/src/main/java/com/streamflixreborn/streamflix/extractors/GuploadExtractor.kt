@@ -3,12 +3,12 @@ package com.streamflixreborn.streamflix.extractors
 import android.util.Base64
 import com.streamflixreborn.streamflix.models.Video
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Url
+import java.net.URL
 
 class GuploadExtractor : Extractor() {
     override val name = "Gupload"
@@ -29,7 +29,7 @@ class GuploadExtractor : Extractor() {
         .build()
 
     private val service = Retrofit.Builder()
-        .baseUrl(mainUrl)
+        .baseUrl("$mainUrl/")
         .addConverterFactory(ScalarsConverterFactory.create())
         .client(client)
         .build()
@@ -42,45 +42,106 @@ class GuploadExtractor : Extractor() {
 
     override suspend fun extract(link: String): Video {
         val html = service.get(link)
+        val baseUrl = runCatching {
+            URL(link).let { "${it.protocol}://${it.host}" }
+        }.getOrDefault(mainUrl)
 
-        // 1. Extract XOR key (_k)
-        val pRegex = Regex("""_p=\[([^\]]+)\]""")
-        val pContent = pRegex.find(html)?.groupValues?.get(1)
-            ?: throw Exception("XOR key list _p not found in HTML")
-        
-        val key = Regex("""['"]([^'"]+)['Mult'"]""").findAll(pContent)
-            .map { it.groupValues[1] }
-            .joinToString("")
-
-        // 2. Extract obfuscated config (_cfg)
-        val cfgRegex = Regex("""_cfg\s*=\s*_(?:dp|xd)\(['"]([^'"]+)['"]\)""")
-        val cfgEncoded = cfgRegex.find(html)?.groupValues?.get(1)
-            ?: throw Exception("_cfg configuration not found")
-
-        // 3. XOR Decoding
-        val cfgJsonStr = xd(cfgEncoded, key)
-            ?: throw Exception("Failed to decode _cfg configuration")
-
-        val json = JSONObject(cfgJsonStr)
-        val videoUrl = json.optString("videoUrl").takeIf { it.isNotBlank() }
-            ?: throw Exception("Video URL not found in configuration")
+        val videoUrl = findDirectConfigVideoUrl(html)
+            ?: findLegacyConfigVideoUrl(html)
+            ?: throw Exception("Video URL not found in Gupload page")
 
         return Video(
             source = videoUrl,
             headers = mapOf(
                 "User-Agent" to DEFAULT_USER_AGENT,
-                "Referer" to mainUrl
+                "Referer" to baseUrl
             )
         )
+    }
+
+    private fun findDirectConfigVideoUrl(html: String): String? {
+        val configJson = findObjectLiteralAfter(html, "const config")
+            ?: findObjectLiteralAfter(html, "var config")
+            ?: findObjectLiteralAfter(html, "let config")
+
+        return configJson
+            ?.let { runCatching { JSONObject(it) }.getOrNull() }
+            ?.optString("videoUrl")
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun findLegacyConfigVideoUrl(html: String): String? {
+        val pContent = Regex("""_p\s*=\s*\[([^\]]+)]""")
+            .find(html)
+            ?.groupValues
+            ?.get(1)
+            ?: return null
+
+        val key = Regex("""["']([^"']+)["']""")
+            .findAll(pContent)
+            .joinToString("") { it.groupValues[1] }
+            .takeIf { it.isNotEmpty() }
+            ?: return null
+
+        val cfgEncoded = Regex("""_cfg\s*=\s*_(?:dp|xd)\(["']([^"']+)["']\)""")
+            .find(html)
+            ?.groupValues
+            ?.get(1)
+            ?: return null
+
+        val cfgJsonStr = xd(cfgEncoded, key) ?: return null
+
+        return runCatching { JSONObject(cfgJsonStr) }
+            .getOrNull()
+            ?.optString("videoUrl")
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun findObjectLiteralAfter(text: String, marker: String): String? {
+        val markerIndex = text.indexOf(marker)
+        if (markerIndex == -1) return null
+
+        val start = text.indexOf('{', markerIndex)
+        if (start == -1) return null
+
+        var depth = 0
+        var inString: Char? = null
+        var escaped = false
+
+        for (i in start until text.length) {
+            val char = text[i]
+
+            if (inString != null) {
+                if (escaped) {
+                    escaped = false
+                } else if (char == '\\') {
+                    escaped = true
+                } else if (char == inString) {
+                    inString = null
+                }
+                continue
+            }
+
+            when (char) {
+                '"', '\'' -> inString = char
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) return text.substring(start, i + 1)
+                }
+            }
+        }
+
+        return null
     }
 
     private fun xd(encoded: String, key: String): String? {
         return try {
             if ("~" !in encoded) return null
-            
+
             val b64Data = encoded.substringAfter("~")
             val decodedBytes = Base64.decode(b64Data, Base64.DEFAULT)
-            
+
             val result = StringBuilder()
             for (i in decodedBytes.indices) {
                 val xorChar = decodedBytes[i].toInt() xor key[i % key.length].code

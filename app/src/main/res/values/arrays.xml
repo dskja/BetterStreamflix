@@ -63,4 +63,18 @@
         <item>16</item>
         <item>18</item>
     </string-array>
+
+    <string-array name="animeonlineninja_preferred_server_entries">
+        <item>@string/settings_provider_animeonlineninja_preferred_server_default</item>
+        <item>@string/settings_provider_animeonlineninja_preferred_server_es</item>
+        <item>@string/settings_provider_animeonlineninja_preferred_server_lat</item>
+        <item>@string/settings_provider_animeonlineninja_preferred_server_sub</item>
+    </string-array>
+
+    <string-array name="animeonlineninja_preferred_server_values">
+        <item></item>
+        <item>ES</item>
+        <item>LAT</item>
+        <item>SUB</item>
+    </string-array>
 </resources>
