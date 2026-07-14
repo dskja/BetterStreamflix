@@ -23,6 +23,7 @@ import okhttp3.Request
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
+import org.json.JSONTokener
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -69,16 +70,19 @@ object AnimeOnlineNinjaProvider : Provider {
             return cached.document.clone().apply { setBaseUri(cached.finalUrl) }
         }
 
-        runCatching { fetchDocumentDirect(url) }.getOrNull()?.let { directResult ->
-            cacheDocument(url, directResult)
-            return directResult.clone()
-        }
+        runCatching { fetchDocumentDirect(url) }
+            .onFailure { error -> logFailure("direct page request", url, error) }
+            .getOrNull()
+            ?.let { directResult ->
+                cacheDocument(url, directResult)
+                return directResult.clone()
+            }
 
         val result = providerMutex.withLock {
             Log.d(TAG, "Loading page through WebView -> url=$url")
             getResolver().getResult(
                 url = url,
-                headers = pageHeaders(url),
+                headers = pageHeaders(baseUrl),
                 completion = { currentUrl, html, cookies ->
                     val challenge = requiresClearance(html) || currentUrl.contains("/cdn-cgi/", ignoreCase = true)
                     val usable = hasUsableSiteContent(html, currentUrl)
@@ -97,6 +101,47 @@ object AnimeOnlineNinjaProvider : Provider {
         return Jsoup.parse(result.html, finalUrl).apply { setBaseUri(finalUrl) }.also {
             cacheDocument(url, it)
         }
+    }
+
+    private fun promoteClearanceCookies(sourceUrl: String) {
+        val cookieManager = CookieManager.getInstance()
+        val cookieHeader = listOf(
+            sourceUrl,
+            SITE_BASE_URL,
+            "$SITE_BASE_URL/",
+            baseUrl,
+            "$baseUrl/"
+        ).firstNotNullOfOrNull { candidate ->
+            cookieManager.getCookie(candidate)?.takeIf { it.isNotBlank() }
+        }.orEmpty()
+
+        if (cookieHeader.isBlank()) {
+            cookieManager.flush()
+            return
+        }
+
+        val targets = listOf(
+            SITE_BASE_URL,
+            "$SITE_BASE_URL/",
+            baseUrl,
+            "$baseUrl/",
+            sourceUrl
+        ).distinct()
+
+        cookieHeader.split(";")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { cookie ->
+                val rootCookie = if (cookie.contains("Path=", ignoreCase = true)) {
+                    cookie
+                } else {
+                    "$cookie; Path=/"
+                }
+                targets.forEach { target ->
+                    cookieManager.setCookie(target, rootCookie)
+                }
+            }
+        cookieManager.flush()
     }
 
     private fun pageHeaders(referer: String): Map<String, String> {
@@ -145,46 +190,56 @@ object AnimeOnlineNinjaProvider : Provider {
         )
     }
 
-    private suspend fun fetchJson(url: String): JSONObject {
-        val body = getJsonBody(url)
+    private suspend fun fetchJson(url: String, referer: String): JSONObject {
+        val body = getJsonBody(url, referer)
         return JSONObject(body)
     }
 
-    private suspend fun getJsonBody(url: String): String {
-        runCatching { fetchJsonDirect(url) }.getOrNull()?.let { body ->
-            return body
-        }
+    private suspend fun getJsonBody(url: String, referer: String): String {
+        runCatching { fetchJsonDirect(url, referer) }
+            .onFailure { error -> logFailure("direct JSON request", url, error) }
+            .getOrNull()
+            ?.let { body ->
+                return body
+            }
 
         val result = providerMutex.withLock {
             Log.d(TAG, "Loading JSON through WebView -> url=$url")
             getResolver().getResult(
                 url = url,
-                headers = pageHeaders(url),
+                headers = pageHeaders(referer),
                 completion = { currentUrl, html, _ ->
                     val jsonBody = extractJsonBody(html)
                     val jsonReady = jsonBody.startsWith("{") || jsonBody.startsWith("[")
                     val challenge = requiresClearance(html) || currentUrl.contains("/cdn-cgi/", ignoreCase = true)
                     Log.d(TAG, "WebView JSON poll -> url=$currentUrl challenge=$challenge jsonReady=$jsonReady")
                     !challenge && jsonReady
-                }
+                },
+                valueScript = "(function(){return document.body ? document.body.innerText : document.documentElement.innerText;})()",
             )
         }
 
-        val body = extractJsonBody(result.html)
+        val evaluatedBody = decodeJavascriptValue(result.evaluatedValue).orEmpty().trim()
+        val body = evaluatedBody.takeIf { it.startsWith("{") || it.startsWith("[") }
+            ?: extractJsonBody(result.html)
 
         if (requiresClearance(body)) {
             throw ChallengeRequiredException("AnimeOnline Ninja Cloudflare challenge detected for $url")
         }
+        if (!body.startsWith("{") && !body.startsWith("[")) {
+            throw IllegalStateException("AnimeOnline Ninja returned invalid JSON for $url")
+        }
+        promoteClearanceCookies(result.finalUrl ?: url)
         return body
     }
 
-    private fun fetchJsonDirect(url: String): String? {
+    private fun fetchJsonDirect(url: String, referer: String): String? {
         val requestBuilder = Request.Builder()
             .url(url)
             .header("User-Agent", NetworkClient.USER_AGENT)
             .header("Accept", "application/json,text/plain,*/*")
             .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
-            .header("Referer", url)
+            .header("Referer", referer)
 
         currentClearanceCookie()?.takeIf { it.isNotBlank() }?.let { cookie ->
             requestBuilder.header("Cookie", cookie)
@@ -192,8 +247,14 @@ object AnimeOnlineNinjaProvider : Provider {
 
         NetworkClient.default.newCall(requestBuilder.build()).execute().use { response ->
             val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful || body.isBlank()) return null
-            if (requiresClearance(body)) return null
+            if (!response.isSuccessful || body.isBlank()) {
+                Log.w(TAG, "Direct JSON rejected -> code=${response.code} url=$url")
+                return null
+            }
+            if (requiresClearance(body)) {
+                Log.w(TAG, "Direct JSON received a challenge -> url=$url")
+                return null
+            }
             val trimmed = body.trim()
             return if (trimmed.startsWith("{") || trimmed.startsWith("[")) trimmed else null
         }
@@ -208,9 +269,19 @@ object AnimeOnlineNinjaProvider : Provider {
         return Jsoup.parse(preBody ?: html).text().trim()
     }
 
+    private fun decodeJavascriptValue(value: String?): String? {
+        val encoded = value?.trim()?.takeIf { it.isNotEmpty() && it != "null" } ?: return null
+        return when (val decoded = runCatching { JSONTokener(encoded).nextValue() }.getOrNull()) {
+            is String -> decoded
+            null -> null
+            else -> decoded.toString()
+        }
+    }
+
     override suspend fun getHome(): List<Category> {
         val document = getDocument("$baseUrl/inicio/")
-        return parseHomeCategories(document)
+        return parseHomeCategories(document).takeIf { it.isNotEmpty() }
+            ?: throw IllegalStateException("AnimeOnline Ninja home page contained no recognizable categories")
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -317,9 +388,7 @@ object AnimeOnlineNinjaProvider : Provider {
             if (href.isBlank()) return@mapIndexedNotNull null
 
             val numberText = element.selectFirst(".numerando, .num, .numero")?.text()?.trim().orEmpty()
-            val number = numberText.substringBefore("-").trim().toIntOrNull()
-                ?: Regex("""\d+""").find(numberText)?.value?.toIntOrNull()
-                ?: (index + 1)
+            val number = parseEpisodeNumber(numberText, index + 1)
 
             val title = link.text().trim().ifBlank {
                 element.selectFirst(".episodiotitle, .title, h3")?.text()?.trim().orEmpty()
@@ -373,29 +442,49 @@ object AnimeOnlineNinjaProvider : Provider {
             is Video.Type.Episode -> toAbsoluteUrl(id, "/episodio/")
         }
 
-        val document = runCatching { getDocument(pageUrl) }.getOrNull()
-        val postId = resolvePostId(pageUrl, document, videoType)
-            ?: return emptyList()
-
-        val type = when (videoType) {
+        val document = runCatching { getDocument(pageUrl) }
+            .onFailure { error -> logFailure("player page request", pageUrl, error) }
+            .getOrElse { error -> throw IllegalStateException("Unable to load player page $pageUrl", error) }
+        val fallbackType = when (videoType) {
             is Video.Type.Movie -> "movie"
             is Video.Type.Episode -> "tv"
         }
+        val discoveredSources = parsePlayerSources(document, fallbackType)
+        val postId = discoveredSources.firstOrNull()?.postId ?: resolvePostId(pageUrl, document)
+        ?: throw IllegalStateException("AnimeOnline Ninja post id not found for $pageUrl")
+        val sources = discoveredSources.ifEmpty {
+            Log.w(TAG, "No player source metadata found; using compatibility probe -> post=$postId")
+            (1..5).map { source ->
+                PlayerSource(
+                    postId = postId,
+                    type = fallbackType,
+                    number = source,
+                    label = "Server $source",
+                )
+            }
+        }
 
         val collected = linkedMapOf<String, Video.Server>()
-        for (source in 1..5) {
-            val apiUrl = "$baseUrl/wp-json/dooplayer/v1/post/$postId?type=$type&source=$source"
-            val json = runCatching { fetchJson(apiUrl) }.getOrNull() ?: continue
-            val embedUrl = json.optString("embed_url").trim()
-            if (embedUrl.isBlank() || !embedUrl.startsWith("http")) continue
+        for (source in sources) {
+            val apiUrl = "$baseUrl/wp-json/dooplayer/v1/post/${source.postId}?type=${source.type}&source=${source.number}"
+            val json = runCatching { fetchJson(apiUrl, referer = pageUrl) }
+                .onFailure { error -> logFailure("player source ${source.number}", apiUrl, error) }
+                .getOrNull() ?: continue
+            val embedUrl = normalizeExternalUrl(json.optString("embed_url"), baseUrl)
+            if (embedUrl == null) {
+                Log.w(TAG, "Player source returned no embed URL -> source=${source.number} post=${source.postId}")
+                continue
+            }
 
-            val servers = runCatching { resolveServers(embedUrl, source) }.getOrDefault(emptyList())
+            val servers = runCatching { resolveServers(embedUrl, source.number, pageUrl) }
+                .onFailure { error -> logFailure("embed resolution", embedUrl, error) }
+                .getOrDefault(emptyList())
             if (servers.isEmpty()) {
                 collected.putIfAbsent(
                     embedUrl,
                     Video.Server(
                         id = embedUrl,
-                        name = hostLabel(embedUrl, source),
+                        name = source.label.ifBlank { hostLabel(embedUrl, source.number) },
                         src = embedUrl
                     )
                 )
@@ -406,10 +495,45 @@ object AnimeOnlineNinjaProvider : Provider {
             }
         }
 
+        if (collected.isEmpty()) {
+            directPlayerEmbeds(document).forEachIndexed { index, embedUrl ->
+                collected.putIfAbsent(
+                    embedUrl,
+                    Video.Server(
+                        id = embedUrl,
+                        name = hostLabel(embedUrl, index + 1),
+                        src = embedUrl,
+                    ),
+                )
+            }
+        }
+
+        if (collected.isEmpty()) {
+            Log.w(TAG, "No playable servers found -> page=$pageUrl sources=${sources.size}")
+        }
         return prioritizeServers(collected.values.toList())
     }
 
-    private suspend fun resolvePostId(pageUrl: String, document: Document?, videoType: Video.Type): String? {
+    private fun parsePlayerSources(document: Document, fallbackType: String): List<PlayerSource> {
+        return document.select(
+            "#playeroptionsul [data-nume], li.dooplay_player_option[data-nume], [data-post][data-nume][data-type]",
+        ).mapNotNull { element ->
+            val number = element.attr("data-nume").toIntOrNull() ?: return@mapNotNull null
+            val postId = element.attr("data-post").trim()
+                .takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
+                ?: return@mapNotNull null
+            val type = element.attr("data-type").trim().ifBlank { fallbackType }
+            val label = element.selectFirst(".title, span.title, .server, span")
+                ?.text()
+                ?.trim()
+                .orEmpty()
+                .ifBlank { "Server $number" }
+
+            PlayerSource(postId, type, number, label)
+        }.distinctBy { source -> "${source.postId}:${source.type}:${source.number}" }
+    }
+
+    private fun resolvePostId(pageUrl: String, document: Document?): String? {
         Regex("""[?&]p=(\d+)""").find(pageUrl)?.groupValues?.getOrNull(1)?.let { return it }
 
         if (document != null) {
@@ -429,6 +553,33 @@ object AnimeOnlineNinjaProvider : Provider {
 
         return null
     }
+
+    private fun directPlayerEmbeds(document: Document): List<String> {
+        return document.select(
+            "#dooplay_player_response iframe[src], #playeroptions iframe[src], .player_sist iframe[src], .playex iframe[src]",
+        ).mapNotNull { element ->
+            normalizeExternalUrl(element.absUrl("src").ifBlank { element.attr("src") }, document.baseUri())
+        }.distinct()
+    }
+
+    private fun normalizeExternalUrl(value: String?, referer: String): String? {
+        val url = value?.trim().orEmpty()
+        if (url.isBlank() || url.equals("about:blank", ignoreCase = true)) return null
+        return runCatching {
+            when {
+                url.startsWith("//") -> "https:$url"
+                url.startsWith("http://", true) || url.startsWith("https://", true) -> url
+                else -> URL(URL(referer), url).toString()
+            }
+        }.getOrNull()
+    }
+
+    private data class PlayerSource(
+        val postId: String,
+        val type: String,
+        val number: Int,
+        val label: String,
+    )
 
     override suspend fun getVideo(server: Video.Server): Video {
         return Extractor.extract(server.src.ifBlank { server.id }, server)
@@ -708,9 +859,7 @@ object AnimeOnlineNinjaProvider : Provider {
                     if (href.isBlank()) return@mapIndexedNotNull null
 
                     val numberText = element.selectFirst(".numerando, .num, .numero")?.text()?.trim().orEmpty()
-                    val number = numberText.substringBefore("-").trim().toIntOrNull()
-                        ?: Regex("""\d+""").find(numberText)?.value?.toIntOrNull()
-                        ?: (epIndex + 1)
+                    val number = parseEpisodeNumber(numberText, epIndex + 1)
 
                     Episode(
                         id = href,
@@ -732,6 +881,17 @@ object AnimeOnlineNinjaProvider : Provider {
                 episodes = episodes
             )
         }.sortedBy { it.number }
+    }
+
+    private fun parseEpisodeNumber(numberText: String, fallback: Int): Int {
+        val numbers = Regex("""\d+""")
+            .findAll(numberText)
+            .mapNotNull { match -> match.value.toIntOrNull() }
+            .toList()
+
+        // DooPlay commonly renders this as "season - episode" (for example
+        // "1 - 8"). The final component is therefore the episode number.
+        return numbers.lastOrNull()?.takeIf { it > 0 } ?: fallback
     }
 
     private fun toAbsoluteUrl(id: String, preferredPrefix: String? = null): String {
@@ -762,22 +922,27 @@ object AnimeOnlineNinjaProvider : Provider {
         }.getOrNull() ?: "Server $source"
     }
 
-    private suspend fun resolveServers(embedUrl: String, source: Int): List<Video.Server> {
+    private suspend fun resolveServers(embedUrl: String, source: Int, pageUrl: String): List<Video.Server> {
         val html = providerMutex.withLock {
-            getResolver().get(embedUrl, mapOf("Referer" to "$baseUrl/"))
+            getResolver().get(
+                embedUrl,
+                mapOf(
+                    "Referer" to pageUrl,
+                    "User-Agent" to NetworkClient.USER_AGENT,
+                ),
+            )
         }
         val document = Jsoup.parse(html, embedUrl)
         val servers = linkedMapOf<String, Video.Server>()
 
         document.select("li[onclick*='go_to_player']").forEachIndexed { index, element ->
             val onclick = element.attr("onclick")
-            val serverUrl = Regex("""go_to_player\('([^']+)'\)""")
+            val serverUrl = Regex("""go_to_player\s*\(\s*['\"]([^'\"]+)['\"]\s*\)""")
                 .find(onclick)
                 ?.groupValues
                 ?.getOrNull(1)
-                ?.trim()
-                .orEmpty()
-            if (serverUrl.isBlank()) return@forEachIndexed
+                ?.let { normalizeExternalUrl(it, embedUrl) }
+                ?: return@forEachIndexed
 
             val label = element.selectFirst("span")?.text()?.trim().orEmpty()
                 .ifBlank { hostLabel(serverUrl, index + 1) }
@@ -800,10 +965,32 @@ object AnimeOnlineNinjaProvider : Provider {
             )
         }
 
+        document.select("li[data-link], li[data-url], .server[data-link], .server[data-url]")
+            .forEachIndexed { index, element ->
+                val serverUrl = normalizeExternalUrl(
+                    element.attr("data-link").ifBlank { element.attr("data-url") },
+                    embedUrl,
+                ) ?: return@forEachIndexed
+                val label = element.selectFirst(".title, span")?.text()?.trim()
+                    .orEmpty()
+                    .ifBlank { hostLabel(serverUrl, index + 1) }
+
+                servers.putIfAbsent(
+                    serverUrl,
+                    Video.Server(
+                        id = serverUrl,
+                        name = label,
+                        src = serverUrl,
+                    ),
+                )
+            }
+
         if (servers.isEmpty()) {
             document.select("iframe[src]").forEachIndexed { index, element ->
-                val serverUrl = element.absUrl("src").ifBlank { element.attr("src") }.trim()
-                if (serverUrl.isBlank()) return@forEachIndexed
+                val serverUrl = normalizeExternalUrl(
+                    element.absUrl("src").ifBlank { element.attr("src") },
+                    embedUrl,
+                ) ?: return@forEachIndexed
 
                 servers.putIfAbsent(
                     serverUrl,
@@ -847,7 +1034,9 @@ object AnimeOnlineNinjaProvider : Provider {
         return html.contains("cf-browser-verification", ignoreCase = true) ||
                 html.contains("Just a moment...", ignoreCase = true) ||
                 html.contains("Checking your browser", ignoreCase = true) ||
-                (html.contains("cloudflare", ignoreCase = true) && !html.contains("wp-json/dooplayer", ignoreCase = true))
+                html.contains("/cdn-cgi/challenge-platform/", ignoreCase = true) ||
+                html.contains("cf-chl-", ignoreCase = true) ||
+                html.contains("challenge-form", ignoreCase = true)
     }
 
     private fun itemKey(item: AppAdapter.Item): String {
@@ -859,57 +1048,7 @@ object AnimeOnlineNinjaProvider : Provider {
         }
 
     }
-    private fun promoteClearanceCookies(sourceUrl: String) {
-        val cookieManager = CookieManager.getInstance()
-        val cookieHeader = listOf(
-            sourceUrl,
-            SITE_BASE_URL,
-            "$SITE_BASE_URL/",
-            baseUrl,
-            "$baseUrl/"
-        ).firstNotNullOfOrNull { candidate ->
-            cookieManager.getCookie(candidate)?.takeIf { it.isNotBlank() }
-        }.orEmpty()
-
-        if (cookieHeader.isBlank()) {
-            cookieManager.flush()
-            return
-        }
-
-        promoteClearanceCookieHeader(cookieHeader)
-
-        val targets = listOf(
-            SITE_BASE_URL,
-            "$SITE_BASE_URL/",
-            baseUrl,
-            "$baseUrl/",
-            sourceUrl
-        ).distinct()
-
-        cookieHeader.split(";")
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .forEach { cookie ->
-                val rootCookie = if (cookie.contains("Path=", ignoreCase = true)) {
-                    cookie
-                } else {
-                    "$cookie; Path=/"
-                }
-                targets.forEach { target ->
-                    cookieManager.setCookie(target, rootCookie)
-                }
-        }
-        cookieManager.flush()
-    }
-
     private fun currentClearanceCookie(): String? {
-        AnimeOnlineNinjaClearanceStore.cookieHeader()?.takeIf { it.isNotBlank() }?.let {
-            clearanceCookieHeader = it
-            return it
-        }
-
-        clearanceCookieHeader?.takeIf { it.isNotBlank() }?.let { return it }
-
         val cookieManager = CookieManager.getInstance()
         val candidates = listOf(
             "$SITE_BASE_URL/",
@@ -918,12 +1057,19 @@ object AnimeOnlineNinjaProvider : Provider {
             baseUrl
         )
 
-        return candidates.firstNotNullOfOrNull { candidate ->
+        candidates.firstNotNullOfOrNull { candidate ->
             cookieManager.getCookie(candidate)?.takeIf { it.isNotBlank() }
         }?.also {
             clearanceCookieHeader = it
             AnimeOnlineNinjaClearanceStore.update(it)
+        }?.let { return it }
+
+        AnimeOnlineNinjaClearanceStore.cookieHeader()?.takeIf { it.isNotBlank() }?.let {
+            clearanceCookieHeader = it
+            return it
         }
+
+        return clearanceCookieHeader?.takeIf { it.isNotBlank() }
     }
 
     fun clearanceCookieForGlide(): String? {
@@ -936,7 +1082,7 @@ object AnimeOnlineNinjaProvider : Provider {
             .header("User-Agent", NetworkClient.USER_AGENT)
             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
             .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
-            .header("Referer", url)
+            .header("Referer", baseUrl)
 
         currentClearanceCookie()?.takeIf { it.isNotBlank() }?.let { cookie ->
             requestBuilder.header("Cookie", cookie)
@@ -944,10 +1090,16 @@ object AnimeOnlineNinjaProvider : Provider {
 
         NetworkClient.default.newCall(requestBuilder.build()).execute().use { response ->
             val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful || body.isBlank()) return null
-            if (requiresClearance(body) || !hasUsableSiteContent(body, url)) return null
+            if (!response.isSuccessful || body.isBlank()) {
+                Log.w(TAG, "Direct page rejected -> code=${response.code} url=$url")
+                return null
+            }
 
             val finalUrl = response.request.url.toString()
+            if (requiresClearance(body) || !hasUsableSiteContent(body, finalUrl)) {
+                Log.w(TAG, "Direct page was challenged or incomplete -> url=$finalUrl size=${body.length}")
+                return null
+            }
             return Jsoup.parse(body, finalUrl).apply { setBaseUri(finalUrl) }
         }
     }
@@ -971,8 +1123,15 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private fun promoteClearanceCookieHeader(cookieHeader: String?) {
         val normalized = cookieHeader?.trim()?.takeIf { it.isNotBlank() } ?: return
+        if (normalized != clearanceCookieHeader) {
+            documentCache.clear()
+        }
         clearanceCookieHeader = normalized
         AnimeOnlineNinjaClearanceStore.update(normalized)
+    }
+
+    private fun logFailure(operation: String, url: String, error: Throwable) {
+        Log.w(TAG, "$operation failed -> url=$url type=${error.javaClass.simpleName} message=${error.message}")
     }
 
     private data class CachedDocument(

@@ -10,7 +10,6 @@ import com.streamflixreborn.streamflix.models.Category
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
-import com.streamflixreborn.streamflix.providers.AnimeOnlineNinjaProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.UserDataNotifier
 import com.streamflixreborn.streamflix.utils.HomeCacheStore
@@ -373,10 +372,6 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         currentProvider = provider
         val appContext = StreamFlixApp.instance.applicationContext
-
-        if (provider is AnimeOnlineNinjaProvider) {
-            HomeCacheStore.clear(appContext, provider)
-        }
         val cachedCategories = HomeCacheStore.read(appContext, provider)
         if (!cachedCategories.isNullOrEmpty()) {
             _state.emit(State.SuccessLoading(cachedCategories))
