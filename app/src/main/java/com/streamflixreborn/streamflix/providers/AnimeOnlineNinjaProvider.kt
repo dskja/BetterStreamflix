@@ -310,11 +310,13 @@ object AnimeOnlineNinjaProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val requestedUrl = toAbsoluteUrl(id, "/online/")
-        val (url, document) = if (requestedUrl.contains("/temporada/", ignoreCase = true)) {
-            val seasonDocument = getDocument(requestedUrl)
-            val parentUrl = resolveParentTvShowUrl(seasonDocument)
+        val isParentLookup = requestedUrl.contains("/temporada/", ignoreCase = true) ||
+                requestedUrl.contains("/episodio/", ignoreCase = true)
+        val (url, document) = if (isParentLookup) {
+            val sourceDocument = getDocument(requestedUrl)
+            val parentUrl = resolveParentTvShowUrl(sourceDocument)
                 ?: throw IllegalStateException(
-                    "AnimeOnline Ninja parent TV show not found for season $requestedUrl"
+                    "AnimeOnline Ninja parent TV show not found for $requestedUrl"
                 )
             parentUrl to getDocument(parentUrl)
         } else {
@@ -348,17 +350,30 @@ object AnimeOnlineNinjaProvider : Provider {
         )
     }
 
-    private suspend fun resolveParentTvShowUrl(seasonDocument: Document): String? {
-        val seasonTitle = seasonDocument.extractDetailTitle()
-        val parentTitle = seasonTitle
+    private suspend fun resolveParentTvShowUrl(sourceDocument: Document): String? {
+        sourceDocument.select(".pag_episodes .item a[href]")
+            .firstOrNull { link ->
+                link.text().contains("lista de episodios", ignoreCase = true) &&
+                        link.attr("href").contains("/online/", ignoreCase = true)
+            }
+            ?.let { link -> link.absUrl("href").ifBlank { link.attr("href") } }
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        val sourceTitle = sourceDocument.extractDetailTitle()
+        val parentTitle = cleanTitle(sourceTitle)
             .replace(
-                Regex("""\s*[-–—:]?\s*temporada\s+\d+.*$""", RegexOption.IGNORE_CASE),
+                Regex(
+                    """\s*[-–—:]?\s*(?:temporada|episodio|cap[ií]tulo|cap)\s*\d+.*$""",
+                    RegexOption.IGNORE_CASE,
+                ),
                 "",
             )
+            .replace(Regex("""\s*[-–—:]?\s*\d+\s*[x×]\s*\d+.*$""", RegexOption.IGNORE_CASE), "")
             .trim()
-            .ifBlank { seasonTitle }
+            .ifBlank { cleanTitle(sourceTitle) }
 
-        findMatchingTvShowUrl(seasonDocument, parentTitle)?.let { return it }
+        findMatchingTvShowUrl(sourceDocument, parentTitle)?.let { return it }
 
         val query = URLEncoder.encode(parentTitle, "UTF-8")
         val searchDocument = getDocument("$baseUrl/?s=$query")
@@ -761,27 +776,12 @@ object AnimeOnlineNinjaProvider : Provider {
         ).firstOrNull { it.isNotBlank() }?.let(::cleanTitle) ?: return null
 
         return TvShow(
-            // A season permalink is authoritative. Inferring an /online/ slug
-            // from its title can point at a show URL that does not exist.
-            id = if (href.contains("/temporada/", ignoreCase = true)) {
-                href
-            } else {
-                parentTvShowId(href, parentTitle)
-            },
+            // Season and episode permalinks are authoritative lookup sources.
+            // Their parent /online/ URL is resolved when the card is opened.
+            id = href,
             title = parentTitle,
             poster = poster
         )
-    }
-
-    private fun parentTvShowId(href: String, parentTitle: String): String {
-        val slug = if (href.contains("/episodio/", ignoreCase = true)) {
-            normalizeId(href, "/episodio/")
-                .replace(Regex("""-cap-\d+$""", RegexOption.IGNORE_CASE), "")
-        } else {
-            ""
-        }
-
-        return slug.ifBlank { slugify(parentTitle) }
     }
 
     private fun cleanTitle(value: String): String {
@@ -858,14 +858,6 @@ object AnimeOnlineNinjaProvider : Provider {
                 }
             }
             .orEmpty()
-    }
-
-    private fun slugify(value: String): String {
-        val normalized = Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
-            .replace(Regex("""\p{Mn}+"""), "")
-            .replace(Regex("""[^a-z0-9]+"""), "-")
-            .trim('-')
-        return normalized.ifBlank { value.lowercase().replace(Regex("""\s+"""), "-").trim('-') }
     }
 
     private fun parseSeasons(document: Document, pageUrl: String, poster: String?): List<Season> {
@@ -1217,4 +1209,3 @@ private object AnimeOnlineNinjaClearanceStore {
 
     fun cookieHeader(): String? = cookieHeader
 }
-
