@@ -1,4 +1,4 @@
-﻿package com.streamflixreborn.streamflix.providers
+package com.streamflixreborn.streamflix.providers
 
 import android.content.Context
 import android.util.Log
@@ -282,7 +282,6 @@ object AnimeOnlineNinjaProvider : Provider {
                 Genre("live-action", "Live action"),
                 Genre("tendencias", "Popular en la web"),
                 Genre("ratings", "Mejores valorados"),
-                Genre("audio-latino", "Audio latino"),
                 Genre("award-winning-anime", "Ganadores de premios"),
                 Genre("accion", "Accion"),
                 Genre("aventura", "Aventura"),
@@ -291,13 +290,14 @@ object AnimeOnlineNinjaProvider : Provider {
                 Genre("terror", "Terror"),
                 Genre("ver-anime", "Ver Anime"),
                 Genre("pelicula", "Peliculas"),
+
             )
         }
 
         if (page > 1) return emptyList()
         val encoded = URLEncoder.encode(query, "UTF-8")
         val document = getDocument("$baseUrl/?s=$encoded")
-        return parseListingItems(document)
+        return parseSearchItems(document)
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
@@ -482,13 +482,15 @@ object AnimeOnlineNinjaProvider : Provider {
         val url = if (page <= 1) "$baseUrl/$path/" else "$baseUrl/$path/page/$page/"
 
         val document = getDocument(url)
-        val title = document.selectFirst("h1")?.text()?.trim()
+        val title = document.selectFirst(".module .content.right header h1, .module .content.right h1")
+            ?.text()
+            ?.trim()
             ?: slug.replace('-', ' ').replaceFirstChar { it.uppercase() }
 
         return Genre(
             id = id,
             name = title,
-            shows = parseListingItems(document).mapNotNull {
+            shows = parseGenreItems(document).mapNotNull {
                 when (it) {
                     is Movie -> it
                     is TvShow -> it
@@ -720,6 +722,25 @@ object AnimeOnlineNinjaProvider : Provider {
         return selectors
             .flatMap { selector -> root.select(selector) }
             .mapNotNull { parseListingItem(it) }
+            .distinctBy(::itemKey)
+    }
+
+    private fun parseSearchItems(document: Document): List<AppAdapter.Item> {
+        return document
+            .select(".search-page > .result-item > article, .search-page .result-item article")
+            .mapNotNull(::parseListingItem)
+            .distinctBy(::itemKey)
+    }
+
+    private fun parseGenreItems(document: Document): List<AppAdapter.Item> {
+        val grid = document.selectFirst(".module > .content.right > .items")
+            ?: document.selectFirst(".module .content.right .items")
+            ?: return emptyList()
+
+        return grid
+            .children()
+            .filter { child -> child.hasClass("item") || child.tagName() == "article" }
+            .mapNotNull(::parseListingItem)
             .distinctBy(::itemKey)
     }
 
