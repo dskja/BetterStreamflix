@@ -57,6 +57,7 @@ object AnimeOnlineNinjaProvider : Provider {
     fun init(context: Context) {
         webViewResolver = WebViewResolver(context)
         AnimeOnlineNinjaCronetClient.init(context)
+        syncClearanceCookieState()
     }
 
     fun reload() {
@@ -75,6 +76,9 @@ object AnimeOnlineNinjaProvider : Provider {
     ) : IllegalStateException(message)
 
     private suspend fun getDocument(url: String): Document {
+        // Do this even when the document is cached. CookieManager is the source of
+        // truth for expiry; an old in-memory cf_clearance must never reach Cronet.
+        syncClearanceCookieState()
         cachedDocument(url)?.let { cached ->
             return cached.document.clone().apply { setBaseUri(cached.finalUrl) }
         }
@@ -131,12 +135,17 @@ object AnimeOnlineNinjaProvider : Provider {
             getResolver().getResult(
                 url = url,
                 headers = pageHeaders(referer).minus("Cookie"),
-                completion = { currentUrl, _, cookies ->
+                completion = { currentUrl, html, cookies ->
                     val newClearance = clearanceToken(cookies)
-                    val hasClearance = !newClearance.isNullOrBlank() && newClearance != currentClearance
+                    val hasClearance = !newClearance.isNullOrBlank()
+                    val hasUsableContent = hasUsableSiteContent(html, currentUrl)
                     if (hasClearance) promoteClearanceCookieHeader(cookies)
-                    Log.d(TAG, "WebView challenge poll -> url=$currentUrl clearance=$hasClearance")
-                    hasClearance
+                    Log.d(
+                        TAG,
+                        "WebView challenge poll -> url=$currentUrl clearance=$hasClearance " +
+                                "changed=${newClearance != currentClearance} content=$hasUsableContent"
+                    )
+                    hasClearance || hasUsableContent
                 },
                 shouldAllowNavigation = { targetUrl, _ ->
                     runCatching {
@@ -178,7 +187,6 @@ object AnimeOnlineNinjaProvider : Provider {
             ?.filterNot { it.startsWith("cf_clearance=", ignoreCase = true) }
             ?.joinToString("; ")
             ?.takeIf(String::isNotBlank)
-        AnimeOnlineNinjaClearanceStore.update(clearanceCookieHeader)
     }
 
     private fun artworkUrl(url: String?, referer: String = baseUrl): String? {
@@ -213,6 +221,7 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private suspend fun getJsonBody(url: String, referer: String): String {
+        syncClearanceCookieState()
         val body = try {
             fetchJsonDirect(url, referer)
         } catch (challenge: ChallengeRequiredException) {
@@ -232,6 +241,17 @@ object AnimeOnlineNinjaProvider : Provider {
             useCache = false,
         )
         val body = response.bodyAsString()
+        val trimmed = body.trim()
+
+        // A valid JSON response must win over incidental challenge strings in its
+        // payload. Cloudflare detection is only relevant when the expected API
+        // response was not returned.
+        if (response.isSuccessful &&
+            (trimmed.startsWith("{") || trimmed.startsWith("["))
+        ) {
+            return trimmed
+        }
+
         if (requiresClearance(body) || response.finalUrl.contains("/cdn-cgi/", ignoreCase = true)) {
             Log.w(TAG, "Cronet JSON received a challenge -> url=$url")
             throw ChallengeRequiredException(
@@ -243,8 +263,7 @@ object AnimeOnlineNinjaProvider : Provider {
             Log.w(TAG, "Cronet JSON rejected -> code=${response.statusCode} url=$url")
             return null
         }
-        val trimmed = body.trim()
-        return if (trimmed.startsWith("{") || trimmed.startsWith("[")) trimmed else null
+        return null
     }
 
     override suspend fun getHome(): List<Category> {
@@ -1084,13 +1103,13 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private fun requiresClearance(html: String): Boolean {
         // Do not match every /cdn-cgi/challenge-platform/ reference. Cloudflare
-        // injects its lightweight JSD script into ordinary, fully usable pages.
-        // These markers belong to the actual interstitial challenge document.
+        // injects its lightweight JSD script and __cf_chl_tk links into ordinary,
+        // fully usable pages. Only markers belonging to the interstitial itself
+        // are considered a challenge here.
         return html.contains("cf-browser-verification", ignoreCase = true) ||
                 html.contains("Just a moment...", ignoreCase = true) ||
                 html.contains("Checking your browser", ignoreCase = true) ||
                 html.contains("window._cf_chl_opt", ignoreCase = true) ||
-                html.contains("__cf_chl_tk=", ignoreCase = true) ||
                 html.contains("challenge-form", ignoreCase = true)
     }
 
@@ -1103,7 +1122,7 @@ object AnimeOnlineNinjaProvider : Provider {
         }
 
     }
-    private fun currentClearanceCookie(): String? {
+    private fun syncClearanceCookieState(): String? {
         val cookieManager = CookieManager.getInstance()
         val candidates = listOf(
             "$SITE_BASE_URL/",
@@ -1112,19 +1131,27 @@ object AnimeOnlineNinjaProvider : Provider {
             baseUrl
         )
 
-        candidates.firstNotNullOfOrNull { candidate ->
-            cookieManager.getCookie(candidate)?.takeIf { it.isNotBlank() }
-        }?.also {
-            clearanceCookieHeader = it
-            AnimeOnlineNinjaClearanceStore.update(it)
-        }?.let { return it }
+        val liveCookieHeaders = candidates.mapNotNull { candidate ->
+            cookieManager.getCookie(candidate)?.trim()?.takeIf(String::isNotBlank)
+        }.distinct()
+        val liveCookieHeader = liveCookieHeaders.firstOrNull { header ->
+            !clearanceToken(header).isNullOrBlank()
+        } ?: liveCookieHeaders.firstOrNull()
 
-        AnimeOnlineNinjaClearanceStore.cookieHeader()?.takeIf { it.isNotBlank() }?.let {
-            clearanceCookieHeader = it
-            return it
+        val staleClearance = clearanceToken(clearanceCookieHeader)
+        if (!staleClearance.isNullOrBlank() && clearanceToken(liveCookieHeader).isNullOrBlank()) {
+            Log.d(TAG, "Discarding expired Cloudflare clearance before request")
+            reload()
         }
 
-        return clearanceCookieHeader?.takeIf { it.isNotBlank() }
+        clearanceCookieHeader = liveCookieHeader
+        return liveCookieHeader
+    }
+
+    private fun currentClearanceCookie(): String? = syncClearanceCookieState()
+
+    fun hasCurrentClearanceCookie(): Boolean {
+        return !clearanceToken(syncClearanceCookieState()).isNullOrBlank()
     }
 
     fun clearanceCookieForCronet(): String? = currentClearanceCookie()
@@ -1138,6 +1165,17 @@ object AnimeOnlineNinjaProvider : Provider {
             useCache = false,
         )
         val body = response.bodyAsString()
+
+        // Cloudflare may append challenge-related scripts or tokenized links to a
+        // normal WordPress page. Accept a successful, recognizable provider page
+        // before inspecting those incidental markers.
+        if (response.isSuccessful &&
+            body.isNotBlank() &&
+            hasUsableSiteContent(body, response.finalUrl)
+        ) {
+            return Jsoup.parse(body, response.finalUrl).apply { setBaseUri(response.finalUrl) }
+        }
+
         if (requiresClearance(body) || response.finalUrl.contains("/cdn-cgi/", ignoreCase = true)) {
             Log.w(TAG, "Cronet page received a challenge -> url=${response.finalUrl}")
             throw ChallengeRequiredException(
@@ -1150,11 +1188,8 @@ object AnimeOnlineNinjaProvider : Provider {
             return null
         }
 
-        if (!hasUsableSiteContent(body, response.finalUrl)) {
-            Log.w(TAG, "Cronet page was incomplete -> url=${response.finalUrl} size=${body.length}")
-            return null
-        }
-        return Jsoup.parse(body, response.finalUrl).apply { setBaseUri(response.finalUrl) }
+        Log.w(TAG, "Cronet page was incomplete -> url=${response.finalUrl} size=${body.length}")
+        return null
     }
 
     private fun cacheDocument(requestUrl: String, document: Document) {
@@ -1181,7 +1216,6 @@ object AnimeOnlineNinjaProvider : Provider {
 
         reload()
         clearanceCookieHeader = normalized
-        AnimeOnlineNinjaClearanceStore.update(normalized)
     }
 
     private fun logFailure(operation: String, url: String, error: Throwable) {
@@ -1194,15 +1228,4 @@ object AnimeOnlineNinjaProvider : Provider {
         val expiresAt: Long,
     )
 
-}
-
-private object AnimeOnlineNinjaClearanceStore {
-    @Volatile
-    private var cookieHeader: String? = null
-
-    fun update(cookieHeader: String?) {
-        this.cookieHeader = cookieHeader?.trim()?.takeIf { it.isNotBlank() }
-    }
-
-    fun cookieHeader(): String? = cookieHeader
 }
