@@ -27,6 +27,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.net.URL
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
@@ -308,8 +309,17 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val url = toAbsoluteUrl(id, "/online/")
-        val document = getDocument(url)
+        val requestedUrl = toAbsoluteUrl(id, "/online/")
+        val (url, document) = if (requestedUrl.contains("/temporada/", ignoreCase = true)) {
+            val seasonDocument = getDocument(requestedUrl)
+            val parentUrl = resolveParentTvShowUrl(seasonDocument)
+                ?: throw IllegalStateException(
+                    "AnimeOnline Ninja parent TV show not found for season $requestedUrl"
+                )
+            parentUrl to getDocument(parentUrl)
+        } else {
+            requestedUrl to getDocument(requestedUrl)
+        }
         val title = document.extractDetailTitle().ifBlank { id }
         val overview = extractOverview(document, title)
         val poster = extractDetailArtwork(document, url)
@@ -336,6 +346,64 @@ object AnimeOnlineNinjaProvider : Provider {
             seasons = seasons,
             recommendations = recommendations
         )
+    }
+
+    private suspend fun resolveParentTvShowUrl(seasonDocument: Document): String? {
+        val seasonTitle = seasonDocument.extractDetailTitle()
+        val parentTitle = seasonTitle
+            .replace(
+                Regex("""\s*[-–—:]?\s*temporada\s+\d+.*$""", RegexOption.IGNORE_CASE),
+                "",
+            )
+            .trim()
+            .ifBlank { seasonTitle }
+
+        findMatchingTvShowUrl(seasonDocument, parentTitle)?.let { return it }
+
+        val query = URLEncoder.encode(parentTitle, "UTF-8")
+        val searchDocument = getDocument("$baseUrl/?s=$query")
+        return findMatchingTvShowUrl(searchDocument, parentTitle)
+    }
+
+    private fun findMatchingTvShowUrl(document: Document, parentTitle: String): String? {
+        val targetKey = titleKey(parentTitle)
+        if (targetKey.isBlank()) return null
+
+        return document.select("a[href*='/online/']")
+            .mapNotNull { link ->
+                val href = link.absUrl("href").ifBlank { link.attr("href") }
+                if (href.isBlank()) return@mapNotNull null
+
+                val labels = listOf(
+                    link.text(),
+                    link.attr("title"),
+                    link.selectFirst("img[alt]")?.attr("alt").orEmpty(),
+                    link.parent()?.text().orEmpty(),
+                    runCatching {
+                        URLDecoder.decode(normalizeId(href, "/online/"), "UTF-8")
+                            .replace('-', ' ')
+                    }.getOrDefault(""),
+                )
+                val score = labels.maxOf { label ->
+                    val candidateKey = titleKey(label)
+                    when {
+                        candidateKey == targetKey -> 100
+                        candidateKey.startsWith(targetKey) -> 80
+                        targetKey.startsWith(candidateKey) && candidateKey.length >= 6 -> 70
+                        else -> 0
+                    }
+                }
+                href to score
+            }
+            .maxByOrNull { (_, score) -> score }
+            ?.takeIf { (_, score) -> score > 0 }
+            ?.first
+    }
+
+    private fun titleKey(value: String): String {
+        return Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
+            .replace(Regex("""\p{Mn}|\p{Cf}"""), "")
+            .replace(Regex("""[^a-z0-9]+"""), "")
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
@@ -693,21 +761,24 @@ object AnimeOnlineNinjaProvider : Provider {
         ).firstOrNull { it.isNotBlank() }?.let(::cleanTitle) ?: return null
 
         return TvShow(
-            id = parentTvShowId(href, parentTitle),
+            // A season permalink is authoritative. Inferring an /online/ slug
+            // from its title can point at a show URL that does not exist.
+            id = if (href.contains("/temporada/", ignoreCase = true)) {
+                href
+            } else {
+                parentTvShowId(href, parentTitle)
+            },
             title = parentTitle,
             poster = poster
         )
     }
 
     private fun parentTvShowId(href: String, parentTitle: String): String {
-        val slug = when {
-            href.contains("/temporada/", ignoreCase = true) -> normalizeId(href, "/temporada/")
-                .replace(Regex("""-temporada-\d+$""", RegexOption.IGNORE_CASE), "")
-
-            href.contains("/episodio/", ignoreCase = true) -> normalizeId(href, "/episodio/")
+        val slug = if (href.contains("/episodio/", ignoreCase = true)) {
+            normalizeId(href, "/episodio/")
                 .replace(Regex("""-cap-\d+$""", RegexOption.IGNORE_CASE), "")
-
-            else -> ""
+        } else {
+            ""
         }
 
         return slug.ifBlank { slugify(parentTitle) }
@@ -1146,3 +1217,4 @@ private object AnimeOnlineNinjaClearanceStore {
 
     fun cookieHeader(): String? = cookieHeader
 }
+
