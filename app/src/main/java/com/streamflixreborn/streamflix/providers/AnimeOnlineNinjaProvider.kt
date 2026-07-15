@@ -459,11 +459,8 @@ object AnimeOnlineNinjaProvider : Provider {
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         val slug = id.trim().trim('/')
-        val url = if (page <= 1) {
-            "$baseUrl/genero/$slug/"
-        } else {
-            "$baseUrl/genero/$slug/page/$page/"
-        }
+        val path = if (slug == "tendencias" || slug == "ratings") slug else "genero/$slug"
+        val url = if (page <= 1) "$baseUrl/$path/" else "$baseUrl/$path/page/$page/"
 
         val document = getDocument(url)
         val title = document.selectFirst("h1")?.text()?.trim()
