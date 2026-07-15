@@ -767,9 +767,9 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private fun parseParentTvShow(element: Element, href: String, poster: String?): TvShow? {
         val parentTitle = listOfNotNull(
-            element.selectFirst(".season_m .c")?.text()?.trim(),
+            element.selectFirst("img[alt]")?.attr("alt")?.substringBefore(" Temporada")?.substringBefore(" Cap")?.trim(),
             element.selectFirst(".data h3")?.text()?.trim(),
-            element.selectFirst("img[alt]")?.attr("alt")?.substringBefore(" Temporada")?.substringBefore(" Cap")?.trim()
+            element.selectFirst(".season_m .c")?.text()?.trim()
         ).firstOrNull { it.isNotBlank() }?.let(::cleanTitle) ?: return null
 
         return TvShow(
