@@ -833,7 +833,9 @@ object AnimeOnlineNinjaProvider : Provider {
     private fun extractOverview(document: Document, title: String?): String? {
         val synopsis = extractSynopsisText(document, title)
         return synopsis?.takeIf { it.isNotBlank() }
-            ?: document.selectFirst("meta[name='description']")?.attr("content")?.trim()?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("meta[name='description']")
+                ?.attr("content")
+                ?.cleanOverviewText(title)
     }
 
     private fun extractSynopsisText(document: Document, title: String?): String? {
@@ -850,29 +852,33 @@ object AnimeOnlineNinjaProvider : Provider {
                 ?: heading.parent()?.selectFirst(".wp-content")
         }
 
-        synopsisContainer?.select("p, li")?.forEach { block ->
-            val text = block.text().trim().cleanOverviewText(title)
-            if (text != null) return text
-        }
+        synopsisContainer?.select("p, li")
+            ?.mapNotNull { block -> block.text().trim().cleanOverviewText(title) }
+            ?.distinct()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { return it.joinToString("\n\n") }
 
+        val siblingBlocks = mutableListOf<String>()
         var sibling = heading.nextElementSibling()
         var attempts = 0
         while (sibling != null && attempts < 10) {
             if (sibling.tagName().equals("p", ignoreCase = true) ||
                 sibling.tagName().equals("li", ignoreCase = true)) {
-                val text = sibling.text().trim().cleanOverviewText(title)
-                if (text != null) return text
+                sibling.text().trim().cleanOverviewText(title)?.let(siblingBlocks::add)
             }
             sibling = sibling.nextElementSibling()
             attempts++
         }
 
-        return null
+        return siblingBlocks.distinct().takeIf { it.isNotEmpty() }?.joinToString("\n\n")
     }
 
     private fun String.cleanOverviewText(title: String?): String? {
         val normalized = replace(Regex("""\s+"""), " ").trim()
-        if (normalized.isBlank() || normalized.length < 60) return null
+        // Some pages only provide a concise synopsis (for example,
+        // "Secuela de Chainsaw Man"), so length alone is not a reliable
+        // indication that a synopsis block is junk.
+        if (normalized.length < 10) return null
 
         val lower = normalized.lowercase()
         if (Regex("""^ver\s+.+\s+(online|mega|sub español|audio español)""", RegexOption.IGNORE_CASE).containsMatchIn(normalized)) {
