@@ -20,7 +20,6 @@ import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserDataCache.toCached
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
-import com.streamflixreborn.streamflix.utils.UserDataCache.toTvShow
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.combine
 import kotlinx.coroutines.Dispatchers
@@ -138,22 +137,6 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 } as List<AppAdapter.Item>
         }.flowOn(Dispatchers.IO),
 
-        // FAVORITES - from cache first, DB as fallback
-        _userDataCache.transformLatest { cache ->
-            if (cache != null && cache.favoritesMovies.isNotEmpty()) {
-                emit(cache.favoritesMovies.map { it.toMovie() })
-            } else {
-                emitAll(database.movieDao().getFavorites())
-            }
-        }.flowOn(Dispatchers.IO),
-        _userDataCache.transformLatest { cache ->
-            if (cache != null && cache.favoritesTvShows.isNotEmpty()) {
-                emit(cache.favoritesTvShows.map { it.toTvShow() })
-            } else {
-                emitAll(database.tvShowDao().getFavorites())
-            }
-        }.flowOn(Dispatchers.IO),
-
         // MOVIES DB
         _state.transformLatest { state ->
             when (state) {
@@ -188,7 +171,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }.flowOn(Dispatchers.IO),
 
-        ) { state, continueWatching, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
+        ) { state, continueWatching, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -249,25 +232,6 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                             },
                     ),
 
-                    // FAVORITES
-                    Category(
-                        name = Category.FAVORITE_MOVIES,
-                        list = favoritesMovies.sortedByDescending {
-                            when (it) {
-                                is Movie -> it.favoritedAtMillis ?: 0L
-                                else -> 0L
-                            }
-                        },
-                    ),
-                    Category(
-                        name = Category.FAVORITE_TV_SHOWS,
-                        list = favoriteTvShows.sortedByDescending {
-                            when (it) {
-                                is TvShow -> it.favoritedAtMillis ?: 0L
-                                else -> 0L
-                            }
-                        },
-                    ),
                 ) + state.categories
                     .filter { it.name != Category.FEATURED }
                     .map { category ->

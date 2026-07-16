@@ -35,6 +35,10 @@ import com.streamflixreborn.streamflix.databinding.ItemMovieGridMobileBinding
 import com.streamflixreborn.streamflix.databinding.ItemMovieGridTvBinding
 import com.streamflixreborn.streamflix.databinding.ItemMovieMobileBinding
 import com.streamflixreborn.streamflix.databinding.ItemMovieTvBinding
+import com.streamflixreborn.streamflix.fragments.favorites.FavoritesMobileFragment
+import com.streamflixreborn.streamflix.fragments.favorites.FavoritesMobileFragmentDirections
+import com.streamflixreborn.streamflix.fragments.favorites.FavoritesTvFragment
+import com.streamflixreborn.streamflix.fragments.favorites.FavoritesTvFragmentDirections
 import com.streamflixreborn.streamflix.fragments.genre.GenreMobileFragment
 import com.streamflixreborn.streamflix.fragments.genre.GenreMobileFragmentDirections
 import com.streamflixreborn.streamflix.fragments.genre.GenreTvFragment
@@ -83,6 +87,8 @@ import java.util.Locale
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.providers.Provider
 import android.view.KeyEvent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsMobileBinding
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsTvBinding
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +105,10 @@ class MovieViewHolder(
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
     private lateinit var movie: Movie
+    private var onMovieClick: ((Movie) -> Unit)? = null
+    private var onMovieLongClick: ((Movie) -> Unit)? = null
+    private var onMovieKey: ((Movie, KeyEvent) -> Boolean)? = null
+    private var itemSelected: Boolean = false
     private val TAG = "TrailerChoiceDebug" // Logging Tag
 
     companion object {
@@ -124,8 +134,18 @@ class MovieViewHolder(
             else -> null
         }
 
-    fun bind(movie: Movie) {
+    fun bind(
+        movie: Movie,
+        onMovieClick: ((Movie) -> Unit)? = null,
+        onMovieLongClick: ((Movie) -> Unit)? = null,
+        onMovieKey: ((Movie, KeyEvent) -> Boolean)? = null,
+        itemSelected: Boolean = false,
+    ) {
         this.movie = movie
+        this.onMovieClick = onMovieClick
+        this.onMovieLongClick = onMovieLongClick
+        this.onMovieKey = onMovieKey
+        this.itemSelected = itemSelected
 
         when (_binding) {
             is ItemMovieMobileBinding -> displayMobileItem(_binding)
@@ -142,6 +162,17 @@ class MovieViewHolder(
             is ContentMovieCastTvBinding -> displayCastTv(_binding)
             is ContentMovieRecommendationsMobileBinding -> displayRecommendationsMobile(_binding)
             is ContentMovieRecommendationsTvBinding -> displayRecommendationsTv(_binding)
+        }
+    }
+
+    fun setItemSelected(selected: Boolean) {
+        itemSelected = selected
+        when (_binding) {
+            is ItemMovieGridMobileBinding -> {
+                _binding.root.isActivated = selected
+                applyMobileSelection(_binding.root)
+            }
+            is ItemMovieGridTvBinding -> _binding.root.isActivated = selected
         }
     }
 
@@ -298,6 +329,10 @@ class MovieViewHolder(
     private fun displayMobileItem(binding: ItemMovieMobileBinding) {
         binding.root.apply {
             setOnClickListener {
+                onMovieClick?.let { listener ->
+                    listener(movie)
+                    return@setOnClickListener
+                }
                 checkProviderAndRun {
                     when (context.toActivity()?.getCurrentFragment()) {
                         is HomeMobileFragment -> {
@@ -313,10 +348,15 @@ class MovieViewHolder(
                         }
                         is MovieMobileFragment -> findNavController().navigate(MovieMobileFragmentDirections.actionMovieToMovie(id = movie.id))
                         is TvShowMobileFragment -> findNavController().navigate(TvShowMobileFragmentDirections.actionTvShowToMovie(id = movie.id))
+                        is FavoritesMobileFragment -> findNavController().navigate(FavoritesMobileFragmentDirections.actionFavoritesToMovie(id = movie.id))
                     }
                 }
             }
             setOnLongClickListener {
+                onMovieLongClick?.let { listener ->
+                    listener(movie)
+                    return@setOnLongClickListener true
+                }
                 ShowOptionsMobileDialog(context, movie).show()
                 true
             }
@@ -358,6 +398,10 @@ class MovieViewHolder(
         binding.root.apply {
             isFocusable = true
             setOnClickListener {
+                onMovieClick?.let { listener ->
+                    listener(movie)
+                    return@setOnClickListener
+                }
                 checkProviderAndRun {
                     when (context.toActivity()?.getCurrentFragment()) {
                         is HomeTvFragment -> {
@@ -390,12 +434,17 @@ class MovieViewHolder(
                         is MovieTvFragment -> findNavController().navigate(MovieTvFragmentDirections.actionMovieToMovie(id = movie.id))
                         is TvShowTvFragment -> findNavController().navigate(TvShowTvFragmentDirections.actionTvShowToMovie(id = movie.id))
                         is PeopleTvFragment -> findNavController().navigate(PeopleTvFragmentDirections.actionPeopleToMovie(id = movie.id))
+                        is FavoritesTvFragment -> findNavController().navigate(FavoritesTvFragmentDirections.actionFavoritesToMovie(id = movie.id))
                     }
                 }
             }
 
 
             setOnLongClickListener {
+                onMovieLongClick?.let { listener ->
+                    listener(movie)
+                    return@setOnLongClickListener true
+                }
                 ShowOptionsTvDialog(context, movie).show()
                 true
             }
@@ -449,17 +498,30 @@ class MovieViewHolder(
 
     private fun displayGridMobileItem(binding: ItemMovieGridMobileBinding) {
         binding.root.apply {
+            alpha = 1f
+            isActivated = itemSelected
+            applyMobileSelection(this)
+            setOnKeyListener { _, _, event -> onMovieKey?.invoke(movie, event) ?: false }
             setOnClickListener {
+                onMovieClick?.let { listener ->
+                    listener(movie)
+                    return@setOnClickListener
+                }
                 checkProviderAndRun {
                     when (context.toActivity()?.getCurrentFragment()) {
                         is GenreMobileFragment -> findNavController().navigate(GenreMobileFragmentDirections.actionGenreToMovie(id = movie.id))
                         is MoviesMobileFragment -> findNavController().navigate(MoviesMobileFragmentDirections.actionMoviesToMovie(id = movie.id))
                         is PeopleMobileFragment -> findNavController().navigate(PeopleMobileFragmentDirections.actionPeopleToMovie(id = movie.id))
                         is SearchMobileFragment -> findNavController().navigate(SearchMobileFragmentDirections.actionSearchToMovie(id = movie.id))
+                        is FavoritesMobileFragment -> findNavController().navigate(FavoritesMobileFragmentDirections.actionFavoritesToMovie(id = movie.id))
                     }
                 }
             }
             setOnLongClickListener {
+                onMovieLongClick?.let { listener ->
+                    listener(movie)
+                    return@setOnLongClickListener true
+                }
                 ShowOptionsMobileDialog(context, movie).show()
                 true
             }
@@ -500,7 +562,14 @@ class MovieViewHolder(
     private fun displayGridTvItem(binding: ItemMovieGridTvBinding) {
         binding.root.apply {
             isFocusable = true
+            alpha = 1f
+            isActivated = itemSelected
+            setOnKeyListener { _, _, event -> onMovieKey?.invoke(movie, event) ?: false }
             setOnClickListener {
+                onMovieClick?.let { listener ->
+                    listener(movie)
+                    return@setOnClickListener
+                }
                 checkProviderAndRun {
                     when (context.toActivity()?.getCurrentFragment()) {
                         is HomeTvFragment -> findNavController().navigate(HomeTvFragmentDirections.actionHomeToMovie(id = movie.id))
@@ -508,11 +577,16 @@ class MovieViewHolder(
                         is GenreTvFragment -> findNavController().navigate(GenreTvFragmentDirections.actionGenreToMovie(id = movie.id))
                         is SearchTvFragment -> findNavController().navigate(SearchTvFragmentDirections.actionSearchToMovie(id = movie.id))
                         is PeopleTvFragment -> findNavController().navigate(PeopleTvFragmentDirections.actionPeopleToMovie(id = movie.id))
+                        is FavoritesTvFragment -> findNavController().navigate(FavoritesTvFragmentDirections.actionFavoritesToMovie(id = movie.id))
                     }
                 }
             }
 
             setOnLongClickListener {
+                onMovieLongClick?.let { listener ->
+                    listener(movie)
+                    return@setOnLongClickListener true
+                }
                 ShowOptionsTvDialog(context, movie).show()
                 true
             }
@@ -551,6 +625,20 @@ class MovieViewHolder(
         binding.tvMovieReleasedYear.text = movie.released?.format("yyyy")
             ?: context.getString(R.string.movie_item_type)
         binding.tvMovieTitle.text = movie.title
+    }
+
+    private fun applyMobileSelection(view: View) {
+        if (itemSelected) {
+            val width = (4 * context.resources.displayMetrics.density).toInt()
+            view.background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                setStroke(width, ContextCompat.getColor(context, R.color.favorite_selected))
+            }
+            view.setPadding(width, width, width, width)
+        } else {
+            view.background = null
+            view.setPadding(0, 0, 0, 0)
+        }
     }
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {

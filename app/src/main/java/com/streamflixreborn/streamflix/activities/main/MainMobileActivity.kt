@@ -164,6 +164,11 @@ class MainMobileActivity : FragmentActivity() {
         viewModel.checkUpdate()
 
         binding.bnvMain.setupWithNavController(navController)
+        binding.btnMainSearch.setOnClickListener {
+            if (navController.currentDestination?.id != R.id.search) {
+                navController.navigate(R.id.search)
+            }
+        }
         updateNavigationVisibility()
         updateBottomNavigationVisibility(navController.currentDestination?.id)
 
@@ -283,6 +288,11 @@ class MainMobileActivity : FragmentActivity() {
         val showBottomNav =
             UserPreferences.currentProvider != null && isTopLevelProviderDestination(destinationId)
         binding.bnvMain.visibility = if (showBottomNav) View.VISIBLE else View.GONE
+        binding.btnMainSearch.visibility = if (
+            UserPreferences.currentProvider != null &&
+            isTopLevelProviderDestination(destinationId) &&
+            destinationId != R.id.search
+        ) View.VISIBLE else View.GONE
     }
 
     private fun updateNavigationVisibility(currentDestinationId: Int? = null) {
@@ -320,6 +330,7 @@ class MainMobileActivity : FragmentActivity() {
             R.id.home,
             R.id.movies,
             R.id.tv_shows,
+            R.id.favorites,
             R.id.settings,
         )
     }
