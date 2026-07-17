@@ -1,13 +1,14 @@
 package com.streamflixreborn.streamflix.ui
 
 import android.content.Context
-import android.graphics.Bitmap
+import android.graphics.drawable.PictureDrawable
 import android.webkit.CookieManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.module.AppGlideModule
+import com.caverock.androidsvg.SVG
 import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
@@ -94,10 +95,15 @@ class GlideCustomModule : AppGlideModule() {
         registry.replace(
             GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okHttpClient)
         )
-        registry.prepend(
+        registry.append(
             InputStream::class.java,
-            Bitmap::class.java,
-            SvgBitmapDecoder(glide.bitmapPool),
+            SVG::class.java,
+            SvgDecoder(),
+        )
+        registry.register(
+            SVG::class.java,
+            PictureDrawable::class.java,
+            SvgDrawableTranscoder(),
         )
     }
 

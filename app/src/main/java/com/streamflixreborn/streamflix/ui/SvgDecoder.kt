@@ -1,13 +1,9 @@
 package com.streamflixreborn.streamflix.ui
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
 import com.bumptech.glide.load.Options
 import com.bumptech.glide.load.ResourceDecoder
 import com.bumptech.glide.load.engine.Resource
-import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool
-import com.bumptech.glide.load.resource.bitmap.BitmapResource
+import com.bumptech.glide.load.resource.SimpleResource
 import com.bumptech.glide.request.target.Target
 import com.caverock.androidsvg.SVG
 import java.io.IOException
@@ -16,10 +12,8 @@ import java.nio.charset.StandardCharsets
 import java.util.Locale
 import kotlin.math.ceil
 
-/** Decodes SVG streams into pooled bitmaps so they work with normal Glide image requests. */
-class SvgBitmapDecoder(
-    private val bitmapPool: BitmapPool,
-) : ResourceDecoder<InputStream, Bitmap> {
+/** Parses SVG streams while leaving rendering to the PictureDrawable transcoder. */
+class SvgDecoder : ResourceDecoder<InputStream, SVG> {
 
     override fun handles(source: InputStream, options: Options): Boolean {
         if (!source.markSupported()) return false
@@ -41,7 +35,7 @@ class SvgBitmapDecoder(
         width: Int,
         height: Int,
         options: Options,
-    ): Resource<Bitmap> {
+    ): Resource<SVG> {
         val svg = try {
             SVG.getFromInputStream(source)
         } catch (error: Exception) {
@@ -49,32 +43,17 @@ class SvgBitmapDecoder(
         }
 
         val viewBox = svg.documentViewBox
-        val intrinsicWidth = svg.documentWidth.takeIf { it.isFinite() && it > 0f }
-            ?: viewBox?.width()
-        val intrinsicHeight = svg.documentHeight.takeIf { it.isFinite() && it > 0f }
-            ?: viewBox?.height()
-
-        val bitmapWidth = resolveDimension(width, intrinsicWidth)
-        val bitmapHeight = resolveDimension(height, intrinsicHeight)
-        val bitmap = bitmapPool.get(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888).apply {
-            eraseColor(Color.TRANSPARENT)
-        }
-
-        return try {
-            svg.documentWidth = bitmapWidth.toFloat()
-            svg.documentHeight = bitmapHeight.toFloat()
-            svg.renderToCanvas(Canvas(bitmap))
-            BitmapResource(bitmap, bitmapPool)
-        } catch (error: Exception) {
-            bitmapPool.put(bitmap)
-            throw IOException("Unable to render SVG image", error)
-        }
+        svg.documentWidth = resolveDimension(width, svg.documentWidth, viewBox?.width()).toFloat()
+        svg.documentHeight = resolveDimension(height, svg.documentHeight, viewBox?.height()).toFloat()
+        return SimpleResource(svg)
     }
 
-    private fun resolveDimension(requested: Int, intrinsic: Float?): Int {
+    private fun resolveDimension(requested: Int, document: Float, viewBox: Float?): Int {
+        val intrinsic = document.takeIf { it.isFinite() && it > 0f }
+            ?: viewBox?.takeIf { it.isFinite() && it > 0f }
         val resolved = when {
             requested > 0 && requested != Target.SIZE_ORIGINAL -> requested
-            intrinsic != null && intrinsic.isFinite() && intrinsic > 0f -> ceil(intrinsic).toInt()
+            intrinsic != null -> ceil(intrinsic).toInt()
             else -> DEFAULT_SVG_SIZE
         }
         return resolved.coerceIn(1, MAX_SVG_SIZE)
