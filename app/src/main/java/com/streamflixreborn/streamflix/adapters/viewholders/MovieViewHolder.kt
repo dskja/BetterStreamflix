@@ -326,6 +326,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -424,6 +425,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -469,6 +471,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -530,6 +533,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -551,6 +555,11 @@ class MovieViewHolder(
         binding.tvMovieReleasedYear.text = movie.released?.format("yyyy")
             ?: context.getString(R.string.movie_item_type)
         binding.tvMovieTitle.text = movie.title
+    }
+
+    private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
+        favoriteRibbon.visibility = if (movie.isFavorite) View.VISIBLE else View.GONE
+        watchedRibbon.visibility = if (movie.isWatched) View.VISIBLE else View.GONE
     }
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {
