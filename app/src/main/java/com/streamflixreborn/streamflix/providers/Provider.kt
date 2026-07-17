@@ -79,6 +79,7 @@ interface Provider {
             DoramasflixProvider to ProviderSupport(movies = true, tvShows = true),
             CineCalidadProvider to ProviderSupport(movies = true, tvShows = true),
             SeriesFlixProvider to ProviderSupport(movies = false, tvShows = true),
+            SeriesTurcasProvider to ProviderSupport(movies = false, tvShows = true),
             FlixLatamProvider to ProviderSupport(movies = true, tvShows = true),
             LaCartoonsProvider to ProviderSupport(movies = false, tvShows = true),
             AnimefenixProvider to ProviderSupport(movies = false, tvShows = true),
