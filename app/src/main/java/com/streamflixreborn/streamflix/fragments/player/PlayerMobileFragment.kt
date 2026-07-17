@@ -338,7 +338,10 @@ class PlayerMobileFragment : Fragment() {
                             binding.settings.setOnServerSelectedListener { server ->
                                 viewModel.getVideo(state.servers.find { server.id == it.id }!!)
                             }
-                            viewModel.getVideo(state.servers.first())
+                            val preferredServer = state.servers.firstOrNull {
+                                it.name.equals(args.preferredServerName, ignoreCase = true)
+                            }
+                            viewModel.getVideo(preferredServer ?: state.servers.first())
                         }
 
                     }
@@ -501,7 +504,8 @@ class PlayerMobileFragment : Fragment() {
                             id = nextEpisode.id,
                             videoType = nextEpisode,
                             title = nextEpisode.tvShow.title,
-                            subtitle = "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
+                            subtitle = "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}",
+                            preferredServerName = currentServer?.name,
                         )
 
                     hideNextEpisodeOverlay()

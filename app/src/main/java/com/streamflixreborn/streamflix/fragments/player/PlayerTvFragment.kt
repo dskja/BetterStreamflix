@@ -370,7 +370,10 @@ class PlayerTvFragment : Fragment() {
                         binding.settings.setOnServerSelectedListener { server ->
                             viewModel.getVideo(state.servers.find { server.id == it.id }!!)
                         }
-                        viewModel.getVideo(state.servers.first())
+                        val preferredServer = state.servers.firstOrNull {
+                            it.name.equals(args.preferredServerName, ignoreCase = true)
+                        }
+                        viewModel.getVideo(preferredServer ?: state.servers.first())
 
                     }
                         is PlayerViewModel.State.FailedLoadingServers -> {
@@ -573,6 +576,7 @@ class PlayerTvFragment : Fragment() {
                                 "subtitle",
                                 "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
                             )
+                            putString("preferredServerName", currentServer?.name)
                         }
 
                         hideNextEpisodeOverlay()
