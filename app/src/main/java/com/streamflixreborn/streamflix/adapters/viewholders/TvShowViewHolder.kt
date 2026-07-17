@@ -32,6 +32,7 @@ import androidx.preference.PreferenceManager
 import android.app.AlertDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.streamflixreborn.streamflix.fragments.movie.MovieMobileFragmentDirections
@@ -75,7 +76,7 @@ class TvShowViewHolder(
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
     private lateinit var tvShow: TvShow
-    private var watchedStateJob: Job? = null
+    private var ribbonStateJob: Job? = null
 
     val childRecyclerView: RecyclerView?
         get() = when (_binding) {
@@ -205,8 +206,7 @@ class TvShowViewHolder(
             true
         }
         setPoster(binding.ivTvShowPoster)
-        binding.ivTvShowFavoriteRibbon.isVisible = tvShow.isFavorite
-        bindWatchedRibbon(binding.ivTvShowWatchedRibbon)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -253,8 +253,7 @@ class TvShowViewHolder(
             }
         }
         setPoster(binding.ivTvShowPoster)
-        binding.ivTvShowFavoriteRibbon.isVisible = tvShow.isFavorite
-        bindWatchedRibbon(binding.ivTvShowWatchedRibbon)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -287,8 +286,7 @@ class TvShowViewHolder(
             true
         }
         setPoster(binding.ivTvShowPoster)
-        binding.ivTvShowFavoriteRibbon.isVisible = tvShow.isFavorite
-        bindWatchedRibbon(binding.ivTvShowWatchedRibbon)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -328,8 +326,7 @@ class TvShowViewHolder(
             }
         }
         setPoster(binding.ivTvShowPoster)
-        binding.ivTvShowFavoriteRibbon.isVisible = tvShow.isFavorite
-        bindWatchedRibbon(binding.ivTvShowWatchedRibbon)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -496,23 +493,28 @@ class TvShowViewHolder(
         }
     }
 
-    private fun bindWatchedRibbon(ribbon: View) {
-        watchedStateJob?.cancel()
+    private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
+        ribbonStateJob?.cancel()
 
         val boundTvShowId = tvShow.id
-        ribbon.isVisible = false
+        favoriteRibbon.isVisible = tvShow.isFavorite
+        watchedRibbon.isVisible = false
         val lifecycleOwner = itemView.findViewTreeLifecycleOwner()
             ?: context.toActivity()
             ?: return
 
-        watchedStateJob = lifecycleOwner.lifecycleScope.launch {
-            database.episodeDao()
-                .isTvShowFullyWatchedAsFlow(boundTvShowId)
-                .collect { isFullyWatched ->
-                    if (tvShow.id == boundTvShowId) {
-                        ribbon.isVisible = isFullyWatched
-                    }
+        ribbonStateJob = lifecycleOwner.lifecycleScope.launch {
+            combine(
+                database.tvShowDao().getByIdAsFlow(boundTvShowId),
+                database.episodeDao().isTvShowFullyWatchedAsFlow(boundTvShowId),
+            ) { persistedTvShow, isFullyWatched ->
+                (persistedTvShow?.isFavorite ?: tvShow.isFavorite) to isFullyWatched
+            }.collect { (isFavorite, isFullyWatched) ->
+                if (tvShow.id == boundTvShowId) {
+                    favoriteRibbon.isVisible = isFavorite
+                    watchedRibbon.isVisible = isFullyWatched
                 }
+            }
         }
     }
 

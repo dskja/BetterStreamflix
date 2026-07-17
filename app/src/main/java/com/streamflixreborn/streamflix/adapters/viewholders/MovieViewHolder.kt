@@ -86,6 +86,7 @@ import android.view.KeyEvent
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsMobileBinding
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsTvBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -99,6 +100,7 @@ class MovieViewHolder(
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
     private lateinit var movie: Movie
+    private var ribbonStateJob: Job? = null
     private val TAG = "TrailerChoiceDebug" // Logging Tag
 
     companion object {
@@ -560,6 +562,20 @@ class MovieViewHolder(
     private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
         favoriteRibbon.visibility = if (movie.isFavorite) View.VISIBLE else View.GONE
         watchedRibbon.visibility = if (movie.isWatched) View.VISIBLE else View.GONE
+
+        ribbonStateJob?.cancel()
+        val boundMovieId = movie.id
+        val lifecycleOwner = itemView.findViewTreeLifecycleOwner()
+            ?: context.toActivity()
+            ?: return
+
+        ribbonStateJob = lifecycleOwner.lifecycleScope.launch {
+            database.movieDao().getByIdAsFlow(boundMovieId).collect { persistedMovie ->
+                if (movie.id != boundMovieId || persistedMovie == null) return@collect
+                favoriteRibbon.visibility = if (persistedMovie.isFavorite) View.VISIBLE else View.GONE
+                watchedRibbon.visibility = if (persistedMovie.isWatched) View.VISIBLE else View.GONE
+            }
+        }
     }
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {

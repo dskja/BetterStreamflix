@@ -1,6 +1,7 @@
 package com.streamflixreborn.streamflix.ui
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.webkit.CookieManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.annotation.GlideModule
@@ -92,6 +93,11 @@ class GlideCustomModule : AppGlideModule() {
         val okHttpClient = getOkHttpClient(context)
         registry.replace(
             GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okHttpClient)
+        )
+        registry.prepend(
+            InputStream::class.java,
+            Bitmap::class.java,
+            SvgBitmapDecoder(glide.bitmapPool),
         )
     }
 
