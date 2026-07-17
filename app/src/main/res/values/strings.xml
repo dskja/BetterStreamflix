@@ -139,6 +139,9 @@
     <string name="player_settings_subtitles_title">Subtitles/closed captions</string>
     <string name="player_settings_subtitles_label">Captions</string>
     <string name="player_settings_subtitles_off">Off</string>
+    <string name="player_settings_subtitle_offset_title">Subtitle timing</string>
+    <string name="player_settings_subtitle_offset_label">Timing offset</string>
+    <string name="player_settings_subtitle_offset_seconds">%+.1f s</string>
     <string name="player_settings_caption_style_title">Caption style</string>
     <string name="player_settings_caption_style_label">Caption style</string>
     <string name="player_settings_caption_style_sub_label">Change text color, background style and bottom margin</string>

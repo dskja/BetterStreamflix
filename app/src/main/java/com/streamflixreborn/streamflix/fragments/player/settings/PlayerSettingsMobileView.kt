@@ -30,6 +30,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     private val qualityAdapter = SettingsAdapter(this, Settings.Quality.list)
     private val audioAdapter = SettingsAdapter(this, Settings.Audio.list)
     private val subtitlesAdapter = SettingsAdapter(this, Settings.Subtitle.list)
+    private val subtitleOffsetAdapter = SettingsAdapter(this, Settings.Subtitle.Offset.list)
     private val captionStyleAdapter = SettingsAdapter(this, Settings.Subtitle.Style.list)
     private val fontColorAdapter = SettingsAdapter(this, Settings.Subtitle.Style.FontColor.list)
     private val textSizeAdapter = SettingsAdapter(this, Settings.Subtitle.Style.TextSize.list)
@@ -74,6 +75,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.EXTRA_BUFFERING,
             Setting.SOFTWARE_DECODER,
             Setting.MANUAL_ZOOM -> displaySettings(Setting.MAIN)
+            Setting.SUBTITLE_OFFSET -> displaySettings(Setting.SUBTITLES)
             Setting.CAPTION_STYLE -> displaySettings(Setting.SUBTITLES)
             Setting.CAPTION_STYLE_FONT_COLOR,
             Setting.CAPTION_STYLE_TEXT_SIZE,
@@ -109,6 +111,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                 Setting.QUALITY -> context.getString(R.string.player_settings_quality_title)
                 Setting.AUDIO -> context.getString(R.string.player_settings_audio_title)
                 Setting.SUBTITLES -> context.getString(R.string.player_settings_subtitles_title)
+                Setting.SUBTITLE_OFFSET -> context.getString(R.string.player_settings_subtitle_offset_title)
                 Setting.CAPTION_STYLE -> context.getString(R.string.player_settings_caption_style_title)
                 Setting.CAPTION_STYLE_FONT_COLOR -> context.getString(R.string.player_settings_caption_style_font_color_title)
                 Setting.CAPTION_STYLE_TEXT_SIZE -> context.getString(R.string.player_settings_caption_style_text_size_title)
@@ -138,6 +141,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.QUALITY -> qualityAdapter
             Setting.AUDIO -> audioAdapter
             Setting.SUBTITLES -> subtitlesAdapter
+            Setting.SUBTITLE_OFFSET -> subtitleOffsetAdapter
             Setting.CAPTION_STYLE -> captionStyleAdapter
             Setting.CAPTION_STYLE_FONT_COLOR -> fontColorAdapter
             Setting.CAPTION_STYLE_TEXT_SIZE -> textSizeAdapter
@@ -236,6 +240,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                     settingsView.displaySettings(Setting.CAPTION_STYLE)
                                 }
 
+                                Settings.Subtitle.Offset -> {
+                                    settingsView.displaySettings(Setting.SUBTITLE_OFFSET)
+                                }
+
                                 is Settings.Subtitle.None,
                                 is Settings.Subtitle.TextTrackInformation -> {
                                     settingsView.onSubtitleSelected.invoke(item)
@@ -255,6 +263,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                     settingsView.displaySettings(Setting.SUBDL)
                                 }
                             }
+                        }
+
+                        is Settings.Subtitle.Offset.Value -> {
+                            settingsView.onSubtitleOffsetSelected.invoke(item)
+                            settingsView.displaySettings(Setting.SUBTITLES)
                         }
 
                         is Settings.Subtitle.Style -> {
@@ -463,12 +476,18 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> context.getString(R.string.player_settings_caption_style_label)
+                        Settings.Subtitle.Offset -> context.getString(R.string.player_settings_subtitle_offset_label)
                         is Settings.Subtitle.None -> context.getString(R.string.player_settings_subtitles_off)
                         is Settings.Subtitle.TextTrackInformation -> item.label.ifEmpty { item.name }
                         Settings.Subtitle.LocalSubtitles -> context.getString(R.string.player_settings_local_subtitles_label)
                         Settings.Subtitle.OpenSubtitles -> context.getString(R.string.player_settings_open_subtitles_label)
                         Settings.Subtitle.SubDLSubtitles -> context.getString(R.string.player_settings_subdl_label)
                     }
+
+                    is Settings.Subtitle.Offset.Value -> context.getString(
+                        R.string.player_settings_subtitle_offset_seconds,
+                        item.milliseconds / 1_000.0,
+                    )
 
                     is Settings.Subtitle.Style -> when (item) {
                         Settings.Subtitle.Style.ResetStyle -> context.getString(R.string.player_settings_caption_style_reset_style_label)
@@ -552,6 +571,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> context.getString(R.string.player_settings_caption_style_sub_label)
+                        Settings.Subtitle.Offset -> context.getString(
+                            R.string.player_settings_subtitle_offset_seconds,
+                            Settings.Subtitle.Offset.selected.milliseconds / 1_000.0,
+                        )
                         is Settings.Subtitle.TextTrackInformation -> item.language ?: ""
                         else -> ""
                     }
@@ -650,6 +673,11 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         else -> View.GONE
                     }
 
+                    is Settings.Subtitle.Offset.Value -> when {
+                        item.isSelected -> View.VISIBLE
+                        else -> View.GONE
+                    }
+
                     is Settings.Speed -> when {
                         item.isSelected -> View.VISIBLE
                         else -> View.GONE
@@ -703,6 +731,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
                     is Settings.Subtitle -> when (item) {
                         Settings.Subtitle.Style -> View.VISIBLE
+                        Settings.Subtitle.Offset -> View.VISIBLE
                         is Settings.Subtitle.None -> View.GONE
                         is Settings.Subtitle.TextTrackInformation -> View.GONE
                         Settings.Subtitle.LocalSubtitles -> View.VISIBLE
