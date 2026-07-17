@@ -4,23 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/tv_favorites_title"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="24dp"
-        android:text="@string/main_menu_favorites"
-        android:textAppearance="?attr/textAppearanceHeadline4"
-        app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder_mode"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <Button
         android:id="@+id/btn_favorites_reorder_mode"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:layout_marginTop="8dp"
+        android:layout_marginEnd="28dp"
         android:background="@drawable/bg_favorites_action_tv"
         android:backgroundTint="@null"
         android:paddingStart="18dp"
@@ -36,7 +25,6 @@
         android:id="@+id/btn_favorites_reorder"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
-        android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="32dp"
         android:background="@drawable/bg_favorites_action_tv"
@@ -50,10 +38,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/favorites_actions_bottom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="btn_favorites_reorder_mode,btn_favorites_reorder" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_favorites"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="8dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingStart="16dp"
@@ -63,7 +59,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_favorites_title" />
+        app:layout_constraintTop_toBottomOf="@id/favorites_actions_bottom" />
 
     <TextView
         android:id="@+id/tv_favorites_empty"
