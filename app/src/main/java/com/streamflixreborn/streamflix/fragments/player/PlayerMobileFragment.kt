@@ -1035,6 +1035,7 @@ class PlayerMobileFragment : Fragment() {
                 binding.pvPlayer.keepScreenOn = isPlaying || UserPreferences.keepScreenOnWhenPaused
 
                 if (isPlaying) {
+                    recordRecentlyWatchedStart()
                     startProgressHandler()
                 } else {
                     stopProgressHandler()
@@ -1175,6 +1176,65 @@ class PlayerMobileFragment : Fragment() {
 
     private fun ExoPlayer.hasStarted(): Boolean {
         return (this.currentPosition > (this.duration * 0.005) || this.currentPosition > 20.seconds.inWholeMilliseconds)
+    }
+
+    private fun recordRecentlyWatchedStart() {
+        val playedAtMillis = System.currentTimeMillis()
+        when (val videoType = currentVideoTypeForUi()) {
+            is Video.Type.Movie -> {
+                if (database.movieDao().markRecentlyWatched(videoType.id, playedAtMillis) == 0) {
+                    database.movieDao().insert(
+                        Movie(
+                            id = videoType.id,
+                            title = videoType.title,
+                            released = videoType.releaseDate,
+                            poster = videoType.poster,
+                            imdbId = videoType.imdbId,
+                        ).apply {
+                            lastPlayedAtMillis = playedAtMillis
+                        }
+                    )
+                }
+            }
+
+            is Video.Type.Episode -> {
+                val storedTvShow = database.tvShowDao().getById(videoType.tvShow.id)
+                    ?: TvShow(
+                        id = videoType.tvShow.id,
+                        title = videoType.tvShow.title,
+                        released = videoType.tvShow.releaseDate,
+                        poster = videoType.tvShow.poster,
+                        banner = videoType.tvShow.banner,
+                        imdbId = videoType.tvShow.imdbId,
+                    ).apply {
+                        lastPlayedAtMillis = playedAtMillis
+                        lastPlayedEpisodeId = videoType.id
+                        database.tvShowDao().insert(this)
+                    }
+
+                if (database.episodeDao().getById(videoType.id) == null) {
+                    database.episodeDao().insert(
+                        Episode(
+                            id = videoType.id,
+                            number = videoType.number,
+                            title = videoType.title,
+                            poster = videoType.poster,
+                            overview = videoType.overview,
+                            tvShow = storedTvShow,
+                            season = Season(
+                                number = videoType.season.number,
+                                title = videoType.season.title.orEmpty(),
+                            ),
+                        )
+                    )
+                }
+                database.tvShowDao().markRecentlyWatched(
+                    id = videoType.tvShow.id,
+                    episodeId = videoType.id,
+                    playedAtMillis = playedAtMillis,
+                )
+            }
+        }
     }
 
     private fun ExoPlayer.hasFinished(): Boolean {

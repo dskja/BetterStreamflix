@@ -40,6 +40,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 class HomeViewModel(database: AppDatabase) : ViewModel() {
 
+    private data class HomeHistory(
+        val continueWatching: List<AppAdapter.Item>,
+        val recentlyWatched: List<AppAdapter.Item>,
+    )
+
     private fun <T> preserveCacheOrder(
         cached: List<T>,
         incoming: List<T>,
@@ -63,8 +68,9 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     val state: Flow<State> = combine(
         _state,
 
-        // CONTINUE WATCHING - Cache-first (faster on slow DB devices), falls back to DB
         combine(
+            // CONTINUE WATCHING - Cache-first (faster on slow DB devices), falls back to DB
+            combine(
             _userDataCache.transformLatest { cache ->
                 if (cache != null && cache.continueWatchingMovies.isNotEmpty()) {
                     emit(cache.continueWatchingMovies.map { it.toMovie() })
@@ -136,6 +142,38 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         else -> 0L
                     }
                 } as List<AppAdapter.Item>
+            }.flowOn(Dispatchers.IO),
+
+            // RECENTLY WATCHED - Recorded immediately when playback starts.
+            combine(
+                database.movieDao().getRecentlyWatched(),
+                database.tvShowDao().getRecentlyWatched(),
+            ) { movies, tvShows ->
+                val episodeIds = tvShows.mapNotNull { it.lastPlayedEpisodeId }.distinct()
+                val episodesById = if (episodeIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    database.episodeDao().getByIds(episodeIds).associateBy { it.id }
+                }
+
+                val recentlyWatchedTvShows = tvShows.map { tvShow ->
+                    tvShow.copy().apply {
+                        merge(tvShow)
+                        lastPlayedEpisode = lastPlayedEpisodeId?.let(episodesById::get)
+                    }
+                }
+
+                (movies + recentlyWatchedTvShows)
+                    .sortedByDescending { item ->
+                        when (item) {
+                            is Movie -> item.lastPlayedAtMillis ?: 0L
+                            is TvShow -> item.lastPlayedAtMillis ?: 0L
+                            else -> 0L
+                        }
+                    } as List<AppAdapter.Item>
+            }.flowOn(Dispatchers.IO),
+        ) { continueWatching, recentlyWatched ->
+            HomeHistory(continueWatching, recentlyWatched)
         }.flowOn(Dispatchers.IO),
 
         // FAVORITES - from cache first, DB as fallback
@@ -188,7 +226,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }.flowOn(Dispatchers.IO),
 
-        ) { state, continueWatching, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
+        ) { state, history, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -226,7 +264,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     // CONTINUE WATCHING
                     Category(
                         name = Category.CONTINUE_WATCHING,
-                        list = continueWatching
+                        list = history.continueWatching
                             .sortedByDescending {
                                 when (it) {
                                     is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
@@ -247,6 +285,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                                     else -> null
                                 }
                             },
+                    ),
+
+                    Category(
+                        name = Category.RECENTLY_WATCHED,
+                        list = history.recentlyWatched,
                     ),
 
                     // FAVORITES

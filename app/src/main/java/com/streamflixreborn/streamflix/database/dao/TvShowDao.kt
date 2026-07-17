@@ -45,6 +45,12 @@ interface TvShowDao {
     @Query("SELECT * FROM tv_shows")
     fun getAll(): Flow<List<TvShow>>
 
+    @Query("SELECT * FROM tv_shows WHERE lastPlayedAtMillis IS NOT NULL ORDER BY lastPlayedAtMillis DESC")
+    fun getRecentlyWatched(): Flow<List<TvShow>>
+
+    @Query("UPDATE tv_shows SET lastPlayedAtMillis = :playedAtMillis, lastPlayedEpisodeId = :episodeId WHERE id = :id")
+    fun markRecentlyWatched(id: String, episodeId: String, playedAtMillis: Long): Int
+
     @Query("SELECT * FROM tv_shows WHERE poster IS NULL or poster = ''")
     suspend fun getAllWithNullPoster(): List<TvShow>
 
@@ -102,6 +108,8 @@ interface TvShowDao {
             )
             updated.favoritedAtMillis = if (favorite) System.currentTimeMillis() else null
             updated.isWatching = existing.isWatching
+            updated.lastPlayedAtMillis = existing.lastPlayedAtMillis
+            updated.lastPlayedEpisodeId = existing.lastPlayedEpisodeId
             update(updated)
         } else {
             tvShow.isFavorite = favorite
