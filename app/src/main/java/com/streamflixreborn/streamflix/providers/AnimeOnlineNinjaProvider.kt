@@ -248,9 +248,6 @@ object AnimeOnlineNinjaProvider : Provider {
         val body = response.bodyAsString()
         val trimmed = body.trim()
 
-        // A valid JSON response must win over incidental challenge strings in its
-        // payload. Cloudflare detection is only relevant when the expected API
-        // response was not returned.
         if (response.isSuccessful &&
             (trimmed.startsWith("{") || trimmed.startsWith("["))
         ) {
@@ -275,15 +272,10 @@ object AnimeOnlineNinjaProvider : Provider {
         val document = getDocument("$baseUrl/inicio/")
         val categories = parseHomeCategories(document).takeIf { it.isNotEmpty() }
             ?: throw IllegalStateException("AnimeOnline Ninja home page contained no recognizable categories")
-        return resolveHomeEpisodeTvShows(categories)
+        return resolveHomeEpisodeCards(categories)
     }
 
-    /**
-     * The site's latest-episode cards link to an episode and use a landscape
-     * frame from that episode. Resolve those cards before exposing the home
-     * catalog so the app always receives the canonical show id and show cover.
-     */
-    private suspend fun resolveHomeEpisodeTvShows(categories: List<Category>): List<Category> = coroutineScope {
+    private suspend fun resolveHomeEpisodeCards(categories: List<Category>): List<Category> = coroutineScope {
         val episodeCards = categories
             .flatMap { it.list }
             .filterIsInstance<TvShow>()
@@ -296,15 +288,25 @@ object AnimeOnlineNinjaProvider : Provider {
             .distinctBy { titleKey(it.title) }
             .map { episodeCard ->
                 async {
-                    val resolved = runCatching {
+                    val tvShowResult = runCatching {
                         requestLimit.withPermit { getTvShow(episodeCard.id) }
-                    }.onFailure { error ->
+                    }
+                    val movieResult = if (tvShowResult.isFailure) {
+                        runCatching {
+                            requestLimit.withPermit { resolveHomeEpisodeMovie(episodeCard) }
+                        }
+                    } else {
+                        Result.success(null)
+                    }
+                    val resolved: Show? = tvShowResult.getOrNull() ?: movieResult.getOrNull()
+
+                    if (resolved == null) {
                         Log.w(
                             TAG,
-                            "Unable to resolve home episode ${episodeCard.id} to its TV show",
-                            error,
+                            "Unable to resolve home episode ${episodeCard.id} to a movie or TV show",
+                            tvShowResult.exceptionOrNull() ?: movieResult.exceptionOrNull(),
                         )
-                    }.getOrNull()
+                    }
                     titleKey(episodeCard.title) to resolved
                 }
             }
@@ -326,6 +328,15 @@ object AnimeOnlineNinjaProvider : Provider {
         }
     }
 
+    private suspend fun resolveHomeEpisodeMovie(episodeCard: TvShow): Movie? {
+        val query = URLEncoder.encode(episodeCard.title, "UTF-8")
+        val searchDocument = getDocument("$baseUrl/?s=$query")
+        val movieUrl = findMatchingShowUrl(searchDocument, episodeCard.title, "/pelicula/")
+            ?: return null
+
+        return getMovie(normalizeId(movieUrl, "/pelicula/"))
+    }
+
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isBlank()) {
             return listOf(
@@ -336,7 +347,6 @@ object AnimeOnlineNinjaProvider : Provider {
                 Genre("live-action", "Live action"),
                 Genre("tendencias", "Popular en la web"),
                 Genre("ratings", "Mejores valorados"),
-                Genre("sin-censura", "Sin censura"),
                 Genre("award-winning-anime", "Ganadores de premios"),
                 Genre("accion", "Accion"),
                 Genre("aventura", "Aventura"),
@@ -455,10 +465,18 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private fun findMatchingTvShowUrl(document: Document, parentTitle: String): String? {
+        return findMatchingShowUrl(document, parentTitle, "/online/")
+    }
+
+    private fun findMatchingShowUrl(
+        document: Document,
+        parentTitle: String,
+        path: String,
+    ): String? {
         val targetKey = titleKey(parentTitle)
         if (targetKey.isBlank()) return null
 
-        return document.select("a[href*='/online/']")
+        return document.select("a[href*='$path']")
             .mapNotNull { link ->
                 val href = link.absUrl("href").ifBlank { link.attr("href") }
                 if (href.isBlank()) return@mapNotNull null
@@ -469,7 +487,7 @@ object AnimeOnlineNinjaProvider : Provider {
                     link.selectFirst("img[alt]")?.attr("alt").orEmpty(),
                     link.parent()?.text().orEmpty(),
                     runCatching {
-                        URLDecoder.decode(normalizeId(href, "/online/"), "UTF-8")
+                        URLDecoder.decode(normalizeId(href, path), "UTF-8")
                             .replace('-', ' ')
                     }.getOrDefault(""),
                 )
@@ -545,7 +563,7 @@ object AnimeOnlineNinjaProvider : Provider {
         return Genre(
             id = id,
             name = title,
-            shows = parseGenreItems(document).mapNotNull {
+            shows = parseArchiveItems(document).mapNotNull {
                 when (it) {
                     is Movie -> it
                     is TvShow -> it
@@ -709,7 +727,7 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private suspend fun getListing(url: String): List<AppAdapter.Item> {
-        return getDocument(url).let(::parseListingItems)
+        return getDocument(url).let(::parseArchiveItems)
     }
 
     private fun listingUrl(path: String, page: Int): String {
@@ -781,21 +799,16 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private fun parseSearchItems(document: Document): List<AppAdapter.Item> {
-        // Search pages also render unrelated recommendations in the right sidebar.
-        // Only result cards inside the dedicated search result container belong to
-        // the submitted query.
         return document
             .select(".search-page > .result-item > article, .search-page .result-item article")
             .mapNotNull(::parseListingItem)
             .distinctBy(::itemKey)
     }
 
-    private fun parseGenreItems(document: Document): List<AppAdapter.Item> {
-        // Genre archives paginate their main grid at /page/{n}/. Scoping the
-        // parser to that grid makes every requested page independent from the
-        // sidebar modules that are repeated on all archive pages.
-        val grid = document.selectFirst(".module > .content.right > .items")
-            ?: document.selectFirst(".module .content.right .items")
+    private fun parseArchiveItems(document: Document): List<AppAdapter.Item> {
+        val grid = document.selectFirst("#archive-content")
+            ?: document.selectFirst(".module > .content.right > .items:not(.featured)")
+            ?: document.selectFirst(".module .content.right .items:not(.featured)")
             ?: return emptyList()
 
         return grid
