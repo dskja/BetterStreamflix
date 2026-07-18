@@ -20,7 +20,12 @@ import com.streamflixreborn.streamflix.utils.ArtworkRequestHeaders
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.WebViewResolver
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -268,8 +273,57 @@ object AnimeOnlineNinjaProvider : Provider {
 
     override suspend fun getHome(): List<Category> {
         val document = getDocument("$baseUrl/inicio/")
-        return parseHomeCategories(document).takeIf { it.isNotEmpty() }
+        val categories = parseHomeCategories(document).takeIf { it.isNotEmpty() }
             ?: throw IllegalStateException("AnimeOnline Ninja home page contained no recognizable categories")
+        return resolveHomeEpisodeTvShows(categories)
+    }
+
+    /**
+     * The site's latest-episode cards link to an episode and use a landscape
+     * frame from that episode. Resolve those cards before exposing the home
+     * catalog so the app always receives the canonical show id and show cover.
+     */
+    private suspend fun resolveHomeEpisodeTvShows(categories: List<Category>): List<Category> = coroutineScope {
+        val episodeCards = categories
+            .flatMap { it.list }
+            .filterIsInstance<TvShow>()
+            .filter { it.id.contains("/episodio/", ignoreCase = true) }
+
+        if (episodeCards.isEmpty()) return@coroutineScope categories
+
+        val requestLimit = Semaphore(4)
+        val resolvedByTitle = episodeCards
+            .distinctBy { titleKey(it.title) }
+            .map { episodeCard ->
+                async {
+                    val resolved = runCatching {
+                        requestLimit.withPermit { getTvShow(episodeCard.id) }
+                    }.onFailure { error ->
+                        Log.w(
+                            TAG,
+                            "Unable to resolve home episode ${episodeCard.id} to its TV show",
+                            error,
+                        )
+                    }.getOrNull()
+                    titleKey(episodeCard.title) to resolved
+                }
+            }
+            .awaitAll()
+            .toMap()
+
+        categories.map { category ->
+            category.copy(
+                list = category.list
+                    .map { item ->
+                        if (item is TvShow && item.id.contains("/episodio/", ignoreCase = true)) {
+                            resolvedByTitle[titleKey(item.title)] ?: item
+                        } else {
+                            item
+                        }
+                    }
+                    .distinctBy(::itemKey),
+            )
+        }
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -282,6 +336,7 @@ object AnimeOnlineNinjaProvider : Provider {
                 Genre("live-action", "Live action"),
                 Genre("tendencias", "Popular en la web"),
                 Genre("ratings", "Mejores valorados"),
+                Genre("sin-censura", "Sin censura"),
                 Genre("award-winning-anime", "Ganadores de premios"),
                 Genre("accion", "Accion"),
                 Genre("aventura", "Aventura"),
@@ -726,6 +781,9 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private fun parseSearchItems(document: Document): List<AppAdapter.Item> {
+        // Search pages also render unrelated recommendations in the right sidebar.
+        // Only result cards inside the dedicated search result container belong to
+        // the submitted query.
         return document
             .select(".search-page > .result-item > article, .search-page .result-item article")
             .mapNotNull(::parseListingItem)
@@ -733,6 +791,9 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     private fun parseGenreItems(document: Document): List<AppAdapter.Item> {
+        // Genre archives paginate their main grid at /page/{n}/. Scoping the
+        // parser to that grid makes every requested page independent from the
+        // sidebar modules that are repeated on all archive pages.
         val grid = document.selectFirst(".module > .content.right > .items")
             ?: document.selectFirst(".module .content.right .items")
             ?: return emptyList()
