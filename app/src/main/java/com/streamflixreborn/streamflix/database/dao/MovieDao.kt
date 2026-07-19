@@ -36,7 +36,7 @@ interface MovieDao {
     @Query("SELECT * FROM movies WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingMovies(): Flow<List<Movie>>
 
-    @Query("SELECT * FROM movies WHERE lastPlayedAtMillis IS NOT NULL ORDER BY lastPlayedAtMillis DESC")
+    @Query("SELECT * FROM movies WHERE lastPlayedAtMillis IS NOT NULL ORDER BY lastPlayedAtMillis DESC LIMIT 10")
     fun getRecentlyWatched(): Flow<List<Movie>>
 
     @Query("UPDATE movies SET lastPlayedAtMillis = :playedAtMillis WHERE id = :id")

@@ -45,7 +45,7 @@ interface TvShowDao {
     @Query("SELECT * FROM tv_shows")
     fun getAll(): Flow<List<TvShow>>
 
-    @Query("SELECT * FROM tv_shows WHERE lastPlayedAtMillis IS NOT NULL ORDER BY lastPlayedAtMillis DESC")
+    @Query("SELECT * FROM tv_shows WHERE lastPlayedAtMillis IS NOT NULL ORDER BY lastPlayedAtMillis DESC LIMIT 10")
     fun getRecentlyWatched(): Flow<List<TvShow>>
 
     @Query("UPDATE tv_shows SET lastPlayedAtMillis = :playedAtMillis, lastPlayedEpisodeId = :episodeId WHERE id = :id")
