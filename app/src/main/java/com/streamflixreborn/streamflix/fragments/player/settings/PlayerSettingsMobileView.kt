@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.databinding.ItemSettingMobileBinding
@@ -161,6 +162,24 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
             Setting.GESTURES -> gesturesAdapter
             Setting.KEEP_SCREEN_ON -> keepScreenOnAdapter
             Setting.MANUAL_ZOOM -> settingsAdapter
+        }
+
+        if (setting == Setting.SUBTITLE_OFFSET) {
+            scrollToSelectedSubtitleOffset()
+        }
+    }
+
+    private fun scrollToSelectedSubtitleOffset() {
+        val selectedOffset = Settings.Subtitle.Offset.selected.milliseconds
+        val selectedPosition = Settings.Subtitle.Offset.list.indexOfFirst {
+            it is Settings.Subtitle.Offset.Value && it.milliseconds == selectedOffset
+        }
+
+        if (selectedPosition >= 0) {
+            binding.rvSettings.post {
+                (binding.rvSettings.layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(selectedPosition, binding.rvSettings.height / 2)
+            }
         }
     }
 

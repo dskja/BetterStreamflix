@@ -7,6 +7,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnNextLayout
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.databinding.ItemSettingTvBinding
@@ -161,7 +163,34 @@ class PlayerSettingsTvView @JvmOverloads constructor(
             Setting.CAPTION_STYLE_MARGIN -> marginAdapter
             else -> settingsAdapter
         }
-        binding.rvSettings.requestFocus()
+
+        if (setting == Setting.SUBTITLE_OFFSET) {
+            focusSelectedSubtitleOffset()
+        } else {
+            binding.rvSettings.requestFocus()
+        }
+    }
+
+    private fun focusSelectedSubtitleOffset() {
+        val selectedOffset = Settings.Subtitle.Offset.selected.milliseconds
+        val selectedPosition = Settings.Subtitle.Offset.list.indexOfFirst {
+            it is Settings.Subtitle.Offset.Value && it.milliseconds == selectedOffset
+        }
+
+        if (selectedPosition < 0) {
+            binding.rvSettings.requestFocus()
+            return
+        }
+
+        binding.rvSettings.post {
+            binding.rvSettings.doOnNextLayout {
+                binding.rvSettings.findViewHolderForAdapterPosition(selectedPosition)
+                    ?.itemView
+                    ?.requestFocus()
+            }
+            (binding.rvSettings.layoutManager as? LinearLayoutManager)
+                ?.scrollToPositionWithOffset(selectedPosition, binding.rvSettings.height / 2)
+        }
     }
 
     fun hide() {
