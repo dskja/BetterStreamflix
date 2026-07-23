@@ -1,7 +1,5 @@
 package com.streamflixreborn.streamflix.fragments.favorites
 
-package com.streamflixreborn.streamflix.fragments.favorites
-
 import androidx.lifecycle.ViewModel
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
