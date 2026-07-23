@@ -1,5 +1,7 @@
 package com.streamflixreborn.streamflix.fragments.favorites
 
+package com.streamflixreborn.streamflix.fragments.favorites
+
 import androidx.lifecycle.ViewModel
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
@@ -111,9 +113,19 @@ class FavoritesViewModel(
     ): List<AppAdapter.Item> = when (mode) {
         SortMode.MANUAL -> {
             val savedOrder = UserPreferences.getFavoriteItemOrder(providerName, section.key)
-            val positions = savedOrder.withIndex().associate { it.value to it.index }
-            items.sortedWith(compareBy<AppAdapter.Item> { positions[itemId(it)] ?: Int.MAX_VALUE }
-                .thenByDescending(::favoriteTime))
+            val currentIds = items.mapNotNull(::itemId)
+            val currentIdSet = currentIds.toSet()
+            val normalizedOrder = (
+                savedOrder.filter { it in currentIdSet } +
+                    currentIds.filterNot { it in savedOrder }
+                ).distinct()
+
+            if (normalizedOrder != savedOrder) {
+                UserPreferences.setFavoriteItemOrder(providerName, section.key, normalizedOrder)
+            }
+
+            val positions = normalizedOrder.withIndex().associate { it.value to it.index }
+            items.sortedBy { positions[itemId(it)] ?: Int.MAX_VALUE }
         }
         SortMode.RECENTLY_ADDED -> items.sortedByDescending(::favoriteTime)
         SortMode.TITLE_ASCENDING -> items.sortedBy(::titleLowercase)
@@ -143,3 +155,4 @@ class FavoritesViewModel(
         .mapNotNull(Section::fromKey)
         .let { (it + Section.entries).distinct() }
 }
+
