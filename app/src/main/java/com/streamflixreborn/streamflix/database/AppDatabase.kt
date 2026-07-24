@@ -54,6 +54,9 @@ abstract class AppDatabase : RoomDatabase() {
                 .trim('_') // Rimuove underscore iniziale/finale
         }
 
+        fun databaseNameFor(providerName: String): String =
+            "${sanitizeProviderName(providerName)}.db"
+
         fun setup(context: Context) {
             if (UserPreferences.currentProvider == null) return
 

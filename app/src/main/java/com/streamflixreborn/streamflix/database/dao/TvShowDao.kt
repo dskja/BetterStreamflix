@@ -57,6 +57,14 @@ interface TvShowDao {
     @Query("DELETE FROM tv_shows")
     fun deleteAll()
 
+    @Query("""
+        UPDATE tv_shows SET
+            isFavorite = 0,
+            favoritedAtMillis = NULL,
+            isWatching = 1
+    """)
+    fun clearUserState()
+
     @Transaction
     fun save(tvShow: TvShow) {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"

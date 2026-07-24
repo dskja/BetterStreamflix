@@ -493,4 +493,6 @@
     <string name="settings_refresh_cache_confirm">Cache aktualisieren?</string>
     <string name="settings_refresh_cache_message">Dadurch werden dein Wiedergabeverlauf und die App-Daten aus der Datenbank neu geladen.</string>
     <string name="settings_refresh_cache_success">Cache erfolgreich aktualisiert</string>
+    <string name="supabase_instructions_title">Anleitung</string>
+    <string name="supabase_instructions_summary">Die ausführliche Anleitung zur Einrichtung von Supabase-Konto und Synchronisierung im Browser öffnen</string>
 </resources>

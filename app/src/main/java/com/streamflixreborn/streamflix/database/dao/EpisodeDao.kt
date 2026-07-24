@@ -106,6 +106,16 @@ interface EpisodeDao {
     @Query("DELETE FROM episodes")
     fun deleteAll()
 
+    @Query("""
+        UPDATE episodes SET
+            isWatched = 0,
+            watchedDate = NULL,
+            lastEngagementTimeUtcMillis = NULL,
+            lastPlaybackPositionMillis = NULL,
+            durationMillis = NULL
+    """)
+    fun clearUserState()
+
     @Transaction
     fun save(episode: Episode) {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"

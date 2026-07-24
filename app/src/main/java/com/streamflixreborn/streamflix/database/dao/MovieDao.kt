@@ -48,6 +48,18 @@ interface MovieDao {
     @Query("DELETE FROM movies")
     fun deleteAll()
 
+    @Query("""
+        UPDATE movies SET
+            isFavorite = 0,
+            favoritedAtMillis = NULL,
+            isWatched = 0,
+            watchedDate = NULL,
+            lastEngagementTimeUtcMillis = NULL,
+            lastPlaybackPositionMillis = NULL,
+            durationMillis = NULL
+    """)
+    fun clearUserState()
+
     @Transaction
     fun save(movie: Movie) {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"

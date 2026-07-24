@@ -13,6 +13,7 @@ import com.streamflixreborn.streamflix.models.Season
 import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.providers.Provider
+import com.streamflixreborn.streamflix.sync.CloudSyncHooks
 import com.streamflixreborn.streamflix.ui.UserDataNotifier
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -197,6 +198,7 @@ object UserDataCache {
             favoritesMovies = current.favoritesMovies.filter { it.id != id }
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.movie(context, provider, id)
     }
 
     fun addMovieToFavorites(context: Context, provider: Provider, movie: Movie) {
@@ -211,6 +213,7 @@ object UserDataCache {
                 .distinctBy { it.id }
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.movie(context, provider, favoritedMovie)
     }
 
     // -------------------------
@@ -224,6 +227,7 @@ object UserDataCache {
             continueWatchingEpisodes = current.continueWatchingEpisodes.filter { it.id != id }
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.episode(context, provider, id)
     }
 
     fun addEpisodeToContinueWatching(context: Context, provider: Provider, episode: Episode) {
@@ -234,6 +238,7 @@ object UserDataCache {
                 .distinctBy { it.id }
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.episode(context, provider, episode)
     }
 
     // -------------------------
@@ -247,6 +252,7 @@ object UserDataCache {
             favoritesTvShows = current.favoritesTvShows.filter { it.id != id }
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.tvShow(context, provider, id)
     }
 
     fun addTvShowToFavorites(context: Context, provider: Provider, tvShow: TvShow) {
@@ -261,6 +267,7 @@ object UserDataCache {
                 .distinctBy { it.id }
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.tvShow(context, provider, favoritedTvShow)
     }
 
     // -------------------------
@@ -293,6 +300,7 @@ object UserDataCache {
             favoritesMovies = updatedFavorites
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.movie(context, provider, movie)
     }
 
     fun syncEpisodeToCache(context: Context, provider: Provider, episode: Episode) {
@@ -309,6 +317,7 @@ object UserDataCache {
             continueWatchingEpisodes = updatedContinueWatching
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.episode(context, provider, episode)
     }
 
     fun syncTvShowToCache(context: Context, provider: Provider, tvShow: TvShow) {
@@ -329,6 +338,7 @@ object UserDataCache {
             favoritesTvShows = updatedFavorites
         ))
         UserDataNotifier.notifyChanged()
+        CloudSyncHooks.tvShow(context, provider, tvShow)
     }
 
 
