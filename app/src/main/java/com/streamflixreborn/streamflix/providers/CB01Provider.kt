@@ -505,8 +505,15 @@ object CB01Provider : Provider {
                             val uprotUrl = normalized.replace("/msf/", "/mse/")
                             try {
                                 val doc = service.getPage(uprotUrl)
-                                val maxstreamUrl = doc.selectFirst("#ads_space center a[href]")?.attr("href")
-                                if (!maxstreamUrl.isNullOrBlank()) {
+                                val html = doc.html()
+
+                                val b64Base = Regex("""decodedBaseUrl\s*=\s*atob\(["']([^"']+)["']\)""").find(html)?.groupValues?.getOrNull(1)
+                                val b64Val = Regex("""decodedEncryptedVal\s*=\s*atob\(["']([^"']+)["']\)""").find(html)?.groupValues?.getOrNull(1)
+
+                                if (!b64Base.isNullOrBlank() && !b64Val.isNullOrBlank()) {
+                                    val decodedBase = String(android.util.Base64.decode(b64Base, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                                    val decodedVal = String(android.util.Base64.decode(b64Val, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                                    val maxstreamUrl = decodedBase + decodedVal
                                     addServer(maxstreamUrl)
                                 }
                             } catch (_: Exception) { }
