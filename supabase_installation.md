@@ -4,6 +4,11 @@ Streamflix can synchronize favorites and watch history between devices through a
 
 This guide is also available from **Settings → Account & sync → Instructions** inside the app.
 
+Maintainers planning to merge multi-profile support should also read
+[`SUPABASE_PROFILE_MERGE_GUIDE.md`](SUPABASE_PROFILE_MERGE_GUIDE.md). The
+Supabase project connection remains global, while Auth sessions and sync state
+must become profile-scoped.
+
 ## What you need
 
 - A free Supabase account: [supabase.com](https://supabase.com/).
@@ -93,7 +98,7 @@ Streamflix keeps its normal local database and uses Supabase as an additional sy
 - changes are uploaded after local changes and can also be synchronized manually;
 - Realtime notifications help other devices receive changes quickly;
 - signing out stops synchronization but does not clear local data;
-- changing to a different signed-in account may merge the existing local state into that account, so review the local library before switching accounts.
+- changing to a different signed-in account is blocked when the existing local state belongs to another account, preventing that data from being silently overwritten or uploaded to the wrong account.
 
 ## Troubleshooting
 

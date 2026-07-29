@@ -163,7 +163,7 @@ object UserDataCache {
     // -------------------------
 
     fun removeMovieFromContinueWatching(context: Context, provider: Provider, id: String) {
-        val current = read(context, provider) ?: return
+        val current = read(context, provider) ?: UserData()
 
         runCatching {
             val db = AppDatabase.getInstance(context)
@@ -178,6 +178,7 @@ object UserDataCache {
         write(context, provider, current.copy(
             continueWatchingMovies = current.continueWatchingMovies.filter { it.id != id }
         ))
+        CloudSyncHooks.movie(context, provider, id)
         UserDataNotifier.notifyChanged()
     }
 
@@ -188,11 +189,12 @@ object UserDataCache {
             continueWatchingMovies = (current.continueWatchingMovies + movie.toCached())
                 .distinctBy { it.id }
         ))
+        CloudSyncHooks.movie(context, provider, movie)
         UserDataNotifier.notifyChanged()
     }
 
     fun removeMovieFromFavorites(context: Context, provider: Provider, id: String) {
-        val current = read(context, provider) ?: return
+        val current = read(context, provider) ?: UserData()
 
         write(context, provider, current.copy(
             favoritesMovies = current.favoritesMovies.filter { it.id != id }
@@ -221,7 +223,7 @@ object UserDataCache {
     // -------------------------
 
     fun removeEpisodeFromContinueWatching(context: Context, provider: Provider, id: String) {
-        val current = read(context, provider) ?: return
+        val current = read(context, provider) ?: UserData()
 
         write(context, provider, current.copy(
             continueWatchingEpisodes = current.continueWatchingEpisodes.filter { it.id != id }
@@ -246,7 +248,7 @@ object UserDataCache {
     // -------------------------
 
     fun removeTvShowFromFavorites(context: Context, provider: Provider, id: String) {
-        val current = read(context, provider) ?: return
+        val current = read(context, provider) ?: UserData()
 
         write(context, provider, current.copy(
             favoritesTvShows = current.favoritesTvShows.filter { it.id != id }
