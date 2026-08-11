@@ -115,6 +115,14 @@ class TvShowViewHolder(
         return provider is IptvProvider
     }
 
+    private fun episodeBadgeText(): String {
+        if (isIptvProvider()) return ""
+        return tvShow.lastPlayedEpisode?.let { "E${it.number}" }
+            ?: tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" }
+            ?: tvShow.released?.format("yyyy")
+            ?: context.getString(R.string.tv_show_item_type)
+    }
+
     private fun checkProviderAndRun(action: () -> Unit) {
         if (!tvShow.providerName.isNullOrBlank() && tvShow.providerName != UserPreferences.currentProvider?.name) {
             Provider.providers.keys.find { it.name == tvShow.providerName }?.let {
@@ -216,7 +224,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -262,7 +270,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -294,7 +302,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -333,7 +341,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
