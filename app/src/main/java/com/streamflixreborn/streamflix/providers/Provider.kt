@@ -83,6 +83,7 @@ interface Provider {
             LaCartoonsProvider to ProviderSupport(movies = false, tvShows = true),
             AnimefenixProvider to ProviderSupport(movies = false, tvShows = true),
             AnimeFlvProvider to ProviderSupport(movies = false, tvShows = true),
+            JKAnimeProvider to ProviderSupport(movies = true, tvShows = true),
             TioAnimeProvider to ProviderSupport(movies = true, tvShows = true),
             AnimeAv1Provider to ProviderSupport(movies = false, tvShows = true),
             AnimeOnlineNinjaProvider to ProviderSupport(movies = true, tvShows = true),
