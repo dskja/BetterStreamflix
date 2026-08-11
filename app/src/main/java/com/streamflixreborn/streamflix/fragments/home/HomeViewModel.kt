@@ -20,7 +20,6 @@ import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserDataCache.toCached
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
-import com.streamflixreborn.streamflix.utils.UserDataCache.toTvShow
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.combine
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +42,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     private data class HomeHistory(
         val continueWatching: List<AppAdapter.Item>,
         val recentlyWatched: List<AppAdapter.Item>,
+        val favoritesMovies: List<Movie>,
+        val favoriteTvShows: List<TvShow>
     )
 
     private fun <T> preserveCacheOrder(
@@ -172,24 +173,15 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         }
                     } as List<AppAdapter.Item>
             }.flowOn(Dispatchers.IO),
-        ) { continueWatching, recentlyWatched ->
-            HomeHistory(continueWatching, recentlyWatched)
-        }.flowOn(Dispatchers.IO),
+            
+            // FAVORITE MOVIES
+            database.movieDao().getFavorites().flowOn(Dispatchers.IO),
+            
+            // FAVORITE TV SHOWS
+            database.tvShowDao().getFavorites().flowOn(Dispatchers.IO),
 
-        // FAVORITES - from cache first, DB as fallback
-        _userDataCache.transformLatest { cache ->
-            if (cache != null && cache.favoritesMovies.isNotEmpty()) {
-                emit(cache.favoritesMovies.map { it.toMovie() })
-            } else {
-                emitAll(database.movieDao().getFavorites())
-            }
-        }.flowOn(Dispatchers.IO),
-        _userDataCache.transformLatest { cache ->
-            if (cache != null && cache.favoritesTvShows.isNotEmpty()) {
-                emit(cache.favoritesTvShows.map { it.toTvShow() })
-            } else {
-                emitAll(database.tvShowDao().getFavorites())
-            }
+        ) { continueWatching, recentlyWatched, favoritesMovies, favoriteTvShows ->
+            HomeHistory(continueWatching, recentlyWatched, favoritesMovies, favoriteTvShows)
         }.flowOn(Dispatchers.IO),
 
         // MOVIES DB
@@ -226,7 +218,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }.flowOn(Dispatchers.IO),
 
-        ) { state, history, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
+        ) { state, history, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -295,7 +287,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     // FAVORITES
                     Category(
                         name = Category.FAVORITE_MOVIES,
-                        list = favoritesMovies.sortedByDescending {
+                        list = history.favoritesMovies.sortedByDescending {
                             when (it) {
                                 is Movie -> it.favoritedAtMillis ?: 0L
                                 else -> 0L
@@ -304,7 +296,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     ),
                     Category(
                         name = Category.FAVORITE_TV_SHOWS,
-                        list = favoriteTvShows.sortedByDescending {
+                        list = history.favoriteTvShows.sortedByDescending {
                             when (it) {
                                 is TvShow -> it.favoritedAtMillis ?: 0L
                                 else -> 0L

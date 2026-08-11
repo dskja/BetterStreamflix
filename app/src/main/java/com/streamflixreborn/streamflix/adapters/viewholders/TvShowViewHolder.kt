@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.KeyEvent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
@@ -76,6 +79,10 @@ class TvShowViewHolder(
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
     private lateinit var tvShow: TvShow
+    private var onTvShowClick: ((TvShow) -> Unit)? = null
+    private var onTvShowLongClick: ((TvShow) -> Unit)? = null
+    private var onTvShowKey: ((TvShow, KeyEvent) -> Boolean)? = null
+    private var itemSelected: Boolean = false
     private var ribbonStateJob: Job? = null
 
     val childRecyclerView: RecyclerView?
@@ -89,8 +96,18 @@ class TvShowViewHolder(
             else -> null
         }
 
-    fun bind(tvShow: TvShow) {
+    fun bind(
+        tvShow: TvShow,
+        onTvShowClick: ((TvShow) -> Unit)? = null,
+        onTvShowLongClick: ((TvShow) -> Unit)? = null,
+        onTvShowKey: ((TvShow, KeyEvent) -> Boolean)? = null,
+        itemSelected: Boolean = false,
+    ) {
         this.tvShow = tvShow
+        this.onTvShowClick = onTvShowClick
+        this.onTvShowLongClick = onTvShowLongClick
+        this.onTvShowKey = onTvShowKey
+        this.itemSelected = itemSelected
 
         when (_binding) {
             is ItemTvShowMobileBinding -> displayMobileItem(_binding)
@@ -109,6 +126,17 @@ class TvShowViewHolder(
             is ContentTvShowCastTvBinding -> displayCastTv(_binding)
             is ContentTvShowRecommendationsMobileBinding -> displayRecommendationsMobile(_binding)
             is ContentTvShowRecommendationsTvBinding -> displayRecommendationsTv(_binding)
+        }
+    }
+
+    fun setItemSelected(selected: Boolean) {
+        itemSelected = selected
+        when (_binding) {
+            is ItemTvShowGridMobileBinding -> {
+                _binding.root.isActivated = selected
+                applyMobileSelection(_binding.root)
+            }
+            is ItemTvShowGridBinding -> _binding.root.isActivated = selected
         }
     }
 
@@ -201,6 +229,10 @@ class TvShowViewHolder(
 
     private fun displayMobileItem(binding: ItemTvShowMobileBinding) {
         binding.root.setOnClickListener {
+            onTvShowClick?.let { listener ->
+                listener(tvShow)
+                return@setOnClickListener
+            }
             checkProviderAndRun {
                 if (isIptvProvider()) {
                     handleDirectPlay(binding.root.findNavController())
@@ -210,6 +242,10 @@ class TvShowViewHolder(
             }
         }
         binding.root.setOnLongClickListener {
+            onTvShowLongClick?.let { listener ->
+                listener(tvShow)
+                return@setOnLongClickListener true
+            }
             ShowOptionsMobileDialog(context, tvShow).show()
             true
         }
@@ -235,6 +271,10 @@ class TvShowViewHolder(
     private fun displayTvItem(binding: ItemTvShowTvBinding) {
         binding.root.apply {
             setOnClickListener {
+                onTvShowClick?.let { listener ->
+                    listener(tvShow)
+                    return@setOnClickListener
+                }
                 checkProviderAndRun {
                     if (isIptvProvider()) {
                         handleDirectPlay(findNavController())
@@ -244,6 +284,10 @@ class TvShowViewHolder(
                 }
             }
             setOnLongClickListener {
+                onTvShowLongClick?.let { listener ->
+                    listener(tvShow)
+                    return@setOnLongClickListener true
+                }
                 ShowOptionsTvDialog(context, tvShow).show()
                 true
             }
@@ -280,7 +324,15 @@ class TvShowViewHolder(
     }
 
     private fun displayGridMobileItem(binding: ItemTvShowGridMobileBinding) {
+        binding.root.alpha = 1f
+        binding.root.isActivated = itemSelected
+        applyMobileSelection(binding.root)
+        binding.root.setOnKeyListener { _, _, event -> onTvShowKey?.invoke(tvShow, event) ?: false }
         binding.root.setOnClickListener {
+            onTvShowClick?.let { listener ->
+                listener(tvShow)
+                return@setOnClickListener
+            }
             checkProviderAndRun {
                 if (isIptvProvider()) {
                     handleDirectPlay(binding.root.findNavController())
@@ -290,6 +342,10 @@ class TvShowViewHolder(
             }
         }
         binding.root.setOnLongClickListener {
+            onTvShowLongClick?.let { listener ->
+                listener(tvShow)
+                return@setOnLongClickListener true
+            }
             ShowOptionsMobileDialog(context, tvShow).show()
             true
         }
@@ -314,7 +370,14 @@ class TvShowViewHolder(
 
     private fun displayGridTvItem(binding: ItemTvShowGridBinding) {
         binding.root.apply {
+            alpha = 1f
+            isActivated = itemSelected
+            setOnKeyListener { _, _, event -> onTvShowKey?.invoke(tvShow, event) ?: false }
             setOnClickListener {
+                onTvShowClick?.let { listener ->
+                    listener(tvShow)
+                    return@setOnClickListener
+                }
                 checkProviderAndRun {
                     if (isIptvProvider()) {
                         handleDirectPlay(findNavController())
@@ -324,6 +387,10 @@ class TvShowViewHolder(
                 }
             }
             setOnLongClickListener {
+                onTvShowLongClick?.let { listener ->
+                    listener(tvShow)
+                    return@setOnLongClickListener true
+                }
                 ShowOptionsTvDialog(context, tvShow).show()
                 true
             }
@@ -350,6 +417,20 @@ class TvShowViewHolder(
         }
         binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
+    }
+
+    private fun applyMobileSelection(view: View) {
+        if (itemSelected) {
+            val width = (4 * context.resources.displayMetrics.density).toInt()
+            view.background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                setStroke(width, ContextCompat.getColor(context, R.color.favorite_selected))
+            }
+            view.setPadding(width, width, width, width)
+        } else {
+            view.background = null
+            view.setPadding(0, 0, 0, 0)
+        }
     }
 
     private fun isPackageInstalled(packageName: String): Boolean {

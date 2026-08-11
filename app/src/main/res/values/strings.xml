@@ -34,6 +34,7 @@
     <string name="main_menu_tv_shows">TV Shows</string>
     <string name="main_menu_all_channels">All Channels</string>
     <string name="main_menu_settings">Settings</string>
+    <string name="main_menu_favorites">Favorites</string>
     <string name="main_menu_theme_change">Change Theme</string>
     <string name="theme_default">Default</string>
     <string name="theme_nero_amoled_oled">Nero Amoled/Oled</string>
@@ -61,6 +62,20 @@
     <string name="home_recently_watched">Recently Watched</string>
     <string name="home_favorite_movies">Favorite movies</string>
     <string name="home_favorite_tv_shows">Favorite TV shows</string>
+    <string name="favorites_empty">You have no favorites yet</string>
+    <string name="favorites_reorder_categories">Sort favorites</string>
+    <string name="favorites_sort_title">Sort favorites</string>
+    <string name="favorites_sort_manual">Manual order</string>
+    <string name="favorites_sort_recent">Recently added</string>
+    <string name="favorites_sort_title_ascending">Title A–Z</string>
+    <string name="favorites_sort_title_descending">Title Z–A</string>
+    <string name="favorites_reorder_item">Reorder favorite</string>
+    <string name="favorites_move_left">Move left</string>
+    <string name="favorites_move_right">Move right</string>
+    <string name="favorites_show_options">Show normal options</string>
+    <string name="favorites_rearrange_on">Enter rearrange mode</string>
+    <string name="favorites_rearrange_off">Finish rearranging</string>
+    <string name="favorites_moving_selected">Moving selected — OK to stop</string>
 
     <string name="option_episode_open_tv_show">Go to TV show</string>
     <string name="option_show_favorite">Add to favorites</string>
