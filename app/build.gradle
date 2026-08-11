@@ -107,6 +107,7 @@ dependencies {
     ksp 'com.github.bumptech.glide:ksp:5.0.0-rc01'
     implementation 'com.github.bumptech.glide:okhttp3-integration:5.0.0-rc01'
     implementation 'com.caverock:androidsvg-aar:1.4'
+    implementation 'org.chromium.net:cronet-embedded:119.6045.31'
 
     implementation 'androidx.media3:media3-exoplayer:1.8.0'
     implementation 'androidx.media3:media3-exoplayer-dash:1.8.0'
