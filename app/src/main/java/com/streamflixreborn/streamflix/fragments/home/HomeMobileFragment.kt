@@ -176,6 +176,20 @@ class HomeMobileFragment : Fragment() {
                 }
             }
 
+        categories
+            .find { it.name == Category.RECENTLY_WATCHED }
+            ?.also {
+                it.name = getString(R.string.home_recently_watched)
+            }
+
+        categories
+            .find { it.name == Category.FAVORITE_MOVIES }
+            ?.also { it.name = getString(R.string.home_favorite_movies) }
+
+        categories
+            .find { it.name == Category.FAVORITE_TV_SHOWS }
+            ?.also { it.name = getString(R.string.home_favorite_tv_shows) }
+
         appAdapter.submitList(
             categories
                 .filter { it.list.isNotEmpty() }

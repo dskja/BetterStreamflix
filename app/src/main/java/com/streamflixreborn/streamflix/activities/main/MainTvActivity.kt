@@ -27,6 +27,7 @@ import com.streamflixreborn.streamflix.providers.IptvProvider
 import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.providers.Cine24hProvider
 import com.streamflixreborn.streamflix.providers.FilmyOnlineCcProvider
+import com.streamflixreborn.streamflix.providers.ZaluknijProvider
 import com.streamflixreborn.streamflix.providers.GuardaSerieProvider
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.ThemeManager
@@ -58,8 +59,9 @@ class MainTvActivity : FragmentActivity() {
         AnimeOnlineNinjaProvider.init(this)
         Cine24hProvider.init(this)
         FilmyOnlineCcProvider.init(this)
+        ZaluknijProvider.init(this)
         GuardaSerieProvider.init(this)
-        
+
         _binding = ActivityMainTvBinding.inflate(layoutInflater)
         setContentView(binding.root)
         applyThemeNavigationChrome()

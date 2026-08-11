@@ -92,6 +92,7 @@ import android.graphics.drawable.GradientDrawable
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsMobileBinding
 import com.streamflixreborn.streamflix.databinding.ContentMovieDirectorsTvBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -109,6 +110,7 @@ class MovieViewHolder(
     private var onMovieLongClick: ((Movie) -> Unit)? = null
     private var onMovieKey: ((Movie, KeyEvent) -> Boolean)? = null
     private var itemSelected: Boolean = false
+    private var ribbonStateJob: Job? = null
     private val TAG = "TrailerChoiceDebug" // Logging Tag
 
     companion object {
@@ -366,6 +368,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -473,6 +476,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -531,6 +535,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -604,6 +609,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -638,6 +644,22 @@ class MovieViewHolder(
         } else {
             view.background = null
             view.setPadding(0, 0, 0, 0)
+    private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
+        favoriteRibbon.visibility = if (movie.isFavorite) View.VISIBLE else View.GONE
+        watchedRibbon.visibility = if (movie.isWatched) View.VISIBLE else View.GONE
+
+        ribbonStateJob?.cancel()
+        val boundMovieId = movie.id
+        val lifecycleOwner = itemView.findViewTreeLifecycleOwner()
+            ?: context.toActivity()
+            ?: return
+
+        ribbonStateJob = lifecycleOwner.lifecycleScope.launch {
+            database.movieDao().getByIdAsFlow(boundMovieId).collect { persistedMovie ->
+                if (movie.id != boundMovieId || persistedMovie == null) return@collect
+                favoriteRibbon.visibility = if (persistedMovie.isFavorite) View.VISIBLE else View.GONE
+                watchedRibbon.visibility = if (persistedMovie.isWatched) View.VISIBLE else View.GONE
+            }
         }
     }
 

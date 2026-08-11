@@ -49,6 +49,7 @@
 
     <string name="home_swiper_watch_now">Ansehen</string>
     <string name="home_continue_watching">Weiterschauen</string>
+    <string name="home_recently_watched">Kürzlich angesehen</string>
     <string name="home_favorite_movies">Favoriten - Filme</string>
     <string name="home_favorite_tv_shows">Favoriten - Serien</string>
 

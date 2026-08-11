@@ -34,6 +34,8 @@ import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import android.app.AlertDialog
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.streamflixreborn.streamflix.fragments.movie.MovieMobileFragmentDirections
@@ -81,6 +83,7 @@ class TvShowViewHolder(
     private var onTvShowLongClick: ((TvShow) -> Unit)? = null
     private var onTvShowKey: ((TvShow, KeyEvent) -> Boolean)? = null
     private var itemSelected: Boolean = false
+    private var ribbonStateJob: Job? = null
 
     val childRecyclerView: RecyclerView?
         get() = when (_binding) {
@@ -141,6 +144,14 @@ class TvShowViewHolder(
         val name = tvShow.providerName ?: UserPreferences.currentProvider?.name ?: ""
         val provider = Provider.providers.keys.find { it.name == name }
         return provider is IptvProvider
+    }
+
+    private fun episodeBadgeText(): String {
+        if (isIptvProvider()) return ""
+        return tvShow.lastPlayedEpisode?.let { "E${it.number}" }
+            ?: tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" }
+            ?: tvShow.released?.format("yyyy")
+            ?: context.getString(R.string.tv_show_item_type)
     }
 
     private fun checkProviderAndRun(action: () -> Unit) {
@@ -239,6 +250,7 @@ class TvShowViewHolder(
             true
         }
         setPoster(binding.ivTvShowPoster)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -252,7 +264,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -293,6 +305,7 @@ class TvShowViewHolder(
             }
         }
         setPoster(binding.ivTvShowPoster)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -306,7 +319,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -337,6 +350,7 @@ class TvShowViewHolder(
             true
         }
         setPoster(binding.ivTvShowPoster)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -350,7 +364,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -387,6 +401,7 @@ class TvShowViewHolder(
             }
         }
         setPoster(binding.ivTvShowPoster)
+        bindRibbons(binding.ivTvShowFavoriteRibbon, binding.ivTvShowWatchedRibbon)
         binding.tvTvShowQuality.apply {
             text = tvShow.quality ?: ""
             isVisible = !text.isNullOrEmpty()
@@ -400,7 +415,7 @@ class TvShowViewHolder(
             }
             isVisible = watchHistory != null
         }
-        binding.tvTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: tvShow.released?.format("yyyy") ?: context.getString(R.string.tv_show_item_type)
+        binding.tvTvShowLastEpisode.text = episodeBadgeText()
         binding.tvTvShowTitle.text = tvShow.title
     }
 
@@ -563,6 +578,31 @@ class TvShowViewHolder(
                 handleDirectPlay(binding.root.findNavController())
             } else {
                 binding.root.findNavController().navigate(R.id.tv_show, tvShowArgs())
+            }
+        }
+    }
+
+    private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
+        ribbonStateJob?.cancel()
+
+        val boundTvShowId = tvShow.id
+        favoriteRibbon.isVisible = tvShow.isFavorite
+        watchedRibbon.isVisible = false
+        val lifecycleOwner = itemView.findViewTreeLifecycleOwner()
+            ?: context.toActivity()
+            ?: return
+
+        ribbonStateJob = lifecycleOwner.lifecycleScope.launch {
+            combine(
+                database.tvShowDao().getByIdAsFlow(boundTvShowId),
+                database.episodeDao().isTvShowFullyWatchedAsFlow(boundTvShowId),
+            ) { persistedTvShow, isFullyWatched ->
+                (persistedTvShow?.isFavorite ?: tvShow.isFavorite) to isFullyWatched
+            }.collect { (isFavorite, isFullyWatched) ->
+                if (tvShow.id == boundTvShowId) {
+                    favoriteRibbon.isVisible = isFavorite
+                    watchedRibbon.isVisible = isFullyWatched
+                }
             }
         }
     }
