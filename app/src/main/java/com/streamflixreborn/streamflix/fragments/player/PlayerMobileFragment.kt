@@ -59,6 +59,7 @@ import com.streamflixreborn.streamflix.models.TvShow
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
+import com.streamflixreborn.streamflix.sync.CloudSyncHooks
 import com.streamflixreborn.streamflix.ui.PlayerMobileView
 import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.SubtitleOffsetRenderersFactory
@@ -831,10 +832,12 @@ class PlayerMobileFragment : Fragment() {
                                 val episodeDao = database.episodeDao()
                                 val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
 
-                                database.tvShowDao().save(tvShow.copy().apply {
+                                val updatedTvShow = tvShow.copy().apply {
                                     merge(tvShow)
                                     isWatching = !player.hasReallyFinished() || isStillWatching
-                                })
+                                }
+                                database.tvShowDao().update(updatedTvShow)
+                                CloudSyncHooks.tvShow(requireContext(), provider, updatedTvShow)
                             }
                         }
                     }
@@ -1105,10 +1108,16 @@ class PlayerMobileFragment : Fragment() {
                                             val episodeDao = database.episodeDao()
                                             val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
                                             
-                                            database.tvShowDao().save(tvShow.copy().apply {
+                                            val updatedTvShow = tvShow.copy().apply {
                                                 merge(tvShow)
                                                 isWatching = !player.hasReallyFinished() || isStillWatching
-                                            })
+                                            }
+                                            database.tvShowDao().update(updatedTvShow)
+                                            CloudSyncHooks.tvShow(
+                                                requireContext(),
+                                                provider,
+                                                updatedTvShow,
+                                            )
                                         }
                                     }
                                 }

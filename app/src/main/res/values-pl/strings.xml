@@ -164,4 +164,6 @@
     <string name="settings_app_language_french">Francuski</string>
     <string name="settings_app_language_italian">Wloski</string>
     <string name="settings_app_language_polish">Polski</string>
+    <string name="supabase_instructions_title">Instrukcje</string>
+    <string name="supabase_instructions_summary">Otwórz w przeglądarce szczegółową instrukcję konfiguracji konta i synchronizacji Supabase</string>
 </resources>
