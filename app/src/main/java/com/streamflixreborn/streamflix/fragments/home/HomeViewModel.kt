@@ -373,12 +373,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         currentProvider = provider
         val appContext = StreamFlixApp.instance.applicationContext
-
-        if (provider is AnimeOnlineNinjaProvider) {
-            HomeCacheStore.clear(appContext, provider)
-        }
         val cachedCategories = HomeCacheStore.read(appContext, provider)
-        if (!cachedCategories.isNullOrEmpty()) {
+        val deferCachedHomeForClearance =
+                provider === AnimeOnlineNinjaProvider &&
+                        !AnimeOnlineNinjaProvider.hasCurrentClearanceCookie()
+        if (!cachedCategories.isNullOrEmpty() && !deferCachedHomeForClearance) {
             _state.emit(State.SuccessLoading(cachedCategories))
         } else {
             _state.emit(State.Loading)
@@ -394,6 +393,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             Log.e("HomeViewModel", "getHome: ", e)
             if (cachedCategories.isNullOrEmpty()) {
                 _state.emit(State.FailedLoading(e))
+            } else if (deferCachedHomeForClearance) {
+                _state.emit(State.SuccessLoading(cachedCategories))
             }
         }
     }
