@@ -226,6 +226,11 @@
         <argument
             android:name="videoType"
             app:argType="com.streamflixreborn.streamflix.models.Video$Type" />
+        <argument
+            android:name="preferredServerName"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
         <action
             android:id="@+id/action_playerTvFragment_self"
             app:destination="@id/player"
