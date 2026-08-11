@@ -644,6 +644,8 @@ class MovieViewHolder(
         } else {
             view.background = null
             view.setPadding(0, 0, 0, 0)
+        }
+    }
     private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
         favoriteRibbon.visibility = if (movie.isFavorite) View.VISIBLE else View.GONE
         watchedRibbon.visibility = if (movie.isWatched) View.VISIBLE else View.GONE
