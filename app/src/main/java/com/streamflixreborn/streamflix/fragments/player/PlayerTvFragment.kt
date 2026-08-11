@@ -73,6 +73,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.ui.PlayerTvView
+import com.streamflixreborn.streamflix.utils.SubtitleOffsetRenderersFactory
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
@@ -1683,17 +1684,15 @@ class PlayerTvFragment : Fragment() {
                 )
                 .build()
 
-            val baseBuilder = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1 && !currentSoftwareDecoder) {
-                ExoPlayer.Builder(requireContext())
-            } else {
-                val renderersFactory = DefaultRenderersFactory(requireContext()).apply {
+            val renderersFactory = SubtitleOffsetRenderersFactory(requireContext()).apply {
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || currentSoftwareDecoder) {
                     setEnableDecoderFallback(true)
                     if (currentSoftwareDecoder) {
                         setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
                     }
                 }
-                ExoPlayer.Builder(requireContext(), renderersFactory)
             }
+            val baseBuilder = ExoPlayer.Builder(requireContext(), renderersFactory)
 
             return baseBuilder
                 .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
