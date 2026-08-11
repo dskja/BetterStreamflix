@@ -42,6 +42,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     private data class HomeHistory(
         val continueWatching: List<AppAdapter.Item>,
         val recentlyWatched: List<AppAdapter.Item>,
+        val favoritesMovies: List<Movie>,
+        val favoriteTvShows: List<TvShow>
     )
 
     private fun <T> preserveCacheOrder(
@@ -171,8 +173,15 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         }
                     } as List<AppAdapter.Item>
             }.flowOn(Dispatchers.IO),
-        ) { continueWatching, recentlyWatched ->
-            HomeHistory(continueWatching, recentlyWatched)
+            
+            // FAVORITE MOVIES
+            database.movieDao().getFavorites().flowOn(Dispatchers.IO),
+            
+            // FAVORITE TV SHOWS
+            database.tvShowDao().getFavorites().flowOn(Dispatchers.IO),
+
+        ) { continueWatching, recentlyWatched, favoritesMovies, favoriteTvShows ->
+            HomeHistory(continueWatching, recentlyWatched, favoritesMovies, favoriteTvShows)
         }.flowOn(Dispatchers.IO),
 
         // MOVIES DB
@@ -209,8 +218,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }.flowOn(Dispatchers.IO),
 
-        ) { state, continueWatching, moviesDb, tvShowsDb ->
-        ) { state, history, favoritesMovies, favoriteTvShows, moviesDb, tvShowsDb ->
+        ) { state, history, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -279,7 +287,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     // FAVORITES
                     Category(
                         name = Category.FAVORITE_MOVIES,
-                        list = favoritesMovies.sortedByDescending {
+                        list = history.favoritesMovies.sortedByDescending {
                             when (it) {
                                 is Movie -> it.favoritedAtMillis ?: 0L
                                 else -> 0L
@@ -288,7 +296,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     ),
                     Category(
                         name = Category.FAVORITE_TV_SHOWS,
-                        list = favoriteTvShows.sortedByDescending {
+                        list = history.favoriteTvShows.sortedByDescending {
                             when (it) {
                                 is TvShow -> it.favoritedAtMillis ?: 0L
                                 else -> 0L
