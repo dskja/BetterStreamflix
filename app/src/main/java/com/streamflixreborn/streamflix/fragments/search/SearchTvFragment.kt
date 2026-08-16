@@ -50,21 +50,13 @@ class SearchTvFragment : Fragment() {
     private val appAdapter by lazy {
         AppAdapter().apply {
             onMovieClickListener = { movie ->
-
-                if (movie.providerName != UserPreferences.currentProvider?.name) {
-                    UserPreferences.currentProvider = Provider.providers.keys.find { it.name == movie.providerName }
-                    Toast.makeText(requireContext(), getString(R.string.switching_to_provider, movie.providerName), Toast.LENGTH_SHORT).show()
-                }
+                switchProviderIfNeeded(movie.providerName)
                 findNavController().navigate(
                     SearchTvFragmentDirections.actionSearchToMovie(id = movie.id)
                 )
             }
             onTvShowClickListener = { tvShow ->
-
-                if (tvShow.providerName != UserPreferences.currentProvider?.name) {
-                    UserPreferences.currentProvider = Provider.providers.keys.find { it.name == tvShow.providerName }
-                    Toast.makeText(requireContext(), getString(R.string.switching_to_provider, tvShow.providerName), Toast.LENGTH_SHORT).show()
-                }
+                switchProviderIfNeeded(tvShow.providerName)
                 findNavController().navigate(
                     SearchTvFragmentDirections.actionSearchToTvShow(
                         id = tvShow.id,
@@ -77,6 +69,19 @@ class SearchTvFragment : Fragment() {
     }
 
     private lateinit var voiceHelper: VoiceRecognitionHelper
+
+    private fun switchProviderIfNeeded(providerName: String?) {
+        val targetName = providerName?.takeIf { it.isNotBlank() } ?: return
+        if (targetName == UserPreferences.currentProvider?.name) return
+
+        val targetProvider = Provider.providers.keys.find { it.name == targetName } ?: return
+        UserPreferences.currentProvider = targetProvider
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.switching_to_provider, targetName),
+            Toast.LENGTH_SHORT,
+        ).show()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
