@@ -1,27 +1,27 @@
-<h1 align="center">Streamflix Reborn</h1>
+<h1 align="center">BetterStreamflix</h1>
 
 <p align="center">
   <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" height="100px" />
   <br />
-  <strong>🔄 Reborn Version</strong> - Community continuation of the original Streamflix project
+  <strong>⚡ Better Version</strong> - Actively maintained fork of Streamflix with more updates and fixes
   <br />
   An open-source Android TV and mobile app for educational streaming interface, made with Android Studio, in Kotlin
   <br />
-  <a href="https://github.com/streamflix-reborn2/streamflix/releases/latest">
+  <a href="https://github.com/dskja/BetterStreamflix/releases/latest">
     <strong>Download app »</strong>
   </a>
   <br />
   <br />
-  <a href="https://github.com/streamflix-reborn2/streamflix/issues">Report Bug</a>
+  <a href="https://github.com/dskja/BetterStreamflix/issues">Report Bug</a>
   ·
-  <a href="https://github.com/streamflix-reborn2/streamflix/issues">Request Feature</a>
+  <a href="https://github.com/dskja/BetterStreamflix/issues">Request Feature</a>
 </p>
 
 <details>
   <summary>Table of Contents</summary>
 
 - [About the project](#about-the-project)
-  - [What is Streamflix Reborn?](#-what-is-streamflix-reborn2)
+  - [What is BetterStreamflix?](#-what-is-betterstreamflix)
   - [Features](#features)
   - [Built with](#built-with)
 - [Getting started](#getting-started)
@@ -37,19 +37,19 @@
 ## About the project
 
 <p align="center">
-  <img src="./.github/docs/screenshot.png" alt="Streamflix Preview">
+  <img src="./.github/docs/screenshot.png" alt="BetterStreamflix Preview">
 </p>
 
-**Streamflix Reborn** is an independent continuation of the original Streamflix project created by [Lory-Stan TANASI](https://github.com/stantanasi). This reborn version maintains the same educational purpose and functionality while ensuring continued development and support.
+**BetterStreamflix** is an actively maintained, improved fork of the Streamflix Reborn project. It keeps the same educational purpose while receiving regular updates, bug fixes and feature improvements.
 
-### 🔄 What is Streamflix Reborn?
+### ⚡ What is BetterStreamflix?
 
-- **Independent Continuation**: This is an independent continuation of the original Streamflix project
-- **Same Vision**: Maintains the original educational and open-source philosophy
-- **Enhanced Support**: Continued development and bug fixes by an independent developer
+- **Active Fork**: A better, actively maintained fork of the Streamflix project
+- **More Updates**: Regular releases, fixes and new features
+- **Better Support**: Faster fixes and improvements
 - **Respectful Fork**: Built with full respect for the original creator's work
 
-Streamflix Reborn is an open-source Android TV and mobile app that provides a user interface for accessing publicly available streaming content from various third-party providers.
+BetterStreamflix is an open-source Android TV and mobile app that provides a user interface for accessing publicly available streaming content from various third-party providers.
 
 This app is designed for educational purposes and personal use only. Users are responsible for ensuring they have proper authorization to access any content they view through this application.
 
@@ -89,7 +89,7 @@ Install [Android Studio](https://developer.android.com/studio)
 1. Clone the project to your local machine
 
 ```bash
-git clone https://github.com/streamflix-reborn2/streamflix.git
+git clone https://github.com/dskja/BetterStreamflix.git
 ```
 
 2. Open the project in Android Studio
@@ -114,7 +114,7 @@ Contributions are what make the open source community such an amazing place to l
 
 **IMPORTANT: This application is for educational and personal use only.**
 
-- Streamflix does not host, store, or distribute any copyrighted content
+- BetterStreamflix does not host, store, or distribute any copyrighted content
 - All content is sourced from third-party providers and websites
 - Users are solely responsible for ensuring they have legal rights to access any content
 - The developers do not endorse or encourage copyright infringement
@@ -136,9 +136,10 @@ This application is provided "as is" for educational purposes. The developers:
 
 ### Original Creator
 - **[Lory-Stan TANASI](https://github.com/stantanasi)** - Original Streamflix project creator
+- **[dskja](https://github.com/dskja)** - BetterStreamflix maintainer
 
 ### Reborn Development
-- **Independent Developer** - Streamflix Reborn maintainer
+- **BetterStreamflix Team** - Active maintainers and contributors
 - **Special thanks** to the original creator for the excellent foundation
 
 ## License
@@ -154,5 +155,5 @@ This project is licensed under the `Apache-2.0` License - see the [LICENSE](LICE
 ### Reborn Project
 <p align="center">
   <br />
-  © 2025 Streamflix Reborn. Built with respect for the original work.
+  © 2025 BetterStreamflix. Built with respect for the original work.
 </p>

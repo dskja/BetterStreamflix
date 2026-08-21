@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,7 +7,7 @@
     android:background="#000000"
     tools:context=".fragments.player.PlayerTvFragment">
 
-    <com.streamflixreborn.streamflix.ui.PlayerTvView
+    <com.betterstreamflix.ui.PlayerTvView
         android:id="@+id/pv_player"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -26,7 +26,7 @@
         app:show_timeout="2000"
         app:surface_type="surface_view" />
 
-    <com.streamflixreborn.streamflix.fragments.player.settings.PlayerSettingsTvView
+    <com.betterstreamflix.fragments.player.settings.PlayerSettingsTvView
         android:id="@+id/settings"
         android:layout_width="350dp"
         android:layout_height="0dp"
