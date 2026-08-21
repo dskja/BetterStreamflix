@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 class VideasyExtractor : Extractor() {
     override val name = "Videasy"
-    override val mainUrl = "https://api.videasy.net"
+    override val mainUrl = "https://api.speedracelight.com"
 
     data class ServerConfig(
         val name: String,
@@ -19,11 +19,10 @@ class VideasyExtractor : Extractor() {
     )
 
     private val englishServers = listOf(
-        ServerConfig("Neon", "mb-flix"),
-        ServerConfig("Yoru", "cdn", movieOnly = true),
+        ServerConfig("Yoru", "cdn"),
         ServerConfig("Cypher", "downloader2"),
-        ServerConfig("Sage", "1movies"),
         ServerConfig("Breach", "m4uhd"),
+        ServerConfig("Neon", "vsrc"),
         ServerConfig("Vyse", "hdmovie")
     )
 
@@ -91,7 +90,7 @@ class VideasyExtractor : Extractor() {
     override suspend fun extract(link: String): Video {
         val client = OkHttpClient()
 
-        // 1. Get encrypted data from api.videasy.net
+        // 1. Get encrypted data from api.speedracelight.com
         val request = Request.Builder()
             .url(link)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")

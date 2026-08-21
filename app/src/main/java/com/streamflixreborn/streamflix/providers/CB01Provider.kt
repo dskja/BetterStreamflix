@@ -634,7 +634,7 @@ object CB01Provider : Provider {
             val responseText = resp.body?.string()?.trim().orEmpty()
             if (responseText.isBlank() || responseText.contains("<") || responseText.contains(" ")) return null
 
-            "https://maxstream.video/emhuhi/$responseText"
+            "https://maxstream.video/emiuhi/$responseText"
 
         } catch (_: Exception) {
             null

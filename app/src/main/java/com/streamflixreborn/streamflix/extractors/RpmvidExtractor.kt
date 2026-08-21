@@ -89,6 +89,7 @@ class RpmvidExtractor : Extractor() {
         var cfPath = json.get("cf")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
         val cfExpire = json.get("cfExpire")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
 
+        var maintainToken = false
         val (finalUrl, headers) = when {
             !hlsPath.isNullOrEmpty() -> {
                 "$mainLink$hlsPath" to mapOf("Referer" to mainLink)
@@ -126,6 +127,13 @@ class RpmvidExtractor : Extractor() {
                         cfPath = "$cfPath?t=${parts[0]}&e=${parts[1]}"
                     }
                 }
+                
+                if (cfPath != null && cfPath!!.contains("?")) {
+                    val uri = android.net.Uri.parse(cfPath)
+                    TokenManager.latestQuery = uri.encodedQuery
+                    maintainToken = true
+                }
+                
                 cfPath to mapOf("Referer" to mainLink, "Origin" to mainLink)
 
             }
@@ -161,7 +169,8 @@ class RpmvidExtractor : Extractor() {
             source = finalUrl,
             subtitles,
             headers = headers,
-            type = MimeTypes.APPLICATION_M3U8
+            type = MimeTypes.APPLICATION_M3U8,
+            maintainToken = maintainToken
         )
     }
 
