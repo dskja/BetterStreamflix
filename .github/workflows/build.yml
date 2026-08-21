@@ -23,6 +23,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Create local.properties
         run: |
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
