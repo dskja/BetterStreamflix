@@ -1,0 +1,13 @@
+# Copy this file to local.properties and fill in your own values.
+# Never commit the real local.properties file to Git (it is gitignored).
+
+# Android SDK location (auto-detected by Android Studio, usually leave empty)
+sdk.dir=
+
+# Build layout: leave empty for universal, or set to "mobile" / "tv"
+APP_LAYOUT=
+
+# API keys
+TMDB_API_KEY=
+SUBDL_API_KEY=
+RABBITSTREAM_SOURCE_API=

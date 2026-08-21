@@ -458,7 +458,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             startActivity(
                 Intent(
                     Intent.ACTION_VIEW,
-                    Uri.parse("https://github.com/streamflix-reborn2/streamflix")
+                    Uri.parse("https://github.com/dskja/BetterStreamflix")
                 )
             )
             true
@@ -466,11 +466,11 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
         findPreference<Preference>("p_settings_telegram")?.setOnPreferenceClickListener {
             try {
-                val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=streamflixreborn"))
+                val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=BetterStreamflix"))
                 startActivity(tgIntent)
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Telegram not found.", Toast.LENGTH_SHORT).show()
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/streamflixreborn"))
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/BetterStreamflix"))
                 startActivity(intent)
             }
             true

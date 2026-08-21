@@ -31,8 +31,8 @@ android {
         applicationId "com.betterstreamflix"
         minSdk 21
         targetSdk 35
-        versionCode 159
-        versionName "1.7.230"
+        versionCode 160
+        versionName "1.7.231"
 
         buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT")}\""
         buildConfigField "String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\""
