@@ -20,7 +20,7 @@ dependencies {
 }
 
 android {
-    namespace 'com.streamflixreborn.streamflix'
+    namespace 'com.betterstreamflix'
     compileSdk 36
     ndkVersion "26.1.10909125"
 
@@ -28,7 +28,7 @@ android {
     properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
     defaultConfig {
-        applicationId "com.streamflixreborn.streamflix"
+        applicationId "com.betterstreamflix"
         minSdk 21
         targetSdk 35
         versionCode 159

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/providers"
-        android:name="com.streamflixreborn.streamflix.fragments.providers.ProvidersMobileFragment"
+        android:name="com.betterstreamflix.fragments.providers.ProvidersMobileFragment"
         android:label="fragment_providers_mobile"
         tools:layout="@layout/fragment_providers_mobile">
         <action
@@ -31,7 +31,7 @@
 
     <fragment
         android:id="@+id/home"
-        android:name="com.streamflixreborn.streamflix.fragments.home.HomeMobileFragment"
+        android:name="com.betterstreamflix.fragments.home.HomeMobileFragment"
         android:label="fragment_home_mobile"
         tools:layout="@layout/fragment_home_mobile">
         <action
@@ -43,7 +43,7 @@
     </fragment>
     <fragment
         android:id="@+id/favorites"
-        android:name="com.streamflixreborn.streamflix.fragments.favorites.FavoritesMobileFragment"
+        android:name="com.betterstreamflix.fragments.favorites.FavoritesMobileFragment"
         android:label="fragment_favorites_mobile"
         tools:layout="@layout/fragment_favorites_mobile">
         <action
@@ -55,7 +55,7 @@
     </fragment>
     <fragment
         android:id="@+id/search"
-        android:name="com.streamflixreborn.streamflix.fragments.search.SearchMobileFragment"
+        android:name="com.betterstreamflix.fragments.search.SearchMobileFragment"
         android:label="fragment_search_mobile"
         tools:layout="@layout/fragment_search_mobile">
         <action
@@ -70,7 +70,7 @@
     </fragment>
     <fragment
         android:id="@+id/movies"
-        android:name="com.streamflixreborn.streamflix.fragments.movies.MoviesMobileFragment"
+        android:name="com.betterstreamflix.fragments.movies.MoviesMobileFragment"
         android:label="fragment_movies_mobile"
         tools:layout="@layout/fragment_movies_mobile">
         <action
@@ -79,7 +79,7 @@
     </fragment>
     <fragment
         android:id="@+id/tv_shows"
-        android:name="com.streamflixreborn.streamflix.fragments.tv_shows.TvShowsMobileFragment"
+        android:name="com.betterstreamflix.fragments.tv_shows.TvShowsMobileFragment"
         android:label="fragment_tv_shows_mobile"
         tools:layout="@layout/fragment_tv_shows_mobile">
         <action
@@ -88,7 +88,7 @@
     </fragment>
     <fragment
         android:id="@+id/movie"
-        android:name="com.streamflixreborn.streamflix.fragments.movie.MovieMobileFragment"
+        android:name="com.betterstreamflix.fragments.movie.MovieMobileFragment"
         android:label="fragment_movie_mobile"
         tools:layout="@layout/fragment_movie_mobile">
         <argument
@@ -109,7 +109,7 @@
     </fragment>
     <fragment
         android:id="@+id/tv_show"
-        android:name="com.streamflixreborn.streamflix.fragments.tv_show.TvShowMobileFragment"
+        android:name="com.betterstreamflix.fragments.tv_show.TvShowMobileFragment"
         android:label="fragment_tv_show_mobile"
         tools:layout="@layout/fragment_tv_show_mobile">
         <argument
@@ -141,7 +141,7 @@
     </fragment>
     <fragment
         android:id="@+id/season"
-        android:name="com.streamflixreborn.streamflix.fragments.season.SeasonMobileFragment"
+        android:name="com.betterstreamflix.fragments.season.SeasonMobileFragment"
         android:label="fragment_season_mobile"
         tools:layout="@layout/fragment_season_mobile">
         <action
@@ -174,7 +174,7 @@
     </fragment>
     <fragment
         android:id="@+id/genre"
-        android:name="com.streamflixreborn.streamflix.fragments.genre.GenreMobileFragment"
+        android:name="com.betterstreamflix.fragments.genre.GenreMobileFragment"
         android:label="fragment_genre_mobile"
         tools:layout="@layout/fragment_genre_mobile">
         <argument
@@ -192,7 +192,7 @@
     </fragment>
     <fragment
         android:id="@+id/people"
-        android:name="com.streamflixreborn.streamflix.fragments.people.PeopleMobileFragment"
+        android:name="com.betterstreamflix.fragments.people.PeopleMobileFragment"
         android:label="fragment_people_mobile"
         tools:layout="@layout/fragment_people_mobile">
         <argument
@@ -214,7 +214,7 @@
     </fragment>
     <fragment
         android:id="@+id/player"
-        android:name="com.streamflixreborn.streamflix.fragments.player.PlayerMobileFragment"
+        android:name="com.betterstreamflix.fragments.player.PlayerMobileFragment"
         android:label="fragment_player_mobile"
         tools:layout="@layout/fragment_player_mobile">
         <argument
@@ -228,7 +228,7 @@
             app:argType="string" />
         <argument
             android:name="videoType"
-            app:argType="com.streamflixreborn.streamflix.models.Video$Type" />
+            app:argType="com.betterstreamflix.models.Video$Type" />
         <argument
             android:name="preferredServerName"
             android:defaultValue="@null"
@@ -242,7 +242,7 @@
     </fragment>
     <fragment
         android:id="@+id/settings"
-        android:name="com.streamflixreborn.streamflix.fragments.settings.SettingsMobileFragment"
+        android:name="com.betterstreamflix.fragments.settings.SettingsMobileFragment"
         android:label="fragment_settings_mobile" >
         <action
             android:id="@+id/action_settings_to_settings_about"
@@ -250,6 +250,6 @@
     </fragment>
     <fragment
         android:id="@+id/settings_about"
-        android:name="com.streamflixreborn.streamflix.fragments.settings.about.SettingsAboutMobileFragment"
+        android:name="com.betterstreamflix.fragments.settings.about.SettingsAboutMobileFragment"
         android:label="fragment_settings_about_mobile" />
 </navigation>

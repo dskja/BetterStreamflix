@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="app_name">Streamflix</string>
+    <string name="app_name">BetterStreamflix</string>
 
     <string name="loading_error_title">An error occurred</string>
     <string name="loading_error_retry">Retry</string>
@@ -289,7 +289,7 @@
     <string name="settings_screen_network_summary">DNS, TV bypass tools and subtitle service keys</string>
     <string name="settings_scan_resolver_qr_title">Scan TV bypass QR</string>
     <string name="settings_scan_resolver_qr_summary">Open the camera and scan the QR code shown on TV</string>
-    <string name="settings_scan_resolver_invalid_qr">This QR code is not a StreamFlix bypass link.</string>
+    <string name="settings_scan_resolver_invalid_qr">This QR code is not a BetterStreamflix bypass link.</string>
     <string name="settings_scan_resolver_failed">Unable to start QR scanner on this device.</string>
     <string name="settings_scan_resolver_camera_permission_denied">Camera permission is required to scan the QR code.</string>
     <string name="settings_scan_resolver_camera_unavailable">No camera is available on this device.</string>
