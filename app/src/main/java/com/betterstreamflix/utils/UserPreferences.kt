@@ -26,11 +26,12 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_SERIENSTREAM_DOMAIN = "s.to"
+    private const val DEFAULT_SERIENSTREAM_DOMAIN = "186.2.175.5"
     private const val DEFAULT_MOFLIX_DOMAIN = "moflix-stream.xyz"
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.cc"
     private const val DEFAULT_CUEVANA_DOMAIN = "cuevana.gs"
     private const val DEFAULT_POSEIDON_DOMAIN = "www.poseidonhd2.co"
+    private const val DEFAULT_ANIWORLD_DOMAIN = "aniworld.to"
 
     const val PROVIDER_URL = "URL"
     const val PROVIDER_LOGO = "LOGO"
@@ -446,6 +447,30 @@ object UserPreferences {
             }
         }
 
+    var aniworldDomain: String
+        get() {
+            if (!::prefs.isInitialized) return DEFAULT_ANIWORLD_DOMAIN
+            val storedValue = prefs.getString(Key.ANIWORLD_DOMAIN.name, null)
+            return if (storedValue.isNullOrEmpty()) DEFAULT_ANIWORLD_DOMAIN else storedValue
+        }
+        set(value) {
+            val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.ANIWORLD_DOMAIN.name, null) else null
+            if (!::prefs.isInitialized) return
+
+            if (value != oldDomain && !value.isNullOrEmpty() && !oldDomain.isNullOrEmpty()) {
+                clearProviderCache("AniWorld")
+            }
+
+            with(prefs.edit()) {
+                if (value.isNullOrEmpty()) {
+                    remove(Key.ANIWORLD_DOMAIN.name)
+                } else {
+                    putString(Key.ANIWORLD_DOMAIN.name, value)
+                }
+                apply()
+            }
+        }
+
     var moflixDomain: String
         get() {
             if (!::prefs.isInitialized) return DEFAULT_MOFLIX_DOMAIN
@@ -544,6 +569,7 @@ object UserPreferences {
         STREAMINGCOMMUNITY_DOMAIN,
         CUEVANA_DOMAIN,
         POSEIDON_DOMAIN,
+        ANIWORLD_DOMAIN,
         DOH_PROVIDER_URL, // Removed STREAMINGCOMMUNITY_DNS_OVER_HTTPS, added DOH_PROVIDER_URL
         AUTOPLAY,
         PROVIDER_CACHE,

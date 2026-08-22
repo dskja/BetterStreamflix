@@ -525,6 +525,29 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<ListPreference>("DEFAULT_QUALITY_HEIGHT")?.apply {
+            val currentHeight = UserPreferences.qualityHeight
+            if (currentHeight != null) {
+                value = currentHeight.toString()
+                summary = "${currentHeight}p"
+            } else {
+                value = ""
+                summary = getString(R.string.settings_default_quality_summary)
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val typed = (newValue as String).trim()
+                if (typed.isBlank()) {
+                    UserPreferences.qualityHeight = null
+                    preference.summary = getString(R.string.settings_default_quality_summary)
+                } else {
+                    val height = typed.toIntOrNull()
+                    UserPreferences.qualityHeight = height
+                    preference.summary = "${height}p"
+                }
+                true
+            }
+        }
+
         findPreference<EditTextPreference>("p_settings_autoplay_buffer")?.apply {
             summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
                 val value = pref.text?.toLongOrNull() ?: 3L

@@ -272,6 +272,11 @@
     <string name="settings_serienstream_domain_reset">Reset domain</string>
     <string name="settings_serienstream_domain_reset_summary">Restore the default domain name</string>
     <string name="settings_serienstream_domain_reset_done">Domain restored to default</string>
+    <string name="settings_category_aniworld">AniWorld settings</string>
+    <string name="settings_category_aniworld_domain">AniWorld domain name</string>
+    <string name="settings_aniworld_domain_reset">Reset domain</string>
+    <string name="settings_aniworld_domain_reset_summary">Restore the default domain name</string>
+    <string name="settings_aniworld_domain_reset_done">Domain restored to default</string>
     <string name="settings_category_moflix">Moflix settings</string>
     <string name="settings_category_moflix_domain">Moflix domain name</string>
     <string name="settings_moflix_domain_reset">Reset domain</string>
@@ -318,6 +323,8 @@
     <string name="settings_player_gestures">Player gestures</string>
     <string name="settings_player_gestures_on">On</string>
     <string name="settings_player_gestures_off">Off</string>
+    <string name="settings_default_quality_title">Default video quality</string>
+    <string name="settings_default_quality_summary">Preferred maximum video resolution for streaming</string>
     <string name="settings_keep_screen_on_when_paused">Keep screen on when paused</string>
     <string name="settings_keep_screen_on_when_paused_summary">Prevents the screen from turning off when a video is paused</string>
     <string name="miscelaneous_title">Miscellaneous</string>

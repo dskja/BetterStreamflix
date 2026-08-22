@@ -77,4 +77,24 @@
         <item>LAT</item>
         <item>SUB</item>
     </string-array>
+
+    <string-array name="quality_entries">
+        <item>Auto</item>
+        <item>360p</item>
+        <item>480p</item>
+        <item>720p</item>
+        <item>1080p</item>
+        <item>1440p</item>
+        <item>2160p</item>
+    </string-array>
+
+    <string-array name="quality_values">
+        <item></item>
+        <item>360</item>
+        <item>480</item>
+        <item>720</item>
+        <item>1080</item>
+        <item>1440</item>
+        <item>2160</item>
+    </string-array>
 </resources>

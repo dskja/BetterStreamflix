@@ -2,6 +2,7 @@ package com.betterstreamflix.fragments.settings
 
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
+import android.util.Patterns
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.EditText
@@ -17,6 +18,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.sync.CloudSyncManager
 import com.betterstreamflix.sync.CloudSyncProgress
 import com.betterstreamflix.sync.SupabaseProvider
+import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -131,10 +133,16 @@ object CloudAccountSettingsController {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val emailValue = email.text.toString().trim()
                 val passwordValue = password.text.toString()
-                if (!emailValue.contains('@') || passwordValue.length < 6) {
+                if (!Patterns.EMAIL_ADDRESS.matcher(emailValue).matches()) {
                     Toast.makeText(context, R.string.cloud_sync_invalid_credentials, Toast.LENGTH_LONG).show()
                     return@setOnClickListener
                 }
+                if (passwordValue.length < 6) {
+                    Toast.makeText(context, R.string.cloud_sync_invalid_credentials, Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = false
                 dialog.dismiss()
                 onSubmit(emailValue, passwordValue)
             }
@@ -277,12 +285,23 @@ object CloudAccountSettingsController {
     }
 
     private fun showError(fragment: Fragment, error: Throwable) {
+        val message = when (error) {
+            is RestException -> when {
+                error.message?.contains("Invalid login credentials", true) == true ->
+                    fragment.getString(R.string.cloud_sync_error, "Invalid email or password")
+                error.message?.contains("Email not confirmed", true) == true ->
+                    fragment.getString(R.string.cloud_sync_error, "Please confirm your email first")
+                error.message?.contains("User already registered", true) == true ->
+                    fragment.getString(R.string.cloud_sync_error, "This email is already registered")
+                error.message?.contains("Password should be at least", true) == true ->
+                    fragment.getString(R.string.cloud_sync_error, "Password must be at least 6 characters")
+                else -> fragment.getString(R.string.cloud_sync_error, error.message ?: error.javaClass.simpleName)
+            }
+            else -> fragment.getString(R.string.cloud_sync_error, error.message ?: error.javaClass.simpleName)
+        }
         Toast.makeText(
             fragment.requireContext(),
-            fragment.getString(
-                R.string.cloud_sync_error,
-                error.message ?: error.javaClass.simpleName,
-            ),
+            message,
             Toast.LENGTH_LONG,
         ).show()
     }

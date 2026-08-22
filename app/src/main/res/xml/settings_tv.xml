@@ -102,6 +102,14 @@
         <PreferenceCategory android:title="@string/player_settings">
 
             <ListPreference
+                android:key="DEFAULT_QUALITY_HEIGHT"
+                android:title="@string/settings_default_quality_title"
+                android:summary="@string/settings_default_quality_summary"
+                android:entries="@array/quality_entries"
+                android:entryValues="@array/quality_values"
+                android:defaultValue="" />
+
+            <ListPreference
                 android:key="preferred_player"
                 android:title="@string/settings_trailer_player_title"
                 android:summary="@string/settings_trailer_player_summary"

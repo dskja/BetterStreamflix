@@ -23,6 +23,7 @@ import com.betterstreamflix.providers.SerienStreamProvider.SerienStreamService
 import com.betterstreamflix.utils.AniWorldUpdateTvShowWorker
 import com.betterstreamflix.utils.DnsResolver
 import com.betterstreamflix.utils.TmdbUtils
+import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,19 +54,45 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 object AniWorldProvider : Provider {
 
+    private const val DEFAULT_DOMAIN = "aniworld.to"
 
-    private const val URL = "https://aniworld.to/"
-    override val baseUrl = URL
+    private fun currentBaseUrl(): String {
+        val domain = UserPreferences.aniworldDomain
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .trimEnd('/')
+        return "https://$domain/"
+    }
+
+    override val baseUrl: String
+        get() = currentBaseUrl()
 
     override val name = "AniWorld"
-    override val logo = "$URL/public/img/facebook.jpg"
+    override val logo = "${currentBaseUrl()}public/img/facebook.jpg"
     override val language = "de"
 
-    private val service = Service.build()
+    @Volatile
+    private var serviceInstance: Service? = null
+    @Volatile
+    private var serviceBaseUrl: String? = null
+
+    private val service: Service
+        get() {
+            val currentBase = currentBaseUrl()
+            val synced = serviceInstance
+            if (synced != null && serviceBaseUrl == currentBase) {
+                return synced
+            }
+            return Service.build(currentBase).also {
+                serviceInstance = it
+                serviceBaseUrl = currentBase
+            }
+        }
 
     private var tvShowDao: TvShowDao? = null
     private var isWorkerScheduled = false
@@ -113,6 +140,7 @@ object AniWorldProvider : Provider {
     override suspend fun getHome(): List<Category> {
         preloadSeriesAlphabetAsync()
         val document = service.getHome()
+        val base = currentBaseUrl()
 
         val categories = mutableListOf<Category>()
 
@@ -129,7 +157,7 @@ object AniWorldProvider : Provider {
                                 ?.text()
                                 ?: "",
                             poster = it.selectFirst("img")
-                                ?.attr("data-src")?.let { src -> URL + src },
+                                ?.attr("data-src")?.let { src -> base + src },
                         )
                     }
             )
@@ -148,7 +176,7 @@ object AniWorldProvider : Provider {
                                 ?.text()
                                 ?: "",
                             poster = it.selectFirst("img")
-                                ?.attr("data-src")?.let { src -> URL + src },
+                                ?.attr("data-src")?.let { src -> base + src },
                         )
                     }
             )
@@ -167,7 +195,7 @@ object AniWorldProvider : Provider {
                                 ?.text()
                                 ?: "",
                             poster = it.selectFirst("img")
-                                ?.attr("data-src")?.let { src -> URL + src },
+                                ?.attr("data-src")?.let { src -> base + src },
                         )
                     }
             )
@@ -250,11 +278,11 @@ object AniWorldProvider : Provider {
             trailer = document.selectFirst("div[itemprop='trailer'] a")
                 ?.attr("href"),
             poster = document.selectFirst("div.seriesCoverBox img")
-                ?.attr("data-src")?.let { URL + it },
+                ?.attr("data-src")?.let { currentBaseUrl() + it },
             banner = document.selectFirst("#series > section > div.backdrop")
                 ?.attr("style")
                 ?.replace("background-image: url(/", "")?.replace(")", "")
-                ?.let { URL + it },
+                ?.let { currentBaseUrl() + it },
 
 
             seasons = document.select("#stream > ul:nth-child(1) > li")
@@ -326,7 +354,10 @@ object AniWorldProvider : Provider {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val (tvShowId, season) = seasonId.split("/")
+        val parts = seasonId.split("/")
+        if (parts.size < 2) return emptyList()
+        val tvShowId = parts[0]
+        val season = parts[1]
 
         val document = service.getSeason(tvShowId, season)
 
@@ -375,7 +406,7 @@ object AniWorldProvider : Provider {
                         ?.text()
                         ?: "",
                     poster = it.selectFirst("img")
-                        ?.attr("data-src")?.let { src -> URL + src },
+                        ?.attr("data-src")?.let { src -> currentBaseUrl() + src },
                 )
             }
         )
@@ -402,7 +433,7 @@ object AniWorldProvider : Provider {
                     title = it.selectFirst("h3")
                         ?.text() ?: "",
                     poster = it.selectFirst("img")
-                        ?.attr("data-src")?.let { src -> URL + src },
+                        ?.attr("data-src")?.let { src -> currentBaseUrl() + src },
                 )
             }
         )
@@ -411,13 +442,17 @@ object AniWorldProvider : Provider {
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
-        val (tvShowId, seasonId, episodeId) = id.split("/")
+        val parts = id.split("/")
+        if (parts.size < 3) return emptyList()
+        val tvShowId = parts[0]
+        val seasonId = parts[1]
+        val episodeId = parts[2]
 
         val document = service.getEpisode(tvShowId, seasonId, episodeId)
 
         val servers = document.select("div.hosterSiteVideo > ul > li").mapNotNull {
             val redirectUrl = it.selectFirst("a")
-                ?.attr("href")?.let { href -> URL + href }
+                ?.attr("href")?.let { href -> currentBaseUrl() + href }
                 ?: return@mapNotNull null
 
             val name = it.selectFirst("h4")
@@ -532,15 +567,11 @@ object AniWorldProvider : Provider {
 
             private fun getUnsafeOkHttpClient(): OkHttpClient {
                 try {
-                    val trustAllCerts = arrayOf<TrustManager>(
-                        object : X509TrustManager {
-                            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-                            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                        }
-                    )
-                    val sslContext = SSLContext.getInstance("SSL")
-                    sslContext.init(null, trustAllCerts, SecureRandom())
+                    val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+                    tmf.init(null as java.security.KeyStore?)
+                    val systemTrustManager = tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
+                    val sslContext = SSLContext.getInstance("TLS")
+                    sslContext.init(null, arrayOf(systemTrustManager), SecureRandom())
                     val sslSocketFactory = sslContext.socketFactory
 
                     val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
@@ -548,8 +579,7 @@ object AniWorldProvider : Provider {
                         .cache(appCache)
                         .readTimeout(30, TimeUnit.SECONDS)
                         .connectTimeout(30, TimeUnit.SECONDS)
-                        .sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-                        .hostnameVerifier { _, _ -> true }
+                        .sslSocketFactory(sslSocketFactory, systemTrustManager)
 
                     return clientBuilder
                         .dns(DnsResolver.doh)
@@ -561,10 +591,10 @@ object AniWorldProvider : Provider {
                 }
             }
 
-            fun build(): Service {
+            fun build(baseUrl: String): Service {
                 val client = getOkHttpClient()
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(URL)
+                    .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)
@@ -572,10 +602,10 @@ object AniWorldProvider : Provider {
                 return retrofit.create(Service::class.java)
             }
 
-            fun buildUnsafe(): Service {
+            fun buildUnsafe(baseUrl: String): Service {
                 val client = getUnsafeOkHttpClient()
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(URL)
+                    .baseUrl(baseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)
@@ -587,9 +617,9 @@ object AniWorldProvider : Provider {
         @GET(".")
         suspend fun getHome(): Document
 
-        @POST("https://aniworld.to/ajax/search")
+        @POST
         @FormUrlEncoded
-        suspend fun search(@Field("keyword") query: String): List<SearchItem>
+        suspend fun search(@Url url: String, @Field("keyword") query: String): List<SearchItem>
 
         @GET("animes-genres")
         suspend fun getGenres(): Document

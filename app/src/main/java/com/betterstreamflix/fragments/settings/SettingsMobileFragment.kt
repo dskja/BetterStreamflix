@@ -64,7 +64,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     )
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.cc"
-    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "serienstream.to"
+    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "186.2.175.5"
+    private val DEFAULT_ANIWORLD_DOMAIN_VALUE = "aniworld.to"
     private val DEFAULT_MOFLIX_DOMAIN_VALUE = "moflix-stream.xyz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
@@ -331,6 +332,33 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<EditTextPreference>("provider_aniworld_domain")?.apply {
+            val currentValue = UserPreferences.aniworldDomain
+            summary = currentValue
+            if (currentValue == DEFAULT_ANIWORLD_DOMAIN_VALUE || currentValue == PREFS_ERROR_VALUE) {
+                text = null
+            } else {
+                text = currentValue
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val typed = (newValue as String).trim()
+                val effectiveDomain = typed.ifBlank { DEFAULT_ANIWORLD_DOMAIN_VALUE }
+                UserPreferences.aniworldDomain = effectiveDomain
+                preference.summary = effectiveDomain
+                true
+            }
+        }
+
+        findPreference<Preference>("provider_aniworld_domain_reset")?.setOnPreferenceClickListener {
+            UserPreferences.aniworldDomain = DEFAULT_ANIWORLD_DOMAIN_VALUE
+            findPreference<EditTextPreference>("provider_aniworld_domain")?.apply {
+                summary = DEFAULT_ANIWORLD_DOMAIN_VALUE
+                text = null
+            }
+            Toast.makeText(requireContext(), getString(R.string.settings_aniworld_domain_reset_done), Toast.LENGTH_SHORT).show()
+            true
+        }
+
         findPreference<EditTextPreference>("provider_moflix_domain")?.apply {
             val currentValue = UserPreferences.moflixDomain
             summary = currentValue
@@ -512,6 +540,29 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<ListPreference>("DEFAULT_QUALITY_HEIGHT")?.apply {
+            val currentHeight = UserPreferences.qualityHeight
+            if (currentHeight != null) {
+                value = currentHeight.toString()
+                summary = "${currentHeight}p"
+            } else {
+                value = ""
+                summary = getString(R.string.settings_default_quality_summary)
+            }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val typed = (newValue as String).trim()
+                if (typed.isBlank()) {
+                    UserPreferences.qualityHeight = null
+                    preference.summary = getString(R.string.settings_default_quality_summary)
+                } else {
+                    val height = typed.toIntOrNull()
+                    UserPreferences.qualityHeight = height
+                    preference.summary = "${height}p"
+                }
+                true
+            }
+        }
+
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.setOnPreferenceChangeListener { _, newValue ->
             UserPreferences.keepScreenOnWhenPaused = newValue as Boolean
@@ -637,8 +688,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 isVisible = portalProvider != null
                 setOnPreferenceClickListener {
                     viewLifecycleOwner.lifecycleScope.launch {
-                        findPreference<EditTextPreference>("provider_url")?.summary =
-                            configProvider!!.onChangeUrl(true)
+                        configProvider?.let { cp ->
+                            findPreference<EditTextPreference>("provider_url")?.summary =
+                                cp.onChangeUrl(true)
+                        }
                     }
                     true
                 }
@@ -678,9 +731,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>("pc_frenchstream_new_interface")?.apply {
             isVisible = UserPreferences.currentProvider is FrenchStreamProvider
             if (isVisible) {
+                val currentProv = UserPreferences.currentProvider ?: return@apply
                 val useNewInterface = UserPreferences
                     .getProviderCache(
-                        UserPreferences.currentProvider!!, UserPreferences
+                        currentProv, UserPreferences
                             .PROVIDER_NEW_INTERFACE
                     ) != "false"
                 isChecked = useNewInterface
@@ -856,15 +910,17 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     private fun updateProviderVisibilityState() {
         val isStreamingCommunity = UserPreferences.currentProvider is StreamingCommunityProvider
         val isSerienStream = UserPreferences.currentProvider is SerienStreamProvider
+        val isAniWorld = UserPreferences.currentProvider?.name == "AniWorld"
         val isMoflix = UserPreferences.currentProvider is MStreamProvider
         val isCuevana = UserPreferences.currentProvider?.name == "Cuevana 3"
         val isPoseidon = UserPreferences.currentProvider?.name == "Poseidonhd2"
         val isAnimeOnlineNinja = UserPreferences.currentProvider is AnimeOnlineNinjaProvider
         val hasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
-        val hasSpecificOptions = isStreamingCommunity || isCuevana || isPoseidon || isAnimeOnlineNinja
+        val hasSpecificOptions = isStreamingCommunity || isSerienStream || isAniWorld || isCuevana || isPoseidon || isAnimeOnlineNinja
 
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible = isStreamingCommunity
         findPreference<PreferenceCategory>("pc_serienstream_settings")?.isVisible = isSerienStream
+        findPreference<PreferenceCategory>("pc_aniworld_settings")?.isVisible = isAniWorld
         findPreference<PreferenceCategory>("pc_moflix_settings")?.isVisible = isMoflix
         findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible = isCuevana
         findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible = isPoseidon
