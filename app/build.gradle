@@ -157,11 +157,13 @@ dependencies {
 tasks.register('generateNativeLib') {
     def template = file('src/main/cpp/native-lib.cpp.template')
     def output = file('src/main/cpp/native-lib.cpp')
+    def localPropertiesFile = project.rootProject.file('local.properties')
     inputs.file template
+    inputs.file localPropertiesFile
     outputs.file output
     doLast {
         def props = new Properties()
-        props.load(project.rootProject.file('local.properties').newDataInputStream())
+        props.load(localPropertiesFile.newDataInputStream())
         def content = template.text
         content = content.replace('{{UPROT_MSFI_API_BASE}}', props.getProperty('UPROT_MSFI_API_BASE', ''))
         content = content.replace('{{UPROT_MSE_API_BASE}}', props.getProperty('UPROT_MSE_API_BASE', ''))
