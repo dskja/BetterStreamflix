@@ -51,7 +51,11 @@ object InAppUpdater {
         return newReleases
     }
 
-    suspend fun downloadApk(context: Context, asset: GitHub.Release.Asset): File {
+    suspend fun downloadApk(
+        context: Context,
+        asset: GitHub.Release.Asset,
+        onProgress: (Float) -> Unit = {},
+    ): File {
         context.cacheDir.listFiles()
             ?.filter { it.extension == "apk" }
             ?.forEach { it.deleteOnExit() }
@@ -59,14 +63,36 @@ object InAppUpdater {
         val apk = withContext(Dispatchers.IO) {
             File.createTempFile(
                 "${File(asset.name).nameWithoutExtension}-",
-                ".${File(asset.name).extension}"
+                ".${File(asset.name).extension}",
+                context.cacheDir,
             )
         }
 
-        withContext(Dispatchers.IO) {
-            URL(asset.browserDownloadUrl).openStream()
-        }.use { input ->
-            FileOutputStream(apk).use { output -> input.copyTo(output) }
+        try {
+            withContext(Dispatchers.IO) {
+                val connection = URL(asset.browserDownloadUrl).openConnection()
+                connection.connectTimeout = 30000
+                connection.readTimeout = 30000
+                val totalSize = connection.contentLengthLong
+                connection.getInputStream().use { input ->
+                    FileOutputStream(apk).use { output ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalRead = 0L
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalRead += bytesRead
+                            if (totalSize > 0) {
+                                onProgress(totalRead.toFloat() / totalSize)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("InAppUpdater", "Download failed: ${asset.name}", e)
+            apk.delete()
+            throw e
         }
 
         return apk

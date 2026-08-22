@@ -2,6 +2,37 @@
 
 All notable changes to BetterStreamflix will be documented here.
 
+## [1.9.0] - 2026-08-22
+
+### Mega Update — Database Integrity, Cache Reliability, Updater Overhaul
+
+#### Critical Database Fixes
+- **Fixed merge direction bug in `TvShowDao.save()` and `MovieDao.save()`** — root cause of user state (isWatching, isFavorite, isWatched) being silently overwritten by stale DB values on every save. Changed `tvShow.merge(existing)` → `existing.merge(tvShow)` so new user state is applied to the existing DB record, not the other way around.
+- **Added `EpisodeDao.clearWatchHistory(id)`** — direct SQL method to NULL `lastEngagementTimeUtcMillis`, `lastPlaybackPositionMillis`, `durationMillis` for a single episode, bypassing `@Update` which doesn't reliably clear `@Embedded` null fields.
+- **Added `EpisodeDao.clearWatchHistoryForTvShow(tvShowId)`** — bulk version that clears watch history for all episodes of a TV show at once.
+- **Fixed `UserDataCache.removeEpisodeFromContinueWatching()`** — now calls `clearWatchHistory(id)` on the DB before removing from cache. Previously only removed from JSON cache, causing episodes to reappear on next `loadUserDataCache` rebuild from DB.
+- **Fixed `UserDataCache.removeMovieFromContinueWatching()`** — replaced silent `runCatching` with proper try-catch and error logging.
+- **Added `UserDataCache.clearAllContinueWatching()`** — clears all continue watching state from both cache and DB (episodes, movies, TV shows) in one call.
+
+#### Continue Watching UI Fixes
+- **Simplified Clear button handlers** in `ShowOptionsMobileDialog` and `ShowOptionsTvDialog` — removed redundant `save()` + `syncEpisodeToCache()` calls that were fighting each other. Now just `setWatching(false)` + `removeEpisodeFromContinueWatching()` (which handles both DB + cache atomically).
+
+#### In-App Updater Overhaul
+- **Fixed temp file location** — APK downloads now go to `context.cacheDir` instead of system temp, ensuring `FileProvider` can access them for installation.
+- **Added download progress callback** — `downloadApk()` now accepts `onProgress: (Float) -> Unit` so UI can show a progress bar.
+- **Added proper error handling** — download failures are logged, temp file is cleaned up, and exception is rethrown for caller to handle.
+- **Added 30s connect/read timeouts** to prevent hanging on slow connections.
+
+#### Home Cache Improvements
+- **Added 6-hour TTL to `HomeCacheStore`** — cached home data expires after 6 hours, ensuring users see fresh content without manual cache clearing. Both memory and disk cache respect the TTL.
+- **Serve stale cache on provider failure** — when `getHome()` fails but cached data exists, the app now serves the stale cache with a warning log instead of showing an error screen. Previously only worked for AnimeOnlineNinja clearance issues.
+
+#### Thread Safety
+- **Fixed `PlayerViewModel` thread-safety** — marked `lastVideoType` and `lastId` as `@Volatile` to ensure visibility across coroutine threads when `reloadServersAfterBypass()` is called.
+
+#### Error Handling
+- **Replaced silent `runCatching` with logged try-catch** in `UserDataCache` DB operations — failures now produce `Log.e()` output so issues can be diagnosed instead of silently swallowed.
+
 ## [1.8.3] - 2026-08-22
 
 ### SerienStream Selector Fixes (Verified Against Live Site)
@@ -122,6 +153,7 @@ All notable changes to BetterStreamflix will be documented here.
 
 ## [Unreleased]
 
+- Settings UI for "Clear All Continue Watching"
+- Per-show "Clear All Episodes" using clearWatchHistoryForTvShow
+- Cloud-sync enhancements for watch state
 - Additional provider improvements
-- More extractor fixes
-- Cloud-sync enhancements

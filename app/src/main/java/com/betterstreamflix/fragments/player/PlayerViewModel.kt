@@ -253,8 +253,8 @@ class PlayerViewModel(
         data class SuccessDownloadingSubDLSubtitle(val subtitle: SubDL.Subtitle, val uri: Uri) : SubtitleState()
         data class FailedDownloadingSubDLSubtitle(val error: Exception, val subtitle: SubDL.Subtitle) : SubtitleState()
     }
-    private var lastVideoType: Video.Type? = null
-    private var lastId: String? = null
+    @Volatile private var lastVideoType: Video.Type? = null
+    @Volatile private var lastId: String? = null
     fun reloadServersAfterBypass() {
         val type = lastVideoType ?: return
         val id = lastId ?: return

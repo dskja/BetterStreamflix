@@ -51,6 +51,9 @@ interface MovieDao {
     @Update
     fun update(movie: Movie)
 
+    @Query("DELETE FROM movies WHERE id = :id")
+    fun deleteById(id: String)
+
     @Query("DELETE FROM movies")
     fun deleteAll()
 
@@ -71,9 +74,9 @@ interface MovieDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         val existing = getById(movie.id)
         if (existing != null) {
-            val merged = movie.merge(existing)
-            update(merged)
-            Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE Movie: ${merged.title} (Fav: ${merged.isFavorite}, Watched: ${merged.isWatched})")
+            existing.merge(movie)
+            update(existing)
+            Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE Movie: ${existing.title} (Fav: ${existing.isFavorite}, Watched: ${existing.isWatched})")
         } else {
             insert(movie)
             Log.d("DatabaseVerify", "[$provider] REAL-TIME INSERT Movie: ${movie.title} (Fav: ${movie.isFavorite})")

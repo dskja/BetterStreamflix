@@ -60,6 +60,9 @@ interface TvShowDao {
     @Query("SELECT * FROM tv_shows WHERE LOWER(title) LIKE '%' || :query || '%' LIMIT :limit OFFSET :offset")
     suspend fun searchTvShows(query: String, limit: Int, offset: Int): List<TvShow>
 
+    @Query("DELETE FROM tv_shows WHERE id = :id")
+    fun deleteById(id: String)
+
     @Query("DELETE FROM tv_shows")
     fun deleteAll()
 
@@ -76,9 +79,9 @@ interface TvShowDao {
         val provider = UserPreferences.currentProvider?.name ?: "Unknown"
         val existing = getById(tvShow.id)
         if (existing != null) {
-            val merged = tvShow.merge(existing)
-            update(merged)
-            Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE TV Show: ${merged.title} (Fav: ${merged.isFavorite}, Watching: ${merged.isWatching})")
+            existing.merge(tvShow)
+            update(existing)
+            Log.d("DatabaseVerify", "[$provider] REAL-TIME UPDATE TV Show: ${existing.title} (Fav: ${existing.isFavorite}, Watching: ${existing.isWatching})")
         } else {
             insert(tvShow)
             Log.d("DatabaseVerify", "[$provider] REAL-TIME INSERT TV Show: ${tvShow.title} (Fav: ${tvShow.isFavorite})")

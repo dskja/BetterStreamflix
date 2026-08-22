@@ -65,7 +65,10 @@ The interface aggregates content from multiple sources and provides a convenient
 - Optimized UI & UX
 - Multiple providers
 - Resume from last playback position
-- In-app update
+- In-app update with download progress
+- Smart home cache with 6-hour auto-refresh
+- Stale cache fallback when provider is unavailable
+- Continue Watching with proper DB + cache sync
 
 ### Built with
 
