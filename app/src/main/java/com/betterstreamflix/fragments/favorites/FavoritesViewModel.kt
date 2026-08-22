@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.favorites
+package com.betterstreamflix.fragments.favorites
 
 import androidx.lifecycle.ViewModel
 import com.betterstreamflix.adapters.AppAdapter

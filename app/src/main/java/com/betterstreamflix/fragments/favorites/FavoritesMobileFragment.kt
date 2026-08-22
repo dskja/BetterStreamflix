@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.favorites
+package com.betterstreamflix.fragments.favorites
 
 import android.app.AlertDialog
 import android.os.Bundle

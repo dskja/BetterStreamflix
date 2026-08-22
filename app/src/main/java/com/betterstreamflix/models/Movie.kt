@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models
+package com.betterstreamflix.models
 
 import androidx.room.Embedded
 import androidx.room.Entity

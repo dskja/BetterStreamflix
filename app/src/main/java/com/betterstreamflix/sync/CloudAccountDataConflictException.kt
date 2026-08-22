@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.sync
+package com.betterstreamflix.sync
 
 /**
  * Local data was found while the device is claimed by another cloud account.

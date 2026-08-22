@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.season
+package com.betterstreamflix.fragments.season
 
 import android.os.Bundle
 import android.view.LayoutInflater

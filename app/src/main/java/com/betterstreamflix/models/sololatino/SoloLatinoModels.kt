@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models.sololatino
+package com.betterstreamflix.models.sololatino
 
 import kotlinx.serialization.Serializable
 

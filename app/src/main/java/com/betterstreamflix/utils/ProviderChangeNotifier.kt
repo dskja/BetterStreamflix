@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow

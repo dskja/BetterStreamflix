@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.sync
+package com.betterstreamflix.sync
 
 import android.content.Context
 

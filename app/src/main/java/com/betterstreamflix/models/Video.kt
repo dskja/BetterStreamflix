@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models
+package com.betterstreamflix.models
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

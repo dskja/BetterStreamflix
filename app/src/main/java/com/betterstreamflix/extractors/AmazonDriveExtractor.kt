@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.extractors
+package com.betterstreamflix.extractors
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject

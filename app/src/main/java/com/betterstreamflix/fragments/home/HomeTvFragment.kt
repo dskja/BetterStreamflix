@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.home
+package com.betterstreamflix.fragments.home
 
 import android.os.Bundle
 import android.os.Handler

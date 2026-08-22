@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.settings.about
+package com.betterstreamflix.fragments.settings.about
 
 import android.os.Bundle
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models.flixlatam
+package com.betterstreamflix.models.flixlatam
 
 import kotlinx.serialization.Serializable
 

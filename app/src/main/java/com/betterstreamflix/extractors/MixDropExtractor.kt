@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.extractors
+package com.betterstreamflix.extractors
 
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.betterstreamflix.models.Video

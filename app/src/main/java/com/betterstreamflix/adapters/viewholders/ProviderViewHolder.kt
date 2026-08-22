@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.adapters.viewholders
+package com.betterstreamflix.adapters.viewholders
 
 import android.content.Intent
 import android.graphics.drawable.PictureDrawable

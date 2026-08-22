@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.ui
+package com.betterstreamflix.ui
 
 import android.graphics.drawable.PictureDrawable
 import com.bumptech.glide.load.Options

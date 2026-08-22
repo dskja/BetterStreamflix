@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.models.Category

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.activities.main
+package com.betterstreamflix.activities.main
 
 import android.content.Intent
 import android.content.pm.PackageManager

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Genre

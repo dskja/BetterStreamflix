@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.backup
+package com.betterstreamflix.backup
 
 import android.content.Context
 import android.util.Log

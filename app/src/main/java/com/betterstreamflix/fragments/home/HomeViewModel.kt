@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.home
+package com.betterstreamflix.fragments.home
 
 import android.util.Log
 import com.betterstreamflix.StreamFlixApp

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.search
+package com.betterstreamflix.fragments.search
 
 import android.os.Bundle
 import android.text.Editable

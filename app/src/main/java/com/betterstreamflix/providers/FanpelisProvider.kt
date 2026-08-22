@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.providers
+package com.betterstreamflix.providers
 
 import com.google.gson.annotations.SerializedName
 import com.betterstreamflix.adapters.AppAdapter

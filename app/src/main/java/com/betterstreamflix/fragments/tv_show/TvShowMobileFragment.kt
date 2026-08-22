@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.tv_show
+package com.betterstreamflix.fragments.tv_show
 
 import android.os.Bundle
 import android.view.LayoutInflater

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix
+package com.betterstreamflix
 
 import android.app.Activity
 import android.app.Application

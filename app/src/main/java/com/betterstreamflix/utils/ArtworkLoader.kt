@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import android.graphics.drawable.Drawable
 import android.widget.ImageView

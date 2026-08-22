@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.sync
+package com.betterstreamflix.sync
 
 data class CloudSyncProgress(
     val stage: Stage,

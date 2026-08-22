@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models.cablevisionhd
+package com.betterstreamflix.models.cablevisionhd
 
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.providers.CableVisionHDProvider

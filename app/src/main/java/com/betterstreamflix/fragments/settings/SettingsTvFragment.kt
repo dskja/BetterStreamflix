@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.settings
+package com.betterstreamflix.fragments.settings
 
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
