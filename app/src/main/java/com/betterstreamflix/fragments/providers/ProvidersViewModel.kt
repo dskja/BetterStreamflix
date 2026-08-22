@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.providers
+package com.betterstreamflix.fragments.providers
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

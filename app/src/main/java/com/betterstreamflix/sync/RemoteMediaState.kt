@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.sync
+package com.betterstreamflix.sync
 
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie

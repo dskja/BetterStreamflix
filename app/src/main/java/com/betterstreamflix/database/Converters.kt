@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.database
+package com.betterstreamflix.database
 
 import androidx.room.TypeConverter
 import com.betterstreamflix.models.Season

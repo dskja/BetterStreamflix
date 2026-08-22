@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils;
+package com.betterstreamflix.utils;
 
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;

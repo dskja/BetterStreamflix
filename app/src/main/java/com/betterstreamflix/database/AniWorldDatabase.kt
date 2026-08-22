@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.database
+package com.betterstreamflix.database
 
 import android.content.Context
 import androidx.room.Database

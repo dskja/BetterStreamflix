@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import androidx.media3.common.MimeTypes
 import com.betterstreamflix.models.Video

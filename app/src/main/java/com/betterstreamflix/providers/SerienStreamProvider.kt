@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.providers
+package com.betterstreamflix.providers
 
 import android.annotation.SuppressLint
 import android.net.Uri

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.settings
+package com.betterstreamflix.fragments.settings
 
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod

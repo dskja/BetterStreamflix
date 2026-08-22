@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.adapters.viewholders
+package com.betterstreamflix.adapters.viewholders
 
 import android.os.Handler
 import android.os.Looper

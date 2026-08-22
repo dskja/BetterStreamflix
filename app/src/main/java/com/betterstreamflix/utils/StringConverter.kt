@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import okhttp3.ResponseBody
 import retrofit2.Converter

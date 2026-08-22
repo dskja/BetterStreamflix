@@ -1,1 +1,1 @@
-﻿package com.betterstreamflix.models.cinecalidad
+package com.betterstreamflix.models.cinecalidad

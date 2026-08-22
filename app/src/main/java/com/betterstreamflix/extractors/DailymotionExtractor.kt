@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.extractors
+package com.betterstreamflix.extractors
 
 import java.util.Locale
 import java.util.UUID

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.extractors
+package com.betterstreamflix.extractors
 
 import android.util.Base64
 import android.util.Log

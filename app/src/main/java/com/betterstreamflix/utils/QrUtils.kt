@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.providers
+package com.betterstreamflix.providers
 
 import android.net.Uri
 import com.betterstreamflix.adapters.AppAdapter

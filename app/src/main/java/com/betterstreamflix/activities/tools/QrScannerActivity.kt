@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.activities.tools
+package com.betterstreamflix.activities.tools
 
 import android.Manifest
 import android.app.Activity

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models.animeflv
+package com.betterstreamflix.models.animeflv
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

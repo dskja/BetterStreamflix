@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import android.os.Build
 import android.util.Log

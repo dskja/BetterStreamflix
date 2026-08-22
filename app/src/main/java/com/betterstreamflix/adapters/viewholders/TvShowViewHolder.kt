@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.adapters.viewholders
+package com.betterstreamflix.adapters.viewholders
 
 import android.content.Context
 import android.content.Intent

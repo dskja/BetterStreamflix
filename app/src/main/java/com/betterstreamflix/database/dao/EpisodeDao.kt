@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.database.dao
+package com.betterstreamflix.database.dao
 
 import android.util.Log
 import androidx.room.Dao

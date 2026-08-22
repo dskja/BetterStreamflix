@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.adapters.viewholders
+package com.betterstreamflix.adapters.viewholders
 
 import android.app.AlertDialog
 import android.content.Context

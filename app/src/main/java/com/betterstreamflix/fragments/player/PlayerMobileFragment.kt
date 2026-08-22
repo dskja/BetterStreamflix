@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.player
+package com.betterstreamflix.fragments.player
 
 import android.app.PendingIntent
 import android.app.PictureInPictureParams

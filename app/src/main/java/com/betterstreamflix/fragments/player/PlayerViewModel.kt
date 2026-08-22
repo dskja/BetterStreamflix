@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.player
+package com.betterstreamflix.fragments.player
 
 import android.net.Uri
 import android.os.Bundle

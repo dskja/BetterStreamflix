@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.player.settings
+package com.betterstreamflix.fragments.player.settings
 
 import android.content.Context
 import android.content.res.ColorStateList

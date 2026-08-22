@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 /**
  * Secure access to secret keys via C++ library compiled with NDK.

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.extractors
+package com.betterstreamflix.extractors
 
 import android.util.Base64
 import androidx.media3.common.MimeTypes

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import com.google.gson.annotations.SerializedName
 import retrofit2.Retrofit

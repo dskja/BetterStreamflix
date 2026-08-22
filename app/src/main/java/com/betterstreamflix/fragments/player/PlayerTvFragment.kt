@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.player
+package com.betterstreamflix.fragments.player
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent

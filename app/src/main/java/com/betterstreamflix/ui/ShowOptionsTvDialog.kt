@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.ui
+package com.betterstreamflix.ui
 
 import android.app.Dialog
 import android.content.Context

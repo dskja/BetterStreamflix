@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.search
+package com.betterstreamflix.fragments.search
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

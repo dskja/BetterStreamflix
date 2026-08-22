@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.providers
+package com.betterstreamflix.providers
 
 import android.util.Log
 import androidx.core.net.toUri

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.ui
+package com.betterstreamflix.ui
 
 import com.bumptech.glide.load.Options
 import com.bumptech.glide.load.ResourceDecoder

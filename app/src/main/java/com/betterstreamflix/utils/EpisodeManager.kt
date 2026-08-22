@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.utils
+package com.betterstreamflix.utils
 
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Season

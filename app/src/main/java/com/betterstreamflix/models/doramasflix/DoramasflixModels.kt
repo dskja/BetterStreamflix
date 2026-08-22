@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.models.doramasflix
+package com.betterstreamflix.models.doramasflix
 
 import com.google.gson.annotations.SerializedName
 

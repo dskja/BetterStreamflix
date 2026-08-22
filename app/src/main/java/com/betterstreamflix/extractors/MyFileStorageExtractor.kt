@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.extractors
+package com.betterstreamflix.extractors
 
 import com.betterstreamflix.models.Video
 import com.betterstreamflix.utils.StringConverterFactory

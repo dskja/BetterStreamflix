@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.ui
+package com.betterstreamflix.ui
 
 import android.content.Context
 import android.graphics.Color

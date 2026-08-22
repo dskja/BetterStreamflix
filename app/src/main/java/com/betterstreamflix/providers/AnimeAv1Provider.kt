@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.providers
+package com.betterstreamflix.providers
 
 import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory

@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.activities.main
+package com.betterstreamflix.activities.main
 
 import android.content.Context
 import android.net.Uri

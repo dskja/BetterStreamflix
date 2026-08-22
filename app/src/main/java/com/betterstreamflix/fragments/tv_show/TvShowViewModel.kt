@@ -1,4 +1,4 @@
-﻿package com.betterstreamflix.fragments.tv_show
+package com.betterstreamflix.fragments.tv_show
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
