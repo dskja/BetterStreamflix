@@ -96,8 +96,9 @@ class VideasyExtractor : Extractor() {
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
             .build()
         
-        val response = client.newCall(request).execute()
-        val encData = response.body?.string() ?: throw Exception("Failed to get encrypted data")
+        val encData = client.newCall(request).execute().use { response ->
+            response.body?.string() ?: throw Exception("Failed to get encrypted data")
+        }
 
         // 2. Extract tmdbId from link to use it for decryption
         val tmdbId = link.split("tmdbId=").getOrNull(1)?.split("&")?.getOrNull(0) ?: ""
@@ -112,9 +113,10 @@ class VideasyExtractor : Extractor() {
             .url("https://enc-dec.app/api/dec-videasy")
             .post(body)
             .build()
-        
-        val decResponse = client.newCall(decRequest).execute()
-        val decBody = decResponse.body?.string() ?: "{}"
+
+        val decBody = client.newCall(decRequest).execute().use { decResponse ->
+            decResponse.body?.string() ?: "{}"
+        }
         val decJson = JSONObject(decBody)
         val result = decJson.optString("result")
 

@@ -35,22 +35,21 @@ open class LoadXExtractor: Extractor() {
             .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:139.0) Gecko/20100101 Firefox/139.0")
             .build()
 
-        val getResponse = client.newCall(getRequest).execute()
-        val setCookieHeaders = getResponse.headers("Set-Cookie")
+        val firePlayerCookie = client.newCall(getRequest).execute().use { getResponse ->
+            val setCookieHeaders = getResponse.headers("Set-Cookie")
 
-        val firePlayerCookie = setCookieHeaders
-            .firstOrNull { it.startsWith("fireplayer_player=") }
-            ?.split(";")?.get(0)
-            ?: throw Exception("fireplayer_player cookie not found")
-
-        getResponse.close()
+            setCookieHeaders
+                .firstOrNull { it.startsWith("fireplayer_player=") }
+                ?.split(";")?.get(0)
+                ?: throw Exception("fireplayer_player cookie not found")
+        }
         val service = Service.build(mainUrl)
 
         val responseBody = service.postVideoData(
             data = videoId,
             cookie = firePlayerCookie
         )
-        val videoUrl = JSONObject(responseBody.string()).optString("videoSource")
+        val videoUrl = JSONObject(responseBody.use { it.string() }).optString("videoSource")
             ?: throw Exception("videoSource not found in response")
 
         return Video(source = videoUrl,

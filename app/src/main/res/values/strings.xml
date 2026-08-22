@@ -26,6 +26,8 @@
     <string name="providers_all_languages">All languages</string>
     <string name="providers_favorites">Favorites</string>
     <string name="providers_choose_title">Choose a provider</string>
+    <string name="providers_search_hint">Search providers…</string>
+    <string name="providers_no_results">No providers found</string>
 
     <string name="main_menu_change_provider">Change provider</string>
     <string name="main_menu_search">Search</string>

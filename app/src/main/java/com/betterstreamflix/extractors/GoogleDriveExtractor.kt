@@ -33,7 +33,7 @@ class GoogleDriveExtractor : Extractor() {
             unique = "gc999"
         )
 
-        val responseString = responseBody.string()
+        val responseString = responseBody.use { it.string() }
         val jsonObject = JsonParser.parseString(responseString).asJsonObject
         
         val mediaStreamingData = jsonObject.getAsJsonObject("mediaStreamingData")

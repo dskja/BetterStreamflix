@@ -259,9 +259,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.text = null
                     Toast.makeText(requireContext(), getString(R.string.settings_streamingcommunity_domain_blocked), Toast.LENGTH_LONG).show()
                 }
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                val provider = UserPreferences.currentProvider as? StreamingCommunityProvider
+                if (provider != null) {
                     viewLifecycleOwner.lifecycleScope.launch {
-                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        provider.rebuildService()
                         requireActivity().apply {
                             finish()
                             startActivity(Intent(this, this::class.java))
@@ -279,9 +280,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 text = null
             }
             Toast.makeText(requireContext(), getString(R.string.settings_streamingcommunity_domain_reset_done), Toast.LENGTH_SHORT).show()
-            if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+            val provider = UserPreferences.currentProvider as? StreamingCommunityProvider
+            if (provider != null) {
                 viewLifecycleOwner.lifecycleScope.launch {
-                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                    provider.rebuildService()
                     requireActivity().apply {
                         finish()
                         startActivity(Intent(this, this::class.java))
@@ -591,7 +593,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 if (isVisible) {
                     autoUpdateVal = UserPreferences
                         .getProviderCache(
-                            provider!!, UserPreferences
+                            provider ?: return@apply, UserPreferences
                                 .PROVIDER_AUTOUPDATE
                         ) != "false"
                     isChecked = autoUpdateVal
@@ -681,7 +683,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 setOnPreferenceClickListener {
                     viewLifecycleOwner.lifecycleScope.launch {
                         findPreference<EditTextPreference>("provider_url")?.summary =
-                            configProvider!!.onChangeUrl(true)
+                            configProvider?.onChangeUrl(true)
                     }
                     true
                 }
@@ -703,9 +705,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                         preference.summary = null
                     }
                 }
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                val provider = UserPreferences.currentProvider as? StreamingCommunityProvider
+                if (provider != null) {
                     viewLifecycleOwner.lifecycleScope.launch {
-                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        provider.rebuildService()
                         requireActivity().apply {
                             finish()
                             startActivity(Intent(this, this::class.java))
@@ -723,7 +726,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             if (isVisible) {
                 val useNewInterface = UserPreferences
                     .getProviderCache(
-                        UserPreferences.currentProvider!!, UserPreferences
+                        UserPreferences.currentProvider ?: return@apply, UserPreferences
                             .PROVIDER_NEW_INTERFACE
                     ) != "false"
                 isChecked = useNewInterface

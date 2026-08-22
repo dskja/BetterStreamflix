@@ -67,13 +67,11 @@ object PoseidonHD2Provider : Provider {
                 .header("Referer", baseUrl)
                 .build()
 
-            val response = client.newCall(request).execute()
-
-            if (response.isSuccessful) {
-                val html = response.body?.string() ?: ""
-                if (!html.contains("cf-browser-verification") && !html.contains("Checking your browser") && !html.contains("Just a moment...")) {
-                    return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
-                }
+            val html = client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) response.body?.string() ?: "" else ""
+            }
+            if (html.isNotEmpty() && !html.contains("cf-browser-verification") && !html.contains("Checking your browser") && !html.contains("Just a moment...")) {
+                return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "OkHttp failed for $url, trying WebView")
@@ -289,7 +287,7 @@ object PoseidonHD2Provider : Provider {
             if (tmdbId.isNotEmpty()) {
                 try {
                     return TMDb3.Movies.details(
-                        movieId = tmdbId.toInt(),
+                        movieId = tmdbId.toIntOrNull() ?: return@try null,
                         appendToResponse = listOf(
                             TMDb3.Params.AppendToResponse.Movie.CREDITS,
                             TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
@@ -366,7 +364,7 @@ object PoseidonHD2Provider : Provider {
         if (tmdbId.isNotEmpty()) {
             try {
                 return TMDb3.TvSeries.details(
-                    seriesId = tmdbId.toInt(),
+                    seriesId = tmdbId.toIntOrNull() ?: return@try null,
                     appendToResponse = listOf(
                         TMDb3.Params.AppendToResponse.Tv.CREDITS,
                         TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
@@ -561,9 +559,7 @@ object PoseidonHD2Provider : Provider {
                 .header("User-Agent", NetworkClient.USER_AGENT)
                 .build()
             
-            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
-            val html = response.body?.string() ?: ""
-            
+            val html = withContext(Dispatchers.IO) { client.newCall(request).execute().use { response -> response.body?.string() ?: "" } }
             if (html.contains("cf-browser-verification") || html.contains("Just a moment...")) {
                 // Cloudflare detected. We could use WebView here, but not in parallel for 18 servers.
                 // We'll return null and let the caller decide (or just return the original URL)

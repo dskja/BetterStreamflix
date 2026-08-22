@@ -68,7 +68,7 @@ class VidrockExtractor : Extractor() {
         } ?: error("No video sources found")
 
         val actualServerName = serverEntry.key
-        var videoUrl = serverEntry.value["url"]!!
+        var videoUrl = serverEntry.value["url"] ?: error("No URL found for server $actualServerName")
         var type = MimeTypes.APPLICATION_M3U8
 
         if (actualServerName.equals("Atlas", ignoreCase = true)) {

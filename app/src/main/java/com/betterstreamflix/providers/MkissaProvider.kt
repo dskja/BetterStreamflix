@@ -662,7 +662,7 @@ object MkissaProvider : Provider {
                 val title = show.displayTitleOrNull() ?: "?"
                 val type = show.stringOrNull("type") ?: "?"
                 val genres = (0 until (show.optJSONArray("genres")?.length() ?: 0))
-                    .map { show.optJSONArray("genres")!!.optString(it) }
+                    .map { show.optJSONArray("genres")?.optString(it) ?: "" }
                     .joinToString(",")
                 val isAdult = show.opt("isAdult")
                 Log.d(TAG, "RAW show: _id=${show.stringOrNull("_id")}, title=$title, type=$type, genres=[$genres], isAdult=$isAdult")

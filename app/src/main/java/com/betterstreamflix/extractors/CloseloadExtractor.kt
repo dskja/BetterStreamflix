@@ -102,7 +102,7 @@ class CloseloadExtractor : Extractor() {
                             resultBytes = if (resultStr != null) {
                                 safeB64Decode(resultStr)
                             } else {
-                                safeB64DecodeBytes(resultBytes!!)
+                                safeB64DecodeBytes(resultBytes ?: continue)
                             }
                             resultStr = String(resultBytes, Charsets.ISO_8859_1)
                         } catch (e: Exception) {
@@ -111,12 +111,12 @@ class CloseloadExtractor : Extractor() {
                         }
                     }
                     "reverse" -> {
-                        resultStr = resultStr?.reversed() ?: String(resultBytes!!, Charsets.ISO_8859_1).reversed()
+                        resultStr = resultStr?.reversed() ?: String(resultBytes ?: continue, Charsets.ISO_8859_1).reversed()
                         resultBytes = null
                     }
                     "rot" -> {
-                        val rotOffset = param!!
-                        val currentStr = resultStr ?: String(resultBytes!!, Charsets.ISO_8859_1)
+                        val rotOffset = param ?: continue
+                        val currentStr = resultStr ?: String(resultBytes ?: continue, Charsets.ISO_8859_1)
                         val rotResult = StringBuilder()
                         for (c in currentStr) {
                             if (c in 'a'..'z') {
@@ -135,7 +135,7 @@ class CloseloadExtractor : Extractor() {
             
             if (!success) continue
             
-            val finalBytes = resultBytes ?: resultStr!!.toByteArray(Charsets.ISO_8859_1)
+            val finalBytes = resultBytes ?: resultStr?.toByteArray(Charsets.ISO_8859_1) ?: continue
             var acc = accInit
             val unmix = StringBuilder()
             for (b in finalBytes) {

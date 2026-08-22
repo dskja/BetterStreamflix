@@ -502,11 +502,11 @@ object StreamingItaProvider : Provider {
                         }
                         // deduplicate by src, prefer the entry whose name contains "hd"
                         .groupBy { it.src }
-                        .map { (_, list) ->
+                        .mapNotNull { (_, list) ->
                             list.maxByOrNull { server ->
                                 val n = server.name.lowercase()
                                 if ("hd" in n) 2 else 1
-                            }!!
+                            }
                         }
                 }.getOrDefault(emptyList())
 

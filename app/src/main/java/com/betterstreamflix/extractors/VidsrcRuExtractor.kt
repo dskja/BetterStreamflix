@@ -76,6 +76,7 @@ class VidsrcRuExtractor : Extractor() {
                 webView.loadUrl(link)
 
                 continuation.invokeOnCancellation {
+                    timeoutHandler.removeCallbacks(timeoutRunnable)
                     webView.stopLoading()
                     webView.destroy()
                 }

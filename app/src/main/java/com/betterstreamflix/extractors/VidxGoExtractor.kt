@@ -13,6 +13,9 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 
 object TokenManager {
     var latestQuery: String? = null
+
+    @OptIn(DelicateCoroutinesApi::class)
+    val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 }
 
 class VidxGoExtractor : Extractor() {
@@ -40,8 +43,9 @@ class VidxGoExtractor : Extractor() {
 
         val request = requestBuilder.build()
 
-        val response = client.newCall(request).execute()
-        val html = response.body?.string() ?: throw Exception("Failed to get HTML from VidxGo")
+        val html = client.newCall(request).execute().use { response ->
+            response.body?.string() ?: throw Exception("Failed to get HTML from VidxGo")
+        }
 
         if (link.contains("/t/")) {
             // TV Series logic: the response is JSON-like with an "url" field
@@ -55,10 +59,10 @@ class VidxGoExtractor : Extractor() {
             TokenManager.latestQuery = initialUri.encodedQuery
             Log.d("TokenManager", "[INIT] Initial token set. expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}...")
 
-            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 while (true) {
                     val delayMs = if (expireTime != null) {
-                        val remaining = expireTime!! - System.currentTimeMillis()
+                        val remaining = expireTime - System.currentTimeMillis()
                         val delay = (remaining - 15_000).coerceAtLeast(5_000)
                         Log.d("TokenManager", "[SCHEDULE] Next refresh in ${delay / 1000}s (expiry in ${remaining / 1000}s)")
                         delay
@@ -76,11 +80,9 @@ class VidxGoExtractor : Extractor() {
                             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                             .header("sec-fetch-dest", "empty")
                             .build()
-                        val res = client.newCall(updateRequest).execute()
-                        val statusCode = res.code
-                        val isSuccessful = res.isSuccessful
-                        val newHtml = res.body?.string()
-                        res.close()
+                        val (statusCode, isSuccessful, newHtml) = client.newCall(updateRequest).execute().use { res ->
+                            Triple(res.code, res.isSuccessful, res.body?.string())
+                        }
                         if (!isSuccessful) {
                             Log.w("TokenManager", "[REFRESH] HTTP response error: $statusCode")
                         }
@@ -163,11 +165,11 @@ class VidxGoExtractor : Extractor() {
         Log.d("TokenManager", "[FILM-INIT] Token/Expiry extracted from JS. token=$currentToken, expireTime=${initialExpireTime}")
 
         if (filmRefreshUrl != null) {
-            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 var expireTime: Long? = initialExpireTime
                 while (true) {
                     val delayMs = if (expireTime != null) {
-                        val remaining = expireTime!! - System.currentTimeMillis()
+                        val remaining = expireTime - System.currentTimeMillis()
                         val delay = (remaining - 15_000).coerceAtLeast(5_000)
                         Log.d("TokenManager", "[FILM-SCHEDULE] Next refresh in ${delay / 1000}s")
                         delay
@@ -185,11 +187,9 @@ class VidxGoExtractor : Extractor() {
                             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                             .header("sec-fetch-dest", "empty")
                             .build()
-                        val res = client.newCall(updateRequest).execute()
-                        val statusCode = res.code
-                        val isSuccessful = res.isSuccessful
-                        val newHtml = res.body?.string()
-                        res.close()
+                        val (statusCode, isSuccessful, newHtml) = client.newCall(updateRequest).execute().use { res ->
+                            Triple(res.code, res.isSuccessful, res.body?.string())
+                        }
                         if (!isSuccessful) {
                             Log.w("TokenManager", "[FILM-REFRESH] HTTP response error: $statusCode")
                         }

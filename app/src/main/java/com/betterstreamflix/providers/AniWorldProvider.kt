@@ -542,13 +542,17 @@ object AniWorldProvider : Provider {
 
     fun getSeriesChunk(pageIndex: Int): List<TvShow> {
         val fromIndex = pageIndex * chunkSize
-        if (fromIndex >= seriesCache.size) return emptyList()
-        val toIndex = minOf(fromIndex + chunkSize, seriesCache.size)
-        return seriesCache.subList(fromIndex, toIndex)
+        synchronized(cacheLock) {
+            if (fromIndex >= seriesCache.size) return emptyList()
+            val toIndex = minOf(fromIndex + chunkSize, seriesCache.size)
+            return seriesCache.subList(fromIndex, toIndex).toList()
+        }
     }
 
     fun getTotalPages(): Int {
-        return (seriesCache.size + chunkSize - 1) / chunkSize
+        synchronized(cacheLock) {
+            return (seriesCache.size + chunkSize - 1) / chunkSize
+        }
     }
 
 

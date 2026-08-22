@@ -37,8 +37,8 @@ class VavooProvider(override val language: String) : IptvProvider {
     private val RESOLVE_URL = "$baseUrl/mediahubmx-resolve.json"
 
     // Cache for home categories per language to avoid instant re-fetching
-    private val homeCache = mutableMapOf<String, List<VavooChannel>>()
-    private val cacheTimestamps = mutableMapOf<String, Long>()
+    private val homeCache = java.util.concurrent.ConcurrentHashMap<String, List<VavooChannel>>()
+    private val cacheTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
     
     // Cache to temporarily map channel IDs to their names when found via search/genres
     private val searchCache = java.util.concurrent.ConcurrentHashMap<String, String>()
@@ -50,7 +50,7 @@ class VavooProvider(override val language: String) : IptvProvider {
     )
 
     // Config for this instance
-    private val config = LANG_CONFIG[language] ?: LANG_CONFIG["de"]!!
+    private val config = LANG_CONFIG[language] ?: LANG_CONFIG["de"] ?: LANG_CONFIG.values.first()
 
     override val name: String = "Vavoo ${config.third.first()} Live TV"
     override val logo: String = "$baseUrl/assets/favicon-Djqjt9PL.ico"
@@ -82,8 +82,10 @@ class VavooProvider(override val language: String) : IptvProvider {
                 .header("Referer", "$baseUrl/")
                 .build()
 
-            val response = client.newCall(request).execute()
-            val json = JSONObject(response.body?.string() ?: return Pair(emptyList(), null))
+            val responseBody = client.newCall(request).execute().use { response ->
+                response.body?.string() ?: return Pair(emptyList(), null)
+            }
+            val json = JSONObject(responseBody)
             val items = json.optJSONArray("items") ?: return Pair(emptyList(), null)
             val nextCursor = if (json.isNull("nextCursor")) null else json.optInt("nextCursor")
 
@@ -134,8 +136,10 @@ class VavooProvider(override val language: String) : IptvProvider {
                 .header("Origin", baseUrl)
                 .header("Referer", "$baseUrl/")
                 .build()
-            val response = client.newCall(request).execute()
-            val jsonArray = org.json.JSONArray(response.body?.string() ?: return null)
+            val responseBody = client.newCall(request).execute().use { response ->
+                response.body?.string() ?: return null
+            }
+            val jsonArray = org.json.JSONArray(responseBody)
             if (jsonArray.length() > 0) {
                 val obj = jsonArray.getJSONObject(0)
                 val url = obj.optString("url").takeIf { it.isNotEmpty() } ?: return null

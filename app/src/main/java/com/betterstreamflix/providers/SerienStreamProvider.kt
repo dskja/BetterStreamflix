@@ -339,13 +339,11 @@ object SerienStreamProvider : Provider {
         
         val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
         
-        val localRating = if (tmdbTvShow?.rating == null) {
+        val rating = tmdbTvShow?.rating ?: run {
             val imdbTitleUrl = document.selectFirst("a[href*='imdb.com']")?.attr("href") ?: ""
             val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { getService().getCustomUrl(imdbTitleUrl) } catch (e: Exception) { null } else null
             imdbDocument?.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
                 ?.text()?.toDoubleOrNull() ?: document.selectFirst(".text-white-50:contains(Bewertungen)")?.text()?.split(" ")?.firstOrNull()?.toDoubleOrNull() ?: 0.0
-        } else {
-            0.0
         }
         
         val localCast = document.select(".series-group:contains(Besetzung) a").map {
@@ -363,7 +361,7 @@ object SerienStreamProvider : Provider {
             overview = tmdbTvShow?.overview ?: document.selectFirst("span.description-text")?.text() ?: document.selectFirst("div.series-description p")?.text(),
             released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } 
                 ?: document.selectFirst("a.small.text-muted")?.text() ?: "",
-            rating = tmdbTvShow?.rating ?: localRating,
+            rating = rating,
             runtime = tmdbTvShow?.runtime,
             directors = document.select(".series-group:contains(Regisseur) a").map {
                 People(
@@ -554,43 +552,56 @@ object SerienStreamProvider : Provider {
                 }.cookieJar(NetworkClient.cookieJar)
             }
 
+            @Volatile private var cachedClient: OkHttpClient? = null
+            @Volatile private var cachedUnsafeClient: OkHttpClient? = null
+
             private fun getOkHttpClient(): OkHttpClient {
-                val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-                val clientBuilder = OkHttpClient.Builder()
-                    .cache(appCache)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
-
-                return clientBuilder
-                    .applyBrowserHeaders()
-                    .dns(DnsResolver.doh)
-                    .build()
-            }
-
-            private fun getUnsafeOkHttpClient(): OkHttpClient {
-                try {
-                    val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-                    tmf.init(null as java.security.KeyStore?)
-                    val systemTrustManager = tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
-                    val sslContext = SSLContext.getInstance("TLS")
-                    sslContext.init(null, arrayOf(systemTrustManager), SecureRandom())
-                    val sslSocketFactory = sslContext.socketFactory
-
+                cachedClient?.let { return it }
+                synchronized(this) {
+                    cachedClient?.let { return it }
                     val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
                     val clientBuilder = OkHttpClient.Builder()
                         .cache(appCache)
                         .readTimeout(30, TimeUnit.SECONDS)
                         .connectTimeout(30, TimeUnit.SECONDS)
-                        .sslSocketFactory(sslSocketFactory, systemTrustManager)
 
                     return clientBuilder
                         .applyBrowserHeaders()
                         .dns(DnsResolver.doh)
-                        .followRedirects(true)
-                        .followSslRedirects(true)
                         .build()
-                } catch (e: Exception) {
-                    throw RuntimeException(e)
+                        .also { cachedClient = it }
+                }
+            }
+
+            private fun getUnsafeOkHttpClient(): OkHttpClient {
+                cachedUnsafeClient?.let { return it }
+                synchronized(this) {
+                    cachedUnsafeClient?.let { return it }
+                    try {
+                        val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+                        tmf.init(null as java.security.KeyStore?)
+                        val systemTrustManager = tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
+                        val sslContext = SSLContext.getInstance("TLS")
+                        sslContext.init(null, arrayOf(systemTrustManager), SecureRandom())
+                        val sslSocketFactory = sslContext.socketFactory
+
+                        val appCache = Cache(File("cacheDir", "okhttpcache_unsafe"), 10 * 1024 * 1024)
+                        val clientBuilder = OkHttpClient.Builder()
+                            .cache(appCache)
+                            .readTimeout(30, TimeUnit.SECONDS)
+                            .connectTimeout(30, TimeUnit.SECONDS)
+                            .sslSocketFactory(sslSocketFactory, systemTrustManager)
+
+                        return clientBuilder
+                            .applyBrowserHeaders()
+                            .dns(DnsResolver.doh)
+                            .followRedirects(true)
+                            .followSslRedirects(true)
+                            .build()
+                            .also { cachedUnsafeClient = it }
+                    } catch (e: Exception) {
+                        throw RuntimeException(e)
+                    }
                 }
             }
 

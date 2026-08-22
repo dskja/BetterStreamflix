@@ -629,9 +629,10 @@ object CB01Provider : Provider {
                 .url(apiUrl)
                 .header("User-Agent", DEFAULT_USER_AGENT)
                 .build()
-            val resp = client.newCall(req).execute()
-            if (!resp.isSuccessful) return null
-            val responseText = resp.body?.string()?.trim().orEmpty()
+            val responseText = client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return null
+                resp.body?.string()?.trim().orEmpty()
+            }
             if (responseText.isBlank() || responseText.contains("<") || responseText.contains(" ")) return null
 
             "https://maxstream.video/emiuhi/$responseText"

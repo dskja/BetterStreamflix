@@ -80,7 +80,7 @@ object UserPreferences {
             Key.CURRENT_PROVIDER.setString(value?.name)
             runCatching {
                 ArtworkRepairScheduler.schedule(StreamFlixApp.instance, value)
-            }
+            }.onFailure { e -> Log.w("UserPreferences", "Failed to schedule artwork repair on provider change", e) }
             // Notify all ViewModels that the provider has changed
             ProviderChangeNotifier.notifyProviderChanged()
         }
@@ -183,7 +183,7 @@ object UserPreferences {
             if (value) {
                 runCatching {
                     ArtworkRepairScheduler.schedule(StreamFlixApp.instance, currentProvider)
-                }
+                }.onFailure { e -> Log.w("UserPreferences", "Failed to schedule artwork repair on TMDB enable", e) }
             }
         }
 

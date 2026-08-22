@@ -21,7 +21,7 @@ class PcloudExtractor : Extractor() {
         val service = Service.build()
         
         val responseBody = service.getPublinkDownload(code)
-        val responseString = responseBody.string()
+        val responseString = responseBody.use { it.string() }
         
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject

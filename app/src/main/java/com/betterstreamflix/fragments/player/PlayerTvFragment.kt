@@ -370,7 +370,7 @@ class PlayerTvFragment : Fragment() {
                             })
                             .build()
                         binding.settings.setOnServerSelectedListener { server ->
-                            viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                            viewModel.getVideo(state.servers.find { it.id == server.id } ?: return@setOnServerSelectedListener)
                         }
                         val preferredServer = state.servers.firstOrNull {
                             it.name.equals(args.preferredServerName, ignoreCase = true)
@@ -618,6 +618,7 @@ class PlayerTvFragment : Fragment() {
         override fun onDestroyView() {
             super.onDestroyView()
             nextEpisodePrefetchJob?.cancel()
+            if (::gestureHelper.isInitialized) gestureHelper.release()
             clearBypassSession(dismissDialog = true)
             releasePlayer()
             try {
@@ -1868,7 +1869,9 @@ class PlayerTvFragment : Fragment() {
 
     private fun isSerienStreamBypassUrl(url: String): Boolean {
         return runCatching {
-            Uri.parse(url).host.equals("serienstream.to", ignoreCase = true)
+            val host = Uri.parse(url).host
+            host.equals("serienstream.to", ignoreCase = true) ||
+                host.equals(UserPreferences.serienstreamDomain.removePrefix("https://").removePrefix("http://").trimEnd('/'), ignoreCase = true)
         }.getOrDefault(false)
     }
 

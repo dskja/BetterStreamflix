@@ -59,7 +59,8 @@ fun String.toCalendar(): Calendar? {
     )
     patterns.forEach { sdf ->
         try {
-            return Calendar.getInstance().also { it.time = sdf.parse(this)!! }
+            val parsed = sdf.parse(this) ?: return@forEach
+            return Calendar.getInstance().also { it.time = parsed }
         } catch (_: Exception) {
         }
     }
@@ -112,7 +113,7 @@ suspend fun <T> retry(retries: Int, predicate: suspend (attempt: Int) -> T): T {
             throwable = e
         }
     }
-    throw throwable!!
+    throw throwable ?: IllegalStateException("retry failed without catching an exception")
 }
 
 fun <T> Cursor.map(transform: (Cursor) -> T): List<T> {
@@ -247,7 +248,7 @@ val MediaMetadata.mediaServers: List<MediaServer>
             @Suppress("DEPRECATION")
             getParcelableArray("mediaServers")
         }
-    }?.map { it as MediaServer } ?: listOf()
+    }?.filterIsInstance<MediaServer>() ?: listOf()
 
 fun MediaMetadata.Builder.setMediaServerId(mediaServerId: String) = this
     .setExtras((this.extras ?: Bundle()).also { bundle ->

@@ -1,6 +1,7 @@
 package com.betterstreamflix.utils
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
@@ -64,6 +65,8 @@ object HomeCacheStore {
                 writeText(gson.toJson(payload))
                 setLastModified(now)
             }
+        }.onFailure { e ->
+            Log.w("HomeCacheStore", "Failed to write cache for ${provider.name}", e)
         }
     }
 

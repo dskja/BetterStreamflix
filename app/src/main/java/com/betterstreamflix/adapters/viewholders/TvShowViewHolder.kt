@@ -659,12 +659,13 @@ class TvShowViewHolder(
                 if (isIptvProvider()) {
                     handleDirectPlay(findNavController())
                 } else {
+                    val ep = episodeToWatch ?: return@setOnClickListener
                     val videoType = Video.Type.Episode(
-                        id = episodeToWatch!!.id,
-                        number = episodeToWatch.number,
-                        title = episodeToWatch.title,
-                        poster = episodeToWatch.poster,
-                        overview = episodeToWatch.overview,
+                        id = ep.id,
+                        number = ep.number,
+                        title = ep.title,
+                        poster = ep.poster,
+                        overview = ep.overview,
                         tvShow = Video.Type.Episode.TvShow(
                             id = tvShow.id,
                             title = tvShow.title,
@@ -793,12 +794,13 @@ class TvShowViewHolder(
                 if (isIptvProvider()) {
                     handleDirectPlay(findNavController())
                 } else {
+                    val ep = episodeToWatch ?: return@setOnClickListener
                     val videoType = Video.Type.Episode(
-                        id = episodeToWatch!!.id,
-                        number = episodeToWatch.number,
-                        title = episodeToWatch.title,
-                        poster = episodeToWatch.poster,
-                        overview = episodeToWatch.overview,
+                        id = ep.id,
+                        number = ep.number,
+                        title = ep.title,
+                        poster = ep.poster,
+                        overview = ep.overview,
                         tvShow = Video.Type.Episode.TvShow(
                             id = tvShow.id,
                             title = tvShow.title,

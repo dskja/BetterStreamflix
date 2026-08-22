@@ -483,31 +483,31 @@ object SoloLatinoProvider : Provider {
                             }
                             
                             addXsrfHeader(requestBuilder)
-                            var response = client.newCall(requestBuilder.build()).execute()
-                            
-                            if (response.code == 419 || response.code == 403) {
-                                response.close()
-                                // Fetch CSRF cookie
-                                val csrfReq = Request.Builder()
-                                    .url("$baseUrl/sanctum/csrf-cookie")
-                                    .build()
-                                client.newCall(csrfReq).execute().close()
-                                
-                                // Rebuild request and add new XSRF header
-                                requestBuilder = Request.Builder()
-                                    .url("$baseUrl/api/player-url")
-                                    .post(requestBody)
-                                    .header("Referer", id)
-                                    .header("X-Requested-With", "XMLHttpRequest")
-                                    .header("Content-Type", "application/json")
-                                    .header("Accept", "application/json")
-                                addXsrfHeader(requestBuilder)
-                                response = client.newCall(requestBuilder.build()).execute()
+                            var jsonText = client.newCall(requestBuilder.build()).execute().use { response ->
+                                if (response.code == 419 || response.code == 403) {
+                                    // Fetch CSRF cookie
+                                    val csrfReq = Request.Builder()
+                                        .url("$baseUrl/sanctum/csrf-cookie")
+                                        .build()
+                                    client.newCall(csrfReq).execute().close()
+
+                                    // Rebuild request and add new XSRF header
+                                    requestBuilder = Request.Builder()
+                                        .url("$baseUrl/api/player-url")
+                                        .post(requestBody)
+                                        .header("Referer", id)
+                                        .header("X-Requested-With", "XMLHttpRequest")
+                                        .header("Content-Type", "application/json")
+                                        .header("Accept", "application/json")
+                                    addXsrfHeader(requestBuilder)
+                                    client.newCall(requestBuilder.build()).execute().use { retryResponse ->
+                                        retryResponse.body?.string() ?: ""
+                                    }
+                                } else {
+                                    response.body?.string() ?: ""
+                                }
                             }
-                            
-                            val jsonText = response.body?.string() ?: ""
-                            response.close()
-                            
+
                             val jsonObject = JSONObject(jsonText)
                             val resolvedUrl = jsonObject.optString("url")
                             if (resolvedUrl.isNotEmpty()) {
@@ -529,8 +529,9 @@ object SoloLatinoProvider : Provider {
                                 .header("Referer", id)
                                 .header("X-Requested-With", "XMLHttpRequest")
                                 .build()
-                            val response = client.newCall(request).execute()
-                            val jsonText = response.body?.string() ?: ""
+                            val jsonText = client.newCall(request).execute().use { response ->
+                                response.body?.string() ?: ""
+                            }
                             val jsonObject = JSONObject(jsonText)
                             val resolvedUrl = jsonObject.optString("url")
                             if (resolvedUrl.isNotEmpty()) {

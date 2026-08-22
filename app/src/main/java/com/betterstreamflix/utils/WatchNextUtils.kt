@@ -15,7 +15,7 @@ object WatchNextUtils {
             null
         )?.use { cursor ->
             cursor.map { WatchNextProgram.fromCursor(it) }
-                .filter { it.internalProviderId == UserPreferences.currentProvider!!.name }
+                .filter { it.internalProviderId == UserPreferences.currentProvider?.name }
         } ?: listOf()
     }
 
@@ -35,7 +35,7 @@ object WatchNextUtils {
             null
         )?.use { cursor ->
             cursor.map { WatchNextProgram.fromCursor(it) }
-                .find { it.contentId == contentId && it.internalProviderId == UserPreferences.currentProvider!!.name }
+                .find { it.contentId == contentId && it.internalProviderId == UserPreferences.currentProvider?.name }
         }
     }
 

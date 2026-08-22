@@ -324,8 +324,9 @@ object PelotaLibreTvHdProvider : IptvProvider {
                     .header("Referer", currentReferer)
                     .build()
 
-                val response = client.newCall(request).execute()
-                val htmlCrudo = response.body?.string() ?: ""
+                val htmlCrudo = client.newCall(request).execute().use { response ->
+                    response.body?.string() ?: ""
+                }
                 val cleanHtml = htmlCrudo.replace("\\/", "/")
                 var htmlParaAnalizar = cleanHtml
 

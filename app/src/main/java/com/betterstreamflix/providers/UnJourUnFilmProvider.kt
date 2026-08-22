@@ -501,7 +501,7 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 if (releaseFirst.isBlank()) releaseFirst = release
                 releaseLast = release
                 val title = (season.selectFirst("span.title")?.text()?:"Saison $idx").replaceAfterLast(")","")
-                val number = title.substringAfter("Saison ").substringBefore(" ").toInt()
+                val number = title.substringAfter("Saison ").substringBefore(" ").toIntOrNull() ?: (idx + 1)
 
                 Season(
                     id = "$id/$idx",
@@ -575,7 +575,7 @@ object UnJourUnFilmProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val document = service.getTvShow(tvShowId)
 
         val season = document.selectFirst("div#seasons")
-            ?.select("div.se-c")[seasonNum.toInt()]
+            ?.select("div.se-c")?.getOrNull(seasonNum.toIntOrNull() ?: return emptyList())
 
         val defaultPoster = document.selectFirst("div.poster > img.lazyload")
             ?.attr("data-src")

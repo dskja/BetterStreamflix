@@ -194,4 +194,10 @@ class PlayerGestureHelper(
             volumeLayout.visibility = View.GONE
         }
     }
+
+    fun release() {
+        hideJob?.cancel()
+        hideJob = null
+        playerView.setOnTouchListener(null)
+    }
 }

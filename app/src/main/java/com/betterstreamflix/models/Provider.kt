@@ -13,4 +13,17 @@ open class Provider(
 
 
     override lateinit var itemType: AppAdapter.Type
+
+    fun copy(
+        name: String = this.name,
+        logo: String = this.logo,
+        language: String = this.language,
+        provider: com.betterstreamflix.providers.Provider = this.provider,
+        isFavorite: Boolean = this.isFavorite,
+        itemType: AppAdapter.Type = this.itemType,
+    ): Provider {
+        return Provider(name, logo, language, provider, isFavorite).also {
+            it.itemType = itemType
+        }
+    }
 }

@@ -64,20 +64,24 @@ object LatanimeProvider : Provider {
                 val animes2023Deferred = async { service.getPage("$baseUrl/animes?fecha=2023") }
 
                 val homeDocument = homeDeferred.await()
-                val bannerShows = homeDocument.select("div.carousel-item").map { element ->
+                val bannerShows = homeDocument.select("div.carousel-item").mapNotNull { element ->
                     val bannerUrl = element.selectFirst("img")?.attr("data-src")
+                    val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                    val title = element.selectFirst("span.span-slider")?.text() ?: return@mapNotNull null
                     TvShow(
-                        id = element.selectFirst("a")!!.attr("href"),
-                        title = element.selectFirst("span.span-slider")!!.text(),
+                        id = href,
+                        title = title,
                         banner = bannerUrl?.let { if (it.startsWith("http")) it else "$baseUrl$it" }
                     )
                 }
 
-                val recentShows = homeDocument.select("h2:contains(Añadidos recientemente) + div.row div.col-6").map { element ->
+                val recentShows = homeDocument.select("h2:contains(Añadidos recientemente) + div.row div.col-6").mapNotNull { element ->
                     val posterUrl = element.selectFirst("img")?.attr("data-src") ?: ""
+                    val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                    val title = element.selectFirst("h2.mt-3")?.text()?.substringAfter(" - ") ?: return@mapNotNull null
                     TvShow(
-                        id = element.selectFirst("a")!!.attr("href"),
-                        title = element.selectFirst("h2.mt-3")!!.text().substringAfter(" - "),
+                        id = href,
+                        title = title,
                         poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
                     )
                 }
@@ -88,11 +92,13 @@ object LatanimeProvider : Provider {
                 )
 
                 fun parseAnimesFromPage(document: Document): List<TvShow> {
-                    return document.select("div.row > div:has(a)").map {
+                    return document.select("div.row > div:has(a)").mapNotNull {
                         val posterUrl = it.selectFirst("img")?.attr("data-src") ?: it.selectFirst("img")?.attr("src") ?: ""
+                        val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                        val title = it.selectFirst("div.seriedetails > h3")?.text() ?: return@mapNotNull null
                         TvShow(
-                            id = it.selectFirst("a")!!.attr("href"),
-                            title = it.selectFirst("div.seriedetails > h3")!!.text(),
+                            id = href,
+                            title = title,
                             poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
                         )
                     }
@@ -166,11 +172,13 @@ object LatanimeProvider : Provider {
         }
         return try {
             val document = service.getPage("$baseUrl/buscar?q=$query")
-            document.select("div.row > div:has(a)").map {
-                val posterUrl = it.selectFirst("img")!!.attr("src")
+            document.select("div.row > div:has(a)").mapNotNull {
+                val posterUrl = it.selectFirst("img")?.attr("src") ?: ""
+                val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                val title = it.selectFirst("div.seriedetails > h3")?.text() ?: return@mapNotNull null
                 TvShow(
-                    id = it.selectFirst("a")!!.attr("href"),
-                    title = it.selectFirst("div.seriedetails > h3")!!.text(),
+                    id = href,
+                    title = title,
                     poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
                 )
             }
@@ -182,11 +190,13 @@ object LatanimeProvider : Provider {
     override suspend fun getMovies(page: Int): List<Movie> {
         return try {
             val document = service.getPage("$baseUrl/animes?fecha=false&genero=false&letra=false&categoria=Película&p=$page")
-            document.select("div.row > div:has(a)").map {
+            document.select("div.row > div:has(a)").mapNotNull {
                 val posterUrl = it.selectFirst("img")?.attr("data-src") ?: it.selectFirst("img")?.attr("src") ?: ""
+                val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                val title = it.selectFirst("div.seriedetails > h3")?.text() ?: return@mapNotNull null
                 Movie(
-                    id = it.selectFirst("a")!!.attr("href"),
-                    title = it.selectFirst("div.seriedetails > h3")!!.text(),
+                    id = href,
+                    title = title,
                     poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
                 )
             }
@@ -198,11 +208,13 @@ object LatanimeProvider : Provider {
     override suspend fun getTvShows(page: Int): List<TvShow> {
         return try {
             val document = service.getPage("$baseUrl/animes?p=$page")
-            document.select("div.row > div:has(a)").map {
+            document.select("div.row > div:has(a)").mapNotNull {
                 val posterUrl = it.selectFirst("img")?.attr("data-src") ?: it.selectFirst("img")?.attr("src") ?: ""
+                val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                val title = it.selectFirst("div.seriedetails > h3")?.text() ?: return@mapNotNull null
                 TvShow(
-                    id = it.selectFirst("a")!!.attr("href"),
-                    title = it.selectFirst("div.seriedetails > h3")!!.text(),
+                    id = href,
+                    title = title,
                     poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
                 )
             }
@@ -295,11 +307,13 @@ object LatanimeProvider : Provider {
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         val document = service.getPage("$baseUrl/genero/$id?p=$page")
-        val shows = document.select("div.row > div:has(a)").map {
-            val posterUrl = it.selectFirst("img")!!.attr("src")
+        val shows = document.select("div.row > div:has(a)").mapNotNull {
+            val posterUrl = it.selectFirst("img")?.attr("src") ?: ""
+            val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = it.selectFirst("div.seriedetails > h3")?.text() ?: return@mapNotNull null
             TvShow(
-                id = it.selectFirst("a")!!.attr("href"),
-                title = it.selectFirst("div.seriedetails > h3")!!.text(),
+                id = href,
+                title = title,
                 poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl"
             )
         }

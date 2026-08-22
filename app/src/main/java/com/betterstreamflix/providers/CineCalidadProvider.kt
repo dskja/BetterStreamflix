@@ -297,7 +297,7 @@ object CineCalidadProvider : Provider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val (showId, seasonNumberStr) = seasonId.split('|')
-        val seasonNumber = seasonNumberStr.toInt()
+        val seasonNumber = seasonNumberStr.toIntOrNull() ?: return emptyList()
         val document = service.getPage(showId)
 
         return document.select(".mark-1").filter {

@@ -89,7 +89,7 @@ object MStreamProvider : Provider {
     inline fun <R> JSONArray.map(transform: (JSONObject?) -> R): List<R> {
         val result = mutableListOf<R>()
         for (i in 0 until this.length()) {
-            result.add(transform(this.get(i) as JSONObject))
+            result.add(transform(this.optJSONObject(i)))
         }
         return result
     }

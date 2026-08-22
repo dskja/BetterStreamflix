@@ -613,8 +613,10 @@ object SuperStreamProvider : Provider {
     }
 
     private fun queryApi(query: Map<String, String>): Map<String, String> {
-        val encryptedQuery = CipherUtils.encrypt(JSONObject(query).toString(), key, iv)!!
-        val appKeyHash = CipherUtils.md5(appKey)!!
+        val encryptedQuery = CipherUtils.encrypt(JSONObject(query).toString(), key, iv)
+            ?: throw Exception("SuperStream: encryption failed")
+        val appKeyHash = CipherUtils.md5(appKey)
+            ?: throw Exception("SuperStream: MD5 hash failed")
 
         val newBody = JSONObject(
             mapOf(

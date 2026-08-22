@@ -95,6 +95,7 @@ class VoiceRecognitionHelper(
                     onListeningStateChanged(false)
                     isListening = false
 
+                    if (!fragment.isAdded) return
                     val msg = when (error) {
                         SpeechRecognizer.ERROR_NO_MATCH -> fragment.getString(R.string.voice_error_no_match)
                         SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> fragment.getString(R.string.voice_error_timeout)
@@ -110,6 +111,7 @@ class VoiceRecognitionHelper(
                     onListeningStateChanged(false)
                     isListening = false
 
+                    if (!fragment.isAdded) return
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val query = matches?.firstOrNull()?.trim()
                     if (!query.isNullOrEmpty()) {

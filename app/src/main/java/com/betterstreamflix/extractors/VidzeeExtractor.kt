@@ -75,10 +75,11 @@ class VidzeeExtractor : Extractor() {
                 .header("Referer", "$mainUrl/")
                 .build()
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) throw Exception("Network error")
-
-            val body = response.body?.string() ?: throw Exception("Empty body")
+            val (isSuccessful, body) = client.newCall(request).execute().use { response ->
+                response.isSuccessful to (response.body?.string())
+            }
+            if (!isSuccessful) throw Exception("Network error")
+            if (body.isNullOrEmpty()) throw Exception("Empty body")
             val json = JSONObject(body)
             val urlArray = json.optJSONArray("url") ?: throw Exception("No URLs found")
             if (urlArray.length() == 0) throw Exception("Empty URL array")
@@ -132,10 +133,10 @@ class VidzeeExtractor : Extractor() {
                 .header("Referer", "$mainUrl/")
                 .build()
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return null
-
-            val b64Data = response.body?.string() ?: return null
+            val b64Data = client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                response.body?.string()
+            } ?: return null
             val data = Base64.decode(b64Data, Base64.DEFAULT)
 
             val iv = data.sliceArray(0 until 12)

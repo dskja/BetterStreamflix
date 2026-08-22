@@ -255,9 +255,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.text = null
                     Toast.makeText(requireContext(), getString(R.string.settings_streamingcommunity_domain_blocked), Toast.LENGTH_LONG).show()
                 }
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                val provider = UserPreferences.currentProvider as? StreamingCommunityProvider
+                if (provider != null) {
                     viewLifecycleOwner.lifecycleScope.launch {
-                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        provider.rebuildService()
                         requireActivity().apply {
                             finish()
                             startActivity(Intent(this, this::class.java))
@@ -275,9 +276,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 text = null
             }
             Toast.makeText(requireContext(), getString(R.string.settings_streamingcommunity_domain_reset_done), Toast.LENGTH_SHORT).show()
-            if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+            val provider = UserPreferences.currentProvider as? StreamingCommunityProvider
+            if (provider != null) {
                 viewLifecycleOwner.lifecycleScope.launch {
-                    (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                    provider.rebuildService()
                     requireActivity().apply {
                         finish()
                         startActivity(Intent(this, this::class.java))
@@ -599,7 +601,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 if (isVisible) {
                     autoUpdateVal = UserPreferences
                         .getProviderCache(
-                            provider!!, UserPreferences
+                            provider ?: return@apply, UserPreferences
                                 .PROVIDER_AUTOUPDATE
                         ) != "false"
                     isChecked = autoUpdateVal
@@ -713,9 +715,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                         preference.summary = null
                     }
                 }
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                val provider = UserPreferences.currentProvider as? StreamingCommunityProvider
+                if (provider != null) {
                     viewLifecycleOwner.lifecycleScope.launch {
-                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        provider.rebuildService()
                         requireActivity().apply {
                             finish()
                             startActivity(Intent(this, this::class.java))

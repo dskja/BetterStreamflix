@@ -551,6 +551,7 @@ class PlayerMobileFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         nextEpisodePrefetchJob?.cancel()
+        if (::gestureHelper.isInitialized) gestureHelper.release()
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
@@ -1575,7 +1576,9 @@ class PlayerMobileFragment : Fragment() {
 
     private fun isSerienStreamBypassUrl(url: String): Boolean {
         return runCatching {
-            Uri.parse(url).host.equals("serienstream.to", ignoreCase = true)
+            val host = Uri.parse(url).host
+            host.equals("serienstream.to", ignoreCase = true) ||
+                host.equals(UserPreferences.serienstreamDomain.removePrefix("https://").removePrefix("http://").trimEnd('/'), ignoreCase = true)
         }.getOrDefault(false)
     }
 

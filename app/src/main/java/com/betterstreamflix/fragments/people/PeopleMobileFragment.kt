@@ -192,6 +192,7 @@ class PeopleMobileFragment : Fragment() {
                     }
 
                     binding.tvPeopleBiography.post {
+                        if (_binding == null) return@post
                         visibility = when {
                             binding.tvPeopleBiography.lineCount > 7 -> View.VISIBLE
                             else -> View.GONE

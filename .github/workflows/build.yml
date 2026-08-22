@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build APKs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,11 +34,29 @@ jobs:
           echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
           echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
 
-      - name: Build universal debug APK
+      - name: Decode signing keystore
+        if: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > $HOME/signing-keystore.jks
+          echo "SIGNING_KEYSTORE_PATH=$HOME/signing-keystore.jks" >> $GITHUB_ENV
+          echo "SIGNING_STORE_PASSWORD=${{ secrets.SIGNING_STORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "SIGNING_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "SIGNING_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload universal debug APK
+      - name: Build release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: BetterStreamflix-debug-universal
+          name: BetterStreamflix-debug
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterStreamflix-release
+          path: app/build/outputs/apk/release/*.apk

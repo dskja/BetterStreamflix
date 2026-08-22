@@ -89,6 +89,8 @@ object UserDataCache {
                 parentFile?.mkdirs()
                 writeText(gson.toJson(normalizedData))
             }
+        }.onFailure { e ->
+            Log.w("UserDataCache", "Failed to write cache to disk", e)
         }
 
         UserDataNotifier.notifyChanged()

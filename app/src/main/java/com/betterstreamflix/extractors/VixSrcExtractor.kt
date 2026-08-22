@@ -129,7 +129,7 @@ class VixSrcExtractor : Extractor() {
             
             client.newCall(request).execute().use { response ->
                 if (response.isSuccessful && response.body != null) {
-                    var playlistContent = response.body!!.string()
+                    var playlistContent = response.body?.string() ?: return@use
                     val langCode = providerLang
                     val baseUri = response.request.url
                     
