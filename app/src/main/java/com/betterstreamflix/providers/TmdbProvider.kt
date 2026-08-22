@@ -881,8 +881,9 @@ class TmdbProvider(override val language: String) : Provider {
         val url = server.src.ifEmpty { server.id }
         Log.i("StreamFlixES", "[SERVER] -> Using: ${server.name} (URL: $url)")
         
+        val serverVideo = server.video
         val video = when {
-            server.video != null -> server.video
+            serverVideo != null -> serverVideo
             else -> Extractor.extract(url, server)
         }
 
