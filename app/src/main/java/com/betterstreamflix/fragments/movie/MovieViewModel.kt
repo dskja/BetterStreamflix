@@ -97,7 +97,7 @@ class MovieViewModel(id: String, private val database: AppDatabase) : ViewModel(
         _state.emit(State.Loading)
 
         try {
-            val movie = UserPreferences.currentProvider?.getMovie(id) ?: run { _state.emit(State.Failed); return@launch }
+            val movie = UserPreferences.currentProvider?.getMovie(id) ?: run { _state.emit(State.FailedLoading(NullPointerException("Provider returned null"))); return@launch }
 
             database.movieDao().getById(id)?.let { movieDb ->
                 movie.merge(movieDb)

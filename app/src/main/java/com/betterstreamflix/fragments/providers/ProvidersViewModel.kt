@@ -38,7 +38,7 @@ class ProvidersViewModel : ViewModel() {
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-        applyFilters()
+        viewModelScope.launch { applyFilters() }
     }
 
     fun setLanguageFilter(language: String?) {

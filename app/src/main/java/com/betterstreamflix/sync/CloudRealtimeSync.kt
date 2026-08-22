@@ -55,22 +55,18 @@ object CloudRealtimeSync {
 
             val newCollector = changes
                 .onEach { action ->
-                    val state = when (action) {
-                        is PostgresAction.Insert ->
-                            action.decodeRecordOrNull<RemoteMediaState>()
-                        is PostgresAction.Update ->
-                            action.decodeRecordOrNull<RemoteMediaState>()
-                        is PostgresAction.Delete ->
-                            action.decodeRecordOrNull<RemoteMediaState>()
-                        else -> null
-                    }
-                    if (state != null) {
-                        when (action) {
-                            is PostgresAction.Delete ->
+                    when (action) {
+                        is PostgresAction.Delete -> {
+                            action.oldRecord?.decodeRecordOrNull<RemoteMediaState>()?.let { state ->
                                 CloudSyncManager.deleteRealtimeState(appContext, state)
-                            else ->
-                                CloudSyncManager.applyRealtimeState(appContext, state)
+                            }
                         }
+                        is PostgresAction.Insert, is PostgresAction.Update -> {
+                            action.decodeRecordOrNull<RemoteMediaState>()?.let { state ->
+                                CloudSyncManager.applyRealtimeState(appContext, state)
+                            }
+                        }
+                        else -> {}
                     }
                 }
                 .catch { error ->

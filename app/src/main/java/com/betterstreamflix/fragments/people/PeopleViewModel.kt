@@ -97,7 +97,7 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
         _state.emit(State.Loading)
 
         try {
-            val people = UserPreferences.currentProvider?.getPeople(id) ?: run { _state.emit(State.Failed); return@launch }
+            val people = UserPreferences.currentProvider?.getPeople(id) ?: run { _state.emit(State.FailedLoading(NullPointerException("Provider returned null"))); return@launch }
 
             page = 1
 
