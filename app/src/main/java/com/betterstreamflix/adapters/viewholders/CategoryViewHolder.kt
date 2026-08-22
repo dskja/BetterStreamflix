@@ -42,6 +42,7 @@ class CategoryViewHolder(
 
     private val context = itemView.context
     private lateinit var category: Category
+    private val swiperHandler = Handler(Looper.getMainLooper())
 
     val childRecyclerView: RecyclerView?
         get() = when (_binding) {
@@ -54,6 +55,10 @@ class CategoryViewHolder(
                 }
             else -> null
         }
+
+    fun clearSwiperCallbacks() {
+        swiperHandler.removeCallbacksAndMessages(null)
+    }
 
     fun bind(
         category: Category,
@@ -131,9 +136,12 @@ class CategoryViewHolder(
         onTvShowLongClick: ((TvShow) -> Unit)?,
     ) {
         binding.tvCategoryTitle.text = category.name
-        val handler = Handler(Looper.getMainLooper())
-        handler.postDelayed(8_000) {
-            binding.vpCategorySwiper.currentItem += 1
+        val swiper = binding.vpCategorySwiper
+        swiperHandler.removeCallbacksAndMessages(null)
+        swiperHandler.postDelayed(8_000) {
+            if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                swiper.currentItem += 1
+            }
         }
 
         val items = listOf(
@@ -176,9 +184,11 @@ class CategoryViewHolder(
                     view.isSelected = (indicatorPosition == index)
                 }
 
-                handler.removeCallbacksAndMessages(null)
-                handler.postDelayed(8_000) {
-                    binding.vpCategorySwiper.currentItem += 1
+                swiperHandler.removeCallbacksAndMessages(null)
+                swiperHandler.postDelayed(8_000) {
+                    if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                        binding.vpCategorySwiper.currentItem += 1
+                    }
                 }
             }
 

@@ -55,14 +55,12 @@ object Cine24hProvider : Provider {
                 .header("Referer", baseUrl)
                 .build()
             
-            val response = client.newCall(request).execute()
-            
-            if (response.isSuccessful) {
-                val html = response.body?.string() ?: ""
-                // Se non c'è traccia di Cloudflare, procediamo con OkHttp (veloce)
-                if (!html.contains("cf-browser-verification") && !html.contains("Checking your browser") && !html.contains("Just a moment...")) {
-                    return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
-                }
+            val html = client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) response.body?.string() ?: "" else ""
+            }
+            // Se non c'è traccia di Cloudflare, procediamo con OkHttp (veloce)
+            if (html.isNotEmpty() && !html.contains("cf-browser-verification") && !html.contains("Checking your browser") && !html.contains("Just a moment...")) {
+                return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
             }
         } catch (_: Exception) { }
 
@@ -193,8 +191,9 @@ object Cine24hProvider : Provider {
 
     private suspend fun getIframeOptimized(url: String): String? {
         try {
-            val response = NetworkClient.default.newCall(Request.Builder().url(url).build()).execute()
-            val body = response.body?.string() ?: ""
+            val body = NetworkClient.default.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                response.body?.string() ?: ""
+            }
             if (body.contains("iframe")) {
                 val iframeUrl = Jsoup.parse(body).selectFirst("iframe")?.attr("abs:src")
                 if (!iframeUrl.isNullOrEmpty()) {

@@ -59,7 +59,7 @@ open class VeevExtractor : Extractor() {
             }
         }
 
-        val responseBody = response.body()?.string() ?: throw Exception("Empty response from Veev")
+        val responseBody = response.body()?.use { it.string() } ?: throw Exception("Empty response from Veev")
         val itemsRegex = Regex("""[\.\s'](?:fc|_vvto\[[^\]]*)(?:['\]]*)?\s*[:=]\s*['"]([^'"]+)""")
         val items = itemsRegex.findAll(responseBody).map { it.groupValues[1] }.toList()
 
@@ -81,7 +81,7 @@ open class VeevExtractor : Extractor() {
                     )
                     val mainLink = URL(link).protocol + "://" + URL(link).host
                     val downloadUrl = "$mainLink/dl?" + params.map { "${it.key}=${it.value}" }.joinToString("&")
-                    val jsonResponse = service.getWithHeaders(downloadUrl, referer, DEFAULT_USER_AGENT, mainUrl).body()?.string()
+                    val jsonResponse = service.getWithHeaders(downloadUrl, referer, DEFAULT_USER_AGENT, mainUrl).body()?.use { it.string() }
                         ?: throw Exception("Empty JSON response from Veev")
 
                     val fileJson = JSONObject(jsonResponse).optJSONObject("file")

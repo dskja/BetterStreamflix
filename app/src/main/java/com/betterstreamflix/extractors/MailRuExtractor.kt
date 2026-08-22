@@ -24,10 +24,11 @@ class MailRuExtractor : Extractor() {
                 .url(metaUrl)
                 .build()
             
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string()
-            
-            if (!response.isSuccessful || responseBody.isNullOrEmpty()) {
+            val (isSuccessful, responseBody) = client.newCall(request).execute().use { response ->
+                response.isSuccessful to response.body?.string()
+            }
+
+            if (!isSuccessful || responseBody.isNullOrEmpty()) {
                 throw Exception("Failed to fetch video metadata")
             }
             

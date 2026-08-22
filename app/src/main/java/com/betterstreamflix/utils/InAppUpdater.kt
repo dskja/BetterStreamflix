@@ -3,6 +3,7 @@ package com.betterstreamflix.utils
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import com.betterstreamflix.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -104,7 +105,7 @@ object InAppUpdater {
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             intent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             val filePath = uri.path ?: run {
-                android.util.Log.e("InAppUpdater", "URI path is null: $uri")
+                Log.e("InAppUpdater", "URI path is null: $uri")
                 return
             }
             intent.data = FileProvider.getUriForFile(

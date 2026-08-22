@@ -618,6 +618,7 @@ class WebViewResolver(private val context: Context) {
     }
 
     private fun cleanup() {
+        mainHandler.removeCallbacksAndMessages(null)
         val action: () -> Unit = {
             try {
                 deferredLoadUrl = null

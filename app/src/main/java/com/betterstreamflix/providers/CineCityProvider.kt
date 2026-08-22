@@ -24,7 +24,7 @@ object CineCityProvider : IptvProvider {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .cookieJar(object : CookieJar {
-            private val cookieStore = mutableMapOf<String, List<Cookie>>()
+            private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<Cookie>>()
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
                 cookieStore[url.host] = cookies
             }
@@ -82,14 +82,14 @@ object CineCityProvider : IptvProvider {
 
     private fun getAllChannels(): List<M3UChannel> {
         val now = System.currentTimeMillis()
-        if (cachedChannels != null && (now - lastFetchTime) < CACHE_DURATION) return cachedChannels!!
+        if (cachedChannels != null && (now - lastFetchTime) < CACHE_DURATION) return cachedChannels ?: emptyList()
 
         return try {
             val decodedUrl = String(Base64.decode(OBFUSCATED_PLAYLIST, Base64.DEFAULT))
             Log.d(TAG, "🗺️ Obteniendo lista desde origen seguro.")
 
             val request = Request.Builder().url(decodedUrl).build()
-            val body = client.newCall(request).execute().body?.string() ?: return emptyList()
+            val body = client.newCall(request).execute().use { it.body?.string() } ?: return emptyList()
             val channels = parseM3U(body)
             cachedChannels = channels
             lastFetchTime = now
@@ -105,8 +105,8 @@ object CineCityProvider : IptvProvider {
         val categories = mutableListOf<Category>()
 
         val channelCategories = channels
-            .filter { it.group != null && it.group.isNotEmpty() }
-            .groupBy { it.group!! }
+            .filter { !it.group.isNullOrEmpty() }
+            .groupBy { it.group ?: "" }
             .map { (groupName, channelList) ->
                 Category(
                     name = groupName,
@@ -194,35 +194,35 @@ object CineCityProvider : IptvProvider {
                 .apply { videoHeaders.forEach { (k, v) -> addHeader(k, v) } }
                 .build()
 
-            val response = client.newCall(checkRequest).execute()
-            var isAlive = response.isSuccessful
+            var isAlive = false
+            client.newCall(checkRequest).execute().use { response ->
+                isAlive = response.isSuccessful
 
-
-            if (isAlive) {
-                val contentType = response.header("Content-Type") ?: ""
-                if (contentType.contains("text/html", ignoreCase = true)) {
-                    isAlive = false
-                    Log.e(TAG, "🔴 Falso Positivo: El servidor devolvió una página web (HTML), no un video.")
-                } else if (url.contains(".mpd") || url.contains(".m3u8")) {
-                    // Aumentamos la visión a 15KB para escanear en profundidad sin descargar todo el archivo
-                    val peekBody = response.peekBody(15360).string()
-
-                    if (url.contains(".mpd")) {
-                        if (!peekBody.contains("<MPD", ignoreCase = true)) {
-                            isAlive = false
-                            Log.e(TAG, "🔴 MPD Falso: No contiene etiqueta XML.")
-                        } else if (peekBody.contains("ContentProtection", ignoreCase = true) || peekBody.contains("cenc:pssh", ignoreCase = true)) {
-                            // ☠️ AQUÍ ATRAPAMOS AL CULPABLE DE TUS CRASHES
-                            isAlive = false
-                            Log.e(TAG, "🔴 ALERTA DRM: MPD Encriptado detectado. ExoPlayer crashearía sin llaves. ¡Activando Salvavidas!")
-                        }
-                    } else if (url.contains(".m3u8") && !peekBody.contains("#EXTM3U", ignoreCase = true)) {
+                if (isAlive) {
+                    val contentType = response.header("Content-Type") ?: ""
+                    if (contentType.contains("text/html", ignoreCase = true)) {
                         isAlive = false
-                        Log.e(TAG, "🔴 M3U8 Falso: No contiene la cabecera válida.")
+                        Log.e(TAG, "🔴 Falso Positivo: El servidor devolvió una página web (HTML), no un video.")
+                    } else if (url.contains(".mpd") || url.contains(".m3u8")) {
+                        // Aumentamos la visión a 15KB para escanear en profundidad sin descargar todo el archivo
+                        val peekBody = response.peekBody(15360).string()
+
+                        if (url.contains(".mpd")) {
+                            if (!peekBody.contains("<MPD", ignoreCase = true)) {
+                                isAlive = false
+                                Log.e(TAG, "🔴 MPD Falso: No contiene etiqueta XML.")
+                            } else if (peekBody.contains("ContentProtection", ignoreCase = true) || peekBody.contains("cenc:pssh", ignoreCase = true)) {
+                                // ☠️ AQUÍ ATRAPAMOS AL CULPABLE DE TUS CRASHES
+                                isAlive = false
+                                Log.e(TAG, "🔴 ALERTA DRM: MPD Encriptado detectado. ExoPlayer crashearía sin llaves. ¡Activando Salvavidas!")
+                            }
+                        } else if (url.contains(".m3u8") && !peekBody.contains("#EXTM3U", ignoreCase = true)) {
+                            isAlive = false
+                            Log.e(TAG, "🔴 M3U8 Falso: No contiene la cabecera válida.")
+                        }
                     }
                 }
             }
-            response.close()
 
             if (isAlive) {
                 Log.d(TAG, "🟢 Explorador OK. Limpio de DRM. Enviando al reproductor.")

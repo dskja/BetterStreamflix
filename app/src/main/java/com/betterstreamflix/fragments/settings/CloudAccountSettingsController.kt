@@ -203,11 +203,13 @@ object CloudAccountSettingsController {
                 }
                 dialog.dismiss()
                 refresh()
-                Toast.makeText(
-                    fragment.requireContext(),
-                    resultMessage,
-                    Toast.LENGTH_LONG,
-                ).show()
+                if (fragment.isAdded) {
+                    Toast.makeText(
+                        fragment.requireContext(),
+                        resultMessage,
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Throwable) {
@@ -224,6 +226,7 @@ object CloudAccountSettingsController {
         message: TextView,
         progress: CloudSyncProgress,
     ) {
+        if (!fragment.isAdded) return
         when (progress.stage) {
             CloudSyncProgress.Stage.AUTHENTICATING -> {
                 progressBar.isIndeterminate = true
@@ -276,7 +279,9 @@ object CloudAccountSettingsController {
             runCatching { action() }
                 .onSuccess { message ->
                     refresh()
-                    Toast.makeText(fragment.requireContext(), message, Toast.LENGTH_LONG).show()
+                    if (fragment.isAdded) {
+                        Toast.makeText(fragment.requireContext(), message, Toast.LENGTH_LONG).show()
+                    }
                 }
                 .onFailure { error ->
                     showError(fragment, error)
@@ -285,6 +290,7 @@ object CloudAccountSettingsController {
     }
 
     private fun showError(fragment: Fragment, error: Throwable) {
+        if (!fragment.isAdded) return
         val message = when (error) {
             is RestException -> when {
                 error.message?.contains("Invalid login credentials", true) == true ->

@@ -17,7 +17,7 @@ class PlaylistUtils(private val client: OkHttpClient) {
             if (referer != null) {
                 request.header("Referer", referer)
             }
-            client.newCall(request.build()).execute().body?.string() ?: ""
+            client.newCall(request.build()).execute().use { it.body?.string() } ?: ""
         } catch (e: Exception) {
             // Si la URL principal ya es un video, devuélvelo directamente
             return listOf(Video(source = playlistUrl, subtitles = emptyList(), type = MimeTypes.APPLICATION_M3U8))

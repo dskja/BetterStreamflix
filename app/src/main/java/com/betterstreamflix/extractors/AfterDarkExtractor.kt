@@ -65,8 +65,9 @@ class AfterDarkExtractor( var newUrl: String = "" ) : Extractor() {
                     .header("x-tsr-serverfn", "true")
                     .build()
 
-                val response = client.newCall(request).execute()
-                val body = response.body?.string() ?: continue
+                val body = client.newCall(request).execute().use { response ->
+                    response.body?.string()
+                } ?: continue
                 
                 if (body.contains("\"error\":") && body.contains("\"details\":")) continue
 

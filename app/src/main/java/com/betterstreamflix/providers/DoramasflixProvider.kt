@@ -312,7 +312,7 @@ object DoramasflixProvider : Provider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val doramaId = seasonId.substringBefore("/")
-        val seasonNumber = seasonId.substringAfter("/").toInt()
+        val seasonNumber = seasonId.substringAfter("/").toIntOrNull() ?: return emptyList()
 
         val episodeQuery = """
             {"operationName":"listEpisodes","variables":{"serie_id":"$doramaId","season_number":$seasonNumber},"query":"query listEpisodes(${'$'}season_number: Float!, ${'$'}serie_id: MongoID!) {\n  listEpisodes(sort: NUMBER_ASC, filter: {type_serie: \"dorama\", serie_id: ${'$'}serie_id, season_number: ${'$'}season_number}) {\n    _id\n    name\n    slug\n    episode_number\n    season_number\n    still_path\n    __typename\n  }\n}\n"}

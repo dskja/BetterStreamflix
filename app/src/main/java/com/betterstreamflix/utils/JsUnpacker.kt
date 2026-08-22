@@ -14,9 +14,9 @@ class JsUnpacker(packedJS: String?) {
      * @return true if it's P.A.C.K.E.R. coded.
      */
     fun detect(): Boolean {
-        val js = packedJS!!.replace(" ", "")
+        val js = packedJS ?: return false
         val p = Pattern.compile("eval\\(function\\(p,a,c,k,e,[rd]")
-        val m = p.matcher(js)
+        val m = p.matcher(js.replace(" ", ""))
         return m.find()
     }
 
@@ -26,7 +26,7 @@ class JsUnpacker(packedJS: String?) {
      * @return the javascript unpacked or null.
      */
     fun unpack(): String? {
-        val js = packedJS
+        val js = packedJS ?: return null
         try {
             var p =
                 Pattern.compile(
@@ -91,11 +91,11 @@ class JsUnpacker(packedJS: String?) {
         fun unbase(str: String): Int {
             var ret = 0
             if (alphabet == null) {
-                ret = str.toInt(radix)
+                ret = str.toIntOrNull(radix) ?: 0
             } else {
                 val tmp = StringBuilder(str).reverse().toString()
                 for (i in tmp.indices) {
-                    ret += (radix.toDouble().pow(i.toDouble()) * dictionary!![tmp.substring(i, i + 1)]!!).toInt()
+                    ret += (radix.toDouble().pow(i.toDouble()) * (dictionary?.get(tmp.substring(i, i + 1)) ?: 0)).toInt()
                 }
             }
             return ret
@@ -118,8 +118,9 @@ class JsUnpacker(packedJS: String?) {
                     }
                 }
                 dictionary = HashMap(95)
-                for (i in 0 until alphabet!!.length) {
-                    dictionary!![alphabet!!.substring(i, i + 1)] = i
+                val alpha = alphabet ?: return
+                for (i in 0 until alpha.length) {
+                    dictionary?.set(alpha.substring(i, i + 1), i)
                 }
             }
         }

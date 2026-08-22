@@ -115,7 +115,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         _state.emit(State.Searching)
 
         try {
-            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
+            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider?.search(query) ?: run { _state.emit(State.FailedSearching(Exception("No provider selected"))); return@launch })
             this@SearchViewModel.query = query
             page = 1
             _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
@@ -131,7 +131,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
             _state.emit(State.SearchingMore)
             try {
                 val results = ParentalControlUtils.filterItems(
-                    UserPreferences.currentProvider!!.search(query, page + 1)
+                    UserPreferences.currentProvider?.search(query, page + 1) ?: return@launch
                 )
                 val existingKeys = currentState.results
                     .asSequence()

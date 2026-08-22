@@ -34,28 +34,20 @@ class ProviderViewHolder(
         }
     }
 
-
     private fun displayMobileItem(binding: ItemProviderMobileBinding) {
         binding.root.apply {
             setOnClickListener {
-                UserPreferences.currentProvider = provider.provider
-                context.toActivity()?.apply {
-                    startActivity(
-                        Intent(this, this::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        }
-                    )
-                    finish()
-                }
-            }
-            setOnLongClickListener {
-                toggleFavorite(provider)
-                binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
-                true
+                selectProvider()
             }
         }
-        
-        binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
+
+        binding.ivProviderFavorite.apply {
+            updateFavoriteIcon(binding.ivProviderFavorite, provider.isFavorite)
+            setOnClickListener {
+                toggleFavorite()
+                updateFavoriteIcon(binding.ivProviderFavorite, provider.isFavorite)
+            }
+        }
 
         loadProviderLogo(binding.ivProviderLogo)
 
@@ -69,24 +61,17 @@ class ProviderViewHolder(
     private fun displayTvItem(binding: ItemProviderTvBinding) {
         binding.root.apply {
             setOnClickListener {
-                UserPreferences.currentProvider = provider.provider
-                context.toActivity()?.apply {
-                    startActivity(
-                        Intent(this, this::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        }
-                    )
-                    finish()
-                }
-            }
-            setOnLongClickListener {
-                toggleFavorite(provider)
-                binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
-                true
+                selectProvider()
             }
         }
-        
-        binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
+
+        binding.ivProviderFavorite.apply {
+            updateFavoriteIcon(binding.ivProviderFavorite, provider.isFavorite)
+            setOnClickListener {
+                toggleFavorite()
+                updateFavoriteIcon(binding.ivProviderFavorite, provider.isFavorite)
+            }
+        }
 
         loadProviderLogo(binding.ivProviderLogo)
 
@@ -95,6 +80,39 @@ class ProviderViewHolder(
         binding.tvProviderLanguage.text = Locale.forLanguageTag(provider.language)
             .let { it.getDisplayLanguage(it) }
             .replaceFirstChar { it.titlecase() }
+    }
+
+    private fun selectProvider() {
+        UserPreferences.currentProvider = provider.provider
+        context.toActivity()?.apply {
+            startActivity(
+                Intent(this, this::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                }
+            )
+            finish()
+        }
+    }
+
+    private fun toggleFavorite() {
+        provider.isFavorite = !provider.isFavorite
+        val favorites = UserPreferences.favoriteProviders.toMutableSet()
+        if (provider.isFavorite) {
+            favorites.add(provider.name)
+        } else {
+            favorites.remove(provider.name)
+        }
+        UserPreferences.favoriteProviders = favorites
+    }
+
+    private fun updateFavoriteIcon(imageView: ImageView, isFavorite: Boolean) {
+        if (isFavorite) {
+            imageView.setImageResource(R.drawable.ic_favorite_enable)
+            imageView.setColorFilter(context.getColor(R.color.favorite_selected))
+        } else {
+            imageView.setImageResource(R.drawable.ic_favorite_disable)
+            imageView.setColorFilter(0xFF666666.toInt())
+        }
     }
 
     private fun loadProviderLogo(imageView: ImageView) {
@@ -117,16 +135,5 @@ class ProviderViewHolder(
                 .transition(DrawableTransitionOptions.withCrossFade())
                 .into(imageView)
         }
-    }
-    
-    private fun toggleFavorite(provider: Provider) {
-        provider.isFavorite = !provider.isFavorite
-        val favorites = UserPreferences.favoriteProviders.toMutableSet()
-        if (provider.isFavorite) {
-            favorites.add(provider.name)
-        } else {
-            favorites.remove(provider.name)
-        }
-        UserPreferences.favoriteProviders = favorites
     }
 }

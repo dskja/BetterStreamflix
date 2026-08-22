@@ -290,7 +290,7 @@ open class RabbitstreamExtractor : Extractor() {
                     fun decryptSourceUrl(decryptionKey: ByteArray, sourceUrl: String): String {
                         val cipherData = Base64.decode(sourceUrl, Base64.DEFAULT)
                         val encrypted = cipherData.copyOfRange(16, cipherData.size)
-                        val aesCBC = Cipher.getInstance("AES/CBC/PKCS5Padding")!!
+                        val aesCBC = Cipher.getInstance("AES/CBC/PKCS5Padding")
 
                         aesCBC.init(
                             Cipher.DECRYPT_MODE,

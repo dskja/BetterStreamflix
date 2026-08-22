@@ -34,15 +34,18 @@ class VixcloudExtractor(
             .build()
 
         private val retrofitCache = mutableMapOf<String, VixcloudExtractorService>()
+        private val cacheLock = Any()
 
         private fun getService(baseUrl: String): VixcloudExtractorService {
-            return retrofitCache.getOrPut(baseUrl) {
-                Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(JsoupConverterFactory.create())
-                    .client(client)
-                    .build()
-                    .create(VixcloudExtractorService::class.java)
+            synchronized(cacheLock) {
+                return retrofitCache.getOrPut(baseUrl) {
+                    Retrofit.Builder()
+                        .baseUrl(baseUrl)
+                        .addConverterFactory(JsoupConverterFactory.create())
+                        .client(client)
+                        .build()
+                        .create(VixcloudExtractorService::class.java)
+                }
             }
         }
     }
@@ -186,7 +189,7 @@ class VixcloudExtractor(
                 val request = Request.Builder().url(finalUrl).headers(headersBuilder.build()).build()
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful && response.body != null) {
-                        var playlistContent = response.body!!.string()
+                        var playlistContent = response.body?.string() ?: return@use
                         val langCode = preferredLanguage
                         val altLangCode = if (langCode == "en") "eng" else if (langCode == "it") "ita" else langCode
                         val baseUri = response.request.url

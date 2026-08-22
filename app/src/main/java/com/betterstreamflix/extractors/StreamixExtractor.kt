@@ -31,7 +31,7 @@ class StreamixExtractor : Extractor() {
         val responseBody = service.getStream(
             fileCode = fileCode
         )
-        val responseString = responseBody.string()
+        val responseString = responseBody.use { it.string() }
         
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject

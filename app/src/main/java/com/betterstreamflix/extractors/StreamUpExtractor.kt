@@ -28,7 +28,7 @@ class StreamUpExtractor : Extractor() {
             fileCode = fileCode,
             referer = "$mainUrl/v/$fileCode"
         )
-        val responseString = responseBody.string()
+        val responseString = responseBody.use { it.string() }
         
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject

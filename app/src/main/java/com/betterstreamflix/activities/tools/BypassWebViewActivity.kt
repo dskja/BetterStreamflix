@@ -245,7 +245,10 @@ class BypassWebViewActivity : AppCompatActivity() {
 
     private fun isAllowedBypassHost(url: String): Boolean {
         val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
+        val configuredDomain = UserPreferences.serienstreamDomain
+            .removePrefix("https://").removePrefix("http://").trimEnd('/')
         return host.equals("serienstream.to", ignoreCase = true) ||
+            host.equals(configuredDomain, ignoreCase = true) ||
             host.equals("challenges.cloudflare.com", ignoreCase = true)
     }
 }

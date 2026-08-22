@@ -922,8 +922,8 @@ object AnimeUnityProvider : Provider {
             val (animeId, startRange, endRange) = if (hasRange) {
                 val animeIdParts = parts.dropLast(2)
                 val animeIdStr = animeIdParts.joinToString("-")
-                val start = parts[parts.size - 2].toInt()
-                val end = parts[parts.size - 1].toInt()
+                val start = parts[parts.size - 2].toIntOrNull() ?: return@try emptyList()
+                val end = parts[parts.size - 1].toIntOrNull() ?: return@try emptyList()
                 Triple(animeIdStr, start, end)
             } else {
                 Triple(seasonId, null, null)

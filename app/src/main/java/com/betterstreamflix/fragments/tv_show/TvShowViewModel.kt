@@ -227,7 +227,7 @@ class TvShowViewModel(
         _state.emit(State.Loading)
 
         try {
-            val tvShow = UserPreferences.currentProvider!!.getTvShow(id)
+            val tvShow = UserPreferences.currentProvider?.getTvShow(id) ?: run { _state.emit(State.Failed); return@launch }
 
             if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.poster) && ArtworkRepair.isRemoteArtworkUrl(fallbackPoster)) {
                 tvShow.poster = fallbackPoster
@@ -264,7 +264,7 @@ class TvShowViewModel(
         _seasonState.emit(SeasonState.Loading)
 
         try {
-            val episodes = UserPreferences.currentProvider!!.getEpisodesBySeason(season.id)
+            val episodes = UserPreferences.currentProvider?.getEpisodesBySeason(season.id) ?: run { _seasonState.emit(SeasonState.Failed); return@launch }
             val ids = episodes.map { it.id }
             val episodeMap = episodes.associateBy { it.id }
 

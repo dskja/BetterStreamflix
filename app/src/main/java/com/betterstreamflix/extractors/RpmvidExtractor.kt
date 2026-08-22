@@ -113,7 +113,7 @@ class RpmvidExtractor : Extractor() {
                 "$mainLink$tiktokPath$query" to mapOf("Referer" to mainLink)
             }
 
-            !cfPath.isNullOrEmpty() && !cfPath!!.contains("skyforgeconcepts.shop") -> {
+            !cfPath.isNullOrEmpty() && !cfPath.contains("skyforgeconcepts.shop") -> {
 
                 val pk = json.getAsJsonObject("pk")
                 val k = pk?.get("k")?.takeIf { !it.isJsonNull }?.asString
@@ -128,7 +128,7 @@ class RpmvidExtractor : Extractor() {
                     }
                 }
                 
-                if (cfPath != null && cfPath!!.contains("?")) {
+                if (cfPath != null && cfPath.contains("?")) {
                     val uri = android.net.Uri.parse(cfPath)
                     TokenManager.latestQuery = uri.encodedQuery
                     maintainToken = true

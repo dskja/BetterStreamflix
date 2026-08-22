@@ -34,7 +34,7 @@ class DailymotionExtractor : Extractor() {
             viewId = List(19) { (('a'..'z') + ('0'..'9')).random() }.joinToString("")
         )
 
-        val json = JsonParser.parseString(response.string()).asJsonObject
+        val json = JsonParser.parseString(response.use { it.string() }).asJsonObject
         val manifestUrl = json.getAsJsonObject("qualities")
             ?.getAsJsonArray("auto")
             ?.get(0)?.asJsonObject

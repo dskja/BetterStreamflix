@@ -41,7 +41,7 @@ import org.jsoup.Jsoup
 class StreamingCommunityProvider(private val _language: String? = null) : Provider {
 
     private val mutex = Mutex()
-    private val totalCounts = mutableMapOf<String, Int>()
+    private val totalCounts = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
     override val language: String
         get() = _language ?: UserPreferences.providerLanguage ?: "it"
@@ -59,7 +59,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     private var domain: String
         get() {
             if (!_domain.isNullOrEmpty())
-                return _domain!!
+                return _domain
 
             val storedDomain = UserPreferences.streamingcommunityDomain
 
@@ -70,7 +70,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 _domain = storedDomain
             }
 
-            return _domain!!
+            return _domain ?: DEFAULT_DOMAIN
         }
         set(value) {
             val currentDomain = _domain ?: UserPreferences.streamingcommunityDomain.ifEmpty { DEFAULT_DOMAIN }
@@ -118,7 +118,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                     UserPreferences.streamingcommunityDomain = nd
                 }, LANG)
             }
-            _service!!
+            _service ?: throw IllegalStateException("StreamingCommunityService not initialized")
         }
     }
 
@@ -213,7 +213,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 }
             } else {
                 try {
-                    withSslFallback { it.getHome(version = version!!) }.also { fetched ->
+                    withSslFallback { it.getHome(version = version) }.also { fetched ->
                         if (version != fetched.version) version = fetched.version ?: ""
                     }
                 } catch (e: Exception) {
@@ -406,7 +406,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         }
-        val title = res.props!!.title
+        val title = res.props?.title ?: throw Exception("StreamingCommunity: failed to load movie props")
         val tmdbMovieDeferred = async { title.tmdbId?.let { TmdbUtils.getMovieById(it, language = language) } }
         val tmdbMovie = tmdbMovieDeferred.await()
 
@@ -452,7 +452,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         }
-        val title = res.props!!.title
+        val title = res.props?.title ?: throw Exception("StreamingCommunity: failed to load TV show props")
         val tmdbShowDeferred = async { title.tmdbId?.let { TmdbUtils.getTvShowById(it, language = language) } }
         val tmdbShow = tmdbShowDeferred.await()
 
@@ -488,8 +488,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         }
-        return res.props!!.loadedSeason.episodes.map {
-            Episode(id = "${seasonId.substringBefore("-")}?episode_id=${it.id}", number = it.number.toIntOrNull() ?: (res.props!!.loadedSeason.episodes.indexOf(it) + 1), title = it.name, poster = getImageLink(it.images.find { img -> img.type == "cover" }?.filename), overview = it.plot)
+        val loadedSeason = res.props?.loadedSeason ?: return emptyList()
+        return loadedSeason.episodes.map {
+            Episode(id = "${seasonId.substringBefore("-")}?episode_id=${it.id}", number = it.number.toIntOrNull() ?: (loadedSeason.episodes.indexOf(it) + 1), title = it.name, poster = getImageLink(it.images.find { img -> img.type == "cover" }?.filename), overview = it.plot)
         }
     }
 

@@ -474,7 +474,7 @@ object AnimeWorldProvider : Provider {
             seasons = document.select("#animeId div.widget-body div.server[data-id=\"9\"] div.range span").map {
                 Season (
                     id = id + "/" + it.attr("data-range-id"),
-                    number = it.attr("data-range-id").toInt() + 1,
+                    number = it.attr("data-range-id").toIntOrNull()?.plus(1) ?: 0,
                     title = "Episodi: " + it.text()
                 )
             }.ifEmpty {

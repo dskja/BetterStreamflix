@@ -319,6 +319,7 @@ class NuuploadExtractor : Extractor() {
 
         val body = response.body?.string().orEmpty()
         val finalUrl = response.request.url.toString()
+        response.close()
         val document = Jsoup.parse(body, finalUrl)
 
         return FetchedPage(

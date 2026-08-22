@@ -352,7 +352,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getMovie(id: String): Movie {
         val movie = TMDb3.Movies.details(
-            movieId = id.toInt(),
+            movieId = id.toIntOrNull() ?: throw IllegalArgumentException("Invalid movie ID: $id"),
             appendToResponse = listOf(
                 TMDb3.Params.AppendToResponse.Movie.CREDITS,
                 TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
@@ -422,7 +422,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getTvShow(id: String): TvShow {
         val tvShow = TMDb3.TvSeries.details(
-            seriesId = id.toInt(),
+            seriesId = id.toIntOrNull() ?: throw IllegalArgumentException("Invalid TV show ID: $id"),
             appendToResponse = listOf(
                 TMDb3.Params.AppendToResponse.Tv.CREDITS,
                 TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
@@ -501,8 +501,8 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val (tvShowId, seasonNumber) = seasonId.split("-")
 
         val episodes = TMDb3.TvSeasons.details(
-            seriesId = tvShowId.toInt(),
-            seasonNumber = seasonNumber.toInt(),
+            seriesId = tvShowId.toIntOrNull() ?: return emptyList(),
+            seasonNumber = seasonNumber.toIntOrNull() ?: return emptyList(),
             language = "fr-FR"
         ).episodes?.map {
             Episode(
@@ -547,7 +547,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getPeople(id: String, page: Int): People {
         val people = TMDb3.People.details(
-            personId = id.toInt(),
+            personId = id.toIntOrNull() ?: throw IllegalArgumentException("Invalid person ID: $id"),
             appendToResponse = listOfNotNull(
                 if (page > 1) null else TMDb3.Params.AppendToResponse.Person.COMBINED_CREDITS,
             ),
@@ -603,7 +603,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return server.video!!
+        return server.video ?: throw Exception("Video not available for server: ${server.name}")
     }
 
     data class QueryCall(

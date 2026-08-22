@@ -22,7 +22,7 @@ object PlutoTvItProvider : IptvProvider {
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .cookieJar(object : CookieJar {
-            private val cookieStore = mutableMapOf<String, List<Cookie>>()
+            private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<Cookie>>()
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
                 cookieStore[url.host] = cookies
             }
@@ -83,11 +83,11 @@ object PlutoTvItProvider : IptvProvider {
 
     private fun getAllChannels(): List<M3UChannel> {
         val now = System.currentTimeMillis()
-        if (cachedChannels != null && (now - lastFetchTime) < CACHE_DURATION) return cachedChannels!!
+        if (cachedChannels != null && (now - lastFetchTime) < CACHE_DURATION) return cachedChannels ?: emptyList()
 
         return try {
             val request = Request.Builder().url(PLAYLIST_URL).build()
-            val body = client.newCall(request).execute().body?.string() ?: return emptyList()
+            val body = client.newCall(request).execute().use { it.body?.string() } ?: return emptyList()
             val channels = parseM3U(body)
             cachedChannels = channels
             lastFetchTime = now
@@ -104,8 +104,8 @@ object PlutoTvItProvider : IptvProvider {
 
         // 1. Agrupamos todos los canales por su "group-title"
         val channelCategories = channels
-            .filter { it.group != null && it.group.isNotEmpty() }
-            .groupBy { it.group!! }
+            .filter { !it.group.isNullOrEmpty() }
+            .groupBy { it.group ?: "" }
             .map { (groupName, channelList) ->
                 Category(
                     name = groupName,

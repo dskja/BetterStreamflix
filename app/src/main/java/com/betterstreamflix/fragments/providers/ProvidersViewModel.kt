@@ -18,6 +18,14 @@ class ProvidersViewModel : ViewModel() {
     private val _state = MutableStateFlow<State>(State.Loading)
     val state: Flow<State> = _state
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: Flow<String> = _searchQuery
+
+    private val _languageFilter = MutableStateFlow(UserPreferences.providerLanguage)
+    val languageFilter: Flow<String?> = _languageFilter
+
+    private var allProviders: List<ModelProvider> = emptyList()
+
     sealed class State {
         data object Loading : State()
         data class SuccessLoading(val providers: List<ModelProvider>) : State()
@@ -25,10 +33,21 @@ class ProvidersViewModel : ViewModel() {
     }
 
     init {
-        getProviders(UserPreferences.providerLanguage)
+        loadProviders(UserPreferences.providerLanguage)
     }
 
-    fun getProviders(language: String? = null) = viewModelScope.launch(Dispatchers.IO) {
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+        applyFilters()
+    }
+
+    fun setLanguageFilter(language: String?) {
+        _languageFilter.value = language
+        UserPreferences.providerLanguage = language
+        loadProviders(language)
+    }
+
+    private fun loadProviders(language: String?) = viewModelScope.launch(Dispatchers.IO) {
         _state.emit(State.Loading)
 
         try {
@@ -62,7 +81,7 @@ class ProvidersViewModel : ViewModel() {
                 }
             }
 
-            val modelProviders = providers.map {
+            allProviders = providers.map {
                 val name = if (it is TmdbProvider) {
                     "TMDb (${getLanguageDisplayName(it.language)})"
                 } else {
@@ -80,10 +99,42 @@ class ProvidersViewModel : ViewModel() {
                     .thenBy { it.name.lowercase(Locale.ROOT) }
             )
 
-            _state.emit(State.SuccessLoading(modelProviders))
+            applyFilters()
         } catch (e: Exception) {
-            Log.e("ProvidersViewModel", "getProviders: ", e)
+            Log.e("ProvidersViewModel", "loadProviders: ", e)
             _state.emit(State.FailedLoading(e))
+        }
+    }
+
+    private suspend fun applyFilters() {
+        val query = _searchQuery.value
+        val filtered = if (query.isBlank()) {
+            allProviders
+        } else {
+            allProviders.filter { provider ->
+                provider.name.contains(query, ignoreCase = true) ||
+                provider.language.contains(query, ignoreCase = true)
+            }
+        }
+        _state.emit(State.SuccessLoading(filtered))
+    }
+
+    fun toggleFavorite(provider: ModelProvider) {
+        val favorites = UserPreferences.favoriteProviders.toMutableSet()
+        provider.isFavorite = !provider.isFavorite
+        if (provider.isFavorite) {
+            favorites.add(provider.name)
+        } else {
+            favorites.remove(provider.name)
+        }
+        UserPreferences.favoriteProviders = favorites
+
+        allProviders = allProviders.map { p ->
+            if (p.name == provider.name) provider else p
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            applyFilters()
         }
     }
 

@@ -108,9 +108,9 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
         _state.emit(State.Loading)
 
         try {
-            val genre = UserPreferences.currentProvider!!.getGenre(id).let {
+            val genre = UserPreferences.currentProvider?.getGenre(id)?.let {
                 it.copy(shows = ParentalControlUtils.filterShows(it.shows))
-            }
+            } ?: run { _state.emit(State.Failed); return@launch }
 
             page = 1
 
@@ -127,9 +127,9 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
             _state.emit(State.LoadingMore)
 
             try {
-                val genre = UserPreferences.currentProvider!!.getGenre(id, page + 1).let {
+                val genre = UserPreferences.currentProvider?.getGenre(id, page + 1)?.let {
                     it.copy(shows = ParentalControlUtils.filterShows(it.shows))
-                }
+                } ?: return@launch
 
                 page += 1
 

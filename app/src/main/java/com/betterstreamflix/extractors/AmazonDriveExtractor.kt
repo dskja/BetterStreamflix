@@ -29,7 +29,7 @@ class AmazonDriveExtractor : Extractor() {
             contentType = "JSON",
             asset = "ALL"
         )
-        val shareJson = JsonParser.parseString(shareResponse.string()).asJsonObject
+        val shareJson = JsonParser.parseString(shareResponse.use { it.string() }).asJsonObject
         val nodeId = shareJson.getAsJsonObject("nodeInfo")?.get("id")?.asString
             ?: throw Exception("Node ID not found in share response")
 
@@ -43,7 +43,7 @@ class AmazonDriveExtractor : Extractor() {
             tempLink = "true",
             shareId = shareId
         )
-        val childrenJson = JsonParser.parseString(childrenResponse.string()).asJsonObject
+        val childrenJson = JsonParser.parseString(childrenResponse.use { it.string() }).asJsonObject
 
         val tempLink = childrenJson.getAsJsonArray("data")
             ?.get(0)?.asJsonObject

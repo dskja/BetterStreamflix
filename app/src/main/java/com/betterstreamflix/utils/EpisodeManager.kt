@@ -7,30 +7,35 @@ import com.betterstreamflix.models.Video
 import com.betterstreamflix.models.Video.Type.Episode
 
 object EpisodeManager {
+    private val lock = Any()
     private val episodes = mutableListOf<Episode>()
     var currentIndex = 0
         private set
 
     fun addEpisodes(list: List<Episode>) {
-        episodes.clear()
-        episodes.addAll(list)
-        currentIndex = 0
+        synchronized(lock) {
+            episodes.clear()
+            episodes.addAll(list)
+            currentIndex = 0
+        }
     }
 
     private fun mergeEpisodes(list: List<Episode>) {
         if (list.isEmpty()) return
 
-        val currentEpisodeId = getCurrentEpisode()?.id
-        val merged = (episodes + list)
-            .distinctBy { it.id }
-            .sortedWith(compareBy({ it.season.number }, { it.number }))
+        synchronized(lock) {
+            val currentEpisodeId = getCurrentEpisode()?.id
+            val merged = (episodes + list)
+                .distinctBy { it.id }
+                .sortedWith(compareBy({ it.season.number }, { it.number }))
 
-        episodes.clear()
-        episodes.addAll(merged)
+            episodes.clear()
+            episodes.addAll(merged)
 
-        currentIndex = currentEpisodeId
-            ?.let { id -> episodes.indexOfFirst { it.id == id }.takeIf { it >= 0 } }
-            ?: 0
+            currentIndex = currentEpisodeId
+                ?.let { id -> episodes.indexOfFirst { it.id == id }.takeIf { it >= 0 } }
+                ?: 0
+        }
     }
 
     suspend fun addEpisodesFromDb(type: Video.Type.Episode, database: AppDatabase) {
@@ -146,46 +151,54 @@ object EpisodeManager {
         return hasNextEpisode()
     }
     fun clearEpisodes(){
-        episodes.clear()
-        currentIndex = 0
+        synchronized(lock) {
+            episodes.clear()
+            currentIndex = 0
+        }
     }
     fun setCurrentEpisode(episode: Episode) {
-        val index = episodes.indexOfFirst { it.id == episode.id }
-        if (index >= 0) {
-            currentIndex = index
+        synchronized(lock) {
+            val index = episodes.indexOfFirst { it.id == episode.id }
+            if (index >= 0) {
+                currentIndex = index
+            }
         }
     }
 
     fun getCurrentEpisode(): Episode? =
-        episodes.getOrNull(currentIndex)
+        synchronized(lock) { episodes.getOrNull(currentIndex) }
 
     fun peekNextEpisode(): Episode? =
-        episodes.getOrNull(currentIndex + 1)
+        synchronized(lock) { episodes.getOrNull(currentIndex + 1) }
 
     fun getNextEpisode(): Episode? {
-        if (currentIndex + 1 < episodes.size) {
-            currentIndex++
-            return episodes[currentIndex]
+        synchronized(lock) {
+            if (currentIndex + 1 < episodes.size) {
+                currentIndex++
+                return episodes[currentIndex]
+            }
+            return null
         }
-        return null
     }
     fun getPreviousEpisode(): Episode? {
-        if (currentIndex -1 >= 0){
-            currentIndex--
-            return episodes[currentIndex]
+        synchronized(lock) {
+            if (currentIndex - 1 >= 0) {
+                currentIndex--
+                return episodes[currentIndex]
+            }
+            return null
         }
-        return null
     }
     fun hasPreviousEpisode(): Boolean {
-        return currentIndex > 0
+        return synchronized(lock) { currentIndex > 0 }
     }
 
     fun hasNextEpisode(): Boolean {
-        return currentIndex < episodes.size - 1
+        return synchronized(lock) { currentIndex < episodes.size - 1 }
     }
 
     fun listIsEmpty(episode: Episode): Boolean{
-        return episodes.isEmpty() || episodes.none { it.id == episode.id }
+        return synchronized(lock) { episodes.isEmpty() || episodes.none { it.id == episode.id } }
     }
 
     fun convertToVideoTypeEpisodes(episodes: List<com.betterstreamflix.models.Episode>, database: AppDatabase, seasonNumber: Int): List<Episode> {

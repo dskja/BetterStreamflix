@@ -4,48 +4,62 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_provider_card_tv"
+    android:clickable="true"
     android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusableInTouchMode="true"
+    android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/iv_provider_logo"
-        android:layout_width="130dp"
-        android:layout_height="0dp"
-        android:background="#000000"
-        android:duplicateParentState="true"
-        android:foreground="@drawable/fg_item_provider_image_tv"
-        android:padding="8dp"
-        android:scaleType="fitCenter"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_provider_logo_container"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:background="@drawable/bg_provider_logo_container"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/iv_provider_logo"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="fitCenter"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="ContentDescription" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <ImageView
         android:id="@+id/iv_provider_favorite"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_margin="8dp"
-        android:src="@drawable/ic_favorite_badge"
-        android:visibility="gone"
-        android:elevation="2dp"
-        app:layout_constraintEnd_toEndOf="@id/iv_provider_logo"
-        app:layout_constraintTop_toTopOf="@id/iv_provider_logo"
-        tools:ignore="ContentDescription"
-        tools:visibility="visible" />
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_margin="6dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="3dp"
+        android:src="@drawable/ic_favorite_disable"
+        android:tint="#666666"
+        app:layout_constraintEnd_toEndOf="@id/cl_provider_logo_container"
+        app:layout_constraintTop_toTopOf="@id/cl_provider_logo_container"
+        tools:ignore="ContentDescription,UseAppTint" />
 
     <TextView
         android:id="@+id/tv_provider_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="14dp"
+        android:ellipsize="end"
         android:gravity="center"
+        android:maxLines="1"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/iv_provider_logo"
+        app:layout_constraintTop_toBottomOf="@id/cl_provider_logo_container"
         tools:text="Provider name" />
 
     <TextView
@@ -54,11 +68,11 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:gravity="center"
-        android:textColor="#808080"
-        android:textSize="12sp"
+        android:textColor="#888888"
+        android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_provider_name"
-        tools:text="Provider language" />
+        tools:text="English" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

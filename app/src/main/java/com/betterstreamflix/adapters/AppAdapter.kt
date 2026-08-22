@@ -238,8 +238,8 @@ class AppAdapter(
                 )
             )
 
-            Type.FOOTER -> FooterViewHolder(
-                footer!!.binding(parent)
+            Type.FOOTER -> footer?.binding(parent)?.let { FooterViewHolder(it) } ?: FooterViewHolder(
+                ItemLoadingBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             )
             Type.FAVORITE_SECTION_HEADER -> FavoriteSectionHeaderViewHolder(
                 ItemFavoriteSectionHeaderBinding.inflate(
@@ -264,8 +264,8 @@ class AppAdapter(
                 )
             )
 
-            Type.HEADER -> HeaderViewHolder(
-                header!!.binding(parent)
+            Type.HEADER -> header?.binding(parent)?.let { HeaderViewHolder(it) } ?: HeaderViewHolder(
+                ItemLoadingBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             )
 
             Type.LOADING_ITEM -> LoadingViewHolder(
@@ -660,7 +660,10 @@ class AppAdapter(
         super.onViewRecycled(holder)
 
         val state = when (holder) {
-            is CategoryViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
+            is CategoryViewHolder -> {
+                holder.clearSwiperCallbacks()
+                holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
+            }
             is MovieViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
             is TvShowViewHolder -> holder.childRecyclerView?.layoutManager?.onSaveInstanceState()
             else -> null

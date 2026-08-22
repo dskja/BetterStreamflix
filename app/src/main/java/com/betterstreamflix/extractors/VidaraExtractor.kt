@@ -30,7 +30,7 @@ class VidaraExtractor : Extractor() {
         val responseBody = service.postStream(
             StreamRequest(filecode = fileCode, device = "web")
         )
-        val responseString = responseBody.string()
+        val responseString = responseBody.use { it.string() }
 
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject

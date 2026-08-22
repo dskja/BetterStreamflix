@@ -3,7 +3,7 @@ import okhttp3.CookieJar
 import okhttp3.HttpUrl
 
 class MyCookieJar : CookieJar {
-    private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+    private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, MutableList<Cookie>>()
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         cookieStore[url.host] = cookies.toMutableList()

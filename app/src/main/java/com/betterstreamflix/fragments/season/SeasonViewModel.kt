@@ -79,9 +79,10 @@ class SeasonViewModel(
         _state.emit(State.LoadingEpisodes)
 
         try {
-            val episodes = UserPreferences.currentProvider!!
-                .getEpisodesBySeason(seasonId)
-                .sortedBy { it.number }
+            val episodes = UserPreferences.currentProvider
+                ?.getEpisodesBySeason(seasonId)
+                ?.sortedBy { it.number }
+                ?: run { _state.emit(State.Failed); return@launch }
             val ids = episodes.map { it.id }
             val episodeMap = episodes.associateBy { it.id }
 

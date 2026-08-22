@@ -144,6 +144,7 @@ class HomeTvFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        swiperHandler.removeCallbacksAndMessages(null)
         appAdapter.onSaveInstanceState(binding.vgvHome)
         _binding = null
     }

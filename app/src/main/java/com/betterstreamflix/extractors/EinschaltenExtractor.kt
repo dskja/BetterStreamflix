@@ -59,7 +59,7 @@ class EinschaltenExtractor : Extractor() {
         if (link.isEmpty()) throw Exception("Invalid link")
 
         val responseBody = service.getWatch(link)
-        val body = responseBody.string()
+        val body = responseBody.use { it.string() }
         val json = JSONObject(body)
         val streamUrl = json.optString("streamUrl", "").trim()
 

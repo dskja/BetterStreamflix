@@ -49,7 +49,7 @@ object CuevanaEuProvider : Provider {
                     .build()
                 _service = retrofit.create(CuevanaEuService::class.java)
             }
-            return _service!!
+            return _service ?: throw IllegalStateException("CuevanaEuService not initialized")
         }
 
     private var _client: okhttp3.OkHttpClient? = null
@@ -58,7 +58,7 @@ object CuevanaEuProvider : Provider {
             if (_client == null) {
                 _client = getOkHttpClient()
             }
-            return _client!!
+            return _client ?: throw IllegalStateException("OkHttpClient not initialized")
         }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -514,7 +514,7 @@ object CuevanaEuProvider : Provider {
         val movie = if (!tmdbId.isNullOrEmpty()) {
             try {
                 TMDb3.Movies.details(
-                    movieId = tmdbId.toInt(),
+                    movieId = tmdbId.toIntOrNull() ?: return@try null,
                     appendToResponse = listOf(
                         TMDb3.Params.AppendToResponse.Movie.CREDITS,
                         TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
@@ -699,7 +699,7 @@ object CuevanaEuProvider : Provider {
         val tvShow = if (!tmdbId.isNullOrEmpty()) {
             try {
                 TMDb3.TvSeries.details(
-                    seriesId = tmdbId.toInt(),
+                    seriesId = tmdbId.toIntOrNull() ?: return@try null,
                     appendToResponse = listOf(
                         TMDb3.Params.AppendToResponse.Tv.CREDITS,
                         TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
@@ -879,7 +879,7 @@ object CuevanaEuProvider : Provider {
             val tmdbSeason = if (!tmdbId.isNullOrEmpty()) {
                 try {
                     TMDb3.TvSeasons.details(
-                        seriesId = tmdbId.toInt(),
+                        seriesId = tmdbId.toIntOrNull() ?: return@try null,
                         seasonNumber = seasonNumber,
                         language = language
                     )

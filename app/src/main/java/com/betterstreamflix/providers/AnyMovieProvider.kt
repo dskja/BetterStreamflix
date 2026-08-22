@@ -667,7 +667,7 @@ object AnyMovieProvider : Provider {
 
         val document = service.getTvShow(tvShowId)
 
-        val episodes = document.select("div.seasons div.seasons-bx").getOrNull(seasonIndex.toInt())
+        val episodes = document.select("div.seasons div.seasons-bx").getOrNull(seasonIndex.toIntOrNull() ?: return emptyList())
             ?.select("ul.seasons-lst li")?.map {
                 Episode(
                     id = it.selectFirst("ul.rw a")
