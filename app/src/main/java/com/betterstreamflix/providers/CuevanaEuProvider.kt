@@ -36,6 +36,7 @@ object CuevanaEuProvider : Provider {
     override val name = "Cuevana 3"
     override val baseUrl: String get() = "https://${UserPreferences.cuevanaDomain}"
     override val language = "es"
+    override val logo: String get() = "$baseUrl/wp-content/uploads/2026/03/cropped-unnamed-removebg-preview-32x32.png"
     private const val TAG = "CuevanaEuProvider"
 
     private var _service: CuevanaEuService? = null
@@ -332,7 +333,8 @@ object CuevanaEuProvider : Provider {
                 Genre("terror", "Terror"),
             )
         }
-        getFastApi<FastApiPageData>(
+        getFastApi(
+            serializer = FastApiPageData.serializer(),
             path = "/search",
             params = mapOf(
                 "q" to query,
@@ -371,7 +373,8 @@ object CuevanaEuProvider : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        getFastApi<FastApiPageData>(
+        getFastApi(
+            serializer = FastApiPageData.serializer(),
             path = "/listing/movies",
             params = mapOf(
                 "page" to page.toString(),
@@ -407,7 +410,8 @@ object CuevanaEuProvider : Provider {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val tvShows = getFastApi<FastApiPageData>(
+        val tvShows = getFastApi(
+            serializer = FastApiPageData.serializer(),
             path = "/listing/tvshows",
             params = mapOf(
                 "page" to page.toString(),
@@ -420,7 +424,8 @@ object CuevanaEuProvider : Provider {
             ?.mapNotNull(::fastApiPostToTvShow)
             .orEmpty()
 
-        val anime = getFastApi<FastApiPageData>(
+        val anime = getFastApi(
+            serializer = FastApiPageData.serializer(),
             path = "/listing/animes",
             params = mapOf(
                 "page" to page.toString(),
@@ -461,7 +466,8 @@ object CuevanaEuProvider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val slug = extractSlug(id)
-        val fastApiMovie = getFastApi<FastApiSinglePost>(
+        val fastApiMovie = getFastApi(
+            serializer = FastApiSinglePost.serializer(),
             path = "/single/movies",
             params = mapOf(
                 "slug" to slug,
@@ -570,6 +576,7 @@ object CuevanaEuProvider : Provider {
                 null
             }
             } else null
+        } else null
 
         if (movie != null) return movie
 
@@ -608,7 +615,8 @@ object CuevanaEuProvider : Provider {
         Log.d(TAG, "getTvShow: id=$id")
         val slug = extractSlug(id)
         val showPostType = getCuevanaShowPostType(id)
-        val fastApiTvShow = getFastApi<FastApiSinglePost>(
+        val fastApiTvShow = getFastApi(
+            serializer = FastApiSinglePost.serializer(),
             path = "/single/$showPostType",
             params = mapOf(
                 "slug" to slug,
@@ -763,6 +771,7 @@ object CuevanaEuProvider : Provider {
                 null
             }
             } else null
+        } else null
 
         if (tvShow != null) return tvShow
 
@@ -808,12 +817,13 @@ object CuevanaEuProvider : Provider {
         val showPostType = getCuevanaShowPostType(seriesSlug)
 
         try {
-            val fastApiTvShow = getFastApi<FastApiSinglePost>(
+            val fastApiTvShow = getFastApi(
                 path = "/single/$showPostType",
                 params = mapOf(
                     "slug" to tvShowSlug,
                     "postType" to showPostType,
-                )
+                ),
+                serializer = FastApiSinglePost.serializer(),
             )
 
             if (fastApiTvShow != null) {
@@ -827,14 +837,15 @@ object CuevanaEuProvider : Provider {
                     ?.toIntOrNull()
                     ?.let { TmdbUtils.getEpisodesBySeason(it.toString(), seasonNumber, language) }
                     .orEmpty()
-                val cuevanaEpisodes = getFastApi<FastApiEpisodeListData>(
+                val cuevanaEpisodes = getFastApi(
                     path = "/single/episodes/list",
                     params = mapOf(
                         "_id" to fastApiTvShow._id.toString(),
                         "season" to seasonNumber.toString(),
                         "page" to "1",
                         "postsPerPage" to "100",
-                    )
+                    ),
+                    serializer = FastApiEpisodeListData.serializer(),
                 )
 
                 if (cuevanaEpisodes != null && cuevanaEpisodes.posts.isNotEmpty()) {
@@ -1019,15 +1030,17 @@ object CuevanaEuProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return try {
             val postId = when (videoType) {
-                is Video.Type.Movie -> getFastApi<FastApiSinglePost>(
+                is Video.Type.Movie -> getFastApi(
                     path = "/single/movies",
                     params = mapOf(
                         "slug" to extractSlug(id),
                         "postType" to "movies",
-                    )
+                    ),
+                    serializer = FastApiSinglePost.serializer(),
                 )?._id
                 is Video.Type.Episode -> {
-                    val directEpisode = getFastApi<FastApiEpisodeSingleData>(
+                    val directEpisode = getFastApi(
+                        serializer = FastApiEpisodeSingleData.serializer(),
                         path = "/single/episodes",
                         params = mapOf(
                             "slug" to extractSlug(id),
@@ -1038,22 +1051,24 @@ object CuevanaEuProvider : Provider {
                     directEpisode ?: run {
                         val tvShowSlug = extractSlug(videoType.tvShow.id)
                         val showPostType = getCuevanaShowPostType(videoType.tvShow.id)
-                        val tvShow = getFastApi<FastApiSinglePost>(
+                        val tvShow = getFastApi(
                             path = "/single/$showPostType",
                             params = mapOf(
                                 "slug" to tvShowSlug,
                                 "postType" to showPostType,
-                            )
+                            ),
+                            serializer = FastApiSinglePost.serializer(),
                         )
                         val episode = tvShow?._id?.let { tvShowPostId ->
-                            getFastApi<FastApiEpisodeListData>(
+                            getFastApi(
                                 path = "/single/episodes/list",
                                 params = mapOf(
                                     "_id" to tvShowPostId.toString(),
                                     "season" to videoType.season.number.toString(),
                                     "page" to "1",
                                     "postsPerPage" to "100",
-                                )
+                                ),
+                                serializer = FastApiEpisodeListData.serializer(),
                             )?.posts?.firstOrNull {
                                 it.season_number == videoType.season.number && it.episode_number == videoType.number
                             }
@@ -1063,12 +1078,13 @@ object CuevanaEuProvider : Provider {
                 }
             } ?: return emptyList()
 
-            val playerData = getFastApi<FastApiPlayerData>(
+            val playerData = getFastApi(
                 path = "/player",
                 params = mapOf(
                     "postId" to postId.toString(),
                     "demo" to "0",
-                )
+                ),
+                serializer = FastApiPlayerData.serializer(),
             ) ?: return emptyList()
 
             playerData.embeds
@@ -1148,8 +1164,6 @@ object CuevanaEuProvider : Provider {
         return Extractor.extract(finalUrl, server)
     }
 
-    override val logo: String get() = "$baseUrl/wp-content/uploads/2026/03/cropped-unnamed-removebg-preview-32x32.png"
-
     private fun fixImageUrl(url: String): String? {
         if (url.isEmpty()) return null
         if (url.startsWith("data:image")) return null
@@ -1186,9 +1200,10 @@ object CuevanaEuProvider : Provider {
         return parts.joinToString(" | ")
     }
 
-    private suspend inline fun <reified T> getFastApi(
+    private suspend fun <T> getFastApi(
         path: String,
         params: Map<String, String>,
+        serializer: kotlinx.serialization.KSerializer<T>,
     ): T? {
         return try {
             val baseApiUrl = "$baseUrl/wp-api/v1".toHttpUrlOrNull() ?: return null
@@ -1207,7 +1222,7 @@ object CuevanaEuProvider : Provider {
                 ).execute().use { it.body?.string() }
             } ?: return null
 
-            json.decodeFromString<FastApiEnvelope<T>>(body).data
+            json.decodeFromString(FastApiEnvelope.serializer(serializer), body).data
         } catch (e: Exception) {
             Log.e(TAG, "getFastApi error for $path: ${e.message}", e)
             null
@@ -1218,7 +1233,8 @@ object CuevanaEuProvider : Provider {
         showId: String,
         fastApiTvShow: FastApiSinglePost,
     ): List<Season> {
-        val episodeList = getFastApi<FastApiEpisodeListData>(
+        val episodeList = getFastApi(
+            serializer = FastApiEpisodeListData.serializer(),
             path = "/single/episodes/list",
             params = mapOf(
                 "_id" to fastApiTvShow._id.toString(),
@@ -1321,13 +1337,14 @@ object CuevanaEuProvider : Provider {
 
     private suspend fun getCuevanaFastApiHome(): List<Category> = coroutineScope {
         val episodes = async {
-            getFastApi<FastApiEpisodeListData>(
+            getFastApi(
                 path = "/sliders/episodes",
                 params = mapOf(
                     "page" to "1",
                     "postType" to "episodes",
                     "postsPerPage" to "20",
-                )
+                ),
+                serializer = FastApiEpisodeListData.serializer(),
             )?.posts
                 ?.map(::fastApiEpisodeToHomeEpisode)
                 ?.takeIf { it.isNotEmpty() }
@@ -1384,7 +1401,8 @@ object CuevanaEuProvider : Provider {
         orderBy: String = "latest",
         mapper: (FastApiSinglePost) -> T?,
     ): Category? {
-        val items = getFastApi<FastApiPageData>(
+        val items = getFastApi(
+            serializer = FastApiPageData.serializer(),
             path = path,
             params = mapOf(
                 "page" to "1",
@@ -1511,7 +1529,8 @@ object CuevanaEuProvider : Provider {
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
-        getFastApi<FastApiPageData>(
+        getFastApi(
+            serializer = FastApiPageData.serializer(),
             path = "/taxonomies",
             params = mapOf(
                 "taxonomy" to "genres",
