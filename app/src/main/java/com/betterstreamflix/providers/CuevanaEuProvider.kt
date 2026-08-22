@@ -512,9 +512,11 @@ object CuevanaEuProvider : Provider {
             ?: document.selectFirst("div[data-id]")?.attr("data-id")
 
         val movie = if (!tmdbId.isNullOrEmpty()) {
-            try {
+            val tmdbIdInt = tmdbId.toIntOrNull()
+            if (tmdbIdInt != null) {
+                try {
                 TMDb3.Movies.details(
-                    movieId = tmdbId.toIntOrNull() ?: return@try null,
+                    movieId = tmdbIdInt,
                     appendToResponse = listOf(
                         TMDb3.Params.AppendToResponse.Movie.CREDITS,
                         TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
@@ -567,7 +569,7 @@ object CuevanaEuProvider : Provider {
             } catch (e: Exception) {
                 null
             }
-        } else null
+            } else null
 
         if (movie != null) return movie
 
@@ -697,9 +699,11 @@ object CuevanaEuProvider : Provider {
         }.distinctBy { it.number }.sortedBy { it.number }
 
         val tvShow = if (!tmdbId.isNullOrEmpty()) {
-            try {
+            val tmdbIdInt = tmdbId.toIntOrNull()
+            if (tmdbIdInt != null) {
+                try {
                 TMDb3.TvSeries.details(
-                    seriesId = tmdbId.toIntOrNull() ?: return@try null,
+                    seriesId = tmdbIdInt,
                     appendToResponse = listOf(
                         TMDb3.Params.AppendToResponse.Tv.CREDITS,
                         TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
@@ -758,7 +762,7 @@ object CuevanaEuProvider : Provider {
             } catch (e: Exception) {
                 null
             }
-        } else null
+            } else null
 
         if (tvShow != null) return tvShow
 
@@ -877,15 +881,18 @@ object CuevanaEuProvider : Provider {
             }
 
             val tmdbSeason = if (!tmdbId.isNullOrEmpty()) {
-                try {
-                    TMDb3.TvSeasons.details(
-                        seriesId = tmdbId.toIntOrNull() ?: return@try null,
-                        seasonNumber = seasonNumber,
-                        language = language
-                    )
-                } catch (e: Exception) {
-                    null
-                }
+                val tmdbIdInt = tmdbId.toIntOrNull()
+                if (tmdbIdInt != null) {
+                    try {
+                        TMDb3.TvSeasons.details(
+                            seriesId = tmdbIdInt,
+                            seasonNumber = seasonNumber,
+                            language = language
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                } else null
             } else null
 
             val apiUrl = "$baseUrl/wp-json/cuevana/v1/get-season-episodes?id=$postId&season=$seasonNumber"

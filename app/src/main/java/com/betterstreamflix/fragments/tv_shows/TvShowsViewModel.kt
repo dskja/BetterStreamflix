@@ -83,7 +83,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
 
         try {
             val tvShows = ParentalControlUtils.filterItems(
-                UserPreferences.currentProvider?.getTvShows() ?: run { _state.emit(State.Failed); return@launch }
+                UserPreferences.currentProvider?.getTvShows() ?: run { _state.emit(State.FailedLoading(NullPointerException("Provider returned null"))); return@launch }
             ).filterIsInstance<TvShow>()
 
             page = 1

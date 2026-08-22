@@ -435,7 +435,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override suspend fun getVideo(server: Video.Server): Video {
         return when {
-            server.video != null -> server.video
+            server.video != null -> server.video!!
             else -> Extractor.extract(server.src)
         }
     }

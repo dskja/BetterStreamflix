@@ -110,7 +110,7 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
         try {
             val genre = UserPreferences.currentProvider?.getGenre(id)?.let {
                 it.copy(shows = ParentalControlUtils.filterShows(it.shows))
-            } ?: run { _state.emit(State.Failed); return@launch }
+            } ?: run { _state.emit(State.FailedLoading(NullPointerException("Provider returned null"))); return@launch }
 
             page = 1
 

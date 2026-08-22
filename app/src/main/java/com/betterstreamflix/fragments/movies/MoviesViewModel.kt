@@ -82,7 +82,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
 
         try {
             val movies = ParentalControlUtils.filterItems(
-                UserPreferences.currentProvider?.getMovies() ?: run { _state.emit(State.Failed); return@launch }
+                UserPreferences.currentProvider?.getMovies() ?: run { _state.emit(State.FailedLoading(NullPointerException("Provider returned null"))); return@launch }
             ).filterIsInstance<Movie>()
 
             page = 1
