@@ -58,8 +58,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
     private var _domain: String? = null
     private var domain: String
         get() {
-            if (!_domain.isNullOrEmpty())
-                return _domain
+            val currentDomain = _domain
+            if (!currentDomain.isNullOrEmpty())
+                return currentDomain
 
             val storedDomain = UserPreferences.streamingcommunityDomain
 
@@ -213,7 +214,8 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 }
             } else {
                 try {
-                    withSslFallback { it.getHome(version = version) }.also { fetched ->
+                    val v = version
+                    withSslFallback { it.getHome(version = v) }.also { fetched ->
                         if (version != fetched.version) version = fetched.version ?: ""
                     }
                 } catch (e: Exception) {
