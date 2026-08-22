@@ -9,6 +9,8 @@ jobs:
   build-and-release:
     name: Build & Release APK
     runs-on: ubuntu-latest
+    env:
+      HAS_SIGNING: ${{ secrets.KEYSTORE != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,11 +45,13 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
+      # ─── Default (mobile+TV) APK ───
       - name: Build APK
         run: ./gradlew assembleRelease --stacktrace
 
       - name: Sign APK
         id: sign_apk
+        if: ${{ env.HAS_SIGNING == 'true' }}
         uses: r0adkll/sign-android-release@v1
         with:
           releaseDirectory: app/build/outputs/apk/release
@@ -57,6 +61,15 @@ jobs:
           keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Pick APK path (default)
+        id: apk_default
+        run: |
+          if [ -f "app/build/outputs/apk/release/app-release-unsigned-signed.apk" ]; then
+            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned-signed.apk" >> $GITHUB_OUTPUT
+          else
+            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
         id: create_release
@@ -73,20 +86,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          asset_path: ${{ steps.apk_default.outputs.apk_path }}
           asset_name: ${{ github.event.repository.name }}-${{ github.ref_name }}.apk
           asset_content_type: application/zip
 
-
+      # ─── Mobile-only APK ───
       - name: Set Mobile version
         run: |
           echo APP_LAYOUT=mobile >> local.properties
 
-      - name: Build APK
+      - name: Build APK (mobile)
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Sign APK
+      - name: Sign APK (mobile)
         id: sign_apk_mobile
+        if: ${{ env.HAS_SIGNING == 'true' }}
         uses: r0adkll/sign-android-release@v1
         with:
           releaseDirectory: app/build/outputs/apk/release
@@ -97,26 +111,36 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Upload Release APK
+      - name: Pick APK path (mobile)
+        id: apk_mobile
+        run: |
+          if [ -f "app/build/outputs/apk/release/app-release-unsigned-signed.apk" ]; then
+            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned-signed.apk" >> $GITHUB_OUTPUT
+          else
+            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Release APK (mobile)
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.sign_apk_mobile.outputs.signedReleaseFile }}
+          asset_path: ${{ steps.apk_mobile.outputs.apk_path }}
           asset_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-only-mobile.apk
           asset_content_type: application/zip
 
-
+      # ─── TV-only APK ───
       - name: Set TV version
         run: |
           echo APP_LAYOUT=tv >> local.properties
 
-      - name: Build APK
+      - name: Build APK (tv)
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Sign APK
+      - name: Sign APK (tv)
         id: sign_apk_tv
+        if: ${{ env.HAS_SIGNING == 'true' }}
         uses: r0adkll/sign-android-release@v1
         with:
           releaseDirectory: app/build/outputs/apk/release
@@ -127,12 +151,21 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Upload Release APK
+      - name: Pick APK path (tv)
+        id: apk_tv
+        run: |
+          if [ -f "app/build/outputs/apk/release/app-release-unsigned-signed.apk" ]; then
+            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned-signed.apk" >> $GITHUB_OUTPUT
+          else
+            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Release APK (tv)
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.sign_apk_tv.outputs.signedReleaseFile }}
+          asset_path: ${{ steps.apk_tv.outputs.apk_path }}
           asset_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-only-tv.apk
           asset_content_type: application/zip
