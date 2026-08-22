@@ -2,12 +2,57 @@
 
 All notable changes to BetterStreamflix will be documented here.
 
-## [1.9.0] - 2026-08-22
+## [1.9.0] - 2026-08-23
 
-### Mega Update — Database Integrity, Cache Reliability, Updater Overhaul
+### Mega Update — Cloud Sync Audit, Provider Redesign, Release Signing, Database Integrity, Cache Reliability, Updater Overhaul
+
+#### Build & Release
+- **Fixed missing `import android.util.Log` in `InAppUpdater.kt`** — this was the root cause of the GitHub Actions build failure. New `Log.e()` call in the `catch` block of `downloadApk()` used the short form but the import was missing (existing code used fully-qualified `android.util.Log.e()`).
+- **Added release APK signing** — `signingConfigs.release` block in `build.gradle` reads keystore path and credentials from environment variables (`SIGNING_KEYSTORE_PATH`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`).
+- **Updated GitHub Actions workflow** to build both debug AND release APKs.
+- **Added keystore decoding step** in workflow — decodes Base64 secret to `.jks` file and sets env vars for Gradle signing.
+- **Fixed workflow `secrets` context error** — `secrets` cannot be used in `if:` conditionals; moved to `env:` block with shell-level check.
+- **Added GitHub Release creation step** — automatically creates a release tagged `v1.9.0` with proper title "BetterStreamflix v1.9.0", changelog from `CHANGELOG.md`, and both APKs attached.
+- **Release deletes existing tag first** if present, preventing duplicate or stale releases.
+
+#### Provider Page Redesign
+- **Complete UI overhaul of provider selection screen** for both Mobile and TV layouts.
+- **Added search bar** — filter providers by name in real-time with `TextWatcher`.
+- **Added language filter chips** — horizontal scrollable chips to filter providers by language (e.g., EN, DE, IT, ES, FR, etc.).
+- **Added favorite star toggle** — click the star icon on any provider card to pin it as a favorite; favorites persist across sessions via `UserPreferences`.
+- **Premium card design** — provider cards now show logo in a rounded container, provider name, language label, and clickable favorite star.
+- **New drawables**: `bg_provider_card.xml`, `bg_provider_card_tv.xml` (focused/default states for TV), `bg_provider_logo_container.xml`, `bg_provider_search_bar.xml`, `bg_provider_chip.xml` (selected/default states), `bg_provider_chip_tv.xml` (focused/selected/default states).
+- **New layouts**: `item_provider_chip.xml`, `item_provider_chip_tv.xml` for language filter chips.
+- **Redesigned layouts**: `fragment_providers_mobile.xml` (GridLayoutManager), `fragment_providers_tv.xml` (LinearLayoutManager horizontal), `item_provider_mobile.xml`, `item_provider_tv.xml`.
+- **Refactored `ProvidersViewModel`** — added `searchQuery` and `languageFilter` state, prevents double-load bug, applies search + language + favorites filters, toggles favorites with persistence.
+- **Rewrote `ProvidersMobileFragment`** — search bar with `TextWatcher`, language chip `RecyclerView`, providers `RecyclerView`, lifecycle-aware state collection, proper cleanup on destroy.
+- **Rewrote `ProvidersTvFragment`** — same as mobile but with TV-optimized navigation, `LinearLayoutManager` horizontal for chips and providers, safe `requestFocus` handling.
+- **Refactored `ProviderViewHolder`** — supports both mobile and TV layouts, clickable favorite star with icon toggle, logo loading with Glide (supports SVG via `androidsvg-aar`), provider selection callback.
+- **Added `Provider.copy()` method** — creates modified copies with updated `itemType` and other properties for adapter use.
+
+#### Cloud Sync Audit (12 Fixes)
+- **Added `CloudSyncManager.deleteRemoteState()`** — deletes media items from local database based on `RemoteMediaState` (movie/tv_show/episode), updates `UserDataCache`, and notifies listeners.
+- **Added `CloudSyncManager.deleteRealtimeState()`** — mutex-locked entry point for realtime delete events, checks user ID match before proceeding.
+- **`CloudRealtimeSync` now handles `PostgresAction.Delete`** — previously only Insert/Update were handled; Delete events now trigger `deleteRealtimeState()` instead of `applyRealtimeState()`.
+- **Added realtime reconnect logic with exponential backoff** — on disconnect, retries 5 times with 2s/4s/8s/16s/32s backoff. Checks `activeUserId` before each retry to avoid reconnecting for logged-out users.
+- **`CloudSyncManager.upsert()` now returns uploaded states** — returns `List<RemoteMediaState>` of successfully uploaded items so `flushPending()` can acknowledge only what was actually sent.
+- **`CloudSyncManager.flushPending()` acknowledges only uploaded + stale mutations** — previously acknowledged all pending regardless of upload success. Now: `successfullyUploaded + pending.filter { it !in uploadable }`.
+- **Added max iteration limit (10) to `flushPending()`** — prevents infinite loop if mutations keep getting re-queued. Logs warning when limit is hit.
+- **`CloudSyncManager.signOut()` now handles failures gracefully** — `flushPending` failures are logged, `auth.signOut()` wrapped in `runCatching`, mutation store cleared for user, periodic sync cancelled.
+- **`CloudSyncManager.syncNow()` wrapped in try-catch** — errors are logged with user ID before rethrowing, aiding diagnosis.
+- **`CloudSyncManager.activateAccount/signIn/signUp` now schedule periodic sync** — `CloudSyncScheduler.schedulePeriodic()` called after realtime sync starts.
+- **`CloudSyncManager.applyRemote()` cache writes wrapped in `runCatching`** — failures logged with provider name instead of crashing the entire sync.
+- **`CloudSyncScheduler` — added `schedulePeriodic()` and `cancelPeriodic()`** — 15-minute periodic `WorkManager` sync with network constraint. Uses `ExistingPeriodicWorkPolicy.KEEP`.
+- **`CloudSyncScheduler.enqueue()` changed from `KEEP` to `REPLACE`** — ensures fresh one-time sync isn't blocked by stale queued work.
+- **`CloudMutationStore` — added `clearForUser()`** — removes all mutations for a specific user ID (or all if null). Used during sign-out.
+- **`CloudMutationStore` — changed `apply()` to `commit()`** — synchronous SharedPreferences write ensures mutations are persisted before process termination.
+- **`CloudSyncWorker` — changed `catch (Throwable)` to `catch (Exception)`** with `Log.e()` — avoids catching `CancellationException` which should propagate, adds error logging for retry diagnosis.
 
 #### Critical Database Fixes
 - **Fixed merge direction bug in `TvShowDao.save()` and `MovieDao.save()`** — root cause of user state (isWatching, isFavorite, isWatched) being silently overwritten by stale DB values on every save. Changed `tvShow.merge(existing)` → `existing.merge(tvShow)` so new user state is applied to the existing DB record, not the other way around.
+- **Added `MovieDao.deleteById(id)`** — direct SQL delete for cloud sync delete propagation.
+- **Added `TvShowDao.deleteById(id)`** — direct SQL delete for cloud sync delete propagation.
+- **Added `EpisodeDao.deleteById(id)`** — direct SQL delete for cloud sync delete propagation.
 - **Added `EpisodeDao.clearWatchHistory(id)`** — direct SQL method to NULL `lastEngagementTimeUtcMillis`, `lastPlaybackPositionMillis`, `durationMillis` for a single episode, bypassing `@Update` which doesn't reliably clear `@Embedded` null fields.
 - **Added `EpisodeDao.clearWatchHistoryForTvShow(tvShowId)`** — bulk version that clears watch history for all episodes of a TV show at once.
 - **Fixed `UserDataCache.removeEpisodeFromContinueWatching()`** — now calls `clearWatchHistory(id)` on the DB before removing from cache. Previously only removed from JSON cache, causing episodes to reappear on next `loadUserDataCache` rebuild from DB.
@@ -18,14 +63,19 @@ All notable changes to BetterStreamflix will be documented here.
 - **Simplified Clear button handlers** in `ShowOptionsMobileDialog` and `ShowOptionsTvDialog` — removed redundant `save()` + `syncEpisodeToCache()` calls that were fighting each other. Now just `setWatching(false)` + `removeEpisodeFromContinueWatching()` (which handles both DB + cache atomically).
 
 #### In-App Updater Overhaul
+- **Fixed missing `import android.util.Log`** — root cause of GitHub Actions build failure.
 - **Fixed temp file location** — APK downloads now go to `context.cacheDir` instead of system temp, ensuring `FileProvider` can access them for installation.
 - **Added download progress callback** — `downloadApk()` now accepts `onProgress: (Float) -> Unit` so UI can show a progress bar.
 - **Added proper error handling** — download failures are logged, temp file is cleaned up, and exception is rethrown for caller to handle.
 - **Added 30s connect/read timeouts** to prevent hanging on slow connections.
+- **Cleaned up redundant fully-qualified `android.util.Log.e()`** to use short form `Log.e()` now that import is present.
 
 #### Home Cache Improvements
 - **Added 6-hour TTL to `HomeCacheStore`** — cached home data expires after 6 hours, ensuring users see fresh content without manual cache clearing. Both memory and disk cache respect the TTL.
+- **Memory cache now stores timestamp alongside data** — `ConcurrentHashMap<String, Pair<List<CachedCategory>, Long>>` for TTL checks.
+- **Disk cache checks file age** via `file.lastModified()` against TTL.
 - **Serve stale cache on provider failure** — when `getHome()` fails but cached data exists, the app now serves the stale cache with a warning log instead of showing an error screen. Previously only worked for AnimeOnlineNinja clearance issues.
+- **Added `deferCachedHomeForClearance` logic** — skips serving cached home for AnimeOnlineNinja when no clearance cookie is present, ensuring fresh fetch for auth-gated content.
 
 #### Thread Safety
 - **Fixed `PlayerViewModel` thread-safety** — marked `lastVideoType` and `lastId` as `@Volatile` to ensure visibility across coroutine threads when `reloadServersAfterBypass()` is called.

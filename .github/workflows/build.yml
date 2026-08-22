@@ -35,13 +35,21 @@ jobs:
           echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
 
       - name: Decode signing keystore
-        if: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > $HOME/signing-keystore.jks
-          echo "SIGNING_KEYSTORE_PATH=$HOME/signing-keystore.jks" >> $GITHUB_ENV
-          echo "SIGNING_STORE_PASSWORD=${{ secrets.SIGNING_STORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "SIGNING_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "SIGNING_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> $GITHUB_ENV
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > $HOME/signing-keystore.jks
+            echo "SIGNING_KEYSTORE_PATH=$HOME/signing-keystore.jks" >> $GITHUB_ENV
+            echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> $GITHUB_ENV
+            echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> $GITHUB_ENV
+            echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> $GITHUB_ENV
+          else
+            echo "No signing keystore provided — release APK will be unsigned"
+          fi
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
@@ -60,3 +68,22 @@ jobs:
         with:
           name: BetterStreamflix-release
           path: app/build/outputs/apk/release/*.apk
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="v1.9.0"
+          # Check if release already exists
+          if gh release view "$VERSION" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists — deleting and recreating"
+            gh release delete "$VERSION" -R "$GITHUB_REPOSITORY" --yes
+            git push origin :refs/tags/"$VERSION" 2>/dev/null || true
+          fi
+          gh release create "$VERSION" \
+            -R "$GITHUB_REPOSITORY" \
+            --title "BetterStreamflix v1.9.0" \
+            --notes-file CHANGELOG.md \
+            app/build/outputs/apk/release/*.apk \
+            app/build/outputs/apk/debug/*.apk
