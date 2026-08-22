@@ -78,6 +78,7 @@ object CloudSyncManager {
             this.email = email
             this.password = password
         }
+        SupabaseProvider.client.auth.awaitInitialization()
         val userId = currentUserId() ?: error("Sign in did not create a session")
         activateAccount(
             context = context.applicationContext,
@@ -101,6 +102,7 @@ object CloudSyncManager {
             this.email = email
             this.password = password
         }
+        SupabaseProvider.client.auth.awaitInitialization()
         val userId = currentUserId() ?: return false
         activateAccount(
             context = context.applicationContext,

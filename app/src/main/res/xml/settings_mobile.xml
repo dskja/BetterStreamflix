@@ -122,6 +122,15 @@
             android:title="@string/player_settings"
             app:iconSpaceReserved="false">
 
+            <ListPreference
+                android:key="DEFAULT_QUALITY_HEIGHT"
+                android:title="@string/settings_default_quality_title"
+                android:summary="@string/settings_default_quality_summary"
+                android:entries="@array/quality_entries"
+                android:entryValues="@array/quality_values"
+                android:defaultValue=""
+                app:iconSpaceReserved="false" />
+
             <SwitchPreference
                 android:key="PLAYER_GESTURES"
                 android:title="@string/settings_player_gestures"
@@ -327,6 +336,24 @@
                 android:key="provider_serienstream_domain_reset"
                 android:title="@string/settings_serienstream_domain_reset"
                 android:summary="@string/settings_serienstream_domain_reset_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_aniworld_settings"
+            android:title="@string/settings_category_aniworld"
+            app:iconSpaceReserved="false">
+
+            <EditTextPreference
+                android:key="provider_aniworld_domain"
+                android:title="@string/settings_category_aniworld_domain"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="provider_aniworld_domain_reset"
+                android:title="@string/settings_aniworld_domain_reset"
+                android:summary="@string/settings_aniworld_domain_reset_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
 

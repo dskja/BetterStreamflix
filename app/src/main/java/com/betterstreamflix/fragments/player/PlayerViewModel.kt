@@ -100,11 +100,12 @@ class PlayerViewModel(
         lastId = id
         _state.emit(State.LoadingServers)
         try {
-            val servers = UserPreferences.currentProvider!!.getServers(id, videoType)
+            val provider = UserPreferences.currentProvider ?: throw Exception("No provider selected")
+            val servers = provider.getServers(id, videoType)
             if (servers.isEmpty()) throw Exception("No servers found")
             
             // LOG POTENZIATO: Mostra tutti i server disponibili per il player
-            Log.i("StreamFlixES", "[SERVERS LIST] -> Provider: ${UserPreferences.currentProvider!!.name}")
+            Log.i("StreamFlixES", "[SERVERS LIST] -> Provider: ${provider.name}")
             Log.i("StreamFlixES", "[SERVERS LIST] -> Found ${servers.size} servers: ${servers.joinToString { it.name }}")
 
             Log.d("PlayerViewModel", "Ricerca server completata: ${servers.size} server trovati")
@@ -119,7 +120,8 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio estrazione video dal server: ${server.name}")
         _state.emit(State.LoadingVideo(server))
         try {
-            val video = UserPreferences.currentProvider!!.getVideo(server)
+            val provider = UserPreferences.currentProvider ?: throw Exception("No provider selected")
+            val video = provider.getVideo(server)
             if (video.source.isEmpty()) throw Exception("No source found")
 
             // LOGICA SOTTOTITOLI GLOBALE: 

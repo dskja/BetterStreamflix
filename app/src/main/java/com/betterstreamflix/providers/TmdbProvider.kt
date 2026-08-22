@@ -441,7 +441,7 @@ class TmdbProvider(override val language: String) : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val movie = TMDb3.Movies.details(
-            movieId = id.toInt(),
+            movieId = id.toIntOrNull() ?: throw IllegalArgumentException("Invalid movie ID: $id"),
             appendToResponse = listOf(
                 TMDb3.Params.AppendToResponse.Movie.CREDITS,
                 TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
@@ -511,7 +511,7 @@ class TmdbProvider(override val language: String) : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val tvShow = TMDb3.TvSeries.details(
-            seriesId = id.toInt(),
+            seriesId = id.toIntOrNull() ?: throw IllegalArgumentException("Invalid TV show ID: $id"),
             appendToResponse = listOf(
                 TMDb3.Params.AppendToResponse.Tv.CREDITS,
                 TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
@@ -587,11 +587,14 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val (tvShowId, seasonNumber) = seasonId.split("-")
+        val parts = seasonId.split("-")
+        if (parts.size < 2) return emptyList()
+        val tvShowId = parts[0].toIntOrNull() ?: return emptyList()
+        val seasonNumber = parts[1].toIntOrNull() ?: return emptyList()
 
         val episodes = TMDb3.TvSeasons.details(
-            seriesId = tvShowId.toInt(),
-            seasonNumber = seasonNumber.toInt(),
+            seriesId = tvShowId,
+            seasonNumber = seasonNumber,
             language = language
         ).episodes?.map {
             Episode(
@@ -661,7 +664,7 @@ class TmdbProvider(override val language: String) : Provider {
 
     override suspend fun getPeople(id: String, page: Int): People {
         val people = TMDb3.People.details(
-            personId = id.toInt(),
+            personId = id.toIntOrNull() ?: throw IllegalArgumentException("Invalid person ID: $id"),
             appendToResponse = listOfNotNull(
                 if (page > 1) null else TMDb3.Params.AppendToResponse.Person.COMBINED_CREDITS,
             ),
@@ -879,7 +882,7 @@ class TmdbProvider(override val language: String) : Provider {
         Log.i("StreamFlixES", "[SERVER] -> Using: ${server.name} (URL: $url)")
         
         val video = when {
-            server.video != null -> server.video!!
+            server.video != null -> server.video
             else -> Extractor.extract(url, server)
         }
 

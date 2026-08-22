@@ -947,7 +947,10 @@ object TMDb3 {
             fun build(): ApiService {
                 val apiKey = UserPreferences.tmdbApiKey.ifEmpty { BuildConfig.TMDB_API_KEY }
 
-                val client = OkHttpClient.Builder().addInterceptor { chain ->
+                val client = OkHttpClient.Builder()
+                    .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .addInterceptor { chain ->
                     val original = chain.request()
 
                     val requestBuilder = original.newBuilder()

@@ -77,10 +77,14 @@ object InAppUpdater {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             intent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+            val filePath = uri.path ?: run {
+                android.util.Log.e("InAppUpdater", "URI path is null: $uri")
+                return
+            }
             intent.data = FileProvider.getUriForFile(
                 context,
                 BuildConfig.APPLICATION_ID + ".provider",
-                File(uri.path!!)
+                File(filePath)
             )
         }
         context.startActivity(intent)

@@ -119,7 +119,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                     player.trackSelectionParameters = player.trackSelectionParameters
                         .buildUpon()
                         .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
-                        .setMaxVideoBitrate(Int.MAX_VALUE)
+                        .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
                         .setForceHighestSupportedBitrate(false)
                         .build()
                     UserPreferences.qualityHeight = null

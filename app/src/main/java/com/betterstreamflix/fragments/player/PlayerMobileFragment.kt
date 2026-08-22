@@ -338,7 +338,10 @@ class PlayerMobileFragment : Fragment() {
                                 })
                                 .build()
                             binding.settings.setOnServerSelectedListener { server ->
-                                viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                                val matchedServer = state.servers.find { server.id == it.id }
+                                if (matchedServer != null) {
+                                    viewModel.getVideo(matchedServer)
+                                }
                             }
                             val preferredServer = state.servers.firstOrNull {
                                 it.name.equals(args.preferredServerName, ignoreCase = true)
@@ -1536,11 +1539,14 @@ class PlayerMobileFragment : Fragment() {
                 )
 
                 val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
+                val trackParamsBuilder = player.trackSelectionParameters.buildUpon()
                 if (lang == "es") {
-                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                        .setPreferredAudioLanguage("spa")
-                        .build()
+                    trackParamsBuilder.setPreferredAudioLanguage("spa")
                 }
+                UserPreferences.qualityHeight?.let { savedHeight ->
+                    trackParamsBuilder.setMaxVideoSize(Int.MAX_VALUE, savedHeight)
+                }
+                player.trackSelectionParameters = trackParamsBuilder.build()
 
                 mediaSession = MediaSession.Builder(requireContext(), player)
                     .build()

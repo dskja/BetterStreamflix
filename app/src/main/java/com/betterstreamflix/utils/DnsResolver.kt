@@ -13,26 +13,24 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import java.net.InetAddress
+import javax.net.ssl.TrustManagerFactory
 
 object DnsResolver : Dns {
     private const val TAG = "DnsResolver"
     private val logging = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC)
 
-    private val trustAllCerts = arrayOf<TrustManager>(
-        object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-            override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-            override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-        }
-    )
-    private val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, SecureRandom()) }
-    private val trustManager = trustAllCerts[0] as X509TrustManager
+    private val systemTrustManager: X509TrustManager = TrustManagerFactory.getInstance(
+        TrustManagerFactory.getDefaultAlgorithm()
+    ).apply { init(null as java.security.KeyStore?) }.trustManagers.filterIsInstance<X509TrustManager>().first()
+
+    private val sslContext = SSLContext.getInstance("TLS").apply {
+        init(null, arrayOf(systemTrustManager), SecureRandom())
+    }
 
     private var client: OkHttpClient = OkHttpClient.Builder()
         .readTimeout(30, TimeUnit.SECONDS)
         .connectTimeout(30, TimeUnit.SECONDS)
-        .sslSocketFactory(sslContext.socketFactory, trustManager)
-        .hostnameVerifier { _, _ -> true }
+        .sslSocketFactory(sslContext.socketFactory, systemTrustManager)
         .addInterceptor(logging)
         .build()
 

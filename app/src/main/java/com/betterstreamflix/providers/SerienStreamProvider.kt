@@ -49,12 +49,13 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 
 object SerienStreamProvider : Provider {
 
-    private const val DEFAULT_DOMAIN = "serienstream.to"
+    private const val DEFAULT_DOMAIN = "186.2.175.5"
 
     override val baseUrl: String
         get() = currentBaseUrl()
@@ -102,7 +103,11 @@ object SerienStreamProvider : Provider {
             .removePrefix("https://")
             .removePrefix("http://")
             .trimEnd('/')
-        return "https://$domain/"
+        return if (domain == DEFAULT_DOMAIN) {
+            "http://$domain/"
+        } else {
+            "https://$domain/"
+        }
     }
 
     private fun getService(): SerienStreamService {
@@ -336,7 +341,7 @@ object SerienStreamProvider : Provider {
         val linkWithSplitData = seasonId.split("/")
         val showName = linkWithSplitData[0]
         val seasonNumberStr = linkWithSplitData[1]
-        val seasonNumber = Regex("""\d+""").find(seasonNumberStr)!!.value.toInt()
+        val seasonNumber = Regex("""\d+""").find(seasonNumberStr)?.value?.toIntOrNull() ?: 1
 
         val document = getService().getTvShowEpisodes(showName, seasonNumberStr)
         
@@ -406,6 +411,7 @@ object SerienStreamProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val servers = mutableListOf<Video.Server>()
         val linkWithSplitData = id.split("/")
+        if (linkWithSplitData.size < 3) return emptyList()
         val showName = linkWithSplitData[0]
         val seasonNumber = linkWithSplitData[1]
         val episodeNumber = linkWithSplitData[2]
@@ -482,15 +488,11 @@ object SerienStreamProvider : Provider {
 
             private fun getUnsafeOkHttpClient(): OkHttpClient {
                 try {
-                    val trustAllCerts = arrayOf<TrustManager>(
-                        object : X509TrustManager {
-                            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-                            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                        }
-                    )
-                    val sslContext = SSLContext.getInstance("SSL")
-                    sslContext.init(null, trustAllCerts, SecureRandom())
+                    val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+                    tmf.init(null as java.security.KeyStore?)
+                    val systemTrustManager = tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
+                    val sslContext = SSLContext.getInstance("TLS")
+                    sslContext.init(null, arrayOf(systemTrustManager), SecureRandom())
                     val sslSocketFactory = sslContext.socketFactory
 
                     val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
@@ -498,8 +500,7 @@ object SerienStreamProvider : Provider {
                         .cache(appCache)
                         .readTimeout(30, TimeUnit.SECONDS)
                         .connectTimeout(30, TimeUnit.SECONDS)
-                        .sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-                        .hostnameVerifier { _, _ -> true }
+                        .sslSocketFactory(sslSocketFactory, systemTrustManager)
 
                     return clientBuilder
                         .applyBrowserHeaders()
