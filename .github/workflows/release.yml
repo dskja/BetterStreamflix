@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     name: Build & Release APK
@@ -71,24 +74,9 @@ jobs:
             echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-
-      - name: Upload Release APK
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.apk_default.outputs.apk_path }}
-          asset_name: ${{ github.event.repository.name }}-${{ github.ref_name }}.apk
-          asset_content_type: application/zip
+      - name: Copy default APK to staging
+        run: |
+          cp "${{ steps.apk_default.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}.apk"
 
       # ─── Mobile-only APK ───
       - name: Set Mobile version
@@ -120,15 +108,9 @@ jobs:
             echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload Release APK (mobile)
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.apk_mobile.outputs.apk_path }}
-          asset_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-only-mobile.apk
-          asset_content_type: application/zip
+      - name: Copy mobile APK to staging
+        run: |
+          cp "${{ steps.apk_mobile.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}-only-mobile.apk"
 
       # ─── TV-only APK ───
       - name: Set TV version
@@ -160,12 +142,16 @@ jobs:
             echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload Release APK (tv)
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy TV APK to staging
+        run: |
+          cp "${{ steps.apk_tv.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}-only-tv.apk"
+
+      - name: Create Release & Upload APKs
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.apk_tv.outputs.apk_path }}
-          asset_name: ${{ github.event.repository.name }}-${{ github.ref_name }}-only-tv.apk
-          asset_content_type: application/zip
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          files: |
+            /tmp/BetterStreamflix-${{ github.ref_name }}.apk
+            /tmp/BetterStreamflix-${{ github.ref_name }}-only-mobile.apk
+            /tmp/BetterStreamflix-${{ github.ref_name }}-only-tv.apk
