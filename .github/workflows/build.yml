@@ -10,6 +10,8 @@ jobs:
   build:
     name: Build APKs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -88,9 +90,18 @@ jobs:
             gh release delete "$VERSION" -R "$GITHUB_REPOSITORY" --yes
             git push origin :refs/tags/"$VERSION" 2>/dev/null || true
           fi
-          gh release create "$VERSION" \
-            -R "$GITHUB_REPOSITORY" \
-            --title "BetterStreamflix v1.9.0" \
-            --notes-file CHANGELOG.md \
-            app/build/outputs/apk/release/*.apk \
-            app/build/outputs/apk/debug/*.apk
+          if [ -f "CHANGELOG.md" ]; then
+            gh release create "$VERSION" \
+              -R "$GITHUB_REPOSITORY" \
+              --title "BetterStreamflix v1.9.0" \
+              --notes-file CHANGELOG.md \
+              app/build/outputs/apk/release/*.apk \
+              app/build/outputs/apk/debug/*.apk
+          else
+            gh release create "$VERSION" \
+              -R "$GITHUB_REPOSITORY" \
+              --title "BetterStreamflix v1.9.0" \
+              --generate-notes \
+              app/build/outputs/apk/release/*.apk \
+              app/build/outputs/apk/debug/*.apk
+          fi
