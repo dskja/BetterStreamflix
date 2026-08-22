@@ -284,10 +284,11 @@ object PoseidonHD2Provider : Provider {
         if (jsonData != null) {
             val json = JSONObject(jsonData).getJSONObject("props").getJSONObject("pageProps").getJSONObject("thisMovie")
             val tmdbId = json.optString("TMDbId")
-            if (tmdbId.isNotEmpty()) {
+            val tmdbIdInt = tmdbId.toIntOrNull()
+            if (tmdbId.isNotEmpty() && tmdbIdInt != null) {
                 try {
                     return TMDb3.Movies.details(
-                        movieId = tmdbId.toIntOrNull() ?: return@try null,
+                        movieId = tmdbIdInt,
                         appendToResponse = listOf(
                             TMDb3.Params.AppendToResponse.Movie.CREDITS,
                             TMDb3.Params.AppendToResponse.Movie.RECOMMENDATIONS,
@@ -363,8 +364,10 @@ object PoseidonHD2Provider : Provider {
 
         if (tmdbId.isNotEmpty()) {
             try {
-                return TMDb3.TvSeries.details(
-                    seriesId = tmdbId.toIntOrNull() ?: return@try null,
+                val tmdbIdInt = tmdbId.toIntOrNull()
+                if (tmdbIdInt != null) {
+                    return TMDb3.TvSeries.details(
+                    seriesId = tmdbIdInt,
                     appendToResponse = listOf(
                         TMDb3.Params.AppendToResponse.Tv.CREDITS,
                         TMDb3.Params.AppendToResponse.Tv.RECOMMENDATIONS,
@@ -387,6 +390,7 @@ object PoseidonHD2Provider : Provider {
                         genres = tmdbTv.genres.map { Genre(it.id.toString(), it.name) },
                         cast = tmdbTv.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: emptyList()
                     )
+                }
                 }
             } catch (_: Exception) { }
         }

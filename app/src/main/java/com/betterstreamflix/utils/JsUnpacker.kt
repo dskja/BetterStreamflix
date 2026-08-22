@@ -118,9 +118,11 @@ class JsUnpacker(packedJS: String?) {
                     }
                 }
                 dictionary = HashMap(95)
-                val alpha = alphabet ?: return
-                for (i in 0 until alpha.length) {
-                    dictionary?.set(alpha.substring(i, i + 1), i)
+                val alpha = alphabet
+                if (alpha != null) {
+                    for (i in 0 until alpha.length) {
+                        dictionary?.set(alpha.substring(i, i + 1), i)
+                    }
                 }
             }
         }
