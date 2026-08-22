@@ -49,6 +49,11 @@
 - **Better Support**: Faster fixes and improvements
 - **Respectful Fork**: Built with full respect for the original creator's work
 
+
+To-Dos: 
+Remove from Continue Watching not working,
+SerienStream Fix.
+
 BetterStreamflix is an open-source Android TV and mobile app that provides a user interface for accessing publicly available streaming content from various third-party providers.
 
 This app is designed for educational purposes and personal use only. Users are responsible for ensuring they have proper authorization to access any content they view through this application.
