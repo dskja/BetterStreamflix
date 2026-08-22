@@ -2,6 +2,31 @@
 
 All notable changes to BetterStreamflix will be documented here.
 
+## [1.8.2] - 2026-08-22
+
+### Continue Watching Bug Fix
+- Fixed "Aus Weiterschauen entfernen" (Remove from Continue Watching) doing nothing on long-press
+- Root cause: `TvShowDao.save()` merge direction overwrote new `isWatching` value with old DB value
+- Added direct SQL `setWatching()` method to `TvShowDao` bypassing broken merge logic
+- Replaced all `tvShowDao().save()` calls in `ShowOptionsMobileDialog` and `ShowOptionsTvDialog` with `setWatching()`
+- Fixes apply to all 3 actions: clear program, mark watched/unwatched, mark all previous watched
+
+### SerienStream Massive Update
+- Per-category try-catch in `getHome()` — one broken selector no longer kills all categories
+- Fallback selectors for popular carousel when primary selector returns empty
+- Fallback hero image to `img[src]` when srcset parsing fails
+- Search title fallback chain: `h6.show-title` → `h6` → `.show-title`
+- Episode link extraction fallback: `onclick` → `a[href]`
+- Episode title fallback chain: German title → English title → 2nd column text → "Episode N"
+- `getServers()` now catches page-load errors gracefully with logging instead of crashing
+- Warning logs when 0 servers found or 0 search results — helps diagnose selector issues faster
+- All empty results filtered out to prevent blank items in UI
+- Comprehensive error logging throughout all provider methods
+
+### Release Automation
+- Release descriptions now auto-generated from `CHANGELOG.md` matching version tag
+- Uses `body_path` in `softprops/action-gh-release@v2` for proper multiline release notes
+
 ## [1.8.1] - 2026-08-22
 
 ### SerienStream URL Fix

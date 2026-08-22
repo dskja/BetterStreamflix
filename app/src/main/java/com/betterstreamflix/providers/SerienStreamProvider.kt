@@ -148,76 +148,120 @@ object SerienStreamProvider : Provider {
     override suspend fun getHome(): List<Category> {
         val document = getService().getHome()
         val categories = mutableListOf<Category>()
-        categories.add(
-            Category(name = Category.FEATURED,
-                list = document.select(".home-hero-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
-                        title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
-                        banner = normalizeImageUrl(
-                            it.select("picture.home-hero-bg img")
-                                .flatMap { img -> img.attr("srcset").split(",") }
+
+        // FEATURED — Hero slider
+        try {
+            val featured = document.select(".home-hero-slide").map {
+                TvShow(
+                    id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
+                    title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
+                    banner = normalizeImageUrl(
+                        it.select("picture.home-hero-bg img")
+                            .flatMap { img -> img.attr("srcset").split(",") }
+                            .find { url -> url.contains("hero-2x-desktop") }
+                            ?.trim()?.split(" ")?.firstOrNull()
+
+                            ?: it.select("picture.home-hero-bg source[type='image/webp']")
+                                .flatMap { s -> s.attr("srcset").split(",") }
                                 .find { url -> url.contains("hero-2x-desktop") }
                                 ?.trim()?.split(" ")?.firstOrNull()
 
-                                ?: it.select("picture.home-hero-bg source[type='image/webp']")
-                                    .flatMap { s -> s.attr("srcset").split(",") }
-                                    .find { url -> url.contains("hero-2x-desktop") }
-                                    ?.trim()?.split(" ")?.firstOrNull()
+                            ?: it.select("picture.home-hero-bg source[type='image/avif']")
+                                .flatMap { s -> s.attr("srcset").split(",") }
+                                .find { url -> url.contains("hero-2x-desktop") }
+                                ?.trim()?.split(" ")?.firstOrNull()
 
-                                ?: it.select("picture.home-hero-bg source[type='image/avif']")
-                                    .flatMap { s -> s.attr("srcset").split(",") }
-                                    .find { url -> url.contains("hero-2x-desktop") }
-                                    ?.trim()?.split(" ")?.firstOrNull()
-                        )
-
+                            ?: it.selectFirst("picture.home-hero-bg img")?.attr("src")
                     )
-                })
-        )
-        categories.add(
-            Category(name = "Angesagt",
-                list = document.select(".trending-widget .swiper-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("h3.trend-title a")?.attr("href") ?: ""),
-                        title = it.selectFirst("h3.trend-title a")?.text()?.trim() ?: "",
-                        poster = normalizeImageUrl(it.extractPoster()))
-                })
-        )
-        categories.add(
-            Category(name = "Neu auf S.to",
-                list = document.select("section.continue-widget.new-shows-slider .swiper-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(
-                            it.selectFirst("a.continue-cover, h3.continue-title a")?.attr("href") ?: ""
-                        ),
-                        title = it.selectFirst("h3.continue-title a")?.text()?.trim() ?: "",
-                        poster = normalizeImageUrl(it.extractPoster()))
-                })
-        )
-        document.select("#discover-blocks .col").forEach { column ->
-            val categoryName = column.selectFirst("h4")?.text()?.trim() ?: ""
-            if (categoryName.isNotEmpty()) {
-                categories.add(
-                    Category(name = categoryName,
-                        list = column.select("li").map {
-                            TvShow(
-                                id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                                title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
-                                poster = normalizeImageUrl(it.extractPoster()))
-                        })
                 )
+            }.filter { it.id.isNotBlank() && it.title.isNotBlank() }
+            if (featured.isNotEmpty()) {
+                categories.add(Category(name = Category.FEATURED, list = featured))
             }
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getHome: FEATURED parsing failed", e)
         }
-        categories.add(
-            Category(name = "Derzeit beliebte Serien",
-                list = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem").map {
+
+        // ANGESAGT — Trending widget
+        try {
+            val trending = document.select(".trending-widget .swiper-slide").map {
+                TvShow(
+                    id = getTvShowIdFromLink(it.selectFirst("h3.trend-title a")?.attr("href") ?: ""),
+                    title = it.selectFirst("h3.trend-title a")?.text()?.trim() ?: "",
+                    poster = normalizeImageUrl(it.extractPoster()))
+            }.filter { it.id.isNotBlank() }
+            if (trending.isNotEmpty()) {
+                categories.add(Category(name = "Angesagt", list = trending))
+            }
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getHome: Angesagt parsing failed", e)
+        }
+
+        // NEU AUF S.TO — New shows slider
+        try {
+            val newShows = document.select("section.continue-widget.new-shows-slider .swiper-slide").map {
+                TvShow(
+                    id = getTvShowIdFromLink(
+                        it.selectFirst("a.continue-cover, h3.continue-title a")?.attr("href") ?: ""
+                    ),
+                    title = it.selectFirst("h3.continue-title a")?.text()?.trim() ?: "",
+                    poster = normalizeImageUrl(it.extractPoster()))
+            }.filter { it.id.isNotBlank() }
+            if (newShows.isNotEmpty()) {
+                categories.add(Category(name = "Neu auf S.to", list = newShows))
+            }
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getHome: Neu auf S.to parsing failed", e)
+        }
+
+        // DISCOVER BLOCKS — Category columns
+        try {
+            document.select("#discover-blocks .col").forEach { column ->
+                val categoryName = column.selectFirst("h4")?.text()?.trim() ?: ""
+                if (categoryName.isNotEmpty()) {
+                    val shows = column.select("li").map {
+                        TvShow(
+                            id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                            title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
+                            poster = normalizeImageUrl(it.extractPoster()))
+                    }.filter { it.id.isNotBlank() }
+                    if (shows.isNotEmpty()) {
+                        categories.add(Category(name = categoryName, list = shows))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getHome: Discover blocks parsing failed", e)
+        }
+
+        // DERZEIT BELIEBTE SERIEN — Popular carousel with fallback
+        try {
+            val popular = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem").map {
+                TvShow(
+                    id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                    title = it.selectFirst("a h3")?.text() ?: "",
+                    poster = normalizeImageUrl(it.extractPoster())
+                )
+            }.filter { it.id.isNotBlank() }
+            if (popular.isEmpty()) {
+                // Fallback: try generic carousel selectors
+                val fallbackPopular = document.select(".carousel .swiper-slide").map {
                     TvShow(
                         id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("a h3")?.text() ?: "",
+                        title = it.selectFirst("h3, h6, .title")?.text()?.trim() ?: "",
                         poster = normalizeImageUrl(it.extractPoster())
                     )
-                })
-        )
+                }.filter { it.id.isNotBlank() }
+                if (fallbackPopular.isNotEmpty()) {
+                    categories.add(Category(name = "Derzeit beliebte Serien", list = fallbackPopular))
+                }
+            } else {
+                categories.add(Category(name = "Derzeit beliebte Serien", list = popular))
+            }
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getHome: Beliebte Serien parsing failed", e)
+        }
+
         return categories
     }
 
@@ -234,7 +278,7 @@ object SerienStreamProvider : Provider {
                 }
         }
         val document = getService().search(query, page)
-        return document
+        val results = document
             .select("div.search-results-list div.card.cover-card")
             .mapNotNull { card ->
                 val link = card.selectFirst("a[href^=/serie/]")?.attr("href")
@@ -242,11 +286,18 @@ object SerienStreamProvider : Provider {
 
                 TvShow(
                     id = getTvShowIdFromLink(link),
-                    title = card.selectFirst("h6.show-title")?.text().orEmpty(),
+                    title = card.selectFirst("h6.show-title")?.text()
+                        ?: card.selectFirst("h6")?.text()
+                        ?: card.selectFirst(".show-title")?.text()
+                        ?: "",
                     poster = normalizeImageUrl(card.extractPoster())
                 )
             }
             .distinctBy { it.id }
+        if (results.isEmpty()) {
+            Log.w("SerienStreamProvider", "search('$query', page=$page) returned 0 results — selectors may need updating")
+        }
+        return results
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
@@ -262,7 +313,8 @@ object SerienStreamProvider : Provider {
                     ?: return@mapNotNull null
                 TvShow(
                     id = getTvShowIdFromLink(link),
-                    title = card.selectFirst("h6.show-title")?.text().orEmpty(),
+                    title = card.selectFirst("h6.show-title")?.text()
+                        ?: card.selectFirst("h6")?.text().orEmpty(),
                     poster = normalizeImageUrl(card.extractPoster())
                 )
             }
@@ -356,21 +408,26 @@ object SerienStreamProvider : Provider {
         return document.select("tr.episode-row").map {
             val episodeNumber = it.selectFirst(".episode-number-cell")?.text()?.trim()?.toIntOrNull() ?: 0
             val tmdbEp = tmdbEpisodes.find { ep -> ep.number == episodeNumber }
-            
+
+            // Extract episode link from onclick with fallback to data-href or href
             val episodeLink = it.attr("onclick")
                 .substringAfter("window.location='")
                 .substringBefore("'")
+                .ifBlank {
+                    it.selectFirst("a[href]")?.attr("href") ?: ""
+                }
 
             Episode(
                 id = getEpisodeIdFromLink(episodeLink),
                 number = episodeNumber,
-                title = tmdbEp?.title ?: it.selectFirst(".episode-title-ger")?.text() 
-                    ?: it.selectFirst(".episode-title-eng")?.text() 
+                title = tmdbEp?.title ?: it.selectFirst(".episode-title-ger")?.text()?.trim()
+                    ?: it.selectFirst(".episode-title-eng")?.text()?.trim()
+                    ?: it.selectFirst("td:nth-child(2)")?.text()?.trim()
                     ?: "Episode $episodeNumber",
                 poster = tmdbEp?.poster,
                 overview = tmdbEp?.overview
             )
-        }
+        }.filter { it.id.isNotBlank() }
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
@@ -411,13 +468,25 @@ object SerienStreamProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val servers = mutableListOf<Video.Server>()
         val linkWithSplitData = id.split("/")
-        if (linkWithSplitData.size < 3) return emptyList()
+        if (linkWithSplitData.size < 3) {
+            Log.w("SerienStreamProvider", "getServers: invalid id format '$id' — expected show/season/episode")
+            return emptyList()
+        }
         val showName = linkWithSplitData[0]
         val seasonNumber = Regex("""\d+""").find(linkWithSplitData[1])?.value ?: linkWithSplitData[1]
         val episodeNumber = Regex("""\d+""").find(linkWithSplitData[2])?.value ?: linkWithSplitData[2]
-        val document = getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
+
+        val document = try {
+            getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getServers: failed to load episode page for $showName/staffel-$seasonNumber/episode-$episodeNumber", e)
+            return emptyList()
+        }
 
         val elements = document.select("button.link-box")
+        if (elements.isEmpty()) {
+            Log.w("SerienStreamProvider", "getServers: no server buttons found on episode page — selector 'button.link-box' may be outdated")
+        }
         for (element in elements) {
             val serverName = element.attr("data-provider-name")
             val language = element.attr("data-language-label")
@@ -444,11 +513,11 @@ object SerienStreamProvider : Provider {
                     )
                 )
             } catch (e: Exception) {
-                Log.e("SerienStreamProvider", "Failed to process server '$serverName' with URL '$href'")
+                Log.e("SerienStreamProvider", "getServers: failed to process server '$serverName' with URL '$href'", e)
             }
         }
+        Log.i("SerienStreamProvider", "getServers: found ${servers.size} servers for $showName S${seasonNumber}E${episodeNumber}")
         return servers
-
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
