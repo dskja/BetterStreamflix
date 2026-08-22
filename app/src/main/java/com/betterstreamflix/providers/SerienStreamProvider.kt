@@ -343,7 +343,7 @@ object SerienStreamProvider : Provider {
         val seasonNumberStr = linkWithSplitData[1]
         val seasonNumber = Regex("""\d+""").find(seasonNumberStr)?.value?.toIntOrNull() ?: 1
 
-        val document = getService().getTvShowEpisodes(showName, seasonNumberStr)
+        val document = getService().getTvShowEpisodes(showName, seasonNumber.toString())
         
         // Get show title for TMDB lookup
         val title = (document.selectFirst("h1")?.text()?.trim() ?: "").split(" Staffel").firstOrNull()?.trim() ?: ""
@@ -413,8 +413,8 @@ object SerienStreamProvider : Provider {
         val linkWithSplitData = id.split("/")
         if (linkWithSplitData.size < 3) return emptyList()
         val showName = linkWithSplitData[0]
-        val seasonNumber = linkWithSplitData[1]
-        val episodeNumber = linkWithSplitData[2]
+        val seasonNumber = Regex("""\d+""").find(linkWithSplitData[1])?.value ?: linkWithSplitData[1]
+        val episodeNumber = Regex("""\d+""").find(linkWithSplitData[2])?.value ?: linkWithSplitData[2]
         val document = getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
 
         val elements = document.select("button.link-box")
@@ -567,12 +567,12 @@ object SerienStreamProvider : Provider {
         @GET("serie/{tvShowName}")
         suspend fun getTvShow(@Path("tvShowName") tvShowName: String): Document
 
-        @GET("serie/{tvShowName}/{seasonNumber}")
+        @GET("serie/{tvShowName}/staffel-{seasonNumber}")
         suspend fun getTvShowEpisodes(
             @Path("tvShowName") showName: String, @Path("seasonNumber") seasonNumber: String
         ): Document
 
-        @GET("serie/{tvShowName}/{seasonNumber}/{episodeNumber}")
+        @GET("serie/{tvShowName}/staffel-{seasonNumber}/episode-{episodeNumber}")
         suspend fun getTvShowEpisodeServers(
             @Path("tvShowName") tvShowName: String,
             @Path("seasonNumber") seasonNumber: String,
