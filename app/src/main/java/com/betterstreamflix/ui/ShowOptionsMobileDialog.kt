@@ -146,10 +146,7 @@ class ShowOptionsMobileDialog(
                         // Se l'episodio è stato marcato come VISTO E non ci sono altri
                         // episodi con cronologia, impostiamo isWatching a false.
                         if (updatedEpisode.isWatched && !isStillWatching) {
-                            AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
-                                merge(tvShow)
-                                isWatching = false
-                            })
+                            AppDatabase.getInstance(context).tvShowDao().setWatching(tvShow.id, false)
                             UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                         }
                     }
@@ -196,10 +193,7 @@ class ShowOptionsMobileDialog(
                     if (targetState) {
                         episode.tvShow?.let { tvShow ->
                             if (!episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)) {
-                                AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
-                                    merge(tvShow)
-                                    isWatching = false
-                                })
+                                AppDatabase.getInstance(context).tvShowDao().setWatching(tvShow.id, false)
                                 UserDataCache.removeEpisodeFromContinueWatching(context, currentProvider, episode.id)
                             }
                         }
@@ -208,10 +202,7 @@ class ShowOptionsMobileDialog(
                     // Se l'obiettivo era marcare come NON VISTO, impostiamo isWatching a true per farlo riapparire.
                     if (!targetState) {
                         episode.tvShow?.let { tvShow ->
-                            AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
-                                merge(tvShow)
-                                isWatching = true
-                            })
+                            AppDatabase.getInstance(context).tvShowDao().setWatching(tvShow.id, true)
                         }
                     }
                 }
@@ -239,15 +230,8 @@ class ShowOptionsMobileDialog(
                     UserDataCache.syncEpisodeToCache(context, provider, updatedEpisode)
                     
                     episode.tvShow?.let { tvShow ->
-                        // Rimuoviamo isWatching solo se NON ci sono altri episodi in corso
-                        val episodeDao = AppDatabase.getInstance(context).episodeDao()
-                        if (!episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)) {
-                            AppDatabase.getInstance(context).tvShowDao().save(tvShow.copy().apply {
-                                merge(tvShow)
-                                isWatching = false
-                            })
-                            UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
-                        }
+                        AppDatabase.getInstance(context).tvShowDao().setWatching(tvShow.id, false)
+                        UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                     }
                     UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                 }

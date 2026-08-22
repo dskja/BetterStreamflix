@@ -128,4 +128,7 @@ interface TvShowDao {
 
     @Query("UPDATE tv_shows SET isFavorite = :favorite, favoritedAtMillis = :favoritedAtMillis WHERE id = :id")
     fun setFavorite(id: String, favorite: Boolean, favoritedAtMillis: Long?)
+
+    @Query("UPDATE tv_shows SET isWatching = :isWatching WHERE id = :id")
+    fun setWatching(id: String, isWatching: Boolean)
 }
