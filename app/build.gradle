@@ -154,6 +154,28 @@ dependencies {
     
 }
 
+tasks.register('generateNativeLib') {
+    def template = file('src/main/cpp/native-lib.cpp.template')
+    def output = file('src/main/cpp/native-lib.cpp')
+    inputs.file template
+    outputs.file output
+    doLast {
+        def props = new Properties()
+        props.load(project.rootProject.file('local.properties').newDataInputStream())
+        def content = template.text
+        content = content.replace('{{UPROT_MSFI_API_BASE}}', props.getProperty('UPROT_MSFI_API_BASE', ''))
+        content = content.replace('{{UPROT_MSE_API_BASE}}', props.getProperty('UPROT_MSE_API_BASE', ''))
+        content = content.replace('{{UPROT_API_KEY}}', props.getProperty('UPROT_API_KEY', ''))
+        output.text = content
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('configureCMake') || task.name.startsWith('buildCMake')) {
+        task.dependsOn 'generateNativeLib'
+    }
+}
+
 ksp {
     arg("com.bumptech.glide.GlideModule", "AppGlideModule")
 }
