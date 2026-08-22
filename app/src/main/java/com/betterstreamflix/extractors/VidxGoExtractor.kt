@@ -61,8 +61,9 @@ class VidxGoExtractor : Extractor() {
 
             TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 while (true) {
-                    val delayMs = if (expireTime != null) {
-                        val remaining = expireTime - System.currentTimeMillis()
+                    val exp = expireTime
+                    val delayMs = if (exp != null) {
+                        val remaining = exp - System.currentTimeMillis()
                         val delay = (remaining - 15_000).coerceAtLeast(5_000)
                         Log.d("TokenManager", "[SCHEDULE] Next refresh in ${delay / 1000}s (expiry in ${remaining / 1000}s)")
                         delay

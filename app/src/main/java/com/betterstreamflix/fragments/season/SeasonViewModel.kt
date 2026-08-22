@@ -82,7 +82,7 @@ class SeasonViewModel(
             val episodes = UserPreferences.currentProvider
                 ?.getEpisodesBySeason(seasonId)
                 ?.sortedBy { it.number }
-                ?: run { _state.emit(State.FailedLoading(NullPointerException("Provider returned null"))); return@launch }
+                ?: run { _state.emit(State.FailedLoadingEpisodes(NullPointerException("Provider returned null"))); return@launch }
             val ids = episodes.map { it.id }
             val episodeMap = episodes.associateBy { it.id }
 
