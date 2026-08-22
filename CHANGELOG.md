@@ -2,6 +2,14 @@
 
 All notable changes to BetterStreamflix will be documented here.
 
+## [1.8.1] - 2026-08-22
+
+### SerienStream URL Fix
+- Fixed 404 errors on all SerienStream links — site changed URL structure
+- Updated Retrofit endpoints from `serie/{show}/{season}` to `serie/{show}/staffel-{season}`
+- Updated episode endpoints from `serie/{show}/{season}/{episode}` to `serie/{show}/staffel-{season}/episode-{episode}`
+- Season and episode IDs are now correctly extracted from new URL format
+
 ## [1.8.0] - 2026-08-22
 
 ### Security
