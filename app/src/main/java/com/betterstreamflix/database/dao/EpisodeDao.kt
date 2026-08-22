@@ -110,6 +110,24 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE season = :seasonId ORDER BY season, number")
     fun getBySeasonId(seasonId: String): List<Episode>
 
+    @Query("""
+        UPDATE episodes SET
+            lastEngagementTimeUtcMillis = NULL,
+            lastPlaybackPositionMillis = NULL,
+            durationMillis = NULL
+        WHERE id = :id
+    """)
+    fun clearWatchHistory(id: String)
+
+    @Query("""
+        UPDATE episodes SET
+            lastEngagementTimeUtcMillis = NULL,
+            lastPlaybackPositionMillis = NULL,
+            durationMillis = NULL
+        WHERE tvShow = :tvShowId
+    """)
+    fun clearWatchHistoryForTvShow(tvShowId: String)
+
     @Query("SELECT * FROM episodes WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingEpisodes(): Flow<List<Episode>>
 
@@ -138,6 +156,9 @@ interface EpisodeDao {
     fun getEpisodesByTvShowIdAndSeason(tvShowId: String, season: String?): List<Episode>
     @Update
     fun update(episode: Episode)
+
+    @Query("DELETE FROM episodes WHERE id = :id")
+    fun deleteById(id: String)
 
     @Query("DELETE FROM episodes")
     fun deleteAll()

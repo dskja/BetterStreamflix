@@ -1,6 +1,7 @@
 package com.betterstreamflix.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 
@@ -15,7 +16,8 @@ class CloudSyncWorker(
             CloudSyncManager.syncNow(applicationContext)
             Result.success()
         }
-    } catch (_: Throwable) {
+    } catch (e: Exception) {
+        Log.e("CloudSyncWorker", "Background sync failed, will retry", e)
         Result.retry()
     }
 }

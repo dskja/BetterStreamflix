@@ -63,6 +63,7 @@ object CloudSyncManager {
         }
         activateAccount(appContext, userId)
         CloudRealtimeSync.start(appContext, userId)
+        CloudSyncScheduler.schedulePeriodic(appContext)
     }
 
     suspend fun signIn(
@@ -87,6 +88,7 @@ object CloudSyncManager {
             mergeLocalOnLogin = true,
         )
         CloudRealtimeSync.start(context.applicationContext, userId)
+        CloudSyncScheduler.schedulePeriodic(context.applicationContext)
     }
 
     suspend fun signUp(
@@ -111,6 +113,7 @@ object CloudSyncManager {
             mergeLocalOnLogin = true,
         )
         CloudRealtimeSync.start(context.applicationContext, userId)
+        CloudSyncScheduler.schedulePeriodic(context.applicationContext)
         return true
     }
 
@@ -118,9 +121,13 @@ object CloudSyncManager {
         val appContext = context.applicationContext
         CloudRealtimeSync.stop()
         runCatching { flushPending(appContext) }
+            .onFailure { Log.w(TAG, "Failed to flush pending mutations before sign-out", it) }
         if (SupabaseProvider.isConfigured) {
-            SupabaseProvider.client.auth.signOut()
+            runCatching { SupabaseProvider.client.auth.signOut() }
+                .onFailure { Log.w(TAG, "Remote sign-out failed; clearing local session anyway", it) }
         }
+        CloudMutationStore.clearForUser(appContext, currentUserId())
+        CloudSyncScheduler.cancelPeriodic(appContext)
         CloudAccountStore.setActiveUserId(appContext, null)
     }
 
@@ -137,19 +144,24 @@ object CloudSyncManager {
     ) {
         val appContext = context.applicationContext
         val userId = currentUserId() ?: error("Sign in before synchronizing")
-        flushPending(appContext, onProgress)
-        onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
-        val remote = fetchRemote()
-        onProgress(
-            CloudSyncProgress(
-                CloudSyncProgress.Stage.APPLYING_CLOUD,
-                current = remote.size,
-                total = remote.size,
-            ),
-        )
-        withContext(Dispatchers.IO) { applyRemote(appContext, remote) }
-        onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
-        CloudAccountStore.setActiveUserId(appContext, userId)
+        try {
+            flushPending(appContext, onProgress)
+            onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
+            val remote = fetchRemote()
+            onProgress(
+                CloudSyncProgress(
+                    CloudSyncProgress.Stage.APPLYING_CLOUD,
+                    current = remote.size,
+                    total = remote.size,
+                ),
+            )
+            withContext(Dispatchers.IO) { applyRemote(appContext, remote) }
+            onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
+            CloudAccountStore.setActiveUserId(appContext, userId)
+        } catch (e: Exception) {
+            Log.e(TAG, "syncNow failed for user $userId", e)
+            throw e
+        }
     }
 
     suspend fun flushPending(
@@ -157,7 +169,10 @@ object CloudSyncManager {
         onProgress: (CloudSyncProgress) -> Unit = {},
     ) {
         val userId = currentUserId() ?: return
-        while (true) {
+        val maxIterations = 10
+        var iteration = 0
+        while (iteration < maxIterations) {
+            iteration++
             val pending = CloudMutationStore.pendingForUser(context, userId)
             if (pending.isEmpty()) return
             // The queue can contain playback state created before this device
@@ -168,13 +183,21 @@ object CloudSyncManager {
                 val remote = remoteByKey[mutation.queueKey]
                 remote == null || pendingStateWins(mutation, remote)
             }
-            if (uploadable.isNotEmpty()) {
+            val successfullyUploaded = if (uploadable.isNotEmpty()) {
                 upsert(uploadable, onProgress)
+            } else {
+                emptyList()
             }
-            // Acknowledge stale mutations too. acknowledge() keeps any newer
+            // Acknowledge only what was actually uploaded. Stale mutations
+            // (skipped because remote is newer) are also acknowledged since
+            // they don't need to be uploaded. acknowledge() keeps any newer
             // version that was queued while this upload was in progress.
-            CloudMutationStore.acknowledge(context, pending)
+            val acknowledged = successfullyUploaded +
+                pending.filter { it !in uploadable }
+            CloudMutationStore.acknowledge(context, acknowledged)
         }
+        Log.w(TAG, "flushPending hit max iterations ($maxIterations); " +
+            "mutations still pending for user $userId")
     }
 
     private suspend fun activateAccount(
@@ -274,6 +297,43 @@ object CloudSyncManager {
         withContext(Dispatchers.IO) {
             applyRemote(context.applicationContext, listOf(state))
         }
+    }
+
+    internal suspend fun deleteRealtimeState(
+        context: Context,
+        state: RemoteMediaState,
+    ) = accountSyncMutex.withLock {
+        val userId = currentUserId()
+        if (userId == null || state.userId != userId) return@withLock
+
+        withContext(Dispatchers.IO) {
+            deleteRemoteState(context.applicationContext, state)
+        }
+    }
+
+    private fun deleteRemoteState(context: Context, state: RemoteMediaState) {
+        val provider = providerByName(state.provider) ?: run {
+            Log.w(TAG, "Skipping delete for unavailable provider ${state.provider}")
+            return
+        }
+        val db = AppDatabase.getInstanceForProvider(provider.name, context)
+        try {
+            db.runInTransaction {
+                when (state.mediaType) {
+                    "movie" -> db.movieDao().deleteById(state.mediaId)
+                    "tv_show" -> db.tvShowDao().deleteById(state.mediaId)
+                    "episode" -> db.episodeDao().deleteById(state.mediaId)
+                }
+            }
+            when (state.mediaType) {
+                "movie" -> UserDataCache.writeMovies(context, provider, db.movieDao().getAll())
+                "tv_show" -> UserDataCache.writeTvShows(context, provider, db.tvShowDao().getAllForBackup())
+                "episode" -> UserDataCache.writeEpisodes(context, provider, db.episodeDao().getAllForBackup())
+            }
+        } finally {
+            db.close()
+        }
+        UserDataNotifier.notifyChanged()
     }
 
     internal fun shouldApplyRealtimeState(
@@ -434,7 +494,8 @@ object CloudSyncManager {
     private suspend fun upsert(
         states: List<RemoteMediaState>,
         onProgress: (CloudSyncProgress) -> Unit = {},
-    ) {
+    ): List<RemoteMediaState> {
+        val uploadedStates = mutableListOf<RemoteMediaState>()
         var uploaded = 0
         onProgress(
             CloudSyncProgress(
@@ -447,6 +508,7 @@ object CloudSyncManager {
             SupabaseProvider.client.from(TABLE).upsert(chunk) {
                 onConflict = "user_id,provider,media_type,media_id"
             }
+            uploadedStates += chunk
             uploaded += chunk.size
             onProgress(
                 CloudSyncProgress(
@@ -456,6 +518,7 @@ object CloudSyncManager {
                 ),
             )
         }
+        return uploadedStates
     }
 
     private fun collectLocalState(context: Context, userId: String): List<RemoteMediaState> {
@@ -594,9 +657,13 @@ object CloudSyncManager {
                     }
                 }
 
-                UserDataCache.writeMovies(context, provider, db.movieDao().getAll())
-                UserDataCache.writeTvShows(context, provider, db.tvShowDao().getAllForBackup())
-                UserDataCache.writeEpisodes(context, provider, db.episodeDao().getAllForBackup())
+                runCatching {
+                    UserDataCache.writeMovies(context, provider, db.movieDao().getAll())
+                    UserDataCache.writeTvShows(context, provider, db.tvShowDao().getAllForBackup())
+                    UserDataCache.writeEpisodes(context, provider, db.episodeDao().getAllForBackup())
+                }.onFailure { e ->
+                    Log.w(TAG, "Failed to write cache for provider ${provider.name}", e)
+                }
             } finally {
                 db.close()
             }

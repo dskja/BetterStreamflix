@@ -22,6 +22,16 @@ object CloudMutationStore {
         read(context).filter { it.userId == userId }
 
     @Synchronized
+    fun clearForUser(context: Context, userId: String?) {
+        if (userId == null) {
+            write(context, emptyList())
+            return
+        }
+        val remaining = read(context).filter { it.userId != userId }
+        write(context, remaining)
+    }
+
+    @Synchronized
     fun acknowledge(context: Context, uploaded: List<RemoteMediaState>) {
         if (uploaded.isEmpty()) return
         val uploadedVersions = uploaded.associate { it.queueKey to it.clientUpdatedAtMillis }
@@ -42,6 +52,6 @@ object CloudMutationStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(QUEUE, json.encodeToString(serializer, states))
-            .apply()
+            .commit()
     }
 }

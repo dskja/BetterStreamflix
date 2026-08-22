@@ -165,7 +165,7 @@ object UserDataCache {
     fun removeMovieFromContinueWatching(context: Context, provider: Provider, id: String) {
         val current = read(context, provider) ?: UserData()
 
-        runCatching {
+        try {
             val db = AppDatabase.getInstance(context)
             db.movieDao().getById(id)?.let { movie ->
                 movie.watchHistory = null
@@ -173,12 +173,32 @@ object UserDataCache {
                 movie.watchedDate = null
                 db.movieDao().update(movie)
             }
+        } catch (e: Exception) {
+            Log.e("UserDataCache", "Failed to clear watch history for movie $id", e)
         }
 
         write(context, provider, current.copy(
             continueWatchingMovies = current.continueWatchingMovies.filter { it.id != id }
         ))
         CloudSyncHooks.movie(context, provider, id)
+        UserDataNotifier.notifyChanged()
+    }
+
+    fun clearAllContinueWatching(context: Context, provider: Provider) {
+        try {
+            val db = AppDatabase.getInstance(context)
+            db.episodeDao().clearUserState()
+            db.movieDao().clearUserState()
+            db.tvShowDao().clearUserState()
+        } catch (e: Exception) {
+            Log.e("UserDataCache", "Failed to clear all continue watching from DB", e)
+        }
+
+        val current = read(context, provider) ?: UserData()
+        write(context, provider, current.copy(
+            continueWatchingMovies = emptyList(),
+            continueWatchingEpisodes = emptyList()
+        ))
         UserDataNotifier.notifyChanged()
     }
 
@@ -224,6 +244,12 @@ object UserDataCache {
 
     fun removeEpisodeFromContinueWatching(context: Context, provider: Provider, id: String) {
         val current = read(context, provider) ?: UserData()
+
+        try {
+            AppDatabase.getInstance(context).episodeDao().clearWatchHistory(id)
+        } catch (e: Exception) {
+            Log.e("UserDataCache", "Failed to clear watch history for episode $id", e)
+        }
 
         write(context, provider, current.copy(
             continueWatchingEpisodes = current.continueWatchingEpisodes.filter { it.id != id }

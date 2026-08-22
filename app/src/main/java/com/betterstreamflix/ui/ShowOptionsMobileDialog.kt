@@ -222,16 +222,9 @@ class ShowOptionsMobileDialog(
             setOnClickListener {
                 checkProviderAndRun(episode) {
                     val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
-                    val updatedEpisode = episode.copy().apply {
-                        merge(episode)
-                        watchHistory = null
-                    }
-                    AppDatabase.getInstance(context).episodeDao().save(updatedEpisode)
-                    UserDataCache.syncEpisodeToCache(context, provider, updatedEpisode)
-                    
+
                     episode.tvShow?.let { tvShow ->
                         AppDatabase.getInstance(context).tvShowDao().setWatching(tvShow.id, false)
-                        UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                     }
                     UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                 }

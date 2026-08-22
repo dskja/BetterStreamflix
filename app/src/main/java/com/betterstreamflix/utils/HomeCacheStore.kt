@@ -16,22 +16,33 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 object HomeCacheStore {
+    private const val CACHE_TTL_MILLIS = 6 * 60 * 60 * 1000L // 6 hours
     private val gson = Gson()
-    private val memoryCache = ConcurrentHashMap<String, List<CachedCategory>>()
+    private val memoryCache = ConcurrentHashMap<String, Pair<List<CachedCategory>, Long>>()
 
     fun read(context: Context, provider: Provider): List<Category>? {
         val cacheKey = cacheKey(provider)
-        memoryCache[cacheKey]?.let { payload ->
-            return payload.toCategories()
+        val now = System.currentTimeMillis()
+
+        memoryCache[cacheKey]?.let { (payload, timestamp) ->
+            return if (now - timestamp < CACHE_TTL_MILLIS) {
+                payload.toCategories()
+            } else {
+                memoryCache.remove(cacheKey)
+                null
+            }
         }
 
         val file = cacheFile(context, cacheKey)
         if (!file.exists()) return null
 
+        val fileAge = now - file.lastModified()
+        if (fileAge >= CACHE_TTL_MILLIS) return null
+
         return runCatching {
             val type = object : TypeToken<List<CachedCategory>>() {}.type
             val payload: List<CachedCategory> = gson.fromJson(file.readText(), type)
-            memoryCache[cacheKey] = payload
+            memoryCache[cacheKey] = payload to file.lastModified()
             payload.toCategories()
         }.recoverCatching {
             if (it is JsonSyntaxException) {
@@ -46,10 +57,12 @@ object HomeCacheStore {
         runCatching {
             val payload = categories.map { CachedCategory.from(it) }
             val cacheKey = cacheKey(provider)
-            memoryCache[cacheKey] = payload
+            val now = System.currentTimeMillis()
+            memoryCache[cacheKey] = payload to now
             cacheFile(context, cacheKey).apply {
                 parentFile?.mkdirs()
                 writeText(gson.toJson(payload))
+                setLastModified(now)
             }
         }
     }

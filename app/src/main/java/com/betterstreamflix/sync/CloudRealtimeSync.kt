@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -59,15 +60,40 @@ object CloudRealtimeSync {
                             action.decodeRecordOrNull<RemoteMediaState>()
                         is PostgresAction.Update ->
                             action.decodeRecordOrNull<RemoteMediaState>()
+                        is PostgresAction.Delete ->
+                            action.decodeRecordOrNull<RemoteMediaState>()
                         else -> null
                     }
                     if (state != null) {
-                        CloudSyncManager.applyRealtimeState(appContext, state)
+                        when (action) {
+                            is PostgresAction.Delete ->
+                                CloudSyncManager.deleteRealtimeState(appContext, state)
+                            else ->
+                                CloudSyncManager.applyRealtimeState(appContext, state)
+                        }
                     }
                 }
                 .catch { error ->
-                    Log.w(TAG, "Realtime media synchronization stopped", error)
+                    Log.w(TAG, "Realtime media synchronization stopped, will retry", error)
                     CloudSyncScheduler.enqueue(appContext)
+                    val reconnectUserId = userId
+                    var backoffMs = 2000L
+                    repeat(5) { attempt ->
+                        delay(backoffMs)
+                        if (activeUserId != reconnectUserId) return@repeat
+                        Log.i(TAG, "Attempting realtime reconnect (attempt ${attempt + 1}/5)")
+                        runCatching { start(appContext, reconnectUserId) }
+                            .onFailure {
+                                Log.w(TAG, "Reconnect attempt ${attempt + 1} failed", it)
+                            }
+                            .onSuccess {
+                                if (channel?.status?.value == RealtimeChannel.Status.SUBSCRIBED) {
+                                    Log.i(TAG, "Realtime reconnected successfully")
+                                    return@repeat
+                                }
+                            }
+                        backoffMs *= 2
+                    }
                 }
                 .launchIn(scope)
 
