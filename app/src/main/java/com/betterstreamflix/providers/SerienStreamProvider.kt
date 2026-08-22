@@ -153,7 +153,7 @@ object SerienStreamProvider : Provider {
         try {
             val featured = document.select(".home-hero-slide").map {
                 TvShow(
-                    id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
+                    id = getTvShowIdFromLink(it.selectFirst("a.home-hero-overlay")?.attr("href") ?: ""),
                     title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
                     banner = normalizeImageUrl(
                         it.select("picture.home-hero-bg img")
@@ -222,7 +222,9 @@ object SerienStreamProvider : Provider {
                     val shows = column.select("li").map {
                         TvShow(
                             id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                            title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
+                            title = it.selectFirst("span.h6")?.text()?.trim()
+                                ?: it.selectFirst("span.fw-semibold")?.text()?.trim()
+                                ?: it.selectFirst("a")?.text()?.trim() ?: "",
                             poster = normalizeImageUrl(it.extractPoster()))
                     }.filter { it.id.isNotBlank() }
                     if (shows.isNotEmpty()) {
@@ -234,32 +236,38 @@ object SerienStreamProvider : Provider {
             Log.e("SerienStreamProvider", "getHome: Discover blocks parsing failed", e)
         }
 
-        // DERZEIT BELIEBTE SERIEN — Popular carousel with fallback
+        // GERADE IM TREND — Tabbed trending section (#section-1)
         try {
-            val popular = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem").map {
+            val trending2 = document.select("#section-1 .card-mini-tile").map {
                 TvShow(
                     id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                    title = it.selectFirst("a h3")?.text() ?: "",
-                    poster = normalizeImageUrl(it.extractPoster())
+                    title = it.selectFirst("h3 span")?.text()?.trim()
+                        ?: it.selectFirst("h3")?.text()?.trim() ?: "",
+                    banner = normalizeImageUrl(it.extractBanner())
                 )
             }.filter { it.id.isNotBlank() }
-            if (popular.isEmpty()) {
-                // Fallback: try generic carousel selectors
-                val fallbackPopular = document.select(".carousel .swiper-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("h3, h6, .title")?.text()?.trim() ?: "",
-                        poster = normalizeImageUrl(it.extractPoster())
-                    )
-                }.filter { it.id.isNotBlank() }
-                if (fallbackPopular.isNotEmpty()) {
-                    categories.add(Category(name = "Derzeit beliebte Serien", list = fallbackPopular))
-                }
-            } else {
-                categories.add(Category(name = "Derzeit beliebte Serien", list = popular))
+            if (trending2.isNotEmpty()) {
+                categories.add(Category(name = "Gerade im Trend", list = trending2))
             }
         } catch (e: Exception) {
-            Log.e("SerienStreamProvider", "getHome: Beliebte Serien parsing failed", e)
+            Log.e("SerienStreamProvider", "getHome: Gerade im Trend parsing failed", e)
+        }
+
+        // WÖCHENTLICHE FAVORITEN — Tabbed weekly favorites (#section-2)
+        try {
+            val weekly = document.select("#section-2 .card-mini-tile").map {
+                TvShow(
+                    id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
+                    title = it.selectFirst("h3 span")?.text()?.trim()
+                        ?: it.selectFirst("h3")?.text()?.trim() ?: "",
+                    banner = normalizeImageUrl(it.extractBanner())
+                )
+            }.filter { it.id.isNotBlank() }
+            if (weekly.isNotEmpty()) {
+                categories.add(Category(name = "Wöchentliche Favoriten", list = weekly))
+            }
+        } catch (e: Exception) {
+            Log.e("SerienStreamProvider", "getHome: Wöchentliche Favoriten parsing failed", e)
         }
 
         return categories
@@ -391,6 +399,10 @@ object SerienStreamProvider : Provider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val linkWithSplitData = seasonId.split("/")
+        if (linkWithSplitData.size < 2) {
+            Log.e("SerienStreamProvider", "getEpisodesBySeason: invalid seasonId '$seasonId' — expected 'show/staffel-N'")
+            return emptyList()
+        }
         val showName = linkWithSplitData[0]
         val seasonNumberStr = linkWithSplitData[1]
         val seasonNumber = Regex("""\d+""").find(seasonNumberStr)?.value?.toIntOrNull() ?: 1
@@ -790,7 +802,7 @@ object SerienStreamProvider : Provider {
         }.getOrNull() ?: return emptyList()
         return uri.pathSegments
             .map { it.trim() }
-            .filter { it.isNotBlank() && it != "serie" }
+            .filter { it.isNotBlank() && it !in setOf("serie", "schauspieler", "regisseur", "produzent", "land", "jahr") }
     }
 
 

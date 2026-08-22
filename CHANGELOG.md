@@ -2,6 +2,18 @@
 
 All notable changes to BetterStreamflix will be documented here.
 
+## [1.8.3] - 2026-08-22
+
+### SerienStream Selector Fixes (Verified Against Live Site)
+- Fixed empty Featured/Hero category — selector `a.home-hero-cta` changed to `a.home-hero-overlay` (site restructured, CTA is now a `<span>` inside `<a>`)
+- Replaced removed "Derzeit beliebte Serien" carousel with new tabbed trending sections
+- Added "Gerade im Trend" category from `#section-1 .card-mini-tile`
+- Added "Wöchentliche Favoriten" category from `#section-2 .card-mini-tile`
+- Fixed cast/director/producer ID extraction — `pathSegments()` now filters `schauspieler`, `regisseur`, `produzent`, `land`, `jahr` in addition to `serie`
+- Added crash guard in `getEpisodesBySeason()` for malformed season IDs (IndexOutOfBoundsException)
+- Added discover block title fallback chain: `span.h6` → `span.fw-semibold` → `a` text
+- Removed stale to-dos from README (Continue Watching + SerienStream Fix already resolved in v1.8.2)
+
 ## [1.8.2] - 2026-08-22
 
 ### Continue Watching Bug Fix
