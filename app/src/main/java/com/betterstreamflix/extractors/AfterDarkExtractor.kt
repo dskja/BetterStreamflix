@@ -148,7 +148,9 @@ class AfterDarkExtractor( var newUrl: String = "" ) : Extractor() {
                         }
                     }
                 }
-            } catch (e: Exception) { }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
         }
         
         return allServers
