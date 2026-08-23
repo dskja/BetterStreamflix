@@ -31,7 +31,7 @@ android {
         applicationId "com.betterstreamflix"
         minSdk 21
         targetSdk 35
-        versionCode 165
+        versionCode 166
         versionName "1.9.0"
 
         buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT")}\""
