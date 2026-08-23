@@ -39,8 +39,8 @@ open class VeevExtractor : Extractor() {
 
         val referer = try {
             UserPreferences.currentProvider?.baseUrl ?: link
-        } catch (_: Throwable) {
-            if (_ is kotlinx.coroutines.CancellationException) throw _
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             link
         }
 
