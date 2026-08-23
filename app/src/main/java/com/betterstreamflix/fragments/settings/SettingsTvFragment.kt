@@ -964,6 +964,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     Toast.makeText(requireContext(), getString(R.string.backup_import_empty_file), Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Toast.makeText(requireContext(), getString(R.string.backup_import_read_error), Toast.LENGTH_LONG).show()
                 Log.e("BackupImportTV", "Error reading/processing backup file", e)
             }
