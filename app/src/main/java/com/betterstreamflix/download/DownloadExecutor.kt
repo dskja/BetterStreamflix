@@ -25,12 +25,12 @@ class DownloadExecutor(private val context: Context) {
         return withContext(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
-                connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                connection = (URL(url).openConnection() as? HttpURLConnection)?.apply {
                     requestMethod = "GET"
                     connectTimeout = Constants.NETWORK_TIMEOUT_MS
                     readTimeout = Constants.NETWORK_TIMEOUT_MS
                     setRequestProperty("User-Agent", Constants.USER_AGENT)
-                }
+                } ?: return@withContext Result.failure(Exception("Failed to open HTTP connection"))
 
                 val responseCode = connection.responseCode
                 if (responseCode !in 200..299) {
@@ -54,6 +54,9 @@ class DownloadExecutor(private val context: Context) {
                 }
 
                 Result.success(outputFile)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                outputFile.delete()
+                throw e
             } catch (e: Exception) {
                 outputFile.delete()
                 Result.failure(e)

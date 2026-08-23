@@ -38,7 +38,7 @@ object MediaSessionManager {
         pendingIntent?.let { builder.setSessionActivity(it) }
 
         mediaSession = builder.build()
-        return mediaSession!!
+        return mediaSession ?: throw IllegalStateException("Failed to create media session")
     }
 
     /**

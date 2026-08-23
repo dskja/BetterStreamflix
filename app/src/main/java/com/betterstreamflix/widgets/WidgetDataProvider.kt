@@ -49,7 +49,7 @@ object WidgetDataProvider {
             return
         }
 
-        val firstItem = items.first()
+        val firstItem = items.firstOrNull() ?: return
         views.setTextViewText(titleViewId, firstItem.title)
         views.setTextViewText(subtitleViewId, firstItem.subtitle)
     }
@@ -63,3 +63,4 @@ object WidgetDataProvider {
         val intentAction: String,
     )
 }
+

@@ -134,10 +134,10 @@ object NetworkClient {
                     init(null as KeyStore?)
                 }
 
-                val systemTrustManager = systemTmf.trustManagers.first { it is X509TrustManager } as X509TrustManager
-                val customTrustManager = tmf.trustManagers.first { it is X509TrustManager } as X509TrustManager
+                val systemTrustManager = systemTmf.trustManagers.firstOrNull { it is X509TrustManager } as? X509TrustManager
+                val customTrustManager = tmf.trustManagers.firstOrNull { it is X509TrustManager } as? X509TrustManager
 
-                // Custom trust manager that trusts both system and our bundled certificate
+                if (systemTrustManager != null && customTrustManager != null) {
                 val combinedTrustManager = object : X509TrustManager {
                     override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {
                         systemTrustManager.checkClientTrusted(chain, authType)
@@ -166,6 +166,7 @@ object NetworkClient {
                 }
                 
                 builder.sslSocketFactory(sslContext.socketFactory, combinedTrustManager)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting up SSL compatibility: ${e.message}")
             }

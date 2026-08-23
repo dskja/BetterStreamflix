@@ -14,8 +14,8 @@ object AccessibilityHelper {
      * Check if talkback is enabled.
      */
     fun isTalkBackEnabled(context: Context): Boolean {
-        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
-        return am.isEnabled && am.isTouchExplorationEnabled
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
+        return am?.isEnabled == true && am.isTouchExplorationEnabled
     }
 
     /**
@@ -46,7 +46,7 @@ object AccessibilityHelper {
      * Check if reduced motion is preferred.
      */
     fun isReducedMotionPreferred(context: Context): Boolean {
-        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
         // Android 12+ has ANIMATOR_DURATION_SCALE
         return android.provider.Settings.Global.getFloat(
             context.contentResolver,
@@ -69,3 +69,4 @@ object AccessibilityHelper {
         return getFontScale(context) > 1.2f
     }
 }
+

@@ -31,7 +31,7 @@ class UpdateAppMobileDialog(
 
         binding.tvUpdateCurrentVersion.text = BuildConfig.VERSION_NAME
 
-        binding.tvUpdateNewVersion.text = newReleases.first().tagName.substringAfter("v")
+        binding.tvUpdateNewVersion.text = newReleases.firstOrNull()?.tagName?.substringAfter("v") ?: "unknown"
 
         binding.tvUpdateReleaseNotes.text = newReleases.map {
             it.body?.replace(

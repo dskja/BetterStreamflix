@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 object ImageLoader {
 
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val pendingJobs = mutableMapOf<String, Job>()
+    private val pendingJobs = java.util.concurrent.ConcurrentHashMap<String, Job>()
 
     /**
      * Load an image into an ImageView.
@@ -62,6 +62,8 @@ object ImageLoader {
                         imageView.setImageDrawable(ColorDrawable(errorColor))
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     imageView.setImageDrawable(ColorDrawable(errorColor))

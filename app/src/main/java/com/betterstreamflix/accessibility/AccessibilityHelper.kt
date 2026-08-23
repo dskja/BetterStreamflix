@@ -60,7 +60,8 @@ object AccessibilityHelper {
      * Check if TalkBack is enabled.
      */
     fun isTalkBackEnabled(context: Context): Boolean {
-        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
+            ?: return false
         return am.isEnabled && am.isTouchExplorationEnabled
     }
 

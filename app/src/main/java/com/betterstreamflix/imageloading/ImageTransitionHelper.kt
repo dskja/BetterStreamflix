@@ -13,14 +13,15 @@ object ImageTransitionHelper {
      */
     fun crossfade(imageView: ImageView, newBitmap: android.graphics.Bitmap, durationMs: Long = 300L) {
         val oldDrawable = imageView.drawable
+            ?: android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT)
         val newDrawable = android.graphics.drawable.BitmapDrawable(imageView.resources, newBitmap)
 
-        val drawableArray = arrayOf(
-            android.graphics.drawable.TransitionDrawable(arrayOf(oldDrawable ?: android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT), newDrawable)),
+        val transitionDrawable = android.graphics.drawable.TransitionDrawable(
+            arrayOf(oldDrawable, newDrawable)
         )
 
-        imageView.setImageDrawable(drawableArray[0])
-        (drawableArray[0] as android.graphics.drawable.TransitionDrawable).startTransition(durationMs.toInt())
+        imageView.setImageDrawable(transitionDrawable)
+        transitionDrawable.startTransition(durationMs.toInt())
     }
 
     /**

@@ -40,7 +40,7 @@ class SearchTvFragment : Fragment() {
 
     private var hasAutoCleared409: Boolean = false
     private var _binding: FragmentSearchTvBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { SearchViewModel(database) }
@@ -380,3 +380,4 @@ class SearchTvFragment : Fragment() {
         appAdapter.setOnLoadMoreListener(null)
     }
 }
+

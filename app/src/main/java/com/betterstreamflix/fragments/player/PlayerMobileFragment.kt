@@ -111,7 +111,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private var _binding: FragmentPlayerMobileBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. Fragment view has been destroyed.")
     private var isSetupDone = false
 
     private val PlayerControlView.binding
@@ -346,7 +346,7 @@ class PlayerMobileFragment : Fragment() {
                             val preferredServer = state.servers.firstOrNull {
                                 it.name.equals(args.preferredServerName, ignoreCase = true)
                             }
-                            viewModel.getVideo(preferredServer ?: state.servers.first())
+                            viewModel.getVideo(preferredServer ?: state.servers.firstOrNull())
                         }
 
                     }
@@ -531,7 +531,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean) {
-        binding.pvPlayer.useController = !isInPictureInPictureMode
+        _binding?.pvPlayer?.useController = !isInPictureInPictureMode
         super.onPictureInPictureModeChanged(isInPictureInPictureMode)
     }
 
@@ -543,7 +543,7 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        if (::player.isInitialized) {
+        if (::player.isInitialized && _binding != null) {
             player.pause()
         }
     }
@@ -573,6 +573,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean = when {
+        _binding == null -> false
         binding.pvPlayer.isManualZoomEnabled -> {
             binding.pvPlayer.exitManualZoomMode()
             true
@@ -1563,9 +1564,9 @@ class PlayerMobileFragment : Fragment() {
 
     private fun releasePlayer() {
         stopProgressHandler()
-        binding.pvPlayer.player = null
-        binding.settings.player = null
-        binding.settings.subtitleView = null
+        _binding?.pvPlayer?.player = null
+        _binding?.settings?.player = null
+        _binding?.settings?.subtitleView = null
         if (::player.isInitialized) {
             player.release()
         }
@@ -1616,3 +1617,4 @@ class PlayerMobileFragment : Fragment() {
         cookieManager.flush()
     }
 }
+

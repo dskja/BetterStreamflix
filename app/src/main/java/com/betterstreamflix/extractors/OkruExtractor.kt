@@ -38,7 +38,7 @@ class OkruExtractor : Extractor() {
             throw Exception("No se encontraron videos válidos en el JSON de Ok.ru")
         }
 
-        val bestVideoUrl = videos.first().second
+        val bestVideoUrl = videos.firstOrNull()?.second ?: throw Exception("No valid video URL found")
 
         return Video(
             source = bestVideoUrl,

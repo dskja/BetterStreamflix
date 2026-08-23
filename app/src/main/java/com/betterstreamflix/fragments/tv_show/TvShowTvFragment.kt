@@ -27,7 +27,7 @@ class TvShowTvFragment : Fragment() {
     private var hasAutoCleared409: Boolean = false
 
     private var _binding: FragmentTvShowTvBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val args by navArgs<TvShowTvFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
@@ -144,3 +144,4 @@ class TvShowTvFragment : Fragment() {
         ))
     }
 }
+

@@ -67,7 +67,7 @@ class MainMobileActivity : FragmentActivity() {
     )
 
     private var _binding: ActivityMainMobileBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. Activity has been destroyed.")
 
     private val viewModel by viewModels<MainViewModel>()
     private val resolverWebSocketClient by lazy { OkHttpClient() }
@@ -104,11 +104,11 @@ class MainMobileActivity : FragmentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        AnimeOnlineNinjaProvider.init(this)
-        Cine24hProvider.init(this)
-        FilmyOnlineCcProvider.init(this)
-        GuardaSerieProvider.init(this)
-        ZaluknijProvider.init(this)
+        runCatching { AnimeOnlineNinjaProvider.init(this) }
+        runCatching { Cine24hProvider.init(this) }
+        runCatching { FilmyOnlineCcProvider.init(this) }
+        runCatching { GuardaSerieProvider.init(this) }
+        runCatching { ZaluknijProvider.init(this) }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val palette = ThemeManager.palette(UserPreferences.selectedTheme)
@@ -138,7 +138,12 @@ class MainMobileActivity : FragmentActivity() {
         updateImmersiveMode()
 
         val navHost =
-            supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
+            supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+            ?: run {
+                Log.e("MainMobileActivity", "NavHostFragment not found")
+                finish()
+                return
+            }
         val navController = navHost.navController
 
         if (BuildConfig.APP_LAYOUT == "tv" ||

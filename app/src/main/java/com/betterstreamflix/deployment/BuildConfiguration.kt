@@ -61,7 +61,7 @@ object BuildConfiguration {
         return try {
             Class.forName("com.betterstreamflix.BuildConfig")
                 .getField("APPLICATION_ID")
-                .get(null) as String
+                .get(null) as? String ?: "com.betterstreamflix"
         } catch (e: Exception) {
             "com.betterstreamflix"
         }
@@ -74,7 +74,7 @@ object BuildConfiguration {
         return try {
             Class.forName("com.betterstreamflix.BuildConfig")
                 .getField("VERSION_NAME")
-                .get(null) as String
+                .get(null) as? String ?: "unknown"
         } catch (e: Exception) {
             "unknown"
         }
@@ -87,7 +87,7 @@ object BuildConfiguration {
         return try {
             Class.forName("com.betterstreamflix.BuildConfig")
                 .getField("VERSION_CODE")
-                .get(null) as Int
+                .get(null) as? Int ?: 0
         } catch (e: Exception) {
             0
         }

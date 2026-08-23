@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
 class MainTvActivity : FragmentActivity() {
 
     private var _binding: ActivityMainTvBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val viewModel by viewModels<MainViewModel>()
 
@@ -229,3 +229,4 @@ class MainTvActivity : FragmentActivity() {
         }
     }
 }
+

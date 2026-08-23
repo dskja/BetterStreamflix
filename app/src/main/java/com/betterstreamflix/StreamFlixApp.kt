@@ -71,11 +71,11 @@ class StreamFlixApp : Application() {
         })
 
         // 0. Initialize Conscrypt for modern SSL on old Android
-        Security.insertProviderAt(Conscrypt.newProvider(), 1)
+        runCatching { Security.insertProviderAt(Conscrypt.newProvider(), 1) }
 
         // 1. Install ISRG Root X1 globally for Let's Encrypt. On Android < 7 (API 24)
         // network_security_config.xml is not supported so the certificate must be injected manually.
-        IsrgRootTrustProvider.install()
+        runCatching { IsrgRootTrustProvider.install() }
 
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
@@ -86,13 +86,13 @@ class StreamFlixApp : Application() {
         val threshold = if (isTv) 10L else 50L
 
         applicationScope.launch(Dispatchers.IO) {
-            AppDatabase.setup(appContext)
-            SupabaseProvider.initialize(appContext)
+            runCatching { AppDatabase.setup(appContext) }
+            runCatching { SupabaseProvider.initialize(appContext) }
             runCatching { CloudSyncManager.initialize(appContext) }
-            SerienStreamProvider.initialize(appContext)
-            AniWorldProvider.initialize(appContext)
-            ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider)
-            CacheUtils.autoClearIfNeeded(appContext, thresholdMb = threshold)
+            runCatching { SerienStreamProvider.initialize(appContext) }
+            runCatching { AniWorldProvider.initialize(appContext) }
+            runCatching { ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider) }
+            runCatching { CacheUtils.autoClearIfNeeded(appContext, thresholdMb = threshold) }
         }
     }
 

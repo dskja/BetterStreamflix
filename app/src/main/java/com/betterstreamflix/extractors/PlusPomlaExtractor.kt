@@ -42,7 +42,7 @@ class PlusPomlaExtractor : Extractor() {
         }
         
         return Video(
-            source = sources.first()
+            source = sources.firstOrNull() ?: ""
         )
     }
 
@@ -86,3 +86,4 @@ class PlusPomlaExtractor : Extractor() {
         val file: String
     )
 }
+
