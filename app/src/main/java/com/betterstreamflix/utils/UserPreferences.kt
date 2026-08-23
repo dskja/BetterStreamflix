@@ -42,6 +42,9 @@ object UserPreferences {
 
     lateinit var providerCache: JSONObject
 
+    private fun safeProviderCache(): JSONObject =
+        if (::providerCache.isInitialized) providerCache else JSONObject()
+
     private inline fun debugLog(message: () -> String) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, message())
@@ -86,13 +89,14 @@ object UserPreferences {
         }
 
     fun getProviderCache(provider: Provider, key: String): String {
-        return providerCache
+        return safeProviderCache()
             .optJSONObject(provider.name)
             ?.optString(key)
             .orEmpty()
     }
 
     fun setProviderCache(provider: Provider?, key: String, value: String) {
+        if (!::providerCache.isInitialized) return
         val providerName = provider?.name ?: currentProvider?.name ?: return
         val innerJson = providerCache.optJSONObject(providerName)
             ?: JSONObject().also { providerCache.put(providerName, it) }
@@ -101,6 +105,7 @@ object UserPreferences {
     }
 
     fun clearProviderCache(providerName: String) {
+        if (!::providerCache.isInitialized) return
         if (providerCache.has(providerName)) {
             debugLog { "CACHE: removing stored data for $providerName" }
             providerCache.remove(providerName)
@@ -125,7 +130,7 @@ object UserPreferences {
         set(value) = Key.APP_LAYOUT.setString(value)
 
     var providerUrl: String
-        get() = Key.PROVIDER_CACHE.getString() ?: ""
+        get() = if (::prefs.isInitialized) Key.PROVIDER_CACHE.getString() ?: "" else ""
         set(value) = Key.PROVIDER_CACHE.setString(value)
 
     var providerLanguage: String?
@@ -611,80 +616,94 @@ object UserPreferences {
         FAVORITE_PROVIDERS;
 
         fun getStringSet(): Set<String>? = when {
-            prefs.contains(name) -> prefs.getStringSet(name, null)
+            ::prefs.isInitialized && prefs.contains(name) -> prefs.getStringSet(name, null)
             else -> null
         }
 
         fun setStringSet(value: Set<String>?) = value?.let {
-            with(prefs.edit()) {
-                putStringSet(name, value)
-                apply()
+            if (::prefs.isInitialized) {
+                with(prefs.edit()) {
+                    putStringSet(name, value)
+                    apply()
+                }
             }
         } ?: remove()
 
         fun getBoolean(): Boolean? = when {
-            prefs.contains(name) -> prefs.getBoolean(name, false)
+            ::prefs.isInitialized && prefs.contains(name) -> prefs.getBoolean(name, false)
             else -> null
         }
 
         fun getFloat(): Float? = when {
-            prefs.contains(name) -> prefs.getFloat(name, 0F)
+            ::prefs.isInitialized && prefs.contains(name) -> prefs.getFloat(name, 0F)
             else -> null
         }
 
         fun getInt(): Int? = when {
-            prefs.contains(name) -> prefs.getInt(name, 0)
+            ::prefs.isInitialized && prefs.contains(name) -> prefs.getInt(name, 0)
             else -> null
         }
 
         fun getLong(): Long? = when {
-            prefs.contains(name) -> prefs.getLong(name, 0)
+            ::prefs.isInitialized && prefs.contains(name) -> prefs.getLong(name, 0)
             else -> null
         }
 
         fun getString(): String? = when {
-            prefs.contains(name) -> prefs.getString(name, null)
+            ::prefs.isInitialized && prefs.contains(name) -> prefs.getString(name, null)
             else -> null
         }
 
         fun setBoolean(value: Boolean?) = value?.let {
-            with(prefs.edit()) {
-                putBoolean(name, value)
-                apply()
+            if (::prefs.isInitialized) {
+                with(prefs.edit()) {
+                    putBoolean(name, value)
+                    apply()
+                }
             }
         } ?: remove()
 
         fun setFloat(value: Float?) = value?.let {
-            with(prefs.edit()) {
-                putFloat(name, value)
-                apply()
+            if (::prefs.isInitialized) {
+                with(prefs.edit()) {
+                    putFloat(name, value)
+                    apply()
+                }
             }
         } ?: remove()
 
         fun setInt(value: Int?) = value?.let {
-            with(prefs.edit()) {
-                putInt(name, value)
-                apply()
+            if (::prefs.isInitialized) {
+                with(prefs.edit()) {
+                    putInt(name, value)
+                    apply()
+                }
             }
         } ?: remove()
 
         fun setLong(value: Long?) = value?.let {
-            with(prefs.edit()) {
-                putLong(name, value)
-                apply()
+            if (::prefs.isInitialized) {
+                with(prefs.edit()) {
+                    putLong(name, value)
+                    apply()
+                }
             }
         } ?: remove()
 
         fun setString(value: String?) = value?.let {
-            with(prefs.edit()) {
-                putString(name, value)
-                apply()
+            if (::prefs.isInitialized) {
+                with(prefs.edit()) {
+                    putString(name, value)
+                    apply()
+                }
             }
         } ?: remove()
 
-        fun remove() = with(prefs.edit()) {
-            remove(name)
-            apply()
-        }
+        fun remove() = if (::prefs.isInitialized) {
+            with(prefs.edit()) {
+                remove(name)
+                apply()
+            }
+        } else Unit
     }
 }
