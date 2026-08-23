@@ -179,6 +179,7 @@ object SerienStreamProvider : Provider {
                 categories.add(Category(name = Category.FEATURED, list = featured))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getHome: FEATURED parsing failed", e)
         }
 
@@ -194,6 +195,7 @@ object SerienStreamProvider : Provider {
                 categories.add(Category(name = "Angesagt", list = trending))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getHome: Angesagt parsing failed", e)
         }
 
@@ -211,6 +213,7 @@ object SerienStreamProvider : Provider {
                 categories.add(Category(name = "Neu auf S.to", list = newShows))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getHome: Neu auf S.to parsing failed", e)
         }
 
@@ -233,6 +236,7 @@ object SerienStreamProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getHome: Discover blocks parsing failed", e)
         }
 
@@ -250,6 +254,7 @@ object SerienStreamProvider : Provider {
                 categories.add(Category(name = "Gerade im Trend", list = trending2))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getHome: Gerade im Trend parsing failed", e)
         }
 
@@ -267,6 +272,7 @@ object SerienStreamProvider : Provider {
                 categories.add(Category(name = "Wöchentliche Favoriten", list = weekly))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getHome: Wöchentliche Favoriten parsing failed", e)
         }
 
@@ -341,7 +347,12 @@ object SerienStreamProvider : Provider {
         
         val rating = tmdbTvShow?.rating ?: run {
             val imdbTitleUrl = document.selectFirst("a[href*='imdb.com']")?.attr("href") ?: ""
-            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { getService().getCustomUrl(imdbTitleUrl) } catch (e: Exception) { null } else null
+            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try {
+                getService().getCustomUrl(imdbTitleUrl)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                null
+            } else null
             imdbDocument?.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
                 ?.text()?.toDoubleOrNull() ?: document.selectFirst(".text-white-50:contains(Bewertungen)")?.text()?.split(" ")?.firstOrNull()?.toDoubleOrNull() ?: 0.0
         }
@@ -456,6 +467,7 @@ object SerienStreamProvider : Provider {
             }
             return Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "Error fetching genre $id page $page", e)
             return Genre(id = id, name = id, shows = emptyList())
         }
@@ -489,6 +501,7 @@ object SerienStreamProvider : Provider {
         val document = try {
             getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SerienStreamProvider", "getServers: failed to load episode page for $showName/staffel-$seasonNumber/episode-$episodeNumber", e)
             return emptyList()
         }
@@ -510,6 +523,7 @@ object SerienStreamProvider : Provider {
                 val serverAfterRedirect = try {
                     getService().getRedirectLink(redirectUrl)
                 } catch (exception: Exception) {
+                    if (exception is kotlinx.coroutines.CancellationException) throw exception
                     val unsafeOkHttpClient = SerienStreamService.buildUnsafe(currentBaseUrl())
                     unsafeOkHttpClient.getRedirectLink(redirectUrl)
                 }
@@ -523,6 +537,7 @@ object SerienStreamProvider : Provider {
                     )
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("SerienStreamProvider", "getServers: failed to process server '$serverName' with URL '$href'", e)
             }
         }
@@ -600,6 +615,7 @@ object SerienStreamProvider : Provider {
                             .build()
                             .also { cachedUnsafeClient = it }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         return getUnsafeClientFallback()
                     }
                 }

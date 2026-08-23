@@ -163,6 +163,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 finalUri.scheme + "://" + finalUri.host + "/"
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error resolving final URL: ${e.message}")
             startBaseUrl
         }
@@ -219,6 +220,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                         if (version != fetched.version) version = fetched.version ?: ""
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
                     Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java).also {
                         if (version != it.version) version = it.version ?: ""
@@ -310,6 +312,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             val res = try {
                 withSslFallback { it.getHome(version = currentVersion) }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 val json = InertiaUtils.parseInertiaData(withSslFallback { it.getHome() })
                 Gson().fromJson(json.toString(), StreamingCommunityService.HomeRes::class.java)
             }
@@ -337,7 +340,10 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
         val res: StreamingCommunityService.ArchiveRes? = try {
             gson.fromJson(json.toString(), StreamingCommunityService.ArchiveRes::class.java)
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
 
         res?.version?.let { version = it ?: "" }
         return res?.props?.let { p -> p.archive?.data ?: p.titles?.data ?: p.movies?.data ?: p.tv?.data ?: p.tvShows?.data } ?: listOf()
@@ -353,6 +359,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 withSslFallback { it.getArchiveApi(lang = language, offset = offset, type = "movie") }.titles
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error fetching movies page $page: ${e.message}")
             listOf()
         }
@@ -372,6 +379,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 withSslFallback { it.getArchiveApi(lang = language, offset = offset, type = "tv") }.titles
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error fetching tv shows page $page: ${e.message}")
             listOf()
         }
@@ -389,6 +397,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                     if (version != it.version) version = it.version ?: ""
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 // Se riceviamo 401 o altro errore Inertia, ripieghiamo sull'HTML puro (Shadow Bypass)
                 Log.w(TAG, "Inertia getDetails failed ($e), falling back to HTML parsing")
                 val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/", language)
@@ -436,6 +445,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                     if (version != it.version) version = it.version ?: ""
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.w(TAG, "Inertia getDetails failed ($e), falling back to HTML parsing")
                 val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$id", "https://$domain/", language)
                 val json = InertiaUtils.parseInertiaData(doc)
@@ -483,6 +493,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 if (version != it.version) version = it.version ?: ""
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.w(TAG, "Inertia getSeasonDetails failed ($e), falling back to HTML parsing")
             val doc = StreamingCommunityService.fetchDocumentWithRedirectsAndSslFallback("https://$domain/$LANG/titles/$seasonId", "https://$domain/", language)
             val json = InertiaUtils.parseInertiaData(doc)
@@ -518,6 +529,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 withSslFallback { it.getArchiveApi(lang = language, offset = offset, genreId = id) }.titles
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error fetching genre $id page $page: ${e.message}")
             listOf()
         }
@@ -577,6 +589,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         return try {
             VixcloudExtractor(language, customReferer = iframeUrl).extract(server.src)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             val isGone = e.message?.contains("410") == true
             if (isGone) {
                 Log.w(TAG, "Vixcloud token probably expired (410), retrying by re-fetching iframe...")
@@ -671,7 +684,10 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                     client.newCall(okhttp3.Request.Builder().url(url).header("X-Requested-With", "XMLHttpRequest").get().build()).execute().use { resp ->
                         Jsoup.parse(resp.body?.string() ?: "")
                     }
-                } catch (e: Exception) { Jsoup.parse("") }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    Jsoup.parse("")
+                }
             }
         }
 
