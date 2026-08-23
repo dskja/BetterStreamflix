@@ -1,5 +1,7 @@
 package com.betterstreamflix.architecture
 
+import com.betterstreamflix.utils.FileLogger
+
 /**
  * Dependency container — lightweight service locator for providing
  * singletons and factory-created instances without a full DI framework.
@@ -13,6 +15,7 @@ object DependencyContainer {
      * Register a singleton instance.
      */
     fun <T : Any> registerSingleton(type: Class<T>, instance: T) {
+        FileLogger.i("DependencyContainer", "registerSingleton: ${type.name}")
         singletons[type] = instance
     }
 
@@ -20,6 +23,7 @@ object DependencyContainer {
      * Register a factory for lazy creation.
      */
     fun <T : Any> registerFactory(type: Class<T>, factory: () -> T) {
+        FileLogger.i("DependencyContainer", "registerFactory: ${type.name}")
         factories[type] = factory
     }
 
@@ -28,12 +32,15 @@ object DependencyContainer {
      */
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> get(type: Class<T>): T {
+        FileLogger.d("DependencyContainer", "get: requesting ${type.name}")
         singletons[type]?.let { return it as T }
         factories[type]?.let {
+            FileLogger.d("DependencyContainer", "get: creating via factory for ${type.name}")
             val instance = it() as T
             singletons[type] = instance
             return instance
         }
+        FileLogger.e("DependencyContainer", "get: ✗ No registration for ${type.name}")
         throw IllegalStateException("No registration for ${type.name}")
     }
 

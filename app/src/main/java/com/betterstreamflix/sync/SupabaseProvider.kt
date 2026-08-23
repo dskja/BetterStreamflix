@@ -3,6 +3,7 @@ package com.betterstreamflix.sync
 import android.content.Context
 import android.net.Uri
 import com.betterstreamflix.StreamFlixApp
+import com.betterstreamflix.utils.FileLogger
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.SettingsSessionManager
@@ -55,26 +56,41 @@ object SupabaseProvider {
     }
 
     suspend fun initialize(context: Context) {
+        FileLogger.i("SupabaseProvider", "initialize() called")
         val config = readConfig(context)
-            ?: return
+        if (config == null) {
+            FileLogger.i("SupabaseProvider", "initialize: no config found, skipping (not configured)")
+            return
+        }
+        FileLogger.i("SupabaseProvider", "initialize: config found, url=${config.first}")
         val fingerprint = config.first + "\u0000" + config.second
-        clientInstance?.takeIf { clientFingerprint == fingerprint }?.let { return }
+        clientInstance?.takeIf { clientFingerprint == fingerprint }?.let {
+            FileLogger.i("SupabaseProvider", "initialize: client already exists with same fingerprint")
+            return
+        }
+        FileLogger.i("SupabaseProvider", "initialize: creating new SupabaseClient...")
         clientsMutex.withLock {
             clientInstance?.takeIf { clientFingerprint == fingerprint }?.let { return@withLock }
-            createSupabaseClient(
-                supabaseUrl = config.first,
-                supabaseKey = config.second,
-            ) {
-                install(Auth) {
-                    sessionManager = SettingsSessionManager(
-                        key = "$SESSION_KEY-${fingerprint.hashCode()}",
-                    )
+            try {
+                createSupabaseClient(
+                    supabaseUrl = config.first,
+                    supabaseKey = config.second,
+                ) {
+                    install(Auth) {
+                        sessionManager = SettingsSessionManager(
+                            key = "$SESSION_KEY-${fingerprint.hashCode()}",
+                        )
+                    }
+                    install(Postgrest)
+                    install(Realtime)
+                }.also {
+                    clientInstance = it
+                    clientFingerprint = fingerprint
+                    FileLogger.i("SupabaseProvider", "initialize: ✓ SupabaseClient created successfully")
                 }
-                install(Postgrest)
-                install(Realtime)
-            }.also {
-                clientInstance = it
-                clientFingerprint = fingerprint
+            } catch (e: Exception) {
+                FileLogger.e("SupabaseProvider", "initialize: ✗ FAILED to create client", e)
+                throw e
             }
         }
     }
