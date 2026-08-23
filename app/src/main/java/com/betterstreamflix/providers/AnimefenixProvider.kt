@@ -93,7 +93,9 @@ object AnimefenixProvider : Provider {
                     if (bannerShows.isNotEmpty()) {
                         categories.add(Category(Category.FEATURED, bannerShows.take(10)))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 try {
                     val premieres2024Document = premieres2024Deferred.await()
@@ -101,7 +103,9 @@ object AnimefenixProvider : Provider {
                     if (premieres2024Shows.isNotEmpty()) {
                         categories.add(Category("Estrenos 2024", premieres2024Shows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 try {
                     val premieres2023Document = premieres2023Deferred.await()
@@ -109,11 +113,14 @@ object AnimefenixProvider : Provider {
                     if (premieres2023Shows.isNotEmpty()) {
                         categories.add(Category("Estrenos 2023", premieres2023Shows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 return@coroutineScope categories
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -140,6 +147,7 @@ object AnimefenixProvider : Provider {
             val document = service.getPage("$baseUrl/directorio/anime?q=$query&p=$page")
             parseShows(document.select(".grid-animes li article")).distinctBy { it.id }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -149,6 +157,7 @@ object AnimefenixProvider : Provider {
             val document = service.getPage("$baseUrl/directorio/anime?p=$page")
             parseShows(document.select(".grid-animes li article"))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -158,6 +167,7 @@ object AnimefenixProvider : Provider {
             val document = service.getPage("$baseUrl/directorio/anime?tipo=2&p=$page")
             parseMovies(document.select(".grid-animes li article"))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -169,6 +179,7 @@ object AnimefenixProvider : Provider {
             val genreName = document.selectFirst("h1.text-4xl")?.ownText()?.trim() ?: "Género"
             Genre(id = id, name = genreName, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = "Error", shows = emptyList())
         }
     }
@@ -189,6 +200,7 @@ object AnimefenixProvider : Provider {
             }
             Movie(id = id, title = title, poster = poster, overview = overview, genres = genres)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Movie(id = id, title = "Error al cargar")
         }
     }
@@ -252,6 +264,7 @@ object AnimefenixProvider : Provider {
                                 )
                             }
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             emptyList<Episode>()
                         }
                     }
@@ -272,6 +285,7 @@ object AnimefenixProvider : Provider {
                 seasons = listOf(Season(id = id, number = 1, title = "Episodios", episodes = episodes))
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             TvShow(id = id, title = "Error al cargar")
         }
     }
@@ -280,6 +294,7 @@ object AnimefenixProvider : Provider {
         return try {
             getTvShow(seasonId).seasons.firstOrNull()?.episodes ?: emptyList()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -314,6 +329,7 @@ object AnimefenixProvider : Provider {
 
             servers
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
