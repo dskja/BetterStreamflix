@@ -54,6 +54,7 @@ class MainViewModel : ViewModel() {
 
             _state.emit(State.SuccessCheckingUpdate(newReleases, asset))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MainViewModel", "checkUpdate: ", e)
             _state.emit(State.FailedUpdate(e))
         }
@@ -70,6 +71,7 @@ class MainViewModel : ViewModel() {
 
             _state.emit(State.SuccessDownloadingUpdate(apk))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MainViewModel", "downloadUpdate: ", e)
             _state.emit(State.FailedUpdate(e))
         }
@@ -84,6 +86,7 @@ class MainViewModel : ViewModel() {
         try {
             InAppUpdater.installApk(context, Uri.fromFile(apk))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MainViewModel", "installUpdate: ", e)
             _state.emit(State.FailedUpdate(e))
         }
