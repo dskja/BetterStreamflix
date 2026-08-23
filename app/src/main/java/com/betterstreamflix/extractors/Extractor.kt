@@ -151,6 +151,7 @@ abstract class Extractor {
                         finalLink = redirectUrl
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.e("Extractor", "Universal Bridge error: ${e.message}")
                 }
             }

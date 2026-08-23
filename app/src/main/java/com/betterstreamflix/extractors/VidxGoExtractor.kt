@@ -102,6 +102,7 @@ class VidxGoExtractor : Extractor() {
                             Log.w("TokenManager", "[REFRESH] Empty response body")
                         }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.e("TokenManager", "[REFRESH] Error during token refresh", e)
                         expireTime = System.currentTimeMillis() + 15_000L
                     }

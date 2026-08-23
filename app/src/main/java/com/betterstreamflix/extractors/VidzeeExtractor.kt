@@ -121,6 +121,7 @@ class VidzeeExtractor : Extractor() {
                 type = mimeType
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("Failed to extract video: ${e.message}")
         }
     }
@@ -159,6 +160,7 @@ class VidzeeExtractor : Extractor() {
             
             String(decrypted, Charsets.UTF_8)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -182,6 +184,7 @@ class VidzeeExtractor : Extractor() {
 
             String(decrypted, Charsets.UTF_8)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }

@@ -46,6 +46,7 @@ class VidrockExtractor : Extractor() {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -75,6 +76,7 @@ class VidrockExtractor : Extractor() {
             val qualities = try {
                 service.getAtlasQualities(videoUrl)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 emptyList()
             }
             val highest = qualities.maxByOrNull { it.resolution }

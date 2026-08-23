@@ -106,6 +106,7 @@ class CloseloadExtractor : Extractor() {
                             }
                             resultStr = String(resultBytes, Charsets.ISO_8859_1)
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             success = false
                             break
                         }

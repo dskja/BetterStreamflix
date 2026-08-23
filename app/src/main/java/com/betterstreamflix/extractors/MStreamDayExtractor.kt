@@ -46,6 +46,7 @@ class MStreamDayExtractor : Extractor() {
         var decodedSource = try {
             AADecoder.decode(encodedSource, true)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
 
@@ -53,6 +54,7 @@ class MStreamDayExtractor : Extractor() {
             decodedSource = try {
                 AADecoder.decodeWithRhino(encodedSource)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
         }
