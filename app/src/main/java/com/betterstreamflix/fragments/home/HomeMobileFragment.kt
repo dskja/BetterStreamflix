@@ -35,7 +35,7 @@ class HomeMobileFragment : Fragment() {
     private var hasAutoCleared409: Boolean = false
 
     private var _binding: FragmentHomeMobileBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val viewModel: HomeViewModel by lazy {
         val providerKey = UserPreferences.currentProvider?.name ?: "default"
@@ -212,3 +212,4 @@ class HomeMobileFragment : Fragment() {
         )
     }
 }
+

@@ -33,7 +33,7 @@ class PlayerGestureHelper(
 
     private val gestureDetector: GestureDetector
     private val scaleGestureDetector: ScaleGestureDetector
-    private val audioManager: AudioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val audioManager: AudioManager? = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
     private var hideJob: Job? = null
     
     private val sensitivity = 1.2f
@@ -43,7 +43,7 @@ class PlayerGestureHelper(
     private var maxVolume = 0
 
     init {
-        maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        maxVolume = audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 0
 
         // Rilevatore per il Pinch-to-Zoom (Dita)
         scaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -72,7 +72,7 @@ class PlayerGestureHelper(
         gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean {
                 isScrolling = false
-                currentVolumeFloat = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+                currentVolumeFloat = (audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0).toFloat()
                 return true 
             }
 
@@ -179,7 +179,7 @@ class PlayerGestureHelper(
         if (currentVolumeFloat > maxVolume.toFloat()) currentVolumeFloat = maxVolume.toFloat()
 
         val newVolume = currentVolumeFloat.toInt()
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
+        audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
         
         val progress = (currentVolumeFloat / maxVolume * 100).toInt()
         volumeBar.progress = progress
@@ -201,3 +201,4 @@ class PlayerGestureHelper(
         playerView.setOnTouchListener(null)
     }
 }
+

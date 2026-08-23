@@ -9,21 +9,21 @@ import android.media.AudioManager
  */
 class VolumeManager(private val context: Context) {
 
-    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
     private var savedVolume: Int = getCurrentVolume()
 
     /**
      * Get current media volume (0 to maxVolume).
      */
     fun getCurrentVolume(): Int {
-        return audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        return audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0
     }
 
     /**
      * Get maximum volume.
      */
     fun getMaxVolume(): Int {
-        return audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        return audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 0
     }
 
     /**
@@ -32,7 +32,7 @@ class VolumeManager(private val context: Context) {
     fun setVolumePercent(percent: Int) {
         val max = getMaxVolume()
         val volume = (max * percent / 100).coerceIn(0, max)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0)
+        audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0)
     }
 
     /**
@@ -42,7 +42,7 @@ class VolumeManager(private val context: Context) {
         val current = getCurrentVolume()
         val max = getMaxVolume()
         if (current < max) {
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, current + 1, 0)
+            audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, current + 1, 0)
         }
     }
 
@@ -52,7 +52,7 @@ class VolumeManager(private val context: Context) {
     fun decreaseVolume() {
         val current = getCurrentVolume()
         if (current > 0) {
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, current - 1, 0)
+            audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, current - 1, 0)
         }
     }
 
@@ -63,10 +63,10 @@ class VolumeManager(private val context: Context) {
         val current = getCurrentVolume()
         return if (current > 0) {
             savedVolume = current
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+            audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
             true
         } else {
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, savedVolume.coerceAtLeast(1), 0)
+            audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, savedVolume.coerceAtLeast(1), 0)
             false
         }
     }
@@ -80,3 +80,4 @@ class VolumeManager(private val context: Context) {
         return getCurrentVolume() * 100 / max
     }
 }
+

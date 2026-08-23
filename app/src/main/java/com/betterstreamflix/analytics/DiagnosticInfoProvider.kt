@@ -69,7 +69,8 @@ object DiagnosticInfoProvider {
      */
     fun copyToClipboard(context: Context) {
         val report = getDiagnosticReport(context)
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Diagnostics", report))
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Diagnostics", report))
     }
 }
+

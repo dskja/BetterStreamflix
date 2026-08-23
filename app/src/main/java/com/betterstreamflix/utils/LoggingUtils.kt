@@ -42,9 +42,9 @@ object LoggingUtils {
             .setMessage(logContent)
             .setPositiveButton("OK", null)
             .setNeutralButton("📋 ${context.getString(R.string.error_dialog_copy)}") { _, _ ->
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 val clip = ClipData.newPlainText("Error Log", logContent)
-                clipboard.setPrimaryClip(clip)
+                clipboard?.setPrimaryClip(clip)
                 // Only show toast on Android 12 and below (Android 13+ shows system clipboard notification)
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                     Toast.makeText(context, context.getString(R.string.error_dialog_copied), Toast.LENGTH_SHORT).show()
@@ -53,3 +53,4 @@ object LoggingUtils {
             .show()
     }
 }
+

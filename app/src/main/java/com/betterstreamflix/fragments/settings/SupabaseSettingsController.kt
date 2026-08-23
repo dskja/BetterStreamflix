@@ -36,8 +36,8 @@ object SupabaseSettingsController {
             val sql = context.resources.openRawResource(R.raw.supabase_setup)
                 .bufferedReader()
                 .use { it.readText() }
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newPlainText("Supabase setup SQL", sql))
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            clipboard?.setPrimaryClip(ClipData.newPlainText("Supabase setup SQL", sql))
             Toast.makeText(context, R.string.supabase_copy_sql_done, Toast.LENGTH_SHORT).show()
             true
         }
@@ -117,3 +117,4 @@ object SupabaseSettingsController {
         CloudAccountSettingsController.bind(fragment, scope, findPreference)
     }
 }
+

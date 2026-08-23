@@ -15,8 +15,8 @@ object BatteryOptimizationHelper {
      */
     fun isExemptFromBatteryOptimizations(context: Context): Boolean {
         return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-            powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: true
         } else {
             true
         }
@@ -42,8 +42,8 @@ object DozeModeHelper {
      */
     fun isDeviceIdleMode(context: Context): Boolean {
         return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-            powerManager.isDeviceIdleMode
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            powerManager?.isDeviceIdleMode ?: false
         } else {
             false
         }
@@ -56,3 +56,4 @@ object DozeModeHelper {
         return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
     }
 }
+

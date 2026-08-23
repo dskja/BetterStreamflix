@@ -19,18 +19,32 @@ object DnsResolver : Dns {
     private const val TAG = "DnsResolver"
     private val logging = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC)
 
-    private val systemTrustManager: X509TrustManager = TrustManagerFactory.getInstance(
-        TrustManagerFactory.getDefaultAlgorithm()
-    ).apply { init(null as java.security.KeyStore?) }.trustManagers.filterIsInstance<X509TrustManager>().first()
+    private val systemTrustManager: X509TrustManager? = runCatching {
+        TrustManagerFactory.getInstance(
+            TrustManagerFactory.getDefaultAlgorithm()
+        ).apply { init(null as java.security.KeyStore?) }.trustManagers.filterIsInstance<X509TrustManager>().firstOrNull()
+    }.getOrNull()
 
-    private val sslContext = SSLContext.getInstance("TLS").apply {
-        init(null, arrayOf(systemTrustManager), SecureRandom())
-    }
+    private val sslContext: SSLContext = runCatching {
+        SSLContext.getInstance("TLS").apply {
+            systemTrustManager?.let { tm -> init(null, arrayOf(tm), SecureRandom()) }
+        }
+    }.getOrNull() ?: SSLContext.getDefault()
 
-    private var client: OkHttpClient = OkHttpClient.Builder()
+    private var client: OkHttpClient = runCatching {
+        OkHttpClient.Builder()
+            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .also { builder ->
+                systemTrustManager?.let { tm ->
+                    builder.sslSocketFactory(sslContext.socketFactory, tm)
+                }
+            }
+            .addInterceptor(logging)
+            .build()
+    }.getOrNull() ?: OkHttpClient.Builder()
         .readTimeout(30, TimeUnit.SECONDS)
         .connectTimeout(30, TimeUnit.SECONDS)
-        .sslSocketFactory(sslContext.socketFactory, systemTrustManager)
         .addInterceptor(logging)
         .build()
 

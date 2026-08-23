@@ -81,8 +81,8 @@ fun Fragment.hideKeyboard() {
 }
 
 fun Context.hideKeyboard(view: View) {
-    val inputMethodManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
-    inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+    val inputMethodManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as? InputMethodManager
+    inputMethodManager?.hideSoftInputFromWindow(view.windowToken, 0)
 }
 
 fun Context.toActivity(): FragmentActivity? = this as? FragmentActivity
@@ -90,14 +90,14 @@ fun Context.toActivity(): FragmentActivity? = this as? FragmentActivity
 fun FragmentActivity.getCurrentFragment(): Fragment? = when (this) {
     is MainMobileActivity -> {
         val navHostFragment = this.supportFragmentManager
-            .findFragmentById(R.id.nav_main_fragment) as NavHostFragment
-        navHostFragment.childFragmentManager.fragments.firstOrNull()
+            .findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+        navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
     }
 
     is MainTvActivity -> {
         val navHostFragment = this.supportFragmentManager
-            .findFragmentById(R.id.nav_main_fragment) as NavHostFragment
-        navHostFragment.childFragmentManager.fragments.firstOrNull()
+            .findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+        navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
     }
 
     else -> null
@@ -109,6 +109,8 @@ suspend fun <T> retry(retries: Int, predicate: suspend (attempt: Int) -> T): T {
     (1..retries).forEach { attempt ->
         try {
             return predicate(attempt)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Throwable) {
             throwable = e
         }
@@ -118,10 +120,15 @@ suspend fun <T> retry(retries: Int, predicate: suspend (attempt: Int) -> T): T {
 
 fun <T> Cursor.map(transform: (Cursor) -> T): List<T> {
     val items = mutableListOf<T>()
-    while (!this.isClosed && this.moveToNext()) {
-        items.add(transform(this))
+    try {
+        while (!this.isClosed && this.moveToNext()) {
+            items.add(transform(this))
+        }
+    } catch (e: Exception) {
+        Log.e("Extensions", "Cursor.map error", e)
+    } finally {
+        if (!this.isClosed) this.close()
     }
-    this.close()
     return items.toList()
 }
 
@@ -231,9 +238,13 @@ data class MediaServer(
 ) : Parcelable
 
 private val MediaMetadata.Builder.extras: Bundle?
-    get() = this.javaClass.getDeclaredField("extras").let {
-        it.isAccessible = true
-        it.get(this) as Bundle?
+    get() = try {
+        this.javaClass.getDeclaredField("extras").let {
+            it.isAccessible = true
+            it.get(this) as? Bundle?
+        }
+    } catch (e: Exception) {
+        null
     }
 
 val MediaMetadata.mediaServerId: String?
@@ -321,6 +332,8 @@ fun <T> CoroutineScope.asyncOrNull(
     return async(context, start) {
         try {
             block()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Extensions", "asyncOrNull: ", e)
             null

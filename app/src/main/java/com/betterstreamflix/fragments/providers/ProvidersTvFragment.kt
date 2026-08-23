@@ -27,7 +27,7 @@ import java.util.Locale
 class ProvidersTvFragment : Fragment() {
 
     private var _binding: FragmentProvidersTvBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val viewModel by viewModels<ProvidersViewModel>()
 
@@ -214,3 +214,4 @@ class LanguageChipTvAdapter(
         }
     }
 }
+

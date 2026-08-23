@@ -35,7 +35,7 @@ class PlayerStateMonitor(private val player: ExoPlayer) {
                 if (isPlaying) onPlaying() else onPaused()
             }
         }
-        player.addListener(listener!!)
+        listener?.let { player.addListener(it) }
     }
 
     /**

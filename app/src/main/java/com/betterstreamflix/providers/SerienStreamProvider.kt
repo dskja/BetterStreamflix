@@ -580,7 +580,7 @@ object SerienStreamProvider : Provider {
                     try {
                         val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
                         tmf.init(null as java.security.KeyStore?)
-                        val systemTrustManager = tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
+                        val systemTrustManager = tmf.trustManagers.filterIsInstance<X509TrustManager>().firstOrNull() ?: return getUnsafeClientFallback()
                         val sslContext = SSLContext.getInstance("TLS")
                         sslContext.init(null, arrayOf(systemTrustManager), SecureRandom())
                         val sslSocketFactory = sslContext.socketFactory
@@ -600,9 +600,21 @@ object SerienStreamProvider : Provider {
                             .build()
                             .also { cachedUnsafeClient = it }
                     } catch (e: Exception) {
-                        throw RuntimeException(e)
+                        return getUnsafeClientFallback()
                     }
                 }
+            }
+
+            private fun getUnsafeClientFallback(): OkHttpClient {
+                return OkHttpClient.Builder()
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .applyBrowserHeaders()
+                    .dns(DnsResolver.doh)
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .build()
+                    .also { cachedUnsafeClient = it }
             }
 
             fun build(baseUrl: String): SerienStreamService {

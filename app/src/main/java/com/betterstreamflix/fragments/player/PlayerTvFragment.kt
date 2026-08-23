@@ -130,7 +130,7 @@ class PlayerTvFragment : Fragment() {
     )
 
     private var _binding: FragmentPlayerTvBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
     private var isSetupDone = false
 
     private val PlayerControlView.binding
@@ -375,7 +375,7 @@ class PlayerTvFragment : Fragment() {
                         val preferredServer = state.servers.firstOrNull {
                             it.name.equals(args.preferredServerName, ignoreCase = true)
                         }
-                        viewModel.getVideo(preferredServer ?: state.servers.first())
+                        viewModel.getVideo(preferredServer ?: state.servers.firstOrNull())
 
                     }
                         is PlayerViewModel.State.FailedLoadingServers -> {
@@ -2024,3 +2024,5 @@ class PlayerTvFragment : Fragment() {
 
 
     }
+
+

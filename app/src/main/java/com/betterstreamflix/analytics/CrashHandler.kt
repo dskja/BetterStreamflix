@@ -24,18 +24,20 @@ object CrashHandler {
         previousHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            // Save crash info
-            saveCrashInfo(context, throwable)
+            // Save crash info (wrapped to prevent secondary crash during crash handling)
+            runCatching { saveCrashInfo(context, throwable) }
 
-            // Notify callback
-            crashCallback?.invoke(throwable)
+            // Notify callback (wrapped to prevent secondary crash)
+            runCatching { crashCallback?.invoke(throwable) }
 
-            // Log the crash
-            DebugLogger.e("CrashHandler", "Uncaught exception in ${thread.name}: ${throwable.message}")
-            DebugLogger.e("CrashHandler", throwable.stackTraceToString())
+            // Log the crash (wrapped to prevent secondary crash)
+            runCatching {
+                DebugLogger.e("CrashHandler", "Uncaught exception in ${thread.name}: ${throwable.message}")
+                DebugLogger.e("CrashHandler", throwable.stackTraceToString())
+            }
 
             // Let the previous handler deal with it
-            previousHandler?.uncaughtException(thread, throwable)
+            runCatching { previousHandler?.uncaughtException(thread, throwable) }
         }
     }
 
@@ -65,19 +67,23 @@ object CrashHandler {
     }
 
     private fun saveCrashInfo(context: Context, throwable: Throwable) {
-        val crashInfo = buildString {
-            appendLine("Time: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}")
-            appendLine("Exception: ${throwable.javaClass.name}")
-            appendLine("Message: ${throwable.message}")
-            appendLine("Stack Trace:")
-            appendLine(throwable.stackTraceToString())
-        }
+        try {
+            val crashInfo = buildString {
+                appendLine("Time: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}")
+                appendLine("Exception: ${throwable.javaClass.name}")
+                appendLine("Message: ${throwable.message}")
+                appendLine("Stack Trace:")
+                appendLine(throwable.stackTraceToString())
+            }
 
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val count = prefs.getInt(KEY_CRASH_COUNT, 0) + 1
-        prefs.edit {
-            putString(KEY_LAST_CRASH, crashInfo)
-            putInt(KEY_CRASH_COUNT, count)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val count = prefs.getInt(KEY_CRASH_COUNT, 0) + 1
+            prefs.edit {
+                putString(KEY_LAST_CRASH, crashInfo)
+                putInt(KEY_CRASH_COUNT, count)
+            }
+        } catch (e: Exception) {
+            // Silently fail — we're already in a crash handler
         }
     }
 }

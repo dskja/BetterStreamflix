@@ -10,7 +10,7 @@ import androidx.media3.exoplayer.ExoPlayer
  */
 class AudioFocusManager(private val context: Context) {
 
-    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
     private var player: ExoPlayer? = null
 
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
@@ -37,11 +37,11 @@ class AudioFocusManager(private val context: Context) {
      */
     fun requestFocus(player: ExoPlayer): Boolean {
         this.player = player
-        val result = audioManager.requestAudioFocus(
+        val result = audioManager?.requestAudioFocus(
             audioFocusListener,
             AudioManager.STREAM_MUSIC,
             AudioManager.AUDIOFOCUS_GAIN,
-        )
+        ) ?: AudioManager.AUDIOFOCUS_REQUEST_FAILED
         return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
     }
 
@@ -49,7 +49,8 @@ class AudioFocusManager(private val context: Context) {
      * Release audio focus.
      */
     fun releaseFocus() {
-        audioManager.abandonAudioFocus(audioFocusListener)
+        audioManager?.abandonAudioFocus(audioFocusListener)
         player = null
     }
 }
+

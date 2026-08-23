@@ -41,7 +41,7 @@ class MainViewModel : ViewModel() {
             val newReleases = InAppUpdater.getNewReleases()
             if (newReleases.isEmpty()) return@launch
 
-            val asset = newReleases.first().assets
+            val asset = (newReleases.firstOrNull()?.assets ?: emptyList())
                 .filter { it.contentType == "application/vnd.android.package-archive" }
                 .find {
                     when (BuildConfig.APP_LAYOUT) {
