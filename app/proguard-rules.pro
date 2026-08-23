@@ -84,6 +84,13 @@
 # === Navigation ===
 -keep class * extends androidx.navigation.fragment.NavHostFragment
 -keep class androidx.navigation.** { *; }
+-keep class com.betterstreamflix.fragments.**.*FragmentDirections { *; }
+-keep class com.betterstreamflix.fragments.**.*FragmentDirections$* { *; }
+-keep class com.betterstreamflix.fragments.**.*FragmentArgs { *; }
+-keep class com.betterstreamflix.fragments.**.*FragmentArgs$* { *; }
+-keep class * implements androidx.navigation.NavDirections { *; }
+-keepclassmembers class com.betterstreamflix.R$id { *; }
+-keepclassmembers class com.betterstreamflix.R$navigation { *; }
 
 # === Parcelize ===
 -keepclassmembers class * implements android.os.Parcelable { public static final android.os.Parcelable$Creator CREATOR; }

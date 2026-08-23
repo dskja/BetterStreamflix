@@ -130,8 +130,8 @@ object UserPreferences {
         set(value) = Key.APP_LAYOUT.setString(value)
 
     var providerUrl: String
-        get() = if (::prefs.isInitialized) Key.PROVIDER_CACHE.getString() ?: "" else ""
-        set(value) = Key.PROVIDER_CACHE.setString(value)
+        get() = if (::prefs.isInitialized) Key.PROVIDER_URL.getString() ?: "" else ""
+        set(value) = Key.PROVIDER_URL.setString(value)
 
     var providerLanguage: String?
         get() = Key.PROVIDER_LANGUAGE.getString()
@@ -613,6 +613,7 @@ object UserPreferences {
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
+        PROVIDER_URL,
         FAVORITE_PROVIDERS;
 
         fun getStringSet(): Set<String>? = when {
