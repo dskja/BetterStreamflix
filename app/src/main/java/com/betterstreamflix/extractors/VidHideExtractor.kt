@@ -39,6 +39,7 @@ class VidHideExtractor: Extractor() {
         val referer = try {
             UserPreferences.currentProvider?.baseUrl ?: fallback
         } catch (_: Throwable) {
+            if (_ is kotlinx.coroutines.CancellationException) throw _
             fallback
         }
         val origin = referer

@@ -101,6 +101,7 @@ object CloudRealtimeSync {
                 collectorJob = newCollector
                 Log.i(TAG, "Listening for media changes")
             } catch (error: Throwable) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
                 newCollector.cancel()
                 runCatching {
                     SupabaseProvider.client.realtime.removeChannel(newChannel)
