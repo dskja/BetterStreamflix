@@ -1,0 +1,18 @@
+﻿2026-08-22T22:54:10.2282684Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-08-22T22:54:10.2283877Z Post job cleanup.
+2026-08-22T22:54:10.4213838Z In post-action step
+2026-08-22T22:54:10.4223344Z ##[group]Stopping Gradle daemons
+2026-08-22T22:54:10.4224587Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9/gradle-8.14
+2026-08-22T22:54:10.4237856Z [command]/home/runner/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9/gradle-8.14/bin/gradle --stop
+2026-08-22T22:54:11.0054829Z Stopping Daemon(s)
+2026-08-22T22:54:11.0231502Z 1 Daemon stopped
+2026-08-22T22:54:11.0955651Z ##[endgroup]
+2026-08-22T22:54:11.0956486Z Not performing cache-cleanup due to build failure
+2026-08-22T22:54:11.0957490Z ##[group]Caching Gradle state
+2026-08-22T22:54:11.1114493Z Not saving configuration-cache state, as no encryption key was provided
+2026-08-22T22:54:12.4183911Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --files-from manifest.txt --use-compress-program zstdmt
+2026-08-22T22:54:13.6180418Z Sent 47224902 of 47224902 (100.0%), 50.7 MBs/sec
+2026-08-22T22:54:13.7563635Z Saved cache entry with key gradle-home-v1|Linux-X64|build[306251f15c34fe1fb89bf628a366c942]-24f1ff20b3e8d3a3049493632fa568cc60d58cfb from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1351ms
+2026-08-22T22:54:13.7564923Z ##[endgroup]
+2026-08-22T22:54:13.7567920Z Generating Job Summary
+2026-08-22T22:54:13.7578558Z Completed post-action step

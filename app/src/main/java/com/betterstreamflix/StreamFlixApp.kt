@@ -16,8 +16,10 @@ import com.betterstreamflix.utils.AppLanguageManager
 import com.betterstreamflix.utils.ArtworkRepairScheduler
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DnsResolver
+import com.betterstreamflix.utils.GlobalErrorHandler
 import com.betterstreamflix.utils.IsrgRootTrustProvider
 import com.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,7 +35,7 @@ class StreamFlixApp : Application() {
             private set
     }
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GlobalErrorHandler.handler)
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(AppLanguageManager.wrap(base))

@@ -1,0 +1,75 @@
+﻿2026-08-22T22:52:12.9875008Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-08-22T22:52:12.9877141Z ##[group]Run gradle/actions/setup-gradle@v4
+2026-08-22T22:52:12.9877682Z with:
+2026-08-22T22:52:12.9878138Z   cache-disabled: false
+2026-08-22T22:52:12.9878602Z   cache-read-only: false
+2026-08-22T22:52:12.9879046Z   cache-write-only: false
+2026-08-22T22:52:12.9879481Z   cache-overwrite-existing: false
+2026-08-22T22:52:12.9879930Z   cache-cleanup: on-success
+2026-08-22T22:52:12.9880468Z   gradle-home-cache-includes: caches
+notifications
+
+2026-08-22T22:52:12.9881002Z   add-job-summary: always
+2026-08-22T22:52:12.9881398Z   add-job-summary-as-pr-comment: never
+2026-08-22T22:52:12.9881844Z   dependency-graph: disabled
+2026-08-22T22:52:12.9882352Z   dependency-graph-report-dir: dependency-graph-reports
+2026-08-22T22:52:12.9882998Z   dependency-graph-continue-on-failure: true
+2026-08-22T22:52:12.9883451Z   build-scan-publish: false
+2026-08-22T22:52:12.9883852Z   validate-wrappers: true
+2026-08-22T22:52:12.9884533Z   allow-snapshot-wrappers: false
+2026-08-22T22:52:12.9885328Z   gradle-home-cache-strict-match: false
+2026-08-22T22:52:12.9885863Z   workflow-job-context: null
+2026-08-22T22:52:12.9889548Z   github-token: ***
+2026-08-22T22:52:12.9890054Z env:
+2026-08-22T22:52:12.9890531Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+2026-08-22T22:52:12.9891118Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+2026-08-22T22:52:12.9891562Z   MAVEN_ARGS: -ntp
+2026-08-22T22:52:12.9891772Z ##[endgroup]
+2026-08-22T22:52:13.9884114Z Merged default JDK locations into /home/runner/.m2/toolchains.xml
+2026-08-22T22:52:13.9884732Z Preparing cache for cleanup.
+2026-08-22T22:52:13.9888216Z ##[group]Restore Gradle state from cache
+2026-08-22T22:52:14.1541691Z Cache hit for restore-key: gradle-home-v1|Linux-X64|build[306251f15c34fe1fb89bf628a366c942]-99f855821aab4e2498b6dd6b2f8598d1b3d10110
+2026-08-22T22:52:14.9466918Z Received 47176829 of 47176829 (100.0%), 68.1 MBs/sec
+2026-08-22T22:52:14.9467500Z Cache Size: ~45 MB (47176829 B)
+2026-08-22T22:52:14.9631635Z [command]/usr/bin/tar -xf /home/runner/work/_temp/f03ebd96-e268-4331-aafe-998bb5373f18/cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --use-compress-program unzstd
+2026-08-22T22:52:15.0889699Z Cache restored successfully
+2026-08-22T22:52:15.0909101Z Restored cache entry with key gradle-home-v1|Linux-X64|build[306251f15c34fe1fb89bf628a366c942]-24f1ff20b3e8d3a3049493632fa568cc60d58cfb to /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1101ms
+2026-08-22T22:52:15.2078303Z Cache hit for: gradle-wrapper-zips-v1-b34fbf565c67c89c8aa34f8407b476ab
+2026-08-22T22:52:15.2108725Z Cache hit for: gradle-transforms-v1-e133c01ac1d8d3e2aa27c0ab67e946bb
+2026-08-22T22:52:15.2267179Z Cache hit for: gradle-groovy-dsl-v1-85c08ba081e6913026b18a0f5ff804e2
+2026-08-22T22:52:15.2284832Z Cache hit for: gradle-instrumented-jars-v1-ec5bd2ee43686c5e07c08ef39de33681
+2026-08-22T22:52:15.2321834Z Cache hit for: gradle-dependencies-v1-dfc101efde52815611f9a933b2969876
+2026-08-22T22:52:15.5603862Z Received 104790 of 104790 (100.0%), 0.4 MBs/sec
+2026-08-22T22:52:15.5604699Z Cache Size: ~0 MB (104790 B)
+2026-08-22T22:52:15.5628032Z [command]/usr/bin/tar -xf /home/runner/work/_temp/fc20f32a-d62e-4f91-9289-48128553e368/cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --use-compress-program unzstd
+2026-08-22T22:52:15.5716955Z Cache restored successfully
+2026-08-22T22:52:15.5719663Z Restored cache entry with key gradle-instrumented-jars-v1-ec5bd2ee43686c5e07c08ef39de33681 to /home/runner/.gradle/caches/jars-*/*/ in 479ms
+2026-08-22T22:52:15.6491814Z Received 160941 of 160941 (100.0%), 0.5 MBs/sec
+2026-08-22T22:52:15.6492368Z Cache Size: ~0 MB (160941 B)
+2026-08-22T22:52:15.6526612Z [command]/usr/bin/tar -xf /home/runner/work/_temp/07d88bb3-9297-41e3-b277-728fdf82c985/cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --use-compress-program unzstd
+2026-08-22T22:52:15.6662991Z Cache restored successfully
+2026-08-22T22:52:15.6667609Z Restored cache entry with key gradle-groovy-dsl-v1-85c08ba081e6913026b18a0f5ff804e2 to /home/runner/.gradle/caches/*/groovy-dsl/*/ in 574ms
+2026-08-22T22:52:16.3284192Z Received 121634816 of 155013072 (78.5%), 115.1 MBs/sec
+2026-08-22T22:52:16.3429102Z Received 100663296 of 419771956 (24.0%), 95.8 MBs/sec
+2026-08-22T22:52:16.3572047Z Received 50331648 of 136694986 (36.8%), 48.0 MBs/sec
+2026-08-22T22:52:16.6832660Z Received 155013072 of 155013072 (100.0%), 108.5 MBs/sec
+2026-08-22T22:52:16.6833825Z Cache Size: ~148 MB (155013072 B)
+2026-08-22T22:52:16.7276852Z [command]/usr/bin/tar -xf /home/runner/work/_temp/69ff0745-1b97-45b9-a7ac-eff476b88d54/cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --use-compress-program unzstd
+2026-08-22T22:52:16.9911243Z Received 136694986 of 136694986 (100.0%), 79.8 MBs/sec
+2026-08-22T22:52:16.9912053Z Cache Size: ~130 MB (136694986 B)
+2026-08-22T22:52:17.0427732Z [command]/usr/bin/tar -xf /home/runner/work/_temp/0076502e-22c9-46be-9cc3-6fac6ae99805/cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --use-compress-program unzstd
+2026-08-22T22:52:17.2890105Z Cache restored successfully
+2026-08-22T22:52:17.3048548Z Restored cache entry with key gradle-wrapper-zips-v1-b34fbf565c67c89c8aa34f8407b476ab to /home/runner/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9 in 2211ms
+2026-08-22T22:52:17.3436946Z Received 268435456 of 419771956 (63.9%), 127.8 MBs/sec
+2026-08-22T22:52:17.9782450Z Cache restored successfully
+2026-08-22T22:52:17.9837251Z Restored cache entry with key gradle-transforms-v1-e133c01ac1d8d3e2aa27c0ab67e946bb to /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 2891ms
+2026-08-22T22:52:18.1316358Z Received 419771956 of 419771956 (100.0%), 143.4 MBs/sec
+2026-08-22T22:52:18.1318425Z Cache Size: ~400 MB (419771956 B)
+2026-08-22T22:52:18.1457194Z [command]/usr/bin/tar -xf /home/runner/work/_temp/188548dc-6396-4230-87d8-2b4ecfdcb079/cache.tzst -P -C /home/runner/work/BetterStreamflix/BetterStreamflix --use-compress-program unzstd
+2026-08-22T22:52:19.0953303Z Cache restored successfully
+2026-08-22T22:52:19.1103991Z Restored cache entry with key gradle-dependencies-v1-dfc101efde52815611f9a933b2969876 to /home/runner/.gradle/caches/modules-*/files-*/*/*/*/* in 4019ms
+2026-08-22T22:52:19.1605245Z ##[endgroup]
+2026-08-22T22:52:19.1739884Z ##[group]All Gradle Wrapper jars are valid
+2026-08-22T22:52:19.1740909Z ✓ Found known Gradle Wrapper JAR files:
+2026-08-22T22:52:19.1741387Z   e996d452d2645e70c01c11143ca2d3742734a28da2bf61f25c82bdc288c9e637 gradle/wrapper/gradle-wrapper.jar
+2026-08-22T22:52:19.1741969Z ##[endgroup]

@@ -1,0 +1,172 @@
+package com.betterstreamflix.fragments.player
+
+import android.view.animation.AnimationUtils
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.media3.exoplayer.ExoPlayer
+import com.betterstreamflix.R
+import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.databinding.ContentExoControllerMobileBinding
+import com.betterstreamflix.databinding.FragmentPlayerMobileBinding
+import com.betterstreamflix.models.Video
+import com.betterstreamflix.utils.EpisodeManager
+import com.betterstreamflix.utils.UserPreferences
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/**
+ * Manages the "Next Episode" overlay and skip-intro button for the mobile player.
+ * Extracted from PlayerMobileFragment for separation of concerns.
+ */
+class NextEpisodeOverlayManager(
+    private val fragment: Fragment,
+    private val player: ExoPlayer,
+    private val database: AppDatabase,
+) {
+    companion object {
+        private const val NEXT_EPISODE_PREFETCH_THRESHOLD_MS = 60_000L
+        private const val NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS = 30_000L
+    }
+
+    private var nextEpisodeOverlayDismissed = false
+    private var nextEpisodePrefetchTargetId: String? = null
+    private var nextEpisodePrefetchJob: Job? = null
+
+    private val binding: FragmentPlayerMobileBinding?
+        get() = fragment.view?.let { FragmentPlayerMobileBinding.bind(it) }
+
+    private val controllerBinding: ContentExoControllerMobileBinding?
+        get() = binding?.pvPlayer?.controller?.let {
+            ContentExoControllerMobileBinding.bind(it.findViewById(R.id.cl_exo_controller))
+        }
+
+    fun dismissOverlay() {
+        nextEpisodeOverlayDismissed = true
+        hideNextEpisodeOverlay()
+    }
+
+    fun resetDismissed() {
+        nextEpisodeOverlayDismissed = false
+    }
+
+    fun updateOverlay(currentVideoType: Video.Type) {
+        val currentEpisode = currentVideoType as? Video.Type.Episode ?: run {
+            hideNextEpisodeOverlay()
+            return
+        }
+        val duration = player.duration.takeIf { it > 0 } ?: run {
+            hideNextEpisodeOverlay()
+            return
+        }
+        val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
+
+        if (nextEpisodeOverlayDismissed) {
+            hideNextEpisodeOverlay()
+            return
+        }
+
+        if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
+            ensureNextEpisodePrepared(currentEpisode)
+        }
+
+        val nextEpisode = EpisodeManager.peekNextEpisode()
+        val overlayThresholdMs = maxOf(
+            NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS,
+            UserPreferences.autoplayBuffer * 1000L
+        )
+        if (nextEpisode == null || remainingMs == 0L || remainingMs > overlayThresholdMs) {
+            hideNextEpisodeOverlay()
+            return
+        }
+
+        showNextEpisodeOverlay(nextEpisode, remainingMs)
+    }
+
+    fun updateSkipIntroButton() {
+        val show = player.currentPosition in 3000..120000
+        showSkipIntroButton(show)
+    }
+
+    private fun ensureNextEpisodePrepared(currentEpisode: Video.Type.Episode) {
+        if (EpisodeManager.peekNextEpisode() != null) return
+        if (nextEpisodePrefetchTargetId == currentEpisode.id && nextEpisodePrefetchJob?.isActive == true) {
+            return
+        }
+
+        nextEpisodePrefetchTargetId = currentEpisode.id
+        nextEpisodePrefetchJob?.cancel()
+        nextEpisodePrefetchJob = fragment.lifecycleScope.launch(Dispatchers.IO) {
+            EpisodeManager.ensureNextEpisodeAvailable(currentEpisode, database)
+            withContext(Dispatchers.Main) {
+                if (!fragment.isAdded) return@withContext
+                // Fragment can check if needed
+            }
+        }
+    }
+
+    private fun showNextEpisodeOverlay(nextEpisode: Video.Type.Episode, remainingMs: Long) {
+        val b = binding ?: return
+        b.tvNextEpisodeMeta.text = fragment.getString(
+            R.string.tv_show_item_season_number_episode_number,
+            nextEpisode.season.number,
+            nextEpisode.number
+        )
+        b.tvNextEpisodeTitle.text = nextEpisode.title
+            ?: fragment.getString(R.string.episode_number, nextEpisode.number)
+        b.tvNextEpisodeCountdown.text = if (UserPreferences.autoplay) {
+            fragment.getString(
+                R.string.player_next_episode_autoplay_in,
+                ((remainingMs + 999L) / 1000L).toInt()
+            )
+        } else {
+            fragment.getString(R.string.player_next_episode_ready)
+        }
+
+        Glide.with(fragment)
+            .load(nextEpisode.poster ?: nextEpisode.tvShow.poster)
+            .error(R.drawable.glide_fallback_cover)
+            .fallback(R.drawable.glide_fallback_cover)
+            .centerCrop()
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .into(b.ivNextEpisodePoster)
+
+        if (b.layoutNextEpisodeOverlay.isGone) {
+            val fadeIn = AnimationUtils.loadAnimation(fragment.requireContext(), R.anim.fade_in)
+            b.layoutNextEpisodeOverlay.startAnimation(fadeIn)
+            b.layoutNextEpisodeOverlay.isVisible = true
+        }
+    }
+
+    private fun hideNextEpisodeOverlay() {
+        val b = binding ?: return
+        if (b.layoutNextEpisodeOverlay.isVisible) {
+            val fadeOut = AnimationUtils.loadAnimation(fragment.requireContext(), R.anim.fade_out)
+            b.layoutNextEpisodeOverlay.startAnimation(fadeOut)
+            b.layoutNextEpisodeOverlay.isGone = true
+        }
+    }
+
+    private fun showSkipIntroButton(show: Boolean) {
+        val cb = controllerBinding ?: return
+        val btnSkipIntro = cb.btnSkipIntro
+        if (show && btnSkipIntro.isGone) {
+            val fadeIn = AnimationUtils.loadAnimation(fragment.requireContext(), R.anim.fade_in)
+            btnSkipIntro.startAnimation(fadeIn)
+            btnSkipIntro.isVisible = true
+        } else if (!show && btnSkipIntro.isVisible) {
+            val fadeOut = AnimationUtils.loadAnimation(fragment.requireContext(), R.anim.fade_out)
+            btnSkipIntro.startAnimation(fadeOut)
+            btnSkipIntro.isGone = true
+        }
+    }
+
+    fun cancelPrefetch() {
+        nextEpisodePrefetchJob?.cancel()
+    }
+}

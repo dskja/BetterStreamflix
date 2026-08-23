@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Critical issues that should fail the build -->
+    <issue id="HardcodedText" severity="warning" />
+    <issue id="MissingTranslation" severity="warning" />
+    <issue id="ExtraTranslation" severity="warning" />
+
+    <!-- Disable overly strict checks -->
+    <issue id="ContentDescription" severity="warning" />
+    <issue id="UnusedResources" severity="warning" />
+    <issue id="IconLauncherShape" severity="ignore" />
+    <issue id="VectorPath" severity="ignore" />
+    <issue id="VectorRaster" severity="ignore" />
+    <issue id="Overdraw" severity="ignore" />
+    <issue id="UselessParent" severity="ignore" />
+    <issue id="RtlHardcoded" severity="ignore" />
+    <issue id="RtlSymmetry" severity="ignore" />
+    <issue id="RtlEnabled" severity="ignore" />
+
+    <!-- Keep these as errors -->
+    <issue id="ObsoleteLayoutParam" severity="error" />
+    <issue id="ViewHolder" severity="error" />
+    <issue id="Recycle" severity="error" />
+    <issue id="StaticFieldLeak" severity="error" />
+    <issue id="UseCompoundDrawables" severity="warning" />
+    <issue id="NestedWeights" severity="warning" />
+    <issue id="InefficientLayout" severity="warning" />
+
+    <!-- Allow baseline -->
+    <baseline mode="default" />
+</lint>

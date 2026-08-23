@@ -28,6 +28,12 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Run Lint
+        run: ./gradlew lintDebug --stacktrace || true
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --stacktrace || true
+
       - name: Install NDK and CMake
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
