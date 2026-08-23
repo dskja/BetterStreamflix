@@ -36,6 +36,7 @@ object DataSyncCoordinator {
             _syncState.value = SyncState.COMPLETED
             return SyncResult(success = true, operations = results, timestamp = System.currentTimeMillis())
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             _syncState.value = SyncState.ERROR
             return SyncResult(success = false, operations = results, error = e.message, timestamp = System.currentTimeMillis())
         }

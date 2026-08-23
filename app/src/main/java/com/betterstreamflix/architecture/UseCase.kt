@@ -18,6 +18,7 @@ abstract class UseCase<in Input, Output> {
         return try {
             execute(input)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             OperationResult.failure(e)
         }
     }
@@ -37,6 +38,7 @@ abstract class NoArgUseCase<Output> {
         return try {
             execute()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             OperationResult.failure(e)
         }
     }

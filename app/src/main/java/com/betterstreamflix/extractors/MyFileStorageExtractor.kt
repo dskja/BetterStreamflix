@@ -40,6 +40,7 @@ class MyFileStorageExtractor : Extractor() {
             return try {
                 service.get(this, referer = "https://bflix.gs/").isSuccessful
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 false
             }
         }

@@ -36,6 +36,7 @@ class StreamixExtractor : Extractor() {
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("Failed to parse Streamix API response: ${e.message}")
         }
         
