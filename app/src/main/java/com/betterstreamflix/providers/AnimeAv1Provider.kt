@@ -108,7 +108,9 @@ object AnimeAv1Provider : Provider {
                     if (bannerShows.isNotEmpty()) {
                         categories.add(Category(Category.FEATURED, bannerShows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 try {
                     val homeDocument = homeDeferred.await()
@@ -131,7 +133,9 @@ object AnimeAv1Provider : Provider {
                     if (latestEpisodes?.isNotEmpty() == true ) {
                         categories.add(Category("Últimos Episodios", latestEpisodes))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 try {
                     val airingDocument = airingDeferred.await()
@@ -149,11 +153,14 @@ object AnimeAv1Provider : Provider {
                     if (airingShows.isNotEmpty()) {
                         categories.add(Category("Animes en Emisión", airingShows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 return@coroutineScope categories
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
     }
@@ -235,6 +242,7 @@ object AnimeAv1Provider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -254,6 +262,7 @@ object AnimeAv1Provider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -273,6 +282,7 @@ object AnimeAv1Provider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -319,7 +329,10 @@ object AnimeAv1Provider : Provider {
                                     val numIndex = epObj.getInt("number")
                                     val value = dataArray.get(numIndex)
                                     if (value is Int) value else value.toString().toIntOrNull() ?: (i + 1)
-                                } catch (e: Exception) { i + 1 }
+                                } catch (e: Exception) {
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                    i + 1
+                                }
 
                                 episodes.add(
                                     Episode(
@@ -334,6 +347,7 @@ object AnimeAv1Provider : Provider {
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 // Si falla el JSON, no hacemos nada aquí, ya que el siguiente bloque usará Jsoup
             }
 
@@ -383,6 +397,7 @@ object AnimeAv1Provider : Provider {
                 seasons = seasons
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             TvShow(id = cleanId, title = "Error al cargar")
         }
     }
@@ -414,6 +429,7 @@ object AnimeAv1Provider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             // Fallback al primer episodio si el JSON falla
             moviePlaybackId = show.seasons.firstOrNull()?.episodes?.firstOrNull()?.id ?: id
         }
@@ -461,6 +477,7 @@ object AnimeAv1Provider : Provider {
 
             Genre(id = id, name = genreName, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = genreName, shows = emptyList())
         }
     }
@@ -513,6 +530,7 @@ object AnimeAv1Provider : Provider {
                     val url = dataArray.getString(obj.getInt("url"))
                     serverName to url
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
             }
@@ -549,6 +567,7 @@ object AnimeAv1Provider : Provider {
             servers.distinctBy { it.id }
 
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }

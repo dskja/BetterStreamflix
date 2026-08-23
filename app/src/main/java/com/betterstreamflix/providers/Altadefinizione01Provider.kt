@@ -384,6 +384,7 @@ object Altadefinizione01Provider : Provider {
                             seasons.sortBy { it.number }
                         }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.e("Altadefinizione01", "Error fetching VidxGo episodes: ${e.message}")
                     }
                 }
@@ -415,7 +416,7 @@ object Altadefinizione01Provider : Provider {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showUrl = seasonId.substringBefore("#")
         val seasonNumber = seasonId.substringAfter("#season-").toIntOrNull() ?: 0
-        val doc = try { service.getPage(showUrl) } catch (e: Exception) { null } ?: return emptyList()
+        val doc = try { service.getPage(showUrl) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null } ?: return emptyList()
 
         val paneId = "season-$seasonNumber"
         val seasonPane = doc.selectFirst("#${paneId}")
@@ -495,6 +496,7 @@ object Altadefinizione01Provider : Provider {
                             )
                         }.sortedBy { it.number }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.e("Altadefinizione01", "Error fetching VidxGo episodes for season $seasonNumber: ${e.message}")
                     }
                 }
@@ -573,7 +575,9 @@ object Altadefinizione01Provider : Provider {
                             val name = m.text().trim().ifBlank { "Server" }
                             Video.Server(id = normalized, name = name, src = normalized)
                         }.forEach { results.add(it) }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 val vidxgoIframe = doc.selectFirst("iframe#vidxgo-player")
                 if (vidxgoIframe != null) {
@@ -593,10 +597,13 @@ object Altadefinizione01Provider : Provider {
                     }
                 }
                 results
-            } catch (_: Exception) { emptyList() }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                emptyList()
+            }
         }
 
-        val doc = try { service.getPage(id) } catch (e: Exception) { null } ?: throw Exception("Failed to load page")
+        val doc = try { service.getPage(id) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null } ?: throw Exception("Failed to load page")
         
         val guardahdIframe = doc.selectFirst("iframe[src*='guardahd.stream']")
         if (guardahdIframe != null) {
@@ -621,6 +628,7 @@ object Altadefinizione01Provider : Provider {
                     .filter { it.src.isNotBlank() }
                 if (servers.isNotEmpty()) return servers
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("Altadefinizione01", "Error fetching guardahd servers: ${e.message}")
             }
         }
