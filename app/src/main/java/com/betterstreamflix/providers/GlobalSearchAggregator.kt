@@ -20,8 +20,9 @@ object GlobalSearchAggregator {
             .filter { ProviderHealthMonitor.isHealthy(it.name) }
 
         val results = kotlinx.coroutines.coroutineScope {
+            val scope = this
             providers.map { provider ->
-                this.async {
+                scope.async {
                     try {
                         val searchResults = provider.search(query)
                         ProviderHealthMonitor.recordSuccess(provider.name)
@@ -45,7 +46,7 @@ object GlobalSearchAggregator {
             }.awaitAllWithTimeout(timeoutMs)
         }
 
-        return results.filter { it.success && it.results.isNotEmpty() }
+        return results.filter { result -> result.success && result.results.isNotEmpty() }
     }
 
     /**
