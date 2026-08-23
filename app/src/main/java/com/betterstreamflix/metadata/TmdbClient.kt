@@ -109,7 +109,7 @@ object TmdbClient {
             val obj = JSONObject(json)
             val results = obj.optJSONArray("results")
             if (results == null || results.length() == 0) return null
-            val first = results.getJSONObject(0)
+            val first = results.optJSONObject(0) ?: return null
             TmdbResult(
                 id = first.getInt("id"),
                 title = first.optString("title", first.optString("name", "")),

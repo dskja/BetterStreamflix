@@ -88,8 +88,12 @@ open class VeevExtractor : Extractor() {
                         ?: throw Exception("Video removed")
 
                     if (fileJson.optString("file_status") == "OK") {
-                        val dv = fileJson.getJSONArray("dv").getJSONObject(0).getString("s")
-                        val sourceUrl = decodeUrl(veevDecode(dv), buildArray(ch)[0])
+                        val dv = fileJson.optJSONArray("dv")?.optJSONObject(0)?.optString("s")
+                            ?: throw Exception("Veev: no video source found")
+                        val chArray = buildArray(ch)
+                        val ch0 = chArray.firstOrNull()
+                            ?: throw Exception("Veev: empty decode array")
+                        val sourceUrl = decodeUrl(veevDecode(dv), ch0)
                         val fileMimeType = fileJson.optString("file_mime_type", "")
                         val exoMimeType = fileMimeType.toExoPlayerMimeType()
                         return Video(source = sourceUrl, type = exoMimeType, headers = headers)

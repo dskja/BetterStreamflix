@@ -84,7 +84,7 @@ class VidzeeExtractor : Extractor() {
             val urlArray = json.optJSONArray("url") ?: throw Exception("No URLs found")
             if (urlArray.length() == 0) throw Exception("Empty URL array")
 
-            val content = urlArray.getJSONObject(0)
+            val content = urlArray.optJSONObject(0) ?: throw Exception("No URL content found")
             val encryptedLink = content.optString("link")
             if (encryptedLink.isEmpty()) throw Exception("Empty encrypted link")
 
@@ -95,7 +95,7 @@ class VidzeeExtractor : Extractor() {
             val subtitles = mutableListOf<Video.Subtitle>()
             if (tracks != null) {
                 for (i in 0 until tracks.length()) {
-                    val track = tracks.getJSONObject(i)
+                    val track = tracks.optJSONObject(i) ?: continue
                     val subUrl = track.optString("url")
                     if (subUrl.isNotEmpty()) {
                         subtitles.add(Video.Subtitle(

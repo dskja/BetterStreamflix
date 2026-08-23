@@ -128,7 +128,7 @@ class VideasyExtractor : Extractor() {
         val tracks = resultJson.optJSONArray("subtitles")
         if (tracks != null) {
             for (i in 0 until tracks.length()) {
-                val track = tracks.getJSONObject(i)
+                val track = tracks.optJSONObject(i) ?: continue
                 val label = track.optString("lang", "Unknown")
                 val url = track.optString("url")
                 if (url.isNotEmpty()) {
@@ -141,7 +141,7 @@ class VideasyExtractor : Extractor() {
         }
 
         if (sources != null && sources.length() > 0) {
-            val source = sources.getJSONObject(0)
+            val source = sources.optJSONObject(0) ?: return Video(source = "", headers = emptyMap())
             
             // Find ServerConfig based on endpoint in URL
             val config = englishServers.find { link.contains(it.endpoint) }
