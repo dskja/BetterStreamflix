@@ -173,12 +173,14 @@ object AnimeSaturnProvider : Provider {
                         )
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     continue
                 }
             }
             
             extras
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyMap()
         }
     }
@@ -213,6 +215,7 @@ object AnimeSaturnProvider : Provider {
             
             categories
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -231,6 +234,7 @@ object AnimeSaturnProvider : Provider {
                 banner = banner
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -249,6 +253,7 @@ object AnimeSaturnProvider : Provider {
                 poster = poster
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -287,6 +292,7 @@ object AnimeSaturnProvider : Provider {
             
             results
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -315,6 +321,7 @@ object AnimeSaturnProvider : Provider {
             
             Genre(id = id, name = genreName, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = id)
         }
     }
@@ -339,6 +346,7 @@ object AnimeSaturnProvider : Provider {
 
             results
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -423,6 +431,7 @@ object AnimeSaturnProvider : Provider {
                 recommendations = recommendations
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             TvShow(id = id, title = "", poster = "")
         }
     }
@@ -534,6 +543,7 @@ object AnimeSaturnProvider : Provider {
             
             episodes.sortedBy { it.number }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -588,6 +598,7 @@ object AnimeSaturnProvider : Provider {
             
             servers
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }

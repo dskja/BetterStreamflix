@@ -105,7 +105,9 @@ object AnimeFlvProvider : Provider {
                     if (bannerShows.isNotEmpty()) {
                         categories.add(Category(Category.FEATURED, bannerShows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 try {
                     val homeDocument = homeDeferred.await()
@@ -128,7 +130,9 @@ object AnimeFlvProvider : Provider {
                     if (latestEpisodes.isNotEmpty()) {
                         categories.add(Category("Últimos Episodios", latestEpisodes))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 try {
                     val airingDocument = airingDeferred.await()
@@ -146,11 +150,14 @@ object AnimeFlvProvider : Provider {
                     if (airingShows.isNotEmpty()) {
                         categories.add(Category("Animes en Emisión", airingShows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
 
                 return@coroutineScope categories
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
     }
@@ -226,6 +233,7 @@ object AnimeFlvProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -245,6 +253,7 @@ object AnimeFlvProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -264,6 +273,7 @@ object AnimeFlvProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -323,6 +333,7 @@ object AnimeFlvProvider : Provider {
                 seasons = seasons
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             TvShow(id = id, title = "Error al cargar")
         }
     }
@@ -369,6 +380,7 @@ object AnimeFlvProvider : Provider {
 
             Genre(id = id, name = genreName, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = genreName, shows = emptyList())
         }
     }
@@ -406,6 +418,7 @@ object AnimeFlvProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
