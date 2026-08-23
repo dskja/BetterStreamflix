@@ -146,38 +146,12 @@ jobs:
         run: |
           cp "${{ steps.apk_tv.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}-only-tv.apk"
 
-      - name: Extract changelog for release notes
-        id: changelog
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Extract ONLY the section matching this version from CHANGELOG.md.
-          # Stops exactly at the next ## [VERSION] header.
-          NOTES=$(awk -v ver="$VERSION" '
-            BEGIN { found=0 }
-            /^## \[/ {
-              # Extract version from header like "## [1.9.0] - date"
-              header = $0
-              sub(/^## \[/, "", header)
-              sub(/\].*$/, "", header)
-              if (found == 1) { exit }
-              if (header == ver) { found=1; next }
-            }
-            found == 1 { print }
-          ' CHANGELOG.md | sed '/^$/d')
-          if [ -z "$NOTES" ]; then
-            NOTES="Release $VERSION"
-          fi
-          # Write to file to preserve multiline
-          printf '%s\n' "$NOTES" > /tmp/release_notes.md
-          echo "Extracted release notes:"
-          cat /tmp/release_notes.md
-
       - name: Create Release & Upload APKs
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          body_path: /tmp/release_notes.md
+          name: BetterStreamflix ${{ github.ref_name }}
+          body_path: CHANGELOG.md
           files: |
             /tmp/BetterStreamflix-${{ github.ref_name }}.apk
             /tmp/BetterStreamflix-${{ github.ref_name }}-only-mobile.apk
