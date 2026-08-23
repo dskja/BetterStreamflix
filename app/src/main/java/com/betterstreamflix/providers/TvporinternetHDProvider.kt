@@ -189,6 +189,7 @@ object TvporinternetHDProvider : IptvProvider {
     }
 
     override suspend fun getMovie(id: String): Movie = throw Exception("Not supported")
+    override suspend fun getMovies(page: Int): List<Movie> = emptyList()
 
     override suspend fun getTvShow(id: String): TvShow = if (id == "creador-info" || id == "apoyo-info") getInfoItem(id) else try {
         val doc = service.getPage(id)
