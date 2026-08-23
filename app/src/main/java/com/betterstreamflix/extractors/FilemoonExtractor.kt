@@ -212,8 +212,8 @@ open class FilemoonExtractor : Extractor() {
     private fun decryptPlayback(data: PlaybackData): String {
         val iv = Base64.decode(data.iv, Base64.URL_SAFE)
         val payload = Base64.decode(data.payload, Base64.URL_SAFE)
-        val p1 = Base64.decode(data.key_parts[0], Base64.URL_SAFE)
-        val p2 = Base64.decode(data.key_parts[1], Base64.URL_SAFE)
+        val p1 = Base64.decode(data.key_parts.getOrNull(0) ?: throw Exception("Filemoon: missing key part 0"), Base64.URL_SAFE)
+        val p2 = Base64.decode(data.key_parts.getOrNull(1) ?: throw Exception("Filemoon: missing key part 1"), Base64.URL_SAFE)
         
         val key = ByteArray(p1.size + p2.size)
         System.arraycopy(p1, 0, key, 0, p1.size)
