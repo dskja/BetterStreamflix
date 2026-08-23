@@ -47,7 +47,7 @@ open class VidplayExtractor : Extractor() {
         }
 
         val video = Video(
-            source = result.sources?.first()?.file
+            source = result.sources?.firstOrNull()?.file
                 ?: throw Exception("Can't retrieve source"),
             subtitles = result.tracks
                 ?.filter { it.kind == "captions" }

@@ -204,6 +204,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
     }
 
     suspend fun server(videoType: Video.Type): Video.Server {
-        return this.servers(videoType).first()
+        return this.servers(videoType).firstOrNull()
+            ?: throw Exception("Frembed: no servers available for $videoType")
     }
 }

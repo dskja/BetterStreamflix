@@ -69,6 +69,7 @@ object ContentDeduplicator {
         items: List<T>,
         metadataScoreExtractor: (T) -> Int,
     ): T {
-        return items.maxByOrNull(metadataScoreExtractor) ?: items.first()
+        return items.maxByOrNull(metadataScoreExtractor) ?: items.firstOrNull()
+            ?: throw IllegalArgumentException("Cannot merge duplicates from empty list")
     }
 }

@@ -65,7 +65,8 @@ class TvShowViewModel(
 
                     if (episodes.isEmpty() && state.tvShow.seasons.isNotEmpty()) {
                         val firstSeason = state.tvShow.seasons.firstOrNull { it.number != 0 }
-                            ?: state.tvShow.seasons.first()
+                            ?: state.tvShow.seasons.firstOrNull()
+                            ?: return@launch
                         getSeason(TvShow(id, ""), firstSeason)
                     } else {
                         val season = state.tvShow.seasons.let { seasons ->
