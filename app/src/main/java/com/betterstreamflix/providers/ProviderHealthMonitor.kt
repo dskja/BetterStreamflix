@@ -1,14 +1,6 @@
 package com.betterstreamflix.providers
 
 import com.betterstreamflix.data.Result
-import com.betterstreamflix.models.Category
-import com.betterstreamflix.models.Genre
-import com.betterstreamflix.models.Movie
-import com.betterstreamflix.models.People
-import com.betterstreamflix.models.SearchResult
-import com.betterstreamflix.models.Season
-import com.betterstreamflix.models.TvShow
-import com.betterstreamflix.models.Video
 
 /**
  * Provider health monitor — tracks success/failure rates per provider

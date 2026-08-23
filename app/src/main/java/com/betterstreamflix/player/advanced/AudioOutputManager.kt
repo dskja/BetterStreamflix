@@ -16,17 +16,12 @@ object AudioOutputManager {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
             ?: return AudioOutputType.SPEAKER
 
-        return when (audioManager.getDevicesForStream(android.media.AudioManager.STREAM_MUSIC)) {
-            // Check for Bluetooth
-            else -> {
-                val devices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
-                when {
-                    devices.any { it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP } -> AudioOutputType.BLUETOOTH
-                    devices.any { it.type == android.media.AudioDeviceInfo.TYPE_HDMI } -> AudioOutputType.HDMI
-                    devices.any { it.type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET } -> AudioOutputType.HEADPHONES
-                    else -> AudioOutputType.SPEAKER
-                }
-            }
+        val devices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+        return when {
+            devices.any { it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP } -> AudioOutputType.BLUETOOTH
+            devices.any { it.type == android.media.AudioDeviceInfo.TYPE_HDMI } -> AudioOutputType.HDMI
+            devices.any { it.type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it.type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET } -> AudioOutputType.HEADPHONES
+            else -> AudioOutputType.SPEAKER
         }
     }
 

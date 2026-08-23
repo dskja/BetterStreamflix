@@ -9,6 +9,7 @@ import androidx.transition.Fade
 import androidx.transition.Scene
 import androidx.transition.TransitionManager
 import androidx.transition.TransitionSet
+import androidx.core.view.ViewCompat
 
 /**
  * Transition helper — manages shared element transitions and
@@ -30,7 +31,7 @@ object TransitionHelper {
     fun changeBoundsTransition(viewGroup: ViewGroup, duration: Long = 300L) {
         val transition = ChangeBounds().apply {
             this.duration = duration
-            addInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+            setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
         }
         TransitionManager.beginDelayedTransition(viewGroup, transition)
     }

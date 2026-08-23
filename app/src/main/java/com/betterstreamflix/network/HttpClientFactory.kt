@@ -48,7 +48,7 @@ object HttpClientFactory {
             .connectTimeout(Constants.NETWORK_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
             .readTimeout(Constants.NETWORK_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
             .addInterceptor(UserAgentInterceptor())
-            .addInterceptor(HeaderInterceptor(headers))
+            .addInterceptor(HeaderInterceptor(Constants.USER_AGENT, headers))
             .followRedirects(true)
             .build()
     }
@@ -67,17 +67,6 @@ class UserAgentInterceptor : Interceptor {
 }
 
 /**
- * Adds custom headers to all requests.
- */
-class HeaderInterceptor(private val headers: Map<String, String>) : Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
-        val builder = chain.request().newBuilder()
-        headers.forEach { (key, value) -> builder.header(key, value) }
-        return chain.proceed(builder.build())
-    }
-}
-
-/**
  * Adds cookies to requests.
  */
 class CookieInterceptor(private val cookies: Map<String, String>) : Interceptor {
@@ -87,31 +76,5 @@ class CookieInterceptor(private val cookies: Map<String, String>) : Interceptor 
             .header("Cookie", cookieHeader)
             .build()
         return chain.proceed(request)
-    }
-}
-
-/**
- * Retries failed requests with exponential backoff.
- */
-class RetryInterceptor(private val maxRetries: Int = 3) : Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
-        var attempt = 0
-        var lastException: Exception? = null
-
-        while (attempt <= maxRetries) {
-            try {
-                val response = chain.proceed(chain.request())
-                if (response.isSuccessful || response.code in 400..499) return response
-                response.close()
-            } catch (e: Exception) {
-                lastException = e
-            }
-            attempt++
-            if (attempt <= maxRetries) {
-                val delayMs = (1000 * Math.pow(2.0, (attempt - 1).toDouble())).toLong()
-                Thread.sleep(delayMs.coerceAtMost(10_000))
-            }
-        }
-        throw lastException ?: java.io.IOException("Max retries exceeded")
     }
 }

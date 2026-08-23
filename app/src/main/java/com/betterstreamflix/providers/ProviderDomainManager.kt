@@ -24,14 +24,16 @@ object ProviderDomainManager {
      * If not, try alternative domains.
      */
     fun getCurrentDomain(providerName: String): String? {
-        return UserPreferences.providerCache[providerName]?.first
+        return UserPreferences.providerCache.optJSONObject(providerName)?.optString("url")
+            ?.takeIf { it.isNotBlank() }
     }
 
     /**
      * Update a provider's domain.
      */
     fun updateDomain(providerName: String, newDomain: String) {
-        UserPreferences.updateProviderUrl(providerName, newDomain)
+        val provider = Provider.findByName(providerName) ?: return
+        UserPreferences.setProviderCache(provider, "url", newDomain)
     }
 
     /**

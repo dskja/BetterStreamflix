@@ -15,7 +15,7 @@ sealed class OperationResult<out T> {
 
     fun getOrNull(): T? = (this as? Success)?.data
 
-    fun getOrNull(defaultValue: T): T = getOrNull() ?: defaultValue
+    fun getOrDefault(defaultValue: @UnsafeVariance T): T = getOrNull() ?: defaultValue
 
     inline fun <R> map(transform: (T) -> R): OperationResult<R> = when (this) {
         is Success -> Success(transform(data))

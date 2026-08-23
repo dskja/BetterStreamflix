@@ -25,7 +25,7 @@ object TvSearchHelper {
      * Get speech recognizer intent.
      */
     fun getVoiceSearchIntent(): android.content.Intent {
-        return android.content.Intent(android.content.Intent.ACTION_RECOGNIZE_SPEECH).apply {
+        return android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Search for content")

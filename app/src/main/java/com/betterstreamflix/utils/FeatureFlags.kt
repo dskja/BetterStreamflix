@@ -1,6 +1,7 @@
 package com.betterstreamflix.utils
 
 import com.betterstreamflix.BuildConfig
+import androidx.core.content.edit
 
 /**
  * Feature flag system for enabling/disabling features at runtime.
@@ -41,8 +42,8 @@ object FeatureFlags {
      */
     fun isEnabled(feature: String): Boolean {
         // Check UserPreferences override first
-        val prefValue = UserPreferences.getBoolean("feature_$feature")
-        if (prefValue != null) return prefValue
+        val prefValue = UserPreferences.prefs.getBoolean("feature_$feature", false)
+        if (UserPreferences.prefs.contains("feature_$feature")) return prefValue
         // Fall back to default
         return defaults[feature] ?: false
     }
@@ -51,14 +52,14 @@ object FeatureFlags {
      * Enable or disable a feature at runtime.
      */
     fun setEnabled(feature: String, enabled: Boolean) {
-        UserPreferences.putBoolean("feature_$feature", enabled)
+        UserPreferences.prefs.edit { putBoolean("feature_$feature", enabled) }
     }
 
     /**
      * Reset a feature flag to its default value.
      */
     fun reset(feature: String) {
-        UserPreferences.remove("feature_$feature")
+        UserPreferences.prefs.edit { remove("feature_$feature") }
     }
 
     /**

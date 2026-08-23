@@ -31,9 +31,7 @@ object PlaybackStateManager {
             isPlaying = player.isPlaying,
             repeatMode = player.repeatMode,
             shuffleMode = player.shuffleModeEnabled,
-            subtitleEnabled = !player.trackSelectionParameters.isTrackTypeDisabled(
-                androidx.media3.common.C.TRACK_TYPE_TEXT,
-            ),
+            subtitleEnabled = player.trackSelectionParameters.maxSize > 0,
             audioLanguage = null,
             subtitleLanguage = null,
         )

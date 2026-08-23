@@ -1,7 +1,7 @@
 package com.betterstreamflix.network
 
 import okhttp3.Dns
-import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
 import java.net.InetAddress
@@ -29,7 +29,7 @@ object DnsOverHttpsConfig {
     fun configureDoh(client: OkHttpClient.Builder, dohUrl: String): OkHttpClient.Builder {
         val dns = DnsOverHttps.Builder()
             .client(client.build())
-            .url(HttpUrl.parse(dohUrl)!!)
+            .url(dohUrl.toHttpUrl())
             .includeIPv6(true)
             .build()
 

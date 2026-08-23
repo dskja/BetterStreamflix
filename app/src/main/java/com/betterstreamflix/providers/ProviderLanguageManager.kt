@@ -13,8 +13,8 @@ object ProviderLanguageManager {
      * Get all available languages from registered providers.
      */
     fun getAvailableLanguages(): List<String> {
-        return Provider.getAllProviders()
-            .mapNotNull { it.language }
+        return Provider.providers.keys
+            .map { it.language }
             .distinct()
             .sorted()
     }
@@ -23,9 +23,9 @@ object ProviderLanguageManager {
      * Get providers for a specific language.
      */
     fun getProvidersForLanguage(language: String): List<Provider> {
-        return Provider.getAllProviders().filter { provider ->
-            provider.language?.equals(language, ignoreCase = true) == true ||
-            provider.language?.startsWith("${language}-") == true
+        return Provider.providers.keys.filter { provider ->
+            provider.language.equals(language, ignoreCase = true) ||
+            provider.language.startsWith("${language}-")
         }
     }
 
@@ -49,8 +49,7 @@ object ProviderLanguageManager {
      * Get providers grouped by language.
      */
     fun getProvidersGroupedByLanguage(): Map<String, List<Provider>> {
-        return Provider.getAllProviders()
-            .filter { it.language != null }
-            .groupBy { it.language!!.substringBefore("-") }
+        return Provider.providers.keys
+            .groupBy { it.language.substringBefore("-") }
     }
 }

@@ -30,7 +30,7 @@ object LocaleManager {
         config.setLocale(locale)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            config.setLocales(LocaleListCompat.forLanguageTags(languageCode).toLocaleList())
+            config.setLocales(android.os.LocaleList.forLanguageTags(languageCode))
         }
 
         activity.resources.updateConfiguration(config, activity.resources.displayMetrics)

@@ -20,11 +20,8 @@ object TvDetailsBuilder {
         context: Context,
         item: DetailsItem,
     ): DetailsOverviewRow {
-        return DetailsOverviewRow(item).apply {
-            title = item.title
-            summary = item.overview
+        return DetailsOverviewRow(item)
             // Set image drawable from URL (would use Glide in real impl)
-        }
     }
 
     /**
@@ -37,7 +34,7 @@ object TvDetailsBuilder {
         val presenter = FullWidthDetailsOverviewRowPresenter(TvDetailsDescriptionPresenter())
 
         sharedElementHelper?.let { helper ->
-            presenter.setSharedElementEnterTransition(helper, "details_transition")
+            presenter.setSharedElementEnterTransition(helper, androidx.leanback.widget.DetailsOverviewRowPresenter.SHARE_ELEMENT_TRANSITION_NAME)
         }
 
         presenter.actionsBackgroundColor = android.graphics.Color.parseColor("#1a1a1a")
@@ -64,14 +61,12 @@ object TvDetailsBuilder {
  */
 class TvDetailsDescriptionPresenter : androidx.leanback.widget.AbstractDetailsDescriptionPresenter() {
     override fun onBindDescription(
-        viewHolder: androidx.leanback.widget.AbstractDetailsDescriptionPresenter.ViewHolder?,
-        item: Any?,
+        viewHolder: androidx.leanback.widget.AbstractDetailsDescriptionPresenter.ViewHolder,
+        itemData: Any,
     ) {
-        val details = item as? TvDetailsBuilder.DetailsItem ?: return
-        viewHolder?.apply {
-            title.text = details.title
-            subtitle.text = "${details.year} • ${details.rating}/10 • ${details.genres.joinToString(", ")}"
-            body.text = details.overview
-        }
+        val details = itemData as? TvDetailsBuilder.DetailsItem ?: return
+        viewHolder.title = details.title
+        viewHolder.subtitle = "${details.year} • ${details.rating}/10 • ${details.genres.joinToString(", ")}"
+        viewHolder.body = details.overview
     }
 }

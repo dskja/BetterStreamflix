@@ -2,7 +2,7 @@ package com.betterstreamflix.i18n
 
 import android.content.Context
 import android.view.View
-import androidx.core.text.layoutdirection.LocaleLayoutDirection
+import androidx.core.text.LocaleLayoutDirection
 
 /**
  * RTL helper — handles right-to-left layout adjustments.

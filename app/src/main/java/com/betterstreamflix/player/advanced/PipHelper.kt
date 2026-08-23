@@ -33,7 +33,7 @@ object PipHelper {
         seamlessResize: Boolean = true,
     ): android.app.PictureInPictureParams {
         val builder = android.app.PictureInPictureParams.Builder()
-            .setAspectRatio(aspectRatio)
+            .setAspectRatio(android.util.Rational((aspectRatio * 100).toInt(), 100))
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             builder.setSeamlessResizeEnabled(seamlessResize)

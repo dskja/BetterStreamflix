@@ -75,7 +75,7 @@ object ErrorViewHelper {
             })
             addView(Button(context).apply {
                 id = R.id.btn_retry
-                text = context.getString(android.R.string.retry)
+                text = "Retry"
             })
         }
     }

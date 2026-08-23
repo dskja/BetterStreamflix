@@ -30,7 +30,7 @@ object ThemeHelper {
         return GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             setColor(color)
-            cornerRadius = cornerRadius
+            setCornerRadius(cornerRadius)
         }
     }
 

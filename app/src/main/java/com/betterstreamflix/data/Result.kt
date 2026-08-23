@@ -24,7 +24,7 @@ sealed class Result<out T> {
     /**
      * Returns the data if Success, or the result of default otherwise.
      */
-    inline fun getOrElse(default: () -> T): T {
+    inline fun getOrElse(default: () -> @UnsafeVariance T): T {
         return if (this is Success) data else default()
     }
 

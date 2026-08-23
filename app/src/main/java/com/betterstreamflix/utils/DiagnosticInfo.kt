@@ -43,7 +43,7 @@ object DiagnosticInfo {
             appendLine()
             appendLine("== Provider Info ==")
             appendLine("Current Provider: ${UserPreferences.currentProvider?.name ?: "None"}")
-            appendLine("Provider URL: ${UserPreferences.currentProviderDomain ?: "N/A"}")
+            appendLine("Provider URL: ${UserPreferences.providerUrl ?: "N/A"}")
             appendLine()
             appendLine("== Settings ==")
             appendLine("Autoplay: ${UserPreferences.autoplay}")

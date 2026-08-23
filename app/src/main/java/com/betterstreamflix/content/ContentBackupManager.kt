@@ -101,7 +101,13 @@ object ContentBackupManager {
                 val h = obj.getJSONArray("watchHistory").getJSONObject(i)
                 HistoryBackup(h.getString("videoId"), h.getString("title"), h.getString("providerName"), h.getLong("watchedAt"), h.getDouble("progressPercent").toFloat())
             }
-            val settings = obj.getJSONObject("settings").toMap()
+            val settingsObj = obj.getJSONObject("settings")
+            val settings = mutableMapOf<String, Any?>()
+            val keys = settingsObj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                settings[key] = settingsObj.get(key)
+            }
             BackupData(obj.getInt("version"), obj.getLong("timestamp"), favorites, history, settings)
         } catch (e: Exception) {
             null

@@ -1,7 +1,6 @@
 package com.betterstreamflix.providers
 
-import com.betterstreamflix.models.Category
-import com.betterstreamflix.models.SearchResult
+import com.betterstreamflix.adapters.AppAdapter
 
 /**
  * Global search aggregator — searches across multiple providers in parallel.
@@ -17,7 +16,7 @@ object GlobalSearchAggregator {
         currentLanguage: String,
         timeoutMs: Long = 15000L,
     ): List<GlobalSearchResult> {
-        val providers = Provider.getProvidersForLanguage(currentLanguage)
+        val providers = Provider.providers.keys.filter { it.language == currentLanguage }
             .filter { ProviderHealthMonitor.isHealthy(it.name) }
 
         val results = kotlinx.coroutines.coroutineScope {
@@ -68,7 +67,7 @@ object GlobalSearchAggregator {
  */
 data class GlobalSearchResult(
     val providerName: String,
-    val results: List<SearchResult>,
+    val results: List<AppAdapter.Item>,
     val success: Boolean,
     val error: String? = null,
 )

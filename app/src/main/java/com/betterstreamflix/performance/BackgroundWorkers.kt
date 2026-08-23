@@ -8,7 +8,7 @@ import androidx.work.WorkerParameters
  * Worker classes for background tasks.
  */
 
-class CacheCleanupWorker(
+class PerformanceCacheCleanupWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
@@ -32,7 +32,7 @@ class MetadataRefreshWorker(
     override suspend fun doWork(): Result {
         return try {
             // Refresh stale metadata in background
-            val repo = com.betterstreamflix.database.AppSettingsRepository(applicationContext)
+            val repo = com.betterstreamflix.database.AppDataRepository(applicationContext)
             val cutoff = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
             repo.clearOldMetadata(cutoff)
             Result.success()
@@ -49,7 +49,7 @@ class HistoryCleanupWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            val repo = com.betterstreamflix.database.AppSettingsRepository(applicationContext)
+            val repo = com.betterstreamflix.database.AppDataRepository(applicationContext)
             val cutoff = System.currentTimeMillis() - (90 * 24 * 60 * 60 * 1000)
             repo.clearWatchHistoryOlderThan(cutoff)
             Result.success()

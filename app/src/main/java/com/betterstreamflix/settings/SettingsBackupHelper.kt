@@ -36,10 +36,10 @@ object SettingsBackupHelper {
             UserPreferences.appLayout = obj.optString("appLayout", "")
             UserPreferences.qualityHeight = obj.optInt("qualityHeight", 0).takeIf { it > 0 }
             UserPreferences.autoplay = obj.optBoolean("autoplay", true)
-            UserPreferences.autoplayBuffer = obj.optInt("autoplayBuffer", 10)
+            UserPreferences.autoplayBuffer = obj.optLong("autoplayBuffer", 10L)
             UserPreferences.appLanguage = obj.optString("appLanguage", "en")
             UserPreferences.subtitleLanguage = obj.optString("subtitleLanguage", "en")
-            UserPreferences.dohProviderUrl = obj.optString("dohProviderUrl", "").ifEmpty { null }
+            UserPreferences.dohProviderUrl = obj.optString("dohProviderUrl", "")
             true
         } catch (e: Exception) {
             false

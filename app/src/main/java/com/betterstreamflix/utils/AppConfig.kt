@@ -1,6 +1,7 @@
 package com.betterstreamflix.utils
 
 import com.betterstreamflix.BuildConfig
+import com.betterstreamflix.StreamFlixApp
 
 /**
  * Centralized build configuration access.
