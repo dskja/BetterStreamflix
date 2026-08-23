@@ -35,7 +35,7 @@ class PeopleMobileFragment : Fragment() {
     private var hasAutoCleared409: Boolean = false
 
     private var _binding: FragmentPeopleMobileBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding
 
     private val args by navArgs<PeopleMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
@@ -49,7 +49,7 @@ class PeopleMobileFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentPeopleMobileBinding.inflate(inflater, container, false)
-        return binding.root
+        return binding?.root ?: error("Binding was not set")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -59,6 +59,7 @@ class PeopleMobileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
+                val binding = binding ?: return@collect
                 when (state) {
                     PeopleViewModel.State.Loading -> binding.isLoading.apply {
                         root.visibility = View.VISIBLE
@@ -116,6 +117,7 @@ class PeopleMobileFragment : Fragment() {
 
 
     private fun initializePeople() {
+        val binding = binding ?: return
         binding.rvPeople.apply {
             layoutManager = GridLayoutManager(context, 3).also {
                 it.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {

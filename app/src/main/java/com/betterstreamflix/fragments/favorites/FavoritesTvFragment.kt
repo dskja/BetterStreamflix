@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 class FavoritesTvFragment : Fragment() {
 
     private var _binding: FragmentFavoritesTvBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding
     private val appAdapter = AppAdapter()
     private var rearrangeMode = false
     private val selectedItems = mutableSetOf<String>()
@@ -58,10 +58,11 @@ class FavoritesTvFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFavoritesTvBinding.inflate(inflater, container, false)
-        return binding.root
+        return binding?.root ?: error("Binding was not set")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val binding = binding ?: return
         gridColumnCount = maxOf(4, resources.configuration.screenWidthDp / 180)
         binding.rvFavorites.apply {
             layoutManager = object : GridLayoutManager(requireContext(), gridColumnCount) {
@@ -110,6 +111,7 @@ class FavoritesTvFragment : Fragment() {
         rearrangeBackCallback.isEnabled = enabled
         moveSelectionMode = false
         if (!enabled) selectedItems.clear()
+        val binding = binding ?: return
         binding.btnFavoritesReorderMode.apply {
             isSelected = enabled
             text = getString(if (enabled) R.string.favorites_rearrange_off else R.string.favorites_rearrange_on)
@@ -175,6 +177,7 @@ class FavoritesTvFragment : Fragment() {
             }
             if (event.action == KeyEvent.ACTION_UP) {
                 cancelPendingLongPress()
+                val binding = binding ?: return true
                 when {
                     selectLongPressHandled -> {
                         selectLongPressHandled = false
@@ -224,6 +227,7 @@ class FavoritesTvFragment : Fragment() {
         if (key !in selectedItems) toggleSelection(section, id)
         selectLongPressHandled = true
         moveSelectionMode = true
+        val binding = binding ?: return
         binding.btnFavoritesReorderMode.setText(R.string.favorites_moving_selected)
     }
 
@@ -292,6 +296,7 @@ class FavoritesTvFragment : Fragment() {
     private fun selectionKey(section: FavoritesViewModel.Section, id: String) = "${section.key}:$id"
 
     private fun display(sections: List<FavoritesViewModel.FavoriteSection>) {
+        val binding = binding ?: return
         val gridItems = sections.flatMap { favoriteSection ->
             if (favoriteSection.items.isEmpty()) return@flatMap emptyList()
             val title = when (favoriteSection.section) {
@@ -335,7 +340,7 @@ class FavoritesTvFragment : Fragment() {
     override fun onDestroyView() {
         cancelPendingLongPress()
         setRearrangeMode(false)
-        appAdapter.onSaveInstanceState(binding.rvFavorites)
+        _binding?.let { appAdapter.onSaveInstanceState(it.rvFavorites) }
         _binding = null
         super.onDestroyView()
     }

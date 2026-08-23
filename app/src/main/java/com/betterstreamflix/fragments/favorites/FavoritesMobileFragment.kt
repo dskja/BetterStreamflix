@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 class FavoritesMobileFragment : Fragment() {
 
     private var _binding: FragmentFavoritesMobileBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding
     private val appAdapter = AppAdapter()
     private var rearrangeMode = false
     private val selectedItems = mutableSetOf<String>()
@@ -43,10 +43,11 @@ class FavoritesMobileFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFavoritesMobileBinding.inflate(inflater, container, false)
-        return binding.root
+        return binding?.root ?: error("Binding was not set")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val binding = binding ?: return
         val columnCount = maxOf(3, resources.configuration.screenWidthDp / 120)
         val gridLayoutManager = GridLayoutManager(requireContext(), columnCount).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
@@ -115,6 +116,7 @@ class FavoritesMobileFragment : Fragment() {
     private fun setRearrangeMode(enabled: Boolean) {
         rearrangeMode = enabled
         if (!enabled) selectedItems.clear()
+        val binding = binding ?: return
         binding.btnFavoritesReorderMode.apply {
             isSelected = enabled
             alpha = if (enabled) 1f else 0.65f
@@ -228,6 +230,7 @@ class FavoritesMobileFragment : Fragment() {
     private fun selectionKey(section: FavoritesViewModel.Section, id: String) = "${section.key}:$id"
 
     private fun display(sections: List<FavoritesViewModel.FavoriteSection>) {
+        val binding = binding ?: return
         val gridItems = sections.flatMap { favoriteSection ->
             if (favoriteSection.items.isEmpty()) return@flatMap emptyList()
             val title = when (favoriteSection.section) {
@@ -270,7 +273,7 @@ class FavoritesMobileFragment : Fragment() {
 
     override fun onDestroyView() {
         setRearrangeMode(false)
-        appAdapter.onSaveInstanceState(binding.rvFavorites)
+        _binding?.let { appAdapter.onSaveInstanceState(it.rvFavorites) }
         _binding = null
         super.onDestroyView()
     }
