@@ -27,6 +27,7 @@ object GlobalErrorHandler {
             throw throwable
         }
         Log.e(TAG, "Unhandled coroutine exception", throwable)
+        FileLogger.e(TAG, "Unhandled coroutine exception: ${throwable.message}", throwable)
     }
 
     /**

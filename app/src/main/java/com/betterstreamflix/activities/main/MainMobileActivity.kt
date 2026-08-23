@@ -37,6 +37,7 @@ import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ZaluknijProvider
 import com.betterstreamflix.ui.UpdateAppMobileDialog
 import com.betterstreamflix.utils.AppLanguageManager
+import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.ProviderChangeNotifier
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
@@ -100,15 +101,28 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        FileLogger.logLifecycle("MainMobileActivity.onCreate")
         setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
 
         super.onCreate(savedInstanceState)
 
+        FileLogger.i("MainMobileActivity", "Initializing providers...")
         runCatching { AnimeOnlineNinjaProvider.init(this) }
+            .onSuccess { FileLogger.i("MainMobileActivity", "✓ AnimeOnlineNinjaProvider init") }
+            .onFailure { FileLogger.e("MainMobileActivity", "✗ AnimeOnlineNinjaProvider init FAILED", it) }
         runCatching { Cine24hProvider.init(this) }
+            .onSuccess { FileLogger.i("MainMobileActivity", "✓ Cine24hProvider init") }
+            .onFailure { FileLogger.e("MainMobileActivity", "✗ Cine24hProvider init FAILED", it) }
         runCatching { FilmyOnlineCcProvider.init(this) }
+            .onSuccess { FileLogger.i("MainMobileActivity", "✓ FilmyOnlineCcProvider init") }
+            .onFailure { FileLogger.e("MainMobileActivity", "✗ FilmyOnlineCcProvider init FAILED", it) }
         runCatching { GuardaSerieProvider.init(this) }
+            .onSuccess { FileLogger.i("MainMobileActivity", "✓ GuardaSerieProvider init") }
+            .onFailure { FileLogger.e("MainMobileActivity", "✗ GuardaSerieProvider init FAILED", it) }
         runCatching { ZaluknijProvider.init(this) }
+            .onSuccess { FileLogger.i("MainMobileActivity", "✓ ZaluknijProvider init") }
+            .onFailure { FileLogger.e("MainMobileActivity", "✗ ZaluknijProvider init FAILED", it) }
+        FileLogger.i("MainMobileActivity", "All provider init attempts done")
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val palette = ThemeManager.palette(UserPreferences.selectedTheme)
@@ -170,6 +184,7 @@ class MainMobileActivity : FragmentActivity() {
             }
         }
 
+        FileLogger.i("MainMobileActivity", "Calling viewModel.checkUpdate()")
         viewModel.checkUpdate()
 
         binding.bnvMain.setupWithNavController(navController)
@@ -210,6 +225,7 @@ class MainMobileActivity : FragmentActivity() {
 
                     MainViewModel.State.InstallingUpdate -> updateAppDialog?.isLoading = true
                     is MainViewModel.State.FailedUpdate -> {
+                        FileLogger.e("MainMobileActivity", "State.FailedUpdate: ${state.error.message}", state.error)
                         updateAppDialog?.isLoading = false
                         Toast.makeText(
                             this@MainMobileActivity,

@@ -11,6 +11,7 @@ import com.betterstreamflix.models.WatchItem
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.TmdbProvider
 import com.betterstreamflix.ui.UserDataNotifier
+import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.UserDataCache
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -45,25 +46,30 @@ object CloudSyncManager {
     }
 
     suspend fun initialize(context: Context) {
+        FileLogger.i("CloudSyncManager", "initialize() called")
         val appContext = context.applicationContext
-        if (!SupabaseProvider.isConfigured) return
+        if (!SupabaseProvider.isConfigured) {
+            FileLogger.i("CloudSyncManager", "initialize: Supabase not configured, skipping")
+            return
+        }
+        FileLogger.i("CloudSyncManager", "initialize: calling SupabaseProvider.initialize()")
         SupabaseProvider.initialize(appContext)
 
-        // Auth restores its persisted session asynchronously. Reading the session while it is
-        // still Initializing briefly looks like a sign-out and must not clear local user data.
+        FileLogger.i("CloudSyncManager", "initialize: awaiting auth initialization")
         SupabaseProvider.client.auth.awaitInitialization()
         val userId = currentUserId()
+        FileLogger.i("CloudSyncManager", "initialize: userId=$userId")
         if (userId == null) {
+            FileLogger.i("CloudSyncManager", "initialize: no user session, stopping sync")
             CloudRealtimeSync.stop()
-            // Keep local media state when the persisted session is absent. A
-            // signed-out user should stop syncing, not lose local favorites or
-            // watch history.
             CloudAccountStore.setActiveUserId(appContext, null)
             return
         }
+        FileLogger.i("CloudSyncManager", "initialize: activating account for userId=$userId")
         activateAccount(appContext, userId)
         CloudRealtimeSync.start(appContext, userId)
         CloudSyncScheduler.schedulePeriodic(appContext)
+        FileLogger.i("CloudSyncManager", "initialize: ✓ complete")
     }
 
     suspend fun signIn(

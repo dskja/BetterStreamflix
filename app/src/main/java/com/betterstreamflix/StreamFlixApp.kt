@@ -16,6 +16,7 @@ import com.betterstreamflix.utils.AppLanguageManager
 import com.betterstreamflix.utils.ArtworkRepairScheduler
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DnsResolver
+import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.GlobalErrorHandler
 import com.betterstreamflix.utils.IsrgRootTrustProvider
 import com.betterstreamflix.utils.UserPreferences
@@ -44,6 +45,13 @@ class StreamFlixApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        // 0. Initialize file logger FIRST so everything is captured
+        FileLogger.init(this)
+        FileLogger.installCrashHandler()
+        FileLogger.logLifecycle("StreamFlixApp.onCreate", "PID=${android.os.Process.myPid()}")
+        FileLogger.i("Init", "Application class created. BuildConfig.APP_LAYOUT=${BuildConfig.APP_LAYOUT}")
+
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
@@ -71,28 +79,67 @@ class StreamFlixApp : Application() {
         })
 
         // 0. Initialize Conscrypt for modern SSL on old Android
+        FileLogger.i("Init", "Step 0: Conscrypt SSL provider")
         runCatching { Security.insertProviderAt(Conscrypt.newProvider(), 1) }
+            .onSuccess { FileLogger.i("Init", "✓ Conscrypt installed") }
+            .onFailure { FileLogger.e("Init", "✗ Conscrypt failed", it) }
 
-        // 1. Install ISRG Root X1 globally for Let's Encrypt. On Android < 7 (API 24)
-        // network_security_config.xml is not supported so the certificate must be injected manually.
+        // 1. Install ISRG Root X1 globally for Let's Encrypt.
+        FileLogger.i("Init", "Step 1: ISRG Root X1")
         runCatching { IsrgRootTrustProvider.install() }
+            .onSuccess { FileLogger.i("Init", "✓ ISRG Root X1 installed") }
+            .onFailure { FileLogger.e("Init", "✗ ISRG Root X1 failed", it) }
 
-        // 2. Inizializzazione preferenze (con applicationContext)
+        // 2. Initialize preferences
+        FileLogger.i("Init", "Step 2: UserPreferences + DnsResolver")
         UserPreferences.setup(this)
+        FileLogger.i("Init", "✓ UserPreferences setup. currentProvider=${UserPreferences.currentProvider}")
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
+        FileLogger.i("Init", "✓ DnsResolver set to ${UserPreferences.dohProviderUrl}")
 
         val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L
+        FileLogger.i("Init", "isTv=$isTv, cacheThreshold=${threshold}MB")
 
+        FileLogger.i("Init", "Step 3: Async initialization (IO dispatcher)")
         applicationScope.launch(Dispatchers.IO) {
+            FileLogger.i("Init", "→ AppDatabase.setup()")
             runCatching { AppDatabase.setup(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ AppDatabase setup") }
+                .onFailure { FileLogger.e("Init", "✗ AppDatabase FAILED", it) }
+
+            FileLogger.i("Init", "→ SupabaseProvider.initialize()")
             runCatching { SupabaseProvider.initialize(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ SupabaseProvider initialized. isConfigured=${SupabaseProvider.isConfigured}") }
+                .onFailure { FileLogger.e("Init", "✗ SupabaseProvider FAILED", it) }
+
+            FileLogger.i("Init", "→ CloudSyncManager.initialize()")
             runCatching { CloudSyncManager.initialize(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ CloudSyncManager initialized") }
+                .onFailure { FileLogger.e("Init", "✗ CloudSyncManager FAILED", it) }
+
+            FileLogger.i("Init", "→ SerienStreamProvider.initialize()")
             runCatching { SerienStreamProvider.initialize(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ SerienStreamProvider initialized") }
+                .onFailure { FileLogger.e("Init", "✗ SerienStreamProvider FAILED", it) }
+
+            FileLogger.i("Init", "→ AniWorldProvider.initialize()")
             runCatching { AniWorldProvider.initialize(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ AniWorldProvider initialized") }
+                .onFailure { FileLogger.e("Init", "✗ AniWorldProvider FAILED", it) }
+
+            FileLogger.i("Init", "→ ArtworkRepairScheduler.schedule()")
             runCatching { ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider) }
+                .onSuccess { FileLogger.i("Init", "✓ ArtworkRepairScheduler scheduled") }
+                .onFailure { FileLogger.e("Init", "✗ ArtworkRepairScheduler FAILED", it) }
+
+            FileLogger.i("Init", "→ CacheUtils.autoClearIfNeeded()")
             runCatching { CacheUtils.autoClearIfNeeded(appContext, thresholdMb = threshold) }
+                .onSuccess { FileLogger.i("Init", "✓ CacheUtils auto-clear done") }
+                .onFailure { FileLogger.e("Init", "✗ CacheUtils FAILED", it) }
+
+            FileLogger.i("Init", "=== All async initialization complete ===")
         }
     }
 
