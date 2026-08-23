@@ -136,6 +136,7 @@ object StreamingItaProvider : Provider {
 
 			categories
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -159,7 +160,8 @@ object StreamingItaProvider : Provider {
                         )
                     }
                     .sortedBy { it.name }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 emptyList()
             }
         }
@@ -180,7 +182,8 @@ object StreamingItaProvider : Provider {
                     else -> null
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -212,6 +215,7 @@ object StreamingItaProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -243,6 +247,7 @@ object StreamingItaProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -385,6 +390,7 @@ object StreamingItaProvider : Provider {
                 shows = shows
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = "", shows = emptyList())
         }
     }
@@ -515,6 +521,7 @@ object StreamingItaProvider : Provider {
 
             resultServers
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }

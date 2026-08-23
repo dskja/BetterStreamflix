@@ -90,22 +90,34 @@ object PelisplustoProvider : Provider {
             if (bannerShows.isNotEmpty()) {
                 categories.add(Category(Category.FEATURED, bannerShows))
             }
-        } catch (e: Exception) { Log.e(TAG, "getHome (banners): ${e.message}") }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "getHome (banners): ${e.message}")
+        }
 
         try {
             val movies = parseShows(moviesDeferred.await()).filterIsInstance<Movie>()
             if (movies.isNotEmpty()) categories.add(Category("Películas", movies))
-        } catch (e: Exception) { Log.e(TAG, "getHome (movies): ${e.message}") }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "getHome (movies): ${e.message}")
+        }
 
         try {
             val series = parseShows(seriesDeferred.await()).filterIsInstance<TvShow>()
             if (series.isNotEmpty()) categories.add(Category("Series", series))
-        } catch (e: Exception) { Log.e(TAG, "getHome (series): ${e.message}") }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "getHome (series): ${e.message}")
+        }
 
         try {
             val animes = parseShows(animesDeferred.await()).filterIsInstance<TvShow>()
             if (animes.isNotEmpty()) categories.add(Category("Animes", animes))
-        } catch (e: Exception) { Log.e(TAG, "getHome (animes): ${e.message}") }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "getHome (animes): ${e.message}")
+        }
 
         categories
     }
@@ -292,6 +304,7 @@ object PelisplustoProvider : Provider {
                 )
             }.sortedBy { it.number }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "getEpisodesBySeason falló: ${e.message}")
             return emptyList()
         }
@@ -337,6 +350,7 @@ object PelisplustoProvider : Provider {
                         servers.add(Video.Server(id = finalUrl, name = "$serverName [LAT]", src = finalUrl))
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.e(TAG, "Fallo procesando un servidor individual: ${e.message}")
                 }
                 delay(4000L)
@@ -344,6 +358,7 @@ object PelisplustoProvider : Provider {
             return servers
 
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Fallo crítico en getServers: ${e.message}")
             return emptyList()
         }

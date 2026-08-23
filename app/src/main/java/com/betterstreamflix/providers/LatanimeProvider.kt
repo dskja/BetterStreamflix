@@ -108,29 +108,34 @@ object LatanimeProvider : Provider {
                     val animes2026Document = animes2026Deferred.await()
                     categories.add(Category(name = "Animes del 2026", list = parseAnimesFromPage(animes2026Document).take(12)))
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                 }
 
                 try {
                     val animes2025Document = animes2025Deferred.await()
                     categories.add(Category(name = "Animes del 2025", list = parseAnimesFromPage(animes2025Document).take(12)))
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                 }
 
                 try {
                     val animes2024Document = animes2024Deferred.await()
                     categories.add(Category(name = "Animes del 2024", list = parseAnimesFromPage(animes2024Document).take(12)))
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                 }
 
                 try {
                     val animes2023Document = animes2023Deferred.await()
                     categories.add(Category(name = "Animes del 2023", list = parseAnimesFromPage(animes2023Document).take(12)))
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                 }
 
                 categories
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -183,6 +188,7 @@ object LatanimeProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -201,6 +207,7 @@ object LatanimeProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -219,6 +226,7 @@ object LatanimeProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -278,6 +286,7 @@ object LatanimeProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -295,6 +304,7 @@ object LatanimeProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
