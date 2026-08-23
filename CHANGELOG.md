@@ -219,6 +219,36 @@ All notable changes to BetterStreamflix will be documented here.
 #### Error Handling
 - **Replaced silent `runCatching` with logged try-catch** in `UserDataCache` DB operations — failures now produce `Log.e()` output so issues can be diagnosed instead of silently swallowed.
 
+#### Crash Audit & Null Safety (v1.9.0 re-release)
+
+##### Unsafe Casts Fixed
+- Replaced unsafe `as` casts with safe `as?` casts and null checks in NavHostFragment, RecyclerView, AppAdapter, ECPublicKey, and Response objects
+- Fixed TmdbClient: safe cast for `HttpsURLConnection` to handle non-HTTPS URLs
+
+##### Forced Unwraps (`!!`) Removed
+- Removed all unsafe `!!` force unwraps causing NullPointerException crashes across the app
+
+##### Unsafe Collection Access Fixed
+- Replaced `.first()` with `firstOrNull()` + null checks in extractors (FrembedExtractor, PrimeSrcExtractor, VidplayExtractor, VidzeeExtractor, FilemoonExtractor, VeevExtractor), providers (VavooProvider), and ViewModels (TvShowViewModel, HomeViewModel)
+- Replaced `.last()` with `lastOrNull()` + null checks in extractors and helpers
+- Replaced unsafe `[0]` index access with `getOrNull(0)` in FilemoonExtractor (key_parts), VidsrcToExtractor (encrypt/decrypt keys), VeevExtractor (etext), RabbitstreamExtractor (rawKeys)
+- Replaced unsafe split-and-index patterns (`split("x")[1].split("y")[0]`) with `getOrNull()` chains in MStreamDayExtractor (3 locations), VidGuardExtractor (sigDecode)
+- Fixed ContentStatistics: safe `toIntOrNull()` for date parsing to prevent `NumberFormatException`
+- Fixed ContentDeduplicator: safe `firstOrNull()` with descriptive exception
+
+##### JSON Parsing Safety
+- Wrapped `JSONObject(body)` in `runCatching` in AnimeOnlineNinjaProvider, FilmyOnlineCcProvider
+- Replaced unsafe `getJSONObject(0)` with `optJSONObject(0)` + null checks in FilemoonExtractor, VeevExtractor, VideasyExtractor, VidzeeExtractor, VidLinkExtractor, OnRegardeOuExtractor, TmdbClient
+- Replaced unsafe `getJSONArray()` with `optJSONArray()` + null checks in OnRegardeOuExtractor
+
+##### CancellationException Handling
+- Added `CancellationException` rethrow to suspend function catch blocks in UseCase (both safeExecute methods), DataSyncCoordinator, PaginationState, MoflixExtractor, MyFileStorageExtractor, PDrainExtractor, StreamixExtractor, StreamUpExtractor, VidaraExtractor, VidGuardExtractor, BackupRestoreManager
+
+##### UserPreferences Safety
+- Fixed `providerUrl` to use dedicated key instead of `PROVIDER_CACHE` (was overwriting entire provider cache)
+- Added `::prefs.isInitialized` checks to all `Key` enum getter/setter methods
+- Added `::providerCache.isInitialized` checks for safe access
+
 ## [1.8.3] - 2026-08-22
 
 ### SerienStream Selector Fixes (Verified Against Live Site)
