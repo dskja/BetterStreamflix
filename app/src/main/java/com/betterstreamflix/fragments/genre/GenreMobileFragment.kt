@@ -30,7 +30,7 @@ class GenreMobileFragment : Fragment() {
     private var hasAutoCleared409: Boolean = false
 
     private var _binding: FragmentGenreMobileBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding
 
     private val args by navArgs<GenreMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
@@ -44,7 +44,7 @@ class GenreMobileFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentGenreMobileBinding.inflate(inflater, container, false)
-        return binding.root
+        return binding?.root ?: error("Binding was not set")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -54,6 +54,7 @@ class GenreMobileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
+                val binding = binding ?: return@collect
                 when (state) {
                     GenreViewModel.State.Loading -> binding.isLoading.apply {
                         root.visibility = View.VISIBLE
@@ -108,6 +109,7 @@ class GenreMobileFragment : Fragment() {
 
 
     private fun initializeGenre() {
+        val binding = binding ?: return
         binding.rvGenre.apply {
             layoutManager = GridLayoutManager(context, 3).also {
                 it.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
