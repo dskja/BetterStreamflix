@@ -53,44 +53,42 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/iv_is_loading_error_icon" />
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/btn_is_loading_retry"
-        style="@style/Widget.MaterialComponents.Button"
+        style="@style/AppTheme.Widget.Mobile.Button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:text="@string/loading_error_retry"
-        android:textColor="?android:attr/textColorPrimary"
-        app:backgroundTint="?attr/colorAccent"
-        app:cornerRadius="24dp"
         app:layout_constraintBottom_toTopOf="@id/btn_is_loading_clear_cache"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_is_loading_error" />
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/btn_is_loading_clear_cache"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/AppTheme.Widget.Mobile.Button.Secondary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:text="@string/loading_error_clear_cache"
-        android:textColor="?android:attr/textColorSecondary"
-        app:cornerRadius="24dp"
-        app:strokeColor="?android:attr/textColorSecondary"
         app:layout_constraintBottom_toTopOf="@id/btn_is_loading_error_details"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_is_loading_retry" />
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/btn_is_loading_error_details"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:minHeight="0dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:text="@string/loading_error_details"
         android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
