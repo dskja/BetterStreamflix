@@ -996,7 +996,7 @@ object MkissaProvider : Provider {
 
     private fun decryptTobeParsed(value: String): JSONObject {
         val bytes = Base64.decode(value, Base64.DEFAULT)
-        if (bytes.isEmpty()) throw Exception("Empty MKissa encrypted payload")
+        if (bytes.size < 13) throw Exception("Invalid MKissa encrypted payload: too short")
         val version = bytes[0].toInt()
         if (version != 1) throw Exception("Unsupported MKissa encryption version: $version")
 

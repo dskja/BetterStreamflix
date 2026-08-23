@@ -48,6 +48,7 @@ class BackupRestoreManager(
             providers.forEach { buildCacheForProvider(it) }
             true
         } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
             Log.e(TAG, "Error refreshing caches from database", t)
             false
         }
@@ -74,6 +75,7 @@ class BackupRestoreManager(
             restoreDatabaseZip(ByteArrayInputStream(zipBytes))
             true
         } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
             Log.e(TAG, "Error importing database zip", t)
             false
         }
@@ -313,6 +315,7 @@ class BackupRestoreManager(
             Log.d(TAG, "Import completed successfully")
             true
         } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
             Log.e(TAG, "Error during importUserData", t)
             false
         }
@@ -330,6 +333,7 @@ class BackupRestoreManager(
             UserDataCache.writeEpisodes(context, providerCtx.provider, watchingEpisodes)
             Log.d(TAG, "CACHE: Built cache for provider ${providerCtx.name}")
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error building cache for provider ${providerCtx.name}", e)
         }
     }
