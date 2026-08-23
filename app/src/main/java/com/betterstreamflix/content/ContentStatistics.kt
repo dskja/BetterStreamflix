@@ -86,7 +86,10 @@ object ContentStatistics {
         var expectedDay = java.util.Calendar.getInstance()
         for (dayStr in days) {
             val parts = dayStr.split("-")
-            calendar.set(parts[0].toInt(), 0, parts[1].toInt())
+            val year = parts.getOrNull(0)?.toIntOrNull()
+            val day = parts.getOrNull(1)?.toIntOrNull()
+            if (year == null || day == null) continue
+            calendar.set(year, 0, day)
             if (calendar.get(java.util.Calendar.YEAR) == expectedDay.get(java.util.Calendar.YEAR) &&
                 calendar.get(java.util.Calendar.DAY_OF_YEAR) == expectedDay.get(java.util.Calendar.DAY_OF_YEAR)) {
                 streak++
