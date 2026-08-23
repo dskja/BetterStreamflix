@@ -150,9 +150,8 @@ class TvShowMobileFragment : Fragment() {
             tvShow.takeIf { it.recommendations.isNotEmpty() }
                 ?.copy()
                 ?.apply { itemType = AppAdapter.Type.TV_SHOW_RECOMMENDATIONS_MOBILE },
-        )) {
-            binding.rvTvShow.scrollToPosition(0)
-        }
+        ))
+        binding.rvTvShow.post { binding.rvTvShow.scrollToPosition(0) }
     }
 }
 
