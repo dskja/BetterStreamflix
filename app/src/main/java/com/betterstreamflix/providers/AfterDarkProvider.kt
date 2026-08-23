@@ -163,7 +163,9 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         try {
             val carousel = service.getCarousel("home")
             categories.add(carousel.toCategorie(Category.FEATURED))
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
 
         val queries = mutableListOf<QueryCall>()
         val titles = mutableListOf<String>()
@@ -217,7 +219,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 )
             )
         } catch (e: Exception) {
-
+            if (e is kotlinx.coroutines.CancellationException) throw e
         }
 
         return categories
@@ -302,7 +304,9 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         try {
             val carousel = service.getCarousel("movies")
             movies.addAll(carousel.data.map { it.toShow() as Movie })
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
 
         movieUrls.forEach { url ->
             val moviePage = service.loadPage(url)
@@ -331,7 +335,9 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         try {
             val carousel = service.getCarousel("shows")
             tvShows.addAll(carousel.data.map { it.toShow() as TvShow })
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
 
         tvUrls.forEach { url ->
             val page = service.loadPage(url)
@@ -683,6 +689,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         )
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     // In case of failure, we'll use the default URL
                     // No need to throw as we already have a fallback URL
                 }
@@ -695,6 +702,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 tvUrls = getRealUrlsFor("series")
                 serviceInitialized = true
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("ERROR", "CANNOT INITIALIZE")
             }
         }
