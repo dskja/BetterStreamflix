@@ -39,7 +39,7 @@ class PcloudExtractor : Extractor() {
             throw Exception("Hosts array is empty")
         }
         
-        val firstHost = hostsArray.get(0).asString
+        val firstHost = hostsArray.firstOrNull()?.asString ?: throw Exception("No host found in array")
         
         val downloadlink = "https://$firstHost$path"
 
