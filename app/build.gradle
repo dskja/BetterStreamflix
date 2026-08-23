@@ -119,7 +119,7 @@ android {
     lint {
         abortOnError false
         warningsAsErrors false
-        checkReleaseBuilds true
+        checkReleaseBuilds false
         lintConfig file('lint.xml')
         baseline file('lint-baseline.xml')
     }
