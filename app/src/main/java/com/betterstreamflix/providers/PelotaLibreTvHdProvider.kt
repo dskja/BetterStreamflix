@@ -92,7 +92,10 @@ object PelotaLibreTvHdProvider : IptvProvider {
                     ))
                 }
             }
-        } catch (e: Exception) { Log.e(TAG, "Error parseando Canales: ${e.message}") }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "Error parseando Canales: ${e.message}")
+        }
         return channels
     }
 
@@ -157,7 +160,10 @@ object PelotaLibreTvHdProvider : IptvProvider {
                     }
                 }
             }
-        } catch (e: Exception) { Log.e(TAG, "Error parseando Agenda: ${e.message}") }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "Error parseando Agenda: ${e.message}")
+        }
         return matches
     }
 
@@ -166,8 +172,22 @@ object PelotaLibreTvHdProvider : IptvProvider {
 
         try {
             // Paralelismo total: Agenda y Canales 24/7 cargan al mismo tiempo y sin bloquearse
-            val channelsDeferred = async { try { fetchChannels() } catch(e:Exception) { emptyList<TvShow>() } }
-            val agendaDeferred = async { try { fetchAgenda() } catch(e:Exception) { emptyList<TvShow>() } }
+            val channelsDeferred = async {
+                try {
+                    fetchChannels()
+                } catch(e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    emptyList<TvShow>()
+                }
+            }
+            val agendaDeferred = async {
+                try {
+                    fetchAgenda()
+                } catch(e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    emptyList<TvShow>()
+                }
+            }
 
             val matches = agendaDeferred.await()
             val channels = channelsDeferred.await()
@@ -188,6 +208,7 @@ object PelotaLibreTvHdProvider : IptvProvider {
             )
 
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error crítico al cargar getHome: ${e.message}")
             return@coroutineScope listOf(Category(name = "Soporte y Ayuda", list = listOf(getInfoItem("creador-info"), getInfoItem("apoyo-info"))))
         }
@@ -198,8 +219,22 @@ object PelotaLibreTvHdProvider : IptvProvider {
     // DIRECTORIO: Fusionamos Canales y Agenda para que el Catálogo esté completo
     override suspend fun getTvShows(page: Int): List<TvShow> = coroutineScope {
         if (page == 1) {
-            val agendaDeferred = async { try { fetchAgenda() } catch(e:Exception) { emptyList<TvShow>() } }
-            val channelsDeferred = async { try { fetchChannels() } catch(e:Exception) { emptyList<TvShow>() } }
+            val agendaDeferred = async {
+                try {
+                    fetchAgenda()
+                } catch(e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    emptyList<TvShow>()
+                }
+            }
+            val channelsDeferred = async {
+                try {
+                    fetchChannels()
+                } catch(e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    emptyList<TvShow>()
+                }
+            }
 
             // Los canales 24/7 arriba, y luego todos los partidos aplanados
             channelsDeferred.await() + agendaDeferred.await()
@@ -227,7 +262,12 @@ object PelotaLibreTvHdProvider : IptvProvider {
         if (id == "creador-info" || id == "apoyo-info") return getInfoItem(id)
 
         // Al aplanar todo, el ID ahora es la URL exacta del canal. Ya no necesitamos lógicas complejas.
-        val nameGuess = try { id.toHttpUrl().pathSegments.lastOrNull()?.removeSuffix(".html")?.replace("-", " ")?.uppercase() ?: "Canal 24/7" } catch(e:Exception) { "Canal 24/7" }
+        val nameGuess = try {
+            id.toHttpUrl().pathSegments.lastOrNull()?.removeSuffix(".html")?.replace("-", " ")?.uppercase() ?: "Canal 24/7"
+        } catch(e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            "Canal 24/7"
+        }
         return TvShow(
             id = id,
             title = nameGuess,
@@ -266,7 +306,10 @@ object PelotaLibreTvHdProvider : IptvProvider {
                 val decodedUrl = String(Base64.decode(encodedParam, Base64.DEFAULT))
                 servers.add(Video.Server(id = decodedUrl, name = "Reproductor Agenda"))
                 return servers
-            } catch(e: Exception) { Log.e(TAG, "Error decodificando atajo: ${e.message}") }
+            } catch(e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.e(TAG, "Error decodificando atajo: ${e.message}")
+            }
         }
 
         // Si el ID ya es un link de reproductor externo directo
@@ -288,6 +331,7 @@ object PelotaLibreTvHdProvider : IptvProvider {
                 servers.add(Video.Server(id = url, name = "Reproductor Principal"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error al obtener servidor: ${e.message}")
         }
 
@@ -330,7 +374,12 @@ object PelotaLibreTvHdProvider : IptvProvider {
                 val cleanHtml = htmlCrudo.replace("\\/", "/")
                 var htmlParaAnalizar = cleanHtml
 
-                val currentUri = try { currentUrl.toHttpUrl() } catch (e: Exception) { null }
+                val currentUri = try {
+                    currentUrl.toHttpUrl()
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    null
+                }
                 val channelId = currentUri?.queryParameter("id") ?: currentUri?.queryParameter("channel") ?: currentUri?.queryParameter("stream") ?: ""
                 val hostSeguro = currentUri?.host ?: "ontve.click"
                 val origin = currentUri?.let { "https://${it.host}" } ?: baseUrl
@@ -395,7 +444,9 @@ object PelotaLibreTvHdProvider : IptvProvider {
                                     }
                                 }
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                        }
                     }
                 }
 
@@ -436,7 +487,9 @@ object PelotaLibreTvHdProvider : IptvProvider {
                         if (decoded.contains(".m3u8") && !isDecoy(decoded)) {
                             return Video(decoded, emptyList(), mapOf("Referer" to currentUrl, "User-Agent" to USER_AGENT, "Origin" to origin))
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                    }
                 }
 
                 // 6. Iframes en Base64
@@ -457,7 +510,9 @@ object PelotaLibreTvHdProvider : IptvProvider {
                             foundHiddenIframe = true
                             break
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                    }
                 }
                 if (foundHiddenIframe) continue
 
@@ -491,6 +546,7 @@ object PelotaLibreTvHdProvider : IptvProvider {
 
                 break
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error en rastreo: ${e.message}")
                 break
             }
