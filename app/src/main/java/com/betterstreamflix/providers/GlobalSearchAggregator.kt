@@ -55,9 +55,9 @@ object GlobalSearchAggregator {
         timeoutMs: Long,
     ): List<T> {
         return kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
-            this.map { it.await() }
-        } ?: this.mapNotNull {
-            if (it.isCompleted) it.getCompleted() else null
+            this@awaitAllWithTimeout.map { deferred -> deferred.await() }
+        } ?: this@awaitAllWithTimeout.mapNotNull { deferred ->
+            if (deferred.isCompleted) deferred.getCompleted() else null
         }
     }
 }

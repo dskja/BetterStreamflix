@@ -34,7 +34,7 @@ object BackgroundTaskScheduler {
      */
     fun scheduleCacheCleanup(context: Context) {
         val constraints = Constraints.Builder()
-            .requiresBatteryNotLow(true)
+            .setRequiresBatteryNotLow(true)
             .build()
 
         val request = PeriodicWorkRequestBuilder<CacheCleanupWorker>(1, TimeUnit.DAYS)
@@ -53,8 +53,8 @@ object BackgroundTaskScheduler {
      */
     fun scheduleMetadataRefresh(context: Context) {
         val constraints = Constraints.Builder()
-            .requiredNetworkType(NetworkType.UNMETERED)
-            .requiresBatteryNotLow(true)
+            .setRequiredNetworkType(NetworkType.UNMETERED)
+            .setRequiresBatteryNotLow(true)
             .build()
 
         val request = PeriodicWorkRequestBuilder<MetadataRefreshWorker>(12, TimeUnit.HOURS)
@@ -73,7 +73,7 @@ object BackgroundTaskScheduler {
      */
     fun scheduleHistoryCleanup(context: Context) {
         val constraints = Constraints.Builder()
-            .requiresBatteryNotLow(true)
+            .setRequiresBatteryNotLow(true)
             .build()
 
         val request = PeriodicWorkRequestBuilder<HistoryCleanupWorker>(7, TimeUnit.DAYS)

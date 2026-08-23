@@ -31,7 +31,7 @@ object PlaybackStateManager {
             isPlaying = player.isPlaying,
             repeatMode = player.repeatMode,
             shuffleMode = player.shuffleModeEnabled,
-            subtitleEnabled = player.trackSelectionParameters.maxSize > 0,
+            subtitleEnabled = true,
             audioLanguage = null,
             subtitleLanguage = null,
         )

@@ -34,7 +34,7 @@ object TvDetailsBuilder {
         val presenter = FullWidthDetailsOverviewRowPresenter(TvDetailsDescriptionPresenter())
 
         sharedElementHelper?.let { helper ->
-            presenter.setSharedElementEnterTransition(helper, androidx.leanback.widget.DetailsOverviewRowPresenter.SHARE_ELEMENT_TRANSITION_NAME)
+            presenter.setSharedElementEnterTransition(helper, "details_transition")
         }
 
         presenter.actionsBackgroundColor = android.graphics.Color.parseColor("#1a1a1a")
@@ -65,8 +65,8 @@ class TvDetailsDescriptionPresenter : androidx.leanback.widget.AbstractDetailsDe
         itemData: Any,
     ) {
         val details = itemData as? TvDetailsBuilder.DetailsItem ?: return
-        viewHolder.title = details.title
-        viewHolder.subtitle = "${details.year} • ${details.rating}/10 • ${details.genres.joinToString(", ")}"
-        viewHolder.body = details.overview
+        viewHolder.title.text = details.title
+        viewHolder.subtitle.text = "${details.year} • ${details.rating}/10 • ${details.genres.joinToString(", ")}"
+        viewHolder.body.text = details.overview
     }
 }
