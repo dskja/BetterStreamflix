@@ -339,6 +339,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val episodesData = try {
             service.getEpisodesData(seasonId)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
 
@@ -380,6 +381,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val episodesData = try {
                     service.getEpisodesData(tvShowId)
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
                 val tvShowServers = mutableListOf<Video.Server>()
@@ -412,6 +414,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val episodesData = try {
                     service.getEpisodesData(id)
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
 
@@ -494,6 +497,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         )
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     // In case of failure, we'll use the default URL
                     // No need to throw as we already have a fallback URL
                 }

@@ -331,6 +331,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val filmData = try {
             service.getFilmData(itemId)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
         val trailerURL = filmData ?.meta?.trailer
@@ -410,11 +411,13 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val tvShowData = try {
             service.getFilmData(itemId)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
         val seasonsData = try {
             service.getSeasonsData(tvShowData?.meta?.tagz?:"")
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
 
@@ -519,6 +522,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         val episodesData = try {
             service.getEpisodesData(seasonId)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
 
@@ -708,6 +712,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val episodesData = try {
                     service.getEpisodesData(tvShowId)
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
                 val tvShowServers = mutableListOf<Video.Server>()
@@ -741,6 +746,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 val filmData = try {
                     service.getFilmData(itemId)
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
                 var serverIndex = 0
@@ -850,6 +856,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         )
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     // In case of failure, we'll use the default URL
                     // No need to throw as we already have a fallback URL
                 }

@@ -257,7 +257,9 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             val mostViewedSeasons = service.getApiView("most-viewed-seasons")
             categories.add(mostViewedSeasons.toCategorie("Meilleures séries"))
 
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
 
         return categories
     }
@@ -296,6 +298,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         var recommendations : List<Show> = try {
             service.getApiSimilar(id=id).toListShow(movie = true)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
 
@@ -339,6 +342,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         var recommendations : List<Show> = try {
             service.getApiSimilar(type="tv-show", id).toListShow(tvshow = true)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
 
@@ -347,6 +351,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         var seasons : List<Season> = try {
             service.getApiListEp(id).toListSeason(id=id, posters = tvshowp.backdrops ?: emptyList())
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
 
@@ -399,6 +404,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 } ?: listOf()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             listOf()
         }
 
@@ -479,6 +485,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.w("FrembedProvider", "Portal fetch failed: ${e.message}. Trying redirect fallback resolution.")
                     try {
                         val currentOrFallback = if (baseUrl.isNotEmpty()) baseUrl else defaultBaseUrl
@@ -494,6 +501,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                             }
                         }
                     } catch (ex: Exception) {
+                        if (ex is kotlinx.coroutines.CancellationException) throw ex
                         Log.w("FrembedProvider", "Fallback redirect resolution for current baseUrl ($baseUrl) failed: ${ex.message}. Trying defaultBaseUrl.")
                         try {
                             if (baseUrl != defaultBaseUrl) {
@@ -507,6 +515,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 }
                             }
                         } catch (ex2: Exception) {
+                            if (ex2 is kotlinx.coroutines.CancellationException) throw ex2
                             Log.e("FrembedProvider", "All redirection fallbacks failed: ${ex2.message}")
                         }
                     }

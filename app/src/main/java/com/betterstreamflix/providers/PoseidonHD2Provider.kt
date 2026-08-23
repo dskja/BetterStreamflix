@@ -74,6 +74,7 @@ object PoseidonHD2Provider : Provider {
                 return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "OkHttp failed for $url, trying WebView")
         }
 
@@ -320,7 +321,9 @@ object PoseidonHD2Provider : Provider {
                             } ?: emptyList(),
                         )
                     }
-                } catch (_: Exception) { }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
             }
 
             val titles = json.optJSONObject("titles")
@@ -392,7 +395,9 @@ object PoseidonHD2Provider : Provider {
                     )
                 }
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
         }
 
         val titles = json.optJSONObject("titles")
@@ -534,6 +539,7 @@ object PoseidonHD2Provider : Provider {
                                 src = realUrl
                             )
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             Log.e(TAG, "Error resolving player URL: $embedUrl", e)
                             null
                         }
@@ -582,6 +588,7 @@ object PoseidonHD2Provider : Provider {
                 if (!foundUrl.isNullOrEmpty()) return foundUrl
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.w(TAG, "OkHttp resolution failed for $playerUrl")
         }
         

@@ -379,6 +379,7 @@ object HDFilmeProvider : Provider {
                 }.awaitAll().filterNotNull()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             searchCataloguePages(query, page)
         }
     }
@@ -501,6 +502,7 @@ object HDFilmeProvider : Provider {
                 }.awaitAll().filterNotNull()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -526,6 +528,7 @@ object HDFilmeProvider : Provider {
                 }.awaitAll().filterNotNull()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -832,6 +835,7 @@ object HDFilmeProvider : Provider {
                                         parseGridItem(el)
                                     }
                                 } catch (e: Exception) {
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
                                     parseGridItem(el)
                                 }
                             }
@@ -846,6 +850,7 @@ object HDFilmeProvider : Provider {
                 shows = shows
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = "")
         }
     }
@@ -881,6 +886,7 @@ object HDFilmeProvider : Provider {
                             parseGridItem(el)
                         }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         parseGridItem(el)
                     }
                 }

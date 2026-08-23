@@ -60,7 +60,10 @@ object LaCartoonsProvider : Provider {
         return try {
             val shows = getTvShows(page = 1)
             listOf(Category(name = "Series", list = shows))
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            emptyList()
+        }
     }
 
     private fun parseHomeShows(doc: Document): List<TvShow> {
@@ -103,7 +106,10 @@ object LaCartoonsProvider : Provider {
                     Genre(id = value, name = name)
                 }
                 genres
-            } catch (_: Exception) { emptyList() }
+            } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            emptyList()
+        }
         }
 
         // Title search: site returns all results; return them all on page 1, none afterwards
@@ -113,7 +119,10 @@ object LaCartoonsProvider : Provider {
             val doc = service.getPage(url)
             val all = parseHomeShows(doc)
             if (page > 1) emptyList() else all
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            emptyList()
+        }
     }
 
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()
@@ -123,7 +132,10 @@ object LaCartoonsProvider : Provider {
             val url = if (page <= 1) baseUrl else "$baseUrl/?page=$page"
             val doc = service.getPage(url)
             parseHomeShows(doc)
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            emptyList()
+        }
     }
 
     override suspend fun getMovie(id: String): Movie {
@@ -223,7 +235,10 @@ object LaCartoonsProvider : Provider {
             val doc = service.getPage(url)
             val shows = parseHomeShows(doc)
             Genre(id = id, name = name, shows = shows)
-        } catch (_: Exception) { Genre(id = id, name = id, shows = emptyList()) }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Genre(id = id, name = id, shows = emptyList())
+        }
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
@@ -249,6 +264,7 @@ object LaCartoonsProvider : Provider {
                         src = finalUrl
                     )
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
             } else null
