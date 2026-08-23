@@ -30,6 +30,7 @@ class OnRegardeOuExtractor : Extractor() {
         val json = try {
             JSONObject(jsonRaw)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
         val servers = json.optJSONArray("servers") ?: return emptyList()

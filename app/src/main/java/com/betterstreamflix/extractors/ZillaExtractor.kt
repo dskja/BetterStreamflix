@@ -36,6 +36,7 @@ class ZillaExtractor : Extractor() {
             )
 
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("ZillaExtractor failed: ${e.message}", e)
         }
     }

@@ -66,6 +66,7 @@ class MailRuExtractor : Extractor() {
             )
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             e.printStackTrace()
             throw Exception("MailRu extraction failed: ${e.message}")
         }

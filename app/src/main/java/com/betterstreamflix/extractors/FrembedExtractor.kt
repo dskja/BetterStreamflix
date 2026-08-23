@@ -171,6 +171,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                                 server
                             }
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             Log.w("FrembedExtractor", "Failed to resolve redirect for server ${server.name}: ${e.message}")
                             server
                         }
@@ -193,6 +194,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                             
                             return FrembedExtractor(newBaseUrl).servers(videoType)
                         } catch (ex: Exception) {
+                            if (ex is kotlinx.coroutines.CancellationException) throw ex
                             Log.e("FrembedExtractor", "Failed to parse URI from redirect Location: $fullRedirect", ex)
                         }
                     }

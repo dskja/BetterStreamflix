@@ -26,6 +26,7 @@ class PcloudExtractor : Extractor() {
         val jsonObject = try {
             JsonParser.parseString(responseString).asJsonObject
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("Failed to parse API response: ${e.message}")
         }
         
