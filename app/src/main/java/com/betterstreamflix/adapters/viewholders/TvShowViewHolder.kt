@@ -483,7 +483,7 @@ class TvShowViewHolder(
         val stPackages = getInstalledSmartTubePackages()
 
         if (stPackages.isEmpty()) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, trailerUrl.toUri()))
+            safeLaunchYoutube(Intent(Intent.ACTION_VIEW, trailerUrl.toUri()))
             return
         }
 
@@ -501,10 +501,21 @@ class TvShowViewHolder(
 
     private fun safeLaunchYoutube(intent: Intent) {
         try {
+            if (isPackageInstalled("com.google.android.youtube")) {
+                intent.setPackage("com.google.android.youtube")
+            } else if (isPackageInstalled("com.google.android.tv.youtube")) {
+                intent.setPackage("com.google.android.tv.youtube")
+            }
             context.startActivity(intent)
         } catch (e: Exception) {
             Log.e("TvShowViewHolder", "Failed to launch YouTube intent", e)
-            Toast.makeText(context, context.getString(R.string.player_external_player_error_video), Toast.LENGTH_SHORT).show()
+            try {
+                intent.setPackage(null)
+                context.startActivity(intent)
+            } catch (e2: Exception) {
+                Log.e("TvShowViewHolder", "Failed to launch trailer intent without package", e2)
+                Toast.makeText(context, context.getString(R.string.player_external_player_error_video), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -703,9 +714,9 @@ class TvShowViewHolder(
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer)
+                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer)
             }
-            isVisible = trailer != null
+            isVisible = !trailer.isNullOrBlank()
         }
 
         binding.btnTvShowFavorite.apply {
@@ -838,9 +849,9 @@ class TvShowViewHolder(
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer)
+                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer)
             }
-            isVisible = trailer != null
+            isVisible = !trailer.isNullOrBlank()
         }
 
         binding.btnTvShowFavorite.apply {

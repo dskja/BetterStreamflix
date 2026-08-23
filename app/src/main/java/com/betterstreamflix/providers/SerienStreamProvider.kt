@@ -134,6 +134,44 @@ object SerienStreamProvider : Provider {
         return link.pathSegments().firstOrNull().orEmpty()
     }
 
+    private fun getPeopleIdFromLink(link: String): String {
+        val uri = runCatching {
+            when {
+                link.startsWith("http://", ignoreCase = true) || link.startsWith("https://", ignoreCase = true) -> Uri.parse(link)
+                else -> Uri.parse("https://$link")
+            }
+        }.getOrNull() ?: return ""
+        val segments = uri.pathSegments.map { it.trim() }.filter { it.isNotBlank() }
+        if (segments.isEmpty()) return ""
+        val personPrefixes = setOf("schauspieler", "regisseur", "produzent")
+        if (segments.first() in personPrefixes && segments.size >= 2) {
+            return "${segments[0]}/${segments[1]}"
+        }
+        return segments.first()
+    }
+
+    private fun normalizeTrailerUrl(url: String): String? {
+        if (url.isBlank()) return null
+        val trimmed = url.trim()
+        return when {
+            trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true) -> {
+                if (trimmed.contains("youtube.com") || trimmed.contains("youtu.be")) trimmed else null
+            }
+            trimmed.startsWith("//") -> {
+                val full = "https:$trimmed"
+                if (full.contains("youtube.com") || full.contains("youtu.be")) full else null
+            }
+            trimmed.startsWith("/") -> {
+                val full = currentBaseUrl().trimEnd('/') + trimmed
+                if (full.contains("youtube.com") || full.contains("youtu.be")) full else null
+            }
+            else -> {
+                val youtubeMatch = Regex("""(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]{11})""").find(trimmed)
+                youtubeMatch?.let { "https://www.youtube.com/watch?v=${it.groupValues[1]}" }
+            }
+        }
+    }
+
     private fun getSeasonIdFromLink(link: String): String {
         val segments = link.pathSegments()
         val justTvShowId = segments.getOrNull(0).orEmpty()
@@ -357,13 +395,20 @@ object SerienStreamProvider : Provider {
                 ?.text()?.toDoubleOrNull() ?: document.selectFirst(".text-white-50:contains(Bewertungen)")?.text()?.split(" ")?.firstOrNull()?.toDoubleOrNull() ?: 0.0
         }
         
-        val localCast = document.select(".series-group:contains(Besetzung) a").map {
-            val actorName = it.text()
+        val localCast = document.select(".series-group:contains(Besetzung) a").mapNotNull {
+            val actorName = it.text().trim()
+            if (actorName.isBlank()) return@mapNotNull null
             val tmdbPerson = tmdbTvShow?.cast?.find { person -> person.name.equals(actorName, ignoreCase = true) }
+            val personId = getPeopleIdFromLink(it.attr("href"))
+            if (personId.isBlank()) return@mapNotNull null
+            val localImage = it.selectFirst("img")?.let { img ->
+                img.attr("data-src").takeIf { src -> src.isNotBlank() }
+                    ?: img.attr("src").takeIf { src -> src.isNotBlank() }
+            }?.let { normalizeImageUrl(it) }
             People(
-                id = getTvShowIdFromLink(it.attr("href")),
+                id = personId,
                 name = actorName,
-                image = tmdbPerson?.image
+                image = tmdbPerson?.image ?: localImage
             )
         }
         
@@ -374,10 +419,14 @@ object SerienStreamProvider : Provider {
                 ?: document.selectFirst("a.small.text-muted")?.text() ?: "",
             rating = rating,
             runtime = tmdbTvShow?.runtime,
-            directors = document.select(".series-group:contains(Regisseur) a").map {
+            directors = document.select(".series-group:contains(Regisseur) a").mapNotNull {
+                val dirName = it.text().trim()
+                if (dirName.isBlank()) return@mapNotNull null
+                val dirId = getPeopleIdFromLink(it.attr("href"))
+                if (dirId.isBlank()) return@mapNotNull null
                 People(
-                    id = getTvShowIdFromLink(it.attr("href")),
-                    name = it.text()
+                    id = dirId,
+                    name = dirName
                 )
             },
             cast = localCast,
@@ -387,7 +436,7 @@ object SerienStreamProvider : Provider {
                     name = it.text()
                 )
             },
-            trailer = tmdbTvShow?.trailer ?: document.selectFirst("div[itemprop='trailer'] a")?.attr("href") ?: "",
+            trailer = tmdbTvShow?.trailer ?: document.selectFirst("div[itemprop='trailer'] a")?.attr("href")?.takeIf { it.isNotBlank() }?.let { normalizeTrailerUrl(it) },
             poster = tmdbTvShow?.poster
                 ?: normalizeImageUrl(document.extractShowPoster()),
             banner = tmdbTvShow?.banner
@@ -395,11 +444,13 @@ object SerienStreamProvider : Provider {
             seasons = document.select("#season-nav ul li a").map {
                 val seasonText = it.text().trim()
                 val seasonNumber = seasonText.toIntOrNull() ?: 0
+                val showPoster = tmdbTvShow?.poster ?: normalizeImageUrl(document.extractShowPoster())
                 Season(
                     id = getSeasonIdFromLink(it.attr("href")),
                     number = seasonNumber,
                     title = if (seasonText == "Filme") "Filme" else "Staffel $seasonNumber",
                     poster = tmdbTvShow?.seasons?.find { s -> s.number == seasonNumber }?.poster
+                        ?: showPoster
                 )
             },
             imdbId = tmdbTvShow?.imdbId
@@ -476,13 +527,16 @@ object SerienStreamProvider : Provider {
     override suspend fun getPeople(id: String, page: Int): People {
         if (page > 1) return People(id, "")
         val document = getService().getPeople(id)
+        val peopleName = document.selectFirst("h1 strong")?.text() ?: ""
+        val tmdbPerson = if (peopleName.isNotBlank()) TmdbUtils.findPerson(peopleName, language = language) else null
         return People(id = id,
-            name = document.selectFirst("h1 strong")?.text() ?: "",
+            name = peopleName,
+            image = tmdbPerson?.image,
             filmography = document.select("div.row.g-3 > div").map {
                 TvShow(
                     id = it.selectFirst("a")?.attr("href")?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
                     title = it.selectFirst("h6 a")?.text() ?: "",
-                    poster = it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { it.isNotEmpty() } ?: img.attr("src") }
+                    poster = normalizeImageUrl(it.selectFirst("img")?.let { img -> img.attr("data-src").takeIf { src -> src.isNotEmpty() } ?: img.attr("src") } ?: "")
                 )
             })
     }

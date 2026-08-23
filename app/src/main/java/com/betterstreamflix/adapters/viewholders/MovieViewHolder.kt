@@ -235,10 +235,21 @@ class MovieViewHolder(
 
     private fun safeLaunchYoutube(intent: Intent) {
         try {
+            if (isPackageInstalled(YOUTUBE_PACKAGE)) {
+                intent.setPackage(YOUTUBE_PACKAGE)
+            } else if (isPackageInstalled(YOUTUBE_TV_PACKAGE)) {
+                intent.setPackage(YOUTUBE_TV_PACKAGE)
+            }
             context.startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch YouTube intent", e)
-            Toast.makeText(context, context.getString(R.string.player_external_player_error_video), Toast.LENGTH_SHORT).show()
+            try {
+                intent.setPackage(null)
+                context.startActivity(intent)
+            } catch (e2: Exception) {
+                Log.e(TAG, "Failed to launch trailer intent without package", e2)
+                Toast.makeText(context, context.getString(R.string.player_external_player_error_video), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -828,9 +839,9 @@ class MovieViewHolder(
         binding.btnMovieTrailer.apply {
             val trailer = movie.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer, "MovieMobile")
+                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer, "MovieMobile")
             }
-            visibility = if (trailer != null) View.VISIBLE else View.GONE
+            visibility = if (!trailer.isNullOrBlank()) View.VISIBLE else View.GONE
         }
 
         binding.btnMovieFavorite.apply {
@@ -957,9 +968,9 @@ class MovieViewHolder(
         binding.btnMovieTrailer.apply {
             val trailer = movie.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer, "MovieTv")
+                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer, "MovieTv")
             }
-            visibility = if (trailer != null) View.VISIBLE else View.GONE
+            visibility = if (!trailer.isNullOrBlank()) View.VISIBLE else View.GONE
         }
 
         binding.btnMovieFavorite.apply {

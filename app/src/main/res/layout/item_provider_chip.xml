@@ -9,5 +9,5 @@
     android:paddingStart="20dp"
     android:paddingEnd="20dp"
     android:stateListAnimator="@null"
-    android:textColor="#FFFFFF"
+    android:textColor="?android:attr/textColorPrimary"
     android:textSize="14sp" />

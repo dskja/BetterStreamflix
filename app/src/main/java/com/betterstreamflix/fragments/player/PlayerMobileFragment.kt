@@ -546,6 +546,7 @@ class PlayerMobileFragment : Fragment() {
     override fun onStop() {
         super.onStop()
         if (::player.isInitialized && _binding != null) {
+            saveWatchProgress()
             player.pause()
         }
     }
@@ -566,6 +567,7 @@ class PlayerMobileFragment : Fragment() {
             show(WindowInsetsCompat.Type.systemBars())
         }
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        saveWatchProgress()
         releasePlayer()
         try {
             requireContext().unregisterReceiver(chooserReceiver)
@@ -1352,6 +1354,72 @@ class PlayerMobileFragment : Fragment() {
     private fun stopProgressHandler() {
         if (::progressHandler.isInitialized) {
             progressHandler.removeCallbacks(progressRunnable)
+        }
+    }
+
+    private fun saveWatchProgress() {
+        if (!::player.isInitialized) return
+        val hasUri = player.currentMediaItem?.localConfiguration?.uri
+            ?.toString()?.isNotEmpty()
+            ?: false
+        if (!hasUri) return
+
+        val videoType = args.videoType
+        val provider = UserPreferences.currentProvider ?: return
+        val watchItem: WatchItem? = when (videoType) {
+            is Video.Type.Movie -> database.movieDao().getById(videoType.id)
+            is Video.Type.Episode -> database.episodeDao().getById(videoType.id)
+        }
+
+        when {
+            player.hasStarted() && !player.hasFinished() -> {
+                watchItem?.isWatched = false
+                watchItem?.watchedDate = null
+                watchItem?.watchHistory = WatchItem.WatchHistory(
+                    lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                    lastPlaybackPositionMillis = player.currentPosition,
+                    durationMillis = player.duration,
+                )
+            }
+            player.hasFinished() -> {
+                watchItem?.isWatched = true
+                watchItem?.watchedDate = Calendar.getInstance()
+                watchItem?.watchHistory = null
+            }
+        }
+
+        when (videoType) {
+            is Video.Type.Movie -> {
+                val movie = watchItem as? Movie
+                movie?.let {
+                    database.movieDao().update(it)
+                    UserDataCache.syncMovieToCache(requireContext(), provider, it)
+                }
+            }
+            is Video.Type.Episode -> {
+                val episode = watchItem as? Episode
+                episode?.let {
+                    if (player.hasFinished()) {
+                        database.episodeDao().resetProgressionFromEpisode(videoType.id)
+                        UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, it.id)
+                    } else {
+                        database.episodeDao().update(it)
+                        UserDataCache.syncEpisodeToCache(requireContext(), provider, it)
+                    }
+                    it.tvShow?.let { tvShow ->
+                        database.tvShowDao().getById(tvShow.id)
+                    }?.let { tvShow ->
+                        val episodeDao = database.episodeDao()
+                        val isStillWatching = episodeDao.hasAnyWatchHistoryForTvShow(tvShow.id)
+                        val updatedTvShow = tvShow.copy().apply {
+                            merge(tvShow)
+                            isWatching = !player.hasReallyFinished() || isStillWatching
+                        }
+                        database.tvShowDao().update(updatedTvShow)
+                        CloudSyncHooks.tvShow(requireContext(), provider, updatedTvShow)
+                    }
+                }
+            }
         }
     }
 
