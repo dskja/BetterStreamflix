@@ -10,6 +10,8 @@
         android:id="@+id/iv_tv_show_banner"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:clickable="false"
+        android:focusable="false"
         android:foreground="?attr/tv_show_banner_gradient_drawable"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
