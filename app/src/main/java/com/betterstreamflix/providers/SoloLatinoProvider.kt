@@ -96,7 +96,10 @@ object SoloLatinoProvider : Provider {
                     categories.add(Category(title, shows.take(12)))
                 }
             }
-        } catch (e: Exception) { /* Ignore */ }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            /* Ignore */
+        }
 
         categories
     }
@@ -220,6 +223,7 @@ object SoloLatinoProvider : Provider {
             val document = service.getPage(url)
             parseMixed(document)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -230,6 +234,7 @@ object SoloLatinoProvider : Provider {
             val document = service.getPage(url)
             parseMovies(document)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -240,6 +245,7 @@ object SoloLatinoProvider : Provider {
             val document = service.getPage(url)
             parseTvShows(document)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -255,6 +261,7 @@ object SoloLatinoProvider : Provider {
                 shows = shows
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = emptyList())
         }
     }
@@ -441,6 +448,7 @@ object SoloLatinoProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -515,6 +523,7 @@ object SoloLatinoProvider : Provider {
                                 allServers.addAll(nested)
                             }
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             // Ignore single network errors
                         }
                     }
@@ -539,6 +548,7 @@ object SoloLatinoProvider : Provider {
                                 allServers.addAll(nested)
                             }
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             // Ignore single network errors
                         }
                     }
@@ -547,6 +557,7 @@ object SoloLatinoProvider : Provider {
             
             allServers.distinctBy { it.id }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -576,6 +587,7 @@ object SoloLatinoProvider : Provider {
             cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(aesKey, "AES"), IvParameterSpec(iv))
             String(cipher.doFinal(cipherText), Charsets.UTF_8)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -597,6 +609,7 @@ object SoloLatinoProvider : Provider {
                     aesKey = solvePoW(challenge, difficulty, salt)
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 // PoW solving error
             }
 
@@ -630,7 +643,10 @@ object SoloLatinoProvider : Provider {
                         }
                     }
                 }
-            } catch (e: Exception) { /* JSON error - continue */ }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                /* JSON error - continue */
+            }
 
             // 2. DOM-base
             try {
@@ -646,7 +662,10 @@ object SoloLatinoProvider : Provider {
                         servers.add(Video.Server(id = finalUrl, name = serverName))
                     }
                 }
-            } catch (e: Exception) { /* DOM error - continue */ }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                /* DOM error - continue */
+            }
 
             // 3. Direct Iframe
             iframeDoc.selectFirst("iframe")?.attr("src")?.takeIf { it.isNotEmpty() }?.let { src ->
@@ -658,6 +677,7 @@ object SoloLatinoProvider : Provider {
 
             servers
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -688,6 +708,7 @@ object SoloLatinoProvider : Provider {
             if (valueEnd == -1) return null
             payloadJson.substring(valueStart, valueEnd)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
