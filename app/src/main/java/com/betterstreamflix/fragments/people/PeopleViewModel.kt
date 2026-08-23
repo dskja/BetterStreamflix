@@ -103,6 +103,7 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
 
             _state.emit(State.SuccessLoading(people, true))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("PeopleViewModel", "getPeople: ", e)
             _state.emit(State.FailedLoading(e))
         }
@@ -127,6 +128,7 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
                     )
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("PeopleViewModel", "loadMorePeopleFilmography: ", e)
                 _state.emit(State.FailedLoading(e))
             }

@@ -89,6 +89,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
 
             _state.emit(State.SuccessLoading(movies, movies.isNotEmpty()))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MoviesViewModel", "getMovies: ", e)
             _state.emit(State.FailedLoading(e))
         }
@@ -113,6 +114,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("MoviesViewModel", "loadMoreMovies: ", e)
                 _state.emit(State.FailedLoading(e))
             }

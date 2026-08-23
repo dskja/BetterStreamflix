@@ -106,6 +106,7 @@ class MovieViewModel(id: String, private val database: AppDatabase) : ViewModel(
 
             _state.emit(State.SuccessLoading(movie))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MovieViewModel", "getMovie: ", e)
             _state.emit(State.FailedLoading(e))
         }

@@ -106,6 +106,7 @@ class SeasonViewModel(
             EpisodeManager.addEpisodes(EpisodeManager.convertToVideoTypeEpisodes(episodes, database, seasonNumber))
             _state.emit(State.SuccessLoadingEpisodes(episodes))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SeasonViewModel", "getSeasonEpisodes: ", e)
             _state.emit(State.FailedLoadingEpisodes(e))
         }

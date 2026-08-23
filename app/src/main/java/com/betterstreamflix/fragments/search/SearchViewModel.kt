@@ -120,6 +120,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
             page = 1
             _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("SearchViewModel", "search: ", e)
             _state.emit(State.FailedSearching(e))
         }
@@ -146,6 +147,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("SearchViewModel", "loadMore: ", e)
                 _state.emit(State.FailedSearching(e))
             }
@@ -195,6 +197,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
                     })
                     mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.e("SearchViewModel", "searchGlobal for ${provider.name}: ", e)
                     mutableResults[index] = ProviderResult(provider, ProviderResult.State.Error(e))
                 }
