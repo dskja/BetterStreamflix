@@ -310,6 +310,7 @@ object CuevanaEuProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -368,6 +369,7 @@ object CuevanaEuProvider : Provider {
                 } else null
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -405,6 +407,7 @@ object CuevanaEuProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -460,6 +463,7 @@ object CuevanaEuProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -573,6 +577,7 @@ object CuevanaEuProvider : Provider {
                     )
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
             } else null
@@ -688,6 +693,7 @@ object CuevanaEuProvider : Provider {
             try {
                 service.getPage(if (url.startsWith("http")) url else "$baseUrl/${url.trim('/')}")
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 document
             }
         } else {
@@ -768,6 +774,7 @@ object CuevanaEuProvider : Provider {
                     )
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
             } else null
@@ -871,6 +878,7 @@ object CuevanaEuProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "getEpisodesBySeason fastApi error: ${e.message}", e)
         }
 
@@ -935,6 +943,7 @@ object CuevanaEuProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "getEpisodesBySeason error: ${e.message}", e)
             fallbackGetEpisodesBySeason(seasonId)
         }
@@ -971,6 +980,7 @@ object CuevanaEuProvider : Provider {
                         try {
                             docsToProcess.add(service.getPage(fullAllUrl))
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                         }
                     }
                 }
@@ -982,6 +992,7 @@ object CuevanaEuProvider : Provider {
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             }
         }
         return emptyList()
@@ -1096,6 +1107,7 @@ object CuevanaEuProvider : Provider {
                 }
                 .distinctBy { it.id }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "getServers error: ${e.message}", e)
             emptyList()
         }
@@ -1125,6 +1137,7 @@ object CuevanaEuProvider : Provider {
             val streamJson = json.decodeFromString<RyusakiStreamResponse>(responseBody)
             streamJson.streamUrl
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "fetchRyusakiStreamUrl error: ${e.message}", e)
             null
         }
@@ -1145,6 +1158,7 @@ object CuevanaEuProvider : Provider {
                     finalUrl = iframeUrl
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "getVideo iframe unwrap error: ${e.message}")
             }
         }
@@ -1158,6 +1172,7 @@ object CuevanaEuProvider : Provider {
                     finalUrl = redirectUrl
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "getVideo redirect error: ${e.message}")
             }
         }
@@ -1224,6 +1239,7 @@ object CuevanaEuProvider : Provider {
 
             json.decodeFromString(FastApiEnvelope.serializer(serializer), body).data
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "getFastApi error for $path: ${e.message}", e)
             null
         }
@@ -1567,6 +1583,7 @@ object CuevanaEuProvider : Provider {
             }
             Genre(id = id, name = id.replaceFirstChar { it.uppercaseChar() }, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = id.replaceFirstChar { it.uppercaseChar() }, shows = emptyList())
         }
     }
