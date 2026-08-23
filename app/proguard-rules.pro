@@ -48,11 +48,19 @@
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 -keepclassmembers,allowobfuscation class * { @com.google.gson.annotations.SerializedName <fields>; }
 -keep class com.betterstreamflix.models.** { *; }
 -keep class com.betterstreamflix.providers.StreamingCommunityService.** { *; }
+-keep class com.betterstreamflix.utils.GitHub { *; }
+-keep class com.betterstreamflix.utils.GitHub$* { *; }
 -keep class com.betterstreamflix.utils.GitHub$Release { *; }
 -keep class com.betterstreamflix.utils.GitHub$Release$Asset { *; }
+-keep class com.betterstreamflix.utils.GitHub$User { *; }
+-keep class com.betterstreamflix.utils.GitHub$Reactions { *; }
+-keep class com.betterstreamflix.utils.HomeCacheStore$* { *; }
+-keep class com.betterstreamflix.utils.UserDataCache$* { *; }
 
 # === Supabase ===
 -keep class io.github.jan.supabase.** { *; }
