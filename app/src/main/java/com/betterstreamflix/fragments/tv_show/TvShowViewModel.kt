@@ -256,6 +256,7 @@ class TvShowViewModel(
 
             _state.emit(State.SuccessLoading(orderedTvShow))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("TvShowViewModel", "getTvShow: ", e)
             _state.emit(State.FailedLoading(e))
         }
@@ -286,6 +287,7 @@ class TvShowViewModel(
 
             _seasonState.emit(SeasonState.SuccessLoading(tvShow, season, episodes))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("TvShowViewModel", "getSeason: ", e)
             _seasonState.emit(SeasonState.FailedLoading(e))
         }

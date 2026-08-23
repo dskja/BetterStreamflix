@@ -90,6 +90,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
 
             _state.emit(State.SuccessLoading(tvShows, tvShows.isNotEmpty()))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("TvShowsViewModel", "getTvShows: ", e)
             _state.emit(State.FailedLoading(e))
         }
@@ -114,6 +115,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("TvShowsViewModel", "loadMoreTvShows: ", e)
                 _state.emit(State.FailedLoading(e))
             }
