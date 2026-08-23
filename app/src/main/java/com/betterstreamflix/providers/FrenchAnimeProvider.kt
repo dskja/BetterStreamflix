@@ -443,6 +443,7 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
                 document.select("div.mov.clearfix").mapNotNull { extractTvShows(it) }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }

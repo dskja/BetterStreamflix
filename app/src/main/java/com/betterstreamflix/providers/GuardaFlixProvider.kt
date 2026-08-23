@@ -311,7 +311,8 @@ object GuardaFlixProvider : Provider {
                     name = serverName,
                     src = finalUrl
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
         }

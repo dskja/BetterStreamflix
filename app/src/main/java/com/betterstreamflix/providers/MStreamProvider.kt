@@ -343,7 +343,10 @@ object MStreamProvider : Provider {
 
                 val finalSrc = if (src.isNotBlank()) src else "${currentBaseUrl()}api/v1/$resolveUrl"
                 val name = if (src.isNotBlank()) {
-                    try { URL(src).host } catch (e: Exception) { "Server" } + " ( " + it?.getString("name") + ")"
+                    try { URL(src).host } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        "Server"
+                    } + " ( " + it?.getString("name") + ")"
                 } else {
                     it?.optString("name") ?: "Premium"
                 }
@@ -369,7 +372,10 @@ object MStreamProvider : Provider {
 
                 val finalSrc = if (src.isNotBlank()) src else "${currentBaseUrl()}api/v1/$resolveUrl"
                 val name = if (src.isNotBlank()) {
-                    try { URL(src).host } catch (e: Exception) { "Server" } + " ( " + it?.getString("name") + ")"
+                    try { URL(src).host } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        "Server"
+                    } + " ( " + it?.getString("name") + ")"
                 } else {
                     it?.optString("name").orEmpty()
                 }

@@ -140,6 +140,7 @@ object GuardaSerieProvider : Provider {
             }
             return doc
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             val httpException = e as? retrofit2.HttpException
             val isChallengeException = e is CloudflareChallengeException
 
@@ -410,7 +411,8 @@ object GuardaSerieProvider : Provider {
                 parseGridItem(el) as? Show
             }
             Genre(id = id, name = name, shows = shows)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = "", shows = emptyList())
         }
     }
@@ -465,7 +467,8 @@ object GuardaSerieProvider : Provider {
                     name = serverName,
                     src = finalUrl
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
         }

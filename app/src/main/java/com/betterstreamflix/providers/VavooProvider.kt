@@ -102,6 +102,7 @@ class VavooProvider(override val language: String) : IptvProvider {
             }
             Pair(channels, nextCursor)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error fetching channels (search='$search', group='$group'): ${e.message}")
             Pair(emptyList(), null)
         }
@@ -148,6 +149,7 @@ class VavooProvider(override val language: String) : IptvProvider {
                 ResolvedChannel(name = name, url = url)
             } else null
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Resolve error for $vavooUrl: ${e.message}")
             null
         }

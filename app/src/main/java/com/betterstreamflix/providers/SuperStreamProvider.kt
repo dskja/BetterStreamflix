@@ -542,6 +542,7 @@ object SuperStreamProvider : Provider {
 
                 Base64.encode(cipher.doFinal(str.toByteArray()), 2).toString(Charsets.UTF_8)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 e.printStackTrace()
                 null
             }

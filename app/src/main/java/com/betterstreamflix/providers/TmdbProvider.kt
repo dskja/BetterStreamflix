@@ -816,7 +816,8 @@ class TmdbProvider(override val language: String) : Provider {
                                     Log.d("StreamFlixES", "[NO MATCH] -> ${provider.name} did not find a valid match for '$targetTitle'")
                                     emptyList()
                                 }
-                            } catch (e: Exception) { 
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
                                 Log.e("StreamFlixES", "[PROVIDER ERROR] -> ${provider.name}: ${e.message}")
                                 emptyList() 
                             }

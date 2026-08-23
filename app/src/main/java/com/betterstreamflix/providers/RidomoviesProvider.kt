@@ -327,12 +327,18 @@ object RidomoviesProvider : Provider {
                 val moviesDeferred = async {
                     try {
                         if (page > 1) service.getGenreMoviesPage(id, page) else service.getGenreMovies(id)
-                    } catch (e: Exception) { null }
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        null
+                    }
                 }
                 val tvDeferred = async {
                     try {
                         if (page > 1) service.getGenreSeriesPage(id, page) else service.getGenreSeries(id)
-                    } catch (e: Exception) { null }
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        null
+                    }
                 }
 
                 val movieItems = moviesDeferred.await()?.movies.orEmpty()
@@ -367,6 +373,7 @@ object RidomoviesProvider : Provider {
                 Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = shows)
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = emptyList())
         }
     }

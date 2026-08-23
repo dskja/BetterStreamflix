@@ -504,7 +504,8 @@ object ZaluknijProvider : Provider {
             JSONObject(decoded).optString("src").ifBlank {
                 if (decoded.startsWith("http")) decoded else ""
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             ""
         }
     }
@@ -581,6 +582,7 @@ object ZaluknijProvider : Provider {
             promoteClearanceCookies(url)
             org.jsoup.Jsoup.parse(html).apply { setBaseUri(url) }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             if (!looksLikeClearanceFailure(e)) {
                 throw e
             }

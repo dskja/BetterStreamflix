@@ -69,6 +69,7 @@ object IptvOrgProvider : IptvProvider {
             val parts = decoded.split("|")
             Triple(parts[0], parts[1], parts.getOrNull(2) ?: "")
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Triple(id, "Canal Desconocido", "")
         }
     }
@@ -78,7 +79,10 @@ object IptvOrgProvider : IptvProvider {
             val decoded = String(Base64.decode(id, Base64.DEFAULT))
             val parts = decoded.split("|")
             if (parts.size >= 4 && parts[3].isNotEmpty()) parts[3] else null
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
     }
 
     private fun getAllChannels(): List<M3UChannel> {
@@ -93,6 +97,7 @@ object IptvOrgProvider : IptvProvider {
             lastFetchTime = now
             channels
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "❌ Error M3U: ${e.message}")
             cachedChannels ?: emptyList()
         }

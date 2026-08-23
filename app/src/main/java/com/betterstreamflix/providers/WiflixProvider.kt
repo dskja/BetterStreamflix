@@ -647,6 +647,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         )
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     // In case of failure, we'll use the default URL
                     // No need to throw as we already have a fallback URL
                 }

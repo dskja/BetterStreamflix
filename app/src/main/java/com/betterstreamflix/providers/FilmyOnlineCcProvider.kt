@@ -112,7 +112,8 @@ object FilmyOnlineCcProvider : Provider {
                 throw Exception("FilmyOnline Cloudflare challenge detected")
             }
             document
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.d(TAG, "Using WebView bypass for $url")
             val html = providerMutex.withLock {
                 getResolver().get(
