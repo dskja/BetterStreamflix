@@ -116,6 +116,7 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
 
             _state.emit(State.SuccessLoading(genre, true))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("GenreViewModel", "getGenre: ", e)
             _state.emit(State.FailedLoading(e))
         }
@@ -145,6 +146,7 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
                     )
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("GenreViewModel", "loadMoreGenreShows: ", e)
                 _state.emit(State.FailedLoading(e))
             }

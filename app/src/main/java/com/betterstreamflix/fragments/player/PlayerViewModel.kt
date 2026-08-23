@@ -111,6 +111,7 @@ class PlayerViewModel(
             Log.d("PlayerViewModel", "Ricerca server completata: ${servers.size} server trovati")
             _state.emit(State.SuccessLoadingServers(servers))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("PlayerViewModel", "Errore ricerca server: ", e)
             _state.emit(State.FailedLoadingServers(e))
         }
@@ -142,6 +143,7 @@ class PlayerViewModel(
             Log.d("PlayerViewModel", "Estrazione video completata con successo")
             _state.emit(State.SuccessLoadingVideo(video, server))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("PlayerViewModel", "Errore estrazione video: ", e)
             _state.emit(State.FailedLoadingVideo(e, server))
         }
@@ -170,6 +172,7 @@ class PlayerViewModel(
                 Log.d("PlayerViewModel", "Ricerca OpenSubtitles completata: ${subtitles.size} risultati")
                 _subtitleState.emit(SubtitleState.SuccessOpenSubtitles(subtitles))
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("PlayerViewModel", "Errore OpenSubtitles: ", e)
                 _subtitleState.emit(SubtitleState.FailedOpenSubtitles(e))
             }
@@ -198,6 +201,7 @@ class PlayerViewModel(
                 Log.d("PlayerViewModel", "Ricerca SubDL completata: ${subtitles.size} risultati")
                 _subtitleState.emit(SubtitleState.SuccessSubDLSubtitles(subtitles))
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("PlayerViewModel", "Errore SubDL: ", e)
                 _subtitleState.emit(SubtitleState.FailedSubDLSubtitles(e))
             }
@@ -212,6 +216,7 @@ class PlayerViewModel(
             Log.d("PlayerViewModel", "Download OpenSubtitles completato: $uri")
             _subtitleState.emit(SubtitleState.SuccessDownloadingOpenSubtitle(subtitle, uri))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("PlayerViewModel", "Errore download OpenSubtitles: ", e)
             _subtitleState.emit(SubtitleState.FailedDownloadingOpenSubtitle(e, subtitle))
         }
@@ -225,6 +230,7 @@ class PlayerViewModel(
             Log.d("PlayerViewModel", "Download SubDL completato: $uri")
             _subtitleState.emit(SubtitleState.SuccessDownloadingSubDLSubtitle(subtitle, uri))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("PlayerViewModel", "Errore download SubDL: ", e)
             _subtitleState.emit(SubtitleState.FailedDownloadingSubDLSubtitle(e, subtitle))
         }

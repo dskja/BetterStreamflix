@@ -101,6 +101,7 @@ class ProvidersViewModel : ViewModel() {
 
             applyFilters()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("ProvidersViewModel", "loadProviders: ", e)
             _state.emit(State.FailedLoading(e))
         }

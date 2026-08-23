@@ -425,6 +425,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             HomeCacheStore.write(appContext, provider, categories)
             _state.emit(State.SuccessLoading(categories))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("HomeViewModel", "getHome: ", e)
             if (cachedCategories.isNullOrEmpty()) {
                 _state.emit(State.FailedLoading(e))
