@@ -1,6 +1,10 @@
 package com.betterstreamflix.providers
 
 import com.betterstreamflix.adapters.AppAdapter
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Global search aggregator — searches across multiple providers in parallel.
@@ -19,9 +23,10 @@ object GlobalSearchAggregator {
         val providers = Provider.providers.keys.filter { it.language == currentLanguage }
             .filter { ProviderHealthMonitor.isHealthy(it.name) }
 
-        val deferredResults: List<kotlinx.coroutines.Deferred<GlobalSearchResult>> = kotlinx.coroutines.coroutineScope {
+        val deferredResults: List<Deferred<GlobalSearchResult>> = coroutineScope {
+            val scope = this
             providers.map { provider ->
-                this.async {
+                scope.async {
                     try {
                         val searchResults = provider.search(query)
                         ProviderHealthMonitor.recordSuccess(provider.name)
@@ -45,7 +50,7 @@ object GlobalSearchAggregator {
             }
         }
 
-        val results: List<GlobalSearchResult> = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+        val results: List<GlobalSearchResult> = withTimeoutOrNull(timeoutMs) {
             deferredResults.map { it.await() }
         } ?: deferredResults.mapNotNull { if (it.isCompleted) it.getCompleted() else null }
 
