@@ -376,6 +376,7 @@ object CineHaxProvider : Provider {
             try {
                 servers.addAll(resolveUnlimplayServers(embedPageUrl))
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.w(TAG, "Failed to resolve embed page $embedPageUrl: ${e.message}")
             }
         }

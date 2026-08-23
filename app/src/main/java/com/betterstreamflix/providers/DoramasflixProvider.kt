@@ -152,6 +152,7 @@ object DoramasflixProvider : Provider {
                 categories
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -196,6 +197,7 @@ object DoramasflixProvider : Provider {
 
             results
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -216,6 +218,7 @@ object DoramasflixProvider : Provider {
                 )
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -236,6 +239,7 @@ object DoramasflixProvider : Provider {
                 )
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -262,6 +266,7 @@ object DoramasflixProvider : Provider {
                 poster = getPosterUrl(movieData.get("poster_path")?.asString ?: movieData.get("poster")?.asString),
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("No se pudieron cargar los detalles de la película: ${e.message}")
         }
     }
@@ -306,6 +311,7 @@ object DoramasflixProvider : Provider {
                 seasons = seasons
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("No se pudieron cargar los detalles del dorama: ${e.message}")
         }
     }
@@ -330,6 +336,7 @@ object DoramasflixProvider : Provider {
                 )
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -386,6 +393,7 @@ object DoramasflixProvider : Provider {
             }.distinctBy { it.id }
 
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
     }
@@ -405,6 +413,7 @@ object DoramasflixProvider : Provider {
             val videoResponse = service.postApi("https://fkplayer.xyz/api/decoding", requestBody)
             String(Base64.decode(videoResponse.link, Base64.DEFAULT))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             link
         }
     }
