@@ -1,5 +1,7 @@
 package com.betterstreamflix.data
 
+import android.content.Context
+
 /**
  * Database health monitor — monitors database size, entry counts,
  * and performance metrics.

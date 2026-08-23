@@ -8,7 +8,7 @@ import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.SingleSampleMediaSource
-import androidx.media3.exoplayer.upstream.DefaultDataSource
+import androidx.media3.datasource.DefaultDataSource
 
 /**
  * Helper for building ExoPlayer media sources with subtitle support.
@@ -38,7 +38,7 @@ object MediaSourceHelper {
                 .build()
 
             SingleSampleMediaSource.Factory(dataSourceFactory)
-                .createMediaSource(subtitleConfig, java.time.Duration.ofSeconds(0))
+                .createMediaSource(subtitleConfig, 0L)
         }
 
         return MergingMediaSource(videoSource, *subtitleSources.toTypedArray())

@@ -1,6 +1,5 @@
 package com.betterstreamflix.utils
 
-import android.app.PictureInPictureConfig
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.res.Configuration

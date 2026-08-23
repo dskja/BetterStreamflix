@@ -24,7 +24,7 @@ class InMemoryCookieJar : CookieJar {
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val host = url.host
         val hostCookies = cookies[host] ?: return emptyList()
-        return hostCookies.filter { !it.expiresAt || it.persistent && System.currentTimeMillis() < it.expiresAt }
+        return hostCookies.filter { it.expiresAt == Long.MAX_VALUE || System.currentTimeMillis() < it.expiresAt }
     }
 
     /**

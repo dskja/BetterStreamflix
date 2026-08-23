@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
-import androidx.media3.exoplayer.upstream.DefaultDataSource
+import androidx.media3.datasource.DefaultDataSource
 
 /**
  * Offline playback helper — sets up ExoPlayer for local file playback.

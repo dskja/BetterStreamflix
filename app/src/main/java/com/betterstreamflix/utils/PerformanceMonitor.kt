@@ -48,7 +48,7 @@ object PerformanceMonitor {
     /**
      * Log a timing entry.
      */
-    private fun logTiming(tag: String, durationMs: Long) {
+    fun logTiming(tag: String, durationMs: Long) {
         if (durationMs > 500) {
             Log.w("PerfMonitor", "Slow operation: $tag took ${durationMs}ms")
         } else if (BuildConfig.DEBUG) {

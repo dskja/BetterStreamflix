@@ -16,7 +16,6 @@ object ReducedMotionHelper {
      */
     fun isReducedMotion(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val controller = context.getSystemService(Context.ANIMATOR_SERVICE) as? android.animation.AnimatorInflater
             // On Android 12+, check if "Remove animations" is enabled
             return try {
                 android.provider.Settings.Global.getFloat(

@@ -31,7 +31,13 @@ object ContentImportExport {
             val array = org.json.JSONArray(json)
             (0 until array.length()).map { i ->
                 val obj = array.getJSONObject(i)
-                deserializer(obj.toMap())
+                val map = mutableMapOf<String, Any?>()
+                val keys = obj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    map[key] = obj.get(key)
+                }
+                deserializer(map)
             }
         } catch (e: Exception) {
             emptyList()

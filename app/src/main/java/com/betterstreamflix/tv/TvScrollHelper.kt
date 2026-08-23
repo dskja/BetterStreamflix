@@ -20,7 +20,6 @@ object TvScrollHelper {
         gridView.isFocusable = true
         gridView.isFocusableInTouchMode = true
         gridView.setItemSpacing(16)
-        gridView.setRowSpacing(16)
         gridView.isHorizontalScrollBarEnabled = false
     }
 

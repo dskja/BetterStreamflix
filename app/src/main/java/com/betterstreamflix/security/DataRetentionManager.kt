@@ -49,7 +49,7 @@ object DataRetentionManager {
      * Run cleanup for all data types based on retention policies.
      */
     suspend fun runCleanup(context: Context) {
-        val repo = com.betterstreamflix.database.AppSettingsRepository(context)
+        val repo = com.betterstreamflix.database.AppDataRepository(context)
 
         // Watch history
         val historyCutoff = getRetentionCutoff(context, DataType.WATCH_HISTORY)

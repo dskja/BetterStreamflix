@@ -8,8 +8,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.SingleSampleMediaSource
-import androidx.media3.exoplayer.upstream.DefaultDataSource
-import androidx.media3.exoplayer.upstream.DefaultHttpDataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 
 /**
  * Advanced media source builder with support for:
@@ -36,7 +36,6 @@ object AdvancedMediaSourceBuilder {
             .apply {
                 if (headers.isNotEmpty()) setDefaultRequestProperties(headers)
                 if (cookies.isNotEmpty()) {
-                    val cookieHeader = "Cookie: ${cookies.joinToString("; ")}"
                     setDefaultRequestProperties(mapOf("Cookie" to cookies.joinToString("; ")))
                 }
             }

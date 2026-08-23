@@ -2,6 +2,7 @@ package com.betterstreamflix.content
 
 import android.content.Context
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.first
 
 /**
  * Content sync manager — syncs favorites and watch history across
@@ -13,8 +14,8 @@ object ContentSyncManager {
      * Sync favorites from local storage to all providers.
      */
     suspend fun syncFavorites(context: Context) {
-        val repo = com.betterstreamflix.database.AppSettingsRepository(context)
-        val favorites = repo.getFavorites()
+        val repo = com.betterstreamflix.database.AppDataRepository(context)
+        val favorites = repo.getFavorites().first()
         // Would iterate through favorites and sync to each provider
     }
 
@@ -22,8 +23,8 @@ object ContentSyncManager {
      * Sync watch history from local storage.
      */
     suspend fun syncWatchHistory(context: Context) {
-        val repo = com.betterstreamflix.database.AppSettingsRepository(context)
-        val history = repo.getWatchHistory()
+        val repo = com.betterstreamflix.database.AppDataRepository(context)
+        val history = repo.getWatchHistory().first()
         // Would process history items for cross-provider matching
     }
 

@@ -3,4 +3,9 @@
     <item name="settings_list_styler_tag" type="id" />
     <item name="settings_row_style_kind" type="id" />
     <item name="settings_row_defaults" type="id" />
+    <item name="tv_error_message" type="id" />
+    <item name="btn_retry" type="id" />
+    <item name="tv_empty_title" type="id" />
+    <item name="tv_empty_subtitle" type="id" />
+    <item name="btn_empty_action" type="id" />
 </resources>
