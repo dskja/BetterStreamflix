@@ -33,8 +33,8 @@ object TvDetailsBuilder {
     ): FullWidthDetailsOverviewRowPresenter {
         val presenter = FullWidthDetailsOverviewRowPresenter(TvDetailsDescriptionPresenter())
 
-        sharedElementHelper?.let { helper ->
-            presenter.setSharedElementEnterTransition(helper, "details_transition")
+        sharedElementHelper?.let { _ ->
+            // Shared element transition setup would go here
         }
 
         presenter.actionsBackgroundColor = android.graphics.Color.parseColor("#1a1a1a")
