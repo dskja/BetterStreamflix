@@ -155,7 +155,8 @@ open class FilemoonExtractor : Extractor() {
         keyPairGenerator.initialize(ECGenParameterSpec("secp256r1"))
         val keyPair = keyPairGenerator.generateKeyPair()
         val privateKey = keyPair.private
-        val publicKey = keyPair.public as ECPublicKey
+        val publicKey = keyPair.public as? ECPublicKey
+            ?: throw Exception("Failed to generate EC public key for attestation")
 
         // JWK coordinates
         val x = Base64.encodeToString(publicKey.w.affineX.toByteArray().stripLeadingZero(), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
