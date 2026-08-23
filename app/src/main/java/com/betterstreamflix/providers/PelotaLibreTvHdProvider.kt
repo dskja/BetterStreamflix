@@ -227,7 +227,7 @@ object PelotaLibreTvHdProvider : IptvProvider {
         if (id == "creador-info" || id == "apoyo-info") return getInfoItem(id)
 
         // Al aplanar todo, el ID ahora es la URL exacta del canal. Ya no necesitamos lógicas complejas.
-        val nameGuess = try { id.toHttpUrl().pathSegments.last().removeSuffix(".html").replace("-", " ").uppercase() } catch(e:Exception) { "Canal 24/7" }
+        val nameGuess = try { id.toHttpUrl().pathSegments.lastOrNull()?.removeSuffix(".html")?.replace("-", " ")?.uppercase() ?: "Canal 24/7" } catch(e:Exception) { "Canal 24/7" }
         return TvShow(
             id = id,
             title = nameGuess,

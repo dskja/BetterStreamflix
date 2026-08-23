@@ -247,7 +247,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             ?.toIntOrNull() ?: 0
 
         val votenum = votes.select("span[id]")
-            .last()
+            .lastOrNull()
             ?.text()
             ?.toIntOrNull() ?: 0
 
