@@ -19,10 +19,9 @@ object GlobalSearchAggregator {
         val providers = Provider.providers.keys.filter { it.language == currentLanguage }
             .filter { ProviderHealthMonitor.isHealthy(it.name) }
 
-        val results = kotlinx.coroutines.coroutineScope {
-            val scope = this
+        val deferredResults: List<kotlinx.coroutines.Deferred<GlobalSearchResult>> = kotlinx.coroutines.coroutineScope {
             providers.map { provider ->
-                scope.async {
+                this.async {
                     try {
                         val searchResults = provider.search(query)
                         ProviderHealthMonitor.recordSuccess(provider.name)
@@ -43,23 +42,14 @@ object GlobalSearchAggregator {
                         )
                     }
                 }
-            }.awaitAllWithTimeout(timeoutMs)
+            }
         }
+
+        val results: List<GlobalSearchResult> = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+            deferredResults.map { it.await() }
+        } ?: deferredResults.mapNotNull { if (it.isCompleted) it.getCompleted() else null }
 
         return results.filter { result -> result.success && result.results.isNotEmpty() }
-    }
-
-    /**
-     * Await all deferreds with a combined timeout, returning partial results.
-     */
-    private suspend fun <T> List<kotlinx.coroutines.Deferred<T>>.awaitAllWithTimeout(
-        timeoutMs: Long,
-    ): List<T> {
-        return kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
-            this@awaitAllWithTimeout.map { deferred -> deferred.await() }
-        } ?: this@awaitAllWithTimeout.mapNotNull { deferred ->
-            if (deferred.isCompleted) deferred.getCompleted() else null
-        }
     }
 }
 
