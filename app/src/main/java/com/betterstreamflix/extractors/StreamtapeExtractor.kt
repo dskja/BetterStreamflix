@@ -50,7 +50,7 @@ class StreamtapeExtractor : Extractor() {
         val finalVideoUrl = "$mainUrl/get_video?id=$videoId&expires=$expires&ip=$ip&token=$token&stream=1"
 
         val response = service.getVideo(finalVideoUrl)
-        val sourceUrl = (response.raw() as okhttp3.Response).networkResponse?.request?.url?.toString()
+        val sourceUrl = response.raw().networkResponse?.request?.url?.toString()
             ?: throw Exception("Can't retrieve URL")
 
         val video = Video(

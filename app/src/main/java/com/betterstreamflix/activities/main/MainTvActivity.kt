@@ -74,8 +74,13 @@ class MainTvActivity : FragmentActivity() {
                 binding.ivSplashOverlay.visibility = View.GONE
             }
 
-        val navHostFragment = this.supportFragmentManager
-            .findFragmentById(binding.navMainFragment.id) as NavHostFragment
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(binding.navMainFragment.id) as? androidx.navigation.fragment.NavHostFragment
+            ?: run {
+                android.util.Log.e("MainTvActivity", "NavHostFragment not found")
+                finish()
+                return
+            }
         val navController = navHostFragment.navController
 
         adjustLayoutDelta(null, null)

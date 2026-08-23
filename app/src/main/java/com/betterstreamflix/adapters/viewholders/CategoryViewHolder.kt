@@ -51,7 +51,7 @@ class CategoryViewHolder(
             is ContentCategorySwiperMobileBinding -> _binding.vpCategorySwiper.javaClass
                 .getDeclaredField("mRecyclerView").let {
                     it.isAccessible = true
-                    it.get(_binding.vpCategorySwiper) as RecyclerView
+                    it.get(_binding.vpCategorySwiper) as? RecyclerView
                 }
             else -> null
         }
@@ -156,7 +156,7 @@ class CategoryViewHolder(
                 this.onMovieLongClickListener = onMovieLongClick
                 this.onTvShowLongClickListener = onTvShowLongClick
                 submitList(category.list)
-                post { (adapter as AppAdapter).submitList(items) }
+                post { (adapter as? AppAdapter)?.submitList(items) }
             }
         }
 
