@@ -122,6 +122,7 @@ object AnimeUnityProvider : Provider {
             }
             thumbnails
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyMap()
         }
     }
@@ -266,6 +267,7 @@ object AnimeUnityProvider : Provider {
             
             categories
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -312,9 +314,11 @@ object AnimeUnityProvider : Provider {
                     
                     tvShows.add(tvShow)
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
         }
         
         return tvShows
@@ -364,9 +368,11 @@ object AnimeUnityProvider : Provider {
                         items.add(tvShow)
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
         }
         
         return items
@@ -426,11 +432,13 @@ object AnimeUnityProvider : Provider {
                         items.add(item)
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     continue
                 }
             }
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
         }
         
         return items
@@ -454,6 +462,7 @@ object AnimeUnityProvider : Provider {
                     name = genreName
                 ))
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             }
         }
             
@@ -494,6 +503,7 @@ object AnimeUnityProvider : Provider {
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             }
         }
         
@@ -534,6 +544,7 @@ object AnimeUnityProvider : Provider {
             parseAnimeFromJson(records)
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -577,6 +588,7 @@ object AnimeUnityProvider : Provider {
             parseAnimeFromJson(records)
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -628,11 +640,13 @@ object AnimeUnityProvider : Provider {
                         null
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
             }
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -684,11 +698,13 @@ object AnimeUnityProvider : Provider {
                         null
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     null
                 }
             }
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -771,6 +787,7 @@ object AnimeUnityProvider : Provider {
                             }
                         }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                     }
                 }
             }
@@ -788,6 +805,7 @@ object AnimeUnityProvider : Provider {
                 recommendations = recommendations
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Movie(id = id, title = "", poster = "")
         }
     }
@@ -870,6 +888,7 @@ object AnimeUnityProvider : Provider {
                             }
                         }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                     }
                 }
             }
@@ -910,6 +929,7 @@ object AnimeUnityProvider : Provider {
                 seasons = seasons
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             TvShow(id = id, title = "", poster = "")
         }
     }
@@ -950,6 +970,7 @@ object AnimeUnityProvider : Provider {
             
             emptyList()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -966,6 +987,7 @@ object AnimeUnityProvider : Provider {
                 val animeObject = JSONObject(animeJson)
                 animeObject.optInt("anilist_id", 0).takeIf { it > 0 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
             
@@ -1003,6 +1025,7 @@ object AnimeUnityProvider : Provider {
                 )
                 }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -1040,6 +1063,7 @@ object AnimeUnityProvider : Provider {
                     animeObject.optInt("anilist_id", 0).takeIf { it > 0 }
                 } else null
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
             
@@ -1092,6 +1116,7 @@ object AnimeUnityProvider : Provider {
                 )
                 }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -1129,6 +1154,7 @@ object AnimeUnityProvider : Provider {
             
             null
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -1166,6 +1192,7 @@ object AnimeUnityProvider : Provider {
                 ""
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             ""
         }
     }
@@ -1190,6 +1217,7 @@ object AnimeUnityProvider : Provider {
                             break
                         }
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                     }
                 }
             }
@@ -1209,6 +1237,7 @@ object AnimeUnityProvider : Provider {
                 }
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = "", shows = emptyList())
         }
     }
@@ -1308,6 +1337,7 @@ object AnimeUnityProvider : Provider {
             }
             
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
