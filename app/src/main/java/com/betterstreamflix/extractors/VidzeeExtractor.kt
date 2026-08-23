@@ -61,7 +61,8 @@ class VidzeeExtractor : Extractor() {
     }
 
     fun server(videoType: Video.Type): Video.Server {
-        return servers(videoType).first()
+        return servers(videoType).firstOrNull()
+            ?: throw Exception("Vidzee: no servers available for $videoType")
     }
 
     override suspend fun extract(link: String): Video = coroutineScope {

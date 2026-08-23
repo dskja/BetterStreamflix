@@ -50,9 +50,10 @@ class VavooProvider(override val language: String) : IptvProvider {
     )
 
     // Config for this instance
-    private val config = LANG_CONFIG[language] ?: LANG_CONFIG["de"] ?: LANG_CONFIG.values.first()
+    private val config = LANG_CONFIG[language] ?: LANG_CONFIG["de"] ?: LANG_CONFIG.values.firstOrNull()
+        ?: throw IllegalStateException("Vavoo: no language config available")
 
-    override val name: String = "Vavoo ${config.third.first()} Live TV"
+    override val name: String = "Vavoo ${config.third.firstOrNull() ?: "?"} Live TV"
     override val logo: String = "$baseUrl/assets/favicon-Djqjt9PL.ico"
 
     private val primaryGroups: List<String> = config.third
