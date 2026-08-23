@@ -152,7 +152,8 @@ object TmdbClient {
 
     private fun fetchUrl(url: String): String? {
         return try {
-            val conn = URL(url).openConnection() as HttpsURLConnection
+            val conn = URL(url).openConnection() as? HttpsURLConnection
+                ?: return null
             conn.requestMethod = "GET"
             conn.connectTimeout = Constants.NETWORK_TIMEOUT_MS
             conn.readTimeout = Constants.NETWORK_TIMEOUT_MS
