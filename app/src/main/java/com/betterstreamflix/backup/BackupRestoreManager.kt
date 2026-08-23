@@ -64,6 +64,7 @@ class BackupRestoreManager(
             }
             output.toByteArray()
         } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
             Log.e(TAG, "Error exporting database zip", t)
             null
         }
@@ -185,6 +186,7 @@ class BackupRestoreManager(
             Log.d(TAG, "Export successful for version 5. Total providers exported: ${providersArray.length()}")
             root.toString()
         } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
             Log.e(TAG, "Error during exportUserData", t)
             null
         }
