@@ -271,14 +271,16 @@ object CB01Provider : Provider {
         val movieResults = try {
             val movieDoc = if (page <= 1) service.searchMovies(query) else service.searchMovies(page, query)
             movieDoc.select("div.card.mp-post.horizontal").mapNotNull { parseHomeMovie(it) }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
         
         val tvResults = try {
             val tvDoc = if (page <= 1) service.searchTvShows(query) else service.searchTvShows(page, query)
             tvDoc.select("div.card.mp-post.horizontal").mapNotNull { parseHomeTvShow(it) }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
         
@@ -289,7 +291,8 @@ object CB01Provider : Provider {
         return try {
             val doc = if (page <= 1) service.getHome() else service.getMovies(page)
             doc.select("div.card.mp-post.horizontal").mapNotNull { parseHomeMovie(it) }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -298,7 +301,8 @@ object CB01Provider : Provider {
         return try {
             val doc = if (page <= 1) service.getTvShows() else service.getTvShows(page)
             doc.select("div.card.mp-post.horizontal").mapNotNull { parseHomeTvShow(it) }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -539,7 +543,8 @@ object CB01Provider : Provider {
                         overview = tmdbEp?.overview
                     )
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 emptyList()
             }
         }
@@ -572,7 +577,8 @@ object CB01Provider : Provider {
             val doc = service.getPage(url)
             val movies = doc.select("div.card.mp-post.horizontal").mapNotNull { parseHomeMovie(it) }
             Genre(id = id, name = id.substringAfterLast('/').replace('-', ' ').uppercase(), shows = movies)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = id.substringAfterLast('/'), shows = emptyList())
         }
     }
@@ -606,7 +612,9 @@ object CB01Provider : Provider {
                 val maxstreamUrl = decodedBase + decodedVal
                 if (maxstreamUrl.isNotBlank()) return maxstreamUrl
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
 
         // 3. Fallback for direct uprot.net links when base64 fails: Call Keys.getUprotMseApiBase()
         val uprotId = Regex("""/ms[a-zA-Z]+/([A-Za-z0-9+/=]+)""").find(url)?.groupValues?.getOrNull(1)
@@ -637,7 +645,8 @@ object CB01Provider : Provider {
 
             "https://maxstream.video/emiuhi/$responseText"
 
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -706,7 +715,10 @@ object CB01Provider : Provider {
                                         if (json.optString("status").equals("success", ignoreCase = true)) {
                                             json.optJSONObject("data")?.optString("value")?.takeIf { it.isNotBlank() }
                                         } else null
-                                    } catch (_: Exception) { null }
+                                    } catch (e: Exception) {
+                                        if (e is kotlinx.coroutines.CancellationException) throw e
+                                        null
+                                    }
 
                                     if (!stayUrl.isNullOrBlank()) {
                                         if (lowerName.contains("mixdrop")) {
@@ -718,7 +730,9 @@ object CB01Provider : Provider {
                                             }
                                         }
                                     }
-                                } catch (_: Exception) { }
+                                } catch (e: Exception) {
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                }
                             }
                         } else if (normalized.contains("uprot.net", ignoreCase = true)) {
                             val finalMaxstream = resolveMaxstreamUrl(normalized, isStayOnline = false)
@@ -786,7 +800,10 @@ object CB01Provider : Provider {
                                     if (json.optString("status").equals("success", ignoreCase = true)) {
                                         json.optJSONObject("data")?.optString("value")?.takeIf { it.isNotBlank() }
                                     } else null
-                                } catch (_: Exception) { null }
+                                } catch (e: Exception) {
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                    null
+                                }
 
                                 if (!targetUrl.isNullOrBlank()) {
                                     if (name.contains("mixdrop")) {
@@ -798,7 +815,9 @@ object CB01Provider : Provider {
                                         }
                                     }
                                 }
-                            } catch (_: Exception) { }
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                            }
                         }
                     } else if (name.contains("maxstream") || href.contains("uprot.net", ignoreCase = true)) {
                         val finalMaxstream = resolveMaxstreamUrl(href, isStayOnline = false)
