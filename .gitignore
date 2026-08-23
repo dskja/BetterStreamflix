@@ -11,3 +11,6 @@ local.properties
 *.salive
 *.log
 app/src/main/cpp/native-lib.cpp
+*.ps1
+errors*.txt
+app/lint-baseline.xml

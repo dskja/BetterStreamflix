@@ -1,0 +1,459 @@
+﻿2026-08-22T22:38:18.4612941Z ##[group]Run ./gradlew assembleDebug --stacktrace
+2026-08-22T22:38:18.4613406Z [36;1m./gradlew assembleDebug --stacktrace[0m
+2026-08-22T22:38:18.4649719Z shell: /usr/bin/bash -e {0}
+2026-08-22T22:38:18.4650051Z env:
+2026-08-22T22:38:18.4650461Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+2026-08-22T22:38:18.4651142Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+2026-08-22T22:38:18.4651676Z   MAVEN_ARGS: -ntp
+2026-08-22T22:38:18.4652016Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-08-22T22:38:18.4652435Z   GRADLE_USER_HOME: /home/runner/.gradle
+2026-08-22T22:38:18.4652822Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-08-22T22:38:18.4653224Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-08-22T22:38:18.4653820Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-08-22T22:38:18.4654781Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-08-22T22:38:18.4655223Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-08-22T22:38:18.4655713Z   ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/26.1.10909125
+2026-08-22T22:38:18.4656282Z   ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/26.1.10909125
+2026-08-22T22:38:18.4656875Z   SIGNING_KEYSTORE_PATH: /home/runner/signing-keystore.jks
+2026-08-22T22:38:18.4657461Z   SIGNING_STORE_PASSWORD: ***
+2026-08-22T22:38:18.4657856Z   SIGNING_KEY_ALIAS: ***
+2026-08-22T22:38:18.4658263Z   SIGNING_KEY_PASSWORD: ***
+2026-08-22T22:38:18.4658607Z ##[endgroup]
+2026-08-22T22:38:18.5698464Z Downloading https://services.gradle.org/distributions/gradle-8.14-bin.zip
+2026-08-22T22:38:20.1076064Z .............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%..............100%
+2026-08-22T22:38:21.4471878Z 
+2026-08-22T22:38:21.4473184Z Welcome to Gradle 8.14!
+2026-08-22T22:38:21.4475868Z 
+2026-08-22T22:38:21.4476441Z Here are the highlights of this release:
+2026-08-22T22:38:21.4482712Z  - Java 24 support
+2026-08-22T22:38:21.4505313Z  - GraalVM Native Image toolchain selection
+2026-08-22T22:38:21.4505954Z  - Enhancements to test reporting
+2026-08-22T22:38:21.4506462Z  - Build Authoring improvements
+2026-08-22T22:38:21.4506754Z 
+2026-08-22T22:38:21.4507119Z For more details see https://docs.gradle.org/8.14/release-notes.html
+2026-08-22T22:38:21.4507628Z 
+2026-08-22T22:38:21.5465073Z Starting a Gradle Daemon (subsequent builds will be faster)
+2026-08-22T22:38:23.3471726Z Configuration on demand is an incubating feature.
+2026-08-22T22:38:24.3469403Z Calculating task graph as no cached configuration is available for tasks: assembleDebug
+2026-08-22T22:39:41.0532293Z > Task :navigation:preBuild UP-TO-DATE
+2026-08-22T22:39:41.0545279Z > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-22T22:39:41.0546168Z > Task :retrofit-jsoup-converter:preBuild UP-TO-DATE
+2026-08-22T22:39:41.0546851Z > Task :retrofit-jsoup-converter:preDebugBuild UP-TO-DATE
+2026-08-22T22:39:41.0547484Z > Task :navigation:preDebugBuild UP-TO-DATE
+2026-08-22T22:39:41.0548041Z > Task :app:preBuild UP-TO-DATE
+2026-08-22T22:39:41.0548544Z > Task :app:preDebugBuild UP-TO-DATE
+2026-08-22T22:39:41.0549214Z > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+2026-08-22T22:39:41.1525318Z > Task :navigation:generateDebugResValues
+2026-08-22T22:39:41.1554874Z > Task :retrofit-jsoup-converter:generateDebugResValues
+2026-08-22T22:39:41.1584963Z > Task :app:generateDebugResValues
+2026-08-22T22:39:41.1615007Z > Task :navigation:generateDebugResources
+2026-08-22T22:39:41.2485577Z > Task :retrofit-jsoup-converter:generateDebugResources
+2026-08-22T22:39:41.2515070Z > Task :app:generateDebugResources
+2026-08-22T22:39:41.3488118Z > Task :retrofit-jsoup-converter:packageDebugResources
+2026-08-22T22:39:41.3525277Z > Task :navigation:processDebugNavigationResources
+2026-08-22T22:39:41.3569764Z > Task :retrofit-jsoup-converter:processDebugNavigationResources
+2026-08-22T22:39:41.3596605Z > Task :navigation:packageDebugResources
+2026-08-22T22:39:42.8465230Z > Task :app:packageDebugResources
+2026-08-22T22:39:44.8495808Z > Task :navigation:parseDebugLocalResources
+2026-08-22T22:39:44.9487153Z > Task :navigation:generateDebugRFile
+2026-08-22T22:39:44.9515597Z > Task :retrofit-jsoup-converter:parseDebugLocalResources
+2026-08-22T22:39:45.0485972Z > Task :app:processDebugNavigationResources
+2026-08-22T22:39:45.0487255Z > Task :app:dataBindingMergeDependencyArtifactsDebug
+2026-08-22T22:39:45.0515033Z > Task :retrofit-jsoup-converter:generateDebugRFile
+2026-08-22T22:39:45.0539033Z > Task :app:generateDebugBuildConfig
+2026-08-22T22:39:45.0583398Z > Task :navigation:writeDebugAarMetadata
+2026-08-22T22:39:45.0604963Z > Task :retrofit-jsoup-converter:writeDebugAarMetadata
+2026-08-22T22:39:45.2525453Z > Task :app:parseDebugLocalResources
+2026-08-22T22:39:45.4476958Z > Task :app:checkDebugAarMetadata
+2026-08-22T22:39:45.4477661Z > Task :app:mapDebugSourceSetPaths
+2026-08-22T22:39:45.5487512Z > Task :app:createDebugCompatibleScreenManifests
+2026-08-22T22:39:45.6478694Z > Task :app:extractDeepLinksDebug
+2026-08-22T22:39:45.6505051Z > Task :navigation:extractDeepLinksDebug
+2026-08-22T22:39:45.7475281Z > Task :app:compileDebugNavigationResources
+2026-08-22T22:39:45.8467506Z > Task :retrofit-jsoup-converter:extractDeepLinksDebug FROM-CACHE
+2026-08-22T22:39:45.9465523Z > Task :retrofit-jsoup-converter:processDebugManifest
+2026-08-22T22:39:45.9475356Z > Task :navigation:processDebugManifest
+2026-08-22T22:39:46.4508427Z > Task :navigation:compileDebugLibraryResources
+2026-08-22T22:39:46.4535752Z > Task :retrofit-jsoup-converter:compileDebugLibraryResources
+2026-08-22T22:39:46.4536990Z > Task :navigation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-22T22:39:46.5495205Z > Task :app:generateSafeArgsDebug
+2026-08-22T22:39:46.5524722Z > Task :navigation:javaPreCompileDebug
+2026-08-22T22:39:46.5526137Z > Task :retrofit-jsoup-converter:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-08-22T22:39:46.8476531Z 
+2026-08-22T22:39:46.8515584Z > Task :app:processDebugMainManifest
+2026-08-22T22:39:46.8517565Z [org.chromium.net:cronet-embedded:119.6045.31] /home/runner/.gradle/caches/8.14/transforms/1264790894e0a72e646264aa51841237/transformed/cronet-embedded-119.6045.31/AndroidManifest.xml Warning:
+2026-08-22T22:39:46.8546957Z 	Namespace 'org.chromium.net' is used in multiple modules and/or libraries: org.chromium.net:cronet-embedded:119.6045.31, org.chromium.net:cronet-common:119.6045.31, org.chromium.net:cronet-api:119.6045.31. Please ensure that all modules and libraries have a unique namespace. For more information, See https://developer.android.com/studio/build/configure-app-module#set-namespace
+2026-08-22T22:39:47.1474745Z 
+2026-08-22T22:39:47.1505396Z > Task :app:processDebugManifest
+2026-08-22T22:39:47.2475389Z > Task :app:processDebugManifestForPackage
+2026-08-22T22:39:47.2505088Z > Task :retrofit-jsoup-converter:javaPreCompileDebug FROM-CACHE
+2026-08-22T22:39:49.3491786Z 
+2026-08-22T22:39:49.3515336Z > Task :app:mergeDebugResources
+2026-08-22T22:39:49.3517925Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:92:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4470189Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:118:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4496608Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:110:4: Multiple substitutions specified in non-positional format of string resource string/movie_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4526468Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:129:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4556258Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:480:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4576356Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:96:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4586270Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:99:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.4706538Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values/strings.xml:106:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7546840Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:65:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7626577Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:91:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7686277Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:83:4: Multiple substitutions specified in non-positional format of string resource string/movie_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7776348Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:102:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7836662Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:345:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7866484Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:69:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.7956450Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:72:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:49.8016224Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-fr/strings.xml:79:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.3482509Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-pl/strings.xml:57:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.3486311Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-pl/strings.xml:80:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.4480199Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-pl/strings.xml:93:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.4488395Z /home/runner/.gradle/caches/8.14/transforms/cc9705e075652c03c7242cb04dc736cb/transformed/preference-1.2.1/res/values-pl/values-pl.xml:5:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.4536232Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-pl/strings.xml:61:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.4539689Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-pl/strings.xml:63:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.4566149Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-pl/strings.xml:70:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:50.5504833Z 
+2026-08-22T22:39:50.5535130Z > Task :app:javaPreCompileDebug
+2026-08-22T22:39:50.7485445Z > Task :app:mergeDebugShaders
+2026-08-22T22:39:50.7514967Z > Task :app:compileDebugShaders NO-SOURCE
+2026-08-22T22:39:50.7564992Z > Task :app:generateDebugAssets UP-TO-DATE
+2026-08-22T22:39:52.1485640Z > Task :navigation:mergeDebugShaders
+2026-08-22T22:39:52.1515253Z > Task :navigation:compileDebugShaders NO-SOURCE
+2026-08-22T22:39:52.1536386Z > Task :navigation:generateDebugAssets UP-TO-DATE
+2026-08-22T22:39:52.2504769Z > Task :navigation:mergeDebugAssets
+2026-08-22T22:39:52.2535142Z > Task :retrofit-jsoup-converter:mergeDebugShaders
+2026-08-22T22:39:52.2595010Z > Task :retrofit-jsoup-converter:compileDebugShaders NO-SOURCE
+2026-08-22T22:39:52.2655079Z > Task :retrofit-jsoup-converter:generateDebugAssets UP-TO-DATE
+2026-08-22T22:39:52.3505555Z > Task :retrofit-jsoup-converter:mergeDebugAssets
+2026-08-22T22:39:52.3534589Z 
+2026-08-22T22:39:52.3582038Z > Task :app:mergeDebugResources
+2026-08-22T22:39:52.3633574Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:75:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3655326Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:101:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3726921Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:93:4: Multiple substitutions specified in non-positional format of string resource string/movie_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3756467Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:112:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3796541Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:385:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3847227Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:79:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3899356Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:82:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3949283Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-es/strings.xml:89:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.3977574Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:67:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4028603Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:93:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4089341Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:85:4: Multiple substitutions specified in non-positional format of string resource string/movie_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4158230Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:104:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4202088Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:344:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4251084Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:71:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4302411Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:74:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4336201Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-it/strings.xml:81:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4396417Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:61:1: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4456307Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:87:1: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4486143Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:79:1: Multiple substitutions specified in non-positional format of string resource string/movie_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4546156Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:98:1: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4576286Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:388:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4636300Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:65:1: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4682263Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:68:1: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.4756377Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-ar/strings.xml:75:1: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6479938Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:66:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6506094Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:92:4: Multiple substitutions specified in non-positional format of string resource string/episode_item_info_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6536160Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:84:4: Multiple substitutions specified in non-positional format of string resource string/movie_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6556385Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:103:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6586311Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:400:4: Multiple substitutions specified in non-positional format of string resource string/player_subtitle_tv_show_episode_only. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6615959Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:70:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_item_season_number_episode_number. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6620150Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:73:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_runtime_hours_minutes. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.6624247Z /home/runner/work/BetterStreamflix/BetterStreamflix/app/src/main/res/values-de/strings.xml:80:4: Multiple substitutions specified in non-positional format of string resource string/tv_show_watch_season_episode. Did you mean to add the formatted="false" attribute?
+2026-08-22T22:39:52.7497987Z 
+2026-08-22T22:39:52.7565196Z > Task :app:mergeDebugAssets
+2026-08-22T22:39:52.9507782Z > Task :app:compressDebugAssets
+2026-08-22T22:39:55.8479759Z > Task :app:dataBindingGenBaseClassesDebug
+2026-08-22T22:40:02.4475686Z > Task :app:processDebugResources FAILED
+2026-08-22T22:40:08.0505662Z > Task :retrofit-jsoup-converter:compileDebugKotlin
+2026-08-22T22:40:12.2466369Z > Task :navigation:compileDebugKotlin
+2026-08-22T22:40:16.2475453Z > Task :app:l8DexDesugarLibDebug
+2026-08-22T22:40:16.2515454Z gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1787438307838.json
+2026-08-22T22:40:16.2544446Z 
+2026-08-22T22:40:16.2545517Z [Incubating] Problems report is available at: file:///home/runner/work/BetterStreamflix/BetterStreamflix/build/reports/problems/problems-report.html
+2026-08-22T22:40:16.3491702Z 
+2026-08-22T22:40:16.3525290Z FAILURE: Build failed with an exception.
+2026-08-22T22:40:16.3571063Z 
+2026-08-22T22:40:16.3594528Z 
+2026-08-22T22:40:16.3624811Z * What went wrong:
+2026-08-22T22:40:16.3625626Z Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+2026-08-22T22:40:16.3653597Z Execution failed for task ':app:processDebugResources'.
+2026-08-22T22:40:16.3654432Z 
+2026-08-22T22:40:16.3669292Z > A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
+2026-08-22T22:40:16.3671039Z You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+2026-08-22T22:40:16.3704805Z    > Android resource linking failed
+2026-08-22T22:40:16.3705202Z 
+2026-08-22T22:40:16.3735784Z      com.***.app-mergeDebugResources-71:/layout/fragment_providers_tv.xml:64: error: attribute android:nextFocusDownId not found.
+2026-08-22T22:40:16.3737575Z For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+2026-08-22T22:40:16.3765401Z      com.***.app-mergeDebugResources-71:/layout/fragment_providers_tv.xml:85: error: attribute android:nextFocusUpId not found.
+2026-08-22T22:40:16.3766616Z 52 actionable tasks: 50 executed, 2 from cache
+2026-08-22T22:40:16.3794743Z      error: failed linking file resources.
+2026-08-22T22:40:16.3795351Z Configuration cache entry stored.
+2026-08-22T22:40:16.3824449Z 
+2026-08-22T22:40:16.3854510Z 
+2026-08-22T22:40:16.3884837Z * Try:
+2026-08-22T22:40:16.3914877Z > Run with --info or --debug option to get more log output.
+2026-08-22T22:40:16.3944749Z > Run with --scan to get full insights.
+2026-08-22T22:40:16.3974764Z > Get more help at https://help.gradle.org.
+2026-08-22T22:40:16.4004425Z 
+2026-08-22T22:40:16.4034716Z * Exception is:
+2026-08-22T22:40:16.4065225Z org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:processDebugResources'.
+2026-08-22T22:40:16.4079075Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+2026-08-22T22:40:16.4105983Z 	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
+2026-08-22T22:40:16.4125693Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+2026-08-22T22:40:16.4127757Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+2026-08-22T22:40:16.4129836Z 	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:41)
+2026-08-22T22:40:16.4131995Z 	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+2026-08-22T22:40:16.4134290Z 	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+2026-08-22T22:40:16.4136255Z 	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+2026-08-22T22:40:16.4138110Z 	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+2026-08-22T22:40:16.4139843Z 	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+2026-08-22T22:40:16.4142100Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+2026-08-22T22:40:16.4143822Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+2026-08-22T22:40:16.4145695Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+2026-08-22T22:40:16.4147502Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+2026-08-22T22:40:16.4149507Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+2026-08-22T22:40:16.4151293Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+2026-08-22T22:40:16.4152871Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4154649Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+2026-08-22T22:40:16.4156223Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4157766Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+2026-08-22T22:40:16.4159307Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+2026-08-22T22:40:16.4160734Z 	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+2026-08-22T22:40:16.4162322Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+2026-08-22T22:40:16.4164756Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+2026-08-22T22:40:16.4166944Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+2026-08-22T22:40:16.4168750Z 	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+2026-08-22T22:40:16.4170513Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+2026-08-22T22:40:16.4172605Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+2026-08-22T22:40:16.4174849Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+2026-08-22T22:40:16.4176308Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+2026-08-22T22:40:16.4177695Z 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-08-22T22:40:16.4179098Z 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+2026-08-22T22:40:16.4181231Z Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
+2026-08-22T22:40:16.4183555Z 	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
+2026-08-22T22:40:16.4185575Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
+2026-08-22T22:40:16.4186870Z 	at org.gradle.internal.Factories$1.create(Factories.java:31)
+2026-08-22T22:40:16.4188015Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:335)
+2026-08-22T22:40:16.4189511Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:318)
+2026-08-22T22:40:16.4191193Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:323)
+2026-08-22T22:40:16.4192751Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
+2026-08-22T22:40:16.4194752Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
+2026-08-22T22:40:16.4196302Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
+2026-08-22T22:40:16.4197747Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
+2026-08-22T22:40:16.4199065Z 	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
+2026-08-22T22:40:16.4200453Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
+2026-08-22T22:40:16.4202038Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
+2026-08-22T22:40:16.4203594Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+2026-08-22T22:40:16.4205371Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4206934Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+2026-08-22T22:40:16.4208923Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4210495Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
+2026-08-22T22:40:16.4212250Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+2026-08-22T22:40:16.4213628Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+2026-08-22T22:40:16.4215398Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+2026-08-22T22:40:16.4216785Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+2026-08-22T22:40:16.4217946Z 	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+2026-08-22T22:40:16.4219193Z 	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+2026-08-22T22:40:16.4220309Z 	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+2026-08-22T22:40:16.4221362Z 	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+2026-08-22T22:40:16.4222905Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+2026-08-22T22:40:16.4225095Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+2026-08-22T22:40:16.4226852Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+2026-08-22T22:40:16.4228372Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4229943Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+2026-08-22T22:40:16.4231529Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4233052Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+2026-08-22T22:40:16.4234588Z 	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+2026-08-22T22:40:16.4235706Z 	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+2026-08-22T22:40:16.4236977Z 	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+2026-08-22T22:40:16.4238593Z 	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+2026-08-22T22:40:16.4239796Z 	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+2026-08-22T22:40:16.4241332Z 	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+2026-08-22T22:40:16.4243058Z 	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+2026-08-22T22:40:16.4244909Z 	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+2026-08-22T22:40:16.4246493Z 	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+2026-08-22T22:40:16.4248126Z 	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+2026-08-22T22:40:16.4249759Z 	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+2026-08-22T22:40:16.4251443Z 	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+2026-08-22T22:40:16.4253212Z 	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+2026-08-22T22:40:16.4254995Z 	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+2026-08-22T22:40:16.4256433Z 	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+2026-08-22T22:40:16.4257820Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+2026-08-22T22:40:16.4259476Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeAndStoreInCache(BuildCacheStep.java:145)
+2026-08-22T22:40:16.4260920Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$4(BuildCacheStep.java:101)
+2026-08-22T22:40:16.4262376Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$5(BuildCacheStep.java:101)
+2026-08-22T22:40:16.4263469Z 	at org.gradle.internal.Try$Success.map(Try.java:175)
+2026-08-22T22:40:16.4264633Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithCache(BuildCacheStep.java:85)
+2026-08-22T22:40:16.4265974Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$0(BuildCacheStep.java:74)
+2026-08-22T22:40:16.4266940Z 	at org.gradle.internal.Either$Left.fold(Either.java:115)
+2026-08-22T22:40:16.4267798Z 	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+2026-08-22T22:40:16.4268861Z 	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+2026-08-22T22:40:16.4270012Z 	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+2026-08-22T22:40:16.4271325Z 	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+2026-08-22T22:40:16.4272790Z 	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+2026-08-22T22:40:16.4274380Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+2026-08-22T22:40:16.4275716Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+2026-08-22T22:40:16.4276991Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+2026-08-22T22:40:16.4278199Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+2026-08-22T22:40:16.4279786Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+2026-08-22T22:40:16.4281808Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+2026-08-22T22:40:16.4284377Z 	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+2026-08-22T22:40:16.4286409Z 	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+2026-08-22T22:40:16.4288525Z 	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+2026-08-22T22:40:16.4290342Z 	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+2026-08-22T22:40:16.4291910Z 	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+2026-08-22T22:40:16.4293247Z 	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+2026-08-22T22:40:16.4294658Z 	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
+2026-08-22T22:40:16.4295780Z 	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
+2026-08-22T22:40:16.4297313Z 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+2026-08-22T22:40:16.4299333Z 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+2026-08-22T22:40:16.4301292Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+2026-08-22T22:40:16.4302971Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
+2026-08-22T22:40:16.4304682Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+2026-08-22T22:40:16.4306695Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+2026-08-22T22:40:16.4308788Z 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+2026-08-22T22:40:16.4310492Z 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+2026-08-22T22:40:16.4312057Z 	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+2026-08-22T22:40:16.4313470Z 	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+2026-08-22T22:40:16.4315226Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+2026-08-22T22:40:16.4316691Z 	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+2026-08-22T22:40:16.4318127Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+2026-08-22T22:40:16.4319665Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+2026-08-22T22:40:16.4321090Z 	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+2026-08-22T22:40:16.4322365Z 	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+2026-08-22T22:40:16.4323977Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+2026-08-22T22:40:16.4326160Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+2026-08-22T22:40:16.4328001Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+2026-08-22T22:40:16.4329527Z 	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+2026-08-22T22:40:16.4330777Z 	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+2026-08-22T22:40:16.4332293Z 	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+2026-08-22T22:40:16.4333382Z 	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+2026-08-22T22:40:16.4334835Z 	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:64)
+2026-08-22T22:40:16.4336391Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+2026-08-22T22:40:16.4338089Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+2026-08-22T22:40:16.4339840Z 	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:41)
+2026-08-22T22:40:16.4341700Z 	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+2026-08-22T22:40:16.4343497Z 	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+2026-08-22T22:40:16.4345576Z 	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+2026-08-22T22:40:16.4347198Z 	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+2026-08-22T22:40:16.4348742Z 	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+2026-08-22T22:40:16.4350393Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+2026-08-22T22:40:16.4352100Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+2026-08-22T22:40:16.4353909Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+2026-08-22T22:40:16.4355866Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+2026-08-22T22:40:16.4357855Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+2026-08-22T22:40:16.4359557Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+2026-08-22T22:40:16.4361028Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4362530Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+2026-08-22T22:40:16.4363989Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4365663Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+2026-08-22T22:40:16.4367175Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+2026-08-22T22:40:16.4368559Z 	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+2026-08-22T22:40:16.4370121Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+2026-08-22T22:40:16.4371999Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+2026-08-22T22:40:16.4374310Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+2026-08-22T22:40:16.4376647Z 	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+2026-08-22T22:40:16.4378374Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+2026-08-22T22:40:16.4380791Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+2026-08-22T22:40:16.4382478Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+2026-08-22T22:40:16.4383854Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+2026-08-22T22:40:16.4385704Z 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-08-22T22:40:16.4387124Z 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+2026-08-22T22:40:16.4388459Z Caused by: com.android.builder.internal.aapt.v2.Aapt2Exception: Android resource linking failed
+2026-08-22T22:40:16.4390269Z com.***.app-mergeDebugResources-71:/layout/fragment_providers_tv.xml:64: error: attribute android:nextFocusDownId not found.
+2026-08-22T22:40:16.4392011Z com.***.app-mergeDebugResources-71:/layout/fragment_providers_tv.xml:85: error: attribute android:nextFocusUpId not found.
+2026-08-22T22:40:16.4393027Z error: failed linking file resources.
+2026-08-22T22:40:16.4393361Z 
+2026-08-22T22:40:16.4393896Z 	at com.android.builder.internal.aapt.v2.Aapt2Exception$Companion.create(Aapt2Exception.kt:45)
+2026-08-22T22:40:16.4395372Z 	at com.android.builder.internal.aapt.v2.Aapt2Exception$Companion.create$default(Aapt2Exception.kt:31)
+2026-08-22T22:40:16.4396602Z 	at com.android.builder.internal.aapt.v2.Aapt2DaemonImpl.doLink(Aapt2DaemonImpl.kt:191)
+2026-08-22T22:40:16.4397674Z 	at com.android.builder.internal.aapt.v2.Aapt2Daemon.link(Aapt2Daemon.kt:124)
+2026-08-22T22:40:16.4398886Z 	at com.android.builder.internal.aapt.v2.Aapt2DaemonManager$LeasedAaptDaemon.link(Aapt2DaemonManager.kt:176)
+2026-08-22T22:40:16.4400724Z 	at com.android.builder.internal.aapt.v2.Aapt2DaemonManager$leasingAapt2Daemon$1.link(Aapt2DaemonManager.kt:199)
+2026-08-22T22:40:16.4402388Z 	at com.android.build.gradle.internal.services.PartialInProcessResourceProcessor.link(PartialInProcessResourceProcessor.kt:51)
+2026-08-22T22:40:16.4404444Z 	at com.android.build.gradle.internal.res.Aapt2ProcessResourcesRunnableKt.processResources(Aapt2ProcessResourcesRunnable.kt:74)
+2026-08-22T22:40:16.4406525Z 	at com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$Companion.invokeAaptForSplit(LinkApplicationAndroidResourcesTask.kt:1060)
+2026-08-22T22:40:16.4408859Z 	at com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$Companion.access$invokeAaptForSplit(LinkApplicationAndroidResourcesTask.kt:886)
+2026-08-22T22:40:16.4410917Z 	at com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction.run(LinkApplicationAndroidResourcesTask.kt:463)
+2026-08-22T22:40:16.4412632Z 	at com.android.build.gradle.internal.profile.ProfileAwareWorkAction.execute(ProfileAwareWorkAction.kt:74)
+2026-08-22T22:40:16.4414019Z 	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+2026-08-22T22:40:16.4415576Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+2026-08-22T22:40:16.4416968Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+2026-08-22T22:40:16.4418369Z 	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+2026-08-22T22:40:16.4419844Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+2026-08-22T22:40:16.4421103Z 	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+2026-08-22T22:40:16.4422121Z 	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+2026-08-22T22:40:16.4423607Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+2026-08-22T22:40:16.4425794Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+2026-08-22T22:40:16.4427879Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+2026-08-22T22:40:16.4429422Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4430950Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+2026-08-22T22:40:16.4432475Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4433956Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+2026-08-22T22:40:16.4435615Z 	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+2026-08-22T22:40:16.4437043Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+2026-08-22T22:40:16.4438432Z 	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+2026-08-22T22:40:16.4440064Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+2026-08-22T22:40:16.4441883Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+2026-08-22T22:40:16.4443726Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+2026-08-22T22:40:16.4445280Z 	at org.gradle.internal.Factories$1.create(Factories.java:31)
+2026-08-22T22:40:16.4446363Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+2026-08-22T22:40:16.4448057Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+2026-08-22T22:40:16.4449586Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+2026-08-22T22:40:16.4451451Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+2026-08-22T22:40:16.4453272Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+2026-08-22T22:40:16.4454612Z 	... 2 more
+2026-08-22T22:40:16.4455987Z 	Suppressed: java.util.NoSuchElementException: Unable to get absolute path from com.***.app-mergeDebugResources-71:/layout/fragment_providers_tv.xml
+2026-08-22T22:40:16.4457647Z                        because com.***.app-mergeDebugResources-71 is not key in sourceSetPathMap.
+2026-08-22T22:40:16.4459081Z 		at com.android.ide.common.resources.RelativeResourceUtils$relativeResourcePathToAbsolutePath$1.invoke(RelativeResourceUtils.kt:91)
+2026-08-22T22:40:16.4460867Z 		at com.android.ide.common.resources.RelativeResourceUtils$relativeResourcePathToAbsolutePath$1.invoke(RelativeResourceUtils.kt:68)
+2026-08-22T22:40:16.4462667Z 		at com.android.ide.common.resources.RelativeResourceUtils.relativeResourcePathToAbsolutePath(RelativeResourceUtils.kt:61)
+2026-08-22T22:40:16.4464443Z 		at com.android.ide.common.blame.parser.aapt.Aapt2ErrorParser$MessageParser.parse(Aapt2ErrorParser.kt:124)
+2026-08-22T22:40:16.4465740Z 		at com.android.ide.common.blame.parser.aapt.Aapt2ErrorParser.parse(Aapt2ErrorParser.kt:99)
+2026-08-22T22:40:16.4467041Z 		at com.android.ide.common.blame.parser.aapt.Aapt2OutputParser.parse(Aapt2OutputParser.java:56)
+2026-08-22T22:40:16.4468347Z 		at com.android.ide.common.blame.parser.ToolOutputParser.parseToolOutput(ToolOutputParser.java:84)
+2026-08-22T22:40:16.4469738Z 		at com.android.build.gradle.internal.res.Aapt2ErrorUtils.rewriteException(Aapt2ErrorUtils.kt:219)
+2026-08-22T22:40:16.4471173Z 		at com.android.build.gradle.internal.res.Aapt2ErrorUtils.rewriteLinkException(Aapt2ErrorUtils.kt:133)
+2026-08-22T22:40:16.4472829Z 		at com.android.build.gradle.internal.res.Aapt2ProcessResourcesRunnableKt.processResources(Aapt2ProcessResourcesRunnable.kt:76)
+2026-08-22T22:40:16.4475293Z 		at com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$Companion.invokeAaptForSplit(LinkApplicationAndroidResourcesTask.kt:1060)
+2026-08-22T22:40:16.4477512Z 		at com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$Companion.access$invokeAaptForSplit(LinkApplicationAndroidResourcesTask.kt:886)
+2026-08-22T22:40:16.4479618Z 		at com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction.run(LinkApplicationAndroidResourcesTask.kt:463)
+2026-08-22T22:40:16.4481348Z 		at com.android.build.gradle.internal.profile.ProfileAwareWorkAction.execute(ProfileAwareWorkAction.kt:74)
+2026-08-22T22:40:16.4482695Z 		at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+2026-08-22T22:40:16.4483988Z 		at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+2026-08-22T22:40:16.4485573Z 		at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+2026-08-22T22:40:16.4486986Z 		at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+2026-08-22T22:40:16.4488598Z 		at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+2026-08-22T22:40:16.4489978Z 		at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+2026-08-22T22:40:16.4491058Z 		at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+2026-08-22T22:40:16.4492657Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+2026-08-22T22:40:16.4495252Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+2026-08-22T22:40:16.4497377Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+2026-08-22T22:40:16.4498988Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4500557Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+2026-08-22T22:40:16.4502115Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+2026-08-22T22:40:16.4503595Z 		at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+2026-08-22T22:40:16.4505226Z 		at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+2026-08-22T22:40:16.4506657Z 		at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+2026-08-22T22:40:16.4508073Z 		at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+2026-08-22T22:40:16.4509304Z 		at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+2026-08-22T22:40:16.4510712Z 		at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+2026-08-22T22:40:16.4512644Z 		at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+2026-08-22T22:40:16.4514765Z 		at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+2026-08-22T22:40:16.4516122Z 		at org.gradle.internal.Factories$1.create(Factories.java:31)
+2026-08-22T22:40:16.4517226Z 		at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+2026-08-22T22:40:16.4518717Z 		at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+2026-08-22T22:40:16.4520273Z 		at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+2026-08-22T22:40:16.4522240Z 		at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+2026-08-22T22:40:16.4524272Z 		at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+2026-08-22T22:40:16.4525717Z 		at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+2026-08-22T22:40:16.4526735Z 		at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+2026-08-22T22:40:16.4527908Z 		at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-08-22T22:40:16.4529318Z 		at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+2026-08-22T22:40:16.4530793Z 		at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+2026-08-22T22:40:16.4532142Z 		at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+2026-08-22T22:40:16.4533139Z 		at java.base/java.lang.Thread.run(Thread.java:840)
+2026-08-22T22:40:16.4533578Z 
+2026-08-22T22:40:16.4533589Z 
+2026-08-22T22:40:16.4533779Z BUILD FAILED in 1m 57s
+2026-08-22T22:40:16.7366297Z ##[error]Process completed with exit code 1.

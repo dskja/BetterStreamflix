@@ -214,7 +214,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
                 }
             } else {
                 try {
-                    val v = version!!
+                    val v = version.orEmpty()
                     withSslFallback { it.getHome(version = v) }.also { fetched ->
                         if (version != fetched.version) version = fetched.version ?: ""
                     }

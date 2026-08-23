@@ -19,6 +19,11 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <queries>
         <intent>
@@ -86,6 +91,23 @@
 
                 <data android:scheme="streamflix"
                         android:host="resolve"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+
+                <data android:scheme="betterstreamflix"
+                        android:host="movie"/>
+                <data android:scheme="betterstreamflix"
+                        android:host="tvshow"/>
+                <data android:scheme="betterstreamflix"
+                        android:host="episode"/>
+                <data android:scheme="betterstreamflix"
+                        android:host="search"/>
+                <data android:scheme="betterstreamflix"
+                        android:host="provider"/>
             </intent-filter>
         </activity>
 

@@ -2,6 +2,142 @@
 
 All notable changes to BetterStreamflix will be documented here.
 
+## [Unreleased] - 2026-08-23
+
+### Megaplan Tasks #301-400 — Architecture, UI, Data, Network, Images, Downloads, Cast, Widgets, Testing, Deployment
+
+#### Tasks #301-310: Architecture & Code Quality
+- **EventBus** — In-process event bus using SharedFlow with typed AppEvent sealed class
+- **DependencyContainer** — Service locator with singleton and factory registration
+- **FeatureFlags** — Runtime feature toggles with overrides and persistence
+- **StateMachine** — Generic state machine with validated transitions and fluent builder
+- **OperationResult** — Unified result type (Success/Failure/Loading) with mapping and chaining
+- **BaseViewModel** — ViewModel base with StateFlow, coroutine binding, debounced updates
+- **BaseRepository** — Repository interface with local/remote sources and CachedRepository wrapper
+- **Mapper** — Bidirectional/one-way mapper interfaces with SafeMapper and CompositeMapper
+- **EffectHandler** — One-shot side effects via SharedFlow for navigation/toasts/snackbars
+- **UseCase** — UseCase base classes with input validation and safe coroutine execution
+- **ConfigurationManager** — Centralized config with defaults, overrides, and persistence
+
+#### Tasks #311-320: UI/UX Polish & Animations
+- **AnimationHelper** — Fade, slide, scale, shake, pulse animations with consistent durations
+- **RecyclerViewAnimationHelper** — Custom item animations and scroll effects for RecyclerViews
+- **MaterialColorHelper** — Material Design 3 color schemes, ripple backgrounds, contrast calculation
+- **TransitionHelper** — Shared element and scene transitions with combined presets
+- **TypographyHelper** — Material Design typography scale application for TextViews
+- **SpacingHelper** — Consistent dp/px spacing values, padding, and margin helpers
+- **TooltipHelper** — Rich tooltips with title, message, icon, and position control
+- **ShimmerHelper** — Shimmer loading placeholders (fixed duplicate AnimationHelper class)
+
+#### Tasks #321-330: Data Layer & Database
+- **DatabaseMigrations** — Centralized Room migrations (v1→v6) for all new tables
+- **SearchHistoryDao** — Room DAO for search history with Flow queries and partial matching
+- **PlaybackPositionDao** — Room DAO for playback positions with upsert and recent queries
+- **DatabaseSeeder** — Initial data seeding for providers and collections on first install
+- **PaginationState** — Reactive pagination with page tracking, loading states, has-more detection
+- **DataSyncCoordinator** — Local/remote sync coordination with conflict resolution
+- **EntityConverter** — Converts between Room entities and domain models
+- **CachePolicyManager** — Per-type cache policies with TTL, max entries, and disk size limits
+- **DatabaseHealthMonitor** — Database file/WAL size monitoring with health warnings
+
+#### Tasks #331-340: Network Layer Enhancement
+- **HeaderInterceptor** — Standard headers (User-Agent, Accept, etc.) with custom header support
+- **RetryInterceptor** — Exponential backoff retry with jitter for failed requests
+- **LoggingInterceptor** — Debug request/response logging with timing and optional body logging
+- **CacheControlInterceptor** — Cache control headers for offline support and conditional requests
+- **NetworkRequestQueue** — Concurrent request limiter with priority tracking and duration stats
+- **HttpClientBuilder** — Preset OkHttp configurations (default, fast, patient) with interceptor support
+- **NetworkCapabilityChecker** — Network type detection, bandwidth estimation, unmetered check
+- **TimeoutInterceptor** — Dynamic timeout adjustment based on request type (streaming/API/default)
+- **TlsManager** — Certificate pinning, TLS version recommendations, Android version-aware support
+- **NetworkErrorHandler** — Error classification (DNS/timeout/SSL/etc.) with user messages and retryability
+
+#### Tasks #341-350: Image Loading & Caching
+- **ImageCacheManager** — Two-tier cache (memory LRU + disk) with size-based eviction and trimming
+- **ImageProcessor** — Resize, crop-to-ratio, circular, rounded, color overlay, placeholder generation
+- **ImageLoader** — Coroutine-based image loading with caching, placeholders, and transformations
+- **ImagePrefetchManager** — Prefetch queue with deduplication and immediate prefetch mode
+- **ImagePlaceholderGenerator** — Deterministic colored placeholders with initials and gradients
+- **ImageMemoryCache** — Standalone LRU memory cache with hit/miss tracking
+- **ImageDiskCache** — SHA-256 keyed disk cache with LRU eviction and WEBP compression
+- **ImageTransitionHelper** — Crossfade, fade-in, fade-out transitions for ImageViews
+- **ImageStorageHelper** — App-private storage for posters, backdrops, thumbnails with WEBP compression
+
+#### Tasks #351-360: Download Manager
+- **DownloadQueueManager** — Priority-based queue with pause/resume and concurrent download limits
+- **DownloadStorageChecker** — Available storage checking with low/critical storage detection
+- **DownloadResumeManager** — Resume point persistence with ETag/Last-Modified and 7-day expiry
+- **DownloadPolicyManager** — WiFi-only downloads, battery level checks, charging detection
+- **DownloadFileManager** — Download file path management, temp-to-final finalization, orphan cleanup
+- **DownloadProgressTracker** — Reactive progress tracking with speed/ETA/percent calculations
+- **DownloadHistoryManager** — Completed download history with JSON persistence and stats
+- **DownloadScheduler** — Intelligent scheduling based on network, charging, and battery level
+- **DownloadIntegrityChecker** — SHA-256/MD5 checksums, file size validation, video magic byte checking
+
+#### Tasks #361-370: Cast & External Display
+- **CastManager** — Unified casting interface (Chromecast/DLNA/AirPlay/Miracast) with device management
+- **CastDeviceDiscoverer** — Network device discovery with local IP detection and same-network validation
+- **CastSessionManager** — Cast session lifecycle with playback position, volume, and state tracking
+- **CastMediaController** — Media control API (play/pause/seek/volume/mute/next/previous/stop)
+- **ExternalDisplayManager** — External display detection, display modes, optimal resolution, screen-on
+- **CastRouteSelector** — Media route selection with registration, availability filtering, and management
+- **CastPreferences** — Auto-connect, last device, cast quality, and notification preferences
+- **CastVolumeController** — Volume management with smooth ramping, mute/unmute, and percentage display
+- **CastStateListener** — Callback-based cast state change notification system
+- **CastErrorHandler** — Cast error classification with user messages, retryability, and suggested actions
+
+#### Tasks #371-380: Widgets & Quick Actions
+- **ContinueWatchingWidget** — AppWidgetProvider for recently watched content on home screen
+- **FavoritesWidget** — AppWidgetProvider for favorite content on home screen
+- **QuickActionsHelper** — Launcher long-press shortcuts (Continue Watching, Search, Favorites, Downloads)
+- **WidgetConfigurationHelper** — Per-widget config (content type, refresh interval, max items, poster)
+- **WidgetUpdateScheduler** — Widget update scheduling with active widget detection
+- **WidgetDataProvider** — Data provider for widget display with RemoteViews population
+- **WidgetStateManager** — Widget state tracking with staleness detection and needs-update flags
+- **WidgetIntentHelper** — Widget intent creation/parsing for content, search, favorites, downloads, settings
+- **WidgetCompatibilityChecker** — Widget feature compatibility detection by Android API level
+- **WidgetRegistry** — Widget registration, discovery, and active widget ID tracking
+
+#### Tasks #381-390: Testing & QA
+- **TestFixtures** — Test data factories for content items, search results, playback states
+- **MockDataProvider** — Mock data for trending, favorites, continue watching, and search results
+- **TestAssertions** — Custom assertions (notEmpty, size, notBlank, inRange, sameElements, eventually)
+- **TestUtils** — Coroutine/Flow testing, random data generation, execution time measurement
+- **QaConfiguration** — QA mode with mock data, slow network, error injection rate, log level
+- **PerformanceBenchmark** — Benchmarking with iteration tracking, min/max/average times
+- **ErrorInjector** — Error injection with per-operation and global rates, and count tracking
+- **TestScenarioRunner** — Test scenario execution with step results, pass rate, and formatted output
+- **TestCoverageTracker** — Code path coverage tracking per module with uncovered path listing
+- **TestReportGenerator** — Test reports in text and JSON formats with full result aggregation
+
+#### Tasks #391-400: Deployment & CI/CD
+- **VersionManager** — Version info, semantic version parsing, comparison, and update checking
+- **BuildConfiguration** — Build type detection (debug/release/beta) and BuildConfig field access
+- **ReleaseNotesGenerator** — Release notes in text and markdown from changelog entries
+- **CiCdConfiguration** — CI environment detection, branch/commit/build extraction, tag detection
+- **UpdateChecker** — App update checking with version comparison and download URL generation
+- **FeatureGate** — Feature gating by build type, min version, and rollout percentage
+- **BuildVariantManager** — Build variant config with minification, debuggability, APK/AAB naming
+- **DeploymentValidator** — Pre-deployment validation with error/warning reporting
+- **SigningConfiguration** — APK/AAB signing from env vars with V1/V2/V3 signing and validation
+- **ReleasePipeline** — Pipeline step management with progress tracking and status reports
+
+#### Fixed
+- Removed duplicate `AnimationHelper` class from `ShimmerHelper.kt` (conflicted with standalone file)
+- Changed Room annotation processor from `kapt` to `ksp` for KSP compatibility
+
+#### New Packages
+- `accessibility/` — Accessibility helpers (TalkBack, font scale, reduced motion, TV focus)
+- `analytics/` — Analytics and diagnostics (event tracking, device info, crash handling, bug reports)
+- `architecture/` — Architecture foundations (EventBus, DI, state machines, base classes)
+- `cast/` — Cast and external display management
+- `deployment/` — Deployment and CI/CD utilities
+- `imageloading/` — Image loading, caching, and processing
+- `testing/` — Testing utilities, fixtures, and QA configuration
+- `widgets/` — Home screen widgets and quick actions
+
+---
+
 ## [1.9.0] - 2026-08-23
 
 ### Mega Update — Cloud Sync Audit, Provider Redesign, Release Signing, Database Integrity, Cache Reliability, Updater Overhaul

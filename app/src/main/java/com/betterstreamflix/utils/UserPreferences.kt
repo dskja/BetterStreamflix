@@ -112,6 +112,22 @@ object UserPreferences {
         get() = Key.CURRENT_LANGUAGE.getString()
         set(value) = Key.CURRENT_LANGUAGE.setString(value)
 
+    var appLanguage: String
+        get() = Key.CURRENT_LANGUAGE.getString() ?: "en"
+        set(value) = Key.CURRENT_LANGUAGE.setString(value)
+
+    var subtitleLanguage: String
+        get() = Key.SUBTITLE_NAME.getString() ?: "en"
+        set(value) = Key.SUBTITLE_NAME.setString(value)
+
+    var appLayout: String
+        get() = Key.APP_LAYOUT.getString() ?: "auto"
+        set(value) = Key.APP_LAYOUT.setString(value)
+
+    var providerUrl: String
+        get() = Key.PROVIDER_CACHE.getString() ?: ""
+        set(value) = Key.PROVIDER_CACHE.setString(value)
+
     var providerLanguage: String?
         get() = Key.PROVIDER_LANGUAGE.getString()
         set(value) = Key.PROVIDER_LANGUAGE.setString(value)
