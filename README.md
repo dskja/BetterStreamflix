@@ -1,163 +1,175 @@
 <h1 align="center">BetterStreamflix</h1>
 
 <p align="center">
-  <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" height="100px" />
-  <br />
-  <strong>⚡ Better Version</strong> - Actively maintained fork of Streamflix with more updates and fixes
-  <br />
-  An open-source Android TV and mobile app for educational streaming interface, made with Android Studio, in Kotlin
-  <br />
-  <a href="https://github.com/dskja/BetterStreamflix/releases/latest">
-    <strong>Download app »</strong>
-  </a>
-  <br />
-  <br />
-  <a href="https://github.com/dskja/BetterStreamflix/issues">Report Bug</a>
-  ·
-  <a href="https://github.com/dskja/BetterStreamflix/issues">Request Feature</a>
+  <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" height="110" alt="BetterStreamflix logo" />
 </p>
-
-<details>
-  <summary>Table of Contents</summary>
-
-- [About the project](#about-the-project)
-  - [What is BetterStreamflix?](#-what-is-betterstreamflix)
-  - [Features](#features)
-  - [Built with](#built-with)
-- [Getting started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Setup](#setup)
-- [Development](#development)
-- [Contributing](#contributing)
-- [Legal Disclaimer](#legal-disclaimer)
-- [Credits & Authors](#credits--authors)
-- [License](#license)
-</details>
-
-## About the project
 
 <p align="center">
-  <img src="./.github/docs/screenshot.png" alt="BetterStreamflix Preview">
+  <strong>A modern, actively maintained Streamflix fork for Android TV and Android mobile.</strong><br />
+  Fast fixes. Frequent improvements. Open source. No ads in the app interface.
 </p>
 
-**BetterStreamflix** is an actively maintained, improved fork of the Streamflix Reborn project. It keeps the same educational purpose while receiving regular updates, bug fixes and feature improvements.
+<p align="center">
+  <a href="https://github.com/dskja/BetterStreamflix/releases/latest"><strong>Download latest release</strong></a>
+  ·
+  <a href="#features">Features</a>
+  ·
+  <a href="https://github.com/dskja/BetterStreamflix/issues">Report a bug</a>
+  ·
+  <a href="https://github.com/dskja/BetterStreamflix/issues">Request a feature</a>
+  ·
+  <a href="./ROADMAP.md">Roadmap</a>
+</p>
 
-### ⚡ What is BetterStreamflix?
+<p align="center">
+  <img alt="GitHub stars" src="https://img.shields.io/github/stars/dskja/BetterStreamflix?style=flat-square" />
+  <img alt="GitHub release" src="https://img.shields.io/github/v/release/dskja/BetterStreamflix?style=flat-square" />
+  <img alt="License" src="https://img.shields.io/github/license/dskja/BetterStreamflix?style=flat-square" />
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/dskja/BetterStreamflix?style=flat-square" />
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Android-7F52FF?style=flat-square&logo=kotlin&logoColor=white" />
+</p>
 
-- **Active Fork**: A better, actively maintained fork of the Streamflix project
-- **More Updates**: Regular releases, fixes and new features
-- **Better Support**: Faster fixes and improvements
-- **Respectful Fork**: Built with full respect for the original creator's work
+---
 
+## Why BetterStreamflix?
 
-BetterStreamflix is an open-source Android TV and mobile app that provides a user interface for accessing publicly available streaming content from various third-party providers.
+BetterStreamflix exists for one simple reason: **keep the Streamflix experience moving forward**.
 
-This app is designed for educational purposes and personal use only. Users are responsible for ensuring they have proper authorization to access any content they view through this application.
+It is an actively maintained fork focused on reliability, Android TV usability, mobile support, provider resilience, cleaner architecture and faster fixes. The project preserves credit to the original creator while continuing development in the open.
 
-The interface aggregates content from multiple sources and provides a convenient way to browse available streaming options.
+### What you get
 
-### Features
+- **Active maintenance** — fixes and improvements are shipped continuously
+- **Android TV + mobile** — one project for couch and handheld use
+- **Ad-free interface** — no advertising layer added by BetterStreamflix
+- **Multiple providers** — browse content exposed by supported third-party sources
+- **Continue Watching** — playback position and watch-state persistence
+- **Smarter caching** — home caching, refresh logic and stale-cache fallback
+- **In-app updates** — update flow with download progress
+- **Open development** — public roadmap, changelog, issues and source code
 
-- Open-source and ad-free interface
-- Aggregates content from multiple third-party providers
-- No account required for the app interface
-- Educational and personal use only
-- Optimized UI & UX
-- Multiple providers
-- Resume from last playback position
-- In-app update with download progress
-- Smart home cache with 6-hour auto-refresh
-- Stale cache fallback when provider is unavailable
-- Continue Watching with proper DB + cache sync
+> BetterStreamflix does not host, store or distribute copyrighted media. It is an interface/aggregator for third-party sources and is intended for educational and personal use. Users are responsible for complying with applicable laws and source terms.
 
-### Built with
+## Preview
 
-- [Android Studio](https://developer.android.com/studio)
-- [Kotlin](https://kotlinlang.org)
-- [Retrofit](https://square.github.io/retrofit)
-- [ExoPlayer](https://exoplayer.dev)
-- Leanback
-- Coroutines
-- MVVM Architecture
-- Android Architecture Components
+<p align="center">
+  <img src="./.github/docs/screenshot.png" alt="BetterStreamflix interface preview" />
+</p>
 
+## Features
 
-## Getting started
+| Area | Highlights |
+| --- | --- |
+| Experience | Optimized TV/mobile UI, resume playback, Continue Watching |
+| Reliability | Provider fallbacks, cache recovery, clearer error handling work |
+| Updates | In-app updater, release automation, changelog-driven releases |
+| Performance | Memory/disk caching, request handling, image caching work |
+| Architecture | Kotlin, MVVM, coroutines, Room, Retrofit/OkHttp, modular helpers |
+| Quality | CI, PR checks, nightly builds, testing/QA infrastructure |
 
-### Prerequisites
+### In active development
 
-Install [Android Studio](https://developer.android.com/studio)
+The current development branch also contains ongoing work around:
 
-### Setup
+- download queue and resume infrastructure
+- cast/external-display support
+- Android widgets and quick actions
+- stronger network retry/error handling
+- database migrations and sync coordination
+- automated release/deployment tooling
+- broader testing and QA utilities
 
-1. Clone the project to your local machine
+See the full [CHANGELOG](./CHANGELOG.md) and [ROADMAP](./ROADMAP.md) for implementation details and upcoming work.
+
+## Quick start
+
+### Download the app
+
+Go to **[Releases](https://github.com/dskja/BetterStreamflix/releases/latest)** and install the APK that matches your device/build.
+
+> Android may ask you to allow installation from your browser or file manager because BetterStreamflix is distributed outside Google Play.
+
+### Build from source
+
+Requirements:
+
+- Android Studio
+- JDK 17
+- Android SDK configured locally
 
 ```bash
 git clone https://github.com/dskja/BetterStreamflix.git
+cd BetterStreamflix
 ```
 
-2. Open the project in Android Studio
+Open the project in Android Studio, create your local configuration from `local.properties.example`, select the desired device/layout and run the app.
 
-## Development
+## Built with
 
-1. Select the device that you want to run the app
-
-2. Click **Run**
+- Kotlin
+- Android Studio
+- Android Architecture Components
+- MVVM
+- Coroutines / Flow
+- Retrofit / OkHttp
+- Room
+- Media3 / ExoPlayer
+- Leanback
+- Supabase integration
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+BetterStreamflix is built in public. Contributions that improve stability, UX, provider resilience, accessibility, testing or documentation are welcome.
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a pull request
+1. Fork the repository
+2. Create a feature branch
+3. Make and test your change
+4. Commit with a clear message
+5. Open a pull request explaining what changed and why
 
-## Legal Disclaimer
+Good first contribution? Pick an open issue, reproduce it, and include device/Android-version details in your report.
 
-**IMPORTANT: This application is for educational and personal use only.**
+## Support the project
 
-- BetterStreamflix does not host, store, or distribute any copyrighted content
-- All content is sourced from third-party providers and websites
-- Users are solely responsible for ensuring they have legal rights to access any content
-- The developers do not endorse or encourage copyright infringement
-- Users must comply with all applicable laws in their jurisdiction
-- Any legal issues should be directed to the actual content providers
-- This app functions as a search engine aggregator only
-- No copyrighted material is stored on our servers
+The easiest ways to help are simple:
 
-## Legal Notice
+- ⭐ **Star the repository** so more Android/open-source users discover it
+- 🐛 **Report reproducible bugs** with useful details
+- 💡 **Suggest focused features** that improve the app
+- 🔧 **Submit pull requests** for fixes and improvements
+- 📣 **Share BetterStreamflix** with people interested in open-source Android TV projects
 
-This application is provided "as is" for educational purposes. The developers:
-- Do not claim ownership of any content
-- Do not profit from copyrighted material
-- Do not control third-party content providers
-- Encourage users to support content creators through legal means
-- Recommend using official streaming services when available
+## Project status
 
-## Credits & Authors
+BetterStreamflix is under active development. The codebase changes frequently and some experimental infrastructure may not yet be exposed as a finished end-user feature.
 
-### Original Creator
-- **[Lory-Stan TANASI](https://github.com/stantanasi)** - Original Streamflix project creator
-- **[dskja](https://github.com/dskja)** - BetterStreamflix maintainer
+Current source version: **1.9.0**.
 
-### Reborn Development
-- **BetterStreamflix Team** - Active maintainers and contributors
-- **Special thanks** to the original creator for the excellent foundation
+## Legal disclaimer
+
+**BetterStreamflix is provided for educational and personal use.**
+
+- The project does not host, store or distribute copyrighted content
+- Content availability depends on independent third-party providers
+- BetterStreamflix does not control those providers or their content
+- Users are responsible for ensuring they are authorized to access content
+- Users must comply with applicable laws and third-party terms in their jurisdiction
+- The project does not endorse copyright infringement
+- Official streaming services should be used when available and appropriate
+
+## Credits
+
+- **[Lory-Stan TANASI](https://github.com/stantanasi)** — original Streamflix creator
+- **[dskja](https://github.com/dskja)** — BetterStreamflix maintainer
+- **BetterStreamflix contributors** — fixes, testing, ideas and improvements
 
 ## License
 
-This project is licensed under the `Apache-2.0` License - see the [LICENSE](LICENSE) file for details
+Licensed under the **Apache License 2.0**. See [LICENSE](./LICENSE).
 
-### Original Project
-<p align="center">
-  <br />
-  © 2022 Lory-Stan TANASI. All rights reserved
-</p>
+---
 
-### Reborn Project
 <p align="center">
-  <br />
-  © 2025 BetterStreamflix. Built with respect for the original work.
+  <strong>If BetterStreamflix is useful to you, star the repository.</strong><br />
+  Stars help independent open-source projects get discovered.
 </p>
