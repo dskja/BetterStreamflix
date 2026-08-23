@@ -51,6 +51,7 @@ object AnimeWorldProvider : Provider {
         return try {
             block(service)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             val isSsl = e is SSLHandshakeException || e is CertPathValidatorException
             if (!isSsl) throw e
             rebuildServiceUnsafe()

@@ -272,7 +272,8 @@ object MkissaProvider : Provider {
                 name = name,
                 list = try {
                     block()
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     emptyList()
                 }
             )
@@ -280,7 +281,8 @@ object MkissaProvider : Provider {
 
         val dynamicTags = try {
             homeTags()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             fallbackHomeTags
         }
 

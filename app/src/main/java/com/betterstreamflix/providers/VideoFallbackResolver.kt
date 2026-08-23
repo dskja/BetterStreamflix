@@ -26,6 +26,7 @@ object VideoFallbackResolver {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 ProviderHealthMonitor.recordFailure(primaryProvider.name, e.message ?: "Unknown error")
             }
         }
@@ -41,6 +42,7 @@ object VideoFallbackResolver {
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     ProviderHealthMonitor.recordFailure(provider.name, e.message ?: "Unknown error")
                 }
             }
@@ -66,6 +68,7 @@ object VideoFallbackResolver {
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.Error(com.betterstreamflix.data.ErrorType.Unknown(e.message ?: "Extractor failed"))
         }
     }

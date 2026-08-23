@@ -173,6 +173,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
         return try {
             block(getService())
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             val isSsl = e is javax.net.ssl.SSLHandshakeException || e is java.security.cert.CertPathValidatorException
             if (!isSsl) throw e
             

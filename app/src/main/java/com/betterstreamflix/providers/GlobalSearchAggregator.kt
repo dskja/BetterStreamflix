@@ -38,6 +38,7 @@ object GlobalSearchAggregator {
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         ProviderHealthMonitor.recordFailure(provider.name, e.message ?: "Search failed")
                         GlobalSearchResult(
                             providerName = provider.name,
