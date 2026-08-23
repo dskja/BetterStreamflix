@@ -44,9 +44,14 @@ class VidsrcToExtractor : Extractor() {
 
         val keys = service.getKeys(key)
 
+        val encryptKey = keys.encrypt.firstOrNull()
+            ?: throw Exception("VidsrcTo: no encryption key available")
+        val decryptKey = keys.decrypt.firstOrNull()
+            ?: throw Exception("VidsrcTo: no decryption key available")
+
         val sources = service.getSources(
             mediaId,
-            token = encode(keys.encrypt[0], mediaId)
+            token = encode(encryptKey, mediaId)
         ).result
             ?: throw Exception("Can't retrieve sources")
 
@@ -55,9 +60,9 @@ class VidsrcToExtractor : Extractor() {
 
             val embedRes = service.getEmbedSource(
                 source.id,
-                token = encode(keys.encrypt[0], source.id)
+                token = encode(encryptKey, source.id)
             )
-            val finalUrl = decryptUrl(keys.decrypt[0], embedRes.result.url)
+            val finalUrl = decryptUrl(decryptKey, embedRes.result.url)
 
             if (finalUrl == embedRes.result.url) throw Exception("finalUrl == embedUrl")
 

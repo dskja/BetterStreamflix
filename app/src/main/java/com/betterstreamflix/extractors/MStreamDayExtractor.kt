@@ -28,7 +28,13 @@ class MStreamDayExtractor : Extractor() {
         val service = MStreamDayExtractorService.build(mainUrl, link)
         val source = service.getSource(link.replace(mainUrl, ""))
         val html = source.html()
-        var encodedSource = html.split("window.ADBLOCKER = false;\\n")[1].split("\");</script>")[0]
+        var encodedSource = try {
+            html.split("window.ADBLOCKER = false;\\n").getOrNull(1)
+                ?.split("\");</script>")?.getOrNull(0)
+                ?: throw Exception("MStreamDay: could not find encoded source")
+        } catch (e: IndexOutOfBoundsException) {
+            throw Exception("MStreamDay: could not parse encoded source from HTML")
+        }
 
         encodedSource = encodedSource.replace("\\u002b", "+")
         encodedSource = encodedSource.replace("\\u0027", "'")
@@ -53,8 +59,9 @@ class MStreamDayExtractor : Extractor() {
 
         if (decodedSource != null && decodedSource.contains("window.svg={\"stream\":\"")) {
             val urlEncoded = decodedSource
-                .split("window.svg={\"stream\":\"")[1]
-                .split("\",\"hash")[0]
+                .split("window.svg={\"stream\":\"").getOrNull(1)
+                ?.split("\",\"hash")?.getOrNull(0)
+                ?: throw Exception("MStreamDay: could not extract stream URL")
             val urlSigDecoded = sigDecode(urlEncoded)
             return Video(source = urlSigDecoded)
         }
@@ -62,7 +69,8 @@ class MStreamDayExtractor : Extractor() {
     }
 
     private fun sigDecode(url: String): String {
-        val sig = url.split("sig=")[1].split("&")[0]
+        val sig = url.split("sig=").getOrNull(1)?.split("&")?.getOrNull(0)
+            ?: throw Exception("MStreamDay: could not extract signature from URL")
         val sigChunkedXOR =
             sig.chunked(2).joinToString("") { (Integer.parseInt(it, 16) xor 2).toChar().toString() }
         val sigBase64Decoded = sigChunkedXOR.let {

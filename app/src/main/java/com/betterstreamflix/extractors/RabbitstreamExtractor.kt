@@ -122,6 +122,7 @@ open class RabbitstreamExtractor : Extractor() {
             var extractedKey = ""
             var currentIndex = 0
             for (index in rawKeys) {
+                if (index.size < 2) continue
                 val start = index[0] + currentIndex
                 val end = start + index[1]
                 for (i in start until end) {

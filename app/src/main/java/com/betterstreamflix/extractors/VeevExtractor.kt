@@ -119,6 +119,7 @@ open class VeevExtractor : Extractor() {
 
 
     private fun veevDecode(etext: String): String {
+        if (etext.isEmpty()) return ""
         val result = StringBuilder()
         val lut = mutableMapOf<Int, String>()
         var n = 256

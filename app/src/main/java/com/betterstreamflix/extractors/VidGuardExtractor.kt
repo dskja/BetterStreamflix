@@ -62,7 +62,8 @@ class VidGuardExtractor : Extractor() {
     }
 
     private fun sigDecode(url: String): String {
-        val sig = url.split("sig=")[1].split("&")[0]
+        val sig = url.split("sig=").getOrNull(1)?.split("&")?.getOrNull(0)
+            ?: throw Exception("VidGuard: could not extract signature from URL")
         val decodedSig = sig.chunked(2)
             .joinToString("") { (Integer.parseInt(it, 16) xor 2).toChar().toString() }
             .let {
