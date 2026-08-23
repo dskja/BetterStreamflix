@@ -53,6 +53,7 @@ object TmdbClient {
                 val response = fetchUrl(url)
                 response?.let { parseMetadata(it, "movie") }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
         }
@@ -68,6 +69,7 @@ object TmdbClient {
                 val response = fetchUrl(url)
                 response?.let { parseMetadata(it, "tv") }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
         }
@@ -98,6 +100,7 @@ object TmdbClient {
                 val url = "$BASE_URL/$endpoint?api_key=${getApiKey()}&$queryString"
                 fetchUrl(url)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 null
             }
         }
