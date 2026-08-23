@@ -89,6 +89,7 @@ object CableVisionHDProvider : IptvProvider {
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.e(CableVisionHDProvider.TAG, "Error procesando script de canales: ${e.message}")
                 }
             }
@@ -161,6 +162,7 @@ object CableVisionHDProvider : IptvProvider {
 
             categories
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "❌ ERROR CRÍTICO: ${e.message}")
             listOf(Category(name = "Soporte y Ayuda", list = listOf(getInfoItem("creador-info"), getInfoItem("apoyo-info"))))
         }
@@ -169,13 +171,19 @@ object CableVisionHDProvider : IptvProvider {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> = try {
         val allChannels = getTvShows(1)
         allChannels.filter { it.title.contains(query, ignoreCase = true) }
-    } catch (_: Exception) { emptyList() }
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        emptyList()
+    }
 
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()
 
     override suspend fun getTvShows(page: Int): List<TvShow> = try {
         parseChannels(service.getPage(baseUrl))
-    } catch (_: Exception) { emptyList() }
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        emptyList()
+    }
 
     override suspend fun getMovie(id: String): Movie = throw Exception("Not supported")
 
@@ -227,7 +235,10 @@ object CableVisionHDProvider : IptvProvider {
             seasons = listOf(Season(id, 1, "En Vivo", episodes = listOf(Episode(id, 1, "Directo", p)))),
             providerName = name
         )
-    } catch (_: Exception) { TvShow(id, "Error al cargar señal", providerName = name) }
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        TvShow(id, "Error al cargar señal", providerName = name)
+    }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> = listOf(Episode(seasonId, 1, "Señal en Directo"))
     override suspend fun getGenre(id: String, page: Int): Genre = throw Exception("Not supported")
@@ -251,7 +262,10 @@ object CableVisionHDProvider : IptvProvider {
         }
 
         servers.distinctBy { it.id }
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        emptyList()
+    }
 
     override suspend fun getVideo(server: Video.Server): Video {
         var currentUrl = server.id
@@ -309,13 +323,13 @@ object CableVisionHDProvider : IptvProvider {
                                         val innerEnc = dec.substringAfter("atob(\"").substringBefore("\")")
                                         dec = String(Base64.decode(innerEnc, Base64.DEFAULT))
                                     } else if (!dec.startsWith("http")) {
-                                        try { dec = String(Base64.decode(dec, Base64.DEFAULT)) } catch (_: Exception) {}
+                                        try { dec = String(Base64.decode(dec, Base64.DEFAULT)) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
                                     }
                                 }
                                 if (dec.startsWith("http")) {
                                     return Video(dec, headers = mapOf("Referer" to currentUrl, "User-Agent" to USER_AGENT))
                                 }
-                            } catch (_: Exception) {}
+                            } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
                         }
                     }
                 }
@@ -330,7 +344,10 @@ object CableVisionHDProvider : IptvProvider {
                 } else {
                     break
                 }
-            } catch (e: Exception) { break }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                break
+            }
         }
         return Video("", emptyList())
     }

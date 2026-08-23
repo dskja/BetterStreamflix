@@ -62,7 +62,7 @@ object Cine24hProvider : Provider {
             if (html.isNotEmpty() && !html.contains("cf-browser-verification") && !html.contains("Checking your browser") && !html.contains("Just a moment...")) {
                 return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
 
         // Se OkHttp fallisce o rileva blocco, passiamo SUBITO alla WebView
         Log.d(TAG, "[Provider] Launching WebView Bypass for $url")
@@ -95,6 +95,7 @@ object Cine24hProvider : Provider {
                 if (tvShows.isNotEmpty()) categories.add(Category("Estrenos de Series", tvShows)) 
                 
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "[Provider] Error loading home", e)
             }
         }
@@ -103,7 +104,7 @@ object Cine24hProvider : Provider {
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isBlank()) return listOf("accion", "animacion", "anime", "aventura", "belica", "ciencia-ficcion", "comedia", "crimen", "documental", "drama", "familia", "fantasia", "historia", "misterio", "musica", "romance", "suspense", "terror", "western").map { Genre(id = "category/$it/", name = it.replace("-", " ").replaceFirstChar { c -> c.uppercase() }) }
-        return try { parseShows(getDocument("$baseUrl/?s=${URLEncoder.encode(query, "UTF-8")}&paged=$page")) } catch (_: Exception) { emptyList() }
+        return try { parseShows(getDocument("$baseUrl/?s=${URLEncoder.encode(query, "UTF-8")}&paged=$page")) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
     }
 
     private fun parseShows(doc: Document): List<AppAdapter.Item> {
@@ -126,13 +127,13 @@ object Cine24hProvider : Provider {
         }.distinctBy { if (it is Movie) it.id else if (it is TvShow) it.id else "" }
     }
 
-    override suspend fun getMovies(page: Int): List<Movie> = try { parseShows(getDocument("$baseUrl/peliculas/page/$page")).filterIsInstance<Movie>() } catch (_: Exception) { emptyList() }
-    override suspend fun getTvShows(page: Int): List<TvShow> = try { parseShows(getDocument("$baseUrl/series/page/$page")).filterIsInstance<TvShow>() } catch (_: Exception) { emptyList() }
+    override suspend fun getMovies(page: Int): List<Movie> = try { parseShows(getDocument("$baseUrl/peliculas/page/$page")).filterIsInstance<Movie>() } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
+    override suspend fun getTvShows(page: Int): List<TvShow> = try { parseShows(getDocument("$baseUrl/series/page/$page")).filterIsInstance<TvShow>() } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
     
     override suspend fun getGenre(id: String, page: Int): Genre = try { 
         val shows = parseShows(getDocument("$baseUrl/${id}page/$page")).filterIsInstance<Show>()
         Genre(id = id, name = id.removePrefix("category/").removeSuffix("/").replaceFirstChar { it.uppercase() }, shows = shows) 
-    } catch (_: Exception) { Genre(id = id, name = "Error") }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; Genre(id = id, name = "Error") }
 
     override suspend fun getMovie(id: String): Movie = getDocument("$baseUrl/peliculas/$id").let { doc ->
         val info = doc.selectFirst(".TPost footer .Info, .Info")
@@ -159,7 +160,7 @@ object Cine24hProvider : Provider {
             val a = row.selectFirst(".MvTbTtl a, a") ?: return@mapNotNull null
             Episode(id = a.attr("abs:href"), number = row.selectFirst(".Num")?.text()?.toIntOrNull() ?: 0, title = a.text().trim(), poster = row.selectFirst(".MvTbImg img, img")?.attr("abs:src")?.replace("/w154/", "/w300/"), released = row.selectFirst(".MvTbTtl span")?.text())
         }?.sortedBy { it.number } ?: emptyList()
-    } catch (_: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> = try {
         val fullUrl = if (id.startsWith("http")) id else if (videoType is Video.Type.Movie) "$baseUrl/peliculas/$id" else "$baseUrl/series/$id"
@@ -172,7 +173,7 @@ object Cine24hProvider : Provider {
                     val info = el.selectFirst("button")?.text()?.replace(el.selectFirst(".nmopt")?.text() ?: "", "")?.trim() ?: ""
                     val dataSrc = el.attr("data-src")
                     val decoded = if (dataSrc.isNotEmpty()) {
-                        try { String(Base64.decode(dataSrc, Base64.DEFAULT)) } catch(_:Exception) { "" }
+                        try { String(Base64.decode(dataSrc, Base64.DEFAULT)) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; "" }
                     } else ""
                     if (decoded.isBlank()) return@async null
                     
@@ -183,11 +184,11 @@ object Cine24hProvider : Provider {
                             name = "${finalUrl.toHttpUrl().host.replace("www.", "").substringBefore(".")} ($info)", 
                             src = finalUrl
                         )
-                    } catch (_: Exception) { null }
+                    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null }
                 }
             }.mapNotNull { it.await() }
         }
-    } catch (_: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     private suspend fun getIframeOptimized(url: String): String? {
         try {
@@ -200,7 +201,7 @@ object Cine24hProvider : Provider {
                     return iframeUrl
                 }
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
         return getDocument(url).selectFirst("iframe")?.attr("abs:src")
     }
 
