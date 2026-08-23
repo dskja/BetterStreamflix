@@ -46,7 +46,7 @@ class AmazonDriveExtractor : Extractor() {
         val childrenJson = JsonParser.parseString(childrenResponse.use { it.string() }).asJsonObject
 
         val tempLink = childrenJson.getAsJsonArray("data")
-            ?.get(0)?.asJsonObject
+            ?.firstOrNull()?.asJsonObject
             ?.get("tempLink")?.asString
             ?: throw Exception("No tempLink found in data[0]")
 

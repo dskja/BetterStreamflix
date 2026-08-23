@@ -47,7 +47,9 @@ class HxfileExtractor : Extractor() {
                     decrypted.append((data[i].toInt() xor key[i % key.length].code).toChar())
                 }
                 unpacked = decrypted.toString()
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
         }
 
         val finalUrl = Regex("""sources[\s\S]*?["']?file["']?\s*[:=]\s*["']([^"']+)["']""")

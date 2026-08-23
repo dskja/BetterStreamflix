@@ -24,10 +24,11 @@ class DailymotionExtractor : Extractor() {
     override suspend fun extract(link: String): Video {
         val id = link.substringAfterLast("/").substringAfter("video=")
 
-        val service = Service.build(aliasUrls[0])
+        val baseUrl = aliasUrls.firstOrNull() ?: mainUrl
+        val service = Service.build(baseUrl)
         val response = service.getJson(
             id = id,
-            referer = "${aliasUrls[0]}/player/xtv3w.html?", 
+            referer = "$baseUrl/player/xtv3w.html?", 
             locale = Locale.getDefault().language,
             v1st = UUID.randomUUID().toString(),
             ts = (System.currentTimeMillis() / 1000).toString(),
@@ -37,13 +38,13 @@ class DailymotionExtractor : Extractor() {
         val json = JsonParser.parseString(response.use { it.string() }).asJsonObject
         val manifestUrl = json.getAsJsonObject("qualities")
             ?.getAsJsonArray("auto")
-            ?.get(0)?.asJsonObject
+            ?.firstOrNull()?.asJsonObject
             ?.get("url")?.asString
             ?: throw Exception("Manifest URL not found")
 
         return Video(
             source = manifestUrl,
-            headers = mapOf("Referer" to aliasUrls[0])
+            headers = mapOf("Referer" to (aliasUrls.firstOrNull() ?: mainUrl))
         )
     }
 

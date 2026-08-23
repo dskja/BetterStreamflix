@@ -105,7 +105,9 @@ class RpmvidExtractor : Extractor() {
                         v = tiktok?.getAsJsonObject("params")?.get("v")?.asString ?: ""
                         domain = tiktok?.get("domain")?.asString ?: ""
                     }
-                } catch (e: Exception) { }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
                 val tiktokPath = if (domain.isNotEmpty() && hlsTiktok.startsWith("/hls/")) {
                     hlsTiktok.replaceFirst("/hls/", "/hlsmod/$domain/")
                 } else hlsTiktok
