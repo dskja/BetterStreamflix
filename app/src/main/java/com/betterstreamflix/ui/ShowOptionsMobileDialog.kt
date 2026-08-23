@@ -223,6 +223,14 @@ class ShowOptionsMobileDialog(
                 checkProviderAndRun(episode) {
                     val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
 
+                    val updatedEpisode = episode.copy().apply {
+                        merge(episode)
+                        watchHistory = null
+                        isWatched = false
+                        watchedDate = null
+                    }
+                    AppDatabase.getInstance(context).episodeDao().save(updatedEpisode)
+
                     episode.tvShow?.let { tvShow ->
                         AppDatabase.getInstance(context).tvShowDao().setWatching(tvShow.id, false)
                     }
@@ -321,6 +329,8 @@ class ShowOptionsMobileDialog(
                     val updatedMovie = freshMovie.copy().apply {
                         merge(freshMovie)
                         watchHistory = null
+                        isWatched = false
+                        watchedDate = null
                     }
                     AppDatabase.getInstance(context).movieDao().save(updatedMovie)
                     UserDataCache.syncMovieToCache(context, provider, updatedMovie)
@@ -382,6 +392,41 @@ class ShowOptionsMobileDialog(
                 context.getString(R.string.option_show_favorite)
             }
             visibility = View.VISIBLE
+        }
+
+        binding.btnOptionShowWatched.visibility = View.GONE
+
+        binding.btnOptionProgramClear.apply {
+            setOnClickListener {
+                checkProviderAndRun(freshTvShow) {
+                    val provider = UserPreferences.currentProvider ?: return@checkProviderAndRun
+
+                    AppDatabase.getInstance(context).tvShowDao().setWatching(freshTvShow.id, false)
+
+                    val episodeDao = AppDatabase.getInstance(context).episodeDao()
+                    val episodes = episodeDao.getEpisodesByTvShowId(freshTvShow.id)
+                    for (ep in episodes) {
+                        if (ep.watchHistory != null) {
+                            val updatedEp = ep.copy().apply {
+                                merge(ep)
+                                watchHistory = null
+                                isWatched = false
+                                watchedDate = null
+                            }
+                            episodeDao.save(updatedEp)
+                            UserDataCache.removeEpisodeFromContinueWatching(context, provider, ep.id)
+                        }
+                    }
+                }
+
+                hide()
+            }
+
+            visibility = when {
+                freshTvShow.isWatching -> View.VISIBLE
+                database.episodeDao().hasAnyWatchHistoryForTvShow(freshTvShow.id) -> View.VISIBLE
+                else -> View.GONE
+            }
         }
     }
 }

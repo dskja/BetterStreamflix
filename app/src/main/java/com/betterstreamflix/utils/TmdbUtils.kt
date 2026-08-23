@@ -120,6 +120,19 @@ object TmdbUtils {
         } catch (_: Exception) { listOf() }
     }
 
+    suspend fun findPerson(name: String, language: String? = null): People? {
+        if (!UserPreferences.enableTmdb) return null
+        return try {
+            val results = TMDb3.Search.multi(name, language = language).results
+            val person = results.filterIsInstance<TMDb3.Person>().firstOrNull() ?: return null
+            People(
+                id = person.id.toString(),
+                name = person.name,
+                image = person.profilePath?.w500
+            )
+        } catch (_: Exception) { null }
+    }
+
     suspend fun getMovieAgeRating(title: String, year: Int? = null, language: String? = null): Int? {
         if (!UserPreferences.enableTmdb) return null
 
