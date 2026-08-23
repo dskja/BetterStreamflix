@@ -297,7 +297,7 @@ object AnimefenixProvider : Provider {
             val script = document.selectFirst("script:containsData(var tabsArray)") ?: return emptyList()
 
             val names = document.select(".episode-page__servers-list li a").map { a ->
-                a.select("span").last()?.text()?.trim().orEmpty()
+                a.select("span").lastOrNull()?.text()?.trim().orEmpty()
             }
 
             val urls = script.data()

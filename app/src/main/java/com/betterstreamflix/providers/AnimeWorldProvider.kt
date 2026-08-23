@@ -685,7 +685,7 @@ object AnimeWorldProvider : Provider {
     }
 
     private fun getCookieValue(document: Document): String{
-        val scriptContent = document.select("script").first()?.data();
+        val scriptContent = document.select("script").firstOrNull()?.data();
 
         if(scriptContent != null) {
             val pattern = Pattern.compile("""document\.cookie\s*=\s*"([^";]+)""")

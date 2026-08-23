@@ -311,7 +311,7 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
         val votenum = votes
             ?.select("span[id]")
-            ?.last()
+            ?.lastOrNull()
             ?.text()
             ?.toIntOrNull() ?: 0
 
