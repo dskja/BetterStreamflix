@@ -9,6 +9,11 @@
         android:title="@string/main_menu_home" />
 
     <item
+        android:id="@id/search"
+        android:icon="@drawable/ic_menu_search"
+        android:title="@string/main_menu_search" />
+
+    <item
         android:id="@id/movies"
         android:icon="@drawable/ic_menu_movie"
         android:title="@string/main_menu_movies" />

@@ -22,6 +22,7 @@ import com.betterstreamflix.utils.DnsResolver
 import com.betterstreamflix.utils.NetworkClient
 import com.betterstreamflix.utils.TmdbUtils
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.utils.format
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -529,9 +530,14 @@ object SerienStreamProvider : Provider {
         val document = getService().getPeople(id)
         val peopleName = document.selectFirst("h1 strong")?.text() ?: ""
         val tmdbPerson = if (peopleName.isNotBlank()) TmdbUtils.findPerson(peopleName, language = language) else null
+        val tmdbPersonDetails = tmdbPerson?.id?.toIntOrNull()?.let { TmdbUtils.getPersonDetails(it, language = language) }
         return People(id = id,
             name = peopleName,
-            image = tmdbPerson?.image,
+            image = tmdbPersonDetails?.image ?: tmdbPerson?.image,
+            biography = tmdbPersonDetails?.biography,
+            placeOfBirth = tmdbPersonDetails?.placeOfBirth,
+            birthday = tmdbPersonDetails?.birthday?.format("yyyy-MM-dd"),
+            deathday = tmdbPersonDetails?.deathday?.format("yyyy-MM-dd"),
             filmography = document.select("div.row.g-3 > div").map {
                 TvShow(
                     id = it.selectFirst("a")?.attr("href")?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",

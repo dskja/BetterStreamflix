@@ -51,7 +51,7 @@ object TmdbUtils {
                 banner = details.backdropPath?.original,
                 imdbId = details.externalIds?.imdbId,
                 genres = details.genres.map { Genre(it.id.toString(), it.name) },
-                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
+                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.original) } ?: listOf(),
             )
         } catch (_: Exception) { null }
     }
@@ -91,11 +91,11 @@ object TmdbUtils {
                         id = "${details.id}-${it.seasonNumber}",
                         number = it.seasonNumber,
                         title = it.name,
-                        poster = it.posterPath?.w500,
+                        poster = it.posterPath?.original,
                     )
                 },
                 genres = details.genres.map { Genre(it.id.toString(), it.name) },
-                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
+                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.original) } ?: listOf(),
             )
         } catch (_: Exception) { null }
     }
@@ -128,7 +128,23 @@ object TmdbUtils {
             People(
                 id = person.id.toString(),
                 name = person.name,
-                image = person.profilePath?.w500
+                image = person.profilePath?.original
+            )
+        } catch (_: Exception) { null }
+    }
+
+    suspend fun getPersonDetails(personId: Int, language: String? = null): People? {
+        if (!UserPreferences.enableTmdb) return null
+        return try {
+            val details = TMDb3.People.details(personId, language = language)
+            People(
+                id = details.id.toString(),
+                name = details.name,
+                image = details.profilePath?.original,
+                biography = details.biography,
+                placeOfBirth = details.placeOfBirth,
+                birthday = details.birthday,
+                deathday = details.deathday,
             )
         } catch (_: Exception) { null }
     }
@@ -196,7 +212,7 @@ object TmdbUtils {
                 banner = details.backdropPath?.original,
                 imdbId = details.externalIds?.imdbId,
                 genres = details.genres.map { Genre(it.id.toString(), it.name) },
-                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
+                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.original) } ?: listOf(),
             )
         } catch (_: Exception) { null }
     }
@@ -253,11 +269,11 @@ object TmdbUtils {
                         id = "${details.id}-${it.seasonNumber}",
                         number = it.seasonNumber,
                         title = it.name,
-                        poster = it.posterPath?.w500,
+                        poster = it.posterPath?.original,
                     )
                 },
                 genres = details.genres.map { Genre(it.id.toString(), it.name) },
-                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.w500) } ?: listOf(),
+                cast = details.credits?.cast?.map { People(it.id.toString(), it.name, it.profilePath?.original) } ?: listOf(),
             )
         } catch (_: Exception) { null }
     }

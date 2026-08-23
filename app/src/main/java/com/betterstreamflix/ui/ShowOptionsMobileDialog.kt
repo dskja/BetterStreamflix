@@ -345,6 +345,18 @@ class ShowOptionsMobileDialog(
                 else -> View.GONE
             }
         }
+
+        binding.btnOptionRemoveRecentlyWatched.apply {
+            setOnClickListener {
+                AppDatabase.getInstance(context).movieDao().clearRecentlyWatched(freshMovie.id)
+                hide()
+            }
+
+            visibility = when {
+                freshMovie.lastPlayedAtMillis != null -> View.VISIBLE
+                else -> View.GONE
+            }
+        }
     }
 
     private fun displayTvShow(tvShow: TvShow) {
@@ -425,6 +437,18 @@ class ShowOptionsMobileDialog(
             visibility = when {
                 freshTvShow.isWatching -> View.VISIBLE
                 database.episodeDao().hasAnyWatchHistoryForTvShow(freshTvShow.id) -> View.VISIBLE
+                else -> View.GONE
+            }
+        }
+
+        binding.btnOptionRemoveRecentlyWatched.apply {
+            setOnClickListener {
+                AppDatabase.getInstance(context).tvShowDao().clearRecentlyWatched(freshTvShow.id)
+                hide()
+            }
+
+            visibility = when {
+                freshTvShow.lastPlayedAtMillis != null -> View.VISIBLE
                 else -> View.GONE
             }
         }

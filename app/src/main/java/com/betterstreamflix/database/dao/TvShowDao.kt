@@ -51,6 +51,9 @@ interface TvShowDao {
     @Query("UPDATE tv_shows SET lastPlayedAtMillis = :playedAtMillis, lastPlayedEpisodeId = :episodeId WHERE id = :id")
     fun markRecentlyWatched(id: String, episodeId: String, playedAtMillis: Long): Int
 
+    @Query("UPDATE tv_shows SET lastPlayedAtMillis = NULL, lastPlayedEpisodeId = NULL WHERE id = :id")
+    fun clearRecentlyWatched(id: String): Int
+
     @Query("SELECT * FROM tv_shows WHERE poster IS NULL or poster = ''")
     suspend fun getAllWithNullPoster(): List<TvShow>
 

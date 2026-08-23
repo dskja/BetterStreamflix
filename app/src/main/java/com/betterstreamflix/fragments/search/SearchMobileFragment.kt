@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
@@ -131,6 +132,10 @@ class SearchMobileFragment : Fragment() {
     }
 
     private fun initializeSearch() {
+        binding.btnSearchBack.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
         val isIptv = UserPreferences.currentProvider is IptvProvider
         val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
         binding.etSearch.hint = getString(hintStringRes)

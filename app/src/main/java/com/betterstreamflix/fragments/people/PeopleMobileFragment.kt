@@ -159,6 +159,8 @@ class PeopleMobileFragment : Fragment() {
                     Glide.with(context)
                         .load(people.image ?: args.image)
                         .placeholder(R.drawable.ic_person_placeholder)
+                        .error(R.drawable.ic_person_placeholder)
+                        .fallback(R.drawable.ic_person_placeholder)
                         .centerCrop()
                         .transition(DrawableTransitionOptions.withCrossFade())
                         .into(this)
@@ -195,16 +197,18 @@ class PeopleMobileFragment : Fragment() {
                 binding.tvPeopleBiographyReadMore.apply {
                     setOnClickListener {
                         binding.tvPeopleBiography.maxLines = Int.MAX_VALUE
-                        binding.tvPeopleBiographyReadMore.visibility = View.GONE
+                        visibility = View.GONE
                     }
 
-                    binding.tvPeopleBiography.post {
-                        if (_binding == null) return@post
-                        visibility = when {
-                            binding.tvPeopleBiography.lineCount > 7 -> View.VISIBLE
-                            else -> View.GONE
+                    binding.tvPeopleBiography.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                        override fun onGlobalLayout() {
+                            binding.tvPeopleBiography.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                            visibility = when {
+                                binding.tvPeopleBiography.lineCount > 7 -> View.VISIBLE
+                                else -> View.GONE
+                            }
                         }
-                    }
+                    })
                 }
 
                 binding.gPeopleBiography.visibility = when {
