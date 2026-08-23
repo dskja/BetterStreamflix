@@ -23,7 +23,7 @@ object PlaybackSpeedHelper {
      */
     fun getNextSpeed(currentSpeed: Float): Float {
         val next = SPEED_PRESETS.firstOrNull { it > currentSpeed }
-        return next ?: SPEED_PRESETS.last()
+        return next ?: SPEED_PRESETS.lastOrNull() ?: currentSpeed
     }
 
     /**
@@ -31,7 +31,7 @@ object PlaybackSpeedHelper {
      */
     fun getPreviousSpeed(currentSpeed: Float): Float {
         val prev = SPEED_PRESETS.lastOrNull { it < currentSpeed }
-        return prev ?: SPEED_PRESETS.first()
+        return prev ?: SPEED_PRESETS.firstOrNull() ?: currentSpeed
     }
 
     /**

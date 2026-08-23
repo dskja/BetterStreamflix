@@ -21,7 +21,7 @@ class SaveFilesExtractor: Extractor() {
             throw Exception("File code not found in URL")
         }
         
-        val fileCode = pathParts.last().split("?")[0].trim()
+        val fileCode = (pathParts.lastOrNull() ?: "").split("?")[0].trim()
         if (fileCode.isEmpty()) {
             throw Exception("File code not found in URL")
         }

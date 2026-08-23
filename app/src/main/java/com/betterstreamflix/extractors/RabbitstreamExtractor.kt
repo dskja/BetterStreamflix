@@ -84,7 +84,7 @@ open class RabbitstreamExtractor : Extractor() {
 
             val response = service.getSources(
                 url = "$hostUrl$embedPath/getSources",
-                id = httpUrl.pathSegments.last(),
+                id = httpUrl.pathSegments.lastOrNull() ?: "",
                 token = token,
                 referer = link,
             )

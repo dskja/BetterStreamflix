@@ -24,7 +24,7 @@ open class ChillxExtractor : Extractor() {
             ?.groupValues?.get(1)
             ?: throw Exception("Can't retrieve content")
 
-        val key = service.getKeys().chillx[0]
+        val key = service.getKeys().chillx.firstOrNull() ?: throw Exception("No chillx key found")
 
         val decrypt = AesHelper.cryptoAESHandler(
             content,
