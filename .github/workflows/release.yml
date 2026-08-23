@@ -150,21 +150,25 @@ jobs:
         id: changelog
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          # Extract the section matching this version from CHANGELOG.md
-          # Format: ## [1.8.2] - date
+          # Extract ONLY the section matching this version from CHANGELOG.md.
+          # Stops exactly at the next ## [VERSION] header.
           NOTES=$(awk -v ver="$VERSION" '
-            /^## \[/ { 
-              gsub(/\[|\]/, "", $2)
-              if ($2 == ver) { found=1; next }
-              if (found) { found=0 }
+            BEGIN { found=0 }
+            /^## \[/ {
+              # Extract version from header like "## [1.9.0] - date"
+              header = $0
+              sub(/^## \[/, "", header)
+              sub(/\].*$/, "", header)
+              if (found == 1) { exit }
+              if (header == ver) { found=1; next }
             }
-            found { print }
-          ' CHANGELOG.md | sed '/^$/d; /^## \[Unreleased\]/,$d')
+            found == 1 { print }
+          ' CHANGELOG.md | sed '/^$/d')
           if [ -z "$NOTES" ]; then
             NOTES="Release $VERSION"
           fi
           # Write to file to preserve multiline
-          echo "$NOTES" > /tmp/release_notes.md
+          printf '%s\n' "$NOTES" > /tmp/release_notes.md
           echo "Extracted release notes:"
           cat /tmp/release_notes.md
 
