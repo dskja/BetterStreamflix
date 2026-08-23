@@ -56,6 +56,7 @@ class PaginationState<T>(
             }
             currentPage++
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             _error.value = e
         } finally {
             _isLoading.value = false

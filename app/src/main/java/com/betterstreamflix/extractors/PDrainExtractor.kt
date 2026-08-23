@@ -30,6 +30,7 @@ class PDrainExtractor : Extractor() {
             )
 
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             throw Exception("PDrainExtractor failed: ${e.message}", e)
         }
     }

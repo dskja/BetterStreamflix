@@ -33,6 +33,7 @@ class VidGuardExtractor : Extractor() {
         val pageHtml = try {
             service.get(link)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             // A veces la URL viene sin el protocolo https
             service.get("https:$link")
         }

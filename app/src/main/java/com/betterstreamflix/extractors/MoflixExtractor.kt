@@ -71,6 +71,7 @@ class MoflixExtractor : Extractor() {
                 try {
                     Service.build(mainUrl).getPlayback(link, referer = "$mainUrl/watch/$videoId").src ?: ""
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     ""
                 }
             } else {
