@@ -54,6 +54,7 @@ object FlixLatamProvider : Provider {
 
             categories
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("FlixLatamProvider", "Error en getHome: ${e.message}")
             emptyList()
         }
@@ -79,6 +80,7 @@ object FlixLatamProvider : Provider {
             val document = service.getPage(url, baseUrl)
             parseShows(document.select("article.item, div.result-item article, .items article"))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("FlixLatamProvider", "Error en search: ${e.message}")
             emptyList()
         }
@@ -90,6 +92,7 @@ object FlixLatamProvider : Provider {
             val document = service.getPage(url, baseUrl)
             parseShows(document.select("div.items article")).filterIsInstance<Movie>()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("FlixLatamProvider", "Error en getMovies: ${e.message}")
             emptyList()
         }
@@ -101,6 +104,7 @@ object FlixLatamProvider : Provider {
             val document = service.getPage(url, baseUrl)
             parseShows(document.select("div.items article")).filterIsInstance<TvShow>()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("FlixLatamProvider", "Error en getTvShows: ${e.message}")
             emptyList()
         }
@@ -114,6 +118,7 @@ object FlixLatamProvider : Provider {
             val genreName = document.selectFirst("header h1")?.text()?.substringAfter("Genero:")?.trim()?.replaceFirstChar { it.uppercase() } ?: ""
             Genre(id = id, name = genreName, shows = shows)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = id.replaceFirstChar { it.uppercase() })
         }
     }
@@ -136,6 +141,7 @@ object FlixLatamProvider : Provider {
                 recommendations = parseShows(document.select("#single_relacionados article"))
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Movie(id = id, title = "Error al cargar")
         }
     }
@@ -168,6 +174,7 @@ object FlixLatamProvider : Provider {
                 seasons = seasons
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             TvShow(id = id, title = "Error al cargar")
         }
     }
@@ -199,6 +206,7 @@ object FlixLatamProvider : Provider {
                 )
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("FlixLatamProvider", "Error en getEpisodesBySeason: ${e.message}", e)
             emptyList()
         }
@@ -225,6 +233,7 @@ object FlixLatamProvider : Provider {
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("FlixLatamProvider", "Error en getServers: ${e.message}", e)
         }
         return servers.distinctBy { it.id }
@@ -255,6 +264,7 @@ object FlixLatamProvider : Provider {
             cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(aesKey, "AES"), IvParameterSpec(iv))
             String(cipher.doFinal(cipherText), Charsets.UTF_8)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -263,7 +273,10 @@ object FlixLatamProvider : Provider {
         val servers = mutableListOf<Video.Server>()
         val embedDocument = try { 
             service.getEmbedPage(embedUrl, mapOf("Referer" to baseUrl)) 
-        } catch (e: Exception) { return emptyList() }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            return emptyList()
+        }
         
         val embedHtml = embedDocument.html()
 
@@ -278,6 +291,7 @@ object FlixLatamProvider : Provider {
                 aesKey = solvePoW(challenge, difficulty, salt)
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             // PoW solving error
         }
 
@@ -309,7 +323,10 @@ object FlixLatamProvider : Provider {
                     }
                 })
             }
-        } catch (e: Exception) { /* JSON error - continue to other methods */ }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            /* JSON error - continue to other methods */
+        }
         
         // 2. go_to_playerVast Case
         try {
@@ -336,7 +353,10 @@ object FlixLatamProvider : Provider {
                     Video.Server(id = resolvedUrl, name = serverName)
                 }
             )
-        } catch (e: Exception) { /* DOM error - continue */ }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            /* DOM error - continue */
+        }
 
         // 3. Direct Iframe Case
         try {
@@ -356,7 +376,10 @@ object FlixLatamProvider : Provider {
                     servers.add(Video.Server(id = resolvedSrc, name = name))
                 }
             }
-        } catch (e: Exception) { /* Fallback error */ }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            /* Fallback error */
+        }
 
         return servers
     }
@@ -471,6 +494,7 @@ object FlixLatamProvider : Provider {
             if (valueEnd == -1) return null
             payloadJson.substring(valueStart, valueEnd)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
