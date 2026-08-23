@@ -53,6 +53,10 @@ android {
         }
     }
 
+    dexOptions {
+        javaMaxHeapSize "4g"
+    }
+
     sourceSets {
         main {
             def appLayout = properties.getProperty("APP_LAYOUT")
