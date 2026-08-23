@@ -108,9 +108,14 @@ class EpisodeViewHolder(
 
         binding.ivEpisodePoster.apply {
             clipToOutline = true
+            val posterUrl = episode.poster
+                ?: episode.season?.poster
+                ?: episode.tvShow?.banner
+                ?: episode.tvShow?.poster
             Glide.with(context)
-                .load(episode.poster)
+                .load(posterUrl)
                 .error(R.drawable.glide_fallback_cover)
+                .fallback(R.drawable.glide_fallback_cover)
                 .centerCrop()
                 .transition(DrawableTransitionOptions.withCrossFade())
                 .into(this)
@@ -121,7 +126,7 @@ class EpisodeViewHolder(
             val watchHistory = episode.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 episode.isWatched -> 100
                 else -> 0
             }
@@ -216,8 +221,12 @@ class EpisodeViewHolder(
 
         binding.ivEpisodePoster.apply {
             clipToOutline = true
+            val posterUrl = episode.poster
+                ?: episode.season?.poster
+                ?: episode.tvShow?.banner
+                ?: episode.tvShow?.poster
             Glide.with(context)
-                .load(episode.poster)
+                .load(posterUrl)
                 .error(R.drawable.glide_fallback_cover)
                 .fallback(R.drawable.glide_fallback_cover)
                 .centerCrop()
@@ -230,7 +239,7 @@ class EpisodeViewHolder(
             val watchHistory = episode.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 episode.isWatched -> 100
                 else -> 0
             }
@@ -331,7 +340,7 @@ class EpisodeViewHolder(
             val watchHistory = episode.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -450,7 +459,7 @@ class EpisodeViewHolder(
             val watchHistory = episode.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 episode.isWatched -> 100
                 else -> 0
             }

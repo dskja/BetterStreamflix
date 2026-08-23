@@ -562,6 +562,8 @@ class TvShowViewHolder(
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {
         binding.ivSwiperBackground.loadTvShowBanner(tvShow) {
+            error(R.drawable.glide_fallback_cover)
+            fallback(R.drawable.glide_fallback_cover)
             centerCrop().transition(DrawableTransitionOptions.withCrossFade())
         }
         binding.tvSwiperTitle.text = tvShow.title
@@ -705,18 +707,23 @@ class TvShowViewHolder(
         binding.pbTvShowProgressEpisode.apply {
             val watchHistory = episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
-            isVisible = watchHistory != null
+            isVisible = episodeToWatch != null && watchHistory != null
         }
 
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
             setOnClickListener {
-                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer)
+                if (!trailer.isNullOrBlank()) {
+                    handleTrailerClick(trailer)
+                } else {
+                    val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode("${tvShow.title} trailer", "UTF-8")}"
+                    handleTrailerClick(searchUrl)
+                }
             }
-            isVisible = !trailer.isNullOrBlank()
+            isVisible = true
         }
 
         binding.btnTvShowFavorite.apply {
@@ -840,18 +847,23 @@ class TvShowViewHolder(
         binding.pbTvShowProgressEpisode.apply {
             val watchHistory = episodeToWatch?.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
-            isVisible = watchHistory != null
+            isVisible = episodeToWatch != null && watchHistory != null
         }
 
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
             setOnClickListener {
-                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer)
+                if (!trailer.isNullOrBlank()) {
+                    handleTrailerClick(trailer)
+                } else {
+                    val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode("${tvShow.title} trailer", "UTF-8")}"
+                    handleTrailerClick(searchUrl)
+                }
             }
-            isVisible = !trailer.isNullOrBlank()
+            isVisible = true
         }
 
         binding.btnTvShowFavorite.apply {

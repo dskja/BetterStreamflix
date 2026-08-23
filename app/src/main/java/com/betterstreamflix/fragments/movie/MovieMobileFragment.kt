@@ -128,7 +128,9 @@ class MovieMobileFragment : Fragment() {
             movie.takeIf { it.recommendations.isNotEmpty() }
                 ?.copy()
                 ?.apply { itemType = AppAdapter.Type.MOVIE_RECOMMENDATIONS_MOBILE },
-        ))
+        )) {
+            binding.rvMovie.scrollToPosition(0)
+        }
     }
 }
 

@@ -43,6 +43,7 @@ class CategoryViewHolder(
     private val context = itemView.context
     private lateinit var category: Category
     private val swiperHandler = Handler(Looper.getMainLooper())
+    private var swiperPageCallback: ViewPager2.OnPageChangeCallback? = null
 
     val childRecyclerView: RecyclerView?
         get() = when (_binding) {
@@ -58,6 +59,11 @@ class CategoryViewHolder(
 
     fun clearSwiperCallbacks() {
         swiperHandler.removeCallbacksAndMessages(null)
+        swiperPageCallback?.let { callback ->
+            (_binding as? ContentCategorySwiperMobileBinding)?.vpCategorySwiper
+                ?.unregisterOnPageChangeCallback(callback)
+        }
+        swiperPageCallback = null
     }
 
     fun bind(
@@ -138,25 +144,26 @@ class CategoryViewHolder(
         binding.tvCategoryTitle.text = category.name
         val swiper = binding.vpCategorySwiper
         swiperHandler.removeCallbacksAndMessages(null)
-        swiperHandler.postDelayed(8_000) {
-            if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
-                swiper.currentItem += 1
-            }
-        }
 
         val items = listOf(
             listOfNotNull(category.list.lastOrNull()),
             category.list,
             listOfNotNull(category.list.firstOrNull()),
         ).flatten()
+
+        // Unregister any existing page callback to prevent stacking
+        val existingCallback = swiperPageCallback
+        if (existingCallback != null) {
+            swiper.unregisterOnPageChangeCallback(existingCallback)
+        }
+
         binding.vpCategorySwiper.apply {
             adapter = AppAdapter().apply {
                 this.onMovieClickListener = onMovieClick
                 this.onTvShowClickListener = onTvShowClick
                 this.onMovieLongClickListener = onMovieLongClick
                 this.onTvShowLongClickListener = onTvShowLongClick
-                submitList(category.list)
-                post { (adapter as? AppAdapter)?.submitList(items) }
+                submitList(items)
             }
         }
 
@@ -173,7 +180,7 @@ class CategoryViewHolder(
             }
         }
 
-        binding.vpCategorySwiper.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+        val pageCallback = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 val indicatorPosition = when (position) {
                     0 -> category.list.lastIndex
@@ -206,7 +213,16 @@ class CategoryViewHolder(
                     }
                 }
             }
-        })
+        }
+        swiperPageCallback = pageCallback
+        binding.vpCategorySwiper.registerOnPageChangeCallback(pageCallback)
+
+        // Start auto-scroll
+        swiperHandler.postDelayed(8_000) {
+            if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                swiper.currentItem += 1
+            }
+        }
     }
 
     private fun displayTvSwiper(binding: ContentCategorySwiperTvBinding) {

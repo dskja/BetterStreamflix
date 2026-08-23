@@ -678,6 +678,8 @@ class MovieViewHolder(
 
     private fun displaySwiperMobileItem(binding: ItemCategorySwiperMobileBinding) {
         binding.ivSwiperBackground.loadMovieBanner(movie) {
+            error(R.drawable.glide_fallback_cover)
+            fallback(R.drawable.glide_fallback_cover)
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
@@ -839,9 +841,14 @@ class MovieViewHolder(
         binding.btnMovieTrailer.apply {
             val trailer = movie.trailer
             setOnClickListener {
-                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer, "MovieMobile")
+                if (!trailer.isNullOrBlank()) {
+                    handleTrailerClick(trailer, "MovieMobile")
+                } else {
+                    val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode("${movie.title} trailer", "UTF-8")}"
+                    handleTrailerClick(searchUrl, "MovieMobile")
+                }
             }
-            visibility = if (!trailer.isNullOrBlank()) View.VISIBLE else View.GONE
+            visibility = View.VISIBLE
         }
 
         binding.btnMovieFavorite.apply {
@@ -968,9 +975,14 @@ class MovieViewHolder(
         binding.btnMovieTrailer.apply {
             val trailer = movie.trailer
             setOnClickListener {
-                if (!trailer.isNullOrBlank()) handleTrailerClick(trailer, "MovieTv")
+                if (!trailer.isNullOrBlank()) {
+                    handleTrailerClick(trailer, "MovieTv")
+                } else {
+                    val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode("${movie.title} trailer", "UTF-8")}"
+                    handleTrailerClick(searchUrl, "MovieTv")
+                }
             }
-            visibility = if (!trailer.isNullOrBlank()) View.VISIBLE else View.GONE
+            visibility = View.VISIBLE
         }
 
         binding.btnMovieFavorite.apply {

@@ -6,27 +6,102 @@
     android:layout_height="match_parent"
     tools:context=".fragments.season.SeasonMobileFragment">
 
+    <ImageView
+        android:id="@+id/btn_season_back"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="8dp"
+        android:src="@drawable/ic_back"
+        android:tint="?android:attr/textColorPrimary"
+        android:elevation="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="ContentDescription,UseAppTint" />
+
     <TextView
         android:id="@+id/tv_season_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="10dp"
-        android:gravity="center"
-        android:textColor="#FFFFFF"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="12dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="?android:attr/textColorPrimary"
         android:textSize="20sp"
         android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/btn_season_dropdown"
+        app:layout_constraintStart_toEndOf="@id/btn_season_back"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Staffel 1" />
+
+    <ImageView
+        android:id="@+id/btn_season_dropdown"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginEnd="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_arrow_down"
+        android:tint="?android:attr/textColorSecondary"
+        app:layout_constraintBottom_toBottomOf="@id/tv_season_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tv_season_title"
+        tools:ignore="ContentDescription,UseAppTint" />
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/et_season_search"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_provider_search_bar"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="10dp"
+        android:drawableTint="?android:attr/textColorSecondary"
+        android:hint="@string/search_episodes"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textColorHint="?android:attr/textColorSecondary"
+        android:textSize="14sp"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:text="Season #" />
+        app:layout_constraintTop_toBottomOf="@id/tv_season_title"
+        tools:ignore="Autofill" />
+
+    <ImageView
+        android:id="@+id/btn_season_search"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_search"
+        android:tint="?android:attr/textColorSecondary"
+        app:layout_constraintBottom_toBottomOf="@id/tv_season_title"
+        app:layout_constraintEnd_toStartOf="@id/btn_season_dropdown"
+        app:layout_constraintTop_toTopOf="@id/tv_season_title"
+        tools:ignore="ContentDescription,UseAppTint" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_episodes"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="vertical"
@@ -35,7 +110,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_season_title"
+        app:layout_constraintTop_toBottomOf="@id/et_season_search"
         tools:listitem="@layout/item_episode_mobile" />
 
     <include
