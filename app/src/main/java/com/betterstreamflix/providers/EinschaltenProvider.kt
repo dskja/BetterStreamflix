@@ -97,6 +97,7 @@ object EinschaltenProvider : Provider {
                 ""
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             ""
         }
     }
@@ -110,6 +111,7 @@ object EinschaltenProvider : Provider {
                 null
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }
@@ -158,6 +160,7 @@ object EinschaltenProvider : Provider {
                 categories.add(Category(name = "Zuletzt hinzugefügte Filme", list = addedMovies))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
         }
 
         return categories
@@ -185,6 +188,7 @@ object EinschaltenProvider : Provider {
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 return emptyList()
             }
         }
@@ -206,6 +210,7 @@ object EinschaltenProvider : Provider {
             
             return parseMoviesFromJsonArray(moviesArray)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
     }
@@ -223,6 +228,7 @@ object EinschaltenProvider : Provider {
             
             return parseMoviesFromJsonArray(moviesArray)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return emptyList()
         }
     }
@@ -304,6 +310,7 @@ object EinschaltenProvider : Provider {
                 }
             } ?: ""
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             ""
         }
         
@@ -320,6 +327,7 @@ object EinschaltenProvider : Provider {
             
             return Genre(id = id, name = genreName, shows = movies)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return Genre(id = id, name = genreName, shows = emptyList())
         }
     }
