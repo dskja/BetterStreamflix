@@ -126,6 +126,7 @@ object CineCalidadProvider : Provider {
                 categories
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -161,6 +162,7 @@ object CineCalidadProvider : Provider {
             val searchResults = parseShows(document.select("article.item[id^=post-]"))
             searchResults
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -171,6 +173,7 @@ object CineCalidadProvider : Provider {
             parseShows(document.select("article.item[id^=post-]"))
                 .filterIsInstance<Movie>()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -181,6 +184,7 @@ object CineCalidadProvider : Provider {
             parseShows(document.select("article.item[id^=post-]"))
                 .filterIsInstance<TvShow>()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -336,6 +340,7 @@ object CineCalidadProvider : Provider {
                     )
                 }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             emptyList()
         }
     }
@@ -359,6 +364,7 @@ object CineCalidadProvider : Provider {
                 shows = shows
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Genre(id = id, name = "Error", shows = emptyList())
         }
     }
@@ -390,6 +396,7 @@ object CineCalidadProvider : Provider {
                 filmography = filmographyShows
             )
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             People(id = id, name = "", filmography = emptyList())
         }
     }

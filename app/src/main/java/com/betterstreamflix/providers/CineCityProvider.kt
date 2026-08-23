@@ -65,6 +65,7 @@ object CineCityProvider : IptvProvider {
             val parts = decoded.split("|")
             Triple(parts[0], parts[1], parts.getOrNull(2) ?: "")
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Triple(id, "Canal Desconocido", "")
         }
     }
@@ -77,7 +78,7 @@ object CineCityProvider : IptvProvider {
                 "ua" to parts.getOrNull(3).takeIf { it?.isNotEmpty() == true },
                 "referer" to parts.getOrNull(4).takeIf { it?.isNotEmpty() == true }
             )
-        } catch (e: Exception) { emptyMap() }
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyMap() }
     }
 
     private fun getAllChannels(): List<M3UChannel> {
@@ -95,6 +96,7 @@ object CineCityProvider : IptvProvider {
             lastFetchTime = now
             channels
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "❌ Error obteniendo M3U de CineCity: ${e.message}")
             cachedChannels ?: emptyList()
         }
@@ -236,6 +238,7 @@ object CineCityProvider : IptvProvider {
                 Video(source = FALLBACK_VIDEO_URL, subtitles = emptyList())
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "🔴 Timeout de Red o Error Grave. ¡Activando Video Salvavidas! Detalle: ${e.message}")
             Video(source = FALLBACK_VIDEO_URL, subtitles = emptyList())
         }
