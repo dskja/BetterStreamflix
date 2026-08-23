@@ -374,8 +374,10 @@ class PlayerTvFragment : Fragment() {
                         }
                         val preferredServer = state.servers.firstOrNull {
                             it.name.equals(args.preferredServerName, ignoreCase = true)
+                        } ?: state.servers.firstOrNull()
+                        if (preferredServer != null) {
+                            viewModel.getVideo(preferredServer)
                         }
-                        viewModel.getVideo(preferredServer ?: state.servers.firstOrNull())
 
                     }
                         is PlayerViewModel.State.FailedLoadingServers -> {
