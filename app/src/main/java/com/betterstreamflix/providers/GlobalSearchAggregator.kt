@@ -21,7 +21,7 @@ object GlobalSearchAggregator {
 
         val results = kotlinx.coroutines.coroutineScope {
             providers.map { provider ->
-                kotlinx.coroutines.async {
+                this.async {
                     try {
                         val searchResults = provider.search(query)
                         ProviderHealthMonitor.recordSuccess(provider.name)
