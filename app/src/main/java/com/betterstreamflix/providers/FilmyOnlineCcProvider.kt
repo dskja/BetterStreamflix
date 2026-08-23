@@ -75,7 +75,9 @@ object FilmyOnlineCcProvider : Provider {
             NetworkClient.default.newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
                 if (response.isSuccessful) {
-                    return@withContext JSONObject(body)
+                    return@withContext runCatching { JSONObject(body) }.getOrElse {
+                        throw Exception("FilmyOnline: invalid JSON response from API")
+                    }
                 }
 
                 if (response.code == 403 && clearanceRetries < MAX_API_CLEARANCE_RETRIES) {
@@ -367,7 +369,9 @@ object FilmyOnlineCcProvider : Provider {
                 '}' -> {
                     depth--
                     if (depth == 0) {
-                        return JSONObject(html.substring(startIndex, index + 1)).also { cacheBootstrapCsrfToken(it) }
+                        return runCatching { JSONObject(html.substring(startIndex, index + 1)) }
+                            .getOrElse { throw Exception("FilmyOnline: failed to parse embedded JSON from HTML") }
+                            .also { cacheBootstrapCsrfToken(it) }
                     }
                 }
             }

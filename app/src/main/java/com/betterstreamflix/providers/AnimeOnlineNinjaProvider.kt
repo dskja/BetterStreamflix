@@ -222,7 +222,9 @@ object AnimeOnlineNinjaProvider : Provider {
 
     private suspend fun fetchJson(url: String, referer: String): JSONObject {
         val body = getJsonBody(url, referer)
-        return JSONObject(body)
+        return runCatching { JSONObject(body) }.getOrElse {
+            throw Exception("AnimeOnlineNinja: invalid JSON response from $url")
+        }
     }
 
     private suspend fun getJsonBody(url: String, referer: String): String {

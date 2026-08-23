@@ -136,7 +136,8 @@ open class FilemoonExtractor : Extractor() {
         val jsonObject = JSONObject(decryptedJson)
         val sources = jsonObject.optJSONArray("sources")
             ?: throw Exception("No sources found")
-        val sourceUrl = sources.getJSONObject(0).getString("url")
+        val sourceUrl = sources.optJSONObject(0)?.optString("url")?.takeIf { it.isNotBlank() }
+            ?: throw Exception("Filemoon: no valid source URL found")
 
         Log.i("StreamFlixES", "[Filemoon] SOURCE FOUND: $sourceUrl")
 

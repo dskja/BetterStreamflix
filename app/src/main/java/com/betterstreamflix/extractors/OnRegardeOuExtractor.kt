@@ -32,12 +32,12 @@ class OnRegardeOuExtractor : Extractor() {
         } catch (e: Exception) {
             return emptyList()
         }
-        val servers = json.getJSONArray("servers")
+        val servers = json.optJSONArray("servers") ?: return emptyList()
 
         val list = mutableListOf<Video.Server>()
 
         for (i in 0 until servers.length()) {
-            val server = servers.getJSONObject(i) ?: continue
+            val server = servers.optJSONObject(i) ?: continue
 
             val name = suffix+server.optString("name", "Server$i")
             val url = server.optString("url")

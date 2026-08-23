@@ -95,14 +95,14 @@ class VidLinkExtractor : Extractor() {
                             try {
                                 val json = JSONObject(jsonData)
                                 if (json.has("stream")) {
-                                    val stream = json.getJSONObject("stream")
+                                    val stream = json.optJSONObject("stream") ?: return@onStreamFound
                                     val playlist = stream.optString("playlist")
                                     
                                     val captionsList = mutableListOf<Video.Subtitle>()
                                     val captions = stream.optJSONArray("captions")
                                     if (captions != null) {
                                         for (i in 0 until captions.length()) {
-                                            val cap = captions.getJSONObject(i)
+                                            val cap = captions.optJSONObject(i) ?: continue
                                             val id = cap.optString("id")
                                             val lang = cap.optString("language")
                                             captionsList.add(Video.Subtitle(lang, id))
