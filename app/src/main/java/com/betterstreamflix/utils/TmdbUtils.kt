@@ -113,7 +113,7 @@ object TmdbUtils {
                     number = it.episodeNumber,
                     title = it.name ?: "",
                     released = it.airDate,
-                    poster = it.stillPath?.w500,
+                    poster = it.stillPath?.original,
                     overview = it.overview,
                 )
             } ?: listOf()
@@ -124,7 +124,10 @@ object TmdbUtils {
         if (!UserPreferences.enableTmdb) return null
         return try {
             val results = TMDb3.Search.multi(name, language = language).results
-            val person = results.filterIsInstance<TMDb3.Person>().firstOrNull() ?: return null
+            val person = results.filterIsInstance<TMDb3.Person>()
+                .firstOrNull { it.name.equals(name, ignoreCase = true) }
+                ?: results.filterIsInstance<TMDb3.Person>().firstOrNull()
+                ?: return null
             People(
                 id = person.id.toString(),
                 name = person.name,

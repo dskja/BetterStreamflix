@@ -27,6 +27,7 @@
     <string name="providers_all_languages">All languages</string>
     <string name="providers_favorites">Favorites</string>
     <string name="providers_choose_title">Choose a provider</string>
+    <string name="providers_subtitle">Select your preferred streaming source</string>
     <string name="providers_search_hint">Search providers…</string>
     <string name="providers_no_results">No providers found</string>
 
