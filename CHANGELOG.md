@@ -1,24 +1,22 @@
 # Changelog
 
-## [1.9.0] - 2026-08-23
+## v1.0.0
 
-### What's New in v1.9.0
+### Bug Fixes
+- Fixed release build crash caused by ViewPager2 reflection (NoSuchFieldException: mRecyclerView)
+- Replaced unsafe reflection with getChildAt approach
+- Added ProGuard keep rules for AndroidX ViewPager2, RecyclerView, provider services, TMDb3 classes, extractors, and utilities
+- Fixed compilation error in MovieMobileFragment and TvShowMobileFragment (submitList callback)
 
-**Cloud Sync, Provider UI, Crash Resilience**
+### Changes
+- Redesigned provider selection page with gradient header, updated card layouts, search bar, and language chips
+- Improved TMDB person search to prioritize exact name matches
+- Episode images now use original quality from TMDB
+- Added providers subtitle string (EN/DE/IT)
+- Consolidated release workflow to produce a single signed APK
+- Reset version numbering to 1.0.0
 
-- New provider selection UI with search, language chips, and favorites
-- Cloud sync with Supabase (watch history, favorites, continue watching)
-- In-app updater with download progress and better error handling
-- 6-hour TTL for home cache and stale-cache fallback on provider failure
-
-### Crash & Stability Fixes
-
-- Fixed compilation errors in PlayerMobileFragment, PlayerTvFragment, and TvShowViewModel
-- Fixed release build signing when no keystore is configured
-- Removed unsafe !! force unwraps across the app
-- Replaced unsafe .first(), .last(), and [0] access with null-safe alternatives
-- Replaced unsafe JSON getXxx() calls with optXxx() and null checks
-- Added CancellationException rethrow in suspend function catch blocks
-- Fixed UserPreferences providerUrl key and late-init safety
-- Safe casts (as?) with null checks for HttpsURLConnection, NavHostFragment, RecyclerView, etc.
+### Known Issues
+- Actor profile images and biography info not yet displaying
+- Episode and season images still showing generic series covers in some cases
 
