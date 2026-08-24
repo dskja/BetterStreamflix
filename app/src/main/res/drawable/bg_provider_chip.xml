@@ -2,11 +2,8 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <gradient
-                android:startColor="?attr/colorAccent"
-                android:endColor="?attr/colorAccent"
-                android:angle="0" />
-            <corners android:radius="20dp" />
+            <solid android:color="?attr/colorAccent" />
+            <corners android:radius="22dp" />
             <stroke
                 android:width="0dp"
                 android:color="@android:color/transparent" />
@@ -14,11 +11,11 @@
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#101014" />
-            <corners android:radius="20dp" />
+            <solid android:color="#0C0C10" />
+            <corners android:radius="22dp" />
             <stroke
                 android:width="1dp"
-                android:color="#14FFFFFF" />
+                android:color="#10FFFFFF" />
         </shape>
     </item>
 </selector>
