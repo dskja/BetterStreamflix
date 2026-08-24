@@ -49,11 +49,8 @@ class CategoryViewHolder(
         get() = when (_binding) {
             is ItemCategoryMobileBinding -> _binding.rvCategory
             is ItemCategoryTvBinding -> _binding.hgvCategory
-            is ContentCategorySwiperMobileBinding -> _binding.vpCategorySwiper.javaClass
-                .getDeclaredField("mRecyclerView").let {
-                    it.isAccessible = true
-                    it.get(_binding.vpCategorySwiper) as? RecyclerView
-                }
+            is ContentCategorySwiperMobileBinding -> _binding.vpCategorySwiper
+                .let { vp -> (0 until vp.childCount).map { vp.getChildAt(it) }.firstOrNull { it is RecyclerView } as? RecyclerView }
             else -> null
         }
 
