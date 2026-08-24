@@ -10,29 +10,38 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build & Release APK
+    name: Build & Release Signed APK
     runs-on: ubuntu-latest
-    env:
-      HAS_SIGNING: ${{ secrets.KEYSTORE != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup JDK environment
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Access Secrets
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          SUBDL_API_KEY: ${{ secrets.SUBDL_API_KEY }}
-          RABBITSTREAM_SOURCE_API: ${{ secrets.RABBITSTREAM_SOURCE_API }}
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Install NDK and CMake
         run: |
-          echo TMDB_API_KEY=$TMDB_API_KEY >> local.properties
-          echo SUBDL_API_KEY=$SUBDL_API_KEY >> local.properties
-          echo RABBITSTREAM_SOURCE_API=$RABBITSTREAM_SOURCE_API >> local.properties
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-36" || true
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
+          echo "APP_LAYOUT=" >> local.properties
+          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
+          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
+          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
 
       - name: Generate native-lib.cpp from template
         env:
@@ -40,113 +49,51 @@ jobs:
           UPROT_MSE_API_BASE: ${{ secrets.UPROT_MSE_API_BASE }}
           UPROT_API_KEY: ${{ secrets.UPROT_API_KEY }}
         run: |
-          sed -e "s|{{UPROT_MSFI_API_BASE}}|$UPROT_MSFI_API_BASE|g" \
-              -e "s|{{UPROT_MSE_API_BASE}}|$UPROT_MSE_API_BASE|g" \
-              -e "s|{{UPROT_API_KEY}}|$UPROT_API_KEY|g" \
+          sed -e "s|{{UPROT_MSFI_API_BASE}}|${UPROT_MSFI_API_BASE:-}|g" \
+              -e "s|{{UPROT_MSE_API_BASE}}|${UPROT_MSE_API_BASE:-}|g" \
+              -e "s|{{UPROT_API_KEY}}|${UPROT_API_KEY:-}|g" \
               app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
 
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      # ─── Default (mobile+TV) APK ───
-      - name: Build APK
-        run: ./gradlew assembleRelease --stacktrace
-
-      - name: Sign APK
-        id: sign_apk
-        if: ${{ env.HAS_SIGNING == 'true' }}
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      - name: Decode signing keystore
         env:
-          BUILD_TOOLS_VERSION: "34.0.0"
-
-      - name: Pick APK path (default)
-        id: apk_default
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          if [ -f "app/build/outputs/apk/release/app-release-unsigned-signed.apk" ]; then
-            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned-signed.apk" >> $GITHUB_OUTPUT
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > $HOME/signing-keystore.jks
+            echo "SIGNING_KEYSTORE_PATH=$HOME/signing-keystore.jks" >> $GITHUB_ENV
+            echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> $GITHUB_ENV
+            echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> $GITHUB_ENV
+            echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> $GITHUB_ENV
           else
-            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+            echo "No signing keystore provided — release APK will be unsigned"
           fi
 
-      - name: Copy default APK to staging
-        run: |
-          cp "${{ steps.apk_default.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}.apk"
-
-      # ─── Mobile-only APK ───
-      - name: Set Mobile version
-        run: |
-          echo APP_LAYOUT=mobile >> local.properties
-
-      - name: Build APK (mobile)
+      - name: Build release APK
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Sign APK (mobile)
-        id: sign_apk_mobile
-        if: ${{ env.HAS_SIGNING == 'true' }}
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: "34.0.0"
-
-      - name: Pick APK path (mobile)
-        id: apk_mobile
+      - name: Verify APK is signed
         run: |
-          if [ -f "app/build/outputs/apk/release/app-release-unsigned-signed.apk" ]; then
-            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned-signed.apk" >> $GITHUB_OUTPUT
-          else
-            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          APK_FILE="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK_FILE" ]; then
+            APK_FILE="app/build/outputs/apk/release/app-release-unsigned.apk"
           fi
-
-      - name: Copy mobile APK to staging
-        run: |
-          cp "${{ steps.apk_mobile.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}-only-mobile.apk"
-
-      # ─── TV-only APK ───
-      - name: Set TV version
-        run: |
-          echo APP_LAYOUT=tv >> local.properties
-
-      - name: Build APK (tv)
-        run: ./gradlew assembleRelease --stacktrace
-
-      - name: Sign APK (tv)
-        id: sign_apk_tv
-        if: ${{ env.HAS_SIGNING == 'true' }}
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: "34.0.0"
-
-      - name: Pick APK path (tv)
-        id: apk_tv
-        run: |
-          if [ -f "app/build/outputs/apk/release/app-release-unsigned-signed.apk" ]; then
-            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned-signed.apk" >> $GITHUB_OUTPUT
-          else
-            echo "apk_path=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          if [ ! -f "$APK_FILE" ]; then
+            echo "No APK found!"
+            exit 1
           fi
+          echo "APK found: $APK_FILE"
+          # Check if signed by looking for v1/v2 signature
+          if $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs "$APK_FILE" 2>/dev/null; then
+            echo "APK is signed"
+          else
+            echo "WARNING: APK may not be signed"
+          fi
+          cp "$APK_FILE" "/tmp/BetterStreamflix-${{ github.ref_name }}.apk"
 
-      - name: Copy TV APK to staging
-        run: |
-          cp "${{ steps.apk_tv.outputs.apk_path }}" "/tmp/BetterStreamflix-${{ github.ref_name }}-only-tv.apk"
-
-      - name: Create Release & Upload APKs
+      - name: Create Release & Upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref }}
@@ -154,5 +101,3 @@ jobs:
           body_path: CHANGELOG.md
           files: |
             /tmp/BetterStreamflix-${{ github.ref_name }}.apk
-            /tmp/BetterStreamflix-${{ github.ref_name }}-only-mobile.apk
-            /tmp/BetterStreamflix-${{ github.ref_name }}-only-tv.apk
