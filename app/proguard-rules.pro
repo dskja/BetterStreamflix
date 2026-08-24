@@ -136,6 +136,12 @@
 -keep class com.caverock.androidsvg.** { *; }
 -dontwarn com.caverock.androidsvg.**
 
+# === AndroidX ViewPager2 / RecyclerView ===
+-keep class androidx.viewpager2.widget.** { *; }
+-keepclassmembers class androidx.viewpager2.widget.** { *; }
+-keep class androidx.recyclerview.widget.** { *; }
+-keepclassmembers class androidx.recyclerview.widget.** { *; }
+
 # === BuildConfig ===
 -keep class com.betterstreamflix.BuildConfig { *; }
 
