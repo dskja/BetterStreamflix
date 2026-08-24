@@ -52,15 +52,16 @@
 -keep class * extends com.google.gson.reflect.TypeToken
 -keepclassmembers,allowobfuscation class * { @com.google.gson.annotations.SerializedName <fields>; }
 -keep class com.betterstreamflix.models.** { *; }
--keep class com.betterstreamflix.providers.StreamingCommunityService.** { *; }
--keep class com.betterstreamflix.utils.GitHub { *; }
--keep class com.betterstreamflix.utils.GitHub$* { *; }
--keep class com.betterstreamflix.utils.GitHub$Release { *; }
--keep class com.betterstreamflix.utils.GitHub$Release$Asset { *; }
--keep class com.betterstreamflix.utils.GitHub$User { *; }
--keep class com.betterstreamflix.utils.GitHub$Reactions { *; }
--keep class com.betterstreamflix.utils.HomeCacheStore$* { *; }
--keep class com.betterstreamflix.utils.UserDataCache$* { *; }
+-keep class com.betterstreamflix.providers.** { *; }
+-keep class com.betterstreamflix.providers.**$* { *; }
+-keepclassmembers class com.betterstreamflix.providers.** { *; }
+-keep class com.betterstreamflix.utils.TMDb3** { *; }
+-keep class com.betterstreamflix.utils.TMDb3$* { *; }
+-keepclassmembers class com.betterstreamflix.utils.TMDb3** { *; }
+-keep class com.betterstreamflix.utils.TmdbUtils { *; }
+-keep class com.betterstreamflix.extractors.** { *; }
+-keep class com.betterstreamflix.utils.** { *; }
+-keepclassmembers class com.betterstreamflix.utils.** { *; }
 
 # === Supabase ===
 -keep class io.github.jan.supabase.** { *; }
