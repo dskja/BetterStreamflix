@@ -442,6 +442,7 @@
     <string name="download_pause">Pause</string>
     <string name="download_resume">Resume</string>
     <string name="download_cancel">Cancel</string>
+    <string name="download_open">Play</string>
     <string name="download_storage_used">Storage used: %1$s</string>
     <string name="notification_new_content_title">New content available</string>
     <string name="notification_new_content_message">%1$d new titles on your provider</string>
@@ -452,6 +453,18 @@
     <string name="sync_last_synced">Last synced %1$s</string>
     <string name="sync_status_ok">Up to date</string>
     <string name="sync_conflict_title">Sync conflict</string>
+    <string name="sync_conflict_message">This device has local data from another account. Choose which library to keep before syncing.</string>
+    <string name="sync_conflict_keep_local">Keep data on this device</string>
+    <string name="sync_conflict_use_cloud">Use cloud account data</string>
+    <string name="genres_hub_browse">Browse genres</string>
+    <string name="provider_marketplace_title">Marketplace</string>
+    <string name="profile_picker_add">Add profile</string>
+    <string name="profile_picker_delete">Delete profile</string>
+    <string name="profile_picker_edit_name">Edit name</string>
+    <string name="profile_picker_kids">Kids profile</string>
+    <string name="profile_picker_active">Active</string>
+    <string name="profile_picker_name_hint">Profile name</string>
+    <string name="profile_picker_delete_confirm">Delete profile \"%1$s\"?</string>
     <string name="supabase_config_category">Supabase connection</string>
     <string name="supabase_url_title">Supabase project URL</string>
     <string name="supabase_url_summary">Enter your project URL, for example https://your-project.supabase.co</string>

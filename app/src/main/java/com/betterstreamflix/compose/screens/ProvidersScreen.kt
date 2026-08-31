@@ -14,6 +14,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,10 +39,22 @@ fun ProvidersScreen(
     onSearchQueryChange: (String) -> Unit = {},
     onLanguageChipSelected: (LanguageChip) -> Unit = {},
     onProviderSelected: (Provider) -> Unit = {},
+    onOpenMarketplace: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
     BetterStreamflixTheme {
-        Scaffold(topBar = { BsTopBar(title = stringResource(R.string.providers_choose_title)) }) { padding ->
+        Scaffold(
+            topBar = {
+                BsTopBar(
+                    title = stringResource(R.string.providers_choose_title),
+                    actions = {
+                        TextButton(onClick = onOpenMarketplace) {
+                            Text(stringResource(R.string.provider_marketplace_title))
+                        }
+                    },
+                )
+            },
+        ) { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()

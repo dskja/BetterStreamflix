@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsEmptyState
@@ -34,7 +35,7 @@ fun GenresHubScreen(
     onRetry: () -> Unit = {},
 ) {
     BetterStreamflixTheme {
-        Scaffold(topBar = { BsTopBar(title = "Genres") }) { padding ->
+        Scaffold(topBar = { BsTopBar(title = stringResource(R.string.genres_hub_browse)) }) { padding ->
             when {
                 isLoading -> {
                     CircularProgressIndicator(

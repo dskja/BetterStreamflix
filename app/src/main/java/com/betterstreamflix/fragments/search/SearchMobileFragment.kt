@@ -90,6 +90,9 @@ class SearchMobileFragment : ComposeHostFragment() {
             isEmpty = isEmpty,
             results = results,
             onBack = { findNavController().popBackStack() },
+            onBrowseGenres = {
+                findNavController().navigate(R.id.genres_hub)
+            },
         )
     }
 }

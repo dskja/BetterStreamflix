@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_providers_to_home"
             app:destination="@id/home" />
+        <action
+            android:id="@+id/action_providers_to_provider_marketplace"
+            app:destination="@id/provider_marketplace" />
     </fragment>
 
     <!-- Global Actions -->
@@ -64,6 +67,9 @@
         <action
             android:id="@+id/action_search_to_tv_show"
             app:destination="@id/tv_show" />
+        <action
+            android:id="@+id/action_search_to_genres_hub"
+            app:destination="@id/genres_hub" />
     </fragment>
     <fragment
         android:id="@+id/movies"
@@ -169,6 +175,18 @@
             app:argType="string"
             app:nullable="true" />
     </fragment>
+    <fragment
+        android:id="@+id/genres_hub"
+        android:name="com.betterstreamflix.fragments.genre.GenresHubFragment"
+        android:label="fragment_genres_hub">
+        <action
+            android:id="@+id/action_genres_hub_to_genre"
+            app:destination="@id/genre" />
+    </fragment>
+    <fragment
+        android:id="@+id/provider_marketplace"
+        android:name="com.betterstreamflix.fragments.providers.ProviderMarketplaceFragment"
+        android:label="fragment_provider_marketplace" />
     <fragment
         android:id="@+id/genre"
         android:name="com.betterstreamflix.fragments.genre.GenreTvFragment"

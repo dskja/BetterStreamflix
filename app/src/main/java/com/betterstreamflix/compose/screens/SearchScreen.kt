@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -31,6 +32,7 @@ fun SearchScreen(
     results: List<AppAdapter.Item> = emptyList(),
     onBack: () -> Unit = {},
     onResultClick: (AppAdapter.Item) -> Unit = {},
+    onBrowseGenres: () -> Unit = {},
 ) {
     BetterStreamflixTheme {
         Scaffold(topBar = { BsTopBar(title = stringResource(R.string.main_menu_search)) }) { padding ->
@@ -47,6 +49,14 @@ fun SearchScreen(
                     placeholder = { Text(stringResource(R.string.search_input_hint)) },
                     singleLine = true,
                 )
+                if (query.isBlank()) {
+                    TextButton(
+                        onClick = onBrowseGenres,
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) {
+                        Text(stringResource(R.string.genres_hub_browse))
+                    }
+                }
                 when {
                     isLoading -> BsShimmerRow(modifier = Modifier.padding(top = 16.dp))
                     isEmpty && query.isNotBlank() -> BsEmptyState(

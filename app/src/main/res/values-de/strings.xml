@@ -527,6 +527,18 @@
     <string name="sync_last_synced">Zuletzt synchronisiert: %1$s</string>
     <string name="sync_status_ok">Aktuell</string>
     <string name="sync_conflict_title">Synchronisierungskonflikt</string>
+    <string name="sync_conflict_message">Auf diesem Gerät sind lokale Daten eines anderen Kontos vorhanden. Wähle, welche Bibliothek synchronisiert werden soll.</string>
+    <string name="sync_conflict_keep_local">Daten auf diesem Gerät behalten</string>
+    <string name="sync_conflict_use_cloud">Cloud-Kontodaten verwenden</string>
+    <string name="genres_hub_browse">Genres durchsuchen</string>
+    <string name="provider_marketplace_title">Marktplatz</string>
+    <string name="profile_picker_add">Profil hinzufügen</string>
+    <string name="profile_picker_delete">Profil löschen</string>
+    <string name="profile_picker_edit_name">Name bearbeiten</string>
+    <string name="profile_picker_kids">Kinderprofil</string>
+    <string name="profile_picker_active">Aktiv</string>
+    <string name="profile_picker_name_hint">Profilname</string>
+    <string name="profile_picker_delete_confirm">Profil \"%1$s\" löschen?</string>
 
     <!-- Megaplan i18n parity -->
     <string name="cloud_sync_title">Account &amp; sync</string>

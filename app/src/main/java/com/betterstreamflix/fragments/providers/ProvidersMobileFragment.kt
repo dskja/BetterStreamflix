@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.fragment.findNavController
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.ProvidersScreen
@@ -52,6 +53,9 @@ class ProvidersMobileFragment : ComposeHostFragment() {
                 viewModel.setLanguageFilter(chip.code)
             },
             onProviderSelected = ::selectProvider,
+            onOpenMarketplace = {
+                findNavController().navigate(R.id.provider_marketplace)
+            },
             onRetry = { viewModel.setLanguageFilter(UserPreferences.providerLanguage) },
         )
     }
