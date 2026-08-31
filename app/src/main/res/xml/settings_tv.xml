@@ -7,6 +7,11 @@
         android:summary="@string/settings_screen_content_summary"
         android:widgetLayout="@layout/preference_widget_chevron">
 
+        <Preference
+            android:key="open_downloads"
+            android:title="@string/downloads_title"
+            android:summary="@string/downloads_summary" />
+
         <PreferenceCategory
             android:key="pc_tmdb_settings"
             android:title="@string/settings_category_tmdb">

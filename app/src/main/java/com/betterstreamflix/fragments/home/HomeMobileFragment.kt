@@ -1,42 +1,34 @@
 package com.betterstreamflix.fragments.home
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.Fragment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.bumptech.glide.Glide
 import com.betterstreamflix.R
-import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.HomeScreen
 import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentHomeMobileBinding
 import com.betterstreamflix.models.Category
-import com.betterstreamflix.models.Episode
-import com.betterstreamflix.models.Movie
-import com.betterstreamflix.models.TvShow
-import com.betterstreamflix.ui.SpacingItemDecoration
-import com.betterstreamflix.utils.DeepLinkHandler
-import com.betterstreamflix.utils.UserPreferences
-import com.betterstreamflix.utils.dp
 import com.betterstreamflix.utils.CacheUtils
-import com.betterstreamflix.utils.LoggingUtils
+import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.ProviderChangeNotifier
+import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.RecyclerView
+import retrofit2.HttpException
 
-class HomeMobileFragment : Fragment() {
+class HomeMobileFragment : ComposeHostFragment() {
 
     private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentHomeMobileBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val viewModel: HomeViewModel by lazy {
         val providerKey = UserPreferences.currentProvider?.name ?: "default"
@@ -49,190 +41,87 @@ class HomeMobileFragment : Fragment() {
         ViewModelProvider(this, factory).get(providerKey, HomeViewModel::class.java)
     }
 
-    private val appAdapter = AppAdapter()
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentHomeMobileBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(view: android.view.View, savedInstanceState: android.os.Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        initializeHome()
-        com.betterstreamflix.utils.OfflineBanner.showIfOffline(binding.root)
-
-        // Lightweight refresh when provider changes
         viewLifecycleOwner.lifecycleScope.launch {
-            com.betterstreamflix.utils.ProviderChangeNotifier.providerChangeFlow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { viewModel.getHome() }
+            ProviderChangeNotifier.providerChangeFlow
+                .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+                .collect { viewModel.getHome() }
+        }
+        viewModel.getHome()
+    }
+
+    @Composable
+    override fun Content() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = HomeViewModel.State.Loading)
+        var scrollToCategory by remember { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(state) {
+            if (state is HomeViewModel.State.SuccessLoading && DeepLinkHandler.pendingOpenContinueWatching) {
+                DeepLinkHandler.pendingOpenContinueWatching = false
+                scrollToCategory = getString(R.string.home_continue_watching)
+            }
         }
 
-        // Initial load
-        viewModel.getHome()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                when (state) {
-                    HomeViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-                    is HomeViewModel.State.SuccessLoading -> {
-                        displayHome(state.categories)
-                        focusContinueWatchingIfRequested(state.categories)
-                        binding.isLoading.root.visibility = View.GONE
-                        com.betterstreamflix.utils.OfflineBanner.showIfOffline(binding.root)
-                        if (state.isStaleCache) {
-                            com.betterstreamflix.utils.OfflineBanner.showStaleCache(binding.root)
-                        }
-                    }
-                    is HomeViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getHome()
-                            return@collect
-                        }
+        when (val current = state) {
+            HomeViewModel.State.Loading -> {
+                HomeScreen(isLoading = true)
+            }
+            is HomeViewModel.State.SuccessLoading -> {
+                if (current.isStaleCache) {
+                    LaunchedEffect(Unit) {
                         Toast.makeText(
                             requireContext(),
-                            state.error.message?.takeIf { it.isNotBlank() } ?: getString(R.string.loading_error_generic),
-                            Toast.LENGTH_SHORT
+                            getString(R.string.home_cached_content_banner),
+                            Toast.LENGTH_SHORT,
                         ).show()
-                        binding.isLoading.apply {
-                            pbIsLoading.visibility = View.GONE
-                            gIsLoadingRetry.visibility = View.VISIBLE
-                            val doRetry = { viewModel.getHome() }
-                            btnIsLoadingRetry.setOnClickListener { doRetry() }
-                            btnIsLoadingClearCache.setOnClickListener {
-                                CacheUtils.clearAppCache(requireContext())
-                                android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                doRetry()
-                            }
-                            btnIsLoadingErrorDetails.setOnClickListener {
-                                LoggingUtils.showErrorDialog(requireContext(), state.error)
-                            }
-                        }
                     }
+                }
+                HomeScreen(
+                    categories = localizeCategories(current.categories),
+                    scrollToCategoryName = scrollToCategory,
+                    onProviderClick = { findNavController().navigate(R.id.providers) },
+                )
+            }
+            is HomeViewModel.State.FailedLoading -> {
+                val code = (current.error as? HttpException)?.code()
+                if (code == 409 && !hasAutoCleared409) {
+                    LaunchedEffect(Unit) {
+                        hasAutoCleared409 = true
+                        CacheUtils.clearAppCache(requireContext())
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.clear_cache_done_409),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        viewModel.getHome()
+                    }
+                } else {
+                    val message = current.error.message?.takeIf { it.isNotBlank() }
+                        ?: getString(R.string.loading_error_generic)
+                    LaunchedEffect(current.error) {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    }
+                    HomeScreen(
+                        isLoading = false,
+                        errorMessage = message,
+                        onRetry = { viewModel.getHome() },
+                    )
                 }
             }
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        appAdapter.onSaveInstanceState(binding.rvHome)
-        _binding = null
-    }
-
-
-    private fun initializeHome() {
-        binding.rvHome.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            addItemDecoration(
-                SpacingItemDecoration(20.dp(requireContext()))
-            )
+    private fun localizeCategories(categories: List<Category>): List<Category> = categories.map { category ->
+        val localizedName = when (category.name) {
+            Category.CONTINUE_WATCHING -> getString(R.string.home_continue_watching)
+            Category.RECENTLY_WATCHED -> getString(R.string.home_recently_watched)
+            Category.RECOMMENDED_FOR_YOU -> getString(R.string.home_recommended_for_you)
+            Category.FAVORITE_MOVIES -> getString(R.string.home_favorite_movies)
+            Category.FAVORITE_TV_SHOWS -> getString(R.string.home_favorite_tv_shows)
+            else -> category.name
         }
-
-        binding.ivProviderLogo.apply {
-            Glide.with(context)
-                .load(UserPreferences.currentProvider?.logo?.takeIf { it.isNotEmpty() }
-                    ?: R.drawable.ic_provider_default_logo)
-                .error(R.drawable.ic_provider_default_logo)
-                .fitCenter()
-                .into(this)
-
-            setOnClickListener {
-                findNavController().navigate(R.id.providers)
-            }
-        }
-        
-        // Ensure background image is hidden on mobile to show theme color
-        binding.ivHomeBackground.visibility = View.GONE
-    }
-
-    private fun displayHome(categories: List<Category>) {
-        categories
-            .find { it.name == Category.FEATURED }
-            ?.also {
-                it.list.forEach { show ->
-                    when (show) {
-                        is Movie -> show.itemType = AppAdapter.Type.MOVIE_SWIPER_MOBILE_ITEM
-                        is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_SWIPER_MOBILE_ITEM
-                    }
-                }
-            }
-
-        categories
-            .find { it.name == Category.CONTINUE_WATCHING }
-            ?.also {
-                it.name = getString(R.string.home_continue_watching)
-                it.list.forEach { show ->
-                    when (show) {
-                        is Episode -> show.itemType = AppAdapter.Type.EPISODE_CONTINUE_WATCHING_MOBILE_ITEM
-                        is Movie -> show.itemType = AppAdapter.Type.MOVIE_CONTINUE_WATCHING_MOBILE_ITEM
-                    }
-                }
-            }
-
-        categories
-            .find { it.name == Category.RECENTLY_WATCHED }
-            ?.also {
-                it.name = getString(R.string.home_recently_watched)
-            }
-
-        categories
-            .find { it.name == Category.RECOMMENDED_FOR_YOU }
-            ?.also { it.name = getString(R.string.home_recommended_for_you) }
-
-        categories
-            .find { it.name == Category.FAVORITE_MOVIES }
-            ?.also { it.name = getString(R.string.home_favorite_movies) }
-
-        categories
-            .find { it.name == Category.FAVORITE_TV_SHOWS }
-            ?.also { it.name = getString(R.string.home_favorite_tv_shows) }
-
-        appAdapter.submitList(
-            categories
-                .filter { it.list.isNotEmpty() }
-                .onEach { category ->
-                    if (category.name != Category.FEATURED && category.name != getString(R.string.home_continue_watching)) {
-                        category.list.onEach { show ->
-                            when (show) {
-                                is Episode -> show.itemType = AppAdapter.Type.EPISODE_MOBILE_ITEM
-                                is Movie -> show.itemType = AppAdapter.Type.MOVIE_MOBILE_ITEM
-                                is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_MOBILE_ITEM
-                            }
-                        }
-                    }
-                    category.itemSpacing = 10.dp(requireContext())
-                    category.itemType = when (category.name) {
-                        Category.FEATURED -> AppAdapter.Type.CATEGORY_MOBILE_SWIPER
-                        else -> AppAdapter.Type.CATEGORY_MOBILE_ITEM
-                    }
-                }
-        )
-    }
-
-    private fun focusContinueWatchingIfRequested(categories: List<Category>) {
-        if (!DeepLinkHandler.pendingOpenContinueWatching) return
-        DeepLinkHandler.pendingOpenContinueWatching = false
-        val continueLabel = getString(R.string.home_continue_watching)
-        val index = categories
-            .filter { it.list.isNotEmpty() }
-            .indexOfFirst { it.name == continueLabel || it.name == Category.CONTINUE_WATCHING }
-        if (index >= 0) {
-            binding.rvHome.post { binding.rvHome.smoothScrollToPosition(index) }
-        }
+        category.copy(name = localizedName)
     }
 }
-

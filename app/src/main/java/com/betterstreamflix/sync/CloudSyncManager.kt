@@ -123,6 +123,42 @@ object CloudSyncManager {
         return true
     }
 
+    suspend fun completeSignInAfterConflict(
+        context: Context,
+        email: String,
+        password: String,
+        keepLocal: Boolean,
+        onProgress: (CloudSyncProgress) -> Unit = {},
+    ) {
+        requireConfigured()
+        val appContext = context.applicationContext
+        SupabaseProvider.initialize(appContext)
+        onProgress(CloudSyncProgress(CloudSyncProgress.Stage.AUTHENTICATING))
+        SupabaseProvider.client.auth.signInWith(Email) {
+            this.email = email
+            this.password = password
+        }
+        SupabaseProvider.client.auth.awaitInitialization()
+        val userId = currentUserId() ?: error("Sign in did not create a session")
+        accountSyncMutex.withLock {
+            isApplyingRemote = true
+            try {
+                if (keepLocal) {
+                    forceMergeLocalAccount(appContext, userId, onProgress)
+                } else {
+                    replaceLocalWithCloud(appContext, userId, onProgress)
+                }
+                onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
+                CloudAccountStore.setActiveUserId(appContext, userId)
+                markLastSynced(appContext)
+            } finally {
+                isApplyingRemote = false
+            }
+        }
+        CloudRealtimeSync.start(appContext, userId)
+        CloudSyncScheduler.schedulePeriodic(appContext)
+    }
+
     suspend fun signOut(context: Context) {
         val appContext = context.applicationContext
         CloudRealtimeSync.stop()
@@ -400,6 +436,66 @@ object CloudSyncManager {
         val accountCanOwnCurrentLocalData =
             previousUserId == null || (mergeLocalOnLogin && previousUserId == userId)
         return localDataBelongsToUser && accountCanOwnCurrentLocalData
+    }
+
+    private suspend fun forceMergeLocalAccount(
+        context: Context,
+        userId: String,
+        onProgress: (CloudSyncProgress) -> Unit,
+    ) {
+        onProgress(CloudSyncProgress(CloudSyncProgress.Stage.PREPARING_LOCAL))
+        val local = withContext(Dispatchers.IO) {
+            collectLocalState(context, userId)
+        }
+        onProgress(CloudSyncProgress(CloudSyncProgress.Stage.MERGING))
+        val remote = fetchRemote()
+        val merged = mergeForFirstLogin(
+            remote = remote,
+            local = local,
+            mergedAtMillis = System.currentTimeMillis(),
+        )
+        if (local.isNotEmpty()) {
+            val localKeys = local.mapTo(hashSetOf()) { it.queueKey }
+            upsert(merged.filter { it.queueKey in localKeys }, onProgress)
+        }
+        val finalRemote = if (local.isEmpty()) remote else {
+            onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
+            fetchRemote()
+        }
+        onProgress(
+            CloudSyncProgress(
+                CloudSyncProgress.Stage.APPLYING_CLOUD,
+                current = finalRemote.size,
+                total = finalRemote.size,
+            ),
+        )
+        withContext(Dispatchers.IO) {
+            applyRemoteInternal(context, finalRemote)
+        }
+        CloudAccountStore.claimLegacyData(context, userId)
+    }
+
+    private suspend fun replaceLocalWithCloud(
+        context: Context,
+        userId: String,
+        onProgress: (CloudSyncProgress) -> Unit,
+    ) {
+        withContext(Dispatchers.IO) {
+            clearLocalUserState(context)
+        }
+        onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
+        val remote = fetchRemote()
+        onProgress(
+            CloudSyncProgress(
+                CloudSyncProgress.Stage.APPLYING_CLOUD,
+                current = remote.size,
+                total = remote.size,
+            ),
+        )
+        withContext(Dispatchers.IO) {
+            applyRemoteInternal(context, remote)
+        }
+        CloudAccountStore.claimLegacyData(context, userId)
     }
 
     internal fun mergeForFirstLogin(

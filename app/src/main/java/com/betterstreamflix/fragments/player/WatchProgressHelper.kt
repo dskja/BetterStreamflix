@@ -14,6 +14,7 @@ import com.betterstreamflix.models.Video
 import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.utils.WatchNextUtils
+import com.betterstreamflix.widgets.WidgetUpdateScheduler
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -175,5 +176,6 @@ object WatchProgressHelper {
         }.onFailure { e ->
             Log.d("WatchProgressHelper", "Watch Next upsert skipped: ${e.message}")
         }
+        WidgetUpdateScheduler.scheduleUpdate(context)
     }
 }

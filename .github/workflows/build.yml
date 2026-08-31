@@ -7,8 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    name: Build APKs
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release-apks:
+    name: Build Release APKs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -27,12 +31,6 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
-
-      - name: Run Lint
-        run: ./gradlew lintDebug --stacktrace
-
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Install NDK and CMake
         run: |

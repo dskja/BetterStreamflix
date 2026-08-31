@@ -17,7 +17,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BetterStreamflixTheme
@@ -36,7 +38,7 @@ fun ProviderMarketplaceScreen(
     }
 
     BetterStreamflixTheme {
-        Scaffold(topBar = { BsTopBar(title = "Provider Marketplace") }) { padding ->
+        Scaffold(topBar = { BsTopBar(title = stringResource(R.string.provider_marketplace_title)) }) { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()

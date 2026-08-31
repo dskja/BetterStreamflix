@@ -527,6 +527,18 @@
     <string name="sync_last_synced">Zuletzt synchronisiert: %1$s</string>
     <string name="sync_status_ok">Aktuell</string>
     <string name="sync_conflict_title">Synchronisierungskonflikt</string>
+    <string name="sync_conflict_message">Auf diesem Gerät sind lokale Daten eines anderen Kontos vorhanden. Wähle, welche Bibliothek synchronisiert werden soll.</string>
+    <string name="sync_conflict_keep_local">Daten auf diesem Gerät behalten</string>
+    <string name="sync_conflict_use_cloud">Cloud-Kontodaten verwenden</string>
+    <string name="genres_hub_browse">Genres durchsuchen</string>
+    <string name="provider_marketplace_title">Marktplatz</string>
+    <string name="profile_picker_add">Profil hinzufügen</string>
+    <string name="profile_picker_delete">Profil löschen</string>
+    <string name="profile_picker_edit_name">Name bearbeiten</string>
+    <string name="profile_picker_kids">Kinderprofil</string>
+    <string name="profile_picker_active">Aktiv</string>
+    <string name="profile_picker_name_hint">Profilname</string>
+    <string name="profile_picker_delete_confirm">Profil \"%1$s\" löschen?</string>
 
     <!-- Megaplan i18n parity -->
     <string name="cloud_sync_title">Account &amp; sync</string>
@@ -574,6 +586,20 @@
     <string name="settings_new_content_notifications">New content alerts</string>
     <string name="settings_new_content_notifications_summary">Notify when your provider adds new titles</string>
     <string name="settings_notifications_permission_denied">Notification permission is required to enable alerts</string>
+    <string name="download_notification_channel">Downloads</string>
+    <string name="download_notification_description">Offline download progress</string>
+    <string name="download_notification_title">Downloading</string>
+    <string name="download_notification_progress">%1$d active downloads</string>
+    <string name="download_notification_complete">%1$d downloads complete</string>
+    <string name="download_notification_failed">Download failed</string>
+    <string name="download_started">Download started</string>
+    <string name="download_error_drm">DRM-protected content cannot be downloaded</string>
+    <string name="download_error_no_url">No stream URL available</string>
+    <string name="download_error_generic">Could not start download</string>
+    <string name="download_pause">Pause</string>
+    <string name="download_resume">Resume</string>
+    <string name="download_cancel">Cancel</string>
+    <string name="download_storage_used">Storage used: %1$s</string>
     <string name="notification_new_content_title">New content available</string>
     <string name="notification_new_content_message">%1$d new titles on your provider</string>
     <string name="profile_picker_continue">Continue</string>

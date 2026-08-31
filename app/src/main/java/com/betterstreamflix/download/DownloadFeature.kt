@@ -5,16 +5,19 @@ import android.util.Log
 import com.betterstreamflix.StreamFlixApp
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
  * Public entry point for the offline download feature (P3).
- * Wires the existing queue/manager stack for UI and player overflow menus.
  */
 object DownloadFeature {
 
     private const val TAG = "DownloadFeature"
+
+    fun observe(context: Context): Flow<List<DownloadManager.DownloadTask>> =
+        DownloadRepository(context).observeTasks()
 
     fun enqueue(
         context: Context,
@@ -46,9 +49,6 @@ object DownloadFeature {
                 },
             )
             DownloadManager.addDownload(appContext, task)
-            StreamFlixApp.instance.applicationScope.launch {
-                DownloadRepository(appContext).upsert(DownloadRepository.fromTask(task))
-            }
             WorkManager.getInstance(appContext).enqueue(
                 OneTimeWorkRequestBuilder<DownloadWorker>().build(),
             )
@@ -59,5 +59,11 @@ object DownloadFeature {
     }
 
     fun list(context: Context): List<DownloadManager.DownloadTask> =
-        DownloadManager.getAllDownloads(context.applicationContext)
+        DownloadRepository(context).getAllBlocking()
+
+    fun retry(context: Context, id: String) {
+        WorkManager.getInstance(context.applicationContext).enqueue(
+            OneTimeWorkRequestBuilder<DownloadWorker>().build(),
+        )
+    }
 }

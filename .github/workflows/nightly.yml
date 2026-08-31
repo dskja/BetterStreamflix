@@ -2,12 +2,15 @@ name: Nightly Checks
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 2 AM UTC daily
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
   nightly:
-    name: Lint, Test & Provider Health Check
+    uses: ./.github/workflows/ci.yml
+
+  provider-smoke:
+    name: Provider DNS / Home Smoke
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,72 +19,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+      - name: Run provider smoke
+        id: smoke
+        run: python3 scripts/provider_smoke.py
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Install NDK and CMake
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-36" || true
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
-
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" >> local.properties
-          echo "APP_LAYOUT=" >> local.properties
-          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
-          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
-          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
-
-      - name: Generate native-lib.cpp from template
+      - name: Create issue on failure
+        if: failure()
         env:
-          UPROT_MSFI_API_BASE: ${{ secrets.UPROT_MSFI_API_BASE }}
-          UPROT_MSE_API_BASE: ${{ secrets.UPROT_MSE_API_BASE }}
-          UPROT_API_KEY: ${{ secrets.UPROT_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          sed -e "s|{{UPROT_MSFI_API_BASE}}|${UPROT_MSFI_API_BASE:-}|g" \
-              -e "s|{{UPROT_MSE_API_BASE}}|${UPROT_MSE_API_BASE:-}|g" \
-              -e "s|{{UPROT_API_KEY}}|${UPROT_API_KEY:-}|g" \
-              app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh issue create \
+            --title "Nightly provider smoke failed ($(date -u +%Y-%m-%d))" \
+            --body "The nightly provider DNS/home smoke check failed.
 
-      - name: Run Lint
-        id: lint
-        run: ./gradlew lintDebug --stacktrace
-        continue-on-error: true
+          **Workflow:** [Run #${{ github.run_id }}](${RUN_URL})
+          **Time:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-      - name: Run Unit Tests
-        id: tests
-        run: ./gradlew testDebugUnitTest --stacktrace
-        continue-on-error: true
-
-      - name: Build debug APK (verify compilation)
-        id: build
-        run: ./gradlew assembleDebug --stacktrace
-        continue-on-error: true
-
-      - name: Create Issue on Failure
-        if: steps.lint.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const failed = [];
-            if ('${{ steps.lint.outcome }}' === 'failure') failed.push('Lint');
-            if ('${{ steps.tests.outcome }}' === 'failure') failed.push('Unit Tests');
-            if ('${{ steps.build.outcome }}' === 'failure') failed.push('Build');
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Nightly Check Failed: ${failed.join(', ')}`,
-              body: `The nightly check failed on ${new Date().toISOString()}\n\nFailed steps: ${failed.join(', ')}\n\n[View run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
-              labels: ['nightly-failure', 'bug']
-            });
+          Re-run \`scripts/provider_smoke.py\` locally or inspect CI logs for failing probes." \
+            --label "nightly-failure" \
+            --label "bug"

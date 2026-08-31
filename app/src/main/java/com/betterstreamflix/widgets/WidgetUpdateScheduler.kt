@@ -3,6 +3,9 @@ package com.betterstreamflix.widgets
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 
 /**
  * Widget update scheduler — manages widget update scheduling
@@ -10,12 +13,25 @@ import android.content.Context
  */
 object WidgetUpdateScheduler {
 
+    private const val WORK_NAME = "widget_update"
+
+    /**
+     * Schedule a one-shot WorkManager update for all widgets.
+     */
+    fun scheduleUpdate(context: Context) {
+        val request = OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request,
+        )
+    }
+
     /**
      * Schedule periodic widget updates.
      */
     fun scheduleUpdates(context: Context) {
-        // In real implementation, would use WorkManager to schedule periodic updates
-        updateAllWidgets(context)
+        scheduleUpdate(context)
     }
 
     /**

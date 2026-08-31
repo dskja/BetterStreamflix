@@ -1,5 +1,6 @@
 package com.betterstreamflix.fragments.settings
 
+import android.app.Dialog
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
 import android.util.Patterns
@@ -11,10 +12,14 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.preference.Preference
 import com.betterstreamflix.R
+import com.betterstreamflix.compose.screens.CloudSyncConflictDialog
+import com.betterstreamflix.compose.theme.BetterStreamflixTheme
+import com.betterstreamflix.sync.CloudAccountDataConflictException
 import com.betterstreamflix.sync.CloudSyncManager
 import com.betterstreamflix.sync.CloudSyncProgress
 import com.betterstreamflix.sync.SupabaseProvider
@@ -63,7 +68,7 @@ object CloudAccountSettingsController {
 
         signIn?.setOnPreferenceClickListener {
             showCredentialsDialog(fragment, R.string.cloud_sync_sign_in) { email, password ->
-                runProgressAction(fragment, scope, ::refresh) { onProgress ->
+                runProgressAction(fragment, scope, ::refresh, email, password) { onProgress ->
                     CloudSyncManager.signIn(
                         fragment.requireContext(),
                         email,
@@ -78,7 +83,7 @@ object CloudAccountSettingsController {
 
         signUp?.setOnPreferenceClickListener {
             showCredentialsDialog(fragment, R.string.cloud_sync_sign_up) { email, password ->
-                runProgressAction(fragment, scope, ::refresh) { onProgress ->
+                runProgressAction(fragment, scope, ::refresh, email, password) { onProgress ->
                     val signedIn = CloudSyncManager.signUp(
                         fragment.requireContext(),
                         email,
@@ -165,6 +170,8 @@ object CloudAccountSettingsController {
         fragment: Fragment,
         scope: LifecycleCoroutineScope,
         refresh: () -> Unit,
+        conflictEmail: String? = null,
+        conflictPassword: String? = null,
         action: suspend ((CloudSyncProgress) -> Unit) -> Int,
     ) {
         val context = fragment.requireContext()
@@ -224,11 +231,73 @@ object CloudAccountSettingsController {
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Throwable) {
-                if (fragment.isAdded) showError(fragment, error)
+                if (dialog.isShowing) dialog.dismiss()
+                if (error is CloudAccountDataConflictException &&
+                    !conflictEmail.isNullOrBlank() &&
+                    !conflictPassword.isNullOrBlank()
+                ) {
+                    showConflictDialog(fragment, scope, refresh, conflictEmail, conflictPassword)
+                } else if (fragment.isAdded) {
+                    showError(fragment, error)
+                }
             } finally {
                 if (dialog.isShowing) dialog.dismiss()
             }
         }
+    }
+
+    private fun showConflictDialog(
+        fragment: Fragment,
+        scope: LifecycleCoroutineScope,
+        refresh: () -> Unit,
+        email: String,
+        password: String,
+    ) {
+        if (!fragment.isAdded) return
+        val conflictDialog = Dialog(fragment.requireContext())
+        conflictDialog.setContentView(
+            ComposeView(fragment.requireContext()).apply {
+                setContent {
+                    BetterStreamflixTheme {
+                        CloudSyncConflictDialog(
+                            onKeepLocal = {
+                                conflictDialog.dismiss()
+                                runProgressAction(fragment, scope, refresh) { onProgress ->
+                                    CloudSyncManager.completeSignInAfterConflict(
+                                        fragment.requireContext(),
+                                        email,
+                                        password,
+                                        keepLocal = true,
+                                        onProgress = onProgress,
+                                    )
+                                    R.string.cloud_sync_sign_in_success
+                                }
+                            },
+                            onUseCloud = {
+                                conflictDialog.dismiss()
+                                runProgressAction(fragment, scope, refresh) { onProgress ->
+                                    CloudSyncManager.completeSignInAfterConflict(
+                                        fragment.requireContext(),
+                                        email,
+                                        password,
+                                        keepLocal = false,
+                                        onProgress = onProgress,
+                                    )
+                                    R.string.cloud_sync_sign_in_success
+                                }
+                            },
+                            onDismiss = { conflictDialog.dismiss() },
+                        )
+                    }
+                }
+            },
+        )
+        conflictDialog.setCancelable(true)
+        conflictDialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        conflictDialog.show()
     }
 
     private fun updateProgress(

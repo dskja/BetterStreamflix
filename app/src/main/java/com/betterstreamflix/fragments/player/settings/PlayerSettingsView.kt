@@ -401,6 +401,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Subtitle,
                 Speed,
                 Server,
+                Download,
                 ExtraBuffering,
                 SoftwareDecoder,
                 Gestures,
@@ -413,11 +414,14 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Subtitle,
                 Speed,
                 Server,
+                Download,
                 ExtraBuffering,
                 SoftwareDecoder,
                 ManualZoom,
             )
         }
+
+        data object Download : Settings()
 
         data object ManualZoom : Settings()
 

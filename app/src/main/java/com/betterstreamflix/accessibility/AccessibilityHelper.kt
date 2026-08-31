@@ -5,6 +5,7 @@ import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import com.betterstreamflix.R
 
 /**
  * Accessibility helper — provides content descriptions and TalkBack support.
@@ -54,6 +55,45 @@ object AccessibilityHelper {
      */
     fun announce(view: View, text: String) {
         view.announceForAccessibility(text)
+    }
+
+    fun isReducedMotionEnabled(context: Context): Boolean {
+        return ReducedMotionHelper.isReducedMotion(context)
+    }
+
+    fun getFontScale(context: Context): Float {
+        return FontScaleHelper.getSystemFontScale(context)
+    }
+
+    fun openAccessibilitySettings(context: Context) {
+        context.startActivity(
+            android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
+    fun openDisplaySettings(context: Context) {
+        context.startActivity(
+            android.content.Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
+    fun announceReducedMotionState(view: View, context: Context) {
+        val enabled = isReducedMotionEnabled(context)
+        announce(
+            view,
+            if (enabled) {
+                context.getString(R.string.settings_reduced_motion_on)
+            } else {
+                context.getString(R.string.settings_reduced_motion_off)
+            },
+        )
+    }
+
+    fun announceFontScale(view: View, context: Context) {
+        val scale = getFontScale(context)
+        announce(view, context.getString(R.string.settings_font_scale_summary, scale))
     }
 
     /**

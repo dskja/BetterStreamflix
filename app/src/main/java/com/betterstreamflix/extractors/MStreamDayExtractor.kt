@@ -13,16 +13,8 @@ import retrofit2.http.Url
 // https://github.com/doGior/doGiorsHadEnough/blob/master/AnimeWorld/src/main/kotlin/it/dogior/hadEnough/VidguardExtractor.kt
 // https://github.com/Gujal00/ResolveURL/blob/master/script.module.resolveurl/lib/resolveurl/plugins/vidguard.py
 class MStreamDayExtractor : Extractor() {
-    override val name = Base64.decode(
-        "bW9mbGl4", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8) + Base64.decode(
-        "LXN0cmVhbS5kYXk=", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8)
-    override val mainUrl = Base64.decode(
-        "aHR0cHM6Ly9tb2ZsaXg=", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8) + Base64.decode(
-        "LXN0cmVhbS5kYXk=", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8)
+    override val name = "moflix-stream.day"
+    override val mainUrl = "https://moflix-stream.day"
 
     override suspend fun extract(link: String): Video {
         val service = MStreamDayExtractorService.build(mainUrl, link)

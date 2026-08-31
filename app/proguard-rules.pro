@@ -84,6 +84,17 @@
 -keep class androidx.media3.** { *; }
 -dontwarn androidx.media3.**
 
+# === Media3 offline downloads ===
+-keep class androidx.media3.exoplayer.offline.** { *; }
+-keep class androidx.media3.datasource.cache.** { *; }
+-keep class androidx.media3.database.** { *; }
+-keep class com.betterstreamflix.download.** { *; }
+
+# === Jetpack Compose ===
+-keep class androidx.compose.** { *; }
+-keep class kotlin.coroutines.** { *; }
+-dontwarn androidx.compose.**
+
 # === Room ===
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *

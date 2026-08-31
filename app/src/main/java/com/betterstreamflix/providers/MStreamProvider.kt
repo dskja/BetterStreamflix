@@ -37,18 +37,10 @@ import kotlin.String
 object MStreamProvider : Provider {
     private const val DEFAULT_DOMAIN = "moflix-stream.xyz"
 
-    private val LEGACY_URL = Base64.decode(
-        "aHR0cHM6Ly9tb2ZsaXg=", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8) + Base64.decode(
-        "LXN0cmVhbS54eXo=", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8)
+    private val LEGACY_URL = "https://moflix-stream.xyz"
     override val baseUrl: String
         get() = currentBaseUrl()
-    override val name = Base64.decode(
-        "TW9mbGl4", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8) + Base64.decode(
-        "LXN0cmVhbQ==", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8)
+    override val name = "Moflix-Stream"
 
     override val logo
         get() = "${currentBaseUrl()}storage/branding_media/b0d168ea-8d1b-4b40-9292-65e9a600d3c6.png"

@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_providers_to_home"
             app:destination="@id/home" />
+        <action
+            android:id="@+id/action_providers_to_provider_marketplace"
+            app:destination="@id/provider_marketplace" />
     </fragment>
 
     <!-- Global Actions -->
@@ -64,6 +67,9 @@
         <action
             android:id="@+id/action_search_to_tv_show"
             app:destination="@id/tv_show" />
+        <action
+            android:id="@+id/action_search_to_genres_hub"
+            app:destination="@id/genres_hub" />
     </fragment>
     <fragment
         android:id="@+id/movies"
@@ -170,6 +176,18 @@
             app:nullable="true" />
     </fragment>
     <fragment
+        android:id="@+id/genres_hub"
+        android:name="com.betterstreamflix.fragments.genre.GenresHubFragment"
+        android:label="fragment_genres_hub">
+        <action
+            android:id="@+id/action_genres_hub_to_genre"
+            app:destination="@id/genre" />
+    </fragment>
+    <fragment
+        android:id="@+id/provider_marketplace"
+        android:name="com.betterstreamflix.fragments.providers.ProviderMarketplaceFragment"
+        android:label="fragment_provider_marketplace" />
+    <fragment
         android:id="@+id/genre"
         android:name="com.betterstreamflix.fragments.genre.GenreTvFragment"
         android:label="fragment_genre_tv"
@@ -240,5 +258,20 @@
     <fragment
         android:id="@+id/settings"
         android:name="com.betterstreamflix.fragments.settings.SettingsTvFragment"
-        android:label="fragment_settings_tv" />
+        android:label="fragment_settings_tv">
+        <action
+            android:id="@+id/action_settings_to_settings_about"
+            app:destination="@id/settings_about" />
+        <action
+            android:id="@+id/action_settings_to_downloads"
+            app:destination="@id/downloads" />
+    </fragment>
+    <fragment
+        android:id="@+id/downloads"
+        android:name="com.betterstreamflix.fragments.downloads.DownloadsTvFragment"
+        android:label="fragment_downloads_tv" />
+    <fragment
+        android:id="@+id/settings_about"
+        android:name="com.betterstreamflix.fragments.settings.about.SettingsAboutTvFragment"
+        android:label="fragment_settings_about_tv" />
 </navigation>

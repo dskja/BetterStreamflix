@@ -31,6 +31,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.constraintlayout.widget.Group
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -239,6 +240,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         updateProviderVisibilityState()
         SupabaseSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
+        }
+
+        findPreference<Preference>("open_downloads")?.setOnPreferenceClickListener {
+            findNavController().navigate(R.id.downloads)
+            true
         }
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
@@ -487,8 +493,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             spannableSummary.setSpan(ForegroundColorSpan(palette.tvHeaderSecondary), 0, summaryStr.length, 0)
             summary = spannableSummary
 
-            isSelectable = false
-            setOnPreferenceClickListener(null)
+            setOnPreferenceClickListener {
+                findNavController().navigate(R.id.action_settings_to_settings_about)
+                true
+            }
         }
 
         findPreference<Preference>("p_settings_help")?.setOnPreferenceClickListener {

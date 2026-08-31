@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.databinding.FragmentMovieMobileBinding
@@ -23,7 +24,12 @@ import com.betterstreamflix.utils.LoggingUtils
 import com.betterstreamflix.utils.dp
 import com.betterstreamflix.utils.loadMovieBanner
 import com.betterstreamflix.utils.viewModelsFactory
+import com.betterstreamflix.download.DownloadActionHelper
+import com.betterstreamflix.models.Video
+import com.betterstreamflix.utils.format
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MovieMobileFragment : Fragment() {
 
@@ -130,6 +136,30 @@ class MovieMobileFragment : Fragment() {
                 ?.apply { itemType = AppAdapter.Type.MOVIE_RECOMMENDATIONS_MOBILE },
         ))
         binding.rvMovie.post { binding.rvMovie.scrollToPosition(0) }
+    }
+
+    fun requestDownload(movie: Movie) {
+        val videoType = Video.Type.Movie(
+            id = movie.id,
+            title = movie.title,
+            releaseDate = movie.released?.format("yyyy-MM-dd") ?: "",
+            poster = movie.poster ?: movie.banner ?: "",
+            imdbId = movie.imdbId,
+        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            val streamUrl = withContext(Dispatchers.IO) {
+                viewModel.resolveStreamUrl(movie.id)
+            }
+            if (streamUrl.isNullOrBlank()) {
+                Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            DownloadActionHelper.enqueueCurrentVideo(
+                context = requireContext(),
+                videoType = videoType,
+                streamUrl = streamUrl,
+            )
+        }
     }
 }
 

@@ -37,8 +37,7 @@ object ZaluknijProvider : Provider {
 
     override val name = "Zaluknij"
     override val baseUrl = "https://zaluknij.cc"
-    override val logo: String
-        get() = artworkUrl("$baseUrl/public/dist/images/favicon.png") ?: "$baseUrl/public/dist/images/favicon.png"
+    override val logo: String = "$baseUrl/public/dist/images/favicon.png"
     override val language = "pl"
 
     private const val TAG = "ZaluknijProvider"

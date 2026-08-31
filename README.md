@@ -70,6 +70,23 @@ The interface aggregates content from multiple sources and provides a convenient
 - Stale cache fallback when provider is unavailable
 - Continue Watching with proper DB + cache sync
 
+### Feature wiring & E2E status
+
+Honest snapshot of what is **wired in production code** vs **automated end-to-end coverage** (no `androidTest` suite yet; ~25 JVM unit tests).
+
+| Area | Wired in app | Automated E2E |
+|------|----------------|---------------|
+| Home / search / player (mobile) | Yes | No — manual smoke only |
+| Home / search / player (TV) | Yes | No — manual smoke only |
+| Provider health + domain failover | Yes | Unit tests only |
+| Offline downloads (mobile) | Yes — queue, notifications, offline playback helpers | No instrumented E2E |
+| Cloud sync (Supabase) | Yes — optional; needs user config | No |
+| Watch Next + home-screen widgets | Yes | No |
+| IPTV / M3U providers | Yes — registered providers | No |
+| Nightly provider DNS/home smoke | CI (`scripts/provider_smoke.py`) | Partial — HTTP reachability only |
+
+See [ROADMAP.md](ROADMAP.md) for phase checkboxes and [docs/SCAFFOLD_AUDIT.md](docs/SCAFFOLD_AUDIT.md) for scaffold cut/ship decisions.
+
 ### Built with
 
 - [Android Studio](https://developer.android.com/studio)
