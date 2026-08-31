@@ -148,6 +148,7 @@ class PlayerTvFragment : Fragment() {
     private lateinit var progressHandler: android.os.Handler
     private lateinit var progressRunnable: Runnable
     private lateinit var gestureHelper: PlayerGestureHelper
+    private val sleepTimer = com.betterstreamflix.player.advanced.SleepTimer()
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
@@ -243,7 +244,9 @@ class PlayerTvFragment : Fragment() {
                 filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
-        } catch (ignored: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.w("PlayerTvFragment", "Failed to register/unregister chooser receiver", e)
+        }
     }
 
     override fun onCreateView(
@@ -844,6 +847,10 @@ class PlayerTvFragment : Fragment() {
             binding.pvPlayer.controller.binding.exoSettings.setOnClickListener {
                 binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
                 binding.settings.show()
+            }
+            binding.pvPlayer.controller.binding.exoSettings.setOnLongClickListener {
+                showSleepTimerDialog()
+                true
             }
 
             binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
@@ -1512,6 +1519,10 @@ class PlayerTvFragment : Fragment() {
         private fun startProgressHandler() {
             progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
             progressRunnable = Runnable {
+                if (::player.isInitialized && sleepTimer.checkAndStop(player)) {
+                    progressHandler.postDelayed(progressRunnable, 1000)
+                    return@Runnable
+                }
                 if (player.isPlaying) {
                     val show = player.currentPosition in 3000..120000
                     showSkipIntroButton(show)
@@ -1932,7 +1943,9 @@ class PlayerTvFragment : Fragment() {
     private fun stopWebSocketServer() {
         try {
             wsServer?.stop()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.w("PlayerTvFragment", "Failed to stop WebSocket server", e)
+        }
         wsServer = null
     }
 
@@ -2034,7 +2047,20 @@ class PlayerTvFragment : Fragment() {
         cookieManager.flush()
     }
 
-
+    private fun showSleepTimerDialog() {
+        val labels = com.betterstreamflix.player.advanced.SleepTimer.PRESET_DURATIONS
+            .map { "$it min" }
+            .toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.player_sleep_timer_title)
+            .setItems(labels) { _, which ->
+                val minutes = com.betterstreamflix.player.advanced.SleepTimer.PRESET_DURATIONS[which]
+                sleepTimer.start(minutes)
+                Toast.makeText(requireContext(), getString(R.string.player_sleep_timer_started, minutes), Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> sleepTimer.cancel() }
+            .show()
     }
 
 
+}

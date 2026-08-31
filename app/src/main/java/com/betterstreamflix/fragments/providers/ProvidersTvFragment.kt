@@ -19,6 +19,7 @@ import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.databinding.FragmentProvidersTvBinding
 import com.betterstreamflix.models.Provider as ModelProvider
 import com.betterstreamflix.providers.Provider
+import com.betterstreamflix.providers.ProviderHealthMonitor
 import com.betterstreamflix.ui.SpacingItemDecoration
 import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
@@ -150,7 +151,11 @@ class ProvidersTvFragment : Fragment() {
 
     private fun displayProviders(providers: List<ModelProvider>) {
         appAdapter.submitList(providers.map { provider ->
-            provider.copy(itemType = AppAdapter.Type.PROVIDER_TV_ITEM)
+            val unhealthy = !ProviderHealthMonitor.isHealthy(provider.name)
+            provider.copy(
+                name = if (unhealthy) "${provider.name} ⚠" else provider.name,
+                itemType = AppAdapter.Type.PROVIDER_TV_ITEM,
+            )
         })
 
         if (providers.isNotEmpty()) {

@@ -211,7 +211,9 @@
     <string name="cloud_sync_progress_merging">Merging local and cloud libraries…</string>
     <string name="cloud_sync_progress_uploading">Uploading your library: %1$d of %2$d</string>
     <string name="cloud_sync_progress_finalizing">Finishing synchronization…</string>
-    <string name="offline_banner_message">You\'re offline. Some content may not be available.</string>
+    <string name="offline_banner_message">Jesteś offline. Część treści może być niedostępna.</string>
+    <string name="home_cached_content_banner">Wyświetlanie zapisanej zawartości — dostawca może być tymczasowo niedostępny.</string>
+    <string name="home_recommended_for_you">Polecane dla Ciebie</string>
     <string name="sync_last_synced">Last synced %1$s</string>
     <string name="sync_status_ok">Up to date</string>
     <string name="sync_conflict_title">Sync conflict</string>
@@ -220,4 +222,22 @@
         <item quantity="one">Applying %d cloud item…</item>
         <item quantity="other">Applying %d cloud items…</item>
     </plurals>
+
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_summary">Manage offline downloads</string>
+    <string name="downloads_empty_title">No downloads yet</string>
+    <string name="downloads_empty_message">Start a download from the player or provider page.</string>
+    <string name="settings_search_title">Search settings</string>
+    <string name="settings_search_summary">Find a setting quickly</string>
+    <string name="settings_search_hint">e.g. theme, parental, domain</string>
+    <string name="settings_search_action">Search</string>
+    <string name="settings_search_results">Matching settings</string>
+    <string name="settings_new_content_notifications">New content alerts</string>
+    <string name="settings_new_content_notifications_summary">Notify when your provider adds new titles</string>
+    <string name="notification_new_content_title">New content available</string>
+    <string name="notification_new_content_message">%1$d new titles on your provider</string>
+    <string name="profile_picker_title">Who\'s watching?</string>
+    <string name="profile_picker_continue">Continue</string>
+    <string name="player_sleep_timer_title">Sleep timer</string>
+    <string name="player_sleep_timer_started">Sleep timer: %1$d min</string>
 </resources>

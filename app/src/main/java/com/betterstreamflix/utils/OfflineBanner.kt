@@ -24,4 +24,8 @@ object OfflineBanner {
         if (isOnline(anchor.context)) return
         Snackbar.make(anchor, R.string.offline_banner_message, Snackbar.LENGTH_LONG).show()
     }
+
+    fun showStaleCache(anchor: View) {
+        Snackbar.make(anchor, R.string.home_cached_content_banner, Snackbar.LENGTH_LONG).show()
+    }
 }

@@ -49,6 +49,10 @@ import com.betterstreamflix.utils.ProviderChangeNotifier
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserDataCache
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.settings.SettingsSearchHelper
+import com.betterstreamflix.notifications.NotificationPreferences
+import androidx.navigation.fragment.findNavController
+import android.widget.EditText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -235,6 +239,27 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         updateProviderVisibilityState()
         SupabaseSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
+        }
+
+        findPreference<Preference>("settings_search")?.setOnPreferenceClickListener {
+            showSettingsSearchDialog()
+            true
+        }
+
+        findPreference<Preference>("open_downloads")?.setOnPreferenceClickListener {
+            findNavController().navigate(R.id.downloads)
+            true
+        }
+
+        findPreference<SwitchPreferenceCompat>("new_content_notifications")?.apply {
+            isChecked = NotificationPreferences.isNewContentNotificationsEnabled(requireContext())
+            setOnPreferenceChangeListener { _, newValue ->
+                NotificationPreferences.setNewContentNotificationsEnabled(
+                    requireContext(),
+                    newValue as Boolean,
+                )
+                true
+            }
         }
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
@@ -1134,5 +1159,29 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.isChecked = UserPreferences.enableTmdb
         ParentalSettingsController.updateParentalControlPreferenceState(this) { key -> findPreference(key) }
+    }
+
+    private fun showSettingsSearchDialog() {
+        val input = EditText(requireContext()).apply {
+            hint = getString(R.string.settings_search_hint)
+            setPadding(48, 32, 48, 16)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.settings_search_title)
+            .setView(input)
+            .setPositiveButton(R.string.settings_search_action) { _, _ ->
+                val results = SettingsSearchHelper.search(input.text.toString())
+                if (results.isEmpty()) {
+                    Toast.makeText(requireContext(), R.string.search_no_results, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val labels = results.map { "${it.title} — ${it.currentValue}" }.toTypedArray()
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.settings_search_results)
+                    .setItems(labels, null)
+                    .show()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 }
