@@ -2,6 +2,25 @@
 <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <Preference
+        android:key="settings_search"
+        android:title="@string/settings_search_title"
+        android:summary="@string/settings_search_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        android:key="open_downloads"
+        android:title="@string/downloads_title"
+        android:summary="@string/downloads_summary"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        android:key="new_content_notifications"
+        android:title="@string/settings_new_content_notifications"
+        android:summary="@string/settings_new_content_notifications_summary"
+        android:defaultValue="false"
+        app:iconSpaceReserved="false" />
+
     <PreferenceScreen
         android:key="screen_content"
         android:title="@string/settings_section_content_title"

@@ -12,6 +12,8 @@ import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.betterstreamflix.providers.Provider
+import com.betterstreamflix.providers.ProviderDomainManager
+import com.betterstreamflix.providers.ProviderHealthMonitor
 import com.betterstreamflix.ui.UserDataNotifier
 import com.betterstreamflix.utils.HomeCacheStore
 import com.betterstreamflix.utils.ParentalControlUtils
@@ -284,6 +286,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         list = history.recentlyWatched,
                     ),
 
+                    buildRecommendedCategory(history),
+
                     // FAVORITES
                     Category(
                         name = Category.FAVORITE_MOVIES,
@@ -311,16 +315,31 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         )
                     })
 
-                State.SuccessLoading(categories)
+                State.SuccessLoading(categories, state.isStaleCache)
             }
 
             else -> state
         }
     }.flowOn(Dispatchers.IO)
 
+    private fun buildRecommendedCategory(history: HomeHistory): Category? {
+        val items = (history.favoritesMovies + history.favoriteTvShows + history.recentlyWatched)
+            .distinctBy { item ->
+                when (item) {
+                    is Movie -> "movie:${item.id}"
+                    is TvShow -> "tv:${item.id}"
+                    is Episode -> "episode:${item.id}"
+                    else -> item.hashCode().toString()
+                }
+            }
+            .take(20)
+        if (items.isEmpty()) return null
+        return Category(name = Category.RECOMMENDED_FOR_YOU, list = items)
+    }
+
     sealed class State {
         data object Loading : State()
-        data class SuccessLoading(val categories: List<Category>) : State()
+        data class SuccessLoading(val categories: List<Category>, val isStaleCache: Boolean = false) : State()
         data class FailedLoading(val error: Exception) : State()
     }
 
@@ -413,7 +432,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 provider === AnimeOnlineNinjaProvider &&
                         !AnimeOnlineNinjaProvider.hasCurrentClearanceCookie()
         if (!cachedCategories.isNullOrEmpty() && !deferCachedHomeForClearance) {
-            _state.emit(State.SuccessLoading(cachedCategories))
+            _state.emit(State.SuccessLoading(cachedCategories, isStaleCache = false))
         } else {
             _state.emit(State.Loading)
         }
@@ -423,15 +442,29 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         try {
             val categories = provider.getHome()
             HomeCacheStore.write(appContext, provider, categories)
-            _state.emit(State.SuccessLoading(categories))
+            ProviderHealthMonitor.recordSuccess(provider.name)
+            _state.emit(State.SuccessLoading(categories, isStaleCache = false))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("HomeViewModel", "getHome: ", e)
+            ProviderHealthMonitor.recordFailure(provider.name, e.message ?: e.javaClass.simpleName)
+            if (ProviderDomainManager.tryFallbackDomain(provider.name)) {
+                try {
+                    val categories = provider.getHome()
+                    HomeCacheStore.write(appContext, provider, categories)
+                    ProviderHealthMonitor.recordSuccess(provider.name)
+                    _state.emit(State.SuccessLoading(categories, isStaleCache = false))
+                    return@launch
+                } catch (retryError: Exception) {
+                    if (retryError is kotlinx.coroutines.CancellationException) throw retryError
+                    Log.e("HomeViewModel", "getHome after domain fallback: ", retryError)
+                }
+            }
             if (cachedCategories.isNullOrEmpty()) {
                 _state.emit(State.FailedLoading(e))
             } else {
                 Log.w("HomeViewModel", "Serving stale cache for ${provider.name} — provider fetch failed", e)
-                _state.emit(State.SuccessLoading(cachedCategories))
+                _state.emit(State.SuccessLoading(cachedCategories, isStaleCache = true))
             }
         }
     }

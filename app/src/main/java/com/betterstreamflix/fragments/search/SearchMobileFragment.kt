@@ -31,6 +31,8 @@ import com.betterstreamflix.ui.EmptyStateViewHelper
 import com.betterstreamflix.utils.LoggingUtils
 import com.betterstreamflix.utils.UserPreferences // <-- IMPORT AÑADIDO
 import com.betterstreamflix.utils.VoiceRecognitionHelper
+import com.betterstreamflix.search.SearchHistoryManager
+import com.google.android.material.chip.Chip
 import com.betterstreamflix.utils.dp
 import com.betterstreamflix.utils.hideKeyboard
 import com.betterstreamflix.utils.viewModelsFactory
@@ -64,6 +66,7 @@ class SearchMobileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initializeSearch()
+        refreshSearchHistoryChips()
 
         DeepLinkHandler.pendingSearchQuery?.let { pending ->
             DeepLinkHandler.pendingSearchQuery = null
@@ -91,6 +94,7 @@ class SearchMobileFragment : Fragment() {
                         displaySearch(state.results, state.hasMore)
                         appAdapter.isLoading = false
                         binding.isLoading.root.visibility = View.GONE
+                        refreshSearchHistoryChips()
                     }
                     is State.SuccessGlobalSearching -> {
                         displayGlobalSearch(state.providerResults)
@@ -177,10 +181,15 @@ class SearchMobileFragment : Fragment() {
 
             addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
-                    if(s.isNullOrBlank()){
-                                val isIptv = UserPreferences.currentProvider is IptvProvider
-        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
-        binding.etSearch.hint = getString(hintStringRes)
+                    val text = s?.toString().orEmpty()
+                    if (text.isBlank()) {
+                        val isIptv = UserPreferences.currentProvider is IptvProvider
+                        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
+                        binding.etSearch.hint = getString(hintStringRes)
+                        refreshSearchHistoryChips()
+                    } else if (text.length >= 2) {
+                        binding.hsvSearchHistory.visibility = View.GONE
+                        viewModel.searchDebounced(text)
                     }
                 }
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -311,6 +320,33 @@ class SearchMobileFragment : Fragment() {
 
         appAdapter.submitList(allItems)
         appAdapter.setOnLoadMoreListener(null) // Desactivamos la carga infinita en la búsqueda global
+    }
+
+    private fun refreshSearchHistoryChips() {
+        val history = SearchHistoryManager.getHistory(requireContext()).take(8)
+        binding.chipSearchHistory.removeAllViews()
+        if (history.isEmpty() || binding.etSearch.text?.isNotBlank() == true) {
+            binding.hsvSearchHistory.visibility = View.GONE
+            return
+        }
+        binding.hsvSearchHistory.visibility = View.VISIBLE
+        history.forEach { entry ->
+            val chip = Chip(requireContext()).apply {
+                text = entry.query
+                isClickable = true
+                setOnClickListener {
+                    binding.etSearch.setText(entry.query)
+                    hideKeyboard()
+                    if (binding.swGlobalSearch.isChecked) {
+                        val lang = UserPreferences.currentProvider?.language ?: "es"
+                        viewModel.searchGlobal(entry.query, lang)
+                    } else {
+                        viewModel.search(entry.query)
+                    }
+                }
+            }
+            binding.chipSearchHistory.addView(chip)
+        }
     }
     // ================================================================
 }

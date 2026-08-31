@@ -265,7 +265,9 @@ class PlayerMobileFragment : Fragment() {
                 filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
-        } catch (ignored: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.w("PlayerMobileFragment", "Failed to register chooser receiver", e)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -572,7 +574,9 @@ class PlayerMobileFragment : Fragment() {
         releasePlayer()
         try {
             requireContext().unregisterReceiver(chooserReceiver)
-        } catch (ignored: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.w("PlayerMobileFragment", "Failed to unregister chooser receiver", e)
+        }
         _binding = null
         isSetupDone = false
     }
