@@ -1350,6 +1350,9 @@ class PlayerMobileFragment : Fragment() {
                 val show = player.currentPosition in 3000..120000
                 showSkipIntroButton(show)
                 updateNextEpisodeOverlay()
+                if (sleepTimer.checkAndStop(player)) {
+                    Toast.makeText(requireContext(), R.string.player_settings_title, Toast.LENGTH_SHORT).show()
+                }
             }
             progressHandler.postDelayed(progressRunnable, 1000)
         }
@@ -1700,6 +1703,21 @@ class PlayerMobileFragment : Fragment() {
                 }
             }
         cookieManager.flush()
+    }
+
+    private fun showSleepTimerDialog() {
+        val labels = com.betterstreamflix.player.advanced.SleepTimer.PRESET_DURATIONS
+            .map { "$it min" }
+            .toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.player_settings_title)
+            .setItems(labels) { _, which ->
+                val minutes = com.betterstreamflix.player.advanced.SleepTimer.PRESET_DURATIONS[which]
+                sleepTimer.start(minutes)
+                Toast.makeText(requireContext(), "$minutes min", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> sleepTimer.cancel() }
+            .show()
     }
 }
 

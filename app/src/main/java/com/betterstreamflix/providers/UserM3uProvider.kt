@@ -31,7 +31,7 @@ object UserM3uProvider : Provider, IptvProvider {
 
     private val client by lazy { OkHttpClient() }
 
-    private data class M3uEntry(val name: String, val logo: String?, val url: String)
+    data class M3uEntry(val name: String, val logo: String?, val url: String)
 
     private suspend fun loadEntries(): List<M3uEntry> = withContext(Dispatchers.IO) {
         val url = UserPreferences.userM3uUrl
@@ -40,7 +40,7 @@ object UserM3uProvider : Provider, IptvProvider {
         parseM3u(body)
     }
 
-    internal fun parseM3u(body: String): List<M3uEntry> {
+    fun parseM3u(body: String): List<M3uEntry> {
         val entries = mutableListOf<M3uEntry>()
         var pendingName = "Channel"
         var pendingLogo: String? = null
