@@ -5,8 +5,8 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.widget.RemoteViews
+import com.betterstreamflix.R
 
 /**
  * Continue watching widget — shows recently watched content on the
@@ -21,9 +21,6 @@ class ContinueWatchingWidget : AppWidgetProvider() {
     }
 
     companion object {
-        /**
-         * Update a single widget instance.
-         */
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_continue_watching)
             views.setTextViewText(R.id.widget_title, context.getString(R.string.home_continue_watching))
@@ -39,9 +36,6 @@ class ContinueWatchingWidget : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(widgetId, views)
         }
 
-        /**
-         * Update all widgets.
-         */
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val widgetIds = appWidgetManager.getAppWidgetIds(
