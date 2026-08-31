@@ -63,7 +63,15 @@ data class Video(
         val id: String,
         val name: String,
         val src: String = "",
+        val audioVariant: AudioVariant = AudioVariant.UNKNOWN,
     ) : Serializable {
         var video: Video? = null
+    }
+
+    /** Anime / multi-audio hint for server chips and filters. */
+    enum class AudioVariant {
+        SUB,
+        DUB,
+        UNKNOWN,
     }
 }

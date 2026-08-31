@@ -1421,6 +1421,14 @@ class PlayerMobileFragment : Fragment() {
                 }
             }
         }
+
+        WatchProgressHelper.upsertWatchNext(
+            context = requireContext().applicationContext,
+            videoType = videoType,
+            positionMillis = player.currentPosition,
+            durationMillis = player.duration,
+            finished = player.hasFinished(),
+        )
     }
 
     private fun updateNextEpisodeOverlay() {

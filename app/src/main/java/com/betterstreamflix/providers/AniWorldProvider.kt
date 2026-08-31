@@ -467,10 +467,17 @@ object AniWorldProvider : Provider {
                 }
                 ?: ""
 
+            val audioVariant = when (it.attr("data-lang-key")) {
+                "1" -> Video.AudioVariant.DUB
+                "2", "3" -> Video.AudioVariant.SUB
+                else -> Video.AudioVariant.UNKNOWN
+            }
+
             Video.Server(
                 id = name,
                 name = name,
                 src = redirectUrl,
+                audioVariant = audioVariant,
             )
         }
 

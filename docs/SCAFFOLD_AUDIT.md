@@ -9,7 +9,7 @@ Inventory of orphan / scaffold packages in BetterStreamflix that have little or 
 | `WatchNextUtils` / `tv/` | Ship | P3 | Ship Watch Next on progress save; Preview Channels. Rest of `tv/` merge or cut after audit. |
 | `player/` (advanced helpers) | Merge | P2→P4 | Consolidate NextEpisodeOverlay, SleepTimer, Buffer, PiP into player fragments/utils; delete duplicate stubs. |
 | `search/` | Merge | P2 | History / Filter / Debounce into `SearchViewModel`; fuzzy/recommender optional. |
-| `cast/` | Cut | P3 | No Cast SDK in Gradle; keep External Player. Revisit only with real Media3 Cast. |
+| `cast/` | **Cut (done)** | P3 | Removed — no Cast SDK; use external player |
 | `analytics/` | Ship | P5 | Wire diagnostic export (FileLogger / ShareHelper). Firebase optional later — not default. |
 | `resilience/` (+ ProviderHealth) | Ship | P2 | Wire Health + CircuitBreaker into provider `getHome` / `search` / `getVideo` paths. |
 | `network/` | Merge | P4 | Fold into `utils.NetworkClient`; fix DoH builder (`HttpClientBuilder.buildWithDoH`). |
@@ -20,7 +20,7 @@ Inventory of orphan / scaffold packages in BetterStreamflix that have little or 
 | `imageloading/` | Cut | P4 | Glide is production path; revisit only if P6 perf needs a dedicated layer. |
 | `performance/` | Cut | P4 / P6 | Cut stubs now; optional deep-dive in P6 (prefetch, trim, pools). |
 | `deployment/` (UpdateChecker stub) | Cut | P4 | Keep real `InAppUpdater`; delete stub checker. |
-| `testing/` (in `main`) | Cut | P4 | Move to `src/debug` or delete from production source set. |
+| `testing/` | **Cut (done)** | P4 | Removed from main source set |
 | `architecture/` (FeatureFlags) | Cut | P4 | Cut unless used for real WIP-provider flags. |
 | `content/` (backup duplicates) | Cut | P3→P4 | Keep `backup/BackupRestoreManager`; remove duplicate content-backup paths. |
 | `AppLevelDatabase` | Merge | P4 | Unify with provider-DB strategy; real migrations (no destructive fallback). |

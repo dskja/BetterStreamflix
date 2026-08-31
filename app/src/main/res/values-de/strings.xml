@@ -7,6 +7,7 @@
     
     <string name="loading_error_clear_cache">Cache leeren</string>
     <string name="loading_error_details">Fehlerdetails</string>
+    <string name="loading_error_generic">Etwas ist schiefgelaufen. Bitte versuche es erneut.</string>
 
     <string name="update_title">Aktualisierung verfügbar</string>
     <string name="update_message">Eine neue version der App ist verfügbar!</string>
@@ -15,6 +16,11 @@
     <string name="update_release_notes">Versionshinweise</string>
     <string name="update_later">Vielleicht später</string>
     <string name="update">Aktualisieren</string>
+    <string name="whats_new_title">Neuigkeiten</string>
+
+    <string name="legal_disclaimer_title">Rechtlicher Hinweis</string>
+    <string name="legal_disclaimer_message">BetterStreamflix hostet, speichert oder verbreitet keine urheberrechtlich geschützten Inhalte. Alle Inhalte stammen von Drittanbietern. Du bist selbst dafür verantwortlich sicherzustellen, dass du berechtigt bist, auf die über diese App angezeigten Inhalte zuzugreifen.</string>
+    <string name="legal_disclaimer_accept">Verstanden &amp; akzeptieren</string>
 
     <string name="app_layout">App-Layout</string>
     <string name="app_layout_auto">Automatisch</string>
@@ -45,6 +51,8 @@
     <string name="search_empty_query">Bitte geben Sie einen Suchbegriff ein</string>
     <string name="searching">Suche läuft...</string>
     <string name="search_error">Fehler</string>
+    <string name="search_no_results">Keine Ergebnisse gefunden</string>
+    <string name="search_no_results_hint">Versuche einen anderen Suchbegriff oder überprüfe die Schreibweise</string>
     <string name="result">Ergebnis</string>
     <string name="results">Ergebnisse</string>
     <string name="switching_to_provider">Wechseln zu %s</string>
@@ -54,6 +62,8 @@
     <string name="home_recently_watched">Kürzlich angesehen</string>
     <string name="home_favorite_movies">Favoriten - Filme</string>
     <string name="home_favorite_tv_shows">Favoriten - Serien</string>
+    <string name="empty_catalog_title">Hier gibt es noch nichts</string>
+    <string name="empty_catalog_subtitle">Schau später wieder vorbei oder probiere einen anderen Anbieter</string>
 
     <string name="option_episode_open_tv_show">Zur Serie gehen</string>
     <string name="option_show_favorite">Zu Favoriten hinzufügen</string>
@@ -114,6 +124,8 @@
     <string name="player_external_player_error_video">Video noch nicht geladen</string>
     <string name="player_not_available_lang_message">Nicht verfügbar auf %s, suchen Sie auf TMDB in anderen Sprachen</string>
     <string name="player_retry_later_message">Video derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.</string>
+    <string name="feature_not_supported">Diese Funktion wird noch nicht unterstützt</string>
+    <string name="source_failed_try_next">Diese Quelle ist fehlgeschlagen. Versuche die nächste…</string>
     <string name="player_aspect_ratio_fit">An Bildschirm anpassen</string>
     <string name="player_aspect_ratio_fill">Ausdehnen</string>
     <string name="player_aspect_ratio_zoom">Zoomen</string>
@@ -129,6 +141,8 @@
     <string name="player_settings_quality">%dp</string>
     <string name="player_settings_audio_title">Audio</string>
     <string name="player_settings_audio_label">Audio</string>
+    <string name="audio_variant_sub">Untertitel</string>
+    <string name="audio_variant_dub">Synchronisation</string>
     <string name="player_settings_subtitles_title">Untertitel / Bildbeschreibung</string>
     <string name="player_settings_subtitles_label">Untertitel</string>
     <string name="player_settings_subtitles_off">Aus</string>
@@ -294,6 +308,7 @@
     <string name="backup_export_picker_option">Speicherort auswählen</string>
     <string name="backup_export_local_option">In lokalen Sicherungen speichern</string>
     <string name="backup_export_downloads_option">In Downloads speichern</string>
+    <string name="downloads_mobile_only">Downloads sind nur im mobilen Layout verfügbar</string>
     <string name="backup_export_saved_to">Sicherung exportiert nach %1$s</string>
     <string name="backup_data_not_generated">Fehler: Sicherungsdaten wurden nicht erstellt.</string>
     <string name="backup_import_success">Sicherung importiert! Starten Sie die App neu.</string>
@@ -498,4 +513,44 @@
     <string name="settings_refresh_cache_success">Cache erfolgreich aktualisiert</string>
     <string name="supabase_instructions_title">Anleitung</string>
     <string name="supabase_instructions_summary">Die ausführliche Anleitung zur Einrichtung von Supabase-Konto und Synchronisierung im Browser öffnen</string>
+    <string name="offline_banner_message">Du bist offline. Manche Inhalte sind möglicherweise nicht verfügbar.</string>
+    <string name="sync_last_synced">Zuletzt synchronisiert: %1$s</string>
+    <string name="sync_status_ok">Aktuell</string>
+    <string name="sync_conflict_title">Synchronisierungskonflikt</string>
+
+    <!-- Megaplan i18n parity -->
+    <string name="cloud_sync_title">Account &amp; sync</string>
+    <string name="cloud_sync_screen_summary">Synchronize favorites and watch history between devices</string>
+    <string name="cloud_sync_account_category">Supabase account</string>
+    <string name="cloud_sync_account_status">Account status</string>
+    <string name="cloud_sync_signed_out">Not signed in</string>
+    <string name="cloud_sync_signed_in_as">Signed in as %1$s</string>
+    <string name="cloud_sync_sign_in">Sign in</string>
+    <string name="cloud_sync_sign_in_summary">Use an existing email and password</string>
+    <string name="cloud_sync_sign_up">Create account</string>
+    <string name="cloud_sync_sign_up_summary">Create a synchronized account</string>
+    <string name="cloud_sync_sign_out">Sign out</string>
+    <string name="cloud_sync_now">Sync now</string>
+    <string name="cloud_sync_now_summary">Upload local changes and download changes from other devices</string>
+    <string name="cloud_sync_email_hint">Email</string>
+    <string name="cloud_sync_password_hint">Password</string>
+    <string name="cloud_sync_success">Synchronization complete</string>
+    <string name="cloud_sync_sign_in_success">Signed in and synchronized</string>
+    <string name="cloud_sync_sign_up_success">Account created and synchronized</string>
+    <string name="cloud_sync_confirm_email">Account created. Confirm your email, then sign in.</string>
+    <string name="cloud_sync_sign_out_success">Signed out</string>
+    <string name="cloud_sync_invalid_credentials">Enter a valid email and a password of at least 6 characters</string>
+    <string name="cloud_sync_error">Cloud sync failed: %1$s</string>
+    <string name="cloud_sync_progress_title">Account &amp; sync</string>
+    <string name="cloud_sync_progress_connecting">Connecting…</string>
+    <string name="cloud_sync_progress_authenticating">Authenticating securely…</string>
+    <string name="cloud_sync_progress_checking_cloud">Checking your cloud library…</string>
+    <string name="cloud_sync_progress_preparing_local">Preparing your local library…</string>
+    <string name="cloud_sync_progress_merging">Merging local and cloud libraries…</string>
+    <string name="cloud_sync_progress_uploading">Uploading your library: %1$d of %2$d</string>
+    <string name="cloud_sync_progress_finalizing">Finishing synchronization…</string>
+    <plurals name="cloud_sync_progress_applying_cloud">
+        <item quantity="one">Applying %d cloud item…</item>
+        <item quantity="other">Applying %d cloud items…</item>
+    </plurals>
 </resources>

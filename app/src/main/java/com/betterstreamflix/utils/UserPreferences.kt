@@ -65,6 +65,13 @@ object UserPreferences {
 
             val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
+
+            // Migrate legacy TV theme key once.
+            val legacyTheme = prefs.getString("theme_preference", null)
+            if (!legacyTheme.isNullOrBlank() && Key.SELECTED_THEME.getString().isNullOrBlank()) {
+                Key.SELECTED_THEME.setString(legacyTheme)
+                prefs.edit { remove("theme_preference") }
+            }
         }
     }
 
