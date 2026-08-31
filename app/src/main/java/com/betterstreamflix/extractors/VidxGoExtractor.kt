@@ -3,6 +3,7 @@ package com.betterstreamflix.extractors
 import android.util.Base64
 import android.util.Log
 import android.net.Uri
+import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.models.Video
 import com.betterstreamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
@@ -16,6 +17,12 @@ object TokenManager {
 
     @OptIn(DelicateCoroutinesApi::class)
     val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+}
+
+private inline fun tokenDebugLog(message: () -> String) {
+    if (BuildConfig.DEBUG) {
+        Log.d("TokenManager", message())
+    }
 }
 
 class VidxGoExtractor : Extractor() {
@@ -57,7 +64,7 @@ class VidxGoExtractor : Extractor() {
             
             val initialUri = android.net.Uri.parse(videoUrl)
             TokenManager.latestQuery = initialUri.encodedQuery
-            Log.d("TokenManager", "[INIT] Initial token set. expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}...")
+            tokenDebugLog { "[INIT] Initial token set. expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}..." }
 
             TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 while (true) {
@@ -65,15 +72,15 @@ class VidxGoExtractor : Extractor() {
                     val delayMs = if (exp != null) {
                         val remaining = exp - System.currentTimeMillis()
                         val delay = (remaining - 15_000).coerceAtLeast(5_000)
-                        Log.d("TokenManager", "[SCHEDULE] Next refresh in ${delay / 1000}s (expiry in ${remaining / 1000}s)")
+                        tokenDebugLog { "[SCHEDULE] Next refresh in ${delay / 1000}s (expiry in ${remaining / 1000}s)" }
                         delay
                     } else {
-                        Log.d("TokenManager", "[SCHEDULE] expire not found, retry in 150s")
+                        tokenDebugLog { "[SCHEDULE] expire not found, retry in 150s" }
                         150_000L
                     }
 
                     kotlinx.coroutines.delay(delayMs)
-                    Log.d("TokenManager", "[REFRESH] Starting token refresh request at: $link")
+                    tokenDebugLog { "[REFRESH] Starting token refresh request at: $link" }
                     try {
                         val updateRequest = Request.Builder()
                             .url(link)
@@ -94,7 +101,7 @@ class VidxGoExtractor : Extractor() {
                             if (newUrlStr != null) {
                                 val newUri = android.net.Uri.parse(newUrlStr)
                                 TokenManager.latestQuery = newUri.encodedQuery
-                                Log.d("TokenManager", "[REFRESH] New token saved. New expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}...")
+                                tokenDebugLog { "[REFRESH] New token saved. New expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}..." }
                             } else {
                                 Log.w("TokenManager", "[REFRESH] url not found in the response. Body: ${newHtml.take(200)}")
                             }
@@ -164,7 +171,7 @@ class VidxGoExtractor : Extractor() {
         TokenManager.latestQuery = initialUri.encodedQuery
 
         val initialExpireTime = initialExpireRaw
-        Log.d("TokenManager", "[FILM-INIT] Token/Expiry extracted from JS. token=$currentToken, expireTime=${initialExpireTime}")
+        tokenDebugLog { "[FILM-INIT] Token/Expiry extracted from JS. token=$currentToken, expireTime=${initialExpireTime}" }
 
         if (filmRefreshUrl != null) {
             TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -173,15 +180,15 @@ class VidxGoExtractor : Extractor() {
                     val delayMs = if (expireTime != null) {
                         val remaining = expireTime - System.currentTimeMillis()
                         val delay = (remaining - 15_000).coerceAtLeast(5_000)
-                        Log.d("TokenManager", "[FILM-SCHEDULE] Next refresh in ${delay / 1000}s")
+                        tokenDebugLog { "[FILM-SCHEDULE] Next refresh in ${delay / 1000}s" }
                         delay
                     } else {
-                        Log.d("TokenManager", "[FILM-SCHEDULE] First refresh in 150s")
+                        tokenDebugLog { "[FILM-SCHEDULE] First refresh in 150s" }
                         150_000L
                     }
 
                     kotlinx.coroutines.delay(delayMs)
-                    Log.d("TokenManager", "[FILM-REFRESH] Starting refresh at: $filmRefreshUrl")
+                    tokenDebugLog { "[FILM-REFRESH] Starting refresh at: $filmRefreshUrl" }
                     try {
                         val updateRequest = Request.Builder()
                             .url(filmRefreshUrl)
@@ -202,7 +209,7 @@ class VidxGoExtractor : Extractor() {
                             if (newUrlStr != null) {
                                 val newUri = android.net.Uri.parse(newUrlStr)
                                 TokenManager.latestQuery = newUri.encodedQuery
-                                Log.d("TokenManager", "[FILM-REFRESH] New token saved. expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}...")
+                                tokenDebugLog { "[FILM-REFRESH] New token saved. expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}..." }
                             } else {
                                 Log.w("TokenManager", "[FILM-REFRESH] url not found. Body: ${newHtml.take(200)}")
                             }
