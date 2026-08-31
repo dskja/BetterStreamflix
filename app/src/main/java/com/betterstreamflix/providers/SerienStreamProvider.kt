@@ -529,15 +529,14 @@ object SerienStreamProvider : Provider {
         if (page > 1) return People(id, "")
         val document = getService().getPeople(id)
         val peopleName = document.selectFirst("h1 strong")?.text() ?: ""
-        val tmdbPerson = if (peopleName.isNotBlank()) TmdbUtils.findPerson(peopleName, language = language) else null
-        val tmdbPersonDetails = tmdbPerson?.id?.toIntOrNull()?.let { TmdbUtils.getPersonDetails(it, language = language) }
+        val tmdbPerson = TmdbUtils.enrichPersonByName(peopleName, language = language)
         return People(id = id,
             name = peopleName,
-            image = tmdbPersonDetails?.image ?: tmdbPerson?.image,
-            biography = tmdbPersonDetails?.biography,
-            placeOfBirth = tmdbPersonDetails?.placeOfBirth,
-            birthday = tmdbPersonDetails?.birthday?.format("yyyy-MM-dd"),
-            deathday = tmdbPersonDetails?.deathday?.format("yyyy-MM-dd"),
+            image = tmdbPerson?.image,
+            biography = tmdbPerson?.biography,
+            placeOfBirth = tmdbPerson?.placeOfBirth,
+            birthday = tmdbPerson?.birthday?.format("yyyy-MM-dd"),
+            deathday = tmdbPerson?.deathday?.format("yyyy-MM-dd"),
             filmography = document.select("div.row.g-3 > div").map {
                 TvShow(
                     id = it.selectFirst("a")?.attr("href")?.let { it1 -> getTvShowIdFromLink(it1) } ?: "",
