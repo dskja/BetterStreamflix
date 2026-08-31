@@ -343,9 +343,7 @@ object CineHaxProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        // cinehax.com's /watch/ pages don't list cast/crew anywhere (verified: no actor names,
-        // profile images, or "Reparto" section in the markup), so there's no source to scrape.
-        TODO("Not yet implemented")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     // endregion

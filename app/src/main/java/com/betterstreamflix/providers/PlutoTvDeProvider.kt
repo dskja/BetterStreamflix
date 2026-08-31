@@ -189,7 +189,7 @@ object PlutoTvDeProvider : IptvProvider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        TODO("Not yet implemented")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getTvShow(id: String): TvShow {
