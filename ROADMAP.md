@@ -28,53 +28,53 @@ Detail and Ship-or-Cut decisions: [docs/SCAFFOLD_AUDIT.md](docs/SCAFFOLD_AUDIT.m
 
 ### P0 — Stability & security (priority)
 
-- [ ] **Crash:** Provider defaults — unimplemented methods return empty lists / empty `People`, never `TODO()` (PlutoTV locales, IPTV, SuperStream, Otakufr, …)
-- [ ] **Crash:** `NavigationSlidePresenter` state save/restore
+- [x] **Crash:** Provider defaults — unimplemented methods return empty lists / empty `People`, never `TODO()` (PlutoTV locales, IPTV, SuperStream, Otakufr, …)
+- [x] **Crash:** `NavigationSlidePresenter` state save/restore
 - [ ] **Crash:** Empty catches in player/bypass — log + user message
-- [ ] **Crash:** Progress UI only when `durationMillis > 0`
-- [ ] **Security:** Parental PIN → EncryptedSharedPreferences + migration
-- [ ] **Security:** Backup rules exclude PIN/tokens (or disable backup)
-- [ ] **Security:** Cleartext domain allowlist; restrict `trustAll` SSL
-- [ ] **Security:** Scrub tokens/query params from release logs
-- [ ] **Security:** Validate deep-link provider/id (no open redirect)
+- [x] **Crash:** Progress UI only when `durationMillis > 0`
+- [x] **Security:** Parental PIN → EncryptedSharedPreferences + migration
+- [x] **Security:** Backup rules exclude PIN/tokens (or disable backup)
+- [x] **Security:** Cleartext domain allowlist; restrict `trustAll` SSL
+- [x] **Security:** Scrub tokens/query params from release logs
+- [x] **Security:** Validate deep-link provider/id (no open redirect)
 - [ ] Domains: StreamingCommunity, SerienStream, Moflix, Cuevana, Poseidon
-- [ ] Fix Spanish `TmdbProvider.getServers()` (empty list)
-- [ ] Extractor miss → structured error + alias/domain pass
-- [ ] Scaffold audit committed (`docs/SCAFFOLD_AUDIT.md`)
+- [x] Fix Spanish `TmdbProvider.getServers()` (empty list)
+- [x] Extractor miss → structured error + alias/domain pass
+- [x] Scaffold audit committed (`docs/SCAFFOLD_AUDIT.md`)
 
 ### P1 — UX / onboarding
 
-- [ ] Wire empty/error/loading helpers (Search, catalog, genres, people)
-- [ ] First-run legal accept + post-update “What’s new”
+- [x] Wire empty/error/loading helpers (Search, catalog, genres, people)
+- [x] First-run legal accept + post-update “What’s new”
 - [ ] A11y / TV focus; one Theme / Accessibility / FirstRun helper
 - [ ] Parental UI polish (PIN dialog, session indicator)
 - [ ] Settings parity Mobile/TV; Settings search
 
 ### P2 — Player, discovery, health
 
-- [ ] Shared next-episode, sleep timer, seek gestures, buffer presets, PiP actions, subtitle auto-fetch
+- [x] Shared next-episode, sleep timer, seek gestures, buffer presets, PiP actions, subtitle auto-fetch
 - [ ] Search debounce, history, filters; genres hub; TMDB people enrich
 - [ ] RecommendationEngine home rows
-- [ ] Provider Health UI + domain failover + CircuitBreaker
+- [x] Provider Health UI + domain failover + CircuitBreaker
 
 ### P3 — Platform
 
-- [ ] Downloads E2E Mobile **or** cut `download/`
-- [ ] Cloud sync UX (banner, conflicts, i18n strings)
-- [ ] Watch Next + widgets + shortcuts + deep links
-- [ ] Cast package cut (unless real Cast SDK)
-- [ ] IPTV M3U/Xtream + EPG MVP (or explicit defer)
-- [ ] Anime Dub/Sub + episode numbering options
+- [x] Downloads E2E Mobile **or** cut `download/`
+- [x] Cloud sync UX (banner, conflicts, i18n strings)
+- [x] Watch Next + widgets + shortcuts + deep links
+- [x] Cast package cut (unless real Cast SDK)
+- [x] IPTV M3U/Xtream + EPG MVP (or explicit defer)
+- [x] Anime Dub/Sub + episode numbering options
 
 ### P4 — Architecture
 
-- [ ] NetworkClient mandatory; DoH fix; Room schema/indexes; AppLevel unify
-- [ ] Split Settings/Player god classes; dead-code purge per scaffold audit
+- [x] NetworkClient mandatory; DoH fix; Room schema/indexes; AppLevel unify
+- [x] Split Settings/Player god classes; dead-code purge per scaffold audit
 - [ ] Version catalog; dependency bumps (media3, room, supabase, ktor)
 
 ### P5 — Quality & docs
 
-- [ ] Detekt / ktlint; CI matrix `APP_LAYOUT` mobile + tv; no soft-fail lint/tests
+- [x] Detekt / ktlint; CI matrix `APP_LAYOUT` mobile + tv; no soft-fail lint/tests
 - [ ] i18n parity (PL + `cloud_sync_*`); CI missing-key gate
 - [ ] Expand unit/instrumented suite beyond ~19 tests
 - [x] CONTRIBUTING, ARCHITECTURE, PROVIDERS, LEGAL, PR template, ROADMAP sync
