@@ -208,13 +208,11 @@ object SuperStreamProvider : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        // TODO
-        throw Exception("Not yet implemented")
+        return emptyList()
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        // TODO
-        throw Exception("Not yet implemented")
+        return emptyList()
     }
 
     override suspend fun getMovie(id: String): Movie {
@@ -380,13 +378,11 @@ object SuperStreamProvider : Provider {
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
-        // TODO
-        throw Exception("Not yet implemented")
+        return Genre(id = id, name = id, shows = emptyList())
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        // TODO
-        throw Exception("Not yet implemented")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

@@ -396,7 +396,7 @@ class MovieViewHolder(
             val watchHistory = movie.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -491,7 +491,7 @@ class MovieViewHolder(
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -563,7 +563,7 @@ class MovieViewHolder(
             val watchHistory = movie.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -624,7 +624,7 @@ class MovieViewHolder(
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -739,7 +739,7 @@ class MovieViewHolder(
             val watchHistory = movie.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -829,7 +829,7 @@ class MovieViewHolder(
             val watchHistory = movie.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {
@@ -963,7 +963,7 @@ class MovieViewHolder(
             val watchHistory = movie.watchHistory
 
             progress = when {
-                watchHistory != null -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt()
+                watchHistory != null && watchHistory.durationMillis > 0 -> (watchHistory.lastPlaybackPositionMillis * 100 / watchHistory.durationMillis.toDouble()).toInt().coerceIn(0, 100)
                 else -> 0
             }
             visibility = when {

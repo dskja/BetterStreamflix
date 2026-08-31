@@ -252,10 +252,10 @@ object PelotaLibreTvHdProvider : IptvProvider {
         id: String,
         page: Int
     ): People {
-        TODO("Not yet implemented")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
-    override suspend fun getMovie(id: String): Movie = throw NotImplementedError()
+    override suspend fun getMovie(id: String): Movie = Movie(id = id, title = "")
 
     override suspend fun getTvShow(id: String): TvShow {
         // Interceptamos la acción si el usuario hace clic en los elementos de Soporte y Ayuda

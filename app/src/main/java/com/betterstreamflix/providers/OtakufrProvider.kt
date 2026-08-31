@@ -118,7 +118,7 @@ object OtakufrProvider : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        throw Exception("Not yet implemented")
+        return emptyList()
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
@@ -143,7 +143,7 @@ object OtakufrProvider : Provider {
     }
 
     override suspend fun getMovie(id: String): Movie {
-        throw Exception("Not yet implemented")
+        return Movie(id = id, title = "")
     }
 
     override suspend fun getTvShow(id: String): TvShow {
@@ -236,7 +236,7 @@ object OtakufrProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Not yet implemented")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
