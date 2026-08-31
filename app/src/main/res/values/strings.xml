@@ -423,6 +423,7 @@
     <string name="settings_search_results">Matching settings</string>
     <string name="settings_new_content_notifications">New content alerts</string>
     <string name="settings_new_content_notifications_summary">Notify when your provider adds new titles</string>
+    <string name="settings_notifications_permission_denied">Notification permission is required to enable alerts</string>
     <string name="notification_new_content_title">New content available</string>
     <string name="notification_new_content_message">%1$d new titles on your provider</string>
     <string name="profile_picker_title">Who\'s watching?</string>

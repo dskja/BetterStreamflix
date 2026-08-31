@@ -2,12 +2,16 @@ name: PR Checks
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   static-analysis:
-    name: Static Analysis & Tests
+    name: Static Analysis & Tests (${{ matrix.app_layout }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app_layout: [mobile, tv]
     permissions:
       contents: read
       pull-requests: write
@@ -37,16 +41,14 @@ jobs:
       - name: Create local.properties
         run: |
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
-          echo "APP_LAYOUT=" >> local.properties
+          echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
           echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
           echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
           echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
 
       - name: Run Lint
         id: lint
-        # Lint baseline still noisy; keep soft until Detekt/ktlint land. Unit tests gate hard.
         run: ./gradlew lintDebug --stacktrace
-        continue-on-error: true
 
       - name: Run Unit Tests
         id: tests
@@ -55,9 +57,6 @@ jobs:
       - name: Critical i18n parity
         run: python3 scripts/check_string_parity.py
 
-      - name: Build debug APK matrix note
-        run: echo "Default APP_LAYOUT from local.properties; mobile/tv matrix tracked in ROADMAP P5"
-
       - name: Build debug APK
         id: build
         run: ./gradlew assembleDebug --stacktrace
@@ -65,24 +64,24 @@ jobs:
       - name: Check APK size
         run: |
           APK_SIZE=$(stat -c%s app/build/outputs/apk/debug/*.apk)
-          echo "Debug APK size: $APK_SIZE bytes ($(($APK_SIZE / 1024 / 1024)) MB)"
+          echo "Debug APK size (${{ matrix.app_layout }}): $APK_SIZE bytes ($(($APK_SIZE / 1024 / 1024)) MB)"
           if [ $APK_SIZE -gt 104857600 ]; then
             echo "::warning::APK exceeds 100MB"
           fi
 
       - name: Comment PR with results
-        if: always()
+        if: always() && matrix.app_layout == 'mobile'
         uses: actions/github-script@v7
         with:
           script: |
             let comment = '## PR Check Results\n';
             comment += '| Check | Status |\n|-------|--------|\n';
-            const lintStatus = '${{ steps.lint.outcome }}' === 'success' ? '✅' : '⚠️';
-            const testStatus = '${{ steps.tests.outcome }}' === 'success' ? '✅' : '⚠️';
+            const lintStatus = '${{ steps.lint.outcome }}' === 'success' ? '✅' : '❌';
+            const testStatus = '${{ steps.tests.outcome }}' === 'success' ? '✅' : '❌';
             const buildStatus = '${{ steps.build.outcome }}' === 'success' ? '✅' : '❌';
-            comment += `| Lint | ${lintStatus} |\n`;
+            comment += `| Lint (mobile+tv matrix) | ${lintStatus} |\n`;
             comment += `| Unit Tests | ${testStatus} |\n`;
-            comment += `| Build | ${buildStatus} |\n`;
+            comment += `| Build (${{ matrix.app_layout }}) | ${buildStatus} |\n`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

@@ -52,9 +52,8 @@ object UserProfiles {
     fun setActive(profileId: String) {
         if (!UserPreferences.isReady()) return
         UserPreferences.prefs.edit().putString(KEY_ACTIVE, profileId).apply()
-        list().find { it.id == profileId }?.parentalMaxAge?.let { age ->
-            UserPreferences.parentalControlMaxAge = age
-        }
+        val profile = list().find { it.id == profileId } ?: return
+        UserPreferences.parentalControlMaxAge = profile.parentalMaxAge
     }
 
     fun upsert(profile: Profile) {

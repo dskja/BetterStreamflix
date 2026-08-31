@@ -32,4 +32,22 @@ class DeepLinkHandlerTest {
         val uri = DeepLinkHandler.movieUri("id42")
         assertThat(DeepLinkHandler.parse(uri)).isEqualTo(DeepLink.Movie("id42"))
     }
+
+    @Test
+    fun parse_favoritesDeepLink() {
+        val link = DeepLinkHandler.parse(Uri.parse("betterstreamflix://favorites/"))
+        assertThat(link).isEqualTo(DeepLink.Favorites)
+    }
+
+    @Test
+    fun parse_continueWatchingDeepLink() {
+        val link = DeepLinkHandler.parse(Uri.parse("betterstreamflix://continue/"))
+        assertThat(link).isEqualTo(DeepLink.ContinueWatching)
+    }
+
+    @Test
+    fun favoritesUri_roundTrips() {
+        val uri = DeepLinkHandler.favoritesUri()
+        assertThat(DeepLinkHandler.parse(uri)).isEqualTo(DeepLink.Favorites)
+    }
 }

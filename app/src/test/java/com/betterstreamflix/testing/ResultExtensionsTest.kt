@@ -1,7 +1,7 @@
 package com.betterstreamflix.testing
 
 import com.betterstreamflix.data.Result
-import com.betterstreamflix.data.Result.ErrorType
+import com.betterstreamflix.data.ErrorType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Shared manifest: permissions, providers, widgets. Merged with layout-specific manifests. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature
@@ -29,13 +30,10 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
-        <!-- Package visibility for SmartTube (Stable & Beta) and YouTube -->
         <package android:name="org.smarttube.stable" />
         <package android:name="org.smarttube.beta" />
         <package android:name="com.google.android.youtube" />
         <package android:name="com.google.android.tv.youtube" />
-
-        <!-- Generic Video Players Visibility -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="video/*" />
@@ -48,8 +46,6 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="application/vnd.apple.mpegurl" />
         </intent>
-
-        <!-- Intent queries for YouTube links -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" android:host="www.youtube.com" />
@@ -58,7 +54,6 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" android:host="youtu.be" />
         </intent>
-
     </queries>
 
     <application
@@ -74,64 +69,6 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true">
-
-        <activity
-            android:name=".activities.main.MainMobileActivity"
-            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize"
-            android:exported="true"
-            android:supportsPictureInPicture="true"
-            android:theme="@style/AppTheme.SplashScreen">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-
-                <data android:scheme="streamflix"
-                        android:host="resolve"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-
-                <data android:scheme="betterstreamflix"
-                        android:host="movie"/>
-                <data android:scheme="betterstreamflix"
-                        android:host="tvshow"/>
-                <data android:scheme="betterstreamflix"
-                        android:host="episode"/>
-                <data android:scheme="betterstreamflix"
-                        android:host="search"/>
-                <data android:scheme="betterstreamflix"
-                        android:host="provider"/>
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".activities.tools.QrScannerActivity"
-            android:exported="false"
-            android:theme="@style/AppTheme.Mobile" />
-
-        <activity
-            android:name=".activities.tools.BypassWebViewActivity"
-            android:exported="false"
-            android:theme="@style/AppTheme.Mobile" />
-
-        <activity
-            android:name=".activities.main.MainTvActivity"
-            android:exported="true"
-            android:theme="@style/AppTheme.Tv">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -155,7 +92,17 @@
                 android:resource="@xml/continue_watching_widget_info" />
         </receiver>
 
+        <receiver
+            android:name=".widgets.FavoritesWidget"
+            android:exported="true"
+            android:label="@string/main_menu_favorites">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/favorites_widget_info" />
+        </receiver>
+
     </application>
-
-
 </manifest>

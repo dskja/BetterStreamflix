@@ -121,15 +121,25 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         debounceJob?.cancel()
         debounceJob = viewModelScope.launch {
             delay(delayMs)
-            search(query)
+            searchInternal(query)
         }
     }
 
+    private fun cancelDebounce() {
+        debounceJob?.cancel()
+        debounceJob = null
+    }
+
     fun search(query: String) = viewModelScope.launch(Dispatchers.IO) {
+        cancelDebounce()
+        searchInternal(query)
+    }
+
+    private suspend fun searchInternal(query: String) {
         _state.emit(State.Searching)
 
         try {
-            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider?.search(query) ?: run { _state.emit(State.FailedSearching(Exception("No provider selected"))); return@launch })
+            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider?.search(query) ?: run { _state.emit(State.FailedSearching(Exception("No provider selected"))); return })
             this@SearchViewModel.query = query
             page = 1
             if (query.isNotBlank()) {
@@ -144,6 +154,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
     }
 
     fun loadMore() = viewModelScope.launch(Dispatchers.IO) {
+        cancelDebounce()
         val currentState = _state.value
         if (currentState is State.SuccessSearching) {
             _state.emit(State.SearchingMore)
@@ -173,6 +184,7 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
 
     // FUNCIÓN DE BÚSQUEDA GLOBAL AÑADIDA
     fun searchGlobal(query: String, currentLanguage: String) = viewModelScope.launch(Dispatchers.IO) {
+        cancelDebounce()
         _state.emit(State.GlobalSearching)
 
         val isCurrentProviderIptv = UserPreferences.currentProvider is IptvProvider

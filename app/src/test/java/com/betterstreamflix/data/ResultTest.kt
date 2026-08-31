@@ -1,5 +1,6 @@
 package com.betterstreamflix.data
 
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -80,14 +81,14 @@ class ResultTest {
     }
 
     @Test
-    fun `runCatching should wrap success`() {
+    fun `runCatching should wrap success`() = runTest {
         val result = Result.runCatching { 42 }
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrNull())
     }
 
     @Test
-    fun `runCatching should wrap exception`() {
+    fun `runCatching should wrap exception`() = runTest {
         val result = Result.runCatching<Int> { throw RuntimeException("boom") }
         assertTrue(result.isError)
     }

@@ -23,8 +23,13 @@ class ContinueWatchingWidget : AppWidgetProvider() {
     companion object {
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_continue_watching)
-            views.setTextViewText(R.id.widget_title, context.getString(R.string.home_continue_watching))
-            views.setTextViewText(R.id.widget_subtitle, context.getString(R.string.app_name))
+            val items = WidgetDataProvider.getContinueWatchingItems(context, maxItems = 1)
+            val title = items.firstOrNull()?.title
+                ?: context.getString(R.string.home_continue_watching)
+            val subtitle = items.firstOrNull()?.subtitle
+                ?: context.getString(R.string.app_name)
+            views.setTextViewText(R.id.widget_title, title)
+            views.setTextViewText(R.id.widget_subtitle, subtitle)
 
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val pendingIntent = PendingIntent.getActivity(
