@@ -67,8 +67,8 @@ class SearchMobileFragment : Fragment() {
 
         DeepLinkHandler.pendingSearchQuery?.let { pending ->
             DeepLinkHandler.pendingSearchQuery = null
-            binding.etSearch.setText(pending)
-            if (pending.isNotBlank()) {
+            if (pending.isNotBlank() && pending != "_") {
+                binding.etSearch.setText(pending)
                 viewModel.search(pending)
             }
         }

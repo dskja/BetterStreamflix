@@ -54,7 +54,9 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     private val DEFAULT_DOMAIN: String = "streamingunity.cc"
     private val BLOCKED_DOMAINS = setOf("streamingcommunityz.green", "streamingunity.club", "streamingunity.bike", "streamingcommunityz.buzz")
-    override val baseUrl = DEFAULT_DOMAIN
+    // Reflects the live (possibly user-overridden / auto-updated) domain instead of a static
+    // hardcoded value, matching the pattern used by other providers with domain overrides.
+    override val baseUrl: String get() = "https://$domain"
     private var _domain: String? = null
     private var domain: String
         get() {
