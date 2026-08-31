@@ -31,8 +31,21 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Prepare Android build
+        run: |
+          chmod +x ./gradlew
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
+          echo "APP_LAYOUT=mobile" >> local.properties
+          echo "TMDB_API_KEY=" >> local.properties
+          echo "SUBDL_API_KEY=" >> local.properties
+          echo "RABBITSTREAM_SOURCE_API=" >> local.properties
+          sed -e "s|{{UPROT_MSFI_API_BASE}}||g" \
+              -e "s|{{UPROT_MSE_API_BASE}}||g" \
+              -e "s|{{UPROT_API_KEY}}||g" \
+              app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
+
+      - name: Build for CodeQL
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

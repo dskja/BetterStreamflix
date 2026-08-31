@@ -8,6 +8,7 @@ on:
 jobs:
   nightly:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
   provider-smoke:
     name: Provider DNS / Home Smoke

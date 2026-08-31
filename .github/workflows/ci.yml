@@ -2,6 +2,19 @@ name: CI
 
 on:
   workflow_call:
+    secrets:
+      TMDB_API_KEY:
+        required: false
+      SUBDL_API_KEY:
+        required: false
+      RABBITSTREAM_SOURCE_API:
+        required: false
+      UPROT_MSFI_API_BASE:
+        required: false
+      UPROT_MSE_API_BASE:
+        required: false
+      UPROT_API_KEY:
+        required: false
 
 jobs:
   ci:
@@ -59,7 +72,7 @@ jobs:
 
       - name: Run Lint
         id: lint
-        run: ./gradlew lintDebug --stacktrace
+        run: ./gradlew lint --stacktrace
 
       - name: Run Unit Tests
         id: tests
