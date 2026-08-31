@@ -2,6 +2,10 @@ package com.betterstreamflix.download
 
 import android.content.Context
 import android.util.Log
+import com.betterstreamflix.StreamFlixApp
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -21,6 +25,10 @@ object DownloadFeature {
         filePath: String = "",
     ): Boolean {
         val appContext = context.applicationContext
+        if (StreamTypeDetector.isDrmProtected(url)) {
+            Log.w(TAG, "DRM stream not downloadable: $title")
+            return false
+        }
         val decision = DownloadScheduler.shouldStartDownloads(appContext)
         if (decision !is DownloadScheduler.ScheduleDecision.Proceed) {
             Log.i(TAG, "Download deferred: $decision")
@@ -38,6 +46,12 @@ object DownloadFeature {
                 },
             )
             DownloadManager.addDownload(appContext, task)
+            StreamFlixApp.instance.applicationScope.launch {
+                DownloadRepository(appContext).upsert(DownloadRepository.fromTask(task))
+            }
+            WorkManager.getInstance(appContext).enqueue(
+                OneTimeWorkRequestBuilder<DownloadWorker>().build(),
+            )
             true
         }.onFailure { e ->
             Log.e(TAG, "enqueue failed", e)

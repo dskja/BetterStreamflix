@@ -1,18 +1,16 @@
 package com.betterstreamflix.data
 
+import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import org.junit.Test
 
 class PaginationHelperTest {
 
     @Test
     fun `initial state should allow loading more`() {
         val helper = PaginationHelper(pageSize = 20)
-        assertTrue(helper.canLoadMore())
-        assertEquals(1, helper.getCurrentPage())
+        assertThat(helper.canLoadMore()).isTrue()
+        assertThat(helper.getCurrentPage()).isEqualTo(1)
     }
 
     @Test
@@ -20,9 +18,9 @@ class PaginationHelperTest {
         val helper = PaginationHelper(pageSize = 20)
         val page = helper.startLoading()
         helper.pageLoaded(20)
-        assertEquals(2, helper.getCurrentPage())
+        assertThat(helper.getCurrentPage()).isEqualTo(2)
         helper.reset()
-        assertEquals(1, helper.getCurrentPage())
+        assertThat(helper.getCurrentPage()).isEqualTo(1)
     }
 
     @Test
@@ -30,7 +28,7 @@ class PaginationHelperTest {
         val helper = PaginationHelper(pageSize = 20)
         helper.startLoading()
         helper.pageLoaded(10)
-        assertTrue(!helper.canLoadMore())
+        assertThat(helper.canLoadMore()).isFalse()
     }
 
     @Test
@@ -38,17 +36,17 @@ class PaginationHelperTest {
         val helper = PaginationHelper(pageSize = 20)
         helper.startLoading()
         helper.pageLoaded(20)
-        assertEquals(2, helper.getCurrentPage())
-        assertTrue(helper.canLoadMore())
+        assertThat(helper.getCurrentPage()).isEqualTo(2)
+        assertThat(helper.canLoadMore()).isTrue()
     }
 
     @Test
     fun `pageFailed should reset loading state`() = runTest {
         val helper = PaginationHelper(pageSize = 20)
         helper.startLoading()
-        assertTrue(helper.isLoading())
+        assertThat(helper.isLoading()).isTrue()
         helper.pageFailed()
-        assertTrue(!helper.isLoading())
+        assertThat(helper.isLoading()).isFalse()
     }
 
     @Test
@@ -56,7 +54,7 @@ class PaginationHelperTest {
         val helper = PaginationHelper(pageSize = 20, prefetchDistance = 5)
         helper.startLoading()
         helper.pageLoaded(20)
-        assertTrue(helper.shouldPrefetch(10, 40, 30))
+        assertThat(helper.shouldPrefetch(10, 40, 30)).isTrue()
     }
 
     @Test
@@ -64,6 +62,6 @@ class PaginationHelperTest {
         val helper = PaginationHelper(pageSize = 20, prefetchDistance = 5)
         helper.startLoading()
         helper.pageLoaded(20)
-        assertTrue(!helper.shouldPrefetch(5, 100, 0))
+        assertThat(helper.shouldPrefetch(5, 100, 0)).isFalse()
     }
 }

@@ -51,6 +51,8 @@ import com.betterstreamflix.utils.UserDataCache
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.settings.SettingsSearchHelper
 import com.betterstreamflix.notifications.NotificationPreferences
+import com.betterstreamflix.utils.Permissions
+import com.google.android.material.snackbar.Snackbar
 import androidx.navigation.fragment.findNavController
 import android.widget.EditText
 import kotlinx.coroutines.Dispatchers
@@ -117,6 +119,22 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         uri?.let {
             viewLifecycleOwner.lifecycleScope.launch {
                 performBackupImport(it)
+            }
+        }
+    }
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        val pref = findPreference<SwitchPreferenceCompat>("new_content_notifications")
+        if (granted) {
+            NotificationPreferences.setNewContentNotificationsEnabled(requireContext(), true)
+            pref?.isChecked = true
+        } else {
+            NotificationPreferences.setNewContentNotificationsEnabled(requireContext(), false)
+            pref?.isChecked = false
+            view?.let {
+                Snackbar.make(it, R.string.settings_notifications_permission_denied, Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -254,10 +272,21 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreferenceCompat>("new_content_notifications")?.apply {
             isChecked = NotificationPreferences.isNewContentNotificationsEnabled(requireContext())
             setOnPreferenceChangeListener { _, newValue ->
-                NotificationPreferences.setNewContentNotificationsEnabled(
-                    requireContext(),
-                    newValue as Boolean,
-                )
+                val enable = newValue as Boolean
+                if (!enable) {
+                    NotificationPreferences.setNewContentNotificationsEnabled(requireContext(), false)
+                    return@setOnPreferenceChangeListener true
+                }
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Permissions.POST_NOTIFICATIONS,
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermissionLauncher.launch(Permissions.POST_NOTIFICATIONS)
+                    return@setOnPreferenceChangeListener false
+                }
+                NotificationPreferences.setNewContentNotificationsEnabled(requireContext(), true)
                 true
             }
         }

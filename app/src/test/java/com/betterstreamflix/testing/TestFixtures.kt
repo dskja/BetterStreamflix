@@ -1,7 +1,7 @@
 package com.betterstreamflix.testing
 
 import com.betterstreamflix.data.Result
-import com.betterstreamflix.data.Result.ErrorType
+import com.betterstreamflix.data.ErrorType
 
 /**
  * Test fixtures — provides common test data for unit and integration tests.
