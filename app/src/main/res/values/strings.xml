@@ -534,6 +534,14 @@
     <string name="settings_immersive_mode_on">On (Bars hidden)</string>
     <string name="settings_immersive_mode_off">Off (Bars visible)</string>
 
+    <string name="settings_reduced_motion_title">Reduced motion</string>
+    <string name="settings_reduced_motion_summary">Open accessibility settings to reduce animations</string>
+    <string name="settings_reduced_motion_on">Reduced motion is enabled</string>
+    <string name="settings_reduced_motion_off">Reduced motion is disabled</string>
+    <string name="settings_font_scale_title">Font scale</string>
+    <string name="settings_font_scale_summary">Current system font scale: %1$.2f</string>
+    <string name="settings_font_scale_open_summary">Open display settings to adjust text size</string>
+
 
     <string name="player_brightness">Brightness</string>
     <string name="player_volume">Volume</string>

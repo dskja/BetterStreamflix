@@ -54,6 +54,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
 
     override var onSubtitlesClicked: (() -> Unit)? = null
     var onManualZoomClicked: (() -> Unit)? = null
+    var onDownloadClicked: (() -> Unit)? = null
 
     init {
         binding.rvSettings.addItemDecoration(SpacingItemDecoration(6.dp(context)))
@@ -244,6 +245,10 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 Settings.ExtraBuffering -> settingsView.displaySettings(Setting.EXTRA_BUFFERING)
                                 Settings.SoftwareDecoder -> settingsView.displaySettings(Setting.SOFTWARE_DECODER)
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
+                                Settings.Download -> {
+                                    settingsView.onDownloadClicked?.invoke()
+                                    settingsView.hide()
+                                }
                                 Settings.ManualZoom -> {
                                     settingsView.onManualZoomClicked?.invoke()
                                     settingsView.hide()
@@ -462,6 +467,12 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                     R.drawable.ic_player_settings_servers
                                 )
                             )
+                            Settings.Download -> setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.ic_player_settings_servers
+                                )
+                            )
                             Settings.ManualZoom -> setImageDrawable(
                                 ContextCompat.getDrawable(
                                     context,
@@ -512,6 +523,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.ExtraBuffering -> context.getString(R.string.player_settings_extra_buffer_server_label)
                         Settings.SoftwareDecoder -> context.getString(R.string.player_settings_software_decoder_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
+                        Settings.Download -> context.getString(R.string.downloads_title)
                         Settings.ManualZoom -> context.getString(R.string.player_settings_manual_zoom_label)
                         else -> ""
                     }

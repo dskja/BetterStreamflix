@@ -29,7 +29,7 @@ object DownloadNotificationBuilder {
     fun buildForegroundNotification(
         context: Context,
         downloads: List<Download>,
-        notMetRequirements: Int,
+        @Suppress("UNUSED_PARAMETER") notMetRequirements: Int,
     ): Notification {
         ensureChannel(context)
         val active = downloads.count { it.state == Download.STATE_DOWNLOADING }

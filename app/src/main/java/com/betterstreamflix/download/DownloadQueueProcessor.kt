@@ -51,17 +51,14 @@ class DownloadQueueProcessor(private val context: Context) {
         val result = when (StreamTypeDetector.detect(task.url)) {
             StreamType.HLS -> hlsEngine.download(task.url, outputDir, task.id, task.title) { percent, downloaded, total ->
                 DownloadManager.updateProgress(context, task.id, downloaded)
-                repository.updateProgress(task.id, downloaded)
                 notificationHelper.showProgressNotification(task.title, percent, notificationId)
             }
             StreamType.DASH -> dashEngine.download(task.url, outputDir, task.id, task.title) { percent, downloaded, total ->
                 DownloadManager.updateProgress(context, task.id, downloaded)
-                repository.updateProgress(task.id, downloaded)
                 notificationHelper.showProgressNotification(task.title, percent, notificationId)
             }
             StreamType.HTTP -> executor.download(task.url, outputFile) { percent, downloaded, total ->
                 DownloadManager.updateProgress(context, task.id, downloaded)
-                repository.updateProgress(task.id, downloaded)
                 notificationHelper.showProgressNotification(task.title, percent, notificationId)
             }
         }

@@ -10,7 +10,7 @@ object DownloadActionHelper {
 
     fun enqueueCurrentVideo(
         context: Context,
-        video: Video,
+        videoType: Video.Type,
         streamUrl: String,
     ): Boolean {
         if (streamUrl.isBlank()) {
@@ -26,11 +26,15 @@ object DownloadActionHelper {
             Toast.makeText(context, decision.reason, Toast.LENGTH_LONG).show()
             return false
         }
+        val (videoId, title) = when (videoType) {
+            is Video.Type.Movie -> videoType.id to videoType.title
+            is Video.Type.Episode -> videoType.id to (videoType.title ?: videoType.tvShow.title)
+        }
         val providerName = UserPreferences.currentProvider?.name ?: "unknown"
         val ok = DownloadFeature.enqueue(
             context = context,
-            videoId = video.id,
-            title = video.title ?: video.id,
+            videoId = videoId,
+            title = title,
             url = streamUrl,
             providerName = providerName,
         )

@@ -230,6 +230,18 @@
                 android:summaryOff="@string/settings_immersive_mode_off"
                 android:defaultValue="false"
                 app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="ACCESSIBILITY_REDUCED_MOTION"
+                android:title="@string/settings_reduced_motion_title"
+                android:summary="@string/settings_reduced_motion_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="ACCESSIBILITY_FONT_SCALE"
+                android:title="@string/settings_font_scale_title"
+                android:summary="@string/settings_font_scale_open_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
 

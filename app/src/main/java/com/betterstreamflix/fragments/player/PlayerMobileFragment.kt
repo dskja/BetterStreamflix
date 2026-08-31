@@ -50,6 +50,7 @@ import androidx.navigation.fragment.navArgs
 import com.betterstreamflix.R
 import com.betterstreamflix.activities.tools.BypassWebViewActivity
 import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.download.DownloadActionHelper
 import com.betterstreamflix.databinding.ContentExoControllerMobileBinding
 import com.betterstreamflix.databinding.FragmentPlayerMobileBinding
 import com.betterstreamflix.models.Episode
@@ -768,6 +769,28 @@ class PlayerMobileFragment : Fragment() {
             binding.pvPlayer.hideController()
             binding.pvPlayer.enterManualZoomMode()
         }
+
+        binding.settings.onDownloadClicked = {
+            enqueueCurrentStreamDownload()
+        }
+    }
+
+    private fun enqueueCurrentStreamDownload() {
+        val video = currentVideo
+        val streamUrl = video?.source
+        if (streamUrl.isNullOrBlank()) {
+            Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!::player.isInitialized || !player.isPlaying) {
+            Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
+            return
+        }
+        DownloadActionHelper.enqueueCurrentVideo(
+            context = requireContext(),
+            videoType = args.videoType,
+            streamUrl = streamUrl,
+        )
     }
 
  private fun updatePlayerScale() {

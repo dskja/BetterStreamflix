@@ -1,7 +1,6 @@
 package com.betterstreamflix.download
 
 import android.app.Notification
-import androidx.media3.common.util.NotificationUtil
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager

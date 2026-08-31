@@ -64,6 +64,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.download.DownloadActionHelper
 import com.betterstreamflix.databinding.ContentExoControllerTvBinding
 import com.betterstreamflix.databinding.FragmentPlayerTvBinding
 import com.betterstreamflix.models.Episode
@@ -910,6 +911,27 @@ class PlayerTvFragment : Fragment() {
                 (binding.pvPlayer as? PlayerTvView)?.enterManualZoomMode()
                 binding.pvPlayer.requestFocus()
             }
+            binding.settings.onDownloadClicked = {
+                enqueueCurrentStreamDownload()
+            }
+        }
+
+        private fun enqueueCurrentStreamDownload() {
+            val video = currentVideo
+            val streamUrl = video?.source
+            if (streamUrl.isNullOrBlank()) {
+                Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (!::player.isInitialized || !player.isPlaying) {
+                Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
+                return
+            }
+            DownloadActionHelper.enqueueCurrentVideo(
+                context = requireContext(),
+                videoType = args.videoType,
+                streamUrl = streamUrl,
+            )
         }
 
         fun setupEpisodeNavigationButtons() {
