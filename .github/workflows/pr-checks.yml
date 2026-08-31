@@ -11,5 +11,94 @@ permissions:
 
 jobs:
   static-analysis:
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
+    name: Build, Test & Lint (${{ matrix.app_layout }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app_layout: [mobile, tv]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Install NDK and CMake
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-36" || true
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
+          echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
+          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
+          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
+          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
+
+      - name: Generate native-lib.cpp from template
+        env:
+          UPROT_MSFI_API_BASE: ${{ secrets.UPROT_MSFI_API_BASE }}
+          UPROT_MSE_API_BASE: ${{ secrets.UPROT_MSE_API_BASE }}
+          UPROT_API_KEY: ${{ secrets.UPROT_API_KEY }}
+        run: |
+          sed -e "s|{{UPROT_MSFI_API_BASE}}|${UPROT_MSFI_API_BASE:-}|g" \
+              -e "s|{{UPROT_MSE_API_BASE}}|${UPROT_MSE_API_BASE:-}|g" \
+              -e "s|{{UPROT_API_KEY}}|${UPROT_API_KEY:-}|g" \
+              app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
+
+      - name: Run Lint
+        id: lint
+        run: ./gradlew lint --stacktrace
+
+      - name: Run Unit Tests
+        id: tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Critical i18n parity
+        if: matrix.app_layout == 'mobile'
+        run: python3 scripts/check_string_parity.py
+
+      - name: Build debug APK
+        id: build
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Check APK size
+        run: |
+          APK_SIZE=$(stat -c%s app/build/outputs/apk/debug/*.apk)
+          echo "Debug APK size (${{ matrix.app_layout }}): $APK_SIZE bytes ($(($APK_SIZE / 1024 / 1024)) MB)"
+          if [ $APK_SIZE -gt 104857600 ]; then
+            echo "::warning::APK exceeds 100MB"
+          fi
+
+      - name: Comment PR with results
+        if: always() && matrix.app_layout == 'mobile'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let comment = '## PR Check Results\n';
+            comment += '| Check | Status |\n|-------|--------|\n';
+            const lintStatus = '${{ steps.lint.outcome }}' === 'success' ? '✅' : '❌';
+            const testStatus = '${{ steps.tests.outcome }}' === 'success' ? '✅' : '❌';
+            const buildStatus = '${{ steps.build.outcome }}' === 'success' ? '✅' : '❌';
+            comment += `| Lint (mobile+tv matrix) | ${lintStatus} |\n`;
+            comment += `| Unit Tests | ${testStatus} |\n`;
+            comment += `| Build (${{ matrix.app_layout }}) | ${buildStatus} |\n`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
