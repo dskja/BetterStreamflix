@@ -243,6 +243,7 @@ abstract class Extractor {
 
             if (foundExtractor != null) {
                 Log.i("StreamFlixES", "[EXTRACTOR] -> Starting: ${foundExtractor.name} (URL: $finalLink)")
+                val attempted = mutableListOf(foundExtractor.name)
                 try {
                     val video = foundExtractor.extract(finalLink)
                     Log.i("StreamFlixES", "[VIDEO] -> Extracted: ${video.source}")
@@ -261,7 +262,9 @@ abstract class Extractor {
                                 (server?.name?.lowercase()?.contains(extractor.name.lowercase()) == true)
                             )
                     }
+                    var lastError: Throwable = primaryError
                     for (fallback in candidates) {
+                        attempted += fallback.name
                         try {
                             Log.i("Extractor", "Trying fallback extractor ${fallback.name}")
                             val video = fallback.extract(finalLink)
@@ -270,13 +273,17 @@ abstract class Extractor {
                         } catch (fallbackError: Exception) {
                             if (fallbackError is kotlinx.coroutines.CancellationException) throw fallbackError
                             Log.w("Extractor", "Fallback ${fallback.name} failed: ${fallbackError.message}")
+                            lastError = fallbackError
                         }
                     }
-                    throw primaryError
+                    // Every matching extractor (primary + host/name fallbacks) failed: surface a
+                    // structured error instead of the raw first exception so logs/UI can tell this
+                    // apart from "no extractor matched at all".
+                    throw ExtractionFailedException(finalLink, attempted, lastError)
                 }
             }
 
-            throw Exception("No extractors found for URL: $finalLink")
+            throw ExtractionFailedException(finalLink, emptyList())
         }
     }
 }

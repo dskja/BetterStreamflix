@@ -23,6 +23,14 @@
 - Provider health recording during global search
 - TV theme preference unified to `SELECTED_THEME`
 
+### Provider & Extractor Fixes
+- Spanish TMDB `getServers()` no longer returns an empty list when no server has an explicit `[LAT]`/`[CAST]` tag; falls back to the untagged results, then to the global aggregators if no Spanish-specific provider found a match
+- `Extractor.extract()` retries other host/name-matched extractors before failing, and raises a structured `ExtractionFailedException` (link + attempted extractor names) instead of a generic exception
+- Fixed stale/mismatched domain defaults: Cuevana default now consistently `cuevana.gs` (Settings Mobile/TV previously hardcoded the dead `cuevana3.la`), SerienStream TV Settings default now matches the Mobile/provider default
+- `StreamingCommunityProvider.baseUrl` now reflects the live (user-overridden) domain instead of a static hardcoded value
+- AniWorld actor pages are now enriched with TMDB biography/photo when TMDB is enabled, matching SerienStream (previously always blank)
+- Documented unregistered/WIP provider files (AfterDark, AnimeBum, AnyMovie, HiAnime, Otakufr, StreamingIta, SuperStream, UnJourUnFilm) in the provider registry
+
 ### Cleanup & Quality
 - Removed unused Cast and main-source testing scaffolds
 - Docs: SCAFFOLD_AUDIT, ARCHITECTURE, PROVIDERS, LEGAL, CONTRIBUTING
