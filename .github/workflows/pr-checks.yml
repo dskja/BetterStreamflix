@@ -44,13 +44,19 @@ jobs:
 
       - name: Run Lint
         id: lint
+        # Lint baseline still noisy; keep soft until Detekt/ktlint land. Unit tests gate hard.
         run: ./gradlew lintDebug --stacktrace
         continue-on-error: true
 
       - name: Run Unit Tests
         id: tests
         run: ./gradlew testDebugUnitTest --stacktrace
-        continue-on-error: true
+
+      - name: Critical i18n parity
+        run: python3 scripts/check_string_parity.py
+
+      - name: Build debug APK matrix note
+        run: echo "Default APP_LAYOUT from local.properties; mobile/tv matrix tracked in ROADMAP P5"
 
       - name: Build debug APK
         id: build

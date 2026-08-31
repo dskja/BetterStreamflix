@@ -25,19 +25,16 @@ class ContinueWatchingWidget : AppWidgetProvider() {
          * Update a single widget instance.
          */
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
-            val views = RemoteViews(context.packageName, android.R.layout.simple_list_item_2)
+            val views = RemoteViews(context.packageName, R.layout.widget_continue_watching)
+            views.setTextViewText(R.id.widget_title, context.getString(R.string.home_continue_watching))
+            views.setTextViewText(R.id.widget_subtitle, context.getString(R.string.app_name))
 
-            // Set title
-            views.setTextViewText(android.R.id.text1, "Continue Watching")
-            views.setTextViewText(android.R.id.text2, "Tap to open BetterStreamflix")
-
-            // Set click intent to open app
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val pendingIntent = PendingIntent.getActivity(
                 context, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            views.setOnClickPendingIntent(android.R.id.text1, pendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
 
             appWidgetManager.updateAppWidget(widgetId, views)
         }

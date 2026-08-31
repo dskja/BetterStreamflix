@@ -1302,6 +1302,13 @@ class PlayerTvFragment : Fragment() {
                             }
 
                         }
+                        WatchProgressHelper.upsertWatchNext(
+                            context = requireContext().applicationContext,
+                            videoType = videoType,
+                            positionMillis = player.currentPosition,
+                            durationMillis = player.duration,
+                            finished = player.hasFinished(),
+                        )
                         if (player.hasReallyFinished()) {
                             if (UserPreferences.autoplay) {
                                 playNextEpisodeAcrossSeasons(autoplay = true)

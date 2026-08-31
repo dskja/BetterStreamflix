@@ -150,7 +150,7 @@
                 android:defaultValue="system" />
 
             <ListPreference
-                android:key="theme_preference"
+                android:key="SELECTED_THEME"
                 android:title="@string/settings_theme_title"
                 android:entries="@array/theme_names"
                 android:entryValues="@array/theme_values"

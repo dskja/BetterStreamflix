@@ -103,7 +103,7 @@ class HomeTvFragment : Fragment() {
                         }
                         Toast.makeText(
                             requireContext(),
-                            state.error.message ?: "",
+                            state.error.message?.takeIf { it.isNotBlank() } ?: getString(R.string.loading_error_generic),
                             Toast.LENGTH_SHORT
                         ).show()
                         binding.isLoading.apply {

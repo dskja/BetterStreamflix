@@ -26,6 +26,8 @@ import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.ui.SpacingItemDecoration
 import com.betterstreamflix.utils.CacheUtils
+import com.betterstreamflix.utils.DeepLinkHandler
+import com.betterstreamflix.ui.EmptyStateViewHelper
 import com.betterstreamflix.utils.LoggingUtils
 import com.betterstreamflix.utils.UserPreferences // <-- IMPORT AÑADIDO
 import com.betterstreamflix.utils.VoiceRecognitionHelper
@@ -63,6 +65,14 @@ class SearchMobileFragment : Fragment() {
 
         initializeSearch()
 
+        DeepLinkHandler.pendingSearchQuery?.let { pending ->
+            DeepLinkHandler.pendingSearchQuery = null
+            binding.etSearch.setText(pending)
+            if (pending.isNotBlank()) {
+                viewModel.search(pending)
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 // ========= BLOQUE WHEN MODIFICADO =========
@@ -97,7 +107,8 @@ class SearchMobileFragment : Fragment() {
                         }
                         Toast.makeText(
                             requireContext(),
-                            state.error.message ?: "",
+                            state.error.message?.takeIf { it.isNotBlank() }
+                                ?: getString(R.string.loading_error_generic),
                             Toast.LENGTH_SHORT
                         ).show()
                         if (appAdapter.isLoading) {
@@ -241,6 +252,21 @@ class SearchMobileFragment : Fragment() {
                 is TvShow -> it.itemType = AppAdapter.Type.TV_SHOW_GRID_MOBILE_ITEM
             }
         })
+
+        val emptyContainer = binding.root.findViewWithTag<android.view.ViewGroup>("search_empty_state")
+        if (list.isEmpty() && viewModel.query.isNotBlank()) {
+            val container = emptyContainer ?: (EmptyStateViewHelper.create(requireContext()) as android.view.ViewGroup).also {
+                it.tag = "search_empty_state"
+                (binding.root as? android.view.ViewGroup)?.addView(it)
+            }
+            EmptyStateViewHelper.show(
+                container,
+                title = getString(R.string.search_no_results),
+                subtitle = getString(R.string.search_no_results_hint),
+            )
+        } else {
+            emptyContainer?.let { EmptyStateViewHelper.hide(it) }
+        }
 
         if (hasMore && viewModel.query != "") {
             appAdapter.setOnLoadMoreListener { viewModel.loadMore() }

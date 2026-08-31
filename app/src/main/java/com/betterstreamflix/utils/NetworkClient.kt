@@ -60,7 +60,16 @@ object NetworkClient {
     val systemDns: OkHttpClient by lazy { buildClient(Dns.SYSTEM) }
     val noRedirects: OkHttpClient by lazy { buildClient(DnsResolver.doh) { it.followRedirects(false).followSslRedirects(false) } }
 
+    /**
+     * Insecure client that trusts all TLS certificates.
+     * Restricted to DEBUG builds — release callers must use [default] / [systemDns].
+     * Scrapers that still need this in release should migrate to pinned/system trust.
+     */
     val trustAll: OkHttpClient by lazy {
+        if (!BuildConfig.DEBUG) {
+            Log.w(TAG, "trustAll requested in release — falling back to system-trust DoH client")
+            return@lazy default
+        }
         val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
             override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
