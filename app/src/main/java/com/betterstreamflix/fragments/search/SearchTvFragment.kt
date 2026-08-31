@@ -25,6 +25,7 @@ import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.ui.EmptyStateViewHelper
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.LoggingUtils
 import com.betterstreamflix.utils.UserPreferences
@@ -37,6 +38,10 @@ import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.IptvProvider
 
 class SearchTvFragment : Fragment() {
+
+    companion object {
+        private const val EMPTY_STATE_TAG = "search_empty_state"
+    }
 
     private var hasAutoCleared409: Boolean = false
     private var _binding: FragmentSearchTvBinding? = null
@@ -105,6 +110,7 @@ class SearchTvFragment : Fragment() {
                             pbIsLoading.visibility = View.VISIBLE
                             gIsLoadingRetry.visibility = View.GONE
                         }
+                        hideEmptyState()
                         appAdapter.isLoading = false
                         appAdapter.setOnLoadMoreListener(null)
                     }
@@ -131,7 +137,12 @@ class SearchTvFragment : Fragment() {
                             viewModel.search(viewModel.query)
                             return@collect
                         }
-                        Toast.makeText(requireContext(), state.error.message ?: "", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            state.error.message?.takeIf { it.isNotBlank() }
+                                ?: getString(R.string.loading_error_generic),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                         if (appAdapter.isLoading) {
                             appAdapter.isLoading = false
                         } else {
@@ -343,6 +354,12 @@ class SearchTvFragment : Fragment() {
             }
         })
 
+        if (list.isEmpty() && viewModel.query.isNotBlank()) {
+            showEmptyState()
+        } else {
+            hideEmptyState()
+        }
+
         if (hasMore && viewModel.query != "") {
             appAdapter.setOnLoadMoreListener { viewModel.loadMore() }
         } else {
@@ -350,7 +367,25 @@ class SearchTvFragment : Fragment() {
         }
     }
 
+    private fun showEmptyState() {
+        val container = binding.root.findViewWithTag<ViewGroup>(EMPTY_STATE_TAG)
+            ?: (EmptyStateViewHelper.create(requireContext()) as ViewGroup).also {
+                it.tag = EMPTY_STATE_TAG
+                (binding.root as? ViewGroup)?.addView(it)
+            }
+        EmptyStateViewHelper.show(
+            container,
+            title = getString(R.string.search_no_results),
+            subtitle = getString(R.string.search_no_results_hint),
+        )
+    }
+
+    private fun hideEmptyState() {
+        binding.root.findViewWithTag<ViewGroup>(EMPTY_STATE_TAG)?.let { EmptyStateViewHelper.hide(it) }
+    }
+
     private fun displayGlobalSearch(providerResults: List<ProviderResult>) {
+        hideEmptyState()
         val categories = providerResults.map { providerResult ->
             val headerTitle = when (val state = providerResult.state) {
                 is ProviderResult.State.Loading -> "${providerResult.provider.name} - ${getString(R.string.searching)}"

@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext (HTTP) remains permitted because many content scrapers/providers still
+  serve over plain HTTP. Prefer HTTPS where available; keep system + ISRG trust
+  anchors so Let's Encrypt certs validate on older Android devices.
+  Future hardening: replace base-config cleartext with a domain allowlist when
+  provider coverage allows it.
+-->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>

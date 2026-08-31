@@ -37,7 +37,11 @@ import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ZaluknijProvider
 import com.betterstreamflix.ui.UpdateAppMobileDialog
 import com.betterstreamflix.utils.AppLanguageManager
+import com.betterstreamflix.utils.AppShortcuts
+import com.betterstreamflix.utils.DeepLink
+import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.FileLogger
+import com.betterstreamflix.utils.FirstRunHelper
 import com.betterstreamflix.utils.ProviderChangeNotifier
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
@@ -132,6 +136,8 @@ class MainMobileActivity : FragmentActivity() {
         _binding = ActivityMainMobileBinding.inflate(layoutInflater)
         setContentView(binding.root)
         applyThemeNavigationChrome()
+        FirstRunHelper.showStartupDialogsIfNeeded(this)
+        AppShortcuts.publish(this)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -525,13 +531,59 @@ class MainMobileActivity : FragmentActivity() {
             val ws = data.getQueryParameter("ws") ?: return false
             val token = data.getQueryParameter("token") ?: return false
 
-            Log.d("ResolverWS", "WS: $ws")
+            if (BuildConfig.DEBUG) {
+                Log.d("ResolverWS", "WS: $ws")
+            }
 
             resolve(ws, token)
             return true
         }
 
-        return false
+        val deepLink = DeepLinkHandler.parse(data) ?: return false
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+            ?: return false
+        val navController = navHost.navController
+
+        return when (deepLink) {
+            is DeepLink.Search -> {
+                DeepLinkHandler.pendingSearchQuery = deepLink.query
+                runCatching { navController.navigate(R.id.search) }.isSuccess
+            }
+            is DeepLink.Provider -> {
+                val provider = Provider.providers.keys.find {
+                    it.name.equals(deepLink.name, ignoreCase = true)
+                }
+                if (provider != null) {
+                    UserPreferences.currentProvider = provider
+                    runCatching { navController.navigate(R.id.home) }.isSuccess
+                } else false
+            }
+            is DeepLink.Movie -> {
+                runCatching {
+                    navController.navigate(
+                        R.id.action_global_movie,
+                        android.os.Bundle().apply { putString("id", deepLink.id) },
+                    )
+                }.isSuccess
+            }
+            is DeepLink.TvShow -> {
+                runCatching {
+                    navController.navigate(
+                        R.id.action_global_tv_show,
+                        android.os.Bundle().apply { putString("id", deepLink.id) },
+                    )
+                }.isSuccess
+            }
+            is DeepLink.Episode -> {
+                // Episode deep links lack season context; open as TV show id when possible.
+                runCatching {
+                    navController.navigate(
+                        R.id.action_global_tv_show,
+                        android.os.Bundle().apply { putString("id", deepLink.id) },
+                    )
+                }.isSuccess
+            }
+        }
     }
 
     private fun resolve(ws: String, token: String) {

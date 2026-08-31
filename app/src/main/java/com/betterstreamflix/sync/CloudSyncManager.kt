@@ -164,10 +164,22 @@ object CloudSyncManager {
             withContext(Dispatchers.IO) { applyRemote(appContext, remote) }
             onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
             CloudAccountStore.setActiveUserId(appContext, userId)
+            markLastSynced(appContext)
         } catch (e: Exception) {
             Log.e(TAG, "syncNow failed for user $userId", e)
             throw e
         }
+    }
+
+    fun lastSyncedAtMillis(context: Context): Long =
+        context.getSharedPreferences("cloud_sync_meta", Context.MODE_PRIVATE)
+            .getLong("last_synced_at", 0L)
+
+    private fun markLastSynced(context: Context) {
+        context.getSharedPreferences("cloud_sync_meta", Context.MODE_PRIVATE)
+            .edit()
+            .putLong("last_synced_at", System.currentTimeMillis())
+            .apply()
     }
 
     suspend fun flushPending(

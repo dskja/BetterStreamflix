@@ -63,6 +63,7 @@ class HomeMobileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initializeHome()
+        com.betterstreamflix.utils.OfflineBanner.showIfOffline(binding.root)
 
         // Lightweight refresh when provider changes
         viewLifecycleOwner.lifecycleScope.launch {
@@ -95,7 +96,7 @@ class HomeMobileFragment : Fragment() {
                         }
                         Toast.makeText(
                             requireContext(),
-                            state.error.message ?: "",
+                            state.error.message?.takeIf { it.isNotBlank() } ?: getString(R.string.loading_error_generic),
                             Toast.LENGTH_SHORT
                         ).show()
                         binding.isLoading.apply {

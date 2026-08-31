@@ -23,6 +23,10 @@ object DeepLinkHandler {
     const val HOST_SEARCH = "search"
     const val HOST_PROVIDER = "provider"
 
+    /** Optional query applied when opening Search from a deep link. */
+    @Volatile
+    var pendingSearchQuery: String? = null
+
     /**
      * Parse a deep link URI into a DeepLink action.
      */

@@ -75,7 +75,7 @@ object ErrorViewHelper {
             })
             addView(Button(context).apply {
                 id = R.id.btn_retry
-                text = "Retry"
+                text = context.getString(R.string.loading_error_retry)
             })
         }
     }

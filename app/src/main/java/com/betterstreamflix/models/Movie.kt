@@ -3,13 +3,19 @@ package com.betterstreamflix.models
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.toCalendar
 import java.util.Calendar
 
-@Entity("movies")
+@Entity(
+    tableName = "movies",
+    indices = [
+        Index(value = ["isFavorite"]),
+    ],
+)
 class Movie(
     @PrimaryKey
     var id: String = "",

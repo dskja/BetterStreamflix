@@ -1,13 +1,19 @@
 package com.betterstreamflix.fragments.player
 
+import android.content.Context
+import android.util.Log
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.tvprovider.media.tv.TvContractCompat
+import androidx.tvprovider.media.tv.WatchNextProgram
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.Season
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.models.Video
+import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.utils.WatchNextUtils
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -101,6 +107,73 @@ object WatchProgressHelper {
                     playedAtMillis = playedAtMillis,
                 )
             }
+        }
+    }
+
+    /**
+     * Publish or update Android TV Watch Next for continue-watching.
+     * Safe no-op on devices without TV provider permissions / support.
+     */
+    fun upsertWatchNext(
+        context: Context,
+        videoType: Video.Type,
+        positionMillis: Long,
+        durationMillis: Long,
+        finished: Boolean,
+    ) {
+        runCatching {
+            val providerName = UserPreferences.currentProvider?.name ?: return
+            val contentId = when (videoType) {
+                is Video.Type.Movie -> videoType.id
+                is Video.Type.Episode -> videoType.id
+            }
+            val existing = WatchNextUtils.getProgram(context, contentId)
+            if (finished) {
+                existing?.let { WatchNextUtils.deleteProgramById(context, it.id) }
+                return
+            }
+            if (durationMillis <= 0L) return
+
+            val title = when (videoType) {
+                is Video.Type.Movie -> videoType.title
+                is Video.Type.Episode -> videoType.tvShow.title
+            }
+            val poster = when (videoType) {
+                is Video.Type.Movie -> videoType.poster
+                is Video.Type.Episode -> videoType.poster ?: videoType.tvShow.poster
+            }
+            val intentUri = when (videoType) {
+                is Video.Type.Movie -> DeepLinkHandler.movieUri(videoType.id)
+                is Video.Type.Episode -> DeepLinkHandler.tvShowUri(videoType.tvShow.id)
+            }
+
+            val builder = WatchNextProgram.Builder().apply {
+                setType(
+                    when (videoType) {
+                        is Video.Type.Movie -> TvContractCompat.PreviewProgramColumns.TYPE_MOVIE
+                        is Video.Type.Episode -> TvContractCompat.PreviewProgramColumns.TYPE_TV_EPISODE
+                    }
+                )
+                setWatchNextType(TvContractCompat.WatchNextPrograms.WATCH_NEXT_TYPE_CONTINUE)
+                setLastEngagementTimeUtcMillis(System.currentTimeMillis())
+                setTitle(title)
+                setContentId(contentId)
+                setInternalProviderId(providerName)
+                setIntentUri(intentUri)
+                setDurationMillis(durationMillis.toInt().coerceAtLeast(0))
+                setLastPlaybackPositionMillis(positionMillis.toInt().coerceAtLeast(0))
+                if (!poster.isNullOrBlank()) {
+                    setPosterArtUri(android.net.Uri.parse(poster))
+                }
+            }
+            val program = builder.build()
+            if (existing != null) {
+                WatchNextUtils.updateProgram(context, existing.id, program)
+            } else {
+                WatchNextUtils.insert(context, program)
+            }
+        }.onFailure { e ->
+            Log.d("WatchProgressHelper", "Watch Next upsert skipped: ${e.message}")
         }
     }
 }

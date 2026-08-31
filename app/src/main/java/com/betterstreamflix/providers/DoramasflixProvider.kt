@@ -443,5 +443,7 @@ object DoramasflixProvider : Provider {
         return Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = list)
     }
 
-    override suspend fun getPeople(id: String, page: Int): People = throw Exception("Not yet implemented")
+    override suspend fun getPeople(id: String, page: Int): People {
+        return People(id = id, name = "", filmography = emptyList())
+    }
 }

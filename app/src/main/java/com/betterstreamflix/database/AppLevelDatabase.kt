@@ -29,8 +29,8 @@ import com.betterstreamflix.database.dao.ProviderEntity
         CachedMetadataEntity::class,
         ProviderEntity::class,
     ],
-    version = 1,
-    exportSchema = false,
+    version = 2,
+    exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class AppLevelDatabase : RoomDatabase() {
@@ -47,13 +47,22 @@ abstract class AppLevelDatabase : RoomDatabase() {
 
         const val DB_NAME = "betterstreamflix_app.db"
 
+        private val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_watch_history_watchedAt ON watch_history(watchedAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_watch_history_providerName_videoId ON watch_history(providerName, videoId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_favorites_providerName_videoId ON favorites(providerName, videoId)")
+            }
+        }
+
         fun getInstance(context: Context): AppLevelDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppLevelDatabase::class.java,
                     DB_NAME,
-                ).fallbackToDestructiveMigration()
+                ).addMigrations(MIGRATION_1_2)
+                    .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
             }

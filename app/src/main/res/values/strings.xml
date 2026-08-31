@@ -7,6 +7,7 @@
     <string name="loading_error_retry">Retry</string>
     <string name="loading_error_clear_cache">Clear Cache</string>
     <string name="loading_error_details">Error Details</string>
+    <string name="loading_error_generic">Something went wrong. Please try again.</string>
 
     <string name="update_title">New Update Available</string>
     <string name="update_message">A new version of the app is available!</string>
@@ -57,6 +58,8 @@
     <string name="search_empty_query">Please enter a search query</string>
     <string name="searching">Searching...</string>
     <string name="search_error">Error</string>
+    <string name="search_no_results">No results found</string>
+    <string name="search_no_results_hint">Try a different search term or check the spelling</string>
     <string name="result">Result</string>
     <string name="results">Results</string>
     <string name="switching_to_provider">Switching to %s</string>
@@ -67,6 +70,8 @@
     <string name="home_favorite_movies">Favorite movies</string>
     <string name="home_favorite_tv_shows">Favorite TV shows</string>
     <string name="favorites_empty">You have no favorites yet</string>
+    <string name="empty_catalog_title">Nothing here yet</string>
+    <string name="empty_catalog_subtitle">Check back later or try a different provider</string>
     <string name="favorites_reorder_categories">Sort favorites</string>
     <string name="favorites_sort_title">Sort favorites</string>
     <string name="favorites_sort_manual">Manual order</string>
@@ -139,6 +144,8 @@
     <string name="player_not_available_it_message">Not available on Italian servers, search for it on TMDB in other languages</string>
     <string name="player_not_available_lang_message">Not available in %s, search for it on TMDB in other languages</string>
     <string name="player_retry_later_message">Video currently unavailable on this provider. Please try again later</string>
+    <string name="feature_not_supported">This feature is not supported yet</string>
+    <string name="source_failed_try_next">This source failed. Trying the next one…</string>
     <string name="player_next_episode_up_next">Up next</string>
     <string name="player_next_episode_action">Play now</string>
     <string name="player_next_episode_dismiss">Dismiss</string>
@@ -159,6 +166,8 @@
     <string name="player_settings_quality">%dp</string>
     <string name="player_settings_audio_title">Audio</string>
     <string name="player_settings_audio_label">Audio</string>
+    <string name="audio_variant_sub">Sub</string>
+    <string name="audio_variant_dub">Dub</string>
     <string name="player_settings_subtitles_title">Subtitles/closed captions</string>
     <string name="player_settings_subtitles_label">Captions</string>
     <string name="player_settings_subtitles_off">Off</string>
@@ -400,6 +409,10 @@
         <item quantity="other">Applying %d cloud items…</item>
     </plurals>
     <string name="cloud_sync_progress_finalizing">Finishing synchronization…</string>
+    <string name="offline_banner_message">You\'re offline. Some content may not be available.</string>
+    <string name="sync_last_synced">Last synced %1$s</string>
+    <string name="sync_status_ok">Up to date</string>
+    <string name="sync_conflict_title">Sync conflict</string>
     <string name="supabase_config_category">Supabase connection</string>
     <string name="supabase_url_title">Supabase project URL</string>
     <string name="supabase_url_summary">Enter your project URL, for example https://your-project.supabase.co</string>
@@ -434,6 +447,7 @@
     <string name="backup_export_picker_option">Choose save location</string>
     <string name="backup_export_local_option">Save to local backups</string>
     <string name="backup_export_downloads_option">Save to Downloads</string>
+    <string name="downloads_mobile_only">Downloads are only available on the mobile layout</string>
     <string name="backup_export_saved_to">Backup exported to %1$s</string>
     <string name="backup_data_not_generated">Error: backup data not generated.</string>
     <string name="backup_import_success">Backup imported successfully! Restart the app to apply changes.</string>
@@ -606,4 +620,13 @@
     <string name="settings_parental_tmdb_disable_blocked">You must unlock parental controls before disabling TMDb.</string>
     <string name="settings_force_extra_buffer_title">Global Extra Buffering</string>
     <string name="settings_force_extra_buffer_summary">Enable extra buffering for all servers by default</string>
+
+    <string name="legal_disclaimer_title">Legal disclaimer</string>
+    <string name="legal_disclaimer_message">BetterStreamflix is for educational and personal use only. The app does not host, store, or distribute any copyrighted content — all content is sourced from third-party providers and websites. You are solely responsible for ensuring you have the legal right to access any content you view. By continuing, you agree to comply with the laws of your jurisdiction.</string>
+    <string name="legal_disclaimer_accept">I Accept</string>
+
+    <string name="whats_new_title">What\'s new in %1$s</string>
+    <string name="whats_new_message">This update includes bug fixes and improvements. Check the changelog or release notes on GitHub for the full details.</string>
+    <string name="whats_new_view_changelog">View changelog</string>
+    <string name="whats_new_dismiss">Got it</string>
 </resources>

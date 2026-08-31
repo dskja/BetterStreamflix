@@ -18,6 +18,24 @@ abstract class Extractor {
         return extract(link)
     }
 
+    /**
+     * Structured error thrown when [Extractor.extract] cannot resolve a playable [Video].
+     * Carries the original link and the names of every extractor that was attempted (if any),
+     * so callers/logs can tell "no extractor matched" apart from "extractor(s) matched but failed".
+     */
+    class ExtractionFailedException(
+        val link: String,
+        val attemptedExtractors: List<String>,
+        cause: Throwable? = null,
+    ) : Exception(
+        if (attemptedExtractors.isEmpty()) {
+            "No extractors found for URL: $link"
+        } else {
+            "Extraction failed for URL: $link (tried: ${attemptedExtractors.joinToString()})"
+        },
+        cause,
+    )
+
     companion object {
         private val extractors = listOf(
             JKPlayerExtractor(),
@@ -225,12 +243,47 @@ abstract class Extractor {
 
             if (foundExtractor != null) {
                 Log.i("StreamFlixES", "[EXTRACTOR] -> Starting: ${foundExtractor.name} (URL: $finalLink)")
-                val video = foundExtractor.extract(finalLink)
-                Log.i("StreamFlixES", "[VIDEO] -> Extracted: ${video.source}")
-                return video
+                val attempted = mutableListOf(foundExtractor.name)
+                try {
+                    val video = foundExtractor.extract(finalLink)
+                    Log.i("StreamFlixES", "[VIDEO] -> Extracted: ${video.source}")
+                    return video
+                } catch (primaryError: Exception) {
+                    if (primaryError is kotlinx.coroutines.CancellationException) throw primaryError
+                    Log.w("Extractor", "Primary ${foundExtractor.name} failed: ${primaryError.message}")
+                    // Try other extractors that share the same host / name hint before giving up.
+                    val host = runCatching { java.net.URI(finalLink).host?.lowercase() }.getOrNull().orEmpty()
+                    val candidates = extractors.filter { extractor ->
+                        extractor !== foundExtractor && (
+                            host.isNotBlank() && (
+                                extractor.mainUrl.contains(host, ignoreCase = true) ||
+                                    extractor.aliasUrls.any { it.contains(host, ignoreCase = true) }
+                                ) ||
+                                (server?.name?.lowercase()?.contains(extractor.name.lowercase()) == true)
+                            )
+                    }
+                    var lastError: Throwable = primaryError
+                    for (fallback in candidates) {
+                        attempted += fallback.name
+                        try {
+                            Log.i("Extractor", "Trying fallback extractor ${fallback.name}")
+                            val video = fallback.extract(finalLink)
+                            Log.i("StreamFlixES", "[VIDEO] -> Extracted via fallback ${fallback.name}: ${video.source}")
+                            return video
+                        } catch (fallbackError: Exception) {
+                            if (fallbackError is kotlinx.coroutines.CancellationException) throw fallbackError
+                            Log.w("Extractor", "Fallback ${fallback.name} failed: ${fallbackError.message}")
+                            lastError = fallbackError
+                        }
+                    }
+                    // Every matching extractor (primary + host/name fallbacks) failed: surface a
+                    // structured error instead of the raw first exception so logs/UI can tell this
+                    // apart from "no extractor matched at all".
+                    throw ExtractionFailedException(finalLink, attempted, lastError)
+                }
             }
 
-            throw Exception("No extractors found for URL: $finalLink")
+            throw ExtractionFailedException(finalLink, emptyList())
         }
     }
 }

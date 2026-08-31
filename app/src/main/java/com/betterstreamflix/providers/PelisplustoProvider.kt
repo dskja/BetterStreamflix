@@ -369,6 +369,6 @@ object PelisplustoProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Not yet implemented")
+        return People(id = id, name = "", filmography = emptyList())
     }
 }

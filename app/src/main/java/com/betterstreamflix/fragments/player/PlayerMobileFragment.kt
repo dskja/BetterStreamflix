@@ -131,6 +131,7 @@ class PlayerMobileFragment : Fragment() {
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
+    private val sleepTimer = com.betterstreamflix.player.advanced.SleepTimer()
 
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
@@ -706,6 +707,10 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.exoSettings.setOnClickListener {
             binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
             binding.settings.show()
+        }
+        binding.pvPlayer.controller.binding.exoSettings.setOnLongClickListener {
+            showSleepTimerDialog()
+            true
         }
 
         binding.settings.setOnLocalSubtitlesClickedListener {
@@ -1345,6 +1350,9 @@ class PlayerMobileFragment : Fragment() {
                 val show = player.currentPosition in 3000..120000
                 showSkipIntroButton(show)
                 updateNextEpisodeOverlay()
+                if (sleepTimer.checkAndStop(player)) {
+                    Toast.makeText(requireContext(), R.string.player_settings_title, Toast.LENGTH_SHORT).show()
+                }
             }
             progressHandler.postDelayed(progressRunnable, 1000)
         }
@@ -1421,6 +1429,14 @@ class PlayerMobileFragment : Fragment() {
                 }
             }
         }
+
+        WatchProgressHelper.upsertWatchNext(
+            context = requireContext().applicationContext,
+            videoType = videoType,
+            positionMillis = player.currentPosition,
+            durationMillis = player.duration,
+            finished = player.hasFinished(),
+        )
     }
 
     private fun updateNextEpisodeOverlay() {
@@ -1586,7 +1602,9 @@ class PlayerMobileFragment : Fragment() {
                         val updatedHttpUrl = origHttpUrl.newBuilder().query(latestQuery).build()
                         request = request.newBuilder().url(updatedHttpUrl).build()
                         if (!tokenLogged) {
-                            android.util.Log.d("TokenManager", "[MOBILE-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                            if (com.betterstreamflix.BuildConfig.DEBUG) {
+                                android.util.Log.d("TokenManager", "[MOBILE-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                            }
                             tokenLogged = true
                         }
                     } else {
@@ -1685,6 +1703,21 @@ class PlayerMobileFragment : Fragment() {
                 }
             }
         cookieManager.flush()
+    }
+
+    private fun showSleepTimerDialog() {
+        val labels = com.betterstreamflix.player.advanced.SleepTimer.PRESET_DURATIONS
+            .map { "$it min" }
+            .toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.player_settings_title)
+            .setItems(labels) { _, which ->
+                val minutes = com.betterstreamflix.player.advanced.SleepTimer.PRESET_DURATIONS[which]
+                sleepTimer.start(minutes)
+                Toast.makeText(requireContext(), "$minutes min", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> sleepTimer.cancel() }
+            .show()
     }
 }
 

@@ -24,6 +24,7 @@ import com.betterstreamflix.utils.AniWorldUpdateTvShowWorker
 import com.betterstreamflix.utils.DnsResolver
 import com.betterstreamflix.utils.TmdbUtils
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.utils.format
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -419,12 +420,19 @@ object AniWorldProvider : Provider {
         if (page > 1) return People(id, "")
 
         val document = service.getPeople(id)
+        val peopleName = document.selectFirst("h1 strong")?.text() ?: ""
+        // AniWorld's own people pages have no bio/photo; enrich from TMDB (when enabled) instead
+        // of leaving the profile blank, same as SerienStreamProvider.
+        val tmdbPerson = TmdbUtils.enrichPersonByName(peopleName, language = language)
 
         val people = People(
             id = id,
-            name = document.selectFirst("h1 strong")
-                ?.text()
-                ?: "",
+            name = peopleName,
+            image = tmdbPerson?.image,
+            biography = tmdbPerson?.biography,
+            placeOfBirth = tmdbPerson?.placeOfBirth,
+            birthday = tmdbPerson?.birthday?.format("yyyy-MM-dd"),
+            deathday = tmdbPerson?.deathday?.format("yyyy-MM-dd"),
 
             filmography = document.select(".seriesListContainer > div").map {
                 TvShow(
@@ -467,10 +475,17 @@ object AniWorldProvider : Provider {
                 }
                 ?: ""
 
+            val audioVariant = when (it.attr("data-lang-key")) {
+                "1" -> Video.AudioVariant.DUB
+                "2", "3" -> Video.AudioVariant.SUB
+                else -> Video.AudioVariant.UNKNOWN
+            }
+
             Video.Server(
                 id = name,
                 name = name,
                 src = redirectUrl,
+                audioVariant = audioVariant,
             )
         }
 
