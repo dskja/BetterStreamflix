@@ -195,7 +195,7 @@ dependencies {
     implementation "androidx.browser:browser:1.7.0"
     implementation "org.nanohttpd:nanohttpd:2.3.1"
     implementation "com.google.zxing:core:3.5.1"
-    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    implementation("org.java-websocket:Java-WebSocket:1.6.0")
     
     // DataStore (async preferences)
     implementation "androidx.datastore:datastore-preferences:1.1.7"
