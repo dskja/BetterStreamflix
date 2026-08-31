@@ -8,5 +8,10 @@
         app:title="@string/settings_about_version"
         tools:summary="@string/settings_about_version_name" />
 
+    <Preference
+        app:iconSpaceReserved="false"
+        app:key="p_settings_about_export_diagnostics"
+        app:summary="@string/settings_about_share_diagnostics_summary"
+        app:title="@string/settings_about_share_diagnostics" />
 
 </androidx.preference.PreferenceScreen>

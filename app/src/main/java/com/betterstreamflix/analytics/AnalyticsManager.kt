@@ -1,7 +1,8 @@
 package com.betterstreamflix.analytics
 
 import android.content.Context
-import androidx.core.content.edit
+import com.betterstreamflix.R
+import com.betterstreamflix.utils.ShareHelper
 
 /**
  * Analytics manager — collects and reports usage analytics
@@ -85,6 +86,18 @@ object AnalyticsManager {
      */
     fun setEnabled(value: Boolean) {
         enabled = value
+    }
+
+    /**
+     * Share a diagnostic report built from [DiagnosticInfoProvider].
+     */
+    fun shareDiagnosticReport(context: Context) {
+        val report = DiagnosticInfoProvider.getDiagnosticReport(context)
+        ShareHelper.shareText(
+            context,
+            report,
+            context.getString(R.string.settings_about_share_diagnostics),
+        )
     }
 
     private var enabled = false

@@ -1,8 +1,10 @@
 package com.betterstreamflix.utils
 
-import androidx.appcompat.app.AlertDialog
+import android.app.Dialog
+import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.FragmentActivity
-import com.betterstreamflix.R
+import com.betterstreamflix.compose.screens.ProfilePickerScreen
+import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 
 /**
  * Shows a profile picker when multiple local profiles exist.
@@ -18,17 +20,28 @@ object ProfilePickerHelper {
         if (profiles.size <= 1) return
         shownThisProcess = true
 
-        val names = profiles.map { it.name }.toTypedArray()
-        val activeIndex = profiles.indexOfFirst { it.id == UserProfiles.active().id }.coerceAtLeast(0)
-
-        AlertDialog.Builder(activity)
-            .setTitle(R.string.profile_picker_title)
-            .setSingleChoiceItems(names, activeIndex) { dialog, which ->
-                UserProfiles.setActive(profiles[which].id)
-                dialog.dismiss()
-            }
-            .setPositiveButton(R.string.profile_picker_continue) { dialog, _ -> dialog.dismiss() }
-            .setCancelable(true)
-            .show()
+        val dialog = Dialog(activity)
+        dialog.setContentView(
+            ComposeView(activity).apply {
+                setContent {
+                    BetterStreamflixTheme {
+                        ProfilePickerScreen(
+                            profiles = profiles,
+                            activeId = UserProfiles.active().id,
+                            onSelect = { profile ->
+                                UserProfiles.setActive(profile.id)
+                                dialog.dismiss()
+                            },
+                        )
+                    }
+                }
+            },
+        )
+        dialog.setCancelable(true)
+        dialog.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        dialog.show()
     }
 }

@@ -514,6 +514,19 @@
                 android:summary="@string/cloud_sync_now_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_trakt_settings"
+            android:title="@string/trakt_settings_title"
+            app:iconSpaceReserved="false">
+
+            <SwitchPreferenceCompat
+                android:key="trakt_enabled"
+                android:title="@string/trakt_enabled_title"
+                android:summary="@string/trakt_enabled_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
     </PreferenceScreen>
 
     <PreferenceScreen

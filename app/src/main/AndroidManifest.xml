@@ -104,5 +104,15 @@
                 android:resource="@xml/favorites_widget_info" />
         </receiver>
 
+        <service
+            android:name=".download.StreamflixDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="androidx.media3.exoplayer.downloadService.action.RESTART" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>

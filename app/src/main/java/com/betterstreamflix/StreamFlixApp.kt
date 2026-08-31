@@ -20,6 +20,8 @@ import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.GlobalErrorHandler
 import com.betterstreamflix.utils.IsrgRootTrustProvider
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.download.DownloadRepository
+import com.betterstreamflix.download.Media3OfflineDownloads
 import com.betterstreamflix.notifications.NotificationChannelManager
 import com.betterstreamflix.work.NewEpisodeCheckWorker
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -101,6 +103,7 @@ class StreamFlixApp : Application() {
 
         NotificationChannelManager.createChannels(this)
         NewEpisodeCheckWorker.schedule(this)
+        Media3OfflineDownloads.init(this)
 
         val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
@@ -109,6 +112,11 @@ class StreamFlixApp : Application() {
 
         FileLogger.i("Init", "Step 3: Async initialization (IO dispatcher)")
         applicationScope.launch(Dispatchers.IO) {
+            FileLogger.i("Init", "→ DownloadRepository.migrateFromSharedPrefsIfNeeded()")
+            runCatching { DownloadRepository(appContext).migrateFromSharedPrefsIfNeeded() }
+                .onSuccess { FileLogger.i("Init", "✓ DownloadRepository migration done") }
+                .onFailure { FileLogger.e("Init", "✗ DownloadRepository migration FAILED", it) }
+
             FileLogger.i("Init", "→ AppDatabase.setup()")
             runCatching { AppDatabase.setup(appContext) }
                 .onSuccess { FileLogger.i("Init", "✓ AppDatabase setup") }

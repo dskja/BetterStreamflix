@@ -240,5 +240,20 @@
     <fragment
         android:id="@+id/settings"
         android:name="com.betterstreamflix.fragments.settings.SettingsTvFragment"
-        android:label="fragment_settings_tv" />
+        android:label="fragment_settings_tv">
+        <action
+            android:id="@+id/action_settings_to_settings_about"
+            app:destination="@id/settings_about" />
+        <action
+            android:id="@+id/action_settings_to_downloads"
+            app:destination="@id/downloads" />
+    </fragment>
+    <fragment
+        android:id="@+id/downloads"
+        android:name="com.betterstreamflix.fragments.downloads.DownloadsTvFragment"
+        android:label="fragment_downloads_tv" />
+    <fragment
+        android:id="@+id/settings_about"
+        android:name="com.betterstreamflix.fragments.settings.about.SettingsAboutTvFragment"
+        android:label="fragment_settings_about_tv" />
 </navigation>

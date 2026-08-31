@@ -1,353 +1,95 @@
 package com.betterstreamflix.fragments.search
 
-import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.animation.AlphaAnimation
-import android.view.animation.Animation
-import android.view.inputmethod.EditorInfo
 import android.widget.Toast
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.RecyclerView
 import com.betterstreamflix.R
-import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.SearchScreen
 import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentSearchMobileBinding
-import com.betterstreamflix.models.Category
-import com.betterstreamflix.models.Genre
-import com.betterstreamflix.models.Movie
-import com.betterstreamflix.models.TvShow
-import com.betterstreamflix.ui.SpacingItemDecoration
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DeepLinkHandler
-import com.betterstreamflix.ui.EmptyStateViewHelper
 import com.betterstreamflix.utils.LoggingUtils
-import com.betterstreamflix.utils.UserPreferences // <-- IMPORT AÑADIDO
-import com.betterstreamflix.utils.VoiceRecognitionHelper
-import com.betterstreamflix.search.SearchHistoryManager
-import com.google.android.material.chip.Chip
-import com.betterstreamflix.utils.dp
-import com.betterstreamflix.utils.hideKeyboard
 import com.betterstreamflix.utils.viewModelsFactory
-import kotlinx.coroutines.launch
-import com.betterstreamflix.providers.IptvProvider
+import retrofit2.HttpException
 
-class SearchMobileFragment : Fragment() {
+class SearchMobileFragment : ComposeHostFragment() {
 
     private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentSearchMobileBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
 
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { SearchViewModel(database) }
 
-    private var appAdapter = AppAdapter()
-
-    private lateinit var voiceHelper: VoiceRecognitionHelper
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentSearchMobileBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(view: android.view.View, savedInstanceState: android.os.Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        initializeSearch()
-        refreshSearchHistoryChips()
 
         DeepLinkHandler.pendingSearchQuery?.let { pending ->
             DeepLinkHandler.pendingSearchQuery = null
             if (pending.isNotBlank() && pending != "_") {
-                binding.etSearch.setText(pending)
                 viewModel.search(pending)
             }
         }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                // ========= BLOQUE WHEN MODIFICADO =========
-                when (state) {
-                    is State.Searching, is State.GlobalSearching -> {
-                        binding.isLoading.apply {
-                            root.visibility = View.VISIBLE
-                            pbIsLoading.visibility = View.VISIBLE
-                            gIsLoadingRetry.visibility = View.GONE
-                        }
-                        appAdapter.isLoading = false
-                        appAdapter.setOnLoadMoreListener(null)
-                    }
-                    is State.SearchingMore -> appAdapter.isLoading = true
-                    is State.SuccessSearching -> {
-                        displaySearch(state.results, state.hasMore)
-                        appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
-                        refreshSearchHistoryChips()
-                    }
-                    is State.SuccessGlobalSearching -> {
-                        displayGlobalSearch(state.providerResults)
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-                    is State.FailedSearching -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.search(viewModel.query)
-                            return@collect
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message?.takeIf { it.isNotBlank() }
-                                ?: getString(R.string.loading_error_generic),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        if (appAdapter.isLoading) {
-                            appAdapter.isLoading = false
-                        } else {
-                            binding.isLoading.apply {
-                                pbIsLoading.visibility = View.GONE
-                                gIsLoadingRetry.visibility = View.VISIBLE
-                                val doRetry = { viewModel.search(viewModel.query) }
-                                btnIsLoadingRetry.setOnClickListener { doRetry() }
-                                btnIsLoadingClearCache.setOnClickListener {
-                                    CacheUtils.clearAppCache(requireContext())
-                                    android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                    doRetry()
-                                }
-                                btnIsLoadingErrorDetails.setOnClickListener {
-                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
-                                }
-                            }
-                        }
-                    }
-                }
-                // ===========================================
-            }
-        }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        voiceHelper.stopRecognition()
-        _binding = null
-    }
+    @Composable
+    override fun Content() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = State.Searching)
+        var query by remember { mutableStateOf(viewModel.query) }
 
-    private fun initializeSearch() {
-        binding.btnSearchBack.setOnClickListener {
-            findNavController().popBackStack()
-        }
-
-        val isIptv = UserPreferences.currentProvider is IptvProvider
-        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
-        binding.etSearch.hint = getString(hintStringRes)
-
-        binding.etSearch.apply {
-            // ========= LÓGICA DE BÚSQUEDA MODIFICADA =========
-            setOnEditorActionListener { _, actionId, _ ->
-                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    val query = binding.etSearch.text.toString()
-                    hideKeyboard()
-
-                    if (query.isBlank()) {
-                        Toast.makeText(requireContext(), getString(R.string.search_empty_query), Toast.LENGTH_SHORT).show()
-                        return@setOnEditorActionListener true
-                    }
-
-                    if (binding.swGlobalSearch.isChecked) {
-                        val currentLanguage = UserPreferences.currentProvider?.language ?: "es"
-                        viewModel.searchGlobal(query, currentLanguage)
-                    } else {
-                        viewModel.search(query)
-                    }
-                    return@setOnEditorActionListener true
-                }
-                return@setOnEditorActionListener false
+        LaunchedEffect(state) {
+            if (state is State.SuccessSearching || state is State.FailedSearching) {
+                query = viewModel.query
             }
-            // =================================================
+        }
 
-            addTextChangedListener(object : TextWatcher {
-                override fun afterTextChanged(s: Editable?) {
-                    val text = s?.toString().orEmpty()
-                    if (text.isBlank()) {
-                        val isIptv = UserPreferences.currentProvider is IptvProvider
-                        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
-                        binding.etSearch.hint = getString(hintStringRes)
-                        refreshSearchHistoryChips()
-                    } else if (text.length >= 2) {
-                        binding.hsvSearchHistory.visibility = View.GONE
-                        viewModel.searchDebounced(text)
-                    }
+        val isLoading = state is State.Searching || state is State.GlobalSearching
+        val results = (state as? State.SuccessSearching)?.results.orEmpty()
+        val isEmpty = state is State.SuccessSearching && results.isEmpty() && query.isNotBlank()
+
+        if (state is State.FailedSearching) {
+            val failed = state as State.FailedSearching
+            val code = (failed.error as? HttpException)?.code()
+            if (code == 409 && !hasAutoCleared409) {
+                LaunchedEffect(failed.error) {
+                    hasAutoCleared409 = true
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.clear_cache_done_409),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    viewModel.search(viewModel.query)
                 }
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            })
-        }
-
-        val blink = AlphaAnimation(1f, 0.3f).apply {
-            duration = 500
-            repeatCount = Animation.INFINITE
-            repeatMode = Animation.REVERSE
-        }
-
-        voiceHelper = VoiceRecognitionHelper(
-            fragment = this,
-            onResult = { query ->
-                binding.btnSearchVoice.clearAnimation()
-                binding.etSearch.setText(query)
-                viewModel.search(query)
-            },
-            onError = { msg ->
-                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
-                binding.btnSearchVoice.clearAnimation()
-                        val isIptv = UserPreferences.currentProvider is IptvProvider
-        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
-        binding.etSearch.hint = getString(hintStringRes)
-            },
-            onListeningStateChanged = { isListening ->
-                binding.btnSearchVoice.startAnimation(blink)
-                binding.etSearch.hint = getString(R.string.voice_prompt)
+            } else {
+                LaunchedEffect(failed.error) {
+                    val message = failed.error.message?.takeIf { it.isNotBlank() }
+                        ?: getString(R.string.loading_error_generic)
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    LoggingUtils.showErrorDialog(requireContext(), failed.error)
+                }
             }
+        }
+
+        SearchScreen(
+            query = query,
+            onQueryChange = { newQuery ->
+                query = newQuery
+                if (newQuery.isBlank()) {
+                    viewModel.search("")
+                } else if (newQuery.length >= 2) {
+                    viewModel.searchDebounced(newQuery)
+                }
+            },
+            isLoading = isLoading,
+            isEmpty = isEmpty,
+            results = results,
+            onBack = { findNavController().popBackStack() },
         )
-
-        binding.btnSearchVoice.apply {
-            requestFocus()
-            visibility =
-                if (voiceHelper.isAvailable()) View.VISIBLE else View.GONE
-
-            setOnClickListener {
-                if (!voiceHelper.isListening) {
-                    voiceHelper.startWithPermissionCheck()
-                }
-            }
-        }
-
-        binding.btnSearchClear.setOnClickListener {
-            binding.etSearch.setText("")
-                    val isIptv = UserPreferences.currentProvider is IptvProvider
-        val hintStringRes = if (isIptv) R.string.search_input_hint_iptv else R.string.search_input_hint
-        binding.etSearch.hint = getString(hintStringRes)
-            viewModel.search("")
-        }
-
-        binding.rvSearch.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            addItemDecoration(
-                SpacingItemDecoration(10.dp(requireContext()))
-            )
-        }
     }
-
-    private fun displaySearch(list: List<AppAdapter.Item>, hasMore: Boolean) {
-        appAdapter.submitList(list.onEach {
-            when (it) {
-                is Genre -> it.itemType = AppAdapter.Type.GENRE_GRID_MOBILE_ITEM
-                is Movie -> it.itemType = AppAdapter.Type.MOVIE_GRID_MOBILE_ITEM
-                is TvShow -> it.itemType = AppAdapter.Type.TV_SHOW_GRID_MOBILE_ITEM
-            }
-        })
-
-        val emptyContainer = binding.root.findViewWithTag<android.view.ViewGroup>("search_empty_state")
-        if (list.isEmpty() && viewModel.query.isNotBlank()) {
-            val container = emptyContainer ?: (EmptyStateViewHelper.create(requireContext()) as android.view.ViewGroup).also {
-                it.tag = "search_empty_state"
-                (binding.root as? android.view.ViewGroup)?.addView(it)
-            }
-            EmptyStateViewHelper.show(
-                container,
-                title = getString(R.string.search_no_results),
-                subtitle = getString(R.string.search_no_results_hint),
-            )
-        } else {
-            emptyContainer?.let { EmptyStateViewHelper.hide(it) }
-        }
-
-        if (hasMore && viewModel.query != "") {
-            appAdapter.setOnLoadMoreListener { viewModel.loadMore() }
-        } else {
-            appAdapter.setOnLoadMoreListener(null)
-        }
-    }
-
-    // ========= NUEVA FUNCIÓN PARA MOSTRAR RESULTADOS GLOBALES =========
-    private fun displayGlobalSearch(providerResults: List<ProviderResult>) {
-        val allItems = mutableListOf<AppAdapter.Item>()
-
-        providerResults.forEach { providerResult ->
-            val headerTitle = when (val state = providerResult.state) {
-                is ProviderResult.State.Loading -> "${providerResult.provider.name} - ${getString(R.string.searching)}"
-                is ProviderResult.State.Error -> "${providerResult.provider.name} - ${getString(R.string.search_error)}"
-                is ProviderResult.State.Success -> {
-                    val count = state.results.size
-                    val resultText = if (count == 1) getString(R.string.result) else getString(R.string.results)
-                    "${providerResult.provider.name} - $count $resultText"
-                }
-            }
-
-            val header = Category(
-                name = headerTitle,
-                list = emptyList()
-            ).apply {
-                itemType = AppAdapter.Type.CATEGORY_MOBILE_ITEM
-            }
-            allItems.add(header)
-
-            if (providerResult.state is ProviderResult.State.Success) {
-                val results = providerResult.state.results.onEach {
-                    when (it) {
-                        is Movie -> it.itemType = AppAdapter.Type.MOVIE_GRID_MOBILE_ITEM
-                        is TvShow -> it.itemType = AppAdapter.Type.TV_SHOW_GRID_MOBILE_ITEM
-                    }
-                }
-                allItems.addAll(results)
-            }
-        }
-
-        appAdapter.submitList(allItems)
-        appAdapter.setOnLoadMoreListener(null) // Desactivamos la carga infinita en la búsqueda global
-    }
-
-    private fun refreshSearchHistoryChips() {
-        val history = SearchHistoryManager.getHistory(requireContext()).take(8)
-        binding.chipSearchHistory.removeAllViews()
-        if (history.isEmpty() || binding.etSearch.text?.isNotBlank() == true) {
-            binding.hsvSearchHistory.visibility = View.GONE
-            return
-        }
-        binding.hsvSearchHistory.visibility = View.VISIBLE
-        history.forEach { entry ->
-            val chip = Chip(requireContext()).apply {
-                text = entry.query
-                isClickable = true
-                setOnClickListener {
-                    binding.etSearch.setText(entry.query)
-                    hideKeyboard()
-                    if (binding.swGlobalSearch.isChecked) {
-                        val lang = UserPreferences.currentProvider?.language ?: "es"
-                        viewModel.searchGlobal(entry.query, lang)
-                    } else {
-                        viewModel.search(entry.query)
-                    }
-                }
-            }
-            binding.chipSearchHistory.addView(chip)
-        }
-    }
-    // ================================================================
 }
-

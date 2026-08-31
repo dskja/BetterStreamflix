@@ -50,6 +50,7 @@ import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserDataCache
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.settings.SettingsSearchHelper
+import com.betterstreamflix.sync.TraktSettings
 import com.betterstreamflix.notifications.NotificationPreferences
 import com.betterstreamflix.utils.Permissions
 import com.google.android.material.snackbar.Snackbar
@@ -533,9 +534,19 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             val spannableSummary = SpannableString(summaryStr)
             spannableSummary.setSpan(ForegroundColorSpan(palette.tvHeaderSecondary), 0, summaryStr.length, 0)
             summary = spannableSummary
-            
-            isSelectable = false
-            setOnPreferenceClickListener(null)
+
+            setOnPreferenceClickListener {
+                findNavController().navigate(R.id.action_settings_to_settings_about)
+                true
+            }
+        }
+
+        findPreference<SwitchPreferenceCompat>("trakt_enabled")?.apply {
+            isChecked = TraktSettings.isEnabled(requireContext())
+            setOnPreferenceChangeListener { _, newValue ->
+                TraktSettings.setEnabled(requireContext(), newValue as Boolean)
+                true
+            }
         }
 
         findPreference<Preference>("p_settings_help")?.setOnPreferenceClickListener {
