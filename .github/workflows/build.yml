@@ -9,6 +9,7 @@ on:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
   release-apks:
     name: Build Release APKs

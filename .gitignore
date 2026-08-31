@@ -13,6 +13,5 @@ local.properties
 app/src/main/cpp/native-lib.cpp
 *.ps1
 errors*.txt
-app/lint-baseline.xml
 app_log.txt
 startup_log.txt
