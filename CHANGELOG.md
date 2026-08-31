@@ -2,6 +2,20 @@
 
 ## Unreleased (Megaplan)
 
+### Massive update wave 2
+- Search: debounced queries, recent-search chips (mobile), history persistence
+- Home: "Recommended for you" row from favorites/history; stale-cache banner (mobile + TV)
+- Provider domain auto-failover on home load failure (SerienStream, StreamingCommunity, Cuevana, Moflix, Poseidon, …)
+- Provider health badges on TV provider list
+- Downloads screen (Settings → Downloads) with offline queue list
+- Profile picker on startup when multiple local profiles exist
+- New-content notifications via WorkManager (opt-in in Settings)
+- Settings search dialog; TV AniWorld domain parity with mobile
+- TV player sleep timer (long-press settings)
+- Player empty-catch blocks now log warnings instead of swallowing silently
+- CodeQL workflow; expanded unit tests (SearchHistory, ProviderDomainManager)
+- i18n backfill for new strings across AR/DE/ES/FR/IT/PL
+
 ### Security & Stability
 - Parental control PINs stored via EncryptedSharedPreferences with one-time migration
 - Backup/data-extraction rules exclude secure and app preference files

@@ -84,6 +84,10 @@ class HomeMobileFragment : Fragment() {
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
                         binding.isLoading.root.visibility = View.GONE
+                        com.betterstreamflix.utils.OfflineBanner.showIfOffline(binding.root)
+                        if (state.isStaleCache) {
+                            com.betterstreamflix.utils.OfflineBanner.showStaleCache(binding.root)
+                        }
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()
@@ -182,6 +186,10 @@ class HomeMobileFragment : Fragment() {
             ?.also {
                 it.name = getString(R.string.home_recently_watched)
             }
+
+        categories
+            .find { it.name == Category.RECOMMENDED_FOR_YOU }
+            ?.also { it.name = getString(R.string.home_recommended_for_you) }
 
         categories
             .find { it.name == Category.FAVORITE_MOVIES }

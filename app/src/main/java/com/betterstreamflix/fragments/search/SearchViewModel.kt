@@ -10,10 +10,14 @@ import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.providers.IptvProvider
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ProviderHealthMonitor
+import com.betterstreamflix.search.SearchHistoryManager
+import com.betterstreamflix.StreamFlixApp
 import com.betterstreamflix.utils.ParentalControlUtils
 import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -107,9 +111,18 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
 
     var query = ""
     private var page = 1
+    private var debounceJob: Job? = null
 
     init {
         search(query)
+    }
+
+    fun searchDebounced(query: String, delayMs: Long = 400) {
+        debounceJob?.cancel()
+        debounceJob = viewModelScope.launch {
+            delay(delayMs)
+            search(query)
+        }
     }
 
     fun search(query: String) = viewModelScope.launch(Dispatchers.IO) {
@@ -119,6 +132,9 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
             val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider?.search(query) ?: run { _state.emit(State.FailedSearching(Exception("No provider selected"))); return@launch })
             this@SearchViewModel.query = query
             page = 1
+            if (query.isNotBlank()) {
+                SearchHistoryManager.addSearch(StreamFlixApp.instance, query, results.size)
+            }
             _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
@@ -167,6 +183,11 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
         if (targetProviders.isEmpty()) {
             _state.emit(State.SuccessGlobalSearching(emptyList()))
             return@launch
+        }
+
+        this@SearchViewModel.query = query
+        if (query.isNotBlank()) {
+            SearchHistoryManager.addSearch(StreamFlixApp.instance, query, 0)
         }
 
         val initialResults = targetProviders.map { provider ->

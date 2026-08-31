@@ -66,6 +66,7 @@ class MainTvActivity : FragmentActivity() {
         setContentView(binding.root)
         applyThemeNavigationChrome()
         com.betterstreamflix.utils.FirstRunHelper.showStartupDialogsIfNeeded(this)
+        com.betterstreamflix.utils.ProfilePickerHelper.showIfNeeded(this)
 
         binding.ivSplashOverlay.animate()
             .alpha(0f)

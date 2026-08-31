@@ -22,6 +22,8 @@ for locale_dir in sorted(ROOT.glob("values-*")):
     critical = [k for k in missing if k.startswith("cloud_sync_") or k in {
         "legal_disclaimer_title", "legal_disclaimer_message", "legal_disclaimer_accept",
         "search_no_results", "loading_error_generic", "feature_not_supported",
+        "home_recommended_for_you", "home_cached_content_banner", "offline_banner_message",
+        "downloads_title", "settings_search_title", "profile_picker_title",
     }]
     if critical:
         missing_report.append(f"{locale_dir.name}: {', '.join(critical)}")
