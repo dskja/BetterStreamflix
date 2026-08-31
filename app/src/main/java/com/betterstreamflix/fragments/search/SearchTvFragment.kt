@@ -131,7 +131,12 @@ class SearchTvFragment : Fragment() {
                             viewModel.search(viewModel.query)
                             return@collect
                         }
-                        Toast.makeText(requireContext(), state.error.message ?: "", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            state.error.message?.takeIf { it.isNotBlank() }
+                                ?: getString(R.string.loading_error_generic),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                         if (appAdapter.isLoading) {
                             appAdapter.isLoading = false
                         } else {
@@ -342,6 +347,14 @@ class SearchTvFragment : Fragment() {
                 is TvShow -> it.itemType = AppAdapter.Type.TV_SHOW_GRID_TV_ITEM
             }
         })
+
+        if (list.isEmpty() && viewModel.query.isNotBlank()) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.search_no_results),
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
 
         if (hasMore && viewModel.query != "") {
             appAdapter.setOnLoadMoreListener { viewModel.loadMore() }

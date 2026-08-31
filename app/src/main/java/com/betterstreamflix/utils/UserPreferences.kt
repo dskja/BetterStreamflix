@@ -13,6 +13,7 @@ import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.Provider.Companion.providers
 import com.betterstreamflix.providers.TmdbProvider
 import androidx.core.content.edit
+import androidx.preference.PreferenceManager
 import com.betterstreamflix.database.AppDatabase
 import org.json.JSONObject
 import org.json.JSONArray
@@ -66,13 +67,29 @@ object UserPreferences {
             val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
 
-            // Migrate legacy TV theme key once.
-            val legacyTheme = prefs.getString("theme_preference", null)
-            if (!legacyTheme.isNullOrBlank() && Key.SELECTED_THEME.getString().isNullOrBlank()) {
-                Key.SELECTED_THEME.setString(legacyTheme)
-                prefs.edit { remove("theme_preference") }
-            }
+            migrateLegacyTvThemeKey(context)
         }
+    }
+
+    /**
+     * The TV settings screen used to store the selected theme under its own
+     * "theme_preference" preference key (in the default `SharedPreferences`
+     * used by the Preference framework), separate from the "SELECTED_THEME"
+     * key mobile settings and [selectedTheme] use. Copy the legacy value
+     * over once so TV and mobile share the same key going forward.
+     */
+    private fun migrateLegacyTvThemeKey(context: Context) {
+        val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val legacyTheme = defaultPrefs.getString("theme_preference", null)
+        if (legacyTheme.isNullOrBlank()) return
+
+        if (Key.SELECTED_THEME.getString().isNullOrBlank()) {
+            Key.SELECTED_THEME.setString(legacyTheme)
+        }
+        if (defaultPrefs.getString("SELECTED_THEME", null).isNullOrBlank()) {
+            defaultPrefs.edit { putString("SELECTED_THEME", legacyTheme) }
+        }
+        defaultPrefs.edit { remove("theme_preference") }
     }
 
 
@@ -199,6 +216,10 @@ object UserPreferences {
     var selectedTheme: String
         get() = Key.SELECTED_THEME.getString() ?: "default"
         set(value) = Key.SELECTED_THEME.setString(value)
+
+    var userM3uUrl: String
+        get() = Key.USER_M3U_URL.getString().orEmpty()
+        set(value) = Key.USER_M3U_URL.setString(value.trim())
 
     var tmdbApiKey: String
         get() = Key.TMDB_API_KEY.getString() ?: ""
@@ -648,6 +669,7 @@ object UserPreferences {
         PARENTAL_CONTROL_LOCKED_UNTIL,
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
+        USER_M3U_URL,
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,

@@ -36,9 +36,20 @@ object CloudAccountSettingsController {
 
         fun refresh() {
             val email = CloudSyncManager.currentUserEmail()
-            status.summary = email?.let {
-                fragment.getString(R.string.cloud_sync_signed_in_as, it)
-            } ?: fragment.getString(R.string.cloud_sync_signed_out)
+            val lastSynced = CloudSyncManager.lastSyncedAtMillis(fragment.requireContext())
+            status.summary = when {
+                email == null -> fragment.getString(R.string.cloud_sync_signed_out)
+                lastSynced > 0L -> {
+                    val formatted = java.text.DateFormat.getDateTimeInstance(
+                        java.text.DateFormat.SHORT,
+                        java.text.DateFormat.SHORT,
+                    ).format(java.util.Date(lastSynced))
+                    fragment.getString(R.string.cloud_sync_signed_in_as, email) +
+                        "\n" + fragment.getString(R.string.sync_last_synced, formatted)
+                }
+                else -> fragment.getString(R.string.cloud_sync_signed_in_as, email) +
+                    "\n" + fragment.getString(R.string.sync_status_ok)
+            }
             signIn?.isVisible = email == null
             signUp?.isVisible = email == null
             signOut?.isVisible = email != null
