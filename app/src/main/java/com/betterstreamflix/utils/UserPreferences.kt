@@ -71,6 +71,9 @@ object UserPreferences {
         }
     }
 
+    /** True after [setup] has initialized the SharedPreferences store. */
+    fun isReady(): Boolean = ::prefs.isInitialized
+
     /**
      * The TV settings screen used to store the selected theme under its own
      * "theme_preference" preference key (in the default `SharedPreferences`
