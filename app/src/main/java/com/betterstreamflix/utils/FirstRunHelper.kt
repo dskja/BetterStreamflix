@@ -132,7 +132,7 @@ object FirstRunHelper {
      * 2. The "what's new" notice, if the app was updated since last seen —
      *    only shown once the legal disclaimer has been accepted.
      */
-    fun presentOnboardingDialogs(activity: Activity) {
+    fun showStartupDialogsIfNeeded(activity: Activity) {
         if (activity.isFinishing || activity.isDestroyed) return
 
         if (!isLegalAccepted(activity)) {

@@ -18,11 +18,6 @@
     <string name="update">Update</string>
     <string name="settings_update_check">Automatic update check</string>
     <string name="settings_update_check_summary">Check for new versions of the app automatically</string>
-    <string name="whats_new_title">What\'s new</string>
-
-    <string name="legal_disclaimer_title">Legal disclaimer</string>
-    <string name="legal_disclaimer_message">BetterStreamflix does not host, store, or distribute any copyrighted content. All content is sourced from third-party providers and websites. You are solely responsible for ensuring you have the legal right to access any content viewed through this app.</string>
-    <string name="legal_disclaimer_accept">I understand &amp; accept</string>
 
     <string name="app_layout">App layout</string>
     <string name="app_layout_auto">Auto</string>

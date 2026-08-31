@@ -33,9 +33,9 @@ object AppShortcuts {
         }
 
         val shortcuts = listOf(
-            shortcut("search", context.getString(R.string.search_input_hint).take(20), "search"),
-            shortcut("favorites", context.getString(R.string.main_menu_favorites), "provider"),
-            shortcut("home", context.getString(R.string.home_continue_watching), "provider"),
+            shortcut("search", context.getString(R.string.search_input_hint).take(24), "search/_"),
+            shortcut("favorites", context.getString(R.string.main_menu_favorites), "search/_"),
+            shortcut("continue", context.getString(R.string.home_continue_watching), "search/_"),
         )
         runCatching { shortcutManager.dynamicShortcuts = shortcuts }
     }

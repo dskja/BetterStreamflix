@@ -131,6 +131,7 @@ class PlayerMobileFragment : Fragment() {
 
     private var servers = listOf<Video.Server>()
     private var zoomToast: Toast? = null
+    private val sleepTimer = com.betterstreamflix.player.advanced.SleepTimer()
 
     private var currentVideo: Video? = null
     private var currentServer: Video.Server? = null
@@ -706,6 +707,10 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.exoSettings.setOnClickListener {
             binding.pvPlayer.controllerShowTimeoutMs = binding.pvPlayer.controllerShowTimeoutMs
             binding.settings.show()
+        }
+        binding.pvPlayer.controller.binding.exoSettings.setOnLongClickListener {
+            showSleepTimerDialog()
+            true
         }
 
         binding.settings.setOnLocalSubtitlesClickedListener {

@@ -63,6 +63,7 @@ class HomeMobileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initializeHome()
+        com.betterstreamflix.utils.OfflineBanner.showIfOffline(binding.root)
 
         // Lightweight refresh when provider changes
         viewLifecycleOwner.lifecycleScope.launch {

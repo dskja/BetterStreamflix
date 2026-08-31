@@ -16,11 +16,15 @@
     <string name="update_release_notes">Versionshinweise</string>
     <string name="update_later">Vielleicht später</string>
     <string name="update">Aktualisieren</string>
-    <string name="whats_new_title">Neuigkeiten</string>
 
     <string name="legal_disclaimer_title">Rechtlicher Hinweis</string>
-    <string name="legal_disclaimer_message">BetterStreamflix hostet, speichert oder verbreitet keine urheberrechtlich geschützten Inhalte. Alle Inhalte stammen von Drittanbietern. Du bist selbst dafür verantwortlich sicherzustellen, dass du berechtigt bist, auf die über diese App angezeigten Inhalte zuzugreifen.</string>
-    <string name="legal_disclaimer_accept">Verstanden &amp; akzeptieren</string>
+    <string name="legal_disclaimer_message">BetterStreamflix dient ausschließlich Bildungs- und privaten Zwecken. Die App hostet, speichert oder verbreitet keine urheberrechtlich geschützten Inhalte — alle Inhalte stammen von Drittanbietern. Du bist selbst dafür verantwortlich sicherzustellen, dass du berechtigt bist, auf die angezeigten Inhalte zuzugreifen. Mit der Fortsetzung stimmst du zu, die Gesetze deines Landes einzuhalten.</string>
+    <string name="legal_disclaimer_accept">Akzeptieren</string>
+
+    <string name="whats_new_title">Neuigkeiten in %1$s</string>
+    <string name="whats_new_message">Dieses Update enthält Fehlerbehebungen und Verbesserungen. Die vollständigen Details findest du im Änderungsprotokoll oder in den Release Notes auf GitHub.</string>
+    <string name="whats_new_view_changelog">Änderungsprotokoll anzeigen</string>
+    <string name="whats_new_dismiss">Verstanden</string>
 
     <string name="app_layout">App-Layout</string>
     <string name="app_layout_auto">Automatisch</string>
