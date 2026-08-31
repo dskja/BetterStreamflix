@@ -22,6 +22,7 @@ import com.betterstreamflix.utils.IsrgRootTrustProvider
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.download.DownloadRepository
 import com.betterstreamflix.download.Media3OfflineDownloads
+import com.betterstreamflix.download.Media3DownloadSync
 import com.betterstreamflix.notifications.NotificationChannelManager
 import com.betterstreamflix.work.NewEpisodeCheckWorker
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -104,6 +105,7 @@ class StreamFlixApp : Application() {
         NotificationChannelManager.createChannels(this)
         NewEpisodeCheckWorker.schedule(this)
         Media3OfflineDownloads.init(this)
+        Media3DownloadSync.attach(this)
 
         val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)

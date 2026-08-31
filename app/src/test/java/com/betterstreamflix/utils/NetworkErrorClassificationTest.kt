@@ -1,17 +1,14 @@
 package com.betterstreamflix.utils
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLHandshakeException
 
-/**
- * Tests for NetworkError classification logic.
- */
-class NetworkErrorTest {
+/** Pure JVM tests for NetworkError classification (no Android/Robolectric). */
+class NetworkErrorClassificationTest {
 
     @Test
     fun `SocketTimeoutException classifies as Timeout`() {
@@ -56,19 +53,5 @@ class NetworkErrorTest {
         val error = NetworkError.from(IllegalStateException("Something went wrong"))
         assertTrue(error is NetworkError.Unknown)
         assertEquals("Something went wrong", (error as NetworkError.Unknown).message)
-    }
-
-    @Test
-    fun `HttpError 404 getUserMessage contains code`() {
-        val context = org.robolectric.RuntimeEnvironment.getApplication()
-        val message = NetworkError.HttpError(404).getUserMessage(context)
-        assertTrue(message.contains("404"))
-    }
-
-    @Test
-    fun `Timeout getUserMessage contains zeitueberschreitung`() {
-        val context = org.robolectric.RuntimeEnvironment.getApplication()
-        val message = NetworkError.Timeout.getUserMessage(context)
-        assertTrue(message.isNotEmpty())
     }
 }

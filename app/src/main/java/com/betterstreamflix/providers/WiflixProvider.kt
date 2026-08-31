@@ -47,8 +47,8 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override val logo: String
         get() {
-            var cacheLogo = UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_LOGO)
-            return cacheLogo.ifEmpty { "" }
+            val cacheLogo = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_LOGO)
+            return cacheLogo.ifEmpty { "${baseUrl}favicon.ico" }
         }
 
     override val language = "fr"
