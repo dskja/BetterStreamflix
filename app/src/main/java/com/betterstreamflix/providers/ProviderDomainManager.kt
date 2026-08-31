@@ -1,8 +1,13 @@
 package com.betterstreamflix.providers
 
 import android.util.Log
+import com.betterstreamflix.StreamFlixApp
 import com.betterstreamflix.utils.NetworkClient
 import com.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
@@ -44,12 +49,52 @@ object ProviderDomainManager {
             ?.takeIf { it.isNotBlank() }
     }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private fun normalizeHost(domain: String): String =
+        domain.trim()
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .trimEnd('/')
+
     /**
-     * Update a provider's domain.
+     * Update a provider's domain in the correct UserPreferences field and refresh services.
      */
     fun updateDomain(providerName: String, newDomain: String) {
-        val provider = Provider.findByName(providerName) ?: return
-        UserPreferences.setProviderCache(provider, "url", newDomain)
+        val host = normalizeHost(newDomain)
+        if (host.isBlank()) return
+
+        val provider = Provider.findByName(providerName)
+        if (provider != null) {
+            UserPreferences.setProviderCache(provider, "url", host)
+        }
+
+        when (providerName) {
+            "SerienStream" -> UserPreferences.serienstreamDomain = host
+            "AniWorld" -> UserPreferences.aniworldDomain = host
+            "StreamingCommunity", "StreamingCommunity (EN)" -> UserPreferences.streamingcommunityDomain = host
+            "Cuevana" -> UserPreferences.cuevanaDomain = host
+            "Moflix" -> UserPreferences.moflixDomain = host
+            "PoseidonHD2" -> UserPreferences.poseidonDomain = host
+            else -> Log.w(TAG, "No dedicated domain field for $providerName; cache only")
+        }
+
+        scope.launch {
+            runCatching {
+                when (providerName) {
+                    "SerienStream" -> SerienStreamProvider.initialize(StreamFlixApp.instance)
+                    "AniWorld" -> AniWorldProvider.initialize(StreamFlixApp.instance)
+                    "StreamingCommunity", "StreamingCommunity (EN)" -> {
+                        Provider.providers.keys
+                            .filterIsInstance<StreamingCommunityProvider>()
+                            .forEach { it.rebuildService(host) }
+                    }
+                    else -> Unit
+                }
+            }.onFailure { e ->
+                Log.e(TAG, "Failed to rebuild service for $providerName", e)
+            }
+        }
     }
 
     /**

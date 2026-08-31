@@ -22,9 +22,11 @@ class FavoritesWidget : AppWidgetProvider() {
     companion object {
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, android.R.layout.simple_list_item_2)
-
-            views.setTextViewText(android.R.id.text1, "Favorites")
-            views.setTextViewText(android.R.id.text2, "Tap to view your favorites")
+            val items = WidgetDataProvider.getFavoriteItems(context, maxItems = 1)
+            val title = items.firstOrNull()?.title ?: "Favorites"
+            val subtitle = items.firstOrNull()?.subtitle ?: "Tap to view your favorites"
+            views.setTextViewText(android.R.id.text1, title)
+            views.setTextViewText(android.R.id.text2, subtitle)
 
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val pendingIntent = PendingIntent.getActivity(

@@ -3,6 +3,9 @@ package com.betterstreamflix.widgets
 import android.content.Context
 import android.graphics.Bitmap
 import android.widget.RemoteViews
+import com.betterstreamflix.database.AppDataRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * Widget data provider — provides data for widget display including
@@ -14,16 +17,40 @@ object WidgetDataProvider {
      * Get continue watching items for widget.
      */
     fun getContinueWatchingItems(context: Context, maxItems: Int = 5): List<WidgetItem> {
-        // In real implementation, would read from database/watch history
-        return emptyList()
+        return runBlocking {
+            AppDataRepository(context).getContinueWatching().first()
+                .take(maxItems)
+                .map {
+                    WidgetItem(
+                        id = it.videoId,
+                        title = it.title,
+                        subtitle = it.providerName,
+                        posterUrl = it.thumbnailUrl,
+                        progressPercent = it.progressPercent.toInt(),
+                        intentAction = "continue",
+                    )
+                }
+        }
     }
 
     /**
      * Get favorite items for widget.
      */
     fun getFavoriteItems(context: Context, maxItems: Int = 5): List<WidgetItem> {
-        // In real implementation, would read from favorites database
-        return emptyList()
+        return runBlocking {
+            AppDataRepository(context).getFavorites().first()
+                .take(maxItems)
+                .map {
+                    WidgetItem(
+                        id = it.videoId,
+                        title = it.title,
+                        subtitle = it.providerName,
+                        posterUrl = it.thumbnailUrl,
+                        progressPercent = 0,
+                        intentAction = "favorites",
+                    )
+                }
+        }
     }
 
     /**
