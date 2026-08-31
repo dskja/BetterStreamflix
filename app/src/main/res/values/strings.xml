@@ -270,6 +270,11 @@
     <string name="settings_version_tv">Version TV</string>
     <string name="settings_version_mobile">Version Mobile</string>
     <string name="settings_about_version_name">Version %s</string>
+    <string name="settings_about_share_diagnostics">Share diagnostic report</string>
+    <string name="settings_about_share_diagnostics_summary">Export device, cache, and provider diagnostics</string>
+    <string name="trakt_settings_title">Trakt</string>
+    <string name="trakt_enabled_title">Enable Trakt sync</string>
+    <string name="trakt_enabled_summary">Sync watch history and favorites with Trakt (optional)</string>
     <string name="settings_help">Help</string>
     <string name="settings_telegram">Telegram group</string>
     <string name="settings_refresh_cache_title">Refresh cache from database</string>
@@ -424,6 +429,21 @@
     <string name="settings_new_content_notifications">New content alerts</string>
     <string name="settings_new_content_notifications_summary">Notify when your provider adds new titles</string>
     <string name="settings_notifications_permission_denied">Notification permission is required to enable alerts</string>
+    <string name="download_notification_channel">Downloads</string>
+    <string name="download_notification_description">Offline download progress</string>
+    <string name="download_notification_title">Downloading</string>
+    <string name="download_notification_progress">%1$d active downloads</string>
+    <string name="download_notification_complete">%1$d downloads complete</string>
+    <string name="download_notification_failed">Download failed</string>
+    <string name="download_started">Download started</string>
+    <string name="download_error_drm">DRM-protected content cannot be downloaded</string>
+    <string name="download_error_no_url">No stream URL available</string>
+    <string name="download_error_generic">Could not start download</string>
+    <string name="download_pause">Pause</string>
+    <string name="download_resume">Resume</string>
+    <string name="download_cancel">Cancel</string>
+    <string name="download_open">Play</string>
+    <string name="download_storage_used">Storage used: %1$s</string>
     <string name="notification_new_content_title">New content available</string>
     <string name="notification_new_content_message">%1$d new titles on your provider</string>
     <string name="profile_picker_title">Who\'s watching?</string>
@@ -433,6 +453,18 @@
     <string name="sync_last_synced">Last synced %1$s</string>
     <string name="sync_status_ok">Up to date</string>
     <string name="sync_conflict_title">Sync conflict</string>
+    <string name="sync_conflict_message">This device has local data from another account. Choose which library to keep before syncing.</string>
+    <string name="sync_conflict_keep_local">Keep data on this device</string>
+    <string name="sync_conflict_use_cloud">Use cloud account data</string>
+    <string name="genres_hub_browse">Browse genres</string>
+    <string name="provider_marketplace_title">Marketplace</string>
+    <string name="profile_picker_add">Add profile</string>
+    <string name="profile_picker_delete">Delete profile</string>
+    <string name="profile_picker_edit_name">Edit name</string>
+    <string name="profile_picker_kids">Kids profile</string>
+    <string name="profile_picker_active">Active</string>
+    <string name="profile_picker_name_hint">Profile name</string>
+    <string name="profile_picker_delete_confirm">Delete profile \"%1$s\"?</string>
     <string name="supabase_config_category">Supabase connection</string>
     <string name="supabase_url_title">Supabase project URL</string>
     <string name="supabase_url_summary">Enter your project URL, for example https://your-project.supabase.co</string>
@@ -514,6 +546,14 @@
     <string name="settings_immersive_mode_summary">Hide status and navigation bars</string>
     <string name="settings_immersive_mode_on">On (Bars hidden)</string>
     <string name="settings_immersive_mode_off">Off (Bars visible)</string>
+
+    <string name="settings_reduced_motion_title">Reduced motion</string>
+    <string name="settings_reduced_motion_summary">Open accessibility settings to reduce animations</string>
+    <string name="settings_reduced_motion_on">Reduced motion is enabled</string>
+    <string name="settings_reduced_motion_off">Reduced motion is disabled</string>
+    <string name="settings_font_scale_title">Font scale</string>
+    <string name="settings_font_scale_summary">Current system font scale: %1$.2f</string>
+    <string name="settings_font_scale_open_summary">Open display settings to adjust text size</string>
 
 
     <string name="player_brightness">Brightness</string>

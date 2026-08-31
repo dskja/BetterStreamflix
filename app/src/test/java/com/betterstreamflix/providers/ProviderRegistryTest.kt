@@ -37,7 +37,7 @@ class ProviderRegistryTest {
         Provider.Companion.providers.keys.forEach { provider ->
             assertTrue(
                 "Provider ${provider.name} should have non-empty logo",
-                provider.logo.isNotEmpty()
+                !provider.logo.isNullOrEmpty()
             )
         }
     }

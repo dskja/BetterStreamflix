@@ -183,12 +183,24 @@
         app:layout_constraintStart_toEndOf="@id/btn_movie_watch_now"
         app:layout_constraintTop_toBottomOf="@id/tv_movie_genres" />
 
+    <TextView
+        android:id="@+id/btn_movie_download"
+        style="@style/AppTheme.Widget.Mobile.Button.Secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="12dp"
+        android:text="@string/downloads_title"
+        app:layout_constraintEnd_toEndOf="@id/btn_movie_watch_now"
+        app:layout_constraintStart_toStartOf="@id/btn_movie_watch_now"
+        app:layout_constraintTop_toBottomOf="@id/pb_movie_progress" />
+
     <androidx.constraintlayout.widget.Barrier
         android:id="@+id/barrier2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:barrierDirection="bottom"
-        app:constraint_referenced_ids="btn_movie_watch_now,pb_movie_progress,btn_movie_trailer" />
+        app:constraint_referenced_ids="btn_movie_watch_now,pb_movie_progress,btn_movie_trailer,btn_movie_download" />
 
     <TextView
         android:id="@+id/tv_movie_overview"

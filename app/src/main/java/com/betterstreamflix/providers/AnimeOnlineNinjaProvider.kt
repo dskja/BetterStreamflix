@@ -43,9 +43,7 @@ object AnimeOnlineNinjaProvider : Provider {
 
     override val name = "Anime Online Ninja"
     override val baseUrl = SITE_BASE_URL
-    override val logo: String
-        get() = artworkUrl("$baseUrl/wp-content/uploads/2019/09/cropped-avatar2-1-300x300.jpg")
-            ?: "$baseUrl/wp-content/uploads/2019/09/cropped-avatar2-1-300x300.jpg"
+    override val logo: String = "$SITE_BASE_URL/wp-content/uploads/2019/09/cropped-avatar2-1-300x300.jpg"
     override val language = "es"
 
     private const val TAG = "AnimeOnlineNinja"

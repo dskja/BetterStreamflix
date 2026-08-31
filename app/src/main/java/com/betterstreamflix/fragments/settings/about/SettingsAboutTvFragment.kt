@@ -5,6 +5,7 @@ import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.preference.Preference
 import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.R
+import com.betterstreamflix.analytics.AnalyticsManager
 
 class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
 
@@ -19,5 +20,9 @@ class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
             summary = getString(R.string.settings_about_version_name, BuildConfig.VERSION_NAME)
         }
 
+        findPreference<Preference>("p_settings_about_export_diagnostics")?.setOnPreferenceClickListener {
+            AnalyticsManager.shareDiagnosticReport(requireContext())
+            true
+        }
     }
 }

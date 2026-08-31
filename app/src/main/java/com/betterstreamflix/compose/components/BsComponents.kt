@@ -40,10 +40,15 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BsTopBar(title: String, modifier: Modifier = Modifier) {
+fun BsTopBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    actions: @Composable () -> Unit = {},
+) {
     TopAppBar(
         modifier = modifier,
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,

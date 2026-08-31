@@ -30,6 +30,8 @@ import com.betterstreamflix.providers.FilmyOnlineCcProvider
 import com.betterstreamflix.providers.ZaluknijProvider
 import com.betterstreamflix.providers.GuardaSerieProvider
 import com.betterstreamflix.utils.AppLanguageManager
+import com.betterstreamflix.utils.DeepLink
+import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.utils.getCurrentFragment
@@ -170,6 +172,10 @@ class MainTvActivity : FragmentActivity() {
             }
         }
 
+        if (savedInstanceState == null) {
+            handleIntent(intent)
+        }
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when (navController.currentDestination?.id) {
@@ -187,9 +193,73 @@ class MainTvActivity : FragmentActivity() {
         })
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         viewModel.checkUpdate()
+    }
+
+    private fun handleIntent(intent: Intent): Boolean {
+        val data = intent.data ?: return false
+        val deepLink = DeepLinkHandler.parse(data) ?: return false
+        val navHost = supportFragmentManager
+            .findFragmentById(binding.navMainFragment.id) as? NavHostFragment
+            ?: return false
+        val navController = navHost.navController
+
+        return when (deepLink) {
+            is DeepLink.Search -> {
+                DeepLinkHandler.pendingSearchQuery = deepLink.query
+                runCatching { navController.navigate(R.id.search) }.isSuccess
+            }
+            is DeepLink.Provider -> {
+                val provider = Provider.providers.keys.find {
+                    it.name.equals(deepLink.name, ignoreCase = true)
+                }
+                if (provider != null) {
+                    UserPreferences.currentProvider = provider
+                    runCatching { navController.navigate(R.id.home) }.isSuccess
+                } else {
+                    false
+                }
+            }
+            is DeepLink.Movie -> {
+                runCatching {
+                    navController.navigate(
+                        R.id.action_global_movie,
+                        Bundle().apply { putString("id", deepLink.id) },
+                    )
+                }.isSuccess
+            }
+            is DeepLink.TvShow -> {
+                runCatching {
+                    navController.navigate(
+                        R.id.action_global_tv_show,
+                        Bundle().apply { putString("id", deepLink.id) },
+                    )
+                }.isSuccess
+            }
+            is DeepLink.Episode -> {
+                runCatching {
+                    navController.navigate(
+                        R.id.action_global_tv_show,
+                        Bundle().apply { putString("id", deepLink.id) },
+                    )
+                }.isSuccess
+            }
+            is DeepLink.Favorites -> {
+                runCatching { navController.navigate(R.id.favorites) }.isSuccess
+            }
+            is DeepLink.ContinueWatching -> {
+                DeepLinkHandler.pendingOpenContinueWatching = true
+                runCatching { navController.navigate(R.id.home) }.isSuccess
+            }
+        }
     }
 
     private fun applyThemeNavigationChrome() {

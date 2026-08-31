@@ -113,7 +113,7 @@ open class StreamWishExtractor : Extractor() {
     )
 
     protected var referer = ""
-    val context = StreamFlixApp.instance.applicationContext
+    val context by lazy { StreamFlixApp.instance.applicationContext }
 
     override suspend fun extract(link: String): Video {
         if (referer.isEmpty()) {

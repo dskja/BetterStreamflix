@@ -29,6 +29,7 @@ import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
 import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.R
+import com.betterstreamflix.accessibility.AccessibilityHelper
 import com.betterstreamflix.activities.main.MainMobileActivity
 import com.betterstreamflix.activities.tools.QrScannerActivity
 import com.betterstreamflix.backup.BackupRestoreManager
@@ -50,6 +51,7 @@ import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserDataCache
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.settings.SettingsSearchHelper
+import com.betterstreamflix.sync.TraktSettings
 import com.betterstreamflix.notifications.NotificationPreferences
 import com.betterstreamflix.utils.Permissions
 import com.google.android.material.snackbar.Snackbar
@@ -533,9 +535,19 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             val spannableSummary = SpannableString(summaryStr)
             spannableSummary.setSpan(ForegroundColorSpan(palette.tvHeaderSecondary), 0, summaryStr.length, 0)
             summary = spannableSummary
-            
-            isSelectable = false
-            setOnPreferenceClickListener(null)
+
+            setOnPreferenceClickListener {
+                findNavController().navigate(R.id.action_settings_to_settings_about)
+                true
+            }
+        }
+
+        findPreference<SwitchPreferenceCompat>("trakt_enabled")?.apply {
+            isChecked = TraktSettings.isEnabled(requireContext())
+            setOnPreferenceChangeListener { _, newValue ->
+                TraktSettings.setEnabled(requireContext(), newValue as Boolean)
+                true
+            }
         }
 
         findPreference<Preference>("p_settings_help")?.setOnPreferenceClickListener {
@@ -856,6 +868,35 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.immersiveMode = newValue as Boolean
                 (activity as? MainMobileActivity)?.updateImmersiveMode()
+                true
+            }
+        }
+
+        findPreference<Preference>("ACCESSIBILITY_REDUCED_MOTION")?.apply {
+            summary = if (AccessibilityHelper.isReducedMotionEnabled(requireContext())) {
+                getString(R.string.settings_reduced_motion_on)
+            } else {
+                getString(R.string.settings_reduced_motion_off)
+            }
+            setOnPreferenceClickListener {
+                AccessibilityHelper.openAccessibilitySettings(requireContext())
+                view?.let { AccessibilityHelper.announceReducedMotionState(it, requireContext()) }
+                true
+            }
+        }
+
+        findPreference<Preference>("ACCESSIBILITY_FONT_SCALE")?.apply {
+            summary = getString(
+                R.string.settings_font_scale_summary,
+                AccessibilityHelper.getFontScale(requireContext()),
+            )
+            setOnPreferenceClickListener {
+                AccessibilityHelper.openDisplaySettings(requireContext())
+                view?.let { AccessibilityHelper.announceFontScale(it, requireContext()) }
+                summary = getString(
+                    R.string.settings_font_scale_summary,
+                    AccessibilityHelper.getFontScale(requireContext()),
+                )
                 true
             }
         }
@@ -1181,6 +1222,18 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
         findPreference<ListPreference>("APP_LANGUAGE")?.value =
             AppLanguageManager.getSelectedLanguage(requireContext())
+
+        findPreference<Preference>("ACCESSIBILITY_REDUCED_MOTION")?.summary =
+            if (AccessibilityHelper.isReducedMotionEnabled(requireContext())) {
+                getString(R.string.settings_reduced_motion_on)
+            } else {
+                getString(R.string.settings_reduced_motion_off)
+            }
+
+        findPreference<Preference>("ACCESSIBILITY_FONT_SCALE")?.summary = getString(
+            R.string.settings_font_scale_summary,
+            AccessibilityHelper.getFontScale(requireContext()),
+        )
 
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering

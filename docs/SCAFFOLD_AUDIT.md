@@ -6,7 +6,7 @@ Inventory of orphan / scaffold packages in BetterStreamflix that have little or 
 |---------|----------|-------|-------|
 | `download/` (+ DownloadDao) | Ship | P3 | Stack nearly complete; wire UI + WorkManager + Room + offline playback (Mobile first). Cut-PR if scope explodes. |
 | `widgets/` | Ship | P3 | Register Manifest + `appwidget-provider` XML + RemoteViews (Continue Watching / Favorites). |
-| `WatchNextUtils` / `tv/` | Ship | P3 | Ship Watch Next on progress save; Preview Channels. Rest of `tv/` merge or cut after audit. |
+| `WatchNextUtils` / `tv/` | Ship / **Cut** | P3 | `WatchNextUtils` shipped on progress save; unwired `tv/` scaffold package **cut (done)**. |
 | `player/` (advanced helpers) | Merge | P2→P4 | Consolidate NextEpisodeOverlay, SleepTimer, Buffer, PiP into player fragments/utils; delete duplicate stubs. |
 | `search/` | Merge | P2 | History / Filter / Debounce into `SearchViewModel`; fuzzy/recommender optional. |
 | `cast/` | **Cut (done)** | P3 | Removed — no Cast SDK; use external player |
@@ -14,14 +14,14 @@ Inventory of orphan / scaffold packages in BetterStreamflix that have little or 
 | `resilience/` (+ ProviderHealth) | Ship | P2 | Wire Health + CircuitBreaker into provider `getHome` / `search` / `getVideo` paths. |
 | `network/` | Merge | P4 | Fold into `utils.NetworkClient`; fix DoH builder (`HttpClientBuilder.buildWithDoH`). |
 | `security/` | Merge | P0→P1 | Merge PIN/Lock into UserPreferences / EncryptedSharedPreferences path. |
-| `polish/` | Ship | P1 | One helper API; cut duplicate polish helpers. |
+| `polish/` | **Cut (done)** | P4 | Removed — unwired scaffold; use `utils/` / settings helpers. |
 | `i18n/` | Ship | P1→P5 | Wire LocaleHelper; i18n parity + CI gate in P5. |
 | `accessibility/` | Ship | P1 | Caption/font/reduced-motion into Settings; one AccessibilityHelper. |
 | `imageloading/` | Cut | P4 | Glide is production path; revisit only if P6 perf needs a dedicated layer. |
 | `performance/` | Cut | P4 / P6 | Cut stubs now; optional deep-dive in P6 (prefetch, trim, pools). |
-| `deployment/` (UpdateChecker stub) | Cut | P4 | Keep real `InAppUpdater`; delete stub checker. |
+| `deployment/` (UpdateChecker stub) | **Cut (done)** | P4 | Removed — keep real `InAppUpdater` in `utils/`. |
 | `testing/` | **Cut (done)** | P4 | Removed from main source set |
-| `architecture/` (FeatureFlags) | Cut | P4 | Cut unless used for real WIP-provider flags. |
+| `architecture/` (FeatureFlags) | **Cut (done)** | P4 | Removed — no production imports. |
 | `content/` (backup duplicates) | Cut | P3→P4 | Keep `backup/BackupRestoreManager`; remove duplicate content-backup paths. |
 | `AppLevelDatabase` | Merge | P4 | Unify with provider-DB strategy; real migrations (no destructive fallback). |
 | `notifications/` | Ship | P3 / P6 | Wire with Downloads (P3) and New-Episode for favorites (P6). |

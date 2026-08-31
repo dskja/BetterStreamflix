@@ -5,6 +5,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.R
+import com.betterstreamflix.analytics.AnalyticsManager
 
 class SettingsAboutMobileFragment : PreferenceFragmentCompat() {
 
@@ -19,5 +20,9 @@ class SettingsAboutMobileFragment : PreferenceFragmentCompat() {
             summary = getString(R.string.settings_about_version_name, BuildConfig.VERSION_NAME)
         }
 
+        findPreference<Preference>("p_settings_about_export_diagnostics")?.setOnPreferenceClickListener {
+            AnalyticsManager.shareDiagnosticReport(requireContext())
+            true
+        }
     }
 }

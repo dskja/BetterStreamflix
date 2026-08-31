@@ -61,9 +61,7 @@ object SerienStreamProvider : Provider {
     override val baseUrl: String
         get() = currentBaseUrl()
     @SuppressLint("StaticFieldLeak")
-    override val name = Base64.decode(
-        "U2VyaWVuU3RyZWFt", Base64.NO_WRAP
-    ).toString(Charsets.UTF_8)
+    override val name = "SerienStream"
     override val logo
         get() = "${currentBaseUrl()}assets/logos/logo.svg"
     override val language = "de"

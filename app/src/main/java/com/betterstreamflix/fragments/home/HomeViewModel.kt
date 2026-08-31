@@ -10,6 +10,8 @@ import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.metadata.RecommendableItem
+import com.betterstreamflix.metadata.RecommendationEngineV2
 import com.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ProviderDomainManager
@@ -286,7 +288,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         list = history.recentlyWatched,
                     ),
 
-                    buildRecommendedCategory(history),
+                    buildRecommendedCategory(history, state.categories),
 
                     // FAVORITES
                     Category(
@@ -322,17 +324,64 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun buildRecommendedCategory(history: HomeHistory): Category? {
-        val items = (history.favoritesMovies + history.favoriteTvShows + history.recentlyWatched)
+    private fun buildRecommendedCategory(
+        history: HomeHistory,
+        providerCategories: List<Category>,
+    ): Category? {
+        val pool = providerCategories
+            .flatMap { it.list }
+            .filter { it is Movie || it is TvShow }
             .distinctBy { item ->
                 when (item) {
                     is Movie -> "movie:${item.id}"
                     is TvShow -> "tv:${item.id}"
-                    is Episode -> "episode:${item.id}"
                     else -> item.hashCode().toString()
                 }
             }
-            .take(20)
+
+        if (pool.isEmpty()) {
+            val fallback = (history.favoritesMovies + history.favoriteTvShows + history.recentlyWatched)
+                .distinctBy { item ->
+                    when (item) {
+                        is Movie -> "movie:${item.id}"
+                        is TvShow -> "tv:${item.id}"
+                        is Episode -> "episode:${item.id}"
+                        else -> item.hashCode().toString()
+                    }
+                }
+                .take(20)
+            if (fallback.isEmpty()) return null
+            return Category(name = Category.RECOMMENDED_FOR_YOU, list = fallback)
+        }
+
+        val pairs = pool.mapNotNull { item ->
+            val recommendable = when (item) {
+                is Movie -> RecommendableItem(
+                    title = item.title,
+                    type = "movie",
+                    providerName = item.providerName.orEmpty(),
+                    thumbnailUrl = item.poster,
+                )
+                is TvShow -> RecommendableItem(
+                    title = item.title,
+                    type = "tv",
+                    providerName = item.providerName.orEmpty(),
+                    thumbnailUrl = item.poster,
+                )
+                else -> null
+            } ?: return@mapNotNull null
+            item to recommendable
+        }
+
+        val scored = RecommendationEngineV2.scoreByWatchHistory(
+            StreamFlixApp.instance.applicationContext,
+            pairs.map { it.second },
+        )
+
+        val items = scored.mapNotNull { scoredItem ->
+            pairs.firstOrNull { it.second == scoredItem }?.first
+        }.take(20)
+
         if (items.isEmpty()) return null
         return Category(name = Category.RECOMMENDED_FOR_YOU, list = items)
     }
