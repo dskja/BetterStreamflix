@@ -38,6 +38,9 @@ class NextEpisodeOverlayManager(
     private var nextEpisodePrefetchTargetId: String? = null
     private var nextEpisodePrefetchJob: Job? = null
 
+    /** Called on the main thread after a next-episode prefetch completes. */
+    var onPrefetchComplete: (() -> Unit)? = null
+
     private val binding: FragmentPlayerMobileBinding?
         get() = fragment.view?.let { FragmentPlayerMobileBinding.bind(it) }
 
@@ -48,6 +51,10 @@ class NextEpisodeOverlayManager(
 
     fun dismissOverlay() {
         nextEpisodeOverlayDismissed = true
+        hideNextEpisodeOverlay()
+    }
+
+    fun hideOverlay() {
         hideNextEpisodeOverlay()
     }
 
@@ -102,10 +109,12 @@ class NextEpisodeOverlayManager(
         nextEpisodePrefetchTargetId = currentEpisode.id
         nextEpisodePrefetchJob?.cancel()
         nextEpisodePrefetchJob = fragment.lifecycleScope.launch(Dispatchers.IO) {
-            EpisodeManager.ensureNextEpisodeAvailable(currentEpisode, database)
+            val loaded = EpisodeManager.ensureNextEpisodeAvailable(currentEpisode, database)
             withContext(Dispatchers.Main) {
                 if (!fragment.isAdded) return@withContext
-                // Fragment can check if needed
+                if (loaded) {
+                    onPrefetchComplete?.invoke()
+                }
             }
         }
     }

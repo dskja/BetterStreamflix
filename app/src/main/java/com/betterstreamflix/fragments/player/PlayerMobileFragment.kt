@@ -25,6 +25,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -106,10 +107,6 @@ import java.util.Locale
 import com.betterstreamflix.extractors.TokenManager
 
 class PlayerMobileFragment : Fragment() {
-    companion object {
-        private const val NEXT_EPISODE_PREFETCH_THRESHOLD_MS = 60_000L
-        private const val NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS = 30_000L
-    }
 
     private var _binding: FragmentPlayerMobileBinding? = null
     private val binding get() = _binding ?: throw IllegalStateException("Binding is null. Fragment view has been destroyed.")
@@ -121,8 +118,10 @@ class PlayerMobileFragment : Fragment() {
     private val args by navArgs<PlayerMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
+    private val playbackController by viewModels<PlayerPlaybackController>()
 
     private lateinit var player: ExoPlayer
+    private lateinit var nextEpisodeOverlayManager: NextEpisodeOverlayManager
     private lateinit var httpDataSource: HttpDataSource.Factory
     private lateinit var dataSourceFactory: DataSource.Factory
     private lateinit var mediaSession: MediaSession
@@ -139,9 +138,6 @@ class PlayerMobileFragment : Fragment() {
     private var isIgnoringPip = false
     private var waitingForBypass = false
     private var bypassDone = false
-    private var nextEpisodePrefetchTargetId: String? = null
-    private var nextEpisodePrefetchJob: Job? = null
-    private var nextEpisodeOverlayDismissed = false
 
     private val bypassWebViewLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -153,13 +149,13 @@ class PlayerMobileFragment : Fragment() {
                 return@registerForActivityResult
             }
 
-            val bypassUrl = servers.firstOrNull { isSerienStreamBypassUrl(it.id) }?.id
+            val bypassUrl = servers.firstOrNull { BypassUrlHelper.isSerienStreamBypassUrl(it.id) }?.id
             if (bypassUrl.isNullOrBlank()) {
                 waitingForBypass = false
                 return@registerForActivityResult
             }
 
-            applyBypassCookies(bypassUrl, cookies)
+            BypassUrlHelper.applyBypassCookies(bypassUrl, cookies)
             waitingForBypass = false
             bypassDone = true
 
@@ -294,11 +290,11 @@ class PlayerMobileFragment : Fragment() {
                     is PlayerViewModel.State.SuccessLoadingServers -> {
                         servers = state.servers
                         val sToServer = servers.firstOrNull {
-                            isSerienStreamBypassUrl(it.id)
+                            BypassUrlHelper.isSerienStreamBypassUrl(it.id)
                         }
 
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
-                            val bypassUrl = buildSerienStreamBypassUrl()
+                            val bypassUrl = BypassUrlHelper.buildSerienStreamBypassUrl(args.videoType)
                             if (bypassUrl.isNullOrBlank()) {
                                 waitingForBypass = false
                                 Toast.makeText(requireContext(), "Unable to open s.to bypass page.", Toast.LENGTH_SHORT).show()
@@ -519,7 +515,7 @@ class PlayerMobileFragment : Fragment() {
                             preferredServerName = currentServer?.name,
                         )
 
-                    hideNextEpisodeOverlay()
+                    nextEpisodeOverlayManager.hideOverlay()
                     findNavController().navigate(
                         action,
                         NavOptions.Builder()
@@ -557,7 +553,9 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        nextEpisodePrefetchJob?.cancel()
+        if (::nextEpisodeOverlayManager.isInitialized) {
+            nextEpisodeOverlayManager.cancelPrefetch()
+        }
         if (::gestureHelper.isInitialized) gestureHelper.release()
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -606,8 +604,7 @@ class PlayerMobileFragment : Fragment() {
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         when (val type = args.videoType) {
             is Video.Type.Episode -> {
-                nextEpisodeOverlayDismissed = false
-                nextEpisodePrefetchTargetId = null
+                nextEpisodeOverlayManager.resetDismissed()
                 if (EpisodeManager.listIsEmpty(type)) {
                     EpisodeManager.clearEpisodes()
                     lifecycleScope.launch(Dispatchers.IO) {
@@ -626,10 +623,9 @@ class PlayerMobileFragment : Fragment() {
                 }
             }
             is Video.Type.Movie -> {
-                nextEpisodeOverlayDismissed = false
-                nextEpisodePrefetchTargetId = null
+                nextEpisodeOverlayManager.resetDismissed()
                 EpisodeManager.clearEpisodes()
-                hideNextEpisodeOverlay()
+                nextEpisodeOverlayManager.hideOverlay()
             }
         }
 
@@ -756,12 +752,11 @@ class PlayerMobileFragment : Fragment() {
         }
 
         binding.btnNextEpisodeAction.setOnClickListener {
-            hideNextEpisodeOverlay()
+            nextEpisodeOverlayManager.hideOverlay()
             playNextEpisodeAcrossSeasons()
         }
         binding.btnNextEpisodeDismiss.setOnClickListener {
-            nextEpisodeOverlayDismissed = true
-            hideNextEpisodeOverlay()
+            nextEpisodeOverlayManager.dismissOverlay()
         }
 
         binding.settings.onManualZoomClicked = {
@@ -1081,6 +1076,7 @@ class PlayerMobileFragment : Fragment() {
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
+                playbackController.setPlaying(isPlaying)
                 binding.pvPlayer.keepScreenOn = isPlaying || UserPreferences.keepScreenOnWhenPaused
 
                 if (isPlaying) {
@@ -1169,6 +1165,11 @@ class PlayerMobileFragment : Fragment() {
                         }
                     }
                 }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                playbackController.setBuffering(playbackState == Player.STATE_BUFFERING)
+                playbackController.updatePosition(player.currentPosition, player.duration)
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -1374,9 +1375,9 @@ class PlayerMobileFragment : Fragment() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
         progressRunnable = Runnable {
             if (player.isPlaying) {
-                val show = player.currentPosition in 3000..120000
-                showSkipIntroButton(show)
-                updateNextEpisodeOverlay()
+                playbackController.updatePosition(player.currentPosition, player.duration)
+                nextEpisodeOverlayManager.updateSkipIntroButton()
+                nextEpisodeOverlayManager.updateOverlay(currentVideoTypeForUi())
                 if (sleepTimer.checkAndStop(player)) {
                     Toast.makeText(requireContext(), R.string.player_settings_title, Toast.LENGTH_SHORT).show()
                 }
@@ -1466,151 +1467,16 @@ class PlayerMobileFragment : Fragment() {
         )
     }
 
-    private fun updateNextEpisodeOverlay() {
-        val currentEpisode = currentVideoTypeForUi() as? Video.Type.Episode ?: run {
-            hideNextEpisodeOverlay()
-            return
-        }
-        val duration = player.duration.takeIf { it > 0 } ?: run {
-            hideNextEpisodeOverlay()
-            return
-        }
-        val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
-
-        if (nextEpisodeOverlayDismissed) {
-            hideNextEpisodeOverlay()
-            return
-        }
-
-        if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
-            ensureNextEpisodePrepared(currentEpisode)
-        }
-
-        val nextEpisode = EpisodeManager.peekNextEpisode()
-        val overlayThresholdMs = maxOf(
-            NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS,
-            UserPreferences.autoplayBuffer * 1000L
-        )
-        if (nextEpisode == null || remainingMs == 0L || remainingMs > overlayThresholdMs) {
-            hideNextEpisodeOverlay()
-            return
-        }
-
-        showNextEpisodeOverlay(nextEpisode, remainingMs)
-    }
-
-    private fun ensureNextEpisodePrepared(currentEpisode: Video.Type.Episode) {
-        if (EpisodeManager.peekNextEpisode() != null) return
-        if (nextEpisodePrefetchTargetId == currentEpisode.id && nextEpisodePrefetchJob?.isActive == true) {
-            return
-        }
-
-        nextEpisodePrefetchTargetId = currentEpisode.id
-        nextEpisodePrefetchJob?.cancel()
-        nextEpisodePrefetchJob = lifecycleScope.launch(Dispatchers.IO) {
-            val loaded = EpisodeManager.ensureNextEpisodeAvailable(currentEpisode, database)
-            withContext(Dispatchers.Main) {
-                if (!isAdded || _binding == null) return@withContext
-                setupEpisodeNavigationButtons()
-                if (loaded && player.isPlaying) {
-                    updateNextEpisodeOverlay()
-                }
-            }
-        }
-    }
-
-    private fun showNextEpisodeOverlay(nextEpisode: Video.Type.Episode, remainingMs: Long) {
-        binding.tvNextEpisodeMeta.text = getString(
-            R.string.tv_show_item_season_number_episode_number,
-            nextEpisode.season.number,
-            nextEpisode.number
-        )
-        binding.tvNextEpisodeTitle.text = nextEpisode.title
-            ?: getString(R.string.episode_number, nextEpisode.number)
-        binding.tvNextEpisodeCountdown.text = if (UserPreferences.autoplay) {
-            getString(
-                R.string.player_next_episode_autoplay_in,
-                ((remainingMs + 999L) / 1000L).toInt()
-            )
-        } else {
-            getString(R.string.player_next_episode_ready)
-        }
-
-        Glide.with(this)
-            .load(nextEpisode.poster ?: nextEpisode.tvShow.poster)
-            .error(R.drawable.glide_fallback_cover)
-            .fallback(R.drawable.glide_fallback_cover)
-            .centerCrop()
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .into(binding.ivNextEpisodePoster)
-
-        if (binding.layoutNextEpisodeOverlay.isGone) {
-            val fadeIn = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
-            binding.layoutNextEpisodeOverlay.startAnimation(fadeIn)
-            binding.layoutNextEpisodeOverlay.isVisible = true
-        }
-    }
-
-    private fun hideNextEpisodeOverlay() {
-        if (_binding == null) return
-        if (binding.layoutNextEpisodeOverlay.isVisible) {
-            val fadeOut = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
-            binding.layoutNextEpisodeOverlay.startAnimation(fadeOut)
-            binding.layoutNextEpisodeOverlay.isGone = true
-        }
-    }
-
-    private fun showSkipIntroButton(show: Boolean) {
-        val btnSkipIntro = binding.pvPlayer.controller.binding.btnSkipIntro
-        if (show && btnSkipIntro.isGone) {
-            val fadeIn = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
-            btnSkipIntro.startAnimation(fadeIn)
-            btnSkipIntro.isVisible = true
-        } else if (!show && btnSkipIntro.isVisible) {
-            val fadeOut = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
-            btnSkipIntro.startAnimation(fadeOut)
-            btnSkipIntro.isGone = true
-        }
-    }
-
-
-
     override fun onPause() {
         super.onPause()
         stopProgressHandler()
-        hideNextEpisodeOverlay()
+        if (::nextEpisodeOverlayManager.isInitialized) {
+            nextEpisodeOverlayManager.hideOverlay()
+        }
     }
 
     private var currentExtraBuffering = false
     private var currentSoftwareDecoder = false
-
-    private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-            )
-            .build()
-
-        val renderersFactory = SubtitleOffsetRenderersFactory(requireContext()).apply {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || currentSoftwareDecoder) {
-                setEnableDecoderFallback(true)
-                if (currentSoftwareDecoder) {
-                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-                }
-            }
-        }
-        val baseBuilder = ExoPlayer.Builder(requireContext(), renderersFactory)
-
-        return baseBuilder
-            .setSeekBackIncrementMs(10_000)
-            .setSeekForwardIncrementMs(10_000)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .setLoadControl(loadControl)
-            .build()
-    }
 
     private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
         releasePlayer()
@@ -1646,28 +1512,26 @@ class PlayerMobileFragment : Fragment() {
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
-        player = buildPlayer(extraBuffering).also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
+        player = PlayerBuilderFactory.buildPlayer(
+            context = requireContext(),
+            dataSourceFactory = dataSourceFactory,
+            extraBuffering = extraBuffering,
+            softwareDecoder = softwareDecoder,
+        ).also { builtPlayer ->
+            PlayerBuilderFactory.applyPlayerSettings(builtPlayer)
+            mediaSession = PlayerBuilderFactory.createMediaSession(requireContext(), builtPlayer)
+        }
 
-                val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                val trackParamsBuilder = player.trackSelectionParameters.buildUpon()
-                if (lang == "es") {
-                    trackParamsBuilder.setPreferredAudioLanguage("spa")
+        nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database).apply {
+            onPrefetchComplete = {
+                if (isAdded && _binding != null) {
+                    setupEpisodeNavigationButtons()
+                    if (player.isPlaying) {
+                        updateOverlay(currentVideoTypeForUi())
+                    }
                 }
-                UserPreferences.qualityHeight?.let { savedHeight ->
-                    trackParamsBuilder.setMaxVideoSize(Int.MAX_VALUE, savedHeight)
-                }
-                player.trackSelectionParameters = trackParamsBuilder.build()
-
-                mediaSession = MediaSession.Builder(requireContext(), player)
-                    .build()
             }
+        }
 
         binding.pvPlayer.player = player
         binding.settings.player = player
@@ -1688,48 +1552,6 @@ class PlayerMobileFragment : Fragment() {
         if (::mediaSession.isInitialized) {
             mediaSession.release()
         }
-    }
-
-    private fun isSerienStreamBypassUrl(url: String): Boolean {
-        return runCatching {
-            val host = Uri.parse(url).host
-            host.equals("serienstream.to", ignoreCase = true) ||
-                host.equals(UserPreferences.serienstreamDomain.removePrefix("https://").removePrefix("http://").trimEnd('/'), ignoreCase = true)
-        }.getOrDefault(false)
-    }
-
-    private fun buildSerienStreamBypassUrl(): String? {
-        val provider = UserPreferences.currentProvider ?: return null
-        if (provider != SerienStreamProvider) return null
-
-        val episodeId = when (val type = args.videoType) {
-            is Video.Type.Episode -> type.id
-            is Video.Type.Movie -> return null
-        }
-
-        return "${SerienStreamProvider.baseUrl}serie/$episodeId"
-    }
-
-    private fun applyBypassCookies(url: String, cookieHeader: String) {
-        val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
-        val targets = linkedSetOf<String>().apply {
-            add(url)
-            if (host.isNotBlank()) {
-                add("https://$host/")
-                add("http://$host/")
-            }
-        }
-
-        val cookieManager = CookieManager.getInstance()
-        cookieHeader.split(";")
-            .map { it.trim() }
-            .filter { it.contains("=") }
-            .forEach { cookie ->
-                targets.forEach { target ->
-                    cookieManager.setCookie(target, cookie)
-                }
-            }
-        cookieManager.flush()
     }
 
     private fun showSleepTimerDialog() {

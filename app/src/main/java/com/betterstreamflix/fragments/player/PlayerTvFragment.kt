@@ -32,6 +32,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -141,6 +142,7 @@ class PlayerTvFragment : Fragment() {
     private val args by navArgs<PlayerTvFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
+    private val playbackController by viewModels<PlayerPlaybackController>()
 
     private lateinit var player: ExoPlayer
     private lateinit var httpDataSource: HttpDataSource.Factory
@@ -286,12 +288,12 @@ class PlayerTvFragment : Fragment() {
                         servers = state.servers
 
                         val sToServer = servers.firstOrNull {
-                            isSerienStreamBypassUrl(it.id)
+                            BypassUrlHelper.isSerienStreamBypassUrl(it.id)
                         }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
 
-                            val bypassUrl = buildSerienStreamBypassUrl()
+                            val bypassUrl = BypassUrlHelper.buildSerienStreamBypassUrl(args.videoType)
                             if (bypassUrl.isNullOrBlank()) {
                                 waitingForBypass = false
                                 Toast.makeText(
@@ -1217,10 +1219,11 @@ class PlayerTvFragment : Fragment() {
             player.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     super.onPlaybackStateChanged(playbackState)
+                    playbackController.setBuffering(playbackState == Player.STATE_BUFFERING)
+                    playbackController.updatePosition(player.currentPosition, player.duration)
 
                     if (playbackState == Player.STATE_READY) {
                         binding.pvPlayer.controller.binding.exoPlayPause.nextFocusDownId = -1
-                        val videoFormat = player.videoFormat
                         updatePlayerScale()
                     }
                 }
@@ -1246,6 +1249,7 @@ class PlayerTvFragment : Fragment() {
                 }
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    playbackController.setPlaying(isPlaying)
                     binding.pvPlayer.keepScreenOn = isPlaying
 
                     if (isPlaying) {
@@ -1546,6 +1550,7 @@ class PlayerTvFragment : Fragment() {
                     return@Runnable
                 }
                 if (player.isPlaying) {
+                    playbackController.updatePosition(player.currentPosition, player.duration)
                     val show = player.currentPosition in 3000..120000
                     showSkipIntroButton(show)
                     updateNextEpisodeOverlay()
@@ -1735,32 +1740,6 @@ class PlayerTvFragment : Fragment() {
         private var currentExtraBuffering = false
         private var currentSoftwareDecoder = false
 
-        private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
-            val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                    DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                    if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-                )
-                .build()
-
-            val renderersFactory = SubtitleOffsetRenderersFactory(requireContext()).apply {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || currentSoftwareDecoder) {
-                    setEnableDecoderFallback(true)
-                    if (currentSoftwareDecoder) {
-                        setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-                    }
-                }
-            }
-            val baseBuilder = ExoPlayer.Builder(requireContext(), renderersFactory)
-
-            return baseBuilder
-                .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-                .setLoadControl(loadControl)
-                .build()
-        }
-
         private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
             releasePlayer()
             currentExtraBuffering = extraBuffering
@@ -1796,28 +1775,15 @@ class PlayerTvFragment : Fragment() {
 
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
-            player = buildPlayer(extraBuffering).also { player ->
-                    player.setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(C.USAGE_MEDIA)
-                            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                            .build(),
-                        true,
-                    )
-
-                    val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                    val trackParamsBuilder = player.trackSelectionParameters.buildUpon()
-                    if (lang == "es") {
-                        trackParamsBuilder.setPreferredAudioLanguage("spa")
-                    }
-                    UserPreferences.qualityHeight?.let { savedHeight ->
-                        trackParamsBuilder.setMaxVideoSize(Int.MAX_VALUE, savedHeight)
-                    }
-                    player.trackSelectionParameters = trackParamsBuilder.build()
-
-                    mediaSession = MediaSession.Builder(requireContext(), player)
-                        .build()
-                }
+            player = PlayerBuilderFactory.buildPlayer(
+                context = requireContext(),
+                dataSourceFactory = dataSourceFactory,
+                extraBuffering = extraBuffering,
+                softwareDecoder = softwareDecoder,
+            ).also { builtPlayer ->
+                PlayerBuilderFactory.applyPlayerSettings(builtPlayer)
+                mediaSession = PlayerBuilderFactory.createMediaSession(requireContext(), builtPlayer)
+            }
 
             binding.pvPlayer.player = player
             binding.settings.player = player
@@ -1912,26 +1878,6 @@ class PlayerTvFragment : Fragment() {
         qrDialog?.window?.setLayout(dialogWidth, LinearLayout.LayoutParams.WRAP_CONTENT)
     }
 
-    private fun isSerienStreamBypassUrl(url: String): Boolean {
-        return runCatching {
-            val host = Uri.parse(url).host
-            host.equals("serienstream.to", ignoreCase = true) ||
-                host.equals(UserPreferences.serienstreamDomain.removePrefix("https://").removePrefix("http://").trimEnd('/'), ignoreCase = true)
-        }.getOrDefault(false)
-    }
-
-    private fun buildSerienStreamBypassUrl(): String? {
-        val provider = UserPreferences.currentProvider ?: return null
-        if (provider != SerienStreamProvider) return null
-
-        val episodeId = when (val type = args.videoType) {
-            is Video.Type.Episode -> type.id
-            is Video.Type.Movie -> return null
-        }
-
-        return "${SerienStreamProvider.baseUrl}serie/$episodeId"
-    }
-
     private fun startWebSocketServer(): Int {
         if (wsServer != null) return wsServer?.address?.port ?: 8081
 
@@ -1962,6 +1908,7 @@ class PlayerTvFragment : Fragment() {
         }
         return -1
     }
+
     private fun stopWebSocketServer() {
         try {
             wsServer?.stop()
@@ -2006,15 +1953,14 @@ class PlayerTvFragment : Fragment() {
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
-        player = buildPlayer(extraBuffering).also { player ->
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                        .build(),
-                    true,
-                )
-            }
+        player = PlayerBuilderFactory.buildPlayer(
+            context = requireContext(),
+            dataSourceFactory = dataSourceFactory,
+            extraBuffering = extraBuffering,
+            softwareDecoder = currentSoftwareDecoder,
+        ).also { builtPlayer ->
+            PlayerBuilderFactory.applyPlayerSettings(builtPlayer)
+        }
 
         // Bind new player to UI view
         binding.pvPlayer.player = player
@@ -2026,7 +1972,9 @@ class PlayerTvFragment : Fragment() {
         activeBypassSession = null
 
         clearBypassSession(dismissDialog = true)
-        applyBypassCookies(session.serverUrl, cookies)
+        cookies?.trim()?.takeIf { it.isNotBlank() }?.let {
+            BypassUrlHelper.applyBypassCookies(session.serverUrl, it)
+        }
 
         lifecycleScope.launch {
             delay(300)
@@ -2041,32 +1989,6 @@ class PlayerTvFragment : Fragment() {
 
             viewModel.reloadServersAfterBypass()
         }
-    }
-
-    private fun applyBypassCookies(url: String, cookieHeader: String?) {
-        val cookies = cookieHeader?.trim().orEmpty()
-        if (cookies.isBlank()) return
-
-        val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
-        val targets = linkedSetOf<String>().apply {
-            if (url.isNotBlank()) add(url)
-            if (host.isNotBlank()) {
-                add("https://$host/")
-                add("http://$host/")
-            }
-        }
-        if (targets.isEmpty()) return
-
-        val cookieManager = CookieManager.getInstance()
-        cookies.split(";")
-            .map { it.trim() }
-            .filter { it.contains("=") }
-            .forEach { cookie ->
-                targets.forEach { target ->
-                    cookieManager.setCookie(target, cookie)
-                }
-            }
-        cookieManager.flush()
     }
 
     private fun showSleepTimerDialog() {
