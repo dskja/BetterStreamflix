@@ -20,6 +20,8 @@ import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.GlobalErrorHandler
 import com.betterstreamflix.utils.IsrgRootTrustProvider
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.notifications.NotificationChannelManager
+import com.betterstreamflix.work.NewEpisodeCheckWorker
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -96,6 +98,9 @@ class StreamFlixApp : Application() {
         FileLogger.i("Init", "✓ UserPreferences setup. currentProvider=${UserPreferences.currentProvider}")
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         FileLogger.i("Init", "✓ DnsResolver set to ${UserPreferences.dohProviderUrl}")
+
+        NotificationChannelManager.createChannels(this)
+        NewEpisodeCheckWorker.schedule(this)
 
         val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)

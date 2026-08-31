@@ -42,6 +42,7 @@ import com.betterstreamflix.utils.DeepLink
 import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.FirstRunHelper
+import com.betterstreamflix.utils.ProfilePickerHelper
 import com.betterstreamflix.utils.ProviderChangeNotifier
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
@@ -137,6 +138,7 @@ class MainMobileActivity : FragmentActivity() {
         setContentView(binding.root)
         applyThemeNavigationChrome()
         FirstRunHelper.showStartupDialogsIfNeeded(this)
+        ProfilePickerHelper.showIfNeeded(this)
         AppShortcuts.publish(this)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, windowInsets ->

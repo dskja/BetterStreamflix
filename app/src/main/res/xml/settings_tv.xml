@@ -280,6 +280,21 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_aniworld_settings"
+            android:title="@string/settings_category_aniworld">
+
+            <EditTextPreference
+                android:key="provider_aniworld_domain"
+                android:title="@string/settings_category_aniworld_domain"
+                android:inputType="text" />
+
+            <Preference
+                android:key="provider_aniworld_domain_reset"
+                android:title="@string/settings_aniworld_domain_reset"
+                android:summary="@string/settings_aniworld_domain_reset_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_moflix_settings"
             android:title="@string/settings_category_moflix">
 
