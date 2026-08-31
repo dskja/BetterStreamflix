@@ -434,7 +434,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 val enabled = newValue as Boolean
                 val applyChange = {
                     UserPreferences.enableTmdb = enabled
-                    ParentalSettingsController.updateParentalControlPreferenceState(this) { key -> findPreference(key) }
+                    ParentalSettingsController.updateParentalControlPreferenceState(this@SettingsTvFragment) { key -> findPreference(key) }
                     ProviderChangeNotifier.notifyProviderChanged()
 
                     val message = if (enabled) {
@@ -447,7 +447,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 }
 
                 if (!enabled && UserPreferences.parentalControlPin.isNotBlank()) {
-                    ParentalSettingsController.changeParentalSettingWithPinCheck(this, { key -> findPreference(key) }, onVerified = applyChange)
+                    ParentalSettingsController.changeParentalSettingWithPinCheck(this@SettingsTvFragment, { key -> findPreference(key) }, onVerified = applyChange)
                     false
                 } else {
                     applyChange()
