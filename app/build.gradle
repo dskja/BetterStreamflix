@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
     id 'androidx.navigation.safeargs.kotlin'
     id 'kotlin-parcelize'
     id 'com.google.devtools.ksp'
@@ -31,8 +32,8 @@ android {
         applicationId "com.betterstreamflix"
         minSdk 21
         targetSdk 35
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 2
+        versionName "1.1.0"
 
         buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT")}\""
         buildConfigField "String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\""
@@ -59,14 +60,33 @@ android {
 
     sourceSets {
         main {
-            def appLayout = properties.getProperty("APP_LAYOUT")
-            if (appLayout == "mobile") {
-                manifest.srcFile "${project.rootDir}/app/src/main/mobile/AndroidManifest.xml"
-            } else if (appLayout == "tv") {
-                manifest.srcFile "${project.rootDir}/app/src/main/tv/AndroidManifest.xml"
-            } else {
-                manifest.srcFile "${project.rootDir}/app/src/main/AndroidManifest.xml"
+            def appLayout = properties.getProperty("APP_LAYOUT") ?: "mobile"
+            def sharedManifest = file("${project.rootDir}/app/src/main/AndroidManifest.xml")
+            def layoutManifest = file("${project.rootDir}/app/src/main/${appLayout}/AndroidManifest.xml")
+            def mergedManifest = file("${buildDir}/generated/manifest/AndroidManifest.xml")
+
+            def mergeTask = tasks.register("merge${appLayout.capitalize()}Manifest") {
+                inputs.files(sharedManifest, layoutManifest)
+                outputs.file(mergedManifest)
+                doLast {
+                    mergedManifest.parentFile.mkdirs()
+                    def parser = new XmlParser(false, false)
+                    def shared = parser.parse(sharedManifest)
+                    def layout = parser.parse(layoutManifest)
+                    if (layout.application && shared.application) {
+                        layout.application[0].children().each { child ->
+                            shared.application[0].append(child)
+                        }
+                    }
+                    def writer = new PrintWriter(mergedManifest, 'UTF-8')
+                    writer.write('<?xml version="1.0" encoding="utf-8"?>\n')
+                    new XmlNodePrinter(writer).print(shared)
+                    writer.close()
+                }
             }
+
+            preBuild.dependsOn(mergeTask)
+            manifest.srcFile mergedManifest
         }
     }
 
@@ -110,6 +130,7 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+        compose true
     }
 
     testOptions {
@@ -129,7 +150,17 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.media3:media3-datasource-okhttp:1.8.0'
+    implementation platform(libs.androidx.compose.bom)
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.ui.tooling.preview
+    implementation libs.androidx.compose.material3
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.lifecycle.runtime.compose
+    implementation libs.androidx.navigation.compose
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    implementation libs.media3.datasource.okhttp
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.8.8'
@@ -182,6 +213,7 @@ dependencies {
     implementation "io.github.jan-tennert.supabase:realtime-kt"
     implementation "io.ktor:ktor-client-okhttp:3.2.2"
     testImplementation "junit:junit:4.13.2"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1"
     testImplementation "io.mockk:mockk:1.13.16"
     testImplementation "io.mockk:mockk-android:1.13.16"

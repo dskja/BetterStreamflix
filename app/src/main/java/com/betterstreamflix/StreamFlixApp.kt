@@ -38,7 +38,7 @@ class StreamFlixApp : Application() {
             private set
     }
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GlobalErrorHandler.handler)
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GlobalErrorHandler.handler)
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(AppLanguageManager.wrap(base))

@@ -585,6 +585,13 @@ class MainMobileActivity : FragmentActivity() {
                     )
                 }.isSuccess
             }
+            is DeepLink.Favorites -> {
+                runCatching { navController.navigate(R.id.favorites) }.isSuccess
+            }
+            is DeepLink.ContinueWatching -> {
+                DeepLinkHandler.pendingOpenContinueWatching = true
+                runCatching { navController.navigate(R.id.home) }.isSuccess
+            }
         }
     }
 

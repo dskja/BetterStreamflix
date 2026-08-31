@@ -26,7 +26,7 @@ object UserM3uProvider : Provider, IptvProvider {
     override val baseUrl: String
         get() = UserPreferences.userM3uUrl.ifBlank { "https://example.invalid/playlist.m3u" }
     override val name: String = "User M3U"
-    override val logo: String = ""
+    override val logo: String = "https://raw.githubusercontent.com/media-icons/iptv/main/icons/iptv.png"
     override val language: String = "en"
 
     private val client by lazy { OkHttpClient() }

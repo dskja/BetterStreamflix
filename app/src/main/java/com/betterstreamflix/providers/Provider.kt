@@ -113,6 +113,7 @@ interface Provider {
             KidrazProvider to ProviderSupport(movies = true, tvShows = false),
             FrenchMangaProvider to ProviderSupport(movies = false, tvShows = true),
             IptvOrgProvider to ProviderSupport(movies = false, tvShows = true),
+            UserM3uProvider to ProviderSupport(movies = false, tvShows = true),
             IptvSpainProvider to ProviderSupport(movies = false, tvShows = true),
             TvLibrefutbolProvider to ProviderSupport(movies = false, tvShows = true),
             PelotaLibreTvHdProvider to ProviderSupport(movies = false, tvShows = true),

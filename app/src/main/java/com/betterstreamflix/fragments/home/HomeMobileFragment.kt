@@ -20,6 +20,7 @@ import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.ui.SpacingItemDecoration
+import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.utils.dp
 import com.betterstreamflix.utils.CacheUtils
@@ -83,6 +84,7 @@ class HomeMobileFragment : Fragment() {
                     }
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
+                        focusContinueWatchingIfRequested(state.categories)
                         binding.isLoading.root.visibility = View.GONE
                         com.betterstreamflix.utils.OfflineBanner.showIfOffline(binding.root)
                         if (state.isStaleCache) {
@@ -219,6 +221,18 @@ class HomeMobileFragment : Fragment() {
                     }
                 }
         )
+    }
+
+    private fun focusContinueWatchingIfRequested(categories: List<Category>) {
+        if (!DeepLinkHandler.pendingOpenContinueWatching) return
+        DeepLinkHandler.pendingOpenContinueWatching = false
+        val continueLabel = getString(R.string.home_continue_watching)
+        val index = categories
+            .filter { it.list.isNotEmpty() }
+            .indexOfFirst { it.name == continueLabel || it.name == Category.CONTINUE_WATCHING }
+        if (index >= 0) {
+            binding.rvHome.post { binding.rvHome.smoothScrollToPosition(index) }
+        }
     }
 }
 

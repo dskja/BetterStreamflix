@@ -42,4 +42,14 @@ object OfflinePlaybackHelper {
     fun getLocalUri(filePath: String): Uri {
         return Uri.fromFile(java.io.File(filePath))
     }
+
+    fun playLocal(context: Context, filePath: String, title: String) {
+        if (!isPlayable(filePath)) return
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+            setDataAndType(getLocalUri(filePath), "video/*")
+            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(android.content.Intent.EXTRA_TITLE, title)
+        }
+        runCatching { context.startActivity(intent) }
+    }
 }

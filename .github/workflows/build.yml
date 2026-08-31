@@ -29,10 +29,10 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run Lint
-        run: ./gradlew lintDebug --stacktrace || true
+        run: ./gradlew lintDebug --stacktrace
 
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --stacktrace || true
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Install NDK and CMake
         run: |
