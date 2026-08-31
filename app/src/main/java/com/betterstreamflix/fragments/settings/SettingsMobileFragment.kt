@@ -812,7 +812,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 val enabled = newValue as Boolean
                 val applyChange = {
                     UserPreferences.enableTmdb = enabled
-                    ParentalSettingsController.updateParentalControlPreferenceState(this) { key -> findPreference(key) }
+                    ParentalSettingsController.updateParentalControlPreferenceState(this@SettingsMobileFragment) { key -> findPreference(key) }
                     ProviderChangeNotifier.notifyProviderChanged()
                     val message = if (enabled) {
                         getString(R.string.settings_enable_tmdb_enabled)
@@ -823,7 +823,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 }
 
                 if (!enabled && UserPreferences.parentalControlPin.isNotBlank()) {
-                    ParentalSettingsController.changeParentalSettingWithPinCheck(this, { key -> findPreference(key) }, onVerified = applyChange)
+                    ParentalSettingsController.changeParentalSettingWithPinCheck(this@SettingsMobileFragment, { key -> findPreference(key) }, onVerified = applyChange)
                     false
                 } else {
                     applyChange()
