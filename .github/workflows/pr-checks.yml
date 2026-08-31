@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   static-analysis:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
