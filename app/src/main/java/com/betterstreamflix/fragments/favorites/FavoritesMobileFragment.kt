@@ -41,13 +41,17 @@ class FavoritesMobileFragment : ComposeHostFragment() {
 
     private fun navigateToMovie(movie: Movie) {
         findNavController().navigate(
-            FavoritesMobileFragmentDirections.actionFavoritesToMovie(movie.id),
+            FavoritesMobileFragmentDirections.actionFavoritesToMovie(id = movie.id),
         )
     }
 
     private fun navigateToTvShow(tvShow: TvShow) {
         findNavController().navigate(
-            FavoritesMobileFragmentDirections.actionFavoritesToTvShow(tvShow.id),
+            FavoritesMobileFragmentDirections.actionFavoritesToTvShow(
+                id = tvShow.id,
+                poster = tvShow.poster,
+                banner = tvShow.banner,
+            ),
         )
     }
 }
