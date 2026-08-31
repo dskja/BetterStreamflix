@@ -211,7 +211,7 @@ dependencies {
     implementation "io.github.jan-tennert.supabase:auth-kt"
     implementation "io.github.jan-tennert.supabase:postgrest-kt"
     implementation "io.github.jan-tennert.supabase:realtime-kt"
-    implementation "io.ktor:ktor-client-okhttp:3.2.2"
+    implementation "io.ktor:ktor-client-okhttp:3.5.2"
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1"
