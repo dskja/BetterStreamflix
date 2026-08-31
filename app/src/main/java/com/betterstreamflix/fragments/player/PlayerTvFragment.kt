@@ -61,6 +61,7 @@ import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.betterstreamflix.R
+import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.databinding.ContentExoControllerTvBinding
@@ -1301,6 +1302,13 @@ class PlayerTvFragment : Fragment() {
                             }
 
                         }
+                        WatchProgressHelper.upsertWatchNext(
+                            context = requireContext().applicationContext,
+                            videoType = videoType,
+                            positionMillis = player.currentPosition,
+                            durationMillis = player.duration,
+                            finished = player.hasFinished(),
+                        )
                         if (player.hasReallyFinished()) {
                             if (UserPreferences.autoplay) {
                                 playNextEpisodeAcrossSeasons(autoplay = true)
@@ -1738,7 +1746,9 @@ class PlayerTvFragment : Fragment() {
                             val updatedHttpUrl = origHttpUrl.newBuilder().query(latestQuery).build()
                             request = request.newBuilder().url(updatedHttpUrl).build()
                             if (!tokenLogged) {
-                                android.util.Log.d("TokenManager", "[TV-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                                if (com.betterstreamflix.BuildConfig.DEBUG) {
+                                    android.util.Log.d("TokenManager", "[TV-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                                }
                                 tokenLogged = true
                             }
                         } else {
@@ -1896,7 +1906,7 @@ class PlayerTvFragment : Fragment() {
         for (port in ports) {
             val server = BypassWebSocketServer(port) { token, cookies ->
                 requireActivity().runOnUiThread {
-                    Log.d("BypassWS", "DONE received for token: $token")
+                    Log.d("BypassWS", if (BuildConfig.DEBUG) "DONE received for token: $token" else "DONE received")
                     onBypassCompleted(token, cookies)
                 }
             }

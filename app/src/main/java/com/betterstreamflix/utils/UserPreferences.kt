@@ -13,6 +13,7 @@ import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.Provider.Companion.providers
 import com.betterstreamflix.providers.TmdbProvider
 import androidx.core.content.edit
+import androidx.preference.PreferenceManager
 import com.betterstreamflix.database.AppDatabase
 import org.json.JSONObject
 import org.json.JSONArray
@@ -20,6 +21,8 @@ import org.json.JSONArray
 object UserPreferences {
 
     private const val TAG = "UserPrefsDebug"
+    private const val SECURE_KEY_PARENTAL_PIN = "parental_control_pin"
+    private const val SECURE_KEY_PARENTAL_ADMIN_PIN = "parental_control_admin_pin"
 
     lateinit var prefs: SharedPreferences
 
@@ -52,6 +55,7 @@ object UserPreferences {
     }
 
     fun setup(context: Context) {
+        SecurePreferences.init(context)
         val prefsName = "${BuildConfig.APPLICATION_ID}.preferences"
         prefs = context.getSharedPreferences(
             prefsName,
@@ -62,7 +66,33 @@ object UserPreferences {
 
             val jsonString = Key.PROVIDER_CACHE.getString() ?: "{}"
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
+
+            migrateLegacyTvThemeKey(context)
         }
+    }
+
+    /** True after [setup] has initialized the SharedPreferences store. */
+    fun isReady(): Boolean = ::prefs.isInitialized
+
+    /**
+     * The TV settings screen used to store the selected theme under its own
+     * "theme_preference" preference key (in the default `SharedPreferences`
+     * used by the Preference framework), separate from the "SELECTED_THEME"
+     * key mobile settings and [selectedTheme] use. Copy the legacy value
+     * over once so TV and mobile share the same key going forward.
+     */
+    private fun migrateLegacyTvThemeKey(context: Context) {
+        val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val legacyTheme = defaultPrefs.getString("theme_preference", null)
+        if (legacyTheme.isNullOrBlank()) return
+
+        if (Key.SELECTED_THEME.getString().isNullOrBlank()) {
+            Key.SELECTED_THEME.setString(legacyTheme)
+        }
+        if (defaultPrefs.getString("SELECTED_THEME", null).isNullOrBlank()) {
+            defaultPrefs.edit { putString("SELECTED_THEME", legacyTheme) }
+        }
+        defaultPrefs.edit { remove("theme_preference") }
     }
 
 
@@ -190,6 +220,10 @@ object UserPreferences {
         get() = Key.SELECTED_THEME.getString() ?: "default"
         set(value) = Key.SELECTED_THEME.setString(value)
 
+    var userM3uUrl: String
+        get() = Key.USER_M3U_URL.getString().orEmpty()
+        set(value) = Key.USER_M3U_URL.setString(value.trim())
+
     var tmdbApiKey: String
         get() = Key.TMDB_API_KEY.getString() ?: ""
         set(value) {
@@ -209,15 +243,15 @@ object UserPreferences {
         }
 
     var parentalControlPin: String
-        get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
+        get() = getSecurePin(SECURE_KEY_PARENTAL_PIN, Key.PARENTAL_CONTROL_PIN)
         set(value) {
-            Key.PARENTAL_CONTROL_PIN.setString(value.trim())
+            setSecurePin(SECURE_KEY_PARENTAL_PIN, Key.PARENTAL_CONTROL_PIN, value)
         }
 
     var parentalControlAdminPin: String
-        get() = Key.PARENTAL_CONTROL_ADMIN_PIN.getString() ?: ""
+        get() = getSecurePin(SECURE_KEY_PARENTAL_ADMIN_PIN, Key.PARENTAL_CONTROL_ADMIN_PIN)
         set(value) {
-            Key.PARENTAL_CONTROL_ADMIN_PIN.setString(value.trim())
+            setSecurePin(SECURE_KEY_PARENTAL_ADMIN_PIN, Key.PARENTAL_CONTROL_ADMIN_PIN, value)
         }
 
     var parentalControlMaxAge: Int?
@@ -252,6 +286,34 @@ object UserPreferences {
 
     val parentalControlLockRemainingMillis: Long
         get() = (parentalControlLockedUntilMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+
+    /**
+     * Read a parental PIN from encrypted storage, migrating legacy plaintext prefs on first read.
+     */
+    private fun getSecurePin(secureKey: String, legacyKey: Key): String {
+        val secureValue = SecurePreferences.getString(secureKey)
+        if (!secureValue.isNullOrEmpty()) {
+            return secureValue
+        }
+        val legacyValue = legacyKey.getString()
+        if (!legacyValue.isNullOrEmpty()) {
+            SecurePreferences.putString(secureKey, legacyValue)
+            legacyKey.remove()
+            return legacyValue
+        }
+        return secureValue.orEmpty()
+    }
+
+    private fun setSecurePin(secureKey: String, legacyKey: Key, value: String) {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) {
+            SecurePreferences.remove(secureKey)
+        } else {
+            SecurePreferences.putString(secureKey, trimmed)
+        }
+        // Ensure plaintext legacy keys never retain PINs after a write.
+        legacyKey.remove()
+    }
 
     fun registerParentalPinSuccess() {
         parentalControlFailedAttempts = 0
@@ -610,6 +672,7 @@ object UserPreferences {
         PARENTAL_CONTROL_LOCKED_UNTIL,
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
+        USER_M3U_URL,
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,

@@ -152,6 +152,19 @@ object TmdbUtils {
         } catch (_: Exception) { null }
     }
 
+    /**
+     * Enriches a person known only by name (e.g. an actor scraped from a non-TMDB provider's
+     * cast/people page) with TMDB's image + biography, so scraper providers don't have to show a
+     * blank profile just because their own site has no such data.
+     * Returns null when TMDB is disabled, the name is blank, or no match is found.
+     */
+    suspend fun enrichPersonByName(name: String, language: String? = null): People? {
+        if (!UserPreferences.enableTmdb || name.isBlank()) return null
+        val person = findPerson(name, language) ?: return null
+        val personId = person.id.toIntOrNull() ?: return person
+        return getPersonDetails(personId, language) ?: person
+    }
+
     suspend fun getMovieAgeRating(title: String, year: Int? = null, language: String? = null): Int? {
         if (!UserPreferences.enableTmdb) return null
 

@@ -9,6 +9,7 @@ import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.providers.IptvProvider
 import com.betterstreamflix.providers.Provider
+import com.betterstreamflix.providers.ProviderHealthMonitor
 import com.betterstreamflix.utils.ParentalControlUtils
 import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
@@ -183,26 +184,37 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
             }
         }
 
+        val emitLock = Any()
         targetProviders.forEachIndexed { index, provider ->
             launch {
                 try {
-                    val results = ParentalControlUtils.filterItems(provider.search(query).onEach { item ->
-                        // ========= ¡AQUÍ ESTÁ LA MAGIA! =========
-                        // Le ponemos el sello a cada resultado
-                        when (item) {
-                            is Movie -> item.providerName = provider.name
-                            is TvShow -> item.providerName = provider.name
-                        }
-                        // =======================================
-                    })
-                    mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
+                    if (!ProviderHealthMonitor.isHealthy(provider.name)) {
+                        mutableResults[index] = ProviderResult(
+                            provider,
+                            ProviderResult.State.Error(Exception("Provider temporarily unavailable")),
+                        )
+                    } else {
+                        val results = ParentalControlUtils.filterItems(provider.search(query).onEach { item ->
+                            when (item) {
+                                is Movie -> item.providerName = provider.name
+                                is TvShow -> item.providerName = provider.name
+                            }
+                        })
+                        mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
+                        ProviderHealthMonitor.recordSuccess(provider.name)
+                    }
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.e("SearchViewModel", "searchGlobal for ${provider.name}: ", e)
                     mutableResults[index] = ProviderResult(provider, ProviderResult.State.Error(e))
+                    ProviderHealthMonitor.recordFailure(provider.name, e.message ?: e.javaClass.simpleName)
                 }
 
-                _state.emit(State.SuccessGlobalSearching(mutableResults.sortedWith(stateComparator)))
+                // Batch UI updates under a lock so we don't thrash the list on every completion.
+                val snapshot = synchronized(emitLock) {
+                    mutableResults.sortedWith(stateComparator)
+                }
+                _state.emit(State.SuccessGlobalSearching(snapshot))
             }
         }
     }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exclude preference files that may contain sensitive data from cloud backup / device transfer. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="secure_prefs.xml" />
+        <exclude domain="sharedpref" path="com.betterstreamflix.preferences.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="secure_prefs.xml" />
+        <exclude domain="sharedpref" path="com.betterstreamflix.preferences.xml" />
+    </device-transfer>
+</data-extraction-rules>

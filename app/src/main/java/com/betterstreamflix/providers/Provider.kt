@@ -59,6 +59,8 @@ interface Provider {
             val tvShows: Boolean
         )
 
+        // WIP / unregistered provider classes (smoke-test before adding):
+        // AfterDark, AnimeBum, AnyMovie, HiAnime, Otakufr, StreamingIta, SuperStream, UnJourUnFilm
         val providers = mapOf(
             SflixProvider to ProviderSupport(movies = true, tvShows = true),
             FanpelisProvider to ProviderSupport(movies = true, tvShows = true),

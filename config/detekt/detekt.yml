@@ -1,0 +1,54 @@
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 120
+  LargeClass:
+    active: true
+    threshold: 900
+  TooManyFunctions:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: false
+  ReturnCount:
+    active: false
+  MaxLineLength:
+    active: true
+    maxLineLength: 160
+
+naming:
+  FunctionNaming:
+    active: true
+  VariableNaming:
+    active: true
+
+potential-bugs:
+  active: true
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes:
+      - 'InterruptedException'
+      - 'CancellationException'
