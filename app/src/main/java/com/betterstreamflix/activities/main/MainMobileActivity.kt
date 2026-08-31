@@ -37,6 +37,7 @@ import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ZaluknijProvider
 import com.betterstreamflix.ui.UpdateAppMobileDialog
 import com.betterstreamflix.utils.AppLanguageManager
+import com.betterstreamflix.utils.AppShortcuts
 import com.betterstreamflix.utils.DeepLink
 import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.FileLogger
@@ -136,6 +137,7 @@ class MainMobileActivity : FragmentActivity() {
         setContentView(binding.root)
         applyThemeNavigationChrome()
         FirstRunHelper.showStartupDialogsIfNeeded(this)
+        AppShortcuts.publish(this)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())

@@ -1,9 +1,16 @@
 package com.betterstreamflix.database.dao
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "watch_history")
+@Entity(
+    tableName = "watch_history",
+    indices = [
+        Index(value = ["watchedAt"]),
+        Index(value = ["providerName", "videoId"]),
+    ],
+)
 data class WatchHistoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val videoId: String,
@@ -17,7 +24,12 @@ data class WatchHistoryEntity(
     val type: String,
 )
 
-@Entity(tableName = "favorites")
+@Entity(
+    tableName = "favorites",
+    indices = [
+        Index(value = ["providerName", "videoId"], unique = true),
+    ],
+)
 data class FavoriteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val videoId: String,

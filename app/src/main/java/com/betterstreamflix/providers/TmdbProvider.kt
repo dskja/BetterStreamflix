@@ -810,8 +810,13 @@ class TmdbProvider(override val language: String) : Provider {
                                         n.contains("[LAT]") || n.contains("[CAST]") || n.contains("[CAS]") || n.contains("[ES]") ||
                                         n.contains("(LAT)") || n.contains("(ESP)") || n.contains("LATINO") || n.contains("CASTELLANO")
                                     }
-                                    Log.i("StreamFlixES", "[SERVERS OK] -> ${provider.name}: ${filtered.size}/${allServers.size} servers kept")
-                                    filtered
+                                    // Se nessun server ha un tag audio spagnolo esplicito, non blocchiamo l'utente:
+                                    // meglio mostrare tutti i server trovati (spesso già in spagnolo di fatto)
+                                    // piuttosto che una lista vuota.
+                                    val kept = filtered.ifEmpty { allServers }
+                                    Log.i("StreamFlixES", "[SERVERS OK] -> ${provider.name}: ${filtered.size}/${allServers.size} tagged servers kept" +
+                                        if (filtered.isEmpty() && allServers.isNotEmpty()) " (no ES tag found, falling back to all ${allServers.size} servers)" else "")
+                                    kept
                                 } else {
                                     Log.d("StreamFlixES", "[NO MATCH] -> ${provider.name} did not find a valid match for '$targetTitle'")
                                     emptyList()
@@ -824,6 +829,24 @@ class TmdbProvider(override val language: String) : Provider {
                         }
                     }
                     servers.addAll(deferred.awaitAll().flatten())
+                }
+
+                // Nessun provider spagnolo ha trovato un match o dei server: non blocchiamo l'utente
+                // con una lista vuota, ma ripieghiamo sugli aggregatori multi-lingua globali
+                // (spesso includono comunque tracce audio spagnole).
+                if (servers.isEmpty()) {
+                    Log.w("StreamFlixES", "[FALLBACK] -> No Spanish-specific servers found for '$targetTitle', falling back to global aggregators")
+                    servers.addAll(listOfNotNull(
+                        VixSrcExtractor().server(videoType),
+                        TwoEmbedExtractor().server(videoType),
+                        VidsrcNetExtractor().server(videoType),
+                        VidLinkExtractor().server(videoType),
+                        VidsrcRuExtractor().server(videoType),
+                        VidflixExtractor().server(videoType),
+                    ))
+                    servers.addAll(VidrockExtractor().servers(videoType))
+                    servers.addAll(VidzeeExtractor().servers(videoType))
+                    servers.addAll(PrimeSrcExtractor().servers(videoType))
                 }
             }
             else -> {
