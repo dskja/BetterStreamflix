@@ -9,9 +9,13 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build & Release Signed APK
+  build:
+    name: Build Release APK (${{ matrix.app_layout }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app_layout: [mobile, tv]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -38,7 +42,7 @@ jobs:
       - name: Create local.properties
         run: |
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
-          echo "APP_LAYOUT=" >> local.properties
+          echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
           echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
           echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
           echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
@@ -85,19 +89,38 @@ jobs:
             exit 1
           fi
           echo "APK found: $APK_FILE"
-          # Check if signed by looking for v1/v2 signature
           if $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs "$APK_FILE" 2>/dev/null; then
             echo "APK is signed"
           else
             echo "WARNING: APK may not be signed"
           fi
-          cp "$APK_FILE" "/tmp/BetterStreamflix-${{ github.ref_name }}.apk"
+          cp "$APK_FILE" "/tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk"
 
-      - name: Create Release & Upload APK
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterStreamflix-${{ matrix.app_layout }}
+          path: /tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-apks
+          pattern: BetterStreamflix-*
+          merge-multiple: true
+
+      - name: Create Release & Upload APKs
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref }}
           name: BetterStreamflix ${{ github.ref_name }}
           body_path: CHANGELOG.md
-          files: |
-            /tmp/BetterStreamflix-${{ github.ref_name }}.apk
+          files: release-apks/*

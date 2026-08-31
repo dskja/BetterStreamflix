@@ -59,11 +59,11 @@ Detail and Ship-or-Cut decisions: [docs/SCAFFOLD_AUDIT.md](docs/SCAFFOLD_AUDIT.m
 
 ### P3 — Platform
 
-- [x] Downloads E2E Mobile **or** cut `download/`
-- [x] Cloud sync UX (banner, conflicts, i18n strings)
+- [~] Downloads mobile — UI + WorkManager + Room + notifications wired; **no instrumented E2E** yet
+- [x] Cloud sync UX (banner, conflicts, i18n strings) — requires Supabase config
 - [x] Watch Next + widgets + shortcuts + deep links
 - [x] Cast package cut (unless real Cast SDK)
-- [x] IPTV M3U/Xtream + EPG MVP (or explicit defer)
+- [~] IPTV M3U/Xtream + EPG MVP — providers registered; EPG not fully exercised in CI
 - [x] Anime Dub/Sub + episode numbering options
 
 ### P4 — Architecture
@@ -76,7 +76,7 @@ Detail and Ship-or-Cut decisions: [docs/SCAFFOLD_AUDIT.md](docs/SCAFFOLD_AUDIT.m
 
 - [x] Detekt / ktlint; CI matrix `APP_LAYOUT` mobile + tv; no soft-fail lint/tests
 - [x] i18n parity (PL + `cloud_sync_*`); CI missing-key gate
-- [x] Expand unit/instrumented suite beyond ~19 tests
+- [x] Expand unit/instrumented suite beyond ~19 tests — **unit tests expanded; instrumented/E2E still absent**
 - [x] CONTRIBUTING, ARCHITECTURE, PROVIDERS, LEGAL, PR template, ROADMAP sync
 
 ### P6 / P7 — Ambition
@@ -88,5 +88,6 @@ Detail and Ship-or-Cut decisions: [docs/SCAFFOLD_AUDIT.md](docs/SCAFFOLD_AUDIT.m
 ## Infrastructure (ongoing)
 
 - [ ] Automated release notes from tag range / Keep-a-Changelog sections
-- [ ] Nightly provider DNS/home smoke → issue labels
+- [x] Nightly provider DNS/home smoke → GitHub issue on failure (`scripts/provider_smoke.py`)
+- [x] Release workflow builds separate **mobile** + **tv** signed APKs
 - [x] CodeQL + dependency-review

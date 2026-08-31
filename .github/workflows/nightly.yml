@@ -8,3 +8,34 @@ on:
 jobs:
   nightly:
     uses: ./.github/workflows/ci.yml
+
+  provider-smoke:
+    name: Provider DNS / Home Smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run provider smoke
+        id: smoke
+        run: python3 scripts/provider_smoke.py
+
+      - name: Create issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh issue create \
+            --title "Nightly provider smoke failed ($(date -u +%Y-%m-%d))" \
+            --body "The nightly provider DNS/home smoke check failed.
+
+          **Workflow:** [Run #${{ github.run_id }}](${RUN_URL})
+          **Time:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          Re-run \`scripts/provider_smoke.py\` locally or inspect CI logs for failing probes." \
+            --label "nightly-failure" \
+            --label "bug"
