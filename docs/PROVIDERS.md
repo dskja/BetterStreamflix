@@ -47,6 +47,26 @@ override suspend fun getServers(id: String, videoType: Video.Type): List<Video.S
 
 Return empty lists / empty `People` / empty server lists so the UI can show “no results” / “not supported” instead of crashing.
 
+### Enrich `getPeople()` with TMDB (optional, recommended for scrapers)
+
+If your source's own actor page has no photo/biography, use `TmdbUtils.enrichPersonByName(name, language)` to fill it in from TMDB (no-op when `ENABLE_TMDB` is off or nothing matches):
+
+```kotlin
+val tmdbPerson = TmdbUtils.enrichPersonByName(peopleName, language = language)
+People(
+    id = id,
+    name = peopleName,
+    image = tmdbPerson?.image,
+    biography = tmdbPerson?.biography,
+    placeOfBirth = tmdbPerson?.placeOfBirth,
+    birthday = tmdbPerson?.birthday?.format("yyyy-MM-dd"),
+    deathday = tmdbPerson?.deathday?.format("yyyy-MM-dd"),
+    filmography = /* ... */,
+)
+```
+
+See `AniWorldProvider.getPeople()` / `SerienStreamProvider.getPeople()` for a working example.
+
 ## Add an extractor
 
 1. Create a class under `app/src/main/java/com/betterstreamflix/extractors/` extending `Extractor`.
@@ -70,6 +90,8 @@ class YourHostExtractor : Extractor() {
 3. **Register** an instance in the `extractors` list inside [`Extractor.kt`](../app/src/main/java/com/betterstreamflix/extractors/Extractor.kt) companion object.
 
 Matching order: `mainUrl` → `aliasUrls` → domain-stripped match → `rotatingDomain` → server name contains extractor name.
+
+If the matched extractor's `extract()` throws, `Extractor.extract()` retries other registered extractors that share the same host or a server-name hint before giving up. If nothing matches (or every candidate fails), it throws `Extractor.ExtractionFailedException` with the link and the list of extractor names that were attempted, so logs/UI can distinguish "no extractor registered" from "extractor(s) matched but the host changed/broke".
 
 ## Checklist before PR
 
