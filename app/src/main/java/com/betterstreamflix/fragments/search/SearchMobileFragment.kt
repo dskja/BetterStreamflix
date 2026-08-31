@@ -76,14 +76,6 @@ class SearchMobileFragment : Fragment() {
             }
         }
 
-        DeepLinkHandler.pendingSearchQuery?.let { pending ->
-            DeepLinkHandler.pendingSearchQuery = null
-            if (pending.isNotBlank() && pending != "_") {
-                binding.etSearch.setText(pending)
-                viewModel.search(pending)
-            }
-        }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 // ========= BLOQUE WHEN MODIFICADO =========
