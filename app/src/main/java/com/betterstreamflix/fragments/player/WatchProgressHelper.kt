@@ -3,6 +3,8 @@ package com.betterstreamflix.fragments.player
 import android.content.Context
 import android.util.Log
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.tvprovider.media.tv.TvContractCompat
+import androidx.tvprovider.media.tv.WatchNextProgram
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
@@ -148,11 +150,11 @@ object WatchProgressHelper {
             val builder = WatchNextProgram.Builder().apply {
                 setType(
                     when (videoType) {
-                        is Video.Type.Movie -> androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.TYPE_MOVIE
-                        is Video.Type.Episode -> androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.TYPE_TV_EPISODE
+                        is Video.Type.Movie -> TvContractCompat.PreviewProgramColumns.TYPE_MOVIE
+                        is Video.Type.Episode -> TvContractCompat.PreviewProgramColumns.TYPE_TV_EPISODE
                     }
                 )
-                setWatchNextType(androidx.tvprovider.media.tv.TvContractCompat.WatchNextPrograms.WATCH_NEXT_TYPE_CONTINUE)
+                setWatchNextType(TvContractCompat.WatchNextPrograms.WATCH_NEXT_TYPE_CONTINUE)
                 setLastEngagementTimeUtcMillis(System.currentTimeMillis())
                 setTitle(title)
                 setContentId(contentId)
