@@ -20,6 +20,8 @@ import org.json.JSONArray
 object UserPreferences {
 
     private const val TAG = "UserPrefsDebug"
+    private const val SECURE_KEY_PARENTAL_PIN = "parental_control_pin"
+    private const val SECURE_KEY_PARENTAL_ADMIN_PIN = "parental_control_admin_pin"
 
     lateinit var prefs: SharedPreferences
 
@@ -52,6 +54,7 @@ object UserPreferences {
     }
 
     fun setup(context: Context) {
+        SecurePreferences.init(context)
         val prefsName = "${BuildConfig.APPLICATION_ID}.preferences"
         prefs = context.getSharedPreferences(
             prefsName,
@@ -209,15 +212,15 @@ object UserPreferences {
         }
 
     var parentalControlPin: String
-        get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
+        get() = getSecurePin(SECURE_KEY_PARENTAL_PIN, Key.PARENTAL_CONTROL_PIN)
         set(value) {
-            Key.PARENTAL_CONTROL_PIN.setString(value.trim())
+            setSecurePin(SECURE_KEY_PARENTAL_PIN, Key.PARENTAL_CONTROL_PIN, value)
         }
 
     var parentalControlAdminPin: String
-        get() = Key.PARENTAL_CONTROL_ADMIN_PIN.getString() ?: ""
+        get() = getSecurePin(SECURE_KEY_PARENTAL_ADMIN_PIN, Key.PARENTAL_CONTROL_ADMIN_PIN)
         set(value) {
-            Key.PARENTAL_CONTROL_ADMIN_PIN.setString(value.trim())
+            setSecurePin(SECURE_KEY_PARENTAL_ADMIN_PIN, Key.PARENTAL_CONTROL_ADMIN_PIN, value)
         }
 
     var parentalControlMaxAge: Int?
@@ -252,6 +255,34 @@ object UserPreferences {
 
     val parentalControlLockRemainingMillis: Long
         get() = (parentalControlLockedUntilMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+
+    /**
+     * Read a parental PIN from encrypted storage, migrating legacy plaintext prefs on first read.
+     */
+    private fun getSecurePin(secureKey: String, legacyKey: Key): String {
+        val secureValue = SecurePreferences.getString(secureKey)
+        if (!secureValue.isNullOrEmpty()) {
+            return secureValue
+        }
+        val legacyValue = legacyKey.getString()
+        if (!legacyValue.isNullOrEmpty()) {
+            SecurePreferences.putString(secureKey, legacyValue)
+            legacyKey.remove()
+            return legacyValue
+        }
+        return secureValue.orEmpty()
+    }
+
+    private fun setSecurePin(secureKey: String, legacyKey: Key, value: String) {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) {
+            SecurePreferences.remove(secureKey)
+        } else {
+            SecurePreferences.putString(secureKey, trimmed)
+        }
+        // Ensure plaintext legacy keys never retain PINs after a write.
+        legacyKey.remove()
+    }
 
     fun registerParentalPinSuccess() {
         parentalControlFailedAttempts = 0

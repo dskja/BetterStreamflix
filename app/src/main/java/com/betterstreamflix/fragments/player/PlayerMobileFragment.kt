@@ -1586,7 +1586,9 @@ class PlayerMobileFragment : Fragment() {
                         val updatedHttpUrl = origHttpUrl.newBuilder().query(latestQuery).build()
                         request = request.newBuilder().url(updatedHttpUrl).build()
                         if (!tokenLogged) {
-                            android.util.Log.d("TokenManager", "[MOBILE-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                            if (com.betterstreamflix.BuildConfig.DEBUG) {
+                                android.util.Log.d("TokenManager", "[MOBILE-INTERCEPTOR] Token successfully injected (applied to all segments)")
+                            }
                             tokenLogged = true
                         }
                     } else {

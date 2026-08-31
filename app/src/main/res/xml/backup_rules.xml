@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exclude preference files that may contain sensitive data (PINs, API keys, tokens). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="secure_prefs.xml" />
+    <exclude domain="sharedpref" path="com.betterstreamflix.preferences.xml" />
+</full-backup-content>

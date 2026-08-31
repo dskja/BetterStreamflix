@@ -2030,7 +2030,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 }
 
                 val session = WebSocketBypassTestHelper.createSession(targetUrl) { token ->
-                    Log.d("BypassWSTest", "Resolver completed for token=$token")
+                    if (BuildConfig.DEBUG) {
+                        Log.d("BypassWSTest", "Resolver completed for token=$token")
+                    }
                 }
 
                 if (session == null) {
