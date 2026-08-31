@@ -21,7 +21,7 @@ object UserProfiles {
     private const val KEY_ACTIVE = "LOCAL_PROFILE_ACTIVE_ID"
 
     fun list(): List<Profile> {
-        if (!UserPreferences::prefs.isInitialized) return emptyList()
+        if (!UserPreferences.isReady()) return emptyList()
         val raw = UserPreferences.prefs.getString(KEY_PROFILES, null) ?: return listOf(defaultProfile())
         return runCatching {
             val arr = JSONArray(raw)
@@ -43,14 +43,14 @@ object UserProfiles {
 
     fun active(): Profile {
         val profiles = list()
-        val activeId = if (UserPreferences::prefs.isInitialized) {
+        val activeId = if (UserPreferences.isReady()) {
             UserPreferences.prefs.getString(KEY_ACTIVE, null)
         } else null
         return profiles.find { it.id == activeId } ?: profiles.first()
     }
 
     fun setActive(profileId: String) {
-        if (!UserPreferences::prefs.isInitialized) return
+        if (!UserPreferences.isReady()) return
         UserPreferences.prefs.edit().putString(KEY_ACTIVE, profileId).apply()
         list().find { it.id == profileId }?.parentalMaxAge?.let { age ->
             UserPreferences.parentalControlMaxAge = age
@@ -84,7 +84,7 @@ object UserProfiles {
     private fun defaultProfile() = Profile(id = "default", name = "Default")
 
     private fun persist(profiles: List<Profile>) {
-        if (!UserPreferences::prefs.isInitialized) return
+        if (!UserPreferences.isReady()) return
         val arr = JSONArray()
         profiles.forEach { p ->
             arr.put(
