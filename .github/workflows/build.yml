@@ -3,13 +3,8 @@ name: Build BetterStreamflix
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-
   release-apks:
     name: Build Release APKs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
