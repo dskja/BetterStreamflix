@@ -48,6 +48,9 @@ object UserPreferences {
     private fun safeProviderCache(): JSONObject =
         if (::providerCache.isInitialized) providerCache else JSONObject()
 
+    /** Safe read for early startup paths (e.g. domain fallback) before cache is hydrated. */
+    fun providerCacheJson(): JSONObject = safeProviderCache()
+
     private inline fun debugLog(message: () -> String) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, message())
@@ -68,7 +71,30 @@ object UserPreferences {
             providerCache = runCatching { JSONObject(jsonString) }.getOrDefault(JSONObject())
 
             migrateLegacyTvThemeKey(context)
+            migrateLegacyProviderName()
         }
+    }
+
+    /**
+     * Older builds stored provider display names that no longer match [Provider.name]
+     * (e.g. obfuscated literals). Normalize once so startup can resolve SerienStream.
+     */
+    private fun migrateLegacyProviderName() {
+        val stored = Key.CURRENT_PROVIDER.getString() ?: return
+        if (Provider.providers.keys.any { it.name == stored }) return
+        val resolved = resolveLegacyProviderName(stored) ?: return
+        Key.CURRENT_PROVIDER.setString(resolved.name)
+    }
+
+    private fun resolveLegacyProviderName(storedName: String): Provider? {
+        val normalized = storedName.trim()
+        if (normalized.equals("SerienStream", ignoreCase = true) ||
+            normalized.equals("serienstream", ignoreCase = true) ||
+            normalized.contains("serienstream", ignoreCase = true)
+        ) {
+            return com.betterstreamflix.providers.SerienStreamProvider
+        }
+        return null
     }
 
     /** True after [setup] has initialized the SharedPreferences store. */
@@ -99,11 +125,13 @@ object UserPreferences {
     var currentProvider: Provider?
         get() {
             val providerName = Key.CURRENT_PROVIDER.getString()
-            if (providerName?.startsWith("TMDb (") == true && providerName.endsWith(")")) {
+            if (providerName.isNullOrBlank()) return null
+            if (providerName.startsWith("TMDb (") && providerName.endsWith(")")) {
                 val lang = providerName.substringAfter("TMDb (").substringBefore(")")
                 return TmdbProvider(lang)
             }
-            return Provider.providers.keys.find { it.name == providerName }
+            Provider.providers.keys.find { it.name == providerName }?.let { return it }
+            return resolveLegacyProviderName(providerName)
         }
         set(value) {
             // CRITICO: Resetta l'istanza del database prima di cambiare provider

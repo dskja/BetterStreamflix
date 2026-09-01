@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -69,9 +69,12 @@ fun HomeScreen(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            items(visibleCategories, key = { it.name }) { category ->
+                            itemsIndexed(
+                                visibleCategories,
+                                key = { index, category -> "${category.name}#$index" },
+                            ) { _, category ->
                                 BsContentRow(
-                                    title = category.name,
+                                    title = category.name.ifBlank { "Featured" },
                                     items = category.list.map { item ->
                                         when (item) {
                                             is com.betterstreamflix.models.Movie -> item.title.ifBlank { item.id }
