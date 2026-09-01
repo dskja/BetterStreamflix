@@ -1,9 +1,14 @@
 package com.betterstreamflix.download
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
+import com.betterstreamflix.activities.OfflinePlayerActivity
 import com.betterstreamflix.download.DownloadRepository.Companion.toTask
 import kotlinx.coroutines.runBlocking
+import java.io.File
 
 /**
  * Download manager — tracks download tasks via Room (single source of truth).
@@ -99,9 +104,23 @@ object DownloadManager {
     }
 
     fun cancelDownload(context: Context, id: String) {
+        val task = runBlocking { repository(context).getById(id)?.toTask() }
         runCatching {
             Media3OfflineDownloads.requireManager(context).removeDownload(id)
         }
+        task?.let { deleteTaskFiles(it) }
         removeDownload(context, id)
+    }
+
+    private fun deleteTaskFiles(task: DownloadTask) {
+        if (OfflineMediaPaths.parseDownloadId(task.filePath) != null) {
+            return
+        }
+        runCatching { File(task.filePath).delete() }
+        runCatching {
+            val parent = File(task.filePath).parentFile ?: return@runCatching
+            File(parent, "${task.id}.m3u8").delete()
+            File(parent, "${task.id}.mpd").delete()
+        }
     }
 }

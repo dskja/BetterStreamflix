@@ -173,7 +173,13 @@ class MainMobileActivity : FragmentActivity() {
                 packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
         ) {
             finish()
-            startActivity(Intent(this, MainTvActivity::class.java))
+            startActivity(
+                Intent(this, MainTvActivity::class.java).apply {
+                    data = intent.data
+                    action = intent.action
+                    intent.extras?.let(::putExtras)
+                },
+            )
             return
         }
 
@@ -542,6 +548,7 @@ class MainMobileActivity : FragmentActivity() {
         }
 
         val deepLink = DeepLinkHandler.parse(data) ?: return false
+        DeepLinkHandler.applyProviderIfPresent(deepLink.providerName)
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
             ?: return false
         val navController = navHost.navController
