@@ -120,12 +120,14 @@ class StreamFlixApp : Application() {
 
         NotificationChannelManager.createChannels(this)
         scheduleNewEpisodeCheckWorker()
-        runCatching { Media3OfflineDownloads.init(this) }
-            .onSuccess { FileLogger.i("Init", "✓ Media3OfflineDownloads initialized") }
-            .onFailure { FileLogger.e("Init", "✗ Media3OfflineDownloads FAILED", it) }
-        runCatching { Media3DownloadSync.attach(this) }
-            .onSuccess { FileLogger.i("Init", "✓ Media3DownloadSync attached") }
-            .onFailure { FileLogger.e("Init", "✗ Media3DownloadSync FAILED", it) }
+        applicationScope.launch(Dispatchers.IO) {
+            runCatching { Media3OfflineDownloads.init(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ Media3OfflineDownloads initialized") }
+                .onFailure { FileLogger.e("Init", "✗ Media3OfflineDownloads FAILED", it) }
+            runCatching { Media3DownloadSync.attach(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ Media3DownloadSync attached") }
+                .onFailure { FileLogger.e("Init", "✗ Media3DownloadSync FAILED", it) }
+        }
 
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L
