@@ -10,12 +10,17 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.fragment.findNavController
 import com.betterstreamflix.R
+import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.SearchScreen
 import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.models.Movie
+import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.LoggingUtils
+import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.utils.viewModelsFactory
 import retrofit2.HttpException
 
@@ -93,6 +98,40 @@ class SearchMobileFragment : ComposeHostFragment() {
             onBrowseGenres = {
                 findNavController().navigate(R.id.genres_hub)
             },
+            onResultClick = ::onResultClick,
         )
+    }
+
+    private fun onResultClick(item: AppAdapter.Item) {
+        when (item) {
+            is Movie -> {
+                switchProviderIfNeeded(item.providerName)
+                findNavController().navigate(
+                    SearchMobileFragmentDirections.actionSearchToMovie(id = item.id),
+                )
+            }
+            is TvShow -> {
+                switchProviderIfNeeded(item.providerName)
+                findNavController().navigate(
+                    SearchMobileFragmentDirections.actionSearchToTvShow(
+                        id = item.id,
+                        poster = item.poster,
+                        banner = item.banner,
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun switchProviderIfNeeded(providerName: String?) {
+        val targetName = providerName?.takeIf { it.isNotBlank() } ?: return
+        if (targetName == UserPreferences.currentProvider?.name) return
+        val targetProvider = Provider.providers.keys.find { it.name == targetName } ?: return
+        UserPreferences.currentProvider = targetProvider
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.switching_to_provider, targetName),
+            Toast.LENGTH_SHORT,
+        ).show()
     }
 }

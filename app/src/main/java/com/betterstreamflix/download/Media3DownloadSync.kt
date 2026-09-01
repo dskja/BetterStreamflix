@@ -16,12 +16,13 @@ object Media3DownloadSync {
     @Volatile
     private var attached = false
 
-    fun attach(context: Context) {
-        if (attached) return
+    fun attach(context: Context) = ensureAttached(context)
+
+    fun ensureAttached(context: Context) {
         synchronized(this) {
             if (attached) return
             val appContext = context.applicationContext
-            val manager = Media3OfflineDownloads.managerOrNull(appContext) ?: return
+            val manager = Media3OfflineDownloads.downloadManagerOrNull() ?: return
             val repository = DownloadRepository(appContext)
             manager.addListener(
                 object : Media3DownloadManager.Listener {

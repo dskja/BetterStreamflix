@@ -37,6 +37,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.betterstreamflix.adapters.AppAdapter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,8 +60,10 @@ fun BsTopBar(
 @Composable
 fun BsContentRow(
     title: String,
-    items: List<String>,
+    items: List<AppAdapter.Item>,
+    labelOf: (AppAdapter.Item) -> String,
     modifier: Modifier = Modifier,
+    onItemClick: (AppAdapter.Item) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -72,11 +75,21 @@ fun BsContentRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(items) { label ->
-                BsPosterCard(title = label)
+            items(items, key = { itemKey(it) }) { item ->
+                BsPosterCard(
+                    title = labelOf(item),
+                    onClick = { onItemClick(item) },
+                )
             }
         }
     }
+}
+
+private fun itemKey(item: AppAdapter.Item): String = when (item) {
+    is com.betterstreamflix.models.Movie -> "movie:${item.id}"
+    is com.betterstreamflix.models.TvShow -> "tv:${item.id}"
+    is com.betterstreamflix.models.Episode -> "episode:${item.id}"
+    else -> item.hashCode().toString()
 }
 
 @Composable

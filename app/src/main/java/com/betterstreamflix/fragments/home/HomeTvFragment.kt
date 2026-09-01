@@ -15,12 +15,20 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.betterstreamflix.R
+import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.HomeScreen
 import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.fragments.home.HomeTvFragmentDirections
+import com.betterstreamflix.fragments.tv_show.TvShowTvFragmentDirections
 import com.betterstreamflix.models.Category
+import com.betterstreamflix.models.Episode
+import com.betterstreamflix.models.Movie
+import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DeepLinkHandler
+import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.ProviderChangeNotifier
 import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
@@ -82,6 +90,7 @@ class HomeTvFragment : ComposeHostFragment() {
                     categories = localizeCategories(current.categories),
                     scrollToCategoryName = scrollToCategory,
                     onProviderClick = { findNavController().navigate(R.id.providers) },
+                    onItemClick = ::onItemClick,
                 )
             }
             is HomeViewModel.State.FailedLoading -> {
@@ -121,6 +130,87 @@ class HomeTvFragment : ComposeHostFragment() {
     fun releasePinnedBackground() = Unit
 
     fun resetSwiperSchedule() = Unit
+
+    private fun onItemClick(item: AppAdapter.Item) {
+        when (item) {
+            is Movie -> {
+                switchProviderIfNeeded(item.providerName)
+                findNavController().navigate(
+                    HomeTvFragmentDirections.actionHomeToMovie(id = item.id),
+                )
+            }
+            is TvShow -> {
+                switchProviderIfNeeded(item.providerName)
+                findNavController().navigate(
+                    HomeTvFragmentDirections.actionHomeToTvShow(
+                        id = item.id,
+                        poster = item.poster,
+                        banner = item.banner,
+                    ),
+                )
+            }
+            is Episode -> {
+                switchProviderIfNeeded(item.tvShow?.providerName)
+                val tvShowId = item.tvShow?.id ?: return
+                findNavController().navigate(
+                    HomeTvFragmentDirections.actionHomeToTvShow(
+                        id = tvShowId,
+                        poster = item.tvShow?.poster,
+                        banner = item.tvShow?.banner,
+                    ),
+                )
+                findNavController().navigate(
+                    TvShowTvFragmentDirections.actionTvShowToPlayer(
+                        id = item.id,
+                        title = item.tvShow?.title.orEmpty(),
+                        subtitle = item.season?.takeIf { it.number != 0 }?.let { season ->
+                            getString(
+                                R.string.player_subtitle_tv_show,
+                                season.number,
+                                item.number,
+                                item.title ?: getString(R.string.episode_number, item.number),
+                            )
+                        } ?: getString(
+                            R.string.player_subtitle_tv_show_episode_only,
+                            item.number,
+                            item.title ?: getString(R.string.episode_number, item.number),
+                        ),
+                        videoType = com.betterstreamflix.models.Video.Type.Episode(
+                            id = item.id,
+                            number = item.number,
+                            title = item.title,
+                            poster = item.poster,
+                            overview = item.overview,
+                            tvShow = com.betterstreamflix.models.Video.Type.Episode.TvShow(
+                                id = tvShowId,
+                                title = item.tvShow?.title.orEmpty(),
+                                poster = item.tvShow?.poster,
+                                banner = item.tvShow?.banner,
+                                releaseDate = item.tvShow?.released?.format("yyyy-MM-dd"),
+                                imdbId = item.tvShow?.imdbId,
+                            ),
+                            season = com.betterstreamflix.models.Video.Type.Episode.Season(
+                                number = item.season?.number ?: 0,
+                                title = item.season?.title,
+                            ),
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun switchProviderIfNeeded(providerName: String?) {
+        val targetName = providerName?.takeIf { it.isNotBlank() } ?: return
+        if (targetName == UserPreferences.currentProvider?.name) return
+        val targetProvider = Provider.providers.keys.find { it.name == targetName } ?: return
+        UserPreferences.currentProvider = targetProvider
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.switching_to_provider, targetName),
+            Toast.LENGTH_SHORT,
+        ).show()
+    }
 
     private fun localizeCategories(categories: List<Category>): List<Category> = categories.map { category ->
         val localizedName = when (category.name) {

@@ -29,6 +29,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class StreamFlixApp : Application() {
@@ -118,9 +119,7 @@ class StreamFlixApp : Application() {
         }
 
         NotificationChannelManager.createChannels(this)
-        runCatching { NewEpisodeCheckWorker.schedule(this) }
-            .onSuccess { FileLogger.i("Init", "✓ NewEpisodeCheckWorker scheduled") }
-            .onFailure { FileLogger.e("Init", "✗ NewEpisodeCheckWorker schedule FAILED", it) }
+        scheduleNewEpisodeCheckWorker()
         runCatching { Media3OfflineDownloads.init(this) }
             .onSuccess { FileLogger.i("Init", "✓ Media3OfflineDownloads initialized") }
             .onFailure { FileLogger.e("Init", "✗ Media3OfflineDownloads FAILED", it) }
@@ -176,6 +175,22 @@ class StreamFlixApp : Application() {
 
             FileLogger.i("Init", "=== All async initialization complete ===")
         }
+    }
+
+    private fun scheduleNewEpisodeCheckWorker() {
+        runCatching { NewEpisodeCheckWorker.schedule(this) }
+            .onSuccess { FileLogger.i("Init", "✓ NewEpisodeCheckWorker scheduled") }
+            .onFailure { error ->
+                FileLogger.e("Init", "✗ NewEpisodeCheckWorker schedule FAILED, retrying", error)
+                applicationScope.launch(Dispatchers.IO) {
+                    delay(5_000)
+                    runCatching { NewEpisodeCheckWorker.schedule(this@StreamFlixApp) }
+                        .onSuccess { FileLogger.i("Init", "✓ NewEpisodeCheckWorker scheduled on retry") }
+                        .onFailure { retryError ->
+                            FileLogger.e("Init", "✗ NewEpisodeCheckWorker retry FAILED", retryError)
+                        }
+                }
+            }
     }
 
     override fun onTrimMemory(level: Int) {

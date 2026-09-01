@@ -207,6 +207,7 @@ class MainTvActivity : FragmentActivity() {
     private fun handleIntent(intent: Intent): Boolean {
         val data = intent.data ?: return false
         val deepLink = DeepLinkHandler.parse(data) ?: return false
+        DeepLinkHandler.applyProviderIfPresent(deepLink.providerName)
         val navHost = supportFragmentManager
             .findFragmentById(binding.navMainFragment.id) as? NavHostFragment
             ?: return false

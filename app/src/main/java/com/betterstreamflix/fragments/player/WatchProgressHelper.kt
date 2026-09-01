@@ -144,8 +144,8 @@ object WatchProgressHelper {
                 is Video.Type.Episode -> videoType.poster ?: videoType.tvShow.poster
             }
             val intentUri = when (videoType) {
-                is Video.Type.Movie -> DeepLinkHandler.movieUri(videoType.id)
-                is Video.Type.Episode -> DeepLinkHandler.tvShowUri(videoType.tvShow.id)
+                is Video.Type.Movie -> DeepLinkHandler.movieUri(videoType.id, providerName)
+                is Video.Type.Episode -> DeepLinkHandler.tvShowUri(videoType.tvShow.id, providerName)
             }
 
             val builder = WatchNextProgram.Builder().apply {

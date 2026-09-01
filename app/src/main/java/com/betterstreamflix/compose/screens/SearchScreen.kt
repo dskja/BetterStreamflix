@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
+import androidx.compose.foundation.clickable
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
@@ -74,6 +75,7 @@ fun SearchScreen(
                                     text = resultLabel(item),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clickable { onResultClick(item) }
                                         .padding(vertical = 8.dp),
                                 )
                             }
