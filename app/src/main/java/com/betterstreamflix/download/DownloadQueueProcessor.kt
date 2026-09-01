@@ -49,11 +49,21 @@ class DownloadQueueProcessor(private val context: Context) {
 
         when (streamType) {
             StreamType.HLS -> {
-                hlsEngine.download(task.url, outputDir, task.id, task.title) { _, _, _ -> }
+                hlsEngine.download(task.url, task.id, task.title) { _, _, _ -> }
+                    .onSuccess { mediaPath ->
+                        DownloadManager.updateDownload(context, task.id) {
+                            it.copy(filePath = mediaPath)
+                        }
+                    }
                 StreamflixDownloadService.start(context)
             }
             StreamType.DASH -> {
-                dashEngine.download(task.url, outputDir, task.id, task.title) { _, _, _ -> }
+                dashEngine.download(task.url, task.id, task.title) { _, _, _ -> }
+                    .onSuccess { mediaPath ->
+                        DownloadManager.updateDownload(context, task.id) {
+                            it.copy(filePath = mediaPath)
+                        }
+                    }
                 StreamflixDownloadService.start(context)
             }
             StreamType.HTTP -> {

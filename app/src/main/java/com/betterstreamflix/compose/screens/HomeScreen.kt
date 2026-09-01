@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
+import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.components.BsContentRow
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsShimmerRow
@@ -32,6 +33,7 @@ fun HomeScreen(
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
+    onItemClick: (AppAdapter.Item) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val visibleCategories = categories.filter { it.list.isNotEmpty() }
@@ -75,7 +77,8 @@ fun HomeScreen(
                             ) { _, category ->
                                 BsContentRow(
                                     title = category.name.ifBlank { "Featured" },
-                                    items = category.list.map { item ->
+                                    items = category.list,
+                                    labelOf = { item ->
                                         when (item) {
                                             is com.betterstreamflix.models.Movie -> item.title.ifBlank { item.id }
                                             is com.betterstreamflix.models.TvShow -> item.title.ifBlank { item.id }
@@ -83,6 +86,7 @@ fun HomeScreen(
                                             else -> item.toString()
                                         }
                                     },
+                                    onItemClick = onItemClick,
                                 )
                             }
                         }

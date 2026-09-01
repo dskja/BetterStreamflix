@@ -40,13 +40,26 @@ object Media3OfflineDownloads {
 
     fun managerOrNull(context: Context): DownloadManager? {
         init(context)
-        return downloadManager
+        val manager = downloadManager
+        if (manager != null) {
+            Media3DownloadSync.ensureAttached(context)
+        }
+        return manager
     }
 
     fun requireManager(context: Context): DownloadManager {
         init(context)
-        return downloadManager ?: error("Media3 DownloadManager not initialized")
+        val manager = downloadManager ?: error("Media3 DownloadManager not initialized")
+        Media3DownloadSync.ensureAttached(context)
+        return manager
     }
+
+    fun cacheOrNull(context: Context): SimpleCache? {
+        init(context)
+        return cache
+    }
+
+    internal fun downloadManagerOrNull(): DownloadManager? = downloadManager
 
     fun cacheDir(context: Context): File {
         init(context)
@@ -72,26 +85,19 @@ object Media3OfflineDownloads {
         }
         cache = simpleCache
         downloadManager = manager
+        Media3DownloadSync.ensureAttached(appContext)
     }
 
     /**
-     * Media3 keeps an exclusive lock on the cache directory. After a crash or kill,
-     * the next cold start can fail with "Another SimpleCache instance uses the folder".
+     * Media3 keeps an exclusive lock on the cache directory. If another live instance
+     * already owns the folder we must not delete it — that would wipe offline media.
      */
     private fun openSimpleCache(
         cacheDir: File,
         databaseProvider: StandaloneDatabaseProvider,
     ): SimpleCache {
         cacheDir.mkdirs()
-        return try {
-            SimpleCache(cacheDir, NoOpCacheEvictor(), databaseProvider)
-        } catch (error: IllegalStateException) {
-            Log.w(TAG, "SimpleCache lock conflict, clearing stale offline cache", error)
-            releaseLocked()
-            cacheDir.deleteRecursively()
-            cacheDir.mkdirs()
-            SimpleCache(cacheDir, NoOpCacheEvictor(), databaseProvider)
-        }
+        return SimpleCache(cacheDir, NoOpCacheEvictor(), databaseProvider)
     }
 
     private fun releaseLocked() {
