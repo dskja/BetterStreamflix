@@ -9,7 +9,10 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.offline.DownloadManager
+import com.betterstreamflix.StreamFlixApp
 import com.betterstreamflix.utils.Constants
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -85,7 +88,10 @@ object Media3OfflineDownloads {
         }
         cache = simpleCache
         downloadManager = manager
-        Media3DownloadSync.ensureAttached(appContext)
+        // Defer listener attachment so init never blocks on Room/notification work.
+        StreamFlixApp.instance.applicationScope.launch(Dispatchers.IO) {
+            Media3DownloadSync.ensureAttached(appContext)
+        }
     }
 
     /**
@@ -97,7 +103,12 @@ object Media3OfflineDownloads {
         databaseProvider: StandaloneDatabaseProvider,
     ): SimpleCache {
         cacheDir.mkdirs()
-        return SimpleCache(cacheDir, NoOpCacheEvictor(), databaseProvider)
+        return try {
+            SimpleCache(cacheDir, NoOpCacheEvictor(), databaseProvider)
+        } catch (error: IllegalStateException) {
+            Log.w(TAG, "SimpleCache unavailable (another instance may own the folder)", error)
+            throw error
+        }
     }
 
     private fun releaseLocked() {
