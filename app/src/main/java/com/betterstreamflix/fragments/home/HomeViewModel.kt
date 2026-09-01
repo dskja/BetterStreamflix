@@ -33,6 +33,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -288,7 +289,12 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         list = history.recentlyWatched,
                     ),
 
-                    buildRecommendedCategory(history, state.categories),
+                    runCatching { buildRecommendedCategory(history, state.categories) }
+                        .onFailure { error ->
+                            if (error is kotlinx.coroutines.CancellationException) throw error
+                            Log.w("HomeViewModel", "buildRecommendedCategory failed", error)
+                        }
+                        .getOrNull(),
 
                     // FAVORITES
                     Category(
@@ -322,6 +328,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
             else -> state
         }
+    }.catch { error ->
+        if (error is kotlinx.coroutines.CancellationException) throw error
+        Log.e("HomeViewModel", "state flow failed", error)
+        emit(State.FailedLoading(error as? Exception ?: Exception(error)))
     }.flowOn(Dispatchers.IO)
 
     private fun buildRecommendedCategory(

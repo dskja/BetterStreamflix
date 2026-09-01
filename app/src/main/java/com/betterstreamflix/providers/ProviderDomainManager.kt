@@ -45,7 +45,7 @@ object ProviderDomainManager {
      * If not, try alternative domains.
      */
     fun getCurrentDomain(providerName: String): String? {
-        return UserPreferences.providerCache.optJSONObject(providerName)?.optString("url")
+        return UserPreferences.providerCacheJson().optJSONObject(providerName)?.optString("url")
             ?.takeIf { it.isNotBlank() }
     }
 
