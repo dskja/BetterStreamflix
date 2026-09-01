@@ -33,6 +33,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -99,7 +100,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }.flowOn(Dispatchers.IO),
             database.tvShowDao().getAll().flowOn(Dispatchers.IO),
         ) { watchingMovies, watchingEpisodes, watchNextEpisodes, tvShows ->
-
+            try {
             val allEpisodes = (watchingEpisodes + watchNextEpisodes)
                 .distinctBy { it.id }
 
@@ -126,15 +127,6 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
             )
 
-            val orderIndex = buildMap<String, Int> {
-                _userDataCache.value?.continueWatchingMovies?.forEachIndexed { index, cached ->
-                    put("movie:${cached.id}", index)
-                }
-                _userDataCache.value?.continueWatchingEpisodes?.forEachIndexed { index, cached ->
-                    put("episode:${cached.id}", index)
-                }
-            }
-
             (watchingMovies + enrichedEpisodes)
                 .sortedByDescending { item ->
                     when (item) {
@@ -147,6 +139,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         else -> 0L
                     }
                 } as List<AppAdapter.Item>
+            } catch (error: Throwable) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                Log.w("HomeViewModel", "continue watching section failed", error)
+                watchingMovies as List<AppAdapter.Item>
+            }
             }.flowOn(Dispatchers.IO),
 
             // RECENTLY WATCHED - Recorded immediately when playback starts.
@@ -154,6 +151,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 database.movieDao().getRecentlyWatched(),
                 database.tvShowDao().getRecentlyWatched(),
             ) { movies, tvShows ->
+                try {
                 val episodeIds = tvShows.mapNotNull { it.lastPlayedEpisodeId }.distinct()
                 val episodesById = if (episodeIds.isEmpty()) {
                     emptyMap()
@@ -176,6 +174,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                             else -> 0L
                         }
                     } as List<AppAdapter.Item>
+                } catch (error: Throwable) {
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    Log.w("HomeViewModel", "recently watched section failed", error)
+                    emptyList()
+                }
             }.flowOn(Dispatchers.IO),
             
             // FAVORITE MOVIES
@@ -186,6 +189,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         ) { continueWatching, recentlyWatched, favoritesMovies, favoriteTvShows ->
             HomeHistory(continueWatching, recentlyWatched, favoritesMovies, favoriteTvShows)
+        }.catch { error ->
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            Log.w("HomeViewModel", "home history flow failed", error)
+            emit(HomeHistory(emptyList(), emptyList(), emptyList(), emptyList()))
         }.flowOn(Dispatchers.IO),
 
         // MOVIES DB
@@ -203,6 +210,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
                 else -> emit(emptyList<Movie>())
             }
+        }.catch { error ->
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            Log.w("HomeViewModel", "movies db flow failed", error)
+            emit(emptyList())
         }.flowOn(Dispatchers.IO),
 
         // TV SHOWS DB
@@ -220,6 +231,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
                 else -> emit(emptyList<TvShow>())
             }
+        }.catch { error ->
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            Log.w("HomeViewModel", "tv shows db flow failed", error)
+            emit(emptyList())
         }.flowOn(Dispatchers.IO),
 
         ) { state, history, moviesDb, tvShowsDb ->

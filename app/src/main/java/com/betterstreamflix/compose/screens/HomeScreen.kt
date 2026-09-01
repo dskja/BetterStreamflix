@@ -22,7 +22,6 @@ import com.betterstreamflix.compose.components.BsContentRow
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 import com.betterstreamflix.models.Category
 
 @Composable
@@ -46,49 +45,47 @@ fun HomeScreen(
         }
     }
 
-    BetterStreamflixTheme {
-        Scaffold(topBar = { BsTopBar(title = stringResource(R.string.main_menu_home)) }) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            ) {
-                when {
-                    isLoading -> BsShimmerRow()
-                    errorMessage != null -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            BsErrorState(message = errorMessage)
-                            Button(onClick = onRetry, modifier = Modifier.padding(top = 8.dp)) {
-                                Text(stringResource(R.string.loading_error_retry))
-                            }
+    Scaffold(topBar = { BsTopBar(title = stringResource(R.string.main_menu_home)) }) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            when {
+                isLoading -> BsShimmerRow()
+                errorMessage != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        BsErrorState(message = errorMessage)
+                        Button(onClick = onRetry, modifier = Modifier.padding(top = 8.dp)) {
+                            Text(stringResource(R.string.loading_error_retry))
                         }
                     }
-                    else -> {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            itemsIndexed(
-                                visibleCategories,
-                                key = { index, category -> "${category.name}#$index" },
-                            ) { _, category ->
-                                BsContentRow(
-                                    title = category.name.ifBlank { "Featured" },
-                                    items = category.list,
-                                    labelOf = { item ->
-                                        when (item) {
-                                            is com.betterstreamflix.models.Movie -> item.title.ifBlank { item.id }
-                                            is com.betterstreamflix.models.TvShow -> item.title.ifBlank { item.id }
-                                            is com.betterstreamflix.models.Episode -> item.title?.ifBlank { item.id } ?: item.id
-                                            else -> item.toString()
-                                        }
-                                    },
-                                    onItemClick = onItemClick,
-                                )
-                            }
+                }
+                else -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        itemsIndexed(
+                            visibleCategories,
+                            key = { index, category -> "${category.name}#$index" },
+                        ) { _, category ->
+                            BsContentRow(
+                                title = category.name.ifBlank { "Featured" },
+                                items = category.list,
+                                labelOf = { item ->
+                                    when (item) {
+                                        is com.betterstreamflix.models.Movie -> item.title.ifBlank { item.id }
+                                        is com.betterstreamflix.models.TvShow -> item.title.ifBlank { item.id }
+                                        is com.betterstreamflix.models.Episode -> item.title?.ifBlank { item.id } ?: item.id
+                                        else -> item.toString()
+                                    }
+                                },
+                                onItemClick = onItemClick,
+                            )
                         }
                     }
                 }
