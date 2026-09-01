@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
@@ -104,7 +105,7 @@ fun ProvidersScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(providers, key = { it.name }) { provider ->
+                            itemsIndexed(providers, key = { index, provider -> "${provider.name}#$index" }) { _, provider ->
                                 val unhealthy = !ProviderHealthMonitor.isHealthy(provider.provider.name)
                                 val label = buildString {
                                     append(provider.name)
