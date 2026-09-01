@@ -48,8 +48,8 @@ class StreamFlixApp : Application() {
     }
 
     override fun onCreate() {
-        super.onCreate()
         instance = this
+        super.onCreate()
 
         // 0. Initialize file logger FIRST so everything is captured
         FileLogger.init(this)
@@ -121,8 +121,12 @@ class StreamFlixApp : Application() {
         runCatching { NewEpisodeCheckWorker.schedule(this) }
             .onSuccess { FileLogger.i("Init", "✓ NewEpisodeCheckWorker scheduled") }
             .onFailure { FileLogger.e("Init", "✗ NewEpisodeCheckWorker schedule FAILED", it) }
-        Media3OfflineDownloads.init(this)
-        Media3DownloadSync.attach(this)
+        runCatching { Media3OfflineDownloads.init(this) }
+            .onSuccess { FileLogger.i("Init", "✓ Media3OfflineDownloads initialized") }
+            .onFailure { FileLogger.e("Init", "✗ Media3OfflineDownloads FAILED", it) }
+        runCatching { Media3DownloadSync.attach(this) }
+            .onSuccess { FileLogger.i("Init", "✓ Media3DownloadSync attached") }
+            .onFailure { FileLogger.e("Init", "✗ Media3DownloadSync FAILED", it) }
 
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L

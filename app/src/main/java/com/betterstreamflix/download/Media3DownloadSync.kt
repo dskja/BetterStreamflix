@@ -21,7 +21,7 @@ object Media3DownloadSync {
         synchronized(this) {
             if (attached) return
             val appContext = context.applicationContext
-            val manager = Media3OfflineDownloads.requireManager(appContext)
+            val manager = Media3OfflineDownloads.managerOrNull(appContext) ?: return
             val repository = DownloadRepository(appContext)
             manager.addListener(
                 object : Media3DownloadManager.Listener {

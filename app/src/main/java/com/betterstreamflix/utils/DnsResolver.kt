@@ -48,8 +48,8 @@ object DnsResolver : Dns {
         .addInterceptor(logging)
         .build()
 
-    private var _url: String = UserPreferences.dohProviderUrl
-    private var _internalDoh: Dns = buildDoh(_url)
+    private var _url: String = ""
+    private var _internalDoh: Dns = Dns.SYSTEM
 
     override fun lookup(hostname: String): List<InetAddress> {
         val providerName = if (_url.isEmpty()) "SYSTEM" else _url

@@ -15,3 +15,4 @@ app/src/main/cpp/native-lib.cpp
 errors*.txt
 app_log.txt
 startup_log.txt
+app/cacheDir/
