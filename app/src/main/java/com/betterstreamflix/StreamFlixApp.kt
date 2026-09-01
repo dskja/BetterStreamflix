@@ -102,12 +102,28 @@ class StreamFlixApp : Application() {
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         FileLogger.i("Init", "✓ DnsResolver set to ${UserPreferences.dohProviderUrl}")
 
+        // Provider DB + caches must be ready before the first Home screen opens.
+        val appContext = applicationContext
+        runCatching { AppDatabase.setup(appContext) }
+            .onSuccess { FileLogger.i("Init", "✓ AppDatabase pre-initialized for ${UserPreferences.currentProvider?.name}") }
+            .onFailure { FileLogger.e("Init", "✗ AppDatabase pre-init FAILED", it) }
+        when (UserPreferences.currentProvider) {
+            SerienStreamProvider -> runCatching { SerienStreamProvider.initialize(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ SerienStreamProvider pre-initialized") }
+                .onFailure { FileLogger.e("Init", "✗ SerienStreamProvider pre-init FAILED", it) }
+            AniWorldProvider -> runCatching { AniWorldProvider.initialize(appContext) }
+                .onSuccess { FileLogger.i("Init", "✓ AniWorldProvider pre-initialized") }
+                .onFailure { FileLogger.e("Init", "✗ AniWorldProvider pre-init FAILED", it) }
+            else -> Unit
+        }
+
         NotificationChannelManager.createChannels(this)
-        NewEpisodeCheckWorker.schedule(this)
+        runCatching { NewEpisodeCheckWorker.schedule(this) }
+            .onSuccess { FileLogger.i("Init", "✓ NewEpisodeCheckWorker scheduled") }
+            .onFailure { FileLogger.e("Init", "✗ NewEpisodeCheckWorker schedule FAILED", it) }
         Media3OfflineDownloads.init(this)
         Media3DownloadSync.attach(this)
 
-        val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L
         FileLogger.i("Init", "isTv=$isTv, cacheThreshold=${threshold}MB")
