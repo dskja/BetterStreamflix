@@ -10,7 +10,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -29,6 +28,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.LinearProgressIndicator
@@ -48,7 +49,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -398,7 +401,8 @@ private fun FilterTabs(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 22.dp),
+            .padding(horizontal = 22.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(22.dp),
     ) {
         DownloadsFilter.entries.forEach { tab ->
@@ -412,10 +416,12 @@ private fun FilterTabs(
             val count = counts[tab] ?: 0
             Column(
                 modifier = Modifier
-                    .clickable(
+                    .selectable(
+                        selected = selected,
+                        role = Role.Tab,
+                        onClick = { onFilter(tab) },
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
-                        onClick = { onFilter(tab) },
                     )
                     .padding(vertical = 6.dp),
             ) {
@@ -529,6 +535,17 @@ private fun DownloadShelfRow(
 ) {
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(task.id) { shown = true }
+    val enterDelay = (index * 40).coerceAtMost(280)
+    val rowAlpha by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(360, delayMillis = enterDelay, easing = FastOutSlowInEasing),
+        label = "downloadRowAlpha",
+    )
+    val rowOffset by animateFloatAsState(
+        targetValue = if (shown) 0f else 12f,
+        animationSpec = tween(360, delayMillis = enterDelay, easing = FastOutSlowInEasing),
+        label = "downloadRowOffset",
+    )
 
     val statusLabel = when (task.status) {
         DownloadManager.DownloadStatus.PENDING -> stringResource(R.string.download_status_pending)
@@ -591,21 +608,17 @@ private fun DownloadShelfRow(
         }
     }
 
-    AnimatedVisibility(
-        visible = shown,
-        enter = fadeIn(tween(360, delayMillis = (index * 40).coerceAtMost(280))) +
-            slideInVertically(
-                animationSpec = tween(360, delayMillis = (index * 40).coerceAtMost(280)),
-                initialOffsetY = { it / 8 },
-            ),
-        exit = fadeOut(),
+    // Keep shelf rows measurable so LazyColumn does not eagerly compose the whole list.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = rowAlpha
+                translationY = rowOffset
+            }
+            .clickable(enabled = task.canOpen, onClick = onOpen)
+            .padding(horizontal = 22.dp, vertical = 16.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = task.canOpen, onClick = onOpen)
-                .padding(horizontal = 22.dp, vertical = 16.dp),
-        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -705,6 +718,5 @@ private fun DownloadShelfRow(
                     .height(1.dp)
                     .background(BsColors.Hairline),
             )
-        }
     }
 }
