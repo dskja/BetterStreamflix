@@ -280,8 +280,10 @@ private fun SettingsHubBody(
                 BsSettingsSectionLabel(title = "Quick access")
             }
             item {
-                BsSettingsActionRow(
+                BsSettingsNavTile(
                     title = stringResource(R.string.downloads_title),
+                    subtitle = stringResource(R.string.downloads_settings_subtitle),
+                    accentHint = "↓",
                     onClick = actions.onOpenDownloads,
                 )
             }
