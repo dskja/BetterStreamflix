@@ -462,7 +462,6 @@
     <string name="downloads_manage">Manage</string>
     <string name="downloads_manage_hide">Hide</string>
     <string name="downloads_settings_subtitle">Offline library &amp; download queue</string>
-    <string name="downloads_library_list">All ready</string>
     <string name="main_menu_downloads">Downloads</string>
     <string name="option_download">Download</string>
 
