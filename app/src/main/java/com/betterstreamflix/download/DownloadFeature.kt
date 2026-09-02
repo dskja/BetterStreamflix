@@ -11,7 +11,11 @@ import androidx.core.content.ContextCompat
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -22,6 +26,8 @@ object DownloadFeature {
     private const val TAG = "DownloadFeature"
     private const val UNIQUE_QUEUE_WORK = "bsf_download_queue"
     const val NOTIFICATION_PERMISSION_REQUEST = 4217
+
+    private val artworkScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun observe(context: Context): Flow<List<DownloadManager.DownloadTask>> =
         DownloadRepository(context).observeTasks()
@@ -69,11 +75,43 @@ object DownloadFeature {
                 artworkUrl = artworkUrl?.takeIf { it.isNotBlank() },
             )
             DownloadManager.addDownload(appContext, task)
+            ensureArtworkCached(appContext, taskId, artworkUrl)
             if (scheduleWorker) scheduleQueueWorker(appContext)
             true
         }.onFailure { e ->
             Log.e(TAG, "enqueue failed", e)
         }.getOrDefault(false)
+    }
+
+    /**
+     * Persist remote poster into durable storage and rewrite [DownloadTask.artworkUrl]
+     * to a local absolute path so the library UI works offline.
+     */
+    fun ensureArtworkCached(context: Context, downloadId: String, artworkUrl: String?) {
+        val source = artworkUrl?.takeIf { it.isNotBlank() } ?: return
+        if (!DownloadArtworkStore.needsRemoteFetch(source)) {
+            // Already local (or missing remote) — still normalize path if file exists under id.
+            val existing = DownloadArtworkStore.artworkFile(context, downloadId)
+            if (existing.exists() && existing.length() > 0L && source != existing.absolutePath) {
+                DownloadManager.updateDownload(context, downloadId) {
+                    it.copy(artworkUrl = existing.absolutePath)
+                }
+            }
+            return
+        }
+        cacheArtworkAsync(context.applicationContext, downloadId, source)
+    }
+
+    /** Backfill local artwork for tasks that still point at remote URLs. */
+    fun ensureArtworkCached(context: Context, tasks: List<DownloadManager.DownloadTask>) {
+        tasks.forEach { ensureArtworkCached(context, it.id, it.artworkUrl) }
+    }
+
+    private fun cacheArtworkAsync(context: Context, downloadId: String, artworkUrl: String) {
+        artworkScope.launch {
+            val local = DownloadArtworkStore.cache(context, downloadId, artworkUrl) ?: return@launch
+            DownloadManager.updateDownload(context, downloadId) { it.copy(artworkUrl = local) }
+        }
     }
 
     fun list(context: Context): List<DownloadManager.DownloadTask> =

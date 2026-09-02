@@ -160,6 +160,7 @@ object DownloadManager {
             Media3OfflineDownloads.requireManager(context).removeDownload(id)
         }
         task?.let { deleteTaskFiles(it) }
+        DownloadArtworkStore.delete(context, id)
         removeDownload(context, id)
         context.getSystemService(android.app.NotificationManager::class.java)
             ?.cancel(id.hashCode())
@@ -174,6 +175,10 @@ object DownloadManager {
             val parent = File(task.filePath).parentFile ?: return@runCatching
             File(parent, "${task.id}.m3u8").delete()
             File(parent, "${task.id}.mpd").delete()
+        }
+        // Also remove local artwork if artworkUrl points into our download tree.
+        task.artworkUrl?.takeIf { it.startsWith("/") }?.let { path ->
+            runCatching { File(path).delete() }
         }
     }
 }

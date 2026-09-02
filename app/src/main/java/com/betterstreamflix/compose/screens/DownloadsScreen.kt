@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -66,6 +67,8 @@ import com.betterstreamflix.compose.components.BsBrandMark
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsDisplayFont
+import com.betterstreamflix.download.DownloadArtworkStore
+import com.betterstreamflix.download.DownloadFeature
 import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.download.DownloadStorageManager
 
@@ -91,6 +94,7 @@ fun DownloadsScreen(
     onRetryFailed: () -> Unit = {},
     onClearFailed: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
     val headerAlpha by animateFloatAsState(
@@ -101,6 +105,7 @@ fun DownloadsScreen(
 
     var filter by remember { mutableStateOf(DownloadsFilter.LIBRARY) }
     var query by remember { mutableStateOf("") }
+    var initialTabChosen by remember { mutableStateOf(false) }
 
     val ready = remember(downloads) {
         downloads.filter { it.status == DownloadManager.DownloadStatus.COMPLETED }
@@ -126,11 +131,31 @@ fun DownloadsScreen(
             .sortedByDescending { it.createdAt }
     }
 
-    // Prefer the most useful tab when opening with content.
-    LaunchedEffect(downloads.size) {
-        if (ready.isEmpty() && queue.isNotEmpty()) filter = DownloadsFilter.QUEUE
-        else if (ready.isEmpty() && queue.isEmpty() && failed.isNotEmpty()) {
-            filter = DownloadsFilter.FAILED
+    // Pick a useful tab once on first non-empty load; afterwards only leave an emptied tab.
+    LaunchedEffect(ready.isEmpty(), queue.isEmpty(), failed.isEmpty(), downloads.isNotEmpty()) {
+        if (downloads.isEmpty()) return@LaunchedEffect
+        if (!initialTabChosen) {
+            filter = when {
+                ready.isNotEmpty() -> DownloadsFilter.LIBRARY
+                queue.isNotEmpty() -> DownloadsFilter.QUEUE
+                failed.isNotEmpty() -> DownloadsFilter.FAILED
+                else -> filter
+            }
+            initialTabChosen = true
+            return@LaunchedEffect
+        }
+        val currentEmpty = when (filter) {
+            DownloadsFilter.LIBRARY -> ready.isEmpty()
+            DownloadsFilter.QUEUE -> queue.isEmpty()
+            DownloadsFilter.FAILED -> failed.isEmpty()
+        }
+        if (currentEmpty) {
+            filter = when {
+                ready.isNotEmpty() -> DownloadsFilter.LIBRARY
+                queue.isNotEmpty() -> DownloadsFilter.QUEUE
+                failed.isNotEmpty() -> DownloadsFilter.FAILED
+                else -> filter
+            }
         }
     }
 
@@ -147,6 +172,11 @@ fun DownloadsScreen(
         ?: queue.firstOrNull()?.artworkUrl
         ?: failed.firstOrNull()?.artworkUrl
 
+    // Persist any remaining remote artwork URLs into durable local storage.
+    LaunchedEffect(downloads.map { it.id to it.artworkUrl }) {
+        DownloadFeature.ensureArtworkCached(context, downloads)
+    }
+
     val storageLabel = when {
         storageUsedBytes <= 0L && storageFreeBytes <= 0L -> null
         storageUsedBytes > 0L && storageFreeBytes > 0L ->
@@ -160,9 +190,10 @@ fun DownloadsScreen(
     BsAtmosphere {
         Box(modifier = Modifier.fillMaxSize()) {
             // Full-bleed cinematic backdrop from first available artwork.
-            if (!heroArtwork.isNullOrBlank()) {
+            val heroModel = DownloadArtworkStore.coilModel(heroArtwork)
+            if (heroModel != null) {
                 AsyncImage(
-                    model = heroArtwork,
+                    model = heroModel,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -582,7 +613,7 @@ private fun OfflinePosterCard(
                 .background(BsColors.InkSoft),
         ) {
             AsyncImage(
-                model = task.artworkUrl,
+                model = DownloadArtworkStore.coilModel(task.artworkUrl),
                 contentDescription = task.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -700,7 +731,7 @@ private fun MediaDownloadRow(
                     .background(BsColors.InkSoft),
             ) {
                 AsyncImage(
-                    model = task.artworkUrl,
+                    model = DownloadArtworkStore.coilModel(task.artworkUrl),
                     contentDescription = task.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
