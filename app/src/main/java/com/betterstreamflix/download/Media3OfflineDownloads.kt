@@ -64,10 +64,9 @@ object Media3OfflineDownloads {
 
     internal fun downloadManagerOrNull(): DownloadManager? = downloadManager
 
-    fun cacheDir(context: Context): File {
-        init(context)
-        return File(context.applicationContext.filesDir, CACHE_DIR)
-    }
+    fun cacheDir(context: Context): File =
+        File(context.applicationContext.filesDir, CACHE_DIR)
+
 
     private fun initializeLocked(appContext: Context) {
         val databaseProvider = StandaloneDatabaseProvider(appContext)

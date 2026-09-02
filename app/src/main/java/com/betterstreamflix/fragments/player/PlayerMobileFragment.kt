@@ -777,7 +777,7 @@ class PlayerMobileFragment : Fragment() {
             Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
             return
         }
-        if (!::player.isInitialized || !player.isPlaying) {
+        if (!::player.isInitialized) {
             Toast.makeText(requireContext(), R.string.download_error_no_url, Toast.LENGTH_SHORT).show()
             return
         }
