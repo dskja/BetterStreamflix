@@ -6,7 +6,7 @@
             <corners android:radius="20dp" />
             <stroke
                 android:width="2dp"
-                android:color="#FFFFFF" />
+                android:color="@color/bs_amber" />
         </shape>
     </item>
     <item android:state_focused="true">
