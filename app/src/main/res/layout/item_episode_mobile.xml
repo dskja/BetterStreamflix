@@ -101,11 +101,30 @@
         android:layout_marginTop="2dp"
         android:layout_marginEnd="10dp"
         android:textSize="12sp"
-        android:maxLines="4"
+        android:maxLines="3"
         android:textColor="#CCCCCC"
         app:layout_constraintTop_toBottomOf="@id/tv_episode_title"
         app:layout_constraintStart_toEndOf="@id/guideline1"
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Overview" />
+
+    <TextView
+        android:id="@+id/btn_episode_download"
+        style="@style/AppTheme.Widget.Mobile.Button.Secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="10dp"
+        android:drawablePadding="6dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="14dp"
+        android:text="@string/download_episode"
+        android:textSize="12sp"
+        app:drawableStartCompat="@drawable/ic_download"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/guideline1"
+        app:layout_constraintTop_toBottomOf="@id/tv_episode_overview" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

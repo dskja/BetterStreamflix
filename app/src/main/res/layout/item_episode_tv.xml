@@ -97,10 +97,24 @@
         android:ellipsize="end"
         android:scrollHorizontally="false"
         android:singleLine="false"
-        android:maxLines="4"
-        app:layout_constraintTop_toBottomOf="@id/tv_episode_title"
+        android:maxLines="3"
+        app:layout_constraintTop_toBottomOf="@id/tv_episode_released"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Overview" />
+
+    <TextView
+        android:id="@+id/btn_episode_download"
+        style="@style/AppTheme.Widget.Tv.Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:text="@string/download_episode"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_episode_overview" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

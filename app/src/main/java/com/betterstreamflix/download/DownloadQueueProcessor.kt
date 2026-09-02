@@ -5,6 +5,7 @@ import androidx.media3.common.util.UnstableApi
 import com.betterstreamflix.download.DownloadRepository.Companion.toTask
 import com.betterstreamflix.utils.Logger
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Download queue processor — processes pending/active tasks.
@@ -16,25 +17,23 @@ class DownloadQueueProcessor(private val context: Context) {
     private val hlsEngine = HlsDownloadEngine(context)
     private val dashEngine = DashDownloadEngine(context)
     private val repository = DownloadRepository(context)
-    private var isProcessing = false
 
     suspend fun processQueue() {
-        if (isProcessing) return
-        isProcessing = true
-
+        if (!processing.compareAndSet(false, true)) return
         try {
             val activeDownloads = DownloadManager.getActiveDownloads(context)
             for (task in activeDownloads) {
                 val latest = repository.getById(task.id)?.toTask() ?: continue
                 if (latest.status == DownloadManager.DownloadStatus.PAUSED ||
-                    latest.status == DownloadManager.DownloadStatus.CANCELLED
+                    latest.status == DownloadManager.DownloadStatus.CANCELLED ||
+                    latest.status == DownloadManager.DownloadStatus.COMPLETED
                 ) {
                     continue
                 }
                 processTask(latest)
             }
         } finally {
-            isProcessing = false
+            processing.set(false)
         }
     }
 
@@ -149,5 +148,10 @@ class DownloadQueueProcessor(private val context: Context) {
         DownloadManager.getActiveDownloads(context).forEach { task ->
             DownloadManager.cancelDownload(context, task.id)
         }
+    }
+
+    companion object {
+        /** Process-wide gate so concurrent workers cannot truncate the same file. */
+        private val processing = AtomicBoolean(false)
     }
 }

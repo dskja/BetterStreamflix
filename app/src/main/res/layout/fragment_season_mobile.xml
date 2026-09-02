@@ -35,7 +35,7 @@
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@id/btn_season_dropdown"
+        app:layout_constraintEnd_toStartOf="@id/btn_season_search"
         app:layout_constraintStart_toEndOf="@id/btn_season_back"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Staffel 1" />
@@ -93,9 +93,25 @@
         android:src="@drawable/ic_search"
         android:tint="?android:attr/textColorSecondary"
         app:layout_constraintBottom_toBottomOf="@id/tv_season_title"
-        app:layout_constraintEnd_toStartOf="@id/btn_season_dropdown"
+        app:layout_constraintEnd_toStartOf="@id/btn_season_download_all"
         app:layout_constraintTop_toTopOf="@id/tv_season_title"
         tools:ignore="ContentDescription,UseAppTint" />
+
+    <ImageView
+        android:id="@+id/btn_season_download_all"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/download_season_all"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_download"
+        android:tint="?android:attr/textColorSecondary"
+        app:layout_constraintBottom_toBottomOf="@id/tv_season_title"
+        app:layout_constraintEnd_toStartOf="@id/btn_season_dropdown"
+        app:layout_constraintTop_toTopOf="@id/tv_season_title"
+        tools:ignore="UseAppTint" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_episodes"

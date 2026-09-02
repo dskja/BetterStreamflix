@@ -23,10 +23,11 @@
         android:icon="@drawable/ic_menu_tv"
         android:title="@string/main_menu_tv_shows" />
 
+    <!-- BottomNavigationView max is 6; Favorites remain on Home + nav graph. -->
     <item
-        android:id="@id/favorites"
-        android:icon="@drawable/ic_favorite_enable"
-        android:title="@string/main_menu_favorites" />
+        android:id="@id/downloads"
+        android:icon="@drawable/ic_menu_downloads"
+        android:title="@string/downloads_title" />
 
     <item
         android:id="@id/settings"

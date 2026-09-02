@@ -17,6 +17,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.databinding.FragmentSeasonTvBinding
+import com.betterstreamflix.download.DownloadEnqueueHelper
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.LoggingUtils
@@ -42,6 +43,7 @@ class SeasonTvFragment : Fragment() {
     }
 
     private val appAdapter = AppAdapter()
+    private var allEpisodes: List<Episode> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,6 +69,7 @@ class SeasonTvFragment : Fragment() {
                     }
 
                     is SeasonViewModel.State.SuccessLoadingEpisodes -> {
+                        allEpisodes = state.episodes
                         displaySeason(state.episodes)
                         binding.isLoading.root.visibility = View.GONE
                     }
@@ -115,6 +118,10 @@ class SeasonTvFragment : Fragment() {
     private fun initializeSeason() {
         binding.tvSeasonTitle.text = args.seasonTitle
 
+        binding.btnSeasonDownloadAll.setOnClickListener {
+            requestDownloadSeason()
+        }
+
         binding.hgvEpisodes.apply {
             adapter = appAdapter.apply {
                 stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
@@ -160,6 +167,27 @@ class SeasonTvFragment : Fragment() {
         })
     }
 
+    fun requestDownload(episode: Episode) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+            DownloadEnqueueHelper.enqueueEpisode(requireContext(), episode)
+        }
+    }
 
-
+    fun requestDownloadSeason() {
+        if (allEpisodes.isEmpty()) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+            val started = DownloadEnqueueHelper.enqueueEpisodes(requireContext(), allEpisodes)
+            Toast.makeText(
+                requireContext(),
+                if (started > 0) {
+                    getString(R.string.download_season_started, started)
+                } else {
+                    getString(R.string.download_season_none)
+                },
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
 }

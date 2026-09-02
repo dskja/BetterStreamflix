@@ -19,6 +19,8 @@ import com.betterstreamflix.models.Movie
 import com.betterstreamflix.utils.LoggingUtils
 import com.betterstreamflix.utils.loadMovieBanner
 import com.betterstreamflix.utils.viewModelsFactory
+import com.betterstreamflix.R
+import com.betterstreamflix.download.DownloadEnqueueHelper
 import kotlinx.coroutines.launch
 
 class MovieTvFragment : Fragment() {
@@ -117,6 +119,13 @@ class MovieTvFragment : Fragment() {
                 ?.copy()
                 ?.apply { itemType = AppAdapter.Type.MOVIE_RECOMMENDATIONS_TV },
         ))
+    }
+
+    fun requestDownload(movie: Movie) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+            DownloadEnqueueHelper.enqueueMovie(requireContext(), movie)
+        }
     }
 }
 

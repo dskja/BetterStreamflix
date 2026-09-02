@@ -12,7 +12,7 @@ import java.net.URL
 import kotlin.coroutines.coroutineContext
 
 /**
- * Progressive HTTP download executor with cooperative cancel/pause.
+ * Progressive HTTP download executor with cooperative cancel/pause and resume.
  */
 class DownloadExecutor(private val context: Context) {
 
@@ -37,23 +37,41 @@ class DownloadExecutor(private val context: Context) {
             var connection: HttpURLConnection? = null
             try {
                 outputFile.parentFile?.mkdirs()
+                val existingBytes = outputFile.takeIf { it.exists() }?.length()?.coerceAtLeast(0L) ?: 0L
+
                 connection = (URL(url).openConnection() as? HttpURLConnection)?.apply {
                     requestMethod = "GET"
                     connectTimeout = Constants.NETWORK_TIMEOUT_MS
                     readTimeout = Constants.NETWORK_TIMEOUT_MS
                     setRequestProperty("User-Agent", Constants.USER_AGENT)
+                    if (existingBytes > 0L) {
+                        setRequestProperty("Range", "bytes=$existingBytes-")
+                    }
                 } ?: return@withContext Result.failure(Exception("Failed to open HTTP connection"))
 
                 val responseCode = connection.responseCode
-                if (responseCode !in 200..299) {
-                    return@withContext Result.failure(Exception("HTTP $responseCode"))
+                val append = when (responseCode) {
+                    206 -> true
+                    in 200..299 -> {
+                        // Server ignored Range — restart from scratch to avoid corruption.
+                        if (existingBytes > 0L) {
+                            outputFile.delete()
+                        }
+                        false
+                    }
+                    else -> return@withContext Result.failure(Exception("HTTP $responseCode"))
                 }
 
-                val totalBytes = connection.contentLengthLong.coerceAtLeast(0L)
-                var downloadedBytes = 0L
+                val contentLength = connection.contentLengthLong.coerceAtLeast(0L)
+                val totalBytes = when {
+                    append && contentLength > 0L -> existingBytes + contentLength
+                    contentLength > 0L -> contentLength
+                    else -> 0L
+                }
+                var downloadedBytes = if (append) existingBytes else 0L
 
                 connection.inputStream.use { input ->
-                    FileOutputStream(outputFile).use { output ->
+                    FileOutputStream(outputFile, append).use { output ->
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         while (input.read(buffer).also { bytesRead = it } != -1) {
@@ -81,7 +99,7 @@ class DownloadExecutor(private val context: Context) {
             } catch (e: AbortedException) {
                 Result.failure(e)
             } catch (e: Exception) {
-                outputFile.delete()
+                // Keep partial file on unexpected errors so resume can continue.
                 Result.failure(e)
             } finally {
                 connection?.disconnect()

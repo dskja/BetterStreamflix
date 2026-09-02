@@ -155,6 +155,15 @@ class EpisodeViewHolder(
             }
         }
         binding.tvEpisodeOverview.text = episode.overview ?: ""
+
+        binding.btnEpisodeDownload.apply {
+            setOnClickListener {
+                when (val fragment = context.toActivity()?.getCurrentFragment()) {
+                    is com.betterstreamflix.fragments.season.SeasonMobileFragment ->
+                        fragment.requestDownload(episode)
+                }
+            }
+        }
     }
 
     private fun displayTvItem(binding: ItemEpisodeTvBinding) {
@@ -268,6 +277,15 @@ class EpisodeViewHolder(
             }
         }
         binding.tvEpisodeOverview.text = episode.overview ?: ""
+
+        binding.btnEpisodeDownload.apply {
+            setOnClickListener {
+                when (val fragment = context.toActivity()?.getCurrentFragment()) {
+                    is com.betterstreamflix.fragments.season.SeasonTvFragment ->
+                        fragment.requestDownload(episode)
+                }
+            }
+        }
     }
 
     private fun displayContinueWatchingMobileItem(binding: ItemEpisodeContinueWatchingMobileBinding) {

@@ -967,6 +967,14 @@ class MovieViewHolder(
             }
         }
 
+        binding.btnMovieDownload.apply {
+            setOnClickListener {
+                when (val fragment = context.toActivity()?.getCurrentFragment()) {
+                    is MovieTvFragment -> fragment.requestDownload(movie)
+                }
+            }
+        }
+
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
 

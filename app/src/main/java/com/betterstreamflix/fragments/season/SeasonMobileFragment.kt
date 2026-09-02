@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.databinding.FragmentSeasonMobileBinding
+import com.betterstreamflix.download.DownloadEnqueueHelper
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Season
 import com.betterstreamflix.ui.SpacingItemDecoration
@@ -26,6 +27,7 @@ import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.LoggingUtils
 import com.betterstreamflix.utils.dp
 import com.betterstreamflix.utils.viewModelsFactory
+import com.betterstreamflix.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -144,6 +146,10 @@ class SeasonMobileFragment : Fragment() {
             showSeasonDropdown()
         }
 
+        binding.btnSeasonDownloadAll.setOnClickListener {
+            requestDownloadSeason()
+        }
+
         searchWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -235,6 +241,30 @@ class SeasonMobileFragment : Fragment() {
                     binding.rvEpisodes.height / 2 - 100.dp(requireContext())
                 )
             }
+        }
+    }
+
+    fun requestDownload(episode: Episode) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+            DownloadEnqueueHelper.enqueueEpisode(requireContext(), episode)
+        }
+    }
+
+    fun requestDownloadSeason() {
+        if (allEpisodes.isEmpty()) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+            val started = DownloadEnqueueHelper.enqueueEpisodes(requireContext(), allEpisodes)
+            Toast.makeText(
+                requireContext(),
+                if (started > 0) {
+                    getString(R.string.download_season_started, started)
+                } else {
+                    getString(R.string.download_season_none)
+                },
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 }

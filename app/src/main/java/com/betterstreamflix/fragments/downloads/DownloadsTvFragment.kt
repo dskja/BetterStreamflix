@@ -53,16 +53,13 @@ class DownloadsTvFragment : Fragment() {
                     onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
                     onOpen = { task -> OfflinePlaybackHelper.playLocal(requireContext(), task) },
                     onPause = { task -> DownloadManager.pauseDownload(requireContext(), task.id) },
-                    onResume = { task ->
-                        DownloadManager.resumeDownload(requireContext(), task.id)
-                        DownloadFeature.retry(requireContext(), task.id)
-                    },
+                    onResume = { task -> DownloadFeature.retry(requireContext(), task.id) },
                     onCancel = { task -> DownloadManager.cancelDownload(requireContext(), task.id) },
-                    onClearCompleted = {
-                        downloads
-                            .filter { it.status == DownloadManager.DownloadStatus.COMPLETED }
-                            .forEach { DownloadManager.cancelDownload(requireContext(), it.id) }
-                    },
+                    onClearCompleted = { DownloadFeature.clearCompleted(requireContext()) },
+                    onPauseAll = { DownloadFeature.pauseAllActive(requireContext()) },
+                    onResumeAll = { DownloadFeature.resumeAllPaused(requireContext()) },
+                    onRetryFailed = { DownloadFeature.retryAllFailed(requireContext()) },
+                    onClearFailed = { DownloadFeature.clearFailed(requireContext()) },
                 )
             }
         }
