@@ -11,7 +11,7 @@ import com.betterstreamflix.utils.toActivity
 class ProviderMarketplaceFragment : ComposeHostFragment() {
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         ProviderMarketplaceScreen(
             onProviderSelected = ::selectProvider,
         )
