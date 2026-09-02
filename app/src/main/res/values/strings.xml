@@ -427,7 +427,7 @@
     <string name="downloads_title">Downloads</string>
     <string name="downloads_summary">Manage offline downloads</string>
     <string name="downloads_empty_title">No downloads yet</string>
-    <string name="downloads_empty_message">Start a download from the player while a stream is loaded, or from a movie page.</string>
+    <string name="downloads_empty_message">Download movies from detail pages, episodes from a season list, or the current stream in the player.</string>
     <string name="downloads_section_active">In progress</string>
     <string name="downloads_section_ready">Ready to watch</string>
     <string name="downloads_section_failed">Needs attention</string>
@@ -442,6 +442,26 @@
     <string name="download_retry">Retry</string>
     <string name="download_delete">Delete</string>
     <string name="download_not_ready">This download is not ready to play yet</string>
+    <string name="download_episode">Download</string>
+    <string name="download_season_all">Download season</string>
+    <string name="download_season_started">Started %1$d downloads</string>
+    <string name="download_season_none">No new episodes to download</string>
+    <string name="download_already_queued">Already in downloads</string>
+    <string name="download_starting">Starting download…</string>
+    <string name="downloads_filter_all">All</string>
+    <string name="downloads_filter_active">Active</string>
+    <string name="downloads_filter_ready">Ready</string>
+    <string name="downloads_filter_failed">Failed</string>
+    <string name="downloads_search_hint">Search downloads…</string>
+    <string name="downloads_pause_all">Pause all</string>
+    <string name="downloads_resume_all">Resume all</string>
+    <string name="downloads_retry_failed">Retry failed</string>
+    <string name="downloads_clear_failed">Clear failed</string>
+    <string name="downloads_no_matches">No downloads match your filter</string>
+    <string name="downloads_count_summary">%1$d offline · %2$d in progress</string>
+    <string name="main_menu_downloads">Downloads</string>
+    <string name="option_download">Download</string>
+
     <string name="download_progress_unknown">Downloading…</string>
     <string name="download_progress_percent">%1$d%%</string>
     <string name="download_size_progress">%1$s / %2$s</string>

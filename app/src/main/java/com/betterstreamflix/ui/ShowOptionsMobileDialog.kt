@@ -12,6 +12,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.databinding.DialogShowOptionsMobileBinding
+import com.betterstreamflix.download.DownloadEnqueueHelper
 import com.betterstreamflix.fragments.home.HomeMobileFragment
 import com.betterstreamflix.fragments.home.HomeMobileFragmentDirections
 import com.betterstreamflix.models.Episode
@@ -120,6 +121,18 @@ class ShowOptionsMobileDialog(
         }
 
         binding.btnOptionShowFavorite.visibility = View.GONE
+
+        binding.btnOptionDownload.apply {
+            visibility = View.VISIBLE
+            setOnClickListener {
+                checkProviderAndRun(episode) {
+                    context.toActivity()?.lifecycleScope?.launch {
+                        DownloadEnqueueHelper.enqueueEpisode(context, episode)
+                    }
+                }
+                hide()
+            }
+        }
 
         binding.btnOptionShowWatched.apply {
             setOnClickListener {
@@ -260,6 +273,18 @@ class ShowOptionsMobileDialog(
 
         binding.btnOptionEpisodeOpenTvShow.visibility = View.GONE
 
+        binding.btnOptionDownload.apply {
+            visibility = View.VISIBLE
+            setOnClickListener {
+                checkProviderAndRun(movie) {
+                    context.toActivity()?.lifecycleScope?.launch {
+                        DownloadEnqueueHelper.enqueueMovie(context, movie)
+                    }
+                }
+                hide()
+            }
+        }
+
         val freshMovie = database.movieDao().getById(movie.id) ?: movie
 
         binding.btnOptionShowFavorite.apply {
@@ -370,6 +395,8 @@ class ShowOptionsMobileDialog(
 
 
         binding.btnOptionEpisodeOpenTvShow.visibility = View.GONE
+
+        binding.btnOptionDownload.visibility = View.GONE
 
         val freshTvShow = database.tvShowDao().getById(tvShow.id) ?: tvShow
 

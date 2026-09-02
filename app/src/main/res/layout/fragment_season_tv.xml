@@ -19,11 +19,24 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Season #" />
 
+    <TextView
+        android:id="@+id/btn_season_download_all"
+        style="@style/AppTheme.Widget.Tv.Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:text="@string/download_season_all"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+
     <androidx.leanback.widget.HorizontalGridView
         android:id="@+id/hgv_episodes"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="16dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingStart="40dp"
@@ -33,7 +46,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_season_title"
+        app:layout_constraintTop_toBottomOf="@id/btn_season_download_all"
         tools:listitem="@layout/item_episode_tv" />
 
     <include
