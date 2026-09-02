@@ -10,10 +10,17 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 
+/**
+ * Host for Compose screens.
+ *
+ * IMPORTANT: Do not name the screen composable `Content()` — that clashes with
+ * [ComposeView.Content] inside [ComposeView.setContent] and causes infinite
+ * recomposition / StackOverflowError on startup.
+ */
 abstract class ComposeHostFragment : Fragment() {
 
     @Composable
-    abstract fun Content()
+    abstract fun ScreenContent()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -23,7 +30,7 @@ abstract class ComposeHostFragment : Fragment() {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         setContent {
             BetterStreamflixTheme {
-                Content()
+                ScreenContent()
             }
         }
     }
