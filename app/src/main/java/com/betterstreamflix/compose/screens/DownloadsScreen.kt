@@ -69,7 +69,9 @@ import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsDisplayFont
 import com.betterstreamflix.download.DownloadArtworkStore
 import com.betterstreamflix.download.DownloadFeature
+import com.betterstreamflix.download.DownloadLiveStats
 import com.betterstreamflix.download.DownloadManager
+import com.betterstreamflix.download.DownloadProgressTracker
 import com.betterstreamflix.download.DownloadStorageManager
 
 enum class DownloadsFilter {
@@ -83,7 +85,7 @@ fun DownloadsScreen(
     downloads: List<DownloadManager.DownloadTask>,
     storageUsedBytes: Long = 0,
     storageFreeBytes: Long = 0,
-    onBack: () -> Unit = {},
+    liveSpeeds: Map<String, Long> = emptyMap(),
     onOpen: (DownloadManager.DownloadTask) -> Unit = {},
     onPause: (DownloadManager.DownloadTask) -> Unit = {},
     onResume: (DownloadManager.DownloadTask) -> Unit = {},
@@ -106,6 +108,7 @@ fun DownloadsScreen(
     var filter by remember { mutableStateOf(DownloadsFilter.LIBRARY) }
     var query by remember { mutableStateOf("") }
     var initialTabChosen by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     val ready = remember(downloads) {
         downloads.filter { it.status == DownloadManager.DownloadStatus.COMPLETED }
@@ -264,7 +267,24 @@ fun DownloadsScreen(
                             color = BsColors.MistDim,
                         )
                     }
-                    BsGhostButton(text = "‹", onClick = onBack)
+                    BsGhostButton(
+                        text = "⚙",
+                        onClick = { showSettings = true },
+                    )
+                }
+
+                if (showSettings) {
+                    DownloadSettingsSheet(
+                        onDismiss = { showSettings = false },
+                        onClearCompleted = {
+                            onClearCompleted()
+                            showSettings = false
+                        },
+                        onClearFailed = {
+                            onClearFailed()
+                            showSettings = false
+                        },
+                    )
                 }
 
                 if (downloads.isEmpty()) {
@@ -298,6 +318,7 @@ fun DownloadsScreen(
                         )
                         DownloadsFilter.QUEUE -> QueuePane(
                             items = queueView,
+                            liveSpeeds = liveSpeeds,
                             onOpen = onOpen,
                             onPause = onPause,
                             onResume = onResume,
@@ -495,6 +516,7 @@ private fun LibraryPane(
 @Composable
 private fun QueuePane(
     items: List<DownloadManager.DownloadTask>,
+    liveSpeeds: Map<String, Long> = emptyMap(),
     onOpen: (DownloadManager.DownloadTask) -> Unit,
     onPause: (DownloadManager.DownloadTask) -> Unit,
     onResume: (DownloadManager.DownloadTask) -> Unit,
@@ -536,6 +558,7 @@ private fun QueuePane(
                 MediaDownloadRow(
                     task = task,
                     index = index,
+                    liveSpeedBytesPerSec = liveSpeeds[task.id] ?: 0L,
                     primary = primary,
                     secondary = stringResource(R.string.download_cancel) to { onCancel(task) },
                     onOpen = { if (task.canOpen) onOpen(task) },
@@ -661,6 +684,7 @@ private fun OfflinePosterCard(
 private fun MediaDownloadRow(
     task: DownloadManager.DownloadTask,
     index: Int,
+    liveSpeedBytesPerSec: Long = 0L,
     primary: Pair<String, () -> Unit>,
     secondary: Pair<String, () -> Unit>,
     onOpen: () -> Unit,
@@ -708,6 +732,24 @@ private fun MediaDownloadRow(
             append("  ·  ")
             append(sizeLabel)
         }
+    }
+    val liveStatsLabel = when {
+        task.status == DownloadManager.DownloadStatus.DOWNLOADING && liveSpeedBytesPerSec > 0L -> {
+            val percent = (task.progressFraction * 100).toInt().coerceIn(0, 100)
+            val eta = DownloadLiveStats.etaSeconds(task.id, task.downloadedBytes, task.fileSize)
+            val etaLabel = if (eta > 0L) DownloadProgressTracker.formatEta(eta) else "—"
+            stringResource(
+                R.string.download_live_stats,
+                DownloadProgressTracker.formatSpeed(liveSpeedBytesPerSec),
+                percent,
+                etaLabel,
+            )
+        }
+        task.status == DownloadManager.DownloadStatus.DOWNLOADING && task.fileSize > 0L -> {
+            val percent = (task.progressFraction * 100).toInt().coerceIn(0, 100)
+            "$percent%"
+        }
+        else -> null
     }
 
     Column(
@@ -757,6 +799,14 @@ private fun MediaDownloadRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (!liveStatsLabel.isNullOrBlank()) {
+                    Text(
+                        text = liveStatsLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = BsColors.AmberBright,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 if (!task.errorMessage.isNullOrBlank()) {
                     Text(
                         text = task.errorMessage,

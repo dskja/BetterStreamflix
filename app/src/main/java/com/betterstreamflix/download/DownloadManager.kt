@@ -161,6 +161,7 @@ object DownloadManager {
         }
         task?.let { deleteTaskFiles(it) }
         DownloadArtworkStore.delete(context, id)
+        DownloadLiveStats.clear(id)
         removeDownload(context, id)
         context.getSystemService(android.app.NotificationManager::class.java)
             ?.cancel(id.hashCode())

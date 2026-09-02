@@ -101,6 +101,7 @@ class DownloadQueueProcessor(private val context: Context) {
                     shouldAbort = { DownloadManager.httpShouldAbort(task.id) },
                     deleteOnAbort = false,
                 ) { progress ->
+                    DownloadLiveStats.record(task.id, progress.downloadedBytes)
                     DownloadManager.updateProgress(
                         context,
                         task.id,

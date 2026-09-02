@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.betterstreamflix.compose.screens.DownloadsScreen
 import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 import com.betterstreamflix.download.DownloadFeature
+import com.betterstreamflix.download.DownloadLiveStats
 import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.download.DownloadRepository
 import com.betterstreamflix.download.DownloadStorageManager
@@ -40,6 +41,7 @@ class DownloadsTvFragment : Fragment() {
             BetterStreamflixTheme {
                 val downloads by repository.observeTasks()
                     .collectAsStateWithLifecycle(initialValue = emptyList())
+                val liveSpeeds by DownloadLiveStats.speeds.collectAsStateWithLifecycle(initialValue = emptyMap())
                 val storageUsed = remember(downloads) {
                     DownloadStorageManager.getDownloadSize(requireContext())
                 }
@@ -50,7 +52,7 @@ class DownloadsTvFragment : Fragment() {
                     downloads = downloads,
                     storageUsedBytes = storageUsed,
                     storageFreeBytes = storageFree,
-                    onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
+                    liveSpeeds = liveSpeeds,
                     onOpen = { task -> OfflinePlaybackHelper.playLocal(requireContext(), task) },
                     onPause = { task -> DownloadManager.pauseDownload(requireContext(), task.id) },
                     onResume = { task -> DownloadFeature.retry(requireContext(), task.id) },

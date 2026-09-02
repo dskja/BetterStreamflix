@@ -29,6 +29,7 @@ import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.utils.UserPreferences
 
 @Composable
 fun HomeScreen(
@@ -91,9 +92,12 @@ fun HomeScreen(
                             else -> stringResource(R.string.home_hero_fallback_title)
                         }.ifBlank { stringResource(R.string.home_hero_fallback_title) }
                         val heroImage = featured?.let(::posterOf)
+                        val providerName = UserPreferences.currentProvider?.name
                         BsHeroBanner(
                             title = heroTitle,
-                            subtitle = stringResource(R.string.home_hero_subtitle),
+                            subtitle = providerName?.let {
+                                stringResource(R.string.home_hero_provider_subtitle, it)
+                            } ?: stringResource(R.string.home_hero_subtitle),
                             imageUrl = heroImage,
                             ctaLabel = if (featured != null) {
                                 stringResource(R.string.home_hero_open_now)
@@ -113,6 +117,7 @@ fun HomeScreen(
                             title = category.name.ifBlank { stringResource(R.string.home_featured_fallback) },
                             items = category.list,
                             labelOf = ::itemLabel,
+                            showProgress = category.name == Category.CONTINUE_WATCHING,
                             onItemClick = onItemClick,
                         )
                     }

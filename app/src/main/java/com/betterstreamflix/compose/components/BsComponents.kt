@@ -56,6 +56,7 @@ import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.utils.format
 
 @Composable
 fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
@@ -240,7 +241,9 @@ fun BsContentRow(
     modifier: Modifier = Modifier,
     imageOf: (AppAdapter.Item) -> String? = { posterOf(it) },
     onItemClick: (AppAdapter.Item) -> Unit = {},
+    showProgress: Boolean = false,
 ) {
+    if (items.isEmpty()) return
     Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp)) {
         Text(
             text = title.uppercase(),
@@ -253,13 +256,121 @@ fun BsContentRow(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             itemsIndexed(items, key = { index, item -> "${itemKey(item)}#$index" }) { _, item ->
-                BsPosterCard(
-                    title = labelOf(item),
-                    imageUrl = imageOf(item),
-                    onClick = { onItemClick(item) },
+                if (showProgress) {
+                    BsContinueWatchingCard(
+                        title = labelOf(item),
+                        imageUrl = imageOf(item),
+                        progress = progressOf(item),
+                        subtitle = continueSubtitleOf(item),
+                        onClick = { onItemClick(item) },
+                    )
+                } else {
+                    BsPosterCard(
+                        title = labelOf(item),
+                        imageUrl = imageOf(item),
+                        onClick = { onItemClick(item) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+fun progressOf(item: AppAdapter.Item): Float? = when (item) {
+    is Movie -> item.watchHistory?.let { history ->
+        if (history.durationMillis > 0L) {
+            (history.lastPlaybackPositionMillis.toFloat() / history.durationMillis).coerceIn(0f, 1f)
+        } else null
+    }
+    is Episode -> item.watchHistory?.let { history ->
+        if (history.durationMillis > 0L) {
+            (history.lastPlaybackPositionMillis.toFloat() / history.durationMillis).coerceIn(0f, 1f)
+        } else null
+    }
+    else -> null
+}
+
+fun continueSubtitleOf(item: AppAdapter.Item): String? = when (item) {
+    is Episode -> {
+        val season = item.season?.number?.takeIf { it > 0 }
+        when {
+            season != null -> "S$season E${item.number}"
+            item.number > 0 -> "E${item.number}"
+            else -> null
+        }
+    }
+    is Movie -> item.released?.format("yyyy")
+    else -> null
+}
+
+@Composable
+fun BsContinueWatchingCard(
+    title: String,
+    imageUrl: String?,
+    progress: Float?,
+    subtitle: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.05f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "cwScale",
+    )
+    Column(
+        modifier = modifier
+            .width(148.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(BsColors.InkSoft),
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            if (progress != null && progress > 0f) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .align(Alignment.BottomCenter),
+                    color = BsColors.Amber,
+                    trackColor = Color(0x6607090D),
                 )
             }
         }
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = BsColors.AmberBright,
+                modifier = Modifier.padding(top = 6.dp, start = 2.dp),
+            )
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = BsColors.Mist,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp, start = 2.dp, end = 2.dp),
+        )
     }
 }
 

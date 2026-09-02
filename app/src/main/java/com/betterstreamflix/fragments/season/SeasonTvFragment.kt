@@ -1,5 +1,6 @@
 package com.betterstreamflix.fragments.season
 
+import androidx.appcompat.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -176,18 +177,31 @@ class SeasonTvFragment : Fragment() {
 
     fun requestDownloadSeason() {
         if (allEpisodes.isEmpty()) return
-        viewLifecycleOwner.lifecycleScope.launch {
-            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
-            val started = DownloadEnqueueHelper.enqueueEpisodes(requireContext(), allEpisodes)
-            Toast.makeText(
-                requireContext(),
-                if (started > 0) {
-                    getString(R.string.download_season_started, started)
-                } else {
-                    getString(R.string.download_season_none)
-                },
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.download_season_all)
+            .setMessage(
+                getString(
+                    R.string.download_season_all_confirm,
+                    allEpisodes.size,
+                    args.seasonTitle,
+                ),
+            )
+            .setPositiveButton(R.string.download_season_all) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+                    val started = DownloadEnqueueHelper.enqueueEpisodes(requireContext(), allEpisodes)
+                    Toast.makeText(
+                        requireContext(),
+                        if (started > 0) {
+                            getString(R.string.download_season_started, started)
+                        } else {
+                            getString(R.string.download_season_none)
+                        },
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 }

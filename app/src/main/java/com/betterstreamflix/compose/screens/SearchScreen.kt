@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -25,6 +26,7 @@ import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 
@@ -78,12 +80,32 @@ fun SearchScreen(
                     modifier = Modifier.padding(top = 24.dp),
                 )
                 results.isNotEmpty() -> {
+                    val genreResults = results.filterIsInstance<Genre>()
+                    val mediaResults = results.filter { it !is Genre }
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(top = 8.dp),
                     ) {
-                        items(results, key = { resultKey(it) }) { item ->
+                        if (genreResults.isNotEmpty()) {
+                            item(key = "browse-genres-header") {
+                                Text(
+                                    text = stringResource(R.string.genres_hub_browse),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = BsColors.Mist,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                )
+                            }
+                            items(genreResults, key = { "genre:${it.id}" }) { genre ->
+                                BsSearchResultRow(
+                                    title = genre.name,
+                                    subtitle = stringResource(R.string.search_genre_browse),
+                                    imageUrl = null,
+                                    onClick = { onResultClick(genre) },
+                                )
+                            }
+                        }
+                        items(mediaResults, key = { resultKey(it) }) { item ->
                             BsSearchResultRow(
                                 title = resultLabel(item),
                                 subtitle = resultSubtitle(item),
@@ -101,17 +123,20 @@ fun SearchScreen(
 private fun resultKey(item: AppAdapter.Item): String = when (item) {
     is Movie -> "movie:${item.id}"
     is TvShow -> "tv:${item.id}"
+    is Genre -> "genre:${item.id}"
     else -> item.hashCode().toString()
 }
 
 private fun resultLabel(item: AppAdapter.Item): String = when (item) {
     is Movie -> item.title.ifBlank { item.id }
     is TvShow -> item.title.ifBlank { item.id }
+    is Genre -> item.name.ifBlank { item.id }
     else -> item.toString()
 }
 
 private fun resultSubtitle(item: AppAdapter.Item): String? = when (item) {
     is Movie -> item.providerName
     is TvShow -> item.providerName
+    is Genre -> null
     else -> null
 }
