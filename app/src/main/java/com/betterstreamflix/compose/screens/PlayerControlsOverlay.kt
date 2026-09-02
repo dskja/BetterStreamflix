@@ -1,5 +1,6 @@
 package com.betterstreamflix.compose.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,11 +12,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.fragments.player.PlayerPlaybackController
 import kotlin.math.max
 
@@ -32,7 +35,8 @@ fun PlayerControlsOverlay(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .background(BsColors.ScrimBottom)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
@@ -45,17 +49,20 @@ fun PlayerControlsOverlay(
                     Text(
                         text = "❚❚",
                         style = MaterialTheme.typography.titleMedium,
+                        color = BsColors.Amber,
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Play",
+                        tint = BsColors.Amber,
                     )
                 }
             }
             Text(
                 text = formatPlaybackTime(state.positionMs),
                 style = MaterialTheme.typography.bodySmall,
+                color = BsColors.MistDim,
             )
             Slider(
                 modifier = Modifier.weight(1f),
@@ -63,17 +70,23 @@ fun PlayerControlsOverlay(
                 onValueChange = { fraction ->
                     onSeek((fraction * durationMs).toLong())
                 },
+                colors = SliderDefaults.colors(
+                    thumbColor = BsColors.Amber,
+                    activeTrackColor = BsColors.Amber,
+                    inactiveTrackColor = BsColors.InkSoft,
+                ),
             )
             Text(
                 text = formatPlaybackTime(state.durationMs),
                 style = MaterialTheme.typography.bodySmall,
+                color = BsColors.MistDim,
             )
         }
         if (state.isBuffering) {
             Text(
                 text = "Buffering…",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = BsColors.AmberBright,
             )
         }
     }

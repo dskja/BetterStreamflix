@@ -12,7 +12,7 @@
         android:layout_marginStart="70dp"
         android:layout_marginEnd="70dp"
         android:text="@string/tv_show_you_may_also_like"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/bs_mist"
         android:textSize="22sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"

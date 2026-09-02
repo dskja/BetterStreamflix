@@ -32,8 +32,8 @@ android {
         applicationId "com.betterstreamflix"
         minSdk 21
         targetSdk 35
-        versionCode 2
-        versionName "1.1.0"
+        versionCode 3
+        versionName "2.0.0"
 
         buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT")}\""
         buildConfigField "String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\""
@@ -158,6 +158,8 @@ dependencies {
     implementation libs.androidx.activity.compose
     implementation libs.androidx.lifecycle.runtime.compose
     implementation libs.androidx.navigation.compose
+    implementation 'io.coil-kt:coil-compose:2.7.0'
+    implementation 'androidx.compose.animation:animation'
     debugImplementation 'androidx.compose.ui:ui-tooling'
 
     implementation libs.media3.datasource.okhttp
