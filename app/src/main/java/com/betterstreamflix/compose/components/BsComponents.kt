@@ -9,6 +9,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -240,7 +242,8 @@ fun BsContentRow(
     labelOf: (AppAdapter.Item) -> String,
     modifier: Modifier = Modifier,
     imageOf: (AppAdapter.Item) -> String? = { posterOf(it) },
-    onItemClick: (AppAdapter.Item) -> Unit = {},
+    onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
+    onItemLongClick: (AppAdapter.Item) -> Unit = {},
     showProgress: Boolean = false,
 ) {
     if (items.isEmpty()) return
@@ -262,13 +265,15 @@ fun BsContentRow(
                         imageUrl = imageOf(item),
                         progress = progressOf(item),
                         subtitle = continueSubtitleOf(item),
-                        onClick = { onItemClick(item) },
+                        onClick = { onItemClick(item, showProgress) },
+                        onLongClick = { onItemLongClick(item) },
                     )
                 } else {
                     BsPosterCard(
                         title = labelOf(item),
                         imageUrl = imageOf(item),
-                        onClick = { onItemClick(item) },
+                        onClick = { onItemClick(item, showProgress) },
+                        onLongClick = { onItemLongClick(item) },
                     )
                 }
             }
@@ -303,6 +308,7 @@ fun continueSubtitleOf(item: AppAdapter.Item): String? = when (item) {
     else -> null
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BsContinueWatchingCard(
     title: String,
@@ -310,6 +316,7 @@ fun BsContinueWatchingCard(
     progress: Float?,
     subtitle: String?,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -324,10 +331,11 @@ fun BsContinueWatchingCard(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clickable(
+            .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
+                onLongClick = onLongClick,
             ),
     ) {
         Box(
@@ -388,12 +396,14 @@ fun posterOf(item: AppAdapter.Item): String? = when (item) {
     else -> null
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BsPosterCard(
     title: String,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
     onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -407,10 +417,11 @@ fun BsPosterCard(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clickable(
+            .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
+                onLongClick = onLongClick,
             )
             .then(
                 if (focused) Modifier.border(2.dp, BsColors.FocusRing, RoundedCornerShape(12.dp))

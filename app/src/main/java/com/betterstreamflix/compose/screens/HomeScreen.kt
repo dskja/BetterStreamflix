@@ -39,7 +39,8 @@ fun HomeScreen(
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
-    onItemClick: (AppAdapter.Item) -> Unit = {},
+    onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
+    onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val featured = categories
@@ -105,7 +106,7 @@ fun HomeScreen(
                                 stringResource(R.string.home_hero_choose_provider)
                             },
                             onCta = {
-                                if (featured != null) onItemClick(featured) else onProviderClick()
+                                if (featured != null) onItemClick(featured, false) else onProviderClick()
                             },
                         )
                     }
@@ -118,7 +119,8 @@ fun HomeScreen(
                             items = category.list,
                             labelOf = ::itemLabel,
                             showProgress = category.name == Category.CONTINUE_WATCHING,
-                            onItemClick = onItemClick,
+                            onItemClick = { item, fromCw -> onItemClick(item, fromCw) },
+                            onItemLongClick = onItemLongClick,
                         )
                     }
                     item(key = "provider-link") {

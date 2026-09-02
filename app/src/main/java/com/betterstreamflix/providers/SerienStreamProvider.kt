@@ -415,6 +415,7 @@ object SerienStreamProvider : Provider {
             val actorName = it.text().trim()
             if (actorName.isBlank()) return@mapNotNull null
             val tmdbPerson = tmdbTvShow?.cast?.find { person -> person.name.equals(actorName, ignoreCase = true) }
+                ?: TmdbUtils.enrichPersonByName(actorName, language = language)
             val personId = getPeopleIdFromLink(it.attr("href"))
             if (personId.isBlank()) return@mapNotNull null
             val localImage = it.selectFirst("img")?.let { img ->
