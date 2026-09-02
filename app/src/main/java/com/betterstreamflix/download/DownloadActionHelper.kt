@@ -8,6 +8,24 @@ import com.betterstreamflix.utils.UserPreferences
 
 object DownloadActionHelper {
 
+    fun displayTitle(videoType: Video.Type): String = when (videoType) {
+        is Video.Type.Movie -> videoType.title
+        is Video.Type.Episode -> {
+            val show = videoType.tvShow.title.ifBlank { "Episode" }
+            val epTitle = videoType.title?.takeIf { it.isNotBlank() }
+            val seasonEp = "S${videoType.season.number.toString().padStart(2, '0')}" +
+                "E${videoType.number.toString().padStart(2, '0')}"
+            if (epTitle != null) "$show · $seasonEp · $epTitle" else "$show · $seasonEp"
+        }
+    }
+
+    fun findExisting(context: Context, videoId: String): DownloadManager.DownloadTask? =
+        DownloadManager.getAllDownloads(context)
+            .firstOrNull {
+                it.videoId == videoId &&
+                    it.status != DownloadManager.DownloadStatus.CANCELLED
+            }
+
     fun enqueueCurrentVideo(
         context: Context,
         videoType: Video.Type,
@@ -27,10 +45,16 @@ object DownloadActionHelper {
             return false
         }
         DownloadFeature.ensureNotificationPermission(context)
-        val (videoId, title) = when (videoType) {
+        val (videoId, _) = when (videoType) {
             is Video.Type.Movie -> videoType.id to videoType.title
             is Video.Type.Episode -> videoType.id to (videoType.title ?: videoType.tvShow.title)
         }
+        val existing = findExisting(context, videoId)
+        if (existing != null) {
+            Toast.makeText(context, R.string.download_already_queued, Toast.LENGTH_SHORT).show()
+            return false
+        }
+        val title = displayTitle(videoType)
         val providerName = UserPreferences.currentProvider?.name ?: "unknown"
         val ok = DownloadFeature.enqueue(
             context = context,

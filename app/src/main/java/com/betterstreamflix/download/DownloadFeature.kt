@@ -38,6 +38,15 @@ object DownloadFeature {
             Log.w(TAG, "DRM stream not downloadable: $title")
             return false
         }
+        val existing = DownloadManager.getAllDownloads(appContext)
+            .firstOrNull {
+                it.videoId == videoId &&
+                    it.status != DownloadManager.DownloadStatus.CANCELLED
+            }
+        if (existing != null) {
+            Log.i(TAG, "Already queued: $videoId (${existing.status})")
+            return false
+        }
         val decision = DownloadScheduler.shouldStartDownloads(appContext)
         if (decision is DownloadScheduler.ScheduleDecision.Wait) {
             Log.i(TAG, "Download blocked: $decision")
@@ -77,6 +86,42 @@ object DownloadFeature {
         WorkManager.getInstance(context.applicationContext).enqueue(
             OneTimeWorkRequestBuilder<DownloadWorker>().build(),
         )
+    }
+
+    fun pauseAllActive(context: Context) {
+        DownloadManager.getAllDownloads(context)
+            .filter {
+                it.status == DownloadManager.DownloadStatus.DOWNLOADING ||
+                    it.status == DownloadManager.DownloadStatus.PENDING
+            }
+            .forEach { DownloadManager.pauseDownload(context, it.id) }
+    }
+
+    fun resumeAllPaused(context: Context) {
+        DownloadManager.getAllDownloads(context)
+            .filter {
+                it.status == DownloadManager.DownloadStatus.PAUSED ||
+                    it.status == DownloadManager.DownloadStatus.FAILED
+            }
+            .forEach { retry(context, it.id) }
+    }
+
+    fun retryAllFailed(context: Context) {
+        DownloadManager.getAllDownloads(context)
+            .filter { it.status == DownloadManager.DownloadStatus.FAILED }
+            .forEach { retry(context, it.id) }
+    }
+
+    fun clearFailed(context: Context) {
+        DownloadManager.getAllDownloads(context)
+            .filter { it.status == DownloadManager.DownloadStatus.FAILED }
+            .forEach { DownloadManager.cancelDownload(context, it.id) }
+    }
+
+    fun clearCompleted(context: Context) {
+        DownloadManager.getAllDownloads(context)
+            .filter { it.status == DownloadManager.DownloadStatus.COMPLETED }
+            .forEach { DownloadManager.cancelDownload(context, it.id) }
     }
 
     fun ensureNotificationPermission(context: Context) {
