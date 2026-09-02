@@ -63,6 +63,12 @@ abstract class AppDatabase : RoomDatabase() {
             getInstance(context)
         }
 
+        fun getInstanceOrNull(context: Context): AppDatabase? {
+            val providerName = UserPreferences.currentProvider?.name ?: currentProviderName
+            if (providerName.isNullOrBlank()) return null
+            return runCatching { getInstance(context) }.getOrNull()
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val providerName = UserPreferences.currentProvider?.name
                 ?: currentProviderName

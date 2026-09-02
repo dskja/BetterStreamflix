@@ -6,9 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.betterstreamflix.compose.screens.DownloadsScreen
+import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 import com.betterstreamflix.download.DownloadFeature
 import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.download.DownloadRepository
@@ -23,7 +25,9 @@ class DownloadsMobileFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View = ComposeView(requireContext())
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -32,21 +36,23 @@ class DownloadsMobileFragment : Fragment() {
 
     private fun render(composeView: ComposeView) {
         composeView.setContent {
-            val downloads by repository.observeTasks()
-                .collectAsStateWithLifecycle(initialValue = emptyList())
-            val storageMb = DownloadStorageManager.getDownloadSize(requireContext()) / (1024 * 1024)
-            DownloadsScreen(
-                downloads = downloads,
-                storageUsedMb = storageMb,
-                onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
-                onOpen = { task -> OfflinePlaybackHelper.playLocal(requireContext(), task) },
-                onPause = { task -> DownloadManager.pauseDownload(requireContext(), task.id) },
-                onResume = { task ->
-                    DownloadManager.resumeDownload(requireContext(), task.id)
-                    DownloadFeature.retry(requireContext(), task.id)
-                },
-                onCancel = { task -> DownloadManager.cancelDownload(requireContext(), task.id) },
-            )
+            BetterStreamflixTheme {
+                val downloads by repository.observeTasks()
+                    .collectAsStateWithLifecycle(initialValue = emptyList())
+                val storageMb = DownloadStorageManager.getDownloadSize(requireContext()) / (1024 * 1024)
+                DownloadsScreen(
+                    downloads = downloads,
+                    storageUsedMb = storageMb,
+                    onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
+                    onOpen = { task -> OfflinePlaybackHelper.playLocal(requireContext(), task) },
+                    onPause = { task -> DownloadManager.pauseDownload(requireContext(), task.id) },
+                    onResume = { task ->
+                        DownloadManager.resumeDownload(requireContext(), task.id)
+                        DownloadFeature.retry(requireContext(), task.id)
+                    },
+                    onCancel = { task -> DownloadManager.cancelDownload(requireContext(), task.id) },
+                )
+            }
         }
     }
 }
