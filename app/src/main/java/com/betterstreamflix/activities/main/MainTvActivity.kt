@@ -57,12 +57,18 @@ class MainTvActivity : FragmentActivity() {
         
         super.onCreate(savedInstanceState)
         
-        // Inizializza il provider con il context dell'attività per gestire eventuali bypass visibili
-        AnimeOnlineNinjaProvider.init(this)
-        Cine24hProvider.init(this)
-        FilmyOnlineCcProvider.init(this)
-        ZaluknijProvider.init(this)
-        GuardaSerieProvider.init(this)
+        // Provider init can fail on JVM/Robolectric (e.g. missing Cronet native libs).
+        // Keep TV startup resilient like MainMobileActivity.
+        runCatching { AnimeOnlineNinjaProvider.init(this) }
+            .onFailure { android.util.Log.e("MainTvActivity", "AnimeOnlineNinjaProvider init failed", it) }
+        runCatching { Cine24hProvider.init(this) }
+            .onFailure { android.util.Log.e("MainTvActivity", "Cine24hProvider init failed", it) }
+        runCatching { FilmyOnlineCcProvider.init(this) }
+            .onFailure { android.util.Log.e("MainTvActivity", "FilmyOnlineCcProvider init failed", it) }
+        runCatching { ZaluknijProvider.init(this) }
+            .onFailure { android.util.Log.e("MainTvActivity", "ZaluknijProvider init failed", it) }
+        runCatching { GuardaSerieProvider.init(this) }
+            .onFailure { android.util.Log.e("MainTvActivity", "GuardaSerieProvider init failed", it) }
 
         _binding = ActivityMainTvBinding.inflate(layoutInflater)
         setContentView(binding.root)
