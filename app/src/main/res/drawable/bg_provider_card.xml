@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#30FFFFFF">
+    android:color="#33E8A838">
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <solid android:color="#121216" />
-            <corners android:radius="28dp" />
+            <solid android:color="@color/bs_ink_panel" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#16161E"
-                android:centerColor="#101015"
-                android:endColor="#0C0C10"
+                android:startColor="#161D27"
+                android:centerColor="#10151C"
+                android:endColor="#0B1016"
                 android:angle="135"
                 android:type="linear" />
-            <corners android:radius="28dp" />
+            <corners android:radius="16dp" />
             <stroke
                 android:width="1dp"
-                android:color="#0FFFFFFF" />
+                android:color="@color/bs_hairline" />
         </shape>
     </item>
 </ripple>

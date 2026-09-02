@@ -1,5 +1,7 @@
 package com.betterstreamflix.compose.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,20 +10,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.betterstreamflix.R
+import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsBrandMark
 import com.betterstreamflix.compose.components.BsErrorState
-import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BetterStreamflixTheme
+import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 
@@ -29,6 +34,7 @@ import com.betterstreamflix.models.TvShow
 fun DetailScreen(
     title: String,
     overview: String?,
+    posterUrl: String? = null,
     isLoading: Boolean = false,
     errorMessage: String? = null,
     showDownloadButton: Boolean = true,
@@ -36,61 +42,83 @@ fun DetailScreen(
     onDownload: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
-    BetterStreamflixTheme {
-        Scaffold(
-            topBar = {
-                BsTopBar(title = title.ifBlank { "Details" })
-            },
-        ) { padding ->
-            when {
-                isLoading -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.padding(32.dp))
-                    }
+    BsAtmosphere {
+        when {
+            isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BsColors.Amber)
                 }
-                errorMessage != null -> {
-                    BsErrorState(
-                        message = errorMessage,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                    )
+            }
+            errorMessage != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    BsErrorState(message = errorMessage, modifier = Modifier.padding(top = 80.dp))
+                    BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
                 }
-                else -> {
-                    Column(
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
+                            .fillMaxWidth()
+                            .height(320.dp)
+                            .background(BsColors.InkSoft),
                     ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.headlineSmall,
+                        AsyncImage(
+                            model = posterUrl,
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
                         )
-                        if (!overview.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(BsColors.HeroWash),
+                        )
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(20.dp),
+                        ) {
+                            BsBrandMark(compact = true)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = overview,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = title,
+                                style = MaterialTheme.typography.displayMedium,
+                                color = BsColors.Mist,
                             )
                         }
-                        if (showDownloadButton) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Button(
-                                onClick = onDownload,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(R.string.downloads_title))
-                            }
-                        }
                     }
+                    if (!overview.isNullOrBlank()) {
+                        Text(
+                            text = overview,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = BsColors.MistDim,
+                            modifier = Modifier.padding(20.dp),
+                        )
+                    }
+                    if (showDownloadButton) {
+                        BsPrimaryButton(
+                            text = stringResource(R.string.downloads_title),
+                            onClick = onDownload,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                    BsGhostButton(
+                        text = "Back",
+                        onClick = onBack,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -106,6 +134,7 @@ fun MovieDetailContent(
     DetailScreen(
         title = movie.title,
         overview = movie.overview,
+        posterUrl = movie.banner ?: movie.poster,
         onBack = onBack,
         onDownload = onDownload,
     )
@@ -120,6 +149,7 @@ fun TvShowDetailContent(
     DetailScreen(
         title = tvShow.title,
         overview = tvShow.overview,
+        posterUrl = tvShow.banner ?: tvShow.poster,
         onBack = onBack,
         onDownload = onDownload,
     )

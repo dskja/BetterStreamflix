@@ -1,46 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="white">#FFFFFF</color>
-    <color name="black">#000000</color>
-    <color name="ic_launcher_background">#1E2129</color>
-    <color name="ic_banner_background">#1E2129</color>
+    <color name="white">#E8EDF4</color>
+    <color name="black">#07090D</color>
+    <color name="ic_launcher_background">#07090D</color>
+    <color name="ic_banner_background">#07090D</color>
 
-    <!-- Colore di sfondo dinamico per TV -->
-    <color name="app_background">#181818</color>
-    <color name="favorite_selected">#00E5FF</color>
+    <!-- Obsidian Stream palette -->
+    <color name="bs_ink">#07090D</color>
+    <color name="bs_ink_elevated">#10151C</color>
+    <color name="bs_ink_panel">#161D27</color>
+    <color name="bs_ink_soft">#1E2733</color>
+    <color name="bs_amber">#E8A838</color>
+    <color name="bs_amber_bright">#F2C15A</color>
+    <color name="bs_amber_muted">#9A6E24</color>
+    <color name="bs_mist">#E8EDF4</color>
+    <color name="bs_mist_dim">#A8B3C4</color>
+    <color name="bs_mist_faint">#6B778A</color>
+    <color name="bs_sea_glass">#3D8B8A</color>
+    <color name="bs_danger">#E05A5A</color>
+    <color name="bs_hairline">#22E8EDF4</color>
+
+    <color name="app_background">#07090D</color>
+    <color name="favorite_selected">#E8A838</color>
 
     <array name="genres">
-        <item>#E13300</item>
-        <item>#7358FF</item>
-        <item>#1E3264</item>
-        <item>#E8115B</item>
-        <item>#BC5900</item>
-        <item>#148A08</item>
-        <item>#202F72</item>
-        <item>#E1118C</item>
-        <item>#8D67AB</item>
-        <item>#D84000</item>
-        <item>#E91429</item>
+        <item>#3D8B8A</item>
+        <item>#E8A838</item>
+        <item>#1E2733</item>
+        <item>#9A6E24</item>
+        <item>#2D6B6A</item>
+        <item>#4CAF7A</item>
+        <item>#161D27</item>
+        <item>#F2C15A</item>
+        <item>#6B778A</item>
+        <item>#A86B2D</item>
+        <item>#E05A5A</item>
         <item>#777777</item>
-        <item>#DC148C</item>
+        <item>#C49A3C</item>
         <item>#537AA1</item>
         <item>#006450</item>
         <item>#5179A1</item>
         <item>#BA5D07</item>
-        <item>#E61E32</item>
-        <item>#B02897</item>
+        <item>#E05A5A</item>
+        <item>#3D8B8A</item>
         <item>#056952</item>
         <item>#7D4B32</item>
-        <item>#503750</item>
-        <item>#EB1E32</item>
+        <item>#10151C</item>
+        <item>#E8A838</item>
         <item>#A56752</item>
         <item>#477D95</item>
         <item>#B06239</item>
         <item>#0D73EC</item>
-        <item>#0D72ED</item>
+        <item>#2D6B6A</item>
         <item>#8C1932</item>
-        <item>#AF2896</item>
+        <item>#9A6E24</item>
         <item>#E41D63</item>
         <item>#27856A</item>
-        <item>#FF0090</item>
+        <item>#E8A838</item>
     </array>
 </resources>

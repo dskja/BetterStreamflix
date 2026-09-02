@@ -3,7 +3,11 @@
     <style name="AppTheme.Mobile" parent="Theme.AppCompat">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="app_background_color">#181818</item>
+        <item name="app_background_color">#07090D</item>
+        <item name="android:colorBackground">#07090D</item>
+        <item name="colorAccent">#E8A838</item>
+        <item name="android:textColorPrimary">#E8EDF4</item>
+        <item name="android:textColorSecondary">#A8B3C4</item>
         <item name="home_gradient_drawable">@drawable/bg_home_gradient_default</item>
         <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_default</item>
         <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_default</item>
@@ -12,6 +16,8 @@
 
     <style name="BottomNavLabelStyle" parent="Widget.Design.BottomNavigationView">
         <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">@font/manrope_medium</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <!-- Tema Nero Amoled/Oled per Mobile -->
@@ -135,13 +141,16 @@
 
     <!-- Tema di Default per TV -->
     <style name="AppTheme.Tv" parent="Theme.Leanback">
-        <item name="app_background_color">#181818</item>
+        <item name="app_background_color">#07090D</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
         <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
-        <item name="colorAccent">#FFFFFF</item>
-        <item name="colorControlActivated">#FFFFFF</item>
-        <item name="colorControlNormal">#BDBDBD</item>
+        <item name="colorAccent">#E8A838</item>
+        <item name="colorControlActivated">#E8A838</item>
+        <item name="colorControlNormal">#A8B3C4</item>
         <item name="android:windowBackground">@drawable/bg_splash_screen</item>
+        <item name="android:colorBackground">#07090D</item>
+        <item name="android:textColorPrimary">#E8EDF4</item>
+        <item name="android:textColorSecondary">#A8B3C4</item>
         <item name="home_gradient_drawable">@drawable/bg_home_gradient_default</item>
         <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_default</item>
         <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_default</item>

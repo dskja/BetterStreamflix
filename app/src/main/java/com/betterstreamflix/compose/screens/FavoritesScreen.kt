@@ -4,16 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,10 +22,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
+import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BetterStreamflixTheme
+import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.fragments.favorites.FavoritesViewModel
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
@@ -40,77 +40,78 @@ fun FavoritesScreen(
     onMovieClick: (Movie) -> Unit = {},
     onTvShowClick: (TvShow) -> Unit = {},
 ) {
-    BetterStreamflixTheme {
-        var showSortMenu by remember { mutableStateOf(false) }
-        val hasItems = sections.any { it.items.isNotEmpty() }
+    var showSortMenu by remember { mutableStateOf(false) }
+    val hasItems = sections.any { it.items.isNotEmpty() }
 
-        Scaffold(
-            topBar = {
-                BsTopBar(title = stringResource(R.string.main_menu_favorites))
-            },
-            floatingActionButton = {},
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            ) {
-                if (hasItems) {
-                    TextButton(
-                        onClick = { showSortMenu = true },
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    ) {
-                        Text(stringResource(R.string.favorites_sort_title))
-                    }
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false },
-                    ) {
-                        FavoritesViewModel.SortMode.entries.forEach { mode ->
-                            DropdownMenuItem(
-                                text = { Text(sortModeLabel(mode)) },
-                                onClick = {
-                                    onSortModeChange(mode)
-                                    showSortMenu = false
-                                },
-                            )
-                        }
-                    }
-                }
-
-                if (!hasItems) {
-                    BsEmptyState(
-                        message = stringResource(R.string.favorites_empty),
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        sections.filter { it.items.isNotEmpty() }.forEach { section ->
-                            item(key = "header-${section.section.key}") {
-                                Text(
-                                    text = sectionTitle(section.section),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(bottom = 8.dp),
+    BsAtmosphere {
+        Column(modifier = Modifier.fillMaxSize()) {
+            BsTopBar(
+                title = stringResource(R.string.main_menu_favorites),
+                showBrand = true,
+                actions = {
+                    if (hasItems) {
+                        BsGhostButton(
+                            text = stringResource(R.string.favorites_sort_title),
+                            onClick = { showSortMenu = true },
+                        )
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false },
+                        ) {
+                            FavoritesViewModel.SortMode.entries.forEach { mode ->
+                                DropdownMenuItem(
+                                    text = { Text(sortModeLabel(mode)) },
+                                    onClick = {
+                                        onSortModeChange(mode)
+                                        showSortMenu = false
+                                    },
                                 )
                             }
-                            items(
-                                items = section.items,
-                                key = { item -> itemKey(item) ?: item.hashCode().toString() },
-                            ) { item ->
-                                when (item) {
-                                    is Movie -> BsPosterCard(
-                                        title = item.title,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        onClick = { onMovieClick(item) },
-                                    )
-                                    is TvShow -> BsPosterCard(
-                                        title = item.title,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        onClick = { onTvShowClick(item) },
-                                    )
+                        }
+                    }
+                },
+            )
+
+            if (!hasItems) {
+                BsEmptyState(
+                    message = stringResource(R.string.favorites_empty),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    sections.filter { it.items.isNotEmpty() }.forEach { section ->
+                        item(key = "header-${section.section.key}") {
+                            Text(
+                                text = sectionTitle(section.section).uppercase(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = BsColors.MistFaint,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                            )
+                        }
+                        item(key = "row-${section.section.key}") {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                items(
+                                    items = section.items,
+                                    key = { item -> itemKey(item) ?: item.hashCode().toString() },
+                                ) { item ->
+                                    when (item) {
+                                        is Movie -> BsPosterCard(
+                                            title = item.title,
+                                            imageUrl = item.poster ?: item.banner,
+                                            onClick = { onMovieClick(item) },
+                                        )
+                                        is TvShow -> BsPosterCard(
+                                            title = item.title,
+                                            imageUrl = item.poster ?: item.banner,
+                                            onClick = { onTvShowClick(item) },
+                                        )
+                                    }
                                 }
                             }
                         }
