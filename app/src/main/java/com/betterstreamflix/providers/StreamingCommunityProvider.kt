@@ -430,6 +430,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             genres = title.genres?.map { Genre(id = it.id, name = it.name) } ?: listOf(), 
             cast = title.actors?.map { actor ->
                 val tmdbPerson = tmdbMovie?.cast?.find { p -> p.name.equals(actor.name, ignoreCase = true) }
+                    ?: TmdbUtils.enrichPersonByName(actor.name, language = language)
                 People(id = actor.name, name = actor.name, image = tmdbPerson?.image)
             } ?: listOf(), 
             trailer = title.trailers?.find { t -> t.youtubeId != "" }?.youtubeId?.let { yid -> "https://youtube.com/watch?v=$yid" }, 
@@ -476,6 +477,7 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
             genres = title.genres?.map { Genre(id = it.id, name = it.name) } ?: listOf(), 
             cast = title.actors?.map { actor ->
                 val tmdbPerson = tmdbShow?.cast?.find { p -> p.name.equals(actor.name, ignoreCase = true) }
+                    ?: TmdbUtils.enrichPersonByName(actor.name, language = language)
                 People(id = actor.name, name = actor.name, image = tmdbPerson?.image)
             } ?: listOf(), 
             trailer = title.trailers?.find { t -> t.youtubeId != "" }?.youtubeId?.let { yid -> "https://youtube.com/watch?v=$yid" }, 
@@ -546,12 +548,29 @@ class StreamingCommunityProvider(private val _language: String? = null) : Provid
 
     override suspend fun getPeople(id: String, page: Int): People {
         val res = withSslFallback { it.search(id, page, LANG) }
-        if (res.currentPage == null || (res.lastPage != null && res.currentPage > res.lastPage)) return People(id = id, name = id)
-        return People(id = id, name = id, filmography = res.data.map {
-            val poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename)
-            if (it.type == "movie") Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
-            else TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
-        })
+        if (res.currentPage == null || (res.lastPage != null && res.currentPage > res.lastPage)) {
+            return People(id = id, name = id)
+        }
+        val people = People(
+            id = id,
+            name = id,
+            filmography = res.data.map {
+                val poster = getImageLink(it.images.find { img -> img.type == "poster" }?.filename)
+                if (it.type == "movie") {
+                    Movie(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
+                } else {
+                    TvShow(id = it.id + "-" + it.slug, title = it.name, released = it.lastAirDate, rating = it.score?.toDoubleOrNull(), poster = poster)
+                }
+            },
+        )
+        if (!UserPreferences.enableTmdb) return people
+        val enriched = TmdbUtils.enrichPersonByName(id, language = language) ?: return people
+        return people.copy(
+            name = enriched.name.ifBlank { people.name },
+            image = enriched.image,
+            biography = enriched.biography,
+            placeOfBirth = enriched.placeOfBirth,
+        )
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

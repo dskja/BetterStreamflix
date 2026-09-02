@@ -1,37 +1,33 @@
 package com.betterstreamflix.fragments.tv_show
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.R
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.MediaDetailScreen
 import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentTvShowMobileBinding
+import com.betterstreamflix.models.Episode
+import com.betterstreamflix.models.Movie
+import com.betterstreamflix.models.People
+import com.betterstreamflix.models.Season
+import com.betterstreamflix.models.Show
 import com.betterstreamflix.models.TvShow
-import com.betterstreamflix.ui.SpacingItemDecoration
+import com.betterstreamflix.models.Video
 import com.betterstreamflix.utils.CacheUtils
-import com.betterstreamflix.utils.LoggingUtils
-import com.betterstreamflix.utils.dp
-import com.betterstreamflix.utils.loadTvShowBanner
+import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
-class TvShowMobileFragment : Fragment() {
+class TvShowMobileFragment : ComposeHostFragment() {
 
-    private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentTvShowMobileBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
-
+    private var hasAutoCleared409 = false
     private val args by navArgs<TvShowMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory {
@@ -43,115 +39,170 @@ class TvShowMobileFragment : Fragment() {
         )
     }
 
-    private val appAdapter = AppAdapter()
+    @Composable
+    override fun ScreenContent() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = TvShowViewModel.State.Loading)
+        val tvShow = (state as? TvShowViewModel.State.SuccessLoading)?.tvShow
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentTvShowMobileBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.btnBack.setOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        initializeTvShow()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                when (state) {
-                    TvShowViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-                    is TvShowViewModel.State.SuccessLoading -> {
-                        displayTvShow(state.tvShow)
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-                    is TvShowViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getTvShow(args.id)
-                            return@collect
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                            binding.isLoading.apply {
-                            pbIsLoading.visibility = View.GONE
-                            gIsLoadingRetry.visibility = View.VISIBLE
-                                val doRetry = { viewModel.getTvShow(args.id) }
-                                btnIsLoadingRetry.setOnClickListener { doRetry() }
-                                btnIsLoadingClearCache.setOnClickListener {
-                                    CacheUtils.clearAppCache(requireContext())
-                                    android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                    doRetry()
-                                }
-                                btnIsLoadingErrorDetails.setOnClickListener {
-                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
-                                }
-                        }
-                    }
+        if (state is TvShowViewModel.State.FailedLoading) {
+            val error = (state as TvShowViewModel.State.FailedLoading).error
+            val code = (error as? HttpException)?.code()
+            if (code == 409 && !hasAutoCleared409) {
+                hasAutoCleared409 = true
+                androidx.compose.runtime.LaunchedEffect(error) {
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(requireContext(), R.string.clear_cache_done_409, Toast.LENGTH_SHORT).show()
+                    viewModel.getTvShow(args.id)
                 }
             }
         }
+
+        val episode = tvShow?.episodeToWatch
+        val episodeSeason = tvShow?.let { resolveEpisodeSeason(it, episode) }
+        val watchProgress = episode?.watchHistory?.let { history ->
+            if (history.durationMillis > 0L) {
+                (history.lastPlaybackPositionMillis.toFloat() / history.durationMillis).coerceIn(0f, 1f)
+            } else null
+        }
+
+        MediaDetailScreen(
+            title = tvShow?.title.orEmpty(),
+            bannerUrl = tvShow?.banner ?: tvShow?.poster,
+            overview = tvShow?.overview,
+            metaLine = tvShowMetaLine(tvShow),
+            genresLine = tvShow?.genres?.joinToString(", ") { it.name },
+            watchLabel = watchLabel(episodeSeason, episode),
+            watchProgress = watchProgress,
+            showWatchButton = episode != null,
+            cast = tvShow?.cast.orEmpty(),
+            directors = tvShow?.directors.orEmpty(),
+            seasons = tvShow?.seasons.orEmpty(),
+            recommendations = tvShow?.recommendations.orEmpty(),
+            isLoading = state is TvShowViewModel.State.Loading,
+            errorMessage = (state as? TvShowViewModel.State.FailedLoading)?.error?.message,
+            onBack = { findNavController().navigateUp() },
+            onWatch = { tvShow?.let { openPlayer(it, episode, episodeSeason) } },
+            onCastClick = ::openPerson,
+            onSeasonClick = { season -> tvShow?.let { openSeason(it, season) } },
+            onRecommendationClick = ::openRecommendation,
+            onRetry = { viewModel.getTvShow(args.id) },
+        )
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        appAdapter.onSaveInstanceState(binding.rvTvShow)
-        _binding = null
+    private fun tvShowMetaLine(tvShow: TvShow?): String? {
+        if (tvShow == null) return null
+        return listOfNotNull(
+            tvShow.released?.format("yyyy"),
+            tvShow.rating?.takeIf { it > 0 }?.let { "★ %.1f".format(it) },
+            tvShow.runtime?.let { minutes ->
+                val hours = minutes / 60
+                val rem = minutes % 60
+                if (hours > 0) getString(R.string.tv_show_runtime_hours_minutes, hours, rem)
+                else getString(R.string.tv_show_runtime_minutes, minutes)
+            },
+        ).joinToString("  •  ").takeIf { it.isNotBlank() }
     }
 
-
-    private fun initializeTvShow() {
-        binding.rvTvShow.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
+    private fun watchLabel(season: Season?, episode: Episode?): String? {
+        if (episode == null) return null
+        val episodeNumber = episode.number
+        val seasonNumber = season?.number ?: -1
+        return when {
+            seasonNumber == 0 || season?.title.equals("Filme", ignoreCase = true) -> {
+                episode.title?.takeIf { it.isNotBlank() }
+                    ?.let { getString(R.string.tv_show_watch_title, it) }
+                    ?: getString(R.string.tv_show_watch_episode, episodeNumber)
             }
-            addItemDecoration(
-                SpacingItemDecoration(20.dp(requireContext()))
+            seasonNumber > 0 -> getString(R.string.tv_show_watch_season_episode, seasonNumber, episodeNumber)
+            else -> getString(R.string.tv_show_watch_episode, episodeNumber)
+        }
+    }
+
+    private fun resolveEpisodeSeason(tvShow: TvShow, episode: Episode?): Season? {
+        if (episode == null) return null
+        val currentSeason = episode.season
+        val seasonKey = episode.id.substringBeforeLast("/", "").takeIf { it.isNotBlank() }
+        if (currentSeason != null && currentSeason.number != 0) return currentSeason
+        return tvShow.seasons.firstOrNull { season ->
+            season.id == seasonKey ||
+                season.id == currentSeason?.id ||
+                season.episodes.any { it.id == episode.id }
+        } ?: currentSeason
+    }
+
+    private fun openPlayer(tvShow: TvShow, episode: Episode?, season: Season?) {
+        val ep = episode ?: return
+        findNavController().navigate(
+            TvShowMobileFragmentDirections.actionTvShowToPlayer(
+                id = ep.id,
+                title = tvShow.title,
+                subtitle = episodeSubtitle(season, ep),
+                videoType = Video.Type.Episode(
+                    id = ep.id,
+                    number = ep.number,
+                    title = ep.title,
+                    poster = ep.poster,
+                    overview = ep.overview,
+                    tvShow = Video.Type.Episode.TvShow(
+                        id = tvShow.id,
+                        title = tvShow.title,
+                        poster = tvShow.poster,
+                        banner = tvShow.banner,
+                        releaseDate = tvShow.released?.format("yyyy-MM-dd"),
+                        imdbId = tvShow.imdbId,
+                    ),
+                    season = Video.Type.Episode.Season(
+                        number = season?.number?.takeIf { it > 0 } ?: 1,
+                        title = season?.title,
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun episodeSubtitle(season: Season?, episode: Episode): String {
+        val seasonNumber = season?.number ?: -1
+        return when {
+            seasonNumber == 0 || season?.title.equals("Filme", ignoreCase = true) -> episode.title.orEmpty()
+            seasonNumber > 0 -> "S$seasonNumber E${episode.number}  •  ${episode.title}"
+            else -> "E${episode.number}  •  ${episode.title}"
+        }
+    }
+
+    private fun openSeason(tvShow: TvShow, season: Season) {
+        findNavController().navigate(
+            TvShowMobileFragmentDirections.actionTvShowToSeason(
+                tvShowId = tvShow.id,
+                tvShowTitle = tvShow.title,
+                tvShowPoster = tvShow.poster,
+                tvShowBanner = tvShow.banner,
+                seasonId = season.id,
+                seasonNumber = season.number,
+                seasonTitle = season.title,
+            ),
+        )
+    }
+
+    private fun openPerson(person: People) {
+        findNavController().navigate(
+            TvShowMobileFragmentDirections.actionTvShowToPeople(
+                id = person.id,
+                name = person.name,
+                image = person.image,
+            ),
+        )
+    }
+
+    private fun openRecommendation(show: Show) {
+        when (show) {
+            is Movie -> findNavController().navigate(TvShowMobileFragmentDirections.actionTvShowToMovie(id = show.id))
+            is TvShow -> findNavController().navigate(
+                TvShowMobileFragmentDirections.actionTvShowToTvShow(
+                    id = show.id,
+                    poster = show.poster,
+                    banner = show.banner,
+                ),
             )
         }
     }
-
-    private fun displayTvShow(tvShow: TvShow) {
-        binding.ivTvShowBanner.loadTvShowBanner(tvShow) {
-            transition(DrawableTransitionOptions.withCrossFade())
-        }
-
-        appAdapter.submitList(listOfNotNull(
-            tvShow.apply { itemType = AppAdapter.Type.TV_SHOW_MOBILE },
-
-            tvShow.takeIf { it.seasons.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.TV_SHOW_SEASONS_MOBILE },
-
-            tvShow.takeIf { it.directors.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.TV_SHOW_DIRECTORS_MOBILE },
-
-            tvShow.takeIf { it.cast.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.TV_SHOW_CAST_MOBILE },
-
-            tvShow.takeIf { it.recommendations.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.TV_SHOW_RECOMMENDATIONS_MOBILE },
-        ))
-        binding.rvTvShow.post { binding.rvTvShow.scrollToPosition(0) }
-    }
 }
-

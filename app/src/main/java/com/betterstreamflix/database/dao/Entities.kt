@@ -54,6 +54,7 @@ data class DownloadEntity(
     val createdAt: Long,
     val completedAt: Long?,
     val errorMessage: String?,
+    val artworkUrl: String? = null,
 )
 
 @Entity(tableName = "cached_metadata")

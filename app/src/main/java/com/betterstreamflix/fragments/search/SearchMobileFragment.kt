@@ -19,6 +19,7 @@ import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.SearchScreen
 import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.providers.Provider
@@ -133,6 +134,14 @@ class SearchMobileFragment : ComposeHostFragment() {
 
     private fun onResultClick(item: AppAdapter.Item) {
         when (item) {
+            is Genre -> {
+                findNavController().navigate(
+                    SearchMobileFragmentDirections.actionSearchToGenre(
+                        id = item.id,
+                        name = item.name,
+                    ),
+                )
+            }
             is Movie -> {
                 switchProviderIfNeeded(item.providerName)
                 findNavController().navigate(

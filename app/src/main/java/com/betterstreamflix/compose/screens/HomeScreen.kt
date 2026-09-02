@@ -29,6 +29,7 @@ import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.utils.UserPreferences
 
 @Composable
 fun HomeScreen(
@@ -38,7 +39,8 @@ fun HomeScreen(
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
-    onItemClick: (AppAdapter.Item) -> Unit = {},
+    onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
+    onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val featured = categories
@@ -91,9 +93,12 @@ fun HomeScreen(
                             else -> stringResource(R.string.home_hero_fallback_title)
                         }.ifBlank { stringResource(R.string.home_hero_fallback_title) }
                         val heroImage = featured?.let(::posterOf)
+                        val providerName = UserPreferences.currentProvider?.name
                         BsHeroBanner(
                             title = heroTitle,
-                            subtitle = stringResource(R.string.home_hero_subtitle),
+                            subtitle = providerName?.let {
+                                stringResource(R.string.home_hero_provider_subtitle, it)
+                            } ?: stringResource(R.string.home_hero_subtitle),
                             imageUrl = heroImage,
                             ctaLabel = if (featured != null) {
                                 stringResource(R.string.home_hero_open_now)
@@ -101,7 +106,7 @@ fun HomeScreen(
                                 stringResource(R.string.home_hero_choose_provider)
                             },
                             onCta = {
-                                if (featured != null) onItemClick(featured) else onProviderClick()
+                                if (featured != null) onItemClick(featured, false) else onProviderClick()
                             },
                         )
                     }
@@ -113,7 +118,9 @@ fun HomeScreen(
                             title = category.name.ifBlank { stringResource(R.string.home_featured_fallback) },
                             items = category.list,
                             labelOf = ::itemLabel,
-                            onItemClick = onItemClick,
+                            showProgress = category.name == Category.CONTINUE_WATCHING,
+                            onItemClick = { item, fromCw -> onItemClick(item, fromCw) },
+                            onItemLongClick = onItemLongClick,
                         )
                     }
                     item(key = "provider-link") {

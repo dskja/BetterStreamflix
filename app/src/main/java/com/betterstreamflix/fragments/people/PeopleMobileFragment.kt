@@ -1,234 +1,73 @@
 package com.betterstreamflix.fragments.people
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.betterstreamflix.R
-import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.PeopleScreen
 import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentPeopleMobileBinding
-import com.betterstreamflix.databinding.HeaderPeopleMobileBinding
 import com.betterstreamflix.models.Movie
-import com.betterstreamflix.models.People
+import com.betterstreamflix.models.Show
 import com.betterstreamflix.models.TvShow
-import com.betterstreamflix.ui.SpacingItemDecoration
 import com.betterstreamflix.utils.CacheUtils
-import com.betterstreamflix.utils.LoggingUtils
-import com.betterstreamflix.utils.dp
-import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
-import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
-class PeopleMobileFragment : Fragment() {
+class PeopleMobileFragment : ComposeHostFragment() {
 
-    private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentPeopleMobileBinding? = null
-    private val binding get() = _binding
-
+    private var hasAutoCleared409 = false
     private val args by navArgs<PeopleMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { PeopleViewModel(args.id, database) }
 
-    private val appAdapter = AppAdapter()
+    @Composable
+    override fun ScreenContent() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = PeopleViewModel.State.Loading)
+        val people = (state as? PeopleViewModel.State.SuccessLoading)?.people
+        val hasMore = (state as? PeopleViewModel.State.SuccessLoading)?.hasMore == true
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentPeopleMobileBinding.inflate(inflater, container, false)
-        return binding?.root ?: error("Binding was not set")
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding?.btnBack?.setOnClickListener {
-            findNavController().navigateUp()
-        }
-
-        initializePeople()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                val binding = binding ?: return@collect
-                when (state) {
-                    PeopleViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-                    PeopleViewModel.State.LoadingMore -> appAdapter.isLoading = true
-                    is PeopleViewModel.State.SuccessLoading -> {
-                        displayPeople(state.people, state.hasMore)
-                        appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-                    is PeopleViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getPeople(args.id)
-                            return@collect
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        if (appAdapter.isLoading) {
-                            appAdapter.isLoading = false
-                        } else {
-                            binding.isLoading.apply {
-                                pbIsLoading.visibility = View.GONE
-                                gIsLoadingRetry.visibility = View.VISIBLE
-                                val doRetry = { viewModel.getPeople(args.id) }
-                                btnIsLoadingRetry.setOnClickListener { doRetry() }
-                                btnIsLoadingClearCache.setOnClickListener {
-                                    CacheUtils.clearAppCache(requireContext())
-                                    android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                    doRetry()
-                                }
-                                btnIsLoadingErrorDetails.setOnClickListener {
-                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
-                                }
-                            }
-                        }
-                    }
+        if (state is PeopleViewModel.State.FailedLoading) {
+            val error = (state as PeopleViewModel.State.FailedLoading).error
+            val code = (error as? HttpException)?.code()
+            if (code == 409 && !hasAutoCleared409) {
+                hasAutoCleared409 = true
+                androidx.compose.runtime.LaunchedEffect(error) {
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(requireContext(), R.string.clear_cache_done_409, Toast.LENGTH_SHORT).show()
+                    viewModel.getPeople(args.id)
                 }
             }
         }
-    }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-
-    private fun initializePeople() {
-        val binding = binding ?: return
-        binding.rvPeople.apply {
-            layoutManager = GridLayoutManager(context, 3).also {
-                it.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                    override fun getSpanSize(position: Int): Int {
-                        val viewType = appAdapter.getItemViewType(position)
-                        return when (AppAdapter.Type.entries[viewType]) {
-                            AppAdapter.Type.HEADER -> it.spanCount
-                            else -> 1
-                        }
-                    }
-                }
-            }
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            addItemDecoration(
-                SpacingItemDecoration(10.dp(requireContext()))
-            )
-        }
-    }
-
-    private fun displayPeople(people: People, hasMore: Boolean) {
-        appAdapter.setHeader(
-            binding = { parent ->
-                HeaderPeopleMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
-                )
-            },
-            bind = { binding ->
-                binding.ivPeopleImage.apply {
-                    clipToOutline = true
-                    Glide.with(context)
-                        .load(people.image ?: args.image)
-                        .placeholder(R.drawable.ic_person_placeholder)
-                        .error(R.drawable.ic_person_placeholder)
-                        .fallback(R.drawable.ic_person_placeholder)
-                        .centerCrop()
-                        .transition(DrawableTransitionOptions.withCrossFade())
-                        .into(this)
-                }
-
-                binding.tvPeopleName.text = people.name.takeIf { it.isNotEmpty() } ?: args.name
-
-                binding.tvPeopleBirthday.text = people.birthday?.format("MMMM dd, yyyy")
-
-                binding.gPeopleBirthday.visibility = when {
-                    binding.tvPeopleBirthday.text.isNullOrEmpty() -> View.GONE
-                    else -> View.VISIBLE
-                }
-
-                binding.tvPeopleDeathday.text = people.deathday?.format("MMMM dd, yyyy")
-
-                binding.gPeopleDeathday.visibility = when {
-                    binding.tvPeopleDeathday.text.isNullOrEmpty() -> View.GONE
-                    else -> View.VISIBLE
-                }
-
-                binding.tvPeopleBirthplace.text = people.placeOfBirth
-
-                binding.gPeopleBirthplace.visibility = when {
-                    binding.tvPeopleBirthplace.text.isNullOrEmpty() -> View.GONE
-                    else -> View.VISIBLE
-                }
-
-                binding.tvPeopleBiography.apply {
-                    maxLines = 7
-                    text = people.biography
-                }
-
-                binding.tvPeopleBiographyReadMore.apply {
-                    setOnClickListener {
-                        binding.tvPeopleBiography.maxLines = Int.MAX_VALUE
-                        visibility = View.GONE
-                    }
-
-                    binding.tvPeopleBiography.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-                        override fun onGlobalLayout() {
-                            binding.tvPeopleBiography.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                            visibility = when {
-                                binding.tvPeopleBiography.lineCount > 7 -> View.VISIBLE
-                                else -> View.GONE
-                            }
-                        }
-                    })
-                }
-
-                binding.gPeopleBiography.visibility = when {
-                    binding.tvPeopleBiography.text.isNullOrEmpty() -> View.GONE
-                    else -> View.VISIBLE
-                }
-            }
+        PeopleScreen(
+            people = people,
+            fallbackName = args.name,
+            fallbackImage = args.image,
+            isLoading = state is PeopleViewModel.State.Loading,
+            isLoadingMore = state is PeopleViewModel.State.LoadingMore,
+            hasMore = hasMore,
+            errorMessage = (state as? PeopleViewModel.State.FailedLoading)?.error?.message,
+            onBack = { findNavController().navigateUp() },
+            onFilmographyClick = ::openShow,
+            onLoadMore = { viewModel.loadMorePeopleFilmography() },
+            onRetry = { viewModel.getPeople(args.id) },
         )
+    }
 
-        appAdapter.submitList(people.filmography.onEach {
-            when (it) {
-                is Movie -> it.itemType = AppAdapter.Type.MOVIE_GRID_MOBILE_ITEM
-                is TvShow -> it.itemType = AppAdapter.Type.TV_SHOW_GRID_MOBILE_ITEM
-            }
-        })
-
-        if (hasMore) {
-            appAdapter.setOnLoadMoreListener { viewModel.loadMorePeopleFilmography() }
-        } else {
-            appAdapter.setOnLoadMoreListener(null)
+    private fun openShow(show: Show) {
+        when (show) {
+            is Movie -> findNavController().navigate(PeopleMobileFragmentDirections.actionPeopleToMovie(id = show.id))
+            is TvShow -> findNavController().navigate(
+                PeopleMobileFragmentDirections.actionPeopleToTvShow(
+                    id = show.id,
+                    poster = show.poster,
+                    banner = show.banner,
+                ),
+            )
         }
     }
 }

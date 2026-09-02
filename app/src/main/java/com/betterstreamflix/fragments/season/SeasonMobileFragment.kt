@@ -1,247 +1,131 @@
 package com.betterstreamflix.fragments.season
 
-import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.betterstreamflix.adapters.AppAdapter
-import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentSeasonMobileBinding
-import com.betterstreamflix.download.DownloadEnqueueHelper
-import com.betterstreamflix.models.Episode
-import com.betterstreamflix.models.Season
-import com.betterstreamflix.ui.SpacingItemDecoration
-import com.betterstreamflix.utils.CacheUtils
-import com.betterstreamflix.utils.LoggingUtils
-import com.betterstreamflix.utils.dp
-import com.betterstreamflix.utils.viewModelsFactory
 import com.betterstreamflix.R
-import kotlinx.coroutines.Dispatchers
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.SeasonScreen
+import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.download.DownloadEnqueueHelper
+import com.betterstreamflix.download.DownloadManager
+import com.betterstreamflix.download.DownloadRepository
+import com.betterstreamflix.models.Episode
+import com.betterstreamflix.models.Video
+import com.betterstreamflix.utils.CacheUtils
+import com.betterstreamflix.utils.format
+import com.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
-class SeasonMobileFragment : Fragment() {
+class SeasonMobileFragment : ComposeHostFragment() {
 
-    private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentSeasonMobileBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
-
+    private var hasAutoCleared409 = false
     private val args by navArgs<SeasonMobileFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
+    private val downloadRepository by lazy { DownloadRepository(requireContext()) }
     private val viewModel by viewModelsFactory {
-        SeasonViewModel(
-            args.seasonId,
-            args.tvShowId,
-            database
+        SeasonViewModel(args.seasonId, args.tvShowId, database)
+    }
+
+    private var allEpisodes: List<Episode> = emptyList()
+
+    @Composable
+    override fun ScreenContent() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = SeasonViewModel.State.LoadingEpisodes)
+        val downloads by downloadRepository.observeTasks()
+            .collectAsStateWithLifecycle(initialValue = emptyList())
+        var query by remember { mutableStateOf("") }
+
+        val episodes = (state as? SeasonViewModel.State.SuccessLoadingEpisodes)?.episodes.orEmpty()
+        if (episodes.isNotEmpty()) allEpisodes = episodes
+
+        val downloadStatusByEpisodeId = remember(downloads, episodes) {
+            episodes.associate { episode ->
+                episode.id to downloads.firstOrNull {
+                    it.videoId == episode.id &&
+                        it.status != DownloadManager.DownloadStatus.CANCELLED
+                }?.status
+            }
+        }
+
+        androidx.compose.runtime.LaunchedEffect(state) {
+            if (state is SeasonViewModel.State.FailedLoadingEpisodes) {
+                val error = (state as SeasonViewModel.State.FailedLoadingEpisodes).error
+                val code = (error as? HttpException)?.code()
+                if (code == 409 && !hasAutoCleared409) {
+                    hasAutoCleared409 = true
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(requireContext(), R.string.clear_cache_done_409, Toast.LENGTH_SHORT).show()
+                    viewModel.getSeasonEpisodes(args.seasonId)
+                }
+            }
+        }
+
+        SeasonScreen(
+            seasonTitle = args.seasonTitle.orEmpty().ifBlank { getString(R.string.season_number, args.seasonNumber) },
+            episodes = episodes,
+            query = query,
+            onQueryChange = { query = it },
+            isLoading = state is SeasonViewModel.State.LoadingEpisodes,
+            errorMessage = (state as? SeasonViewModel.State.FailedLoadingEpisodes)?.error?.message,
+            downloadStatusByEpisodeId = downloadStatusByEpisodeId,
+            onBack = { findNavController().navigateUp() },
+            onRetry = { viewModel.getSeasonEpisodes(args.seasonId) },
+            onEpisodeClick = ::openEpisode,
+            onDownloadEpisode = ::requestDownload,
+            onDownloadSeason = ::requestDownloadSeason,
         )
     }
 
-    private val appAdapter = AppAdapter()
-    private var allEpisodes: List<Episode> = emptyList()
-    private var searchWatcher: TextWatcher? = null
-    private var allSeasons: List<Season> = emptyList()
-    private var currentQuery: String = ""
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentSeasonMobileBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        initializeSeason()
-        loadSeasonsForDropdown()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                when (state) {
-                    SeasonViewModel.State.LoadingEpisodes -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-                    is SeasonViewModel.State.SuccessLoadingEpisodes -> {
-                        allEpisodes = state.episodes
-                        displaySeason(state.episodes)
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-                    is SeasonViewModel.State.FailedLoadingEpisodes -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getSeasonEpisodes(args.seasonId)
-                            return@collect
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                            binding.isLoading.apply {
-                            pbIsLoading.visibility = View.GONE
-                            gIsLoadingRetry.visibility = View.VISIBLE
-                                val doRetry = { viewModel.getSeasonEpisodes(args.seasonId) }
-                                btnIsLoadingRetry.setOnClickListener { doRetry() }
-                                btnIsLoadingClearCache.setOnClickListener {
-                                    CacheUtils.clearAppCache(requireContext())
-                                    android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                    doRetry()
-                                }
-                                btnIsLoadingErrorDetails.setOnClickListener {
-                                    LoggingUtils.showErrorDialog(requireContext(), state.error)
-                                }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        searchWatcher?.let { binding.etSeasonSearch.removeTextChangedListener(it) }
-        _binding = null
-    }
-
-    private fun initializeSeason() {
-        binding.tvSeasonTitle.text = args.seasonTitle
-
-        binding.btnSeasonBack.setOnClickListener {
-            findNavController().popBackStack()
-        }
-
-        binding.btnSeasonSearch.setOnClickListener {
-            val isVisible = binding.etSeasonSearch.visibility == View.VISIBLE
-            if (isVisible) {
-                binding.etSeasonSearch.visibility = View.GONE
-                binding.etSeasonSearch.text?.clear()
-                binding.rvEpisodes.requestLayout()
-            } else {
-                binding.etSeasonSearch.visibility = View.VISIBLE
-                binding.etSeasonSearch.requestFocus()
-            }
-        }
-
-        binding.btnSeasonDropdown.setOnClickListener {
-            showSeasonDropdown()
-        }
-
-        binding.btnSeasonDownloadAll.setOnClickListener {
-            requestDownloadSeason()
-        }
-
-        searchWatcher = object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                filterEpisodes(s?.toString() ?: "")
-            }
-        }
-        binding.etSeasonSearch.addTextChangedListener(searchWatcher)
-
-        binding.rvEpisodes.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            addItemDecoration(
-                SpacingItemDecoration(20.dp(requireContext()))
+    private fun openEpisode(episode: Episode) {
+        val season = episode.season
+        val subtitle = season?.takeIf { it.number != 0 }?.let { s ->
+            getString(
+                R.string.player_subtitle_tv_show,
+                s.number,
+                episode.number,
+                episode.title ?: getString(R.string.episode_number, episode.number),
             )
-        }
-    }
-
-    private fun loadSeasonsForDropdown() {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val seasons = database.seasonDao().getByTvShowId(args.tvShowId)
-            withContext(Dispatchers.Main) {
-                allSeasons = seasons
-            }
-        }
-    }
-
-    private fun showSeasonDropdown() {
-        if (allSeasons.isEmpty()) {
-            loadSeasonsForDropdown()
-            return
-        }
-
-        val seasonLabels = allSeasons.map { it.title ?: getString(com.betterstreamflix.R.string.season_number, it.number) }
-        val currentIdx = allSeasons.indexOfFirst { it.id == args.seasonId }
-
-        AlertDialog.Builder(requireContext())
-            .setTitle(getString(com.betterstreamflix.R.string.select_season))
-            .setSingleChoiceItems(seasonLabels.toTypedArray(), currentIdx.coerceAtLeast(0)) { dialog, which ->
-                val selected = allSeasons[which]
-                if (selected.id != args.seasonId) {
-                    findNavController().navigate(
-                        com.betterstreamflix.R.id.tv_show,
-                        Bundle().apply {
-                            putString("id", args.tvShowId)
-                            putString("poster", args.tvShowPoster)
-                            putString("banner", args.tvShowBanner)
-                        }
-                    )
-                }
-                dialog.dismiss()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
-    private fun filterEpisodes(query: String) {
-        currentQuery = query
-        if (query.isBlank()) {
-            displaySeason(allEpisodes)
-            return
-        }
-        val filtered = allEpisodes.filter { episode ->
-            episode.title?.contains(query, ignoreCase = true) == true ||
-            episode.number.toString().contains(query, ignoreCase = true)
-        }
-        displaySeason(filtered)
-    }
-
-    private fun displaySeason(episodes: List<Episode>) {
-        appAdapter.submitList(episodes.onEach { episode ->
-            episode.itemType = AppAdapter.Type.EPISODE_MOBILE_ITEM
-        })
-
-        if (currentQuery.isBlank()) {
-            val episodeIndex = episodes
-                .sortedByDescending { it.watchHistory?.lastEngagementTimeUtcMillis }
-                .firstOrNull { it.watchHistory != null }
-                ?.let { episodes.indexOf(it) }
-                ?: episodes.indexOfLast { it.isWatched }
-                    .takeIf { it != -1 && it + 1 < episodes.size }
-                    ?.let { it + 1 }
-
-            if (episodeIndex != null) {
-                val layoutManager = binding.rvEpisodes.layoutManager as? LinearLayoutManager
-                layoutManager?.scrollToPositionWithOffset(
-                    episodeIndex,
-                    binding.rvEpisodes.height / 2 - 100.dp(requireContext())
-                )
-            }
-        }
+        } ?: getString(
+            R.string.player_subtitle_tv_show_episode_only,
+            episode.number,
+            episode.title ?: getString(R.string.episode_number, episode.number),
+        )
+        findNavController().navigate(
+            SeasonMobileFragmentDirections.actionSeasonToPlayer(
+                id = episode.id,
+                title = episode.tvShow?.title ?: "",
+                subtitle = subtitle,
+                videoType = Video.Type.Episode(
+                    id = episode.id,
+                    number = episode.number,
+                    title = episode.title,
+                    poster = episode.poster,
+                    overview = episode.overview,
+                    tvShow = Video.Type.Episode.TvShow(
+                        id = episode.tvShow?.id ?: "",
+                        title = episode.tvShow?.title ?: "",
+                        poster = episode.tvShow?.poster,
+                        banner = episode.tvShow?.banner,
+                        releaseDate = episode.tvShow?.released?.format("yyyy-MM-dd"),
+                        imdbId = episode.tvShow?.imdbId,
+                    ),
+                    season = Video.Type.Episode.Season(
+                        number = season?.number ?: 0,
+                        title = season?.title,
+                    ),
+                ),
+            ),
+        )
     }
 
     fun requestDownload(episode: Episode) {
@@ -253,18 +137,31 @@ class SeasonMobileFragment : Fragment() {
 
     fun requestDownloadSeason() {
         if (allEpisodes.isEmpty()) return
-        viewLifecycleOwner.lifecycleScope.launch {
-            Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
-            val started = DownloadEnqueueHelper.enqueueEpisodes(requireContext(), allEpisodes)
-            Toast.makeText(
-                requireContext(),
-                if (started > 0) {
-                    getString(R.string.download_season_started, started)
-                } else {
-                    getString(R.string.download_season_none)
-                },
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.download_season_all)
+            .setMessage(
+                getString(
+                    R.string.download_season_all_confirm,
+                    allEpisodes.size,
+                    args.seasonTitle,
+                ),
+            )
+            .setPositiveButton(R.string.download_season_all) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    Toast.makeText(requireContext(), R.string.download_starting, Toast.LENGTH_SHORT).show()
+                    val started = DownloadEnqueueHelper.enqueueEpisodes(requireContext(), allEpisodes)
+                    Toast.makeText(
+                        requireContext(),
+                        if (started > 0) {
+                            getString(R.string.download_season_started, started)
+                        } else {
+                            getString(R.string.download_season_none)
+                        },
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 }

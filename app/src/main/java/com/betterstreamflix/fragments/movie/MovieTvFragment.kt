@@ -1,124 +1,131 @@
 package com.betterstreamflix.fragments.movie
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.betterstreamflix.adapters.AppAdapter
-import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentMovieTvBinding
-import com.betterstreamflix.models.Movie
-import com.betterstreamflix.utils.LoggingUtils
-import com.betterstreamflix.utils.loadMovieBanner
-import com.betterstreamflix.utils.viewModelsFactory
 import com.betterstreamflix.R
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.MediaDetailScreen
+import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.download.DownloadEnqueueHelper
+import com.betterstreamflix.models.Movie
+import com.betterstreamflix.models.People
+import com.betterstreamflix.models.Show
+import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.models.Video
+import com.betterstreamflix.utils.CacheUtils
+import com.betterstreamflix.utils.format
+import com.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
-class MovieTvFragment : Fragment() {
+class MovieTvFragment : ComposeHostFragment() {
 
-    private var _binding: FragmentMovieTvBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
-
+    private var hasAutoCleared409 = false
     private val args by navArgs<MovieTvFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { MovieViewModel(args.id, database) }
 
-    private val appAdapter = AppAdapter()
+    @Composable
+    override fun ScreenContent() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = MovieViewModel.State.Loading)
+        val movie = (state as? MovieViewModel.State.SuccessLoading)?.movie
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentMovieTvBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        initializeMovie()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                when (state) {
-                    MovieViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-                    is MovieViewModel.State.SuccessLoading -> {
-                        displayMovie(state.movie)
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-                    is MovieViewModel.State.FailedLoading -> {
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        binding.isLoading.apply {
-                            pbIsLoading.visibility = View.GONE
-                            gIsLoadingRetry.visibility = View.VISIBLE
-                            btnIsLoadingRetry.setOnClickListener {
-                                viewModel.getMovie(args.id)
-                            }
-                            btnIsLoadingErrorDetails.setOnClickListener {
-                                LoggingUtils.showErrorDialog(requireContext(), state.error)
-                            }
-                            btnIsLoadingRetry.requestFocus()
-                        }
-                    }
+        if (state is MovieViewModel.State.FailedLoading) {
+            val error = (state as MovieViewModel.State.FailedLoading).error
+            val code = (error as? HttpException)?.code()
+            if (code == 409 && !hasAutoCleared409) {
+                hasAutoCleared409 = true
+                androidx.compose.runtime.LaunchedEffect(error) {
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(requireContext(), R.string.clear_cache_done_409, Toast.LENGTH_SHORT).show()
+                    viewModel.getMovie(args.id)
                 }
             }
         }
-    }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        appAdapter.onSaveInstanceState(binding.vgvMovie)
-        _binding = null
-    }
-
-
-    private fun initializeMovie() {
-        binding.vgvMovie.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            setItemSpacing(80)
-        }
-    }
-
-    private fun displayMovie(movie: Movie) {
-        binding.ivMovieBanner.loadMovieBanner(movie) {
-            transition(DrawableTransitionOptions.withCrossFade())
+        val watchProgress = movie?.watchHistory?.let { history ->
+            if (history.durationMillis > 0L) {
+                (history.lastPlaybackPositionMillis.toFloat() / history.durationMillis).coerceIn(0f, 1f)
+            } else null
         }
 
-        appAdapter.submitList(listOfNotNull(
-            movie.apply { itemType = AppAdapter.Type.MOVIE_TV },
+        MediaDetailScreen(
+            title = movie?.title.orEmpty(),
+            bannerUrl = movie?.banner ?: movie?.poster,
+            overview = movie?.overview,
+            metaLine = movieMetaLine(movie),
+            genresLine = movie?.genres?.joinToString(", ") { it.name },
+            watchLabel = stringResource(R.string.movie_watch_now),
+            watchProgress = watchProgress,
+            showWatchButton = movie != null,
+            showDownloadButton = movie != null,
+            cast = movie?.cast.orEmpty(),
+            directors = movie?.directors.orEmpty(),
+            recommendations = movie?.recommendations.orEmpty(),
+            isLoading = state is MovieViewModel.State.Loading,
+            errorMessage = (state as? MovieViewModel.State.FailedLoading)?.error?.message,
+            isTvLayout = true,
+            onWatch = { movie?.let(::openPlayer) },
+            onDownload = { movie?.let(::requestDownload) },
+            onCastClick = ::openPerson,
+            onRecommendationClick = ::openRecommendation,
+            onRetry = { viewModel.getMovie(args.id) },
+        )
+    }
 
-            movie.takeIf { it.directors.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.MOVIE_DIRECTORS_TV },
+    private fun movieMetaLine(movie: Movie?): String? {
+        if (movie == null) return null
+        return listOfNotNull(
+            movie.released?.format("yyyy"),
+            movie.rating?.takeIf { it > 0 }?.let { "★ %.1f".format(it) },
+            movie.runtime?.let { getString(R.string.tv_show_runtime_minutes, it) },
+        ).joinToString("  •  ").takeIf { it.isNotBlank() }
+    }
 
-            movie.takeIf { it.cast.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.MOVIE_CAST_TV },
+    private fun openPlayer(movie: Movie) {
+        findNavController().navigate(
+            MovieTvFragmentDirections.actionMovieToPlayer(
+                id = movie.id,
+                title = movie.title,
+                subtitle = movie.released?.format("yyyy") ?: "",
+                videoType = Video.Type.Movie(
+                    id = movie.id,
+                    title = movie.title,
+                    releaseDate = movie.released?.format("yyyy-MM-dd") ?: "",
+                    poster = movie.poster ?: movie.banner ?: "",
+                    imdbId = movie.imdbId,
+                ),
+            ),
+        )
+    }
 
-            movie.takeIf { it.recommendations.isNotEmpty() }
-                ?.copy()
-                ?.apply { itemType = AppAdapter.Type.MOVIE_RECOMMENDATIONS_TV },
-        ))
+    private fun openPerson(person: People) {
+        findNavController().navigate(
+            MovieTvFragmentDirections.actionMovieToPeople(
+                id = person.id,
+                name = person.name,
+                image = person.image,
+            ),
+        )
+    }
+
+    private fun openRecommendation(show: Show) {
+        when (show) {
+            is Movie -> findNavController().navigate(MovieTvFragmentDirections.actionMovieToMovie(id = show.id))
+            is TvShow -> findNavController().navigate(
+                MovieTvFragmentDirections.actionMovieToTvShow(
+                    id = show.id,
+                    poster = show.poster,
+                    banner = show.banner,
+                ),
+            )
+        }
     }
 
     fun requestDownload(movie: Movie) {
@@ -128,4 +135,3 @@ class MovieTvFragment : Fragment() {
         }
     }
 }
-

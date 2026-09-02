@@ -153,6 +153,7 @@ object DownloadEnqueueHelper {
                 title = DownloadActionHelper.displayTitle(videoType),
                 url = url,
                 providerName = providerName,
+                artworkUrl = DownloadActionHelper.artworkUrl(videoType),
                 scheduleWorker = scheduleWorker,
             )
         }

@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
 import com.betterstreamflix.R
+import com.betterstreamflix.notifications.NotificationPreferences
 
 @UnstableApi
 object DownloadNotificationBuilder {
@@ -78,5 +79,15 @@ object DownloadNotificationBuilder {
             .setContentText("$title: $error")
             .setAutoCancel(true)
             .build()
+    }
+
+    fun notifyIfEnabled(context: Context, notificationId: Int, notification: Notification) {
+        if (!NotificationPreferences.isDownloadNotificationsEnabled(context)) return
+        context.getSystemService(NotificationManager::class.java)?.notify(notificationId, notification)
+    }
+
+    fun cancelIfEnabled(context: Context, notificationId: Int) {
+        if (!NotificationPreferences.isDownloadNotificationsEnabled(context)) return
+        context.getSystemService(NotificationManager::class.java)?.cancel(notificationId)
     }
 }

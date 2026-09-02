@@ -350,8 +350,9 @@ object AniWorldProvider : Provider {
             },
             cast = tvShow.cast.map { person ->
                 val tmdbPerson = tmdbTvShow?.cast?.find { it.name.equals(person.name, ignoreCase = true) }
-                person.copy(image = tmdbPerson?.image)
-            }
+                    ?: TmdbUtils.enrichPersonByName(person.name, language = language)
+                person.copy(image = tmdbPerson?.image ?: person.image)
+            },
         )
     }
 

@@ -93,8 +93,8 @@ object Media3DownloadSync {
         if (status == DownloadManager.DownloadStatus.COMPLETED) {
             DownloadNotificationBuilder.ensureChannel(repository.context)
             val notificationId = download.request.id.hashCode()
-            val nm = repository.context.getSystemService(android.app.NotificationManager::class.java)
-            nm?.notify(
+            DownloadNotificationBuilder.notifyIfEnabled(
+                repository.context,
                 notificationId,
                 DownloadNotificationBuilder.buildCompleteNotification(repository.context, existing.title),
             )
