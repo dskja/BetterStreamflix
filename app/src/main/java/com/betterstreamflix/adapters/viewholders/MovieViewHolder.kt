@@ -75,6 +75,7 @@ import com.betterstreamflix.models.Video
 import com.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.betterstreamflix.ui.ShowOptionsTvDialog
 import com.betterstreamflix.ui.SpacingItemDecoration
+import com.betterstreamflix.utils.OverviewTextHelper
 import com.betterstreamflix.utils.dp
 import androidx.preference.Preference
 import com.betterstreamflix.utils.format
@@ -808,7 +809,7 @@ class MovieViewHolder(
             }
         }
 
-        binding.tvMovieOverview.text = movie.overview
+        OverviewTextHelper.bind(binding.tvMovieOverview, movie.overview)
 
         binding.btnMovieWatchNow.apply {
             setOnClickListener {
@@ -952,7 +953,7 @@ class MovieViewHolder(
             }
         }
 
-        binding.tvMovieOverview.text = movie.overview
+        OverviewTextHelper.bind(binding.tvMovieOverview, movie.overview)
 
         binding.btnMovieWatchNow.apply {
             setOnClickListener {

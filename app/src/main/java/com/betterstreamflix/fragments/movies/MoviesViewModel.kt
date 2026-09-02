@@ -87,7 +87,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
 
             page = 1
 
-            _state.emit(State.SuccessLoading(movies, movies.isNotEmpty()))
+            _state.emit(State.SuccessLoading(movies, movies.size >= PAGE_SIZE))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MoviesViewModel", "getMovies: ", e)
@@ -110,7 +110,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
                 _state.emit(
                     State.SuccessLoading(
                         movies = currentState.movies + movies,
-                        hasMore = movies.isNotEmpty(),
+                        hasMore = movies.size >= PAGE_SIZE,
                     )
                 )
             } catch (e: Exception) {
@@ -119,5 +119,9 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
                 _state.emit(State.FailedLoading(e))
             }
         }
+    }
+
+    companion object {
+        private const val PAGE_SIZE = 24
     }
 }

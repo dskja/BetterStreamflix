@@ -1,5 +1,6 @@
 package com.betterstreamflix.fragments.home
 
+import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +26,7 @@ import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.models.Video
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DeepLinkHandler
@@ -91,6 +93,7 @@ class HomeTvFragment : ComposeHostFragment() {
                     scrollToCategoryName = scrollToCategory,
                     onProviderClick = { findNavController().navigate(R.id.providers) },
                     onItemClick = ::onItemClick,
+                    onItemLongClick = ::onItemLongClick,
                 )
             }
             is HomeViewModel.State.FailedLoading -> {
@@ -131,13 +134,34 @@ class HomeTvFragment : ComposeHostFragment() {
 
     fun resetSwiperSchedule() = Unit
 
-    private fun onItemClick(item: AppAdapter.Item) {
+    private fun onItemClick(item: AppAdapter.Item, fromContinueWatching: Boolean) {
         when (item) {
             is Movie -> {
                 switchProviderIfNeeded(item.providerName)
-                findNavController().navigate(
-                    HomeTvFragmentDirections.actionHomeToMovie(id = item.id),
-                )
+                if (fromContinueWatching && item.watchHistory != null) {
+                    findNavController().navigate(
+                        R.id.action_global_player,
+                        Bundle().apply {
+                            putString("id", item.id)
+                            putString("title", item.title)
+                            putString("subtitle", item.released?.format("yyyy") ?: "")
+                            putSerializable(
+                                "videoType",
+                                Video.Type.Movie(
+                                    id = item.id,
+                                    title = item.title,
+                                    releaseDate = item.released?.format("yyyy-MM-dd") ?: "",
+                                    poster = item.poster ?: item.banner ?: "",
+                                    imdbId = item.imdbId,
+                                ),
+                            )
+                        },
+                    )
+                } else {
+                    findNavController().navigate(
+                        HomeTvFragmentDirections.actionHomeToMovie(id = item.id),
+                    )
+                }
             }
             is TvShow -> {
                 switchProviderIfNeeded(item.providerName)
@@ -197,6 +221,15 @@ class HomeTvFragment : ComposeHostFragment() {
                     ),
                 )
             }
+        }
+    }
+
+    private fun onItemLongClick(item: AppAdapter.Item) {
+        when (item) {
+            is Movie -> com.betterstreamflix.ui.ShowOptionsTvDialog(requireContext(), item).show()
+            is TvShow -> com.betterstreamflix.ui.ShowOptionsTvDialog(requireContext(), item).show()
+            is Episode -> com.betterstreamflix.ui.ShowOptionsTvDialog(requireContext(), item).show()
+            else -> Unit
         }
     }
 

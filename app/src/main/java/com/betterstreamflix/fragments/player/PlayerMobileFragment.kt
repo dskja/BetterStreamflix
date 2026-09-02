@@ -60,7 +60,7 @@ import com.betterstreamflix.models.Season
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.models.Video
 import com.betterstreamflix.models.WatchItem
-import com.betterstreamflix.providers.SerienStreamProvider
+import com.betterstreamflix.notifications.NotificationPreferences
 import com.betterstreamflix.sync.CloudSyncHooks
 import com.betterstreamflix.ui.PlayerMobileView
 import com.betterstreamflix.utils.MediaServer
@@ -124,7 +124,7 @@ class PlayerMobileFragment : Fragment() {
     private lateinit var nextEpisodeOverlayManager: NextEpisodeOverlayManager
     private lateinit var httpDataSource: HttpDataSource.Factory
     private lateinit var dataSourceFactory: DataSource.Factory
-    private lateinit var mediaSession: MediaSession
+    private var mediaSession: MediaSession? = null
     private lateinit var progressHandler: android.os.Handler
     private lateinit var progressRunnable: Runnable
     private lateinit var gestureHelper: PlayerGestureHelper
@@ -1519,7 +1519,9 @@ class PlayerMobileFragment : Fragment() {
             softwareDecoder = softwareDecoder,
         ).also { builtPlayer ->
             PlayerBuilderFactory.applyPlayerSettings(builtPlayer)
-            mediaSession = PlayerBuilderFactory.createMediaSession(requireContext(), builtPlayer)
+            if (NotificationPreferences.isPlaybackNotificationsEnabled(requireContext())) {
+                mediaSession = PlayerBuilderFactory.createMediaSession(requireContext(), builtPlayer)
+            }
         }
 
         nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database).apply {
@@ -1549,9 +1551,8 @@ class PlayerMobileFragment : Fragment() {
         if (::player.isInitialized) {
             player.release()
         }
-        if (::mediaSession.isInitialized) {
-            mediaSession.release()
-        }
+        mediaSession?.release()
+        mediaSession = null
     }
 
     private fun showSleepTimerDialog() {

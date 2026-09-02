@@ -71,6 +71,7 @@ class DownloadRepository(val context: Context) {
             createdAt = createdAt,
             completedAt = completedAt,
             errorMessage = errorMessage,
+            artworkUrl = artworkUrl,
         )
 
         fun DownloadManager.DownloadTask.toEntity(): DownloadEntity = DownloadEntity(
@@ -86,6 +87,7 @@ class DownloadRepository(val context: Context) {
             createdAt = createdAt,
             completedAt = completedAt,
             errorMessage = errorMessage,
+            artworkUrl = artworkUrl,
         )
     }
 }

@@ -7,7 +7,9 @@ import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.People
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.utils.TmdbUtils
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.utils.format
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -101,7 +103,7 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
 
             page = 1
 
-            _state.emit(State.SuccessLoading(people, true))
+            _state.emit(State.SuccessLoading(enrichPeopleProfile(people), true))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("PeopleViewModel", "getPeople: ", e)
@@ -133,5 +135,18 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
                 _state.emit(State.FailedLoading(e))
             }
         }
+    }
+
+    private suspend fun enrichPeopleProfile(people: People): People {
+        if (!UserPreferences.enableTmdb) return people
+        if (!people.image.isNullOrBlank() && !people.biography.isNullOrBlank()) return people
+        val enriched = TmdbUtils.enrichPersonByName(people.name) ?: return people
+        return people.copy(
+            image = people.image ?: enriched.image,
+            biography = people.biography ?: enriched.biography,
+            placeOfBirth = people.placeOfBirth ?: enriched.placeOfBirth,
+            birthday = people.birthday?.format("yyyy-MM-dd") ?: enriched.birthday?.format("yyyy-MM-dd"),
+            deathday = people.deathday?.format("yyyy-MM-dd") ?: enriched.deathday?.format("yyyy-MM-dd"),
+        )
     }
 }

@@ -1,129 +1,60 @@
 package com.betterstreamflix.fragments.movies
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.fragment.findNavController
 import com.betterstreamflix.R
-import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.MoviesScreen
 import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentMoviesMobileBinding
 import com.betterstreamflix.models.Movie
-import com.betterstreamflix.providers.Provider
-import com.betterstreamflix.ui.SpacingItemDecoration
-import com.betterstreamflix.utils.UserPreferences
-import com.betterstreamflix.utils.dp
-import com.betterstreamflix.utils.viewModelsFactory
 import com.betterstreamflix.utils.CacheUtils
-import kotlinx.coroutines.launch
+import com.betterstreamflix.utils.viewModelsFactory
+import retrofit2.HttpException
 
-class MoviesMobileFragment : Fragment() {
+class MoviesMobileFragment : ComposeHostFragment() {
 
-    private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentMoviesMobileBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
-
+    private var hasAutoCleared409 = false
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
     private val viewModel by viewModelsFactory { MoviesViewModel(database) }
 
-    private val appAdapter = AppAdapter()
+    @Composable
+    override fun ScreenContent() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = MoviesViewModel.State.Loading)
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentMoviesMobileBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+        val movies = (state as? MoviesViewModel.State.SuccessLoading)?.movies.orEmpty()
+        val hasMore = (state as? MoviesViewModel.State.SuccessLoading)?.hasMore == true
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        initializeMovies()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                when (state) {
-                    MoviesViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-                    MoviesViewModel.State.LoadingMore -> appAdapter.isLoading = true
-                    is MoviesViewModel.State.SuccessLoading -> {
-                        displayMovies(state.movies, state.hasMore)
-                        appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-                    is MoviesViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getMovies()
-                            return@collect
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        if (appAdapter.isLoading) {
-                            appAdapter.isLoading = false
-                        } else {
-                            binding.isLoading.apply {
-                                pbIsLoading.visibility = View.GONE
-                                gIsLoadingRetry.visibility = View.VISIBLE
-                                val doRetry = { viewModel.getMovies() }
-                                btnIsLoadingRetry.setOnClickListener { doRetry() }
-                                btnIsLoadingClearCache.setOnClickListener {
-                                    CacheUtils.clearAppCache(requireContext())
-                                    android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                    doRetry()
-                                }
-                            }
-                        }
-                    }
+        if (state is MoviesViewModel.State.FailedLoading) {
+            val error = (state as MoviesViewModel.State.FailedLoading).error
+            val code = (error as? HttpException)?.code()
+            if (code == 409 && !hasAutoCleared409) {
+                hasAutoCleared409 = true
+                androidx.compose.runtime.LaunchedEffect(error) {
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(requireContext(), R.string.clear_cache_done_409, Toast.LENGTH_SHORT).show()
+                    viewModel.getMovies()
                 }
             }
         }
+
+        MoviesScreen(
+            movies = movies,
+            isLoading = state is MoviesViewModel.State.Loading,
+            isLoadingMore = state is MoviesViewModel.State.LoadingMore,
+            hasMore = hasMore,
+            errorMessage = (state as? MoviesViewModel.State.FailedLoading)?.error?.message,
+            onMovieClick = ::openMovie,
+            onLoadMore = { viewModel.loadMoreMovies() },
+            onRetry = { viewModel.getMovies() },
+        )
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-
-    private fun initializeMovies() {
-        binding.rvMovies.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            addItemDecoration(
-                SpacingItemDecoration(10.dp(requireContext()))
-            )
-        }
-    }
-
-    private fun displayMovies(movies: List<Movie>, hasMore: Boolean) {
-        appAdapter.submitList(movies.onEach {
-            it.itemType = AppAdapter.Type.MOVIE_GRID_MOBILE_ITEM
-        })
-
-        if (hasMore) {
-            appAdapter.setOnLoadMoreListener { viewModel.loadMoreMovies() }
-        } else {
-            appAdapter.setOnLoadMoreListener(null)
-        }
+    private fun openMovie(movie: Movie) {
+        findNavController().navigate(
+            MoviesMobileFragmentDirections.actionMoviesToMovie(id = movie.id),
+        )
     }
 }

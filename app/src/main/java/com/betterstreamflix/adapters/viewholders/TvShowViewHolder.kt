@@ -58,6 +58,7 @@ import com.betterstreamflix.models.Video
 import com.betterstreamflix.ui.SpacingItemDecoration
 import com.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.betterstreamflix.ui.ShowOptionsTvDialog
+import com.betterstreamflix.utils.OverviewTextHelper
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.toActivity
@@ -217,6 +218,31 @@ class TvShowViewHolder(
                 season.episodes.any { it.id == episode.id } ||
                 (episode.number != 0 && season.episodes.any { it.number == episode.number && it.title == episode.title })
         } ?: currentSeason
+    }
+
+    private fun watchLabel(season: Season?, episode: Episode?): String {
+        val episodeNumber = episode?.number ?: 1
+        if (isIptvProvider()) return context.getString(R.string.movie_watch_now)
+        val seasonNumber = season?.number ?: -1
+        return when {
+            seasonNumber == 0 || season?.title.equals("Filme", ignoreCase = true) -> {
+                episode?.title?.takeIf { it.isNotBlank() }
+                    ?.let { context.getString(R.string.tv_show_watch_title, it) }
+                    ?: context.getString(R.string.tv_show_watch_episode, episodeNumber)
+            }
+            seasonNumber > 0 -> context.getString(R.string.tv_show_watch_season_episode, seasonNumber, episodeNumber)
+            else -> context.getString(R.string.tv_show_watch_episode, episodeNumber)
+        }
+    }
+
+    private fun episodeSubtitle(season: Season?, episode: Episode): String {
+        val seasonNumber = season?.number ?: -1
+        return when {
+            seasonNumber == 0 || season?.title.equals("Filme", ignoreCase = true) ->
+                episode.title.orEmpty()
+            seasonNumber > 0 -> "S$seasonNumber E${episode.number}  •  ${episode.title}"
+            else -> "E${episode.number}  •  ${episode.title}"
+        }
     }
 
     private fun setPoster(imageView: ImageView) {
@@ -663,7 +689,7 @@ class TvShowViewHolder(
             isVisible = tvShow.genres.isNotEmpty()
         }
 
-        binding.tvTvShowOverview.text = tvShow.overview
+        OverviewTextHelper.bind(binding.tvTvShowOverview, tvShow.overview)
         val episodeToWatch = tvShow.episodeToWatch
         val episodeSeason = resolveEpisodeSeason(episodeToWatch)
         binding.btnTvShowWatchNow.apply {
@@ -688,20 +714,20 @@ class TvShowViewHolder(
                             imdbId = tvShow.imdbId,
                         ),
                         season = Video.Type.Episode.Season(
-                            number = episodeSeason?.number ?: 1,
+                            number = episodeSeason?.number?.takeIf { it > 0 } ?: 1,
                             title = episodeSeason?.title ?: "",
                         ),
                     )
                     val args = Bundle().apply {
                         putString("id", episodeToWatch.id)
                         putString("title", tvShow.title)
-                        putString("subtitle", "S${videoType.season.number} E${videoType.number}  •  ${videoType.title}")
+                        putString("subtitle", episodeSubtitle(episodeSeason, ep))
                         putSerializable("videoType", videoType)
                     }
                     findNavController().navigate(R.id.player, args)
                 }
             }
-            text = if (isIptvProvider()) context.getString(R.string.movie_watch_now) else context.getString(R.string.tv_show_watch_season_episode, episodeSeason?.number ?: 1, episodeToWatch?.number ?: 1)
+            text = watchLabel(episodeSeason, episodeToWatch)
         }
 
         binding.pbTvShowProgressEpisode.apply {
@@ -803,7 +829,7 @@ class TvShowViewHolder(
             isVisible = tvShow.genres.isNotEmpty()
         }
 
-        binding.tvTvShowOverview.text = tvShow.overview
+        OverviewTextHelper.bind(binding.tvTvShowOverview, tvShow.overview)
         val episodeToWatch = tvShow.episodeToWatch
         val episodeSeason = resolveEpisodeSeason(episodeToWatch)
         binding.btnTvShowWatchNow.apply {
@@ -828,20 +854,20 @@ class TvShowViewHolder(
                             imdbId = tvShow.imdbId,
                         ),
                         season = Video.Type.Episode.Season(
-                            number = episodeSeason?.number ?: 1,
+                            number = episodeSeason?.number?.takeIf { it > 0 } ?: 1,
                             title = episodeSeason?.title ?: "",
                         ),
                     )
                     val args = Bundle().apply {
                         putString("id", episodeToWatch.id)
                         putString("title", tvShow.title)
-                        putString("subtitle", "S${videoType.season.number} E${videoType.number}  •  ${videoType.title}")
+                        putString("subtitle", episodeSubtitle(episodeSeason, ep))
                         putSerializable("videoType", videoType)
                     }
                     findNavController().navigate(R.id.player, args)
                 }
             }
-            text = if (isIptvProvider()) context.getString(R.string.movie_watch_now) else context.getString(R.string.tv_show_watch_season_episode, episodeSeason?.number ?: 1, episodeToWatch?.number ?: 1)
+            text = watchLabel(episodeSeason, episodeToWatch)
         }
 
         binding.pbTvShowProgressEpisode.apply {

@@ -34,6 +34,7 @@
 
     <string name="home_hero_fallback_title">Watch something great</string>
     <string name="home_hero_subtitle">Stream from your favorite providers — curated for tonight.</string>
+    <string name="home_hero_provider_subtitle">Now browsing %1$s — pick up where you left off or discover something new.</string>
     <string name="home_hero_open_now">Open now</string>
     <string name="home_hero_choose_provider">Choose provider</string>
     <string name="home_switch_provider">Switch provider</string>
@@ -468,6 +469,35 @@
     <string name="download_progress_unknown">Downloading…</string>
     <string name="download_progress_percent">%1$d%%</string>
     <string name="download_size_progress">%1$s / %2$s</string>
+    <string name="download_live_stats">%1$s  ·  %2$d%%  ·  ETA %3$s</string>
+    <string name="download_live_speed_only">%1$s</string>
+    <string name="download_settings_title">Download settings</string>
+    <string name="download_settings_done">Done</string>
+    <string name="download_settings_wifi_only">Wi‑Fi only</string>
+    <string name="download_settings_wifi_only_hint">Pause downloads on mobile data</string>
+    <string name="download_settings_min_battery">Minimum battery</string>
+    <string name="download_settings_min_battery_hint">Don\'t download below %1$d%% charge</string>
+    <string name="download_settings_storage">%1$s used  ·  %2$s free</string>
+    <string name="search_genre_browse">Browse genre</string>
+    <string name="overview_show_more">Show more</string>
+    <string name="overview_show_less">Show less</string>
+    <string name="tv_show_watch_title">Watch %1$s</string>
+    <string name="download_season_all_confirm">Download all %1$d items in “%2$s”? Each episode is saved to your offline library.</string>
+    <string name="download_season_all_confirm_short">Downloads all %1$d episodes in “%2$s”.</string>
+    <string name="download_season_all_short">Season (%1$d)</string>
+    <string name="download_season_all_hint">Downloads every episode in this season to your offline library.</string>
+    <string name="season_episode_count">%1$d episodes</string>
+    <string name="season_no_episodes_match">No episodes match your search</string>
+    <string name="tv_shows_empty">No TV shows found for this provider</string>
+    <string name="movies_empty">No movies found for this provider</string>
+    <string name="settings_new_content_clear_history">Reset alert history</string>
+    <string name="settings_new_content_clear_history_summary">Show alerts again for titles you already saw</string>
+    <string name="settings_new_content_clear_history_done">Alert history cleared</string>
+    <string name="settings_cuevana_domain_reset">Reset Cuevana domain</string>
+    <string name="settings_cuevana_domain_reset_summary">Restore the default Cuevana mirror</string>
+    <string name="settings_poseidon_domain_reset">Reset Poseidon domain</string>
+    <string name="settings_poseidon_domain_reset_summary">Restore the default Poseidon mirror</string>
+    <string name="download_episode_hint">Download this episode</string>
 
     <string name="settings_search_title">Search settings</string>
     <string name="settings_search_summary">Find a setting quickly</string>
@@ -477,6 +507,10 @@
     <string name="settings_new_content_notifications">New content alerts</string>
     <string name="settings_new_content_notifications_summary">Notify when your provider adds new titles</string>
     <string name="settings_notifications_permission_denied">Notification permission is required to enable alerts</string>
+    <string name="settings_download_notifications">Download notifications</string>
+    <string name="settings_download_notifications_summary">Show progress when episodes and movies are downloading</string>
+    <string name="settings_playback_notifications">Playback notifications</string>
+    <string name="settings_playback_notifications_summary">Show media controls in the notification shade while playing</string>
     <string name="download_notification_channel">Downloads</string>
     <string name="download_notification_description">Offline download progress</string>
     <string name="download_notification_title">Downloading</string>

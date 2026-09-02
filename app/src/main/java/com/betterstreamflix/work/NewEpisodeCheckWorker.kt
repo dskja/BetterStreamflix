@@ -1,6 +1,8 @@
 package com.betterstreamflix.work
 
 import android.content.Context
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -39,13 +41,14 @@ class NewEpisodeCheckWorker(
 
         return try {
             val categories = provider.getHome()
+            val providerName = provider.name
             val homeContentIds = categories
                 .flatMap { it.list }
                 .mapNotNull { item ->
                     when (item) {
-                        is Movie -> "movie:${item.id}"
-                        is TvShow -> "tv:${item.id}"
-                        is Episode -> "ep:${item.id}"
+                        is Movie -> NewContentNotifier.scopedId(providerName, "movie:${item.id}")
+                        is TvShow -> NewContentNotifier.scopedId(providerName, "tv:${item.id}")
+                        is Episode -> NewContentNotifier.scopedId(providerName, "ep:${item.id}")
                         else -> null
                     }
                 }
@@ -60,10 +63,25 @@ class NewEpisodeCheckWorker(
                     R.string.notification_new_content_message,
                     newIds.size,
                 )
+                val launchIntent = applicationContext.packageManager
+                    .getLaunchIntentForPackage(applicationContext.packageName)
+                    ?.apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        putExtra("open_home", true)
+                    }
+                val pendingIntent = launchIntent?.let {
+                    PendingIntent.getActivity(
+                        applicationContext,
+                        NOTIFICATION_ID,
+                        it,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                }
                 val notification = GeneralNotificationBuilder.buildNotification(
                     applicationContext,
                     title,
                     message,
+                    contentIntent = pendingIntent,
                 )
                 NotificationDispatcher.send(applicationContext, NOTIFICATION_ID, notification)
                 NewContentNotifier.markContentAsSeen(applicationContext, newIds)
@@ -85,7 +103,7 @@ class NewEpisodeCheckWorker(
 
         return favorites.flatMap { favorite ->
             when (favorite.type.lowercase()) {
-                "movie" -> listOf("movie:${favorite.videoId}")
+                "movie" -> listOf(NewContentNotifier.scopedId(provider.name, "movie:${favorite.videoId}"))
                 "tv", "tvshow", "tv_show" -> collectTvShowContentIds(provider, favorite.videoId)
                 else -> emptyList()
             }
@@ -106,8 +124,9 @@ class NewEpisodeCheckWorker(
                     provider.getEpisodesBySeason(season.id)
                 }
             } ?: emptyList()
-            episodes.map { "ep:${it.id}" }.ifEmpty { listOf("tv:$tvShowId") }
-        }.getOrDefault(listOf("tv:$tvShowId"))
+            episodes.map { NewContentNotifier.scopedId(provider.name, "ep:${it.id}") }
+                .ifEmpty { listOf(NewContentNotifier.scopedId(provider.name, "tv:$tvShowId")) }
+        }.getOrDefault(listOf(NewContentNotifier.scopedId(provider.name, "tv:$tvShowId")))
     }
 
     companion object {

@@ -182,6 +182,23 @@ object SerienStreamProvider : Provider {
         return link.pathSegments().take(3).joinToString("/")
     }
 
+    private fun seasonPathFromSlug(seasonSlug: String): String = when {
+        seasonSlug.equals("filme", ignoreCase = true) -> "filme"
+        seasonSlug.startsWith("staffel-", ignoreCase = true) -> seasonSlug.lowercase(Locale.getDefault())
+        else -> {
+            val num = Regex("""\d+""").find(seasonSlug)?.value ?: "1"
+            "staffel-$num"
+        }
+    }
+
+    private fun seasonNumberForTmdb(seasonSlug: String): Int = when {
+        seasonSlug.equals("filme", ignoreCase = true) -> 0
+        else -> Regex("""\d+""").find(seasonSlug)?.value?.toIntOrNull() ?: 1
+    }
+
+    private fun isFilmeSeason(seasonSlug: String): Boolean =
+        seasonSlug.equals("filme", ignoreCase = true)
+
     override suspend fun getHome(): List<Category> {
         val document = getService().getHome()
         val categories = mutableListOf<Category>()
@@ -398,6 +415,7 @@ object SerienStreamProvider : Provider {
             val actorName = it.text().trim()
             if (actorName.isBlank()) return@mapNotNull null
             val tmdbPerson = tmdbTvShow?.cast?.find { person -> person.name.equals(actorName, ignoreCase = true) }
+                ?: TmdbUtils.enrichPersonByName(actorName, language = language)
             val personId = getPeopleIdFromLink(it.attr("href"))
             if (personId.isBlank()) return@mapNotNull null
             val localImage = it.selectFirst("img")?.let { img ->
@@ -423,9 +441,17 @@ object SerienStreamProvider : Provider {
                 if (dirName.isBlank()) return@mapNotNull null
                 val dirId = getPeopleIdFromLink(it.attr("href"))
                 if (dirId.isBlank()) return@mapNotNull null
+                val tmdbPerson = TmdbUtils.enrichPersonByName(dirName, language = language)
+                val localImage = it.selectFirst("img")?.let { img ->
+                    normalizeImageUrl(
+                        img.attr("data-src").takeIf { src -> src.isNotBlank() }
+                            ?: img.attr("src"),
+                    )
+                }
                 People(
                     id = dirId,
-                    name = dirName
+                    name = dirName,
+                    image = tmdbPerson?.image ?: localImage,
                 )
             },
             cast = localCast,
@@ -463,40 +489,53 @@ object SerienStreamProvider : Provider {
             return emptyList()
         }
         val showName = linkWithSplitData[0]
-        val seasonNumberStr = linkWithSplitData[1]
-        val seasonNumber = Regex("""\d+""").find(seasonNumberStr)?.value?.toIntOrNull() ?: 1
+        val seasonSlug = linkWithSplitData[1]
+        val seasonPath = seasonPathFromSlug(seasonSlug)
+        val seasonNumber = seasonNumberForTmdb(seasonSlug)
+        val isFilme = isFilmeSeason(seasonSlug)
 
-        val document = getService().getTvShowEpisodes(showName, seasonNumber.toString())
+        val document = getService().getTvShowEpisodesByPath(showName, seasonPath)
         
         // Get show title for TMDB lookup
         val title = (document.selectFirst("h1")?.text()?.trim() ?: "").split(" Staffel").firstOrNull()?.trim() ?: ""
         
-        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
-        val tmdbEpisodes = tmdbTvShow?.let { 
-            TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language) 
-        } ?: emptyList()
+        val tmdbTvShow = if (isFilme) null else TmdbUtils.getTvShow(title, language = language)
+        val tmdbEpisodes = if (isFilme) {
+            emptyList()
+        } else {
+            tmdbTvShow?.let {
+                TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language)
+            } ?: emptyList()
+        }
         
-        return document.select("tr.episode-row").map {
-            val episodeNumber = it.selectFirst(".episode-number-cell")?.text()?.trim()?.toIntOrNull() ?: 0
-            val tmdbEp = tmdbEpisodes.find { ep -> ep.number == episodeNumber }
+        return document.select("tr.episode-row").mapIndexed { index, row ->
+            val episodeNumber = row.selectFirst(".episode-number-cell")?.text()?.trim()?.toIntOrNull()
+                ?: (index + 1)
+            val tmdbEp = if (isFilme) null else tmdbEpisodes.find { ep -> ep.number == episodeNumber }
 
-            // Extract episode link from onclick with fallback to data-href or href
-            val episodeLink = it.attr("onclick")
+            val episodeLink = row.attr("onclick")
                 .substringAfter("window.location='")
                 .substringBefore("'")
                 .ifBlank {
-                    it.selectFirst("a[href]")?.attr("href") ?: ""
+                    row.selectFirst("a[href]")?.attr("href") ?: ""
                 }
+
+            val localPoster = row.selectFirst("img")?.let { img ->
+                normalizeImageUrl(
+                    img.attr("data-src").takeIf { src -> src.isNotBlank() }
+                        ?: img.attr("src"),
+                )
+            }
+            val localTitle = row.selectFirst(".episode-title-ger")?.text()?.trim()
+                ?: row.selectFirst(".episode-title-eng")?.text()?.trim()
+                ?: row.selectFirst("td:nth-child(2)")?.text()?.trim()
 
             Episode(
                 id = getEpisodeIdFromLink(episodeLink),
                 number = episodeNumber,
-                title = tmdbEp?.title ?: it.selectFirst(".episode-title-ger")?.text()?.trim()
-                    ?: it.selectFirst(".episode-title-eng")?.text()?.trim()
-                    ?: it.selectFirst("td:nth-child(2)")?.text()?.trim()
-                    ?: "Episode $episodeNumber",
-                poster = tmdbEp?.poster,
-                overview = tmdbEp?.overview
+                title = localTitle ?: tmdbEp?.title ?: if (isFilme) "Film $episodeNumber" else "Episode $episodeNumber",
+                poster = localPoster ?: tmdbEp?.poster,
+                overview = tmdbEp?.overview,
             )
         }.filter { it.id.isNotBlank() }
     }
@@ -528,10 +567,17 @@ object SerienStreamProvider : Provider {
         val document = getService().getPeople(id)
         val peopleName = document.selectFirst("h1 strong")?.text() ?: ""
         val tmdbPerson = TmdbUtils.enrichPersonByName(peopleName, language = language)
+        val localImage = document.selectFirst("img.person-image, .person img, .cast-image img, img")?.let { img ->
+            normalizeImageUrl(
+                img.attr("data-src").takeIf { src -> src.isNotBlank() }
+                    ?: img.attr("src"),
+            )
+        }
+        val localBio = document.selectFirst(".biography, .person-bio, .description-text")?.text()?.trim()
         return People(id = id,
             name = peopleName,
-            image = tmdbPerson?.image,
-            biography = tmdbPerson?.biography,
+            image = tmdbPerson?.image ?: localImage,
+            biography = tmdbPerson?.biography ?: localBio,
             placeOfBirth = tmdbPerson?.placeOfBirth,
             birthday = tmdbPerson?.birthday?.format("yyyy-MM-dd"),
             deathday = tmdbPerson?.deathday?.format("yyyy-MM-dd"),
@@ -552,14 +598,19 @@ object SerienStreamProvider : Provider {
             return emptyList()
         }
         val showName = linkWithSplitData[0]
-        val seasonNumber = Regex("""\d+""").find(linkWithSplitData[1])?.value ?: linkWithSplitData[1]
-        val episodeNumber = Regex("""\d+""").find(linkWithSplitData[2])?.value ?: linkWithSplitData[2]
+        val seasonSlug = linkWithSplitData[1]
+        val seasonPath = seasonPathFromSlug(seasonSlug)
+        val episodeSegment = linkWithSplitData[2]
 
         val document = try {
-            getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
+            getService().getTvShowEpisodeServersByPath(showName, seasonPath, episodeSegment)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Log.e("SerienStreamProvider", "getServers: failed to load episode page for $showName/staffel-$seasonNumber/episode-$episodeNumber", e)
+            Log.e(
+                "SerienStreamProvider",
+                "getServers: failed to load episode page for $showName/$seasonPath/$episodeSegment",
+                e,
+            )
             return emptyList()
         }
 
@@ -598,7 +649,7 @@ object SerienStreamProvider : Provider {
                 Log.e("SerienStreamProvider", "getServers: failed to process server '$serverName' with URL '$href'", e)
             }
         }
-        Log.i("SerienStreamProvider", "getServers: found ${servers.size} servers for $showName S${seasonNumber}E${episodeNumber}")
+        Log.i("SerienStreamProvider", "getServers: found ${servers.size} servers for $showName/$seasonPath/$episodeSegment")
         return servers
     }
 
@@ -749,11 +800,24 @@ object SerienStreamProvider : Provider {
             @Path("tvShowName") showName: String, @Path("seasonNumber") seasonNumber: String
         ): Document
 
+        @GET("serie/{tvShowName}/{seasonPath}")
+        suspend fun getTvShowEpisodesByPath(
+            @Path("tvShowName") showName: String,
+            @Path("seasonPath") seasonPath: String,
+        ): Document
+
         @GET("serie/{tvShowName}/staffel-{seasonNumber}/episode-{episodeNumber}")
         suspend fun getTvShowEpisodeServers(
             @Path("tvShowName") tvShowName: String,
             @Path("seasonNumber") seasonNumber: String,
             @Path("episodeNumber") episodeNumber: String
+        ): Document
+
+        @GET("serie/{tvShowName}/{seasonPath}/{episodeSegment}")
+        suspend fun getTvShowEpisodeServersByPath(
+            @Path("tvShowName") tvShowName: String,
+            @Path("seasonPath") seasonPath: String,
+            @Path("episodeSegment") episodeSegment: String,
         ): Document
 
         @GET

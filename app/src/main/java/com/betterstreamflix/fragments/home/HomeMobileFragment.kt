@@ -1,5 +1,6 @@
 package com.betterstreamflix.fragments.home
 
+import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,7 +21,10 @@ import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.HomeScreen
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.fragments.home.HomeMobileFragmentDirections
+import com.betterstreamflix.fragments.movie.MovieMobileFragmentDirections
 import com.betterstreamflix.fragments.tv_show.TvShowMobileFragmentDirections
+import com.betterstreamflix.models.Video
+import com.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
@@ -91,6 +95,7 @@ class HomeMobileFragment : ComposeHostFragment() {
                     scrollToCategoryName = scrollToCategory,
                     onProviderClick = { findNavController().navigate(R.id.providers) },
                     onItemClick = ::onItemClick,
+                    onItemLongClick = ::onItemLongClick,
                 )
             }
             is HomeViewModel.State.FailedLoading -> {
@@ -122,13 +127,33 @@ class HomeMobileFragment : ComposeHostFragment() {
         }
     }
 
-    private fun onItemClick(item: AppAdapter.Item) {
+    private fun onItemClick(item: AppAdapter.Item, fromContinueWatching: Boolean) {
         when (item) {
             is Movie -> {
                 switchProviderIfNeeded(item.providerName)
-                findNavController().navigate(
-                    HomeMobileFragmentDirections.actionHomeToMovie(id = item.id),
-                )
+                if (fromContinueWatching && item.watchHistory != null) {
+                    findNavController().navigate(
+                        HomeMobileFragmentDirections.actionHomeToMovie(id = item.id),
+                    )
+                    findNavController().navigate(
+                        MovieMobileFragmentDirections.actionMovieToPlayer(
+                            id = item.id,
+                            title = item.title,
+                            subtitle = item.released?.format("yyyy") ?: "",
+                            videoType = Video.Type.Movie(
+                                id = item.id,
+                                title = item.title,
+                                releaseDate = item.released?.format("yyyy-MM-dd") ?: "",
+                                poster = item.poster ?: item.banner ?: "",
+                                imdbId = item.imdbId,
+                            ),
+                        ),
+                    )
+                } else {
+                    findNavController().navigate(
+                        HomeMobileFragmentDirections.actionHomeToMovie(id = item.id),
+                    )
+                }
             }
             is TvShow -> {
                 switchProviderIfNeeded(item.providerName)
@@ -188,6 +213,15 @@ class HomeMobileFragment : ComposeHostFragment() {
                     ),
                 )
             }
+        }
+    }
+
+    private fun onItemLongClick(item: AppAdapter.Item) {
+        when (item) {
+            is Movie -> ShowOptionsMobileDialog(requireContext(), item).show()
+            is TvShow -> ShowOptionsMobileDialog(requireContext(), item).show()
+            is Episode -> ShowOptionsMobileDialog(requireContext(), item).show()
+            else -> Unit
         }
     }
 

@@ -1,7 +1,9 @@
 package com.betterstreamflix.notifications
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 
 /**
@@ -26,6 +28,7 @@ object GeneralNotificationBuilder {
         message: String,
         channelId: String = NotificationChannelManager.CHANNEL_GENERAL,
         ongoing: Boolean = false,
+        contentIntent: PendingIntent? = null,
     ): Notification {
         return NotificationCompat.Builder(context, channelId)
             .setContentTitle(title)
@@ -34,6 +37,7 @@ object GeneralNotificationBuilder {
             .setAutoCancel(!ongoing)
             .setOngoing(ongoing)
             .setOnlyAlertOnce(true)
+            .apply { contentIntent?.let { setContentIntent(it) } }
             .build()
     }
 

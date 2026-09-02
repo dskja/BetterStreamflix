@@ -147,7 +147,7 @@ class PlayerTvFragment : Fragment() {
     private lateinit var player: ExoPlayer
     private lateinit var httpDataSource: HttpDataSource.Factory
     private lateinit var dataSourceFactory: DataSource.Factory
-    private lateinit var mediaSession: MediaSession
+    private var mediaSession: MediaSession? = null
     private lateinit var progressHandler: android.os.Handler
     private lateinit var progressRunnable: Runnable
     private lateinit var gestureHelper: PlayerGestureHelper
@@ -1782,7 +1782,9 @@ class PlayerTvFragment : Fragment() {
                 softwareDecoder = softwareDecoder,
             ).also { builtPlayer ->
                 PlayerBuilderFactory.applyPlayerSettings(builtPlayer)
-                mediaSession = PlayerBuilderFactory.createMediaSession(requireContext(), builtPlayer)
+                if (com.betterstreamflix.notifications.NotificationPreferences.isPlaybackNotificationsEnabled(requireContext())) {
+                    mediaSession = PlayerBuilderFactory.createMediaSession(requireContext(), builtPlayer)
+                }
             }
 
             binding.pvPlayer.player = player
@@ -1801,9 +1803,8 @@ class PlayerTvFragment : Fragment() {
             if (::player.isInitialized) {
                 player.release()
             }
-            if (::mediaSession.isInitialized) {
-                mediaSession.release()
-            }
+            mediaSession?.release()
+            mediaSession = null
         }
 
     private fun showQrDialog(content: String) {
