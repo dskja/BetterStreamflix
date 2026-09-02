@@ -33,6 +33,7 @@ object DownloadFeature {
         url: String,
         providerName: String,
         filePath: String = "",
+        artworkUrl: String? = null,
         scheduleWorker: Boolean = true,
     ): Boolean {
         val appContext = context.applicationContext
@@ -65,6 +66,7 @@ object DownloadFeature {
                 filePath = filePath.ifBlank {
                     DownloadFileManager.getDownloadFile(appContext, taskId).absolutePath
                 },
+                artworkUrl = artworkUrl?.takeIf { it.isNotBlank() },
             )
             DownloadManager.addDownload(appContext, task)
             if (scheduleWorker) scheduleQueueWorker(appContext)

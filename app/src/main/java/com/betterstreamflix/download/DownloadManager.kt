@@ -29,6 +29,7 @@ object DownloadManager {
         val createdAt: Long = System.currentTimeMillis(),
         val completedAt: Long? = null,
         val errorMessage: String? = null,
+        val artworkUrl: String? = null,
     ) {
         val progressFraction: Float
             get() = when {

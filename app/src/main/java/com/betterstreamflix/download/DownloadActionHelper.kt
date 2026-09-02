@@ -19,6 +19,14 @@ object DownloadActionHelper {
         }
     }
 
+    fun artworkUrl(videoType: Video.Type): String? = when (videoType) {
+        is Video.Type.Movie -> videoType.poster.takeIf { it.isNotBlank() }
+        is Video.Type.Episode -> videoType.poster
+            ?.takeIf { it.isNotBlank() }
+            ?: videoType.tvShow.poster?.takeIf { it.isNotBlank() }
+            ?: videoType.tvShow.banner?.takeIf { it.isNotBlank() }
+    }
+
     fun findExisting(
         context: Context,
         videoId: String,
@@ -55,13 +63,13 @@ object DownloadActionHelper {
             Toast.makeText(context, R.string.download_already_queued, Toast.LENGTH_SHORT).show()
             return false
         }
-        val title = displayTitle(videoType)
         val ok = DownloadFeature.enqueue(
             context = context,
             videoId = videoId,
-            title = title,
+            title = displayTitle(videoType),
             url = streamUrl,
             providerName = providerName,
+            artworkUrl = artworkUrl(videoType),
         )
         if (ok) {
             Toast.makeText(context, R.string.download_started, Toast.LENGTH_SHORT).show()
