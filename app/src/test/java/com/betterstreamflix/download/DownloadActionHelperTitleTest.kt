@@ -16,6 +16,7 @@ class DownloadActionHelperTitleTest {
                 title = "Inception",
                 releaseDate = "2010-07-16",
                 poster = "",
+                imdbId = null,
             ),
         )
         assertEquals("Inception", title)
@@ -36,6 +37,7 @@ class DownloadActionHelperTitleTest {
                     poster = null,
                     banner = null,
                     releaseDate = null,
+                    imdbId = null,
                 ),
                 season = Video.Type.Episode.Season(number = 1, title = "Season 1"),
             ),
@@ -58,6 +60,7 @@ class DownloadActionHelperTitleTest {
                     poster = null,
                     banner = null,
                     releaseDate = null,
+                    imdbId = null,
                 ),
                 season = Video.Type.Episode.Season(number = 2, title = null),
             ),
