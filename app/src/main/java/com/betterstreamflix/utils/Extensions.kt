@@ -85,19 +85,28 @@ fun Context.hideKeyboard(view: View) {
     inputMethodManager?.hideSoftInputFromWindow(view.windowToken, 0)
 }
 
-fun Context.toActivity(): FragmentActivity? = this as? FragmentActivity
+fun Context.toActivity(): FragmentActivity? {
+    var current: Context? = this
+    while (current != null) {
+        if (current is FragmentActivity) return current
+        current = (current as? android.content.ContextWrapper)?.baseContext
+    }
+    return null
+}
 
 fun FragmentActivity.getCurrentFragment(): Fragment? = when (this) {
     is MainMobileActivity -> {
         val navHostFragment = this.supportFragmentManager
             .findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
-        navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
+        navHostFragment?.childFragmentManager?.primaryNavigationFragment
+            ?: navHostFragment?.childFragmentManager?.fragments?.lastOrNull()
     }
 
     is MainTvActivity -> {
         val navHostFragment = this.supportFragmentManager
             .findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
-        navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
+        navHostFragment?.childFragmentManager?.primaryNavigationFragment
+            ?: navHostFragment?.childFragmentManager?.fragments?.lastOrNull()
     }
 
     else -> null

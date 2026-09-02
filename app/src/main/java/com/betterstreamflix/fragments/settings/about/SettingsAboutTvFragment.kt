@@ -1,28 +1,42 @@
 package com.betterstreamflix.fragments.settings.about
 
-import android.os.Bundle
-import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
-import androidx.preference.Preference
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import com.betterstreamflix.BuildConfig
-import com.betterstreamflix.R
 import com.betterstreamflix.analytics.AnalyticsManager
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.SettingsActions
+import com.betterstreamflix.compose.screens.SettingsDestination
+import com.betterstreamflix.compose.screens.SettingsExperience
+import com.betterstreamflix.fragments.settings.SettingsComposeBridge
 
-class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
-
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.settings_about_tv, rootKey)
-
-        displaySettingsAbout()
-    }
-
-    private fun displaySettingsAbout() {
-        findPreference<Preference>("p_settings_about_version")?.apply {
-            summary = getString(R.string.settings_about_version_name, BuildConfig.VERSION_NAME)
+class SettingsAboutTvFragment : ComposeHostFragment() {
+    @Composable
+    override fun ScreenContent() {
+        val state = remember { SettingsComposeBridge.buildState(requireContext()) }
+        val actions = remember {
+            SettingsActions(
+                onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
+                onOpenDownloads = {},
+                onThemeSelected = {},
+                onLanguageSelected = {},
+                onDohSelected = {},
+                onQualitySelected = {},
+                onToggle = { _, _ -> },
+                onEditText = { _, _ -> },
+                onAction = { key ->
+                    if (key == "shareDiagnostics") {
+                        AnalyticsManager.shareDiagnosticReport(requireContext())
+                    }
+                },
+            )
         }
-
-        findPreference<Preference>("p_settings_about_export_diagnostics")?.setOnPreferenceClickListener {
-            AnalyticsManager.shareDiagnosticReport(requireContext())
-            true
-        }
+        SettingsExperience(
+            destination = SettingsDestination.About,
+            onNavigate = {},
+            state = state.copy(versionName = BuildConfig.VERSION_NAME),
+            actions = actions,
+            isTv = true,
+        )
     }
 }

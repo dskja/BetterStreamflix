@@ -32,6 +32,13 @@
     <string name="providers_search_hint">Search providers…</string>
     <string name="providers_no_results">No providers found</string>
 
+    <string name="home_hero_fallback_title">Watch something great</string>
+    <string name="home_hero_subtitle">Stream from your favorite providers — curated for tonight.</string>
+    <string name="home_hero_open_now">Open now</string>
+    <string name="home_hero_choose_provider">Choose provider</string>
+    <string name="home_switch_provider">Switch provider</string>
+    <string name="home_featured_fallback">Featured</string>
+
     <string name="main_menu_change_provider">Change provider</string>
     <string name="main_menu_search">Search</string>
     <string name="main_menu_home">Home</string>

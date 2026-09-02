@@ -1,23 +1,23 @@
 package com.betterstreamflix.compose.screens
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import com.betterstreamflix.compose.components.BsAtmosphere
-import com.betterstreamflix.compose.components.BsSettingsItem
-import com.betterstreamflix.compose.components.BsTopBar
 
+/**
+ * Legacy entry point kept for backward compatibility with existing callers.
+ * Delegates to [SettingsExperience] rendering the [SettingsDestination.Hub] destination.
+ */
 @Composable
 fun SettingsHubScreen(
-    items: List<Pair<String, String?>> = emptyList(),
+    state: SettingsUiState,
+    actions: SettingsActions,
+    onNavigate: (SettingsDestination) -> Unit = {},
+    isTv: Boolean = false,
 ) {
-    BsAtmosphere {
-        Column(modifier = Modifier.fillMaxSize()) {
-            BsTopBar(title = "Settings", showBrand = true)
-            items.forEach { (title, subtitle) ->
-                BsSettingsItem(title = title, subtitle = subtitle)
-            }
-        }
-    }
+    SettingsExperience(
+        destination = SettingsDestination.Hub,
+        onNavigate = onNavigate,
+        state = state,
+        actions = actions,
+        isTv = isTv,
+    )
 }

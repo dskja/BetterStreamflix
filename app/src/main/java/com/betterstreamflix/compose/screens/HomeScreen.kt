@@ -88,14 +88,18 @@ fun HomeScreen(
                             is Movie -> featured.title
                             is TvShow -> featured.title
                             is Episode -> featured.tvShow?.title ?: featured.title.orEmpty()
-                            else -> "Watch something great"
-                        }.ifBlank { "Watch something great" }
+                            else -> stringResource(R.string.home_hero_fallback_title)
+                        }.ifBlank { stringResource(R.string.home_hero_fallback_title) }
                         val heroImage = featured?.let(::posterOf)
                         BsHeroBanner(
                             title = heroTitle,
-                            subtitle = "Stream from your favorite providers — curated for tonight.",
+                            subtitle = stringResource(R.string.home_hero_subtitle),
                             imageUrl = heroImage,
-                            ctaLabel = if (featured != null) "Open now" else "Choose provider",
+                            ctaLabel = if (featured != null) {
+                                stringResource(R.string.home_hero_open_now)
+                            } else {
+                                stringResource(R.string.home_hero_choose_provider)
+                            },
                             onCta = {
                                 if (featured != null) onItemClick(featured) else onProviderClick()
                             },
@@ -106,7 +110,7 @@ fun HomeScreen(
                         key = { index, category -> "${category.name}#$index" },
                     ) { _, category ->
                         BsContentRow(
-                            title = category.name.ifBlank { "Featured" },
+                            title = category.name.ifBlank { stringResource(R.string.home_featured_fallback) },
                             items = category.list,
                             labelOf = ::itemLabel,
                             onItemClick = onItemClick,
@@ -114,7 +118,7 @@ fun HomeScreen(
                     }
                     item(key = "provider-link") {
                         BsGhostButton(
-                            text = "Switch provider",
+                            text = stringResource(R.string.home_switch_provider),
                             onClick = onProviderClick,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp),
                         )
