@@ -6,9 +6,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +20,7 @@ import java.util.UUID
 object DownloadFeature {
 
     private const val TAG = "DownloadFeature"
+    private const val UNIQUE_QUEUE_WORK = "bsf_download_queue"
     const val NOTIFICATION_PERMISSION_REQUEST = 4217
 
     fun observe(context: Context): Flow<List<DownloadManager.DownloadTask>> =
@@ -32,19 +33,16 @@ object DownloadFeature {
         url: String,
         providerName: String,
         filePath: String = "",
+        scheduleWorker: Boolean = true,
     ): Boolean {
         val appContext = context.applicationContext
         if (StreamTypeDetector.isDrmProtected(url)) {
             Log.w(TAG, "DRM stream not downloadable: $title")
             return false
         }
-        val existing = DownloadManager.getAllDownloads(appContext)
-            .firstOrNull {
-                it.videoId == videoId &&
-                    it.status != DownloadManager.DownloadStatus.CANCELLED
-            }
+        val existing = findExisting(appContext, videoId, providerName)
         if (existing != null) {
-            Log.i(TAG, "Already queued: $videoId (${existing.status})")
+            Log.i(TAG, "Already queued: $providerName/$videoId (${existing.status})")
             return false
         }
         val decision = DownloadScheduler.shouldStartDownloads(appContext)
@@ -69,9 +67,7 @@ object DownloadFeature {
                 },
             )
             DownloadManager.addDownload(appContext, task)
-            WorkManager.getInstance(appContext).enqueue(
-                OneTimeWorkRequestBuilder<DownloadWorker>().build(),
-            )
+            if (scheduleWorker) scheduleQueueWorker(appContext)
             true
         }.onFailure { e ->
             Log.e(TAG, "enqueue failed", e)
@@ -81,11 +77,21 @@ object DownloadFeature {
     fun list(context: Context): List<DownloadManager.DownloadTask> =
         DownloadRepository(context).getAllBlocking()
 
+    fun findExisting(
+        context: Context,
+        videoId: String,
+        providerName: String = UserPreferencesProviderName.current(),
+    ): DownloadManager.DownloadTask? =
+        DownloadManager.getAllDownloads(context)
+            .firstOrNull {
+                it.videoId == videoId &&
+                    it.providerName.equals(providerName, ignoreCase = true) &&
+                    it.status != DownloadManager.DownloadStatus.CANCELLED
+            }
+
     fun retry(context: Context, id: String) {
         DownloadManager.resumeDownload(context, id)
-        WorkManager.getInstance(context.applicationContext).enqueue(
-            OneTimeWorkRequestBuilder<DownloadWorker>().build(),
-        )
+        scheduleQueueWorker(context)
     }
 
     fun pauseAllActive(context: Context) {
@@ -98,18 +104,22 @@ object DownloadFeature {
     }
 
     fun resumeAllPaused(context: Context) {
-        DownloadManager.getAllDownloads(context)
+        val targets = DownloadManager.getAllDownloads(context)
             .filter {
                 it.status == DownloadManager.DownloadStatus.PAUSED ||
                     it.status == DownloadManager.DownloadStatus.FAILED
             }
-            .forEach { retry(context, it.id) }
+        if (targets.isEmpty()) return
+        targets.forEach { DownloadManager.resumeDownload(context, it.id) }
+        scheduleQueueWorker(context)
     }
 
     fun retryAllFailed(context: Context) {
-        DownloadManager.getAllDownloads(context)
+        val targets = DownloadManager.getAllDownloads(context)
             .filter { it.status == DownloadManager.DownloadStatus.FAILED }
-            .forEach { retry(context, it.id) }
+        if (targets.isEmpty()) return
+        targets.forEach { DownloadManager.resumeDownload(context, it.id) }
+        scheduleQueueWorker(context)
     }
 
     fun clearFailed(context: Context) {
@@ -122,6 +132,18 @@ object DownloadFeature {
         DownloadManager.getAllDownloads(context)
             .filter { it.status == DownloadManager.DownloadStatus.COMPLETED }
             .forEach { DownloadManager.cancelDownload(context, it.id) }
+    }
+
+    /**
+     * Coalesce queue processing onto one unique WorkManager chain so concurrent
+     * workers cannot truncate the same progressive file.
+     */
+    fun scheduleQueueWorker(context: Context) {
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+            UNIQUE_QUEUE_WORK,
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            OneTimeWorkRequestBuilder<DownloadWorker>().build(),
+        )
     }
 
     fun ensureNotificationPermission(context: Context) {
@@ -138,4 +160,10 @@ object DownloadFeature {
             NOTIFICATION_PERMISSION_REQUEST,
         )
     }
+}
+
+/** Thin indirection so unit tests can stub provider name without Android prefs. */
+internal object UserPreferencesProviderName {
+    fun current(): String =
+        com.betterstreamflix.utils.UserPreferences.currentProvider?.name ?: "unknown"
 }

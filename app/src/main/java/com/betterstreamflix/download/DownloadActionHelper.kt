@@ -19,12 +19,12 @@ object DownloadActionHelper {
         }
     }
 
-    fun findExisting(context: Context, videoId: String): DownloadManager.DownloadTask? =
-        DownloadManager.getAllDownloads(context)
-            .firstOrNull {
-                it.videoId == videoId &&
-                    it.status != DownloadManager.DownloadStatus.CANCELLED
-            }
+    fun findExisting(
+        context: Context,
+        videoId: String,
+        providerName: String = UserPreferences.currentProvider?.name ?: "unknown",
+    ): DownloadManager.DownloadTask? =
+        DownloadFeature.findExisting(context, videoId, providerName)
 
     fun enqueueCurrentVideo(
         context: Context,
@@ -45,17 +45,17 @@ object DownloadActionHelper {
             return false
         }
         DownloadFeature.ensureNotificationPermission(context)
-        val (videoId, _) = when (videoType) {
-            is Video.Type.Movie -> videoType.id to videoType.title
-            is Video.Type.Episode -> videoType.id to (videoType.title ?: videoType.tvShow.title)
+        val videoId = when (videoType) {
+            is Video.Type.Movie -> videoType.id
+            is Video.Type.Episode -> videoType.id
         }
-        val existing = findExisting(context, videoId)
+        val providerName = UserPreferences.currentProvider?.name ?: "unknown"
+        val existing = findExisting(context, videoId, providerName)
         if (existing != null) {
             Toast.makeText(context, R.string.download_already_queued, Toast.LENGTH_SHORT).show()
             return false
         }
         val title = displayTitle(videoType)
-        val providerName = UserPreferences.currentProvider?.name ?: "unknown"
         val ok = DownloadFeature.enqueue(
             context = context,
             videoId = videoId,

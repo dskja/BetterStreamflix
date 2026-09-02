@@ -83,4 +83,29 @@ class DownloadActionHelperTitleTest {
         assertTrue(pending.isActive)
         assertFalse(paused.isActive)
     }
+
+    @Test
+    fun duplicateKey_matchesSameProviderOnly() {
+        val a = DownloadManager.DownloadTask(
+            id = "1",
+            videoId = "same",
+            title = "t",
+            providerName = "ProviderA",
+            url = "u1",
+            filePath = "f1",
+        )
+        val b = a.copy(id = "2", providerName = "ProviderB", url = "u2", filePath = "f2")
+        assertTrue(matchesDuplicate(a, "same", "ProviderA"))
+        assertFalse(matchesDuplicate(a, "same", "ProviderB"))
+        assertTrue(matchesDuplicate(b, "same", "providerb"))
+    }
+
+    private fun matchesDuplicate(
+        task: DownloadManager.DownloadTask,
+        videoId: String,
+        providerName: String,
+    ): Boolean =
+        task.videoId == videoId &&
+            task.providerName.equals(providerName, ignoreCase = true) &&
+            task.status != DownloadManager.DownloadStatus.CANCELLED
 }

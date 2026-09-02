@@ -63,7 +63,8 @@ object DownloadEnqueueHelper {
         }
 
     suspend fun enqueueMovie(context: Context, movie: Movie): Boolean {
-        if (DownloadActionHelper.findExisting(context, movie.id) != null) {
+        val providerName = UserPreferences.currentProvider?.name ?: "unknown"
+        if (DownloadActionHelper.findExisting(context, movie.id, providerName) != null) {
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, R.string.download_already_queued, Toast.LENGTH_SHORT).show()
             }
@@ -83,7 +84,8 @@ object DownloadEnqueueHelper {
     }
 
     suspend fun enqueueEpisode(context: Context, episode: Episode): Boolean {
-        if (DownloadActionHelper.findExisting(context, episode.id) != null) {
+        val providerName = UserPreferences.currentProvider?.name ?: "unknown"
+        if (DownloadActionHelper.findExisting(context, episode.id, providerName) != null) {
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, R.string.download_already_queued, Toast.LENGTH_SHORT).show()
             }
@@ -104,7 +106,8 @@ object DownloadEnqueueHelper {
 
     /**
      * Enqueue many episodes sequentially (best-effort). Returns started count.
-     * Skips episodes already queued/completed.
+     * Skips episodes already queued/completed for the current provider.
+     * Schedules a single queue worker after the batch.
      */
     suspend fun enqueueEpisodes(
         context: Context,
@@ -112,35 +115,53 @@ object DownloadEnqueueHelper {
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
     ): Int {
         var started = 0
+        val providerName = UserPreferences.currentProvider?.name ?: "unknown"
         episodes.forEachIndexed { index, episode ->
-            if (DownloadActionHelper.findExisting(context, episode.id) == null) {
-                if (enqueueEpisodeSilent(context, episode)) started++
+            if (DownloadActionHelper.findExisting(context, episode.id, providerName) == null) {
+                if (enqueueEpisodeSilent(context, episode, scheduleWorker = false)) started++
             }
             onProgress(index + 1, episodes.size)
+        }
+        if (started > 0) {
+            withContext(Dispatchers.Main) {
+                DownloadFeature.scheduleQueueWorker(context)
+            }
         }
         return started
     }
 
     /** Like [enqueueEpisode] but without "already queued" toasts (for batch). */
-    private suspend fun enqueueEpisodeSilent(context: Context, episode: Episode): Boolean {
+    private suspend fun enqueueEpisodeSilent(
+        context: Context,
+        episode: Episode,
+        scheduleWorker: Boolean = true,
+    ): Boolean {
         val videoType = videoTypeFor(episode)
         val url = resolveStreamUrl(videoType, episode.id) ?: return false
+        val providerName = UserPreferences.currentProvider?.name ?: "unknown"
         return withContext(Dispatchers.Main) {
             if (StreamTypeDetector.isDrmProtected(url)) return@withContext false
             val decision = DownloadScheduler.shouldStartDownloads(context)
             if (decision is DownloadScheduler.ScheduleDecision.Wait) return@withContext false
-            if (DownloadActionHelper.findExisting(context, episode.id) != null) return@withContext false
+            if (DownloadActionHelper.findExisting(context, episode.id, providerName) != null) {
+                return@withContext false
+            }
             DownloadFeature.ensureNotificationPermission(context)
             DownloadFeature.enqueue(
                 context = context,
                 videoId = episode.id,
                 title = DownloadActionHelper.displayTitle(videoType),
                 url = url,
-                providerName = UserPreferences.currentProvider?.name ?: "unknown",
+                providerName = providerName,
+                scheduleWorker = scheduleWorker,
             )
         }
     }
 
-    fun statusForVideoId(context: Context, videoId: String): DownloadManager.DownloadStatus? =
-        DownloadActionHelper.findExisting(context, videoId)?.status
+    fun statusForVideoId(
+        context: Context,
+        videoId: String,
+        providerName: String = UserPreferences.currentProvider?.name ?: "unknown",
+    ): DownloadManager.DownloadStatus? =
+        DownloadActionHelper.findExisting(context, videoId, providerName)?.status
 }
