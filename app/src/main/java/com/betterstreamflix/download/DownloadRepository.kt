@@ -31,9 +31,17 @@ class DownloadRepository(val context: Context) {
 
     suspend fun updateProgress(id: String, bytes: Long) = dao.updateProgress(id, bytes)
 
+    suspend fun updateProgress(id: String, bytes: Long, fileSize: Long) =
+        dao.updateProgressWithSize(id, bytes, fileSize)
+
     suspend fun updateStatus(id: String, status: String) = dao.updateStatus(id, status)
 
+    suspend fun updateStatusWithError(id: String, status: String, errorMessage: String?) =
+        dao.updateStatusWithError(id, status, errorMessage)
+
     suspend fun delete(id: String) = dao.delete(id)
+
+    suspend fun sumCompletedFileSizes(): Long = dao.sumCompletedFileSizes()
 
     suspend fun migrateFromSharedPrefsIfNeeded() {
         val legacy = LegacyDownloadPrefs.readAll(appContext)

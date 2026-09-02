@@ -1,20 +1,26 @@
 package com.betterstreamflix.download
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
-import com.betterstreamflix.StreamFlixApp
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * Public entry point for the offline download feature (P3).
+ * Public entry point for the offline download feature.
  */
 object DownloadFeature {
 
     private const val TAG = "DownloadFeature"
+    const val NOTIFICATION_PERMISSION_REQUEST = 4217
 
     fun observe(context: Context): Flow<List<DownloadManager.DownloadTask>> =
         DownloadRepository(context).observeTasks()
@@ -33,10 +39,15 @@ object DownloadFeature {
             return false
         }
         val decision = DownloadScheduler.shouldStartDownloads(appContext)
-        if (decision !is DownloadScheduler.ScheduleDecision.Proceed) {
-            Log.i(TAG, "Download deferred: $decision")
+        if (decision is DownloadScheduler.ScheduleDecision.Wait) {
+            Log.i(TAG, "Download blocked: $decision")
+            return false
+        }
+        if (decision is DownloadScheduler.ScheduleDecision.Defer) {
+            Log.i(TAG, "Download deferred but queued: $decision")
         }
         return runCatching {
+            ensureNotificationPermission(context)
             val taskId = UUID.randomUUID().toString()
             val task = DownloadManager.DownloadTask(
                 id = taskId,
@@ -62,8 +73,24 @@ object DownloadFeature {
         DownloadRepository(context).getAllBlocking()
 
     fun retry(context: Context, id: String) {
+        DownloadManager.resumeDownload(context, id)
         WorkManager.getInstance(context.applicationContext).enqueue(
             OneTimeWorkRequestBuilder<DownloadWorker>().build(),
+        )
+    }
+
+    fun ensureNotificationPermission(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        val activity = (context as? Activity) ?: return
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            NOTIFICATION_PERMISSION_REQUEST,
         )
     }
 }

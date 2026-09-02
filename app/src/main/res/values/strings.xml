@@ -427,7 +427,25 @@
     <string name="downloads_title">Downloads</string>
     <string name="downloads_summary">Manage offline downloads</string>
     <string name="downloads_empty_title">No downloads yet</string>
-    <string name="downloads_empty_message">Start a download from the player or provider page.</string>
+    <string name="downloads_empty_message">Start a download from the player while a stream is loaded, or from a movie page.</string>
+    <string name="downloads_section_active">In progress</string>
+    <string name="downloads_section_ready">Ready to watch</string>
+    <string name="downloads_section_failed">Needs attention</string>
+    <string name="downloads_clear_completed">Clear completed</string>
+    <string name="downloads_storage_free">%1$s free</string>
+    <string name="download_status_pending">Queued</string>
+    <string name="download_status_downloading">Downloading</string>
+    <string name="download_status_paused">Paused</string>
+    <string name="download_status_completed">Ready</string>
+    <string name="download_status_failed">Failed</string>
+    <string name="download_status_cancelled">Cancelled</string>
+    <string name="download_retry">Retry</string>
+    <string name="download_delete">Delete</string>
+    <string name="download_not_ready">This download is not ready to play yet</string>
+    <string name="download_progress_unknown">Downloading…</string>
+    <string name="download_progress_percent">%1$d%%</string>
+    <string name="download_size_progress">%1$s / %2$s</string>
+
     <string name="settings_search_title">Search settings</string>
     <string name="settings_search_summary">Find a setting quickly</string>
     <string name="settings_search_hint">e.g. theme, parental, domain</string>

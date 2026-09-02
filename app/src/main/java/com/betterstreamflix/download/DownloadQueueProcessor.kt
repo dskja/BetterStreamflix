@@ -2,11 +2,12 @@ package com.betterstreamflix.download
 
 import android.content.Context
 import androidx.media3.common.util.UnstableApi
+import com.betterstreamflix.download.DownloadRepository.Companion.toTask
 import com.betterstreamflix.utils.Logger
 import java.io.File
 
 /**
- * Download queue processor — manages the download queue and processes tasks sequentially.
+ * Download queue processor — processes pending/active tasks.
  */
 @UnstableApi
 class DownloadQueueProcessor(private val context: Context) {
@@ -24,7 +25,13 @@ class DownloadQueueProcessor(private val context: Context) {
         try {
             val activeDownloads = DownloadManager.getActiveDownloads(context)
             for (task in activeDownloads) {
-                processTask(task)
+                val latest = repository.getById(task.id)?.toTask() ?: continue
+                if (latest.status == DownloadManager.DownloadStatus.PAUSED ||
+                    latest.status == DownloadManager.DownloadStatus.CANCELLED
+                ) {
+                    continue
+                }
+                processTask(latest)
             }
         } finally {
             isProcessing = false
@@ -44,7 +51,6 @@ class DownloadQueueProcessor(private val context: Context) {
         )
 
         val outputFile = File(task.filePath)
-        val outputDir = outputFile.parentFile ?: DownloadStorageManager.getDownloadDir(context)
         val streamType = StreamTypeDetector.detect(task.url)
 
         when (streamType) {
@@ -52,48 +58,89 @@ class DownloadQueueProcessor(private val context: Context) {
                 hlsEngine.download(task.url, task.id, task.title) { _, _, _ -> }
                     .onSuccess { mediaPath ->
                         DownloadManager.updateDownload(context, task.id) {
-                            it.copy(filePath = mediaPath)
+                            it.copy(filePath = mediaPath, status = DownloadManager.DownloadStatus.DOWNLOADING)
                         }
+                        StreamflixDownloadService.start(context)
                     }
-                StreamflixDownloadService.start(context)
+                    .onFailure { error ->
+                        DownloadManager.markFailed(context, task.id, error.message ?: "HLS enqueue failed")
+                        nm?.notify(
+                            notificationId,
+                            DownloadNotificationBuilder.buildFailedNotification(
+                                context,
+                                task.title,
+                                error.message ?: "HLS enqueue failed",
+                            ),
+                        )
+                    }
             }
             StreamType.DASH -> {
                 dashEngine.download(task.url, task.id, task.title) { _, _, _ -> }
                     .onSuccess { mediaPath ->
                         DownloadManager.updateDownload(context, task.id) {
-                            it.copy(filePath = mediaPath)
+                            it.copy(filePath = mediaPath, status = DownloadManager.DownloadStatus.DOWNLOADING)
                         }
+                        StreamflixDownloadService.start(context)
                     }
-                StreamflixDownloadService.start(context)
+                    .onFailure { error ->
+                        DownloadManager.markFailed(context, task.id, error.message ?: "DASH enqueue failed")
+                        nm?.notify(
+                            notificationId,
+                            DownloadNotificationBuilder.buildFailedNotification(
+                                context,
+                                task.title,
+                                error.message ?: "DASH enqueue failed",
+                            ),
+                        )
+                    }
             }
             StreamType.HTTP -> {
-                val result = executor.download(task.url, outputFile) { percent, downloaded, _ ->
-                    DownloadManager.updateProgress(context, task.id, downloaded)
+                DownloadManager.armHttpControl(task.id)
+                val result = executor.download(
+                    url = task.url,
+                    outputFile = outputFile,
+                    shouldAbort = { DownloadManager.httpShouldAbort(task.id) },
+                    deleteOnAbort = false,
+                ) { progress ->
+                    DownloadManager.updateProgress(
+                        context,
+                        task.id,
+                        progress.downloadedBytes,
+                        progress.totalBytes.coerceAtLeast(0L),
+                    )
                     nm?.notify(
                         notificationId,
-                        DownloadNotificationBuilder.buildProgressNotification(context, task.title, percent),
+                        DownloadNotificationBuilder.buildProgressNotification(
+                            context,
+                            task.title,
+                            progress.percent,
+                        ),
                     )
                 }
                 result.onSuccess {
                     DownloadManager.markCompleted(context, task.id)
-                    repository.updateStatus(task.id, DownloadManager.DownloadStatus.COMPLETED.name)
                     nm?.notify(
                         notificationId,
                         DownloadNotificationBuilder.buildCompleteNotification(context, task.title),
                     )
                 }.onFailure { error ->
-                    DownloadManager.markFailed(context, task.id, error.message ?: "Unknown error")
-                    repository.updateStatus(task.id, DownloadManager.DownloadStatus.FAILED.name)
-                    nm?.notify(
-                        notificationId,
-                        DownloadNotificationBuilder.buildFailedNotification(
-                            context,
-                            task.title,
-                            error.message ?: "Unknown error",
-                        ),
-                    )
-                    Logger.e("DownloadQueue", "Download failed: ${task.title}", error)
+                    if (error is DownloadExecutor.AbortedException) {
+                        // Pause/cancel already updated Room status.
+                        nm?.cancel(notificationId)
+                    } else {
+                        DownloadManager.markFailed(context, task.id, error.message ?: "Unknown error")
+                        nm?.notify(
+                            notificationId,
+                            DownloadNotificationBuilder.buildFailedNotification(
+                                context,
+                                task.title,
+                                error.message ?: "Unknown error",
+                            ),
+                        )
+                        Logger.e("DownloadQueue", "Download failed: ${task.title}", error)
+                    }
                 }
+                DownloadManager.clearHttpControl(task.id)
             }
         }
     }
@@ -101,8 +148,6 @@ class DownloadQueueProcessor(private val context: Context) {
     fun cancelAll() {
         DownloadManager.getActiveDownloads(context).forEach { task ->
             DownloadManager.cancelDownload(context, task.id)
-            context.getSystemService(android.app.NotificationManager::class.java)
-                ?.cancel(task.id.hashCode())
         }
     }
 }

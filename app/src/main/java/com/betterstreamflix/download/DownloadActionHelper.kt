@@ -26,6 +26,7 @@ object DownloadActionHelper {
             Toast.makeText(context, decision.reason, Toast.LENGTH_LONG).show()
             return false
         }
+        DownloadFeature.ensureNotificationPermission(context)
         val (videoId, title) = when (videoType) {
             is Video.Type.Movie -> videoType.id to videoType.title
             is Video.Type.Episode -> videoType.id to (videoType.title ?: videoType.tvShow.title)
