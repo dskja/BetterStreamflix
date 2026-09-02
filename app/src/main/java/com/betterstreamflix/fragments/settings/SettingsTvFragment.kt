@@ -206,6 +206,15 @@ class SettingsTvFragment : ComposeHostFragment() {
                 onAction = { key ->
                     when (key) {
                         "shareDiagnostics" -> AnalyticsManager.shareDiagnosticReport(requireContext())
+                        "clearNewContentHistory" -> {
+                            com.betterstreamflix.notifications.NewContentNotifier.clearSeenContent(requireContext())
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.settings_new_content_clear_history_done,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            bump()
+                        }
                         else -> {
                             SettingsComposeBridge.applyAction(key)
                             bump()

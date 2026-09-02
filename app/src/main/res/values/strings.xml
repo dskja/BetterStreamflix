@@ -483,6 +483,18 @@
     <string name="overview_show_less">Show less</string>
     <string name="tv_show_watch_title">Watch %1$s</string>
     <string name="download_season_all_confirm">Download all %1$d items in “%2$s”? Each episode is saved to your offline library.</string>
+    <string name="download_season_all_short">Season (%1$d)</string>
+    <string name="download_season_all_hint">Downloads every episode in this season to your offline library.</string>
+    <string name="season_episode_count">%1$d episodes</string>
+    <string name="season_no_episodes_match">No episodes match your search</string>
+    <string name="tv_shows_empty">No TV shows found for this provider</string>
+    <string name="settings_new_content_clear_history">Reset alert history</string>
+    <string name="settings_new_content_clear_history_summary">Show alerts again for titles you already saw</string>
+    <string name="settings_new_content_clear_history_done">Alert history cleared</string>
+    <string name="settings_cuevana_domain_reset">Reset Cuevana domain</string>
+    <string name="settings_cuevana_domain_reset_summary">Restore the default Cuevana mirror</string>
+    <string name="settings_poseidon_domain_reset">Reset Poseidon domain</string>
+    <string name="settings_poseidon_domain_reset_summary">Restore the default Poseidon mirror</string>
     <string name="download_episode_hint">Download this episode</string>
 
     <string name="settings_search_title">Search settings</string>

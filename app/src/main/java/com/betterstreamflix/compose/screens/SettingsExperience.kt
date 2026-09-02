@@ -296,6 +296,13 @@ private fun SettingsHubBody(
                 )
             }
             item {
+                BsSettingsActionRow(
+                    title = stringResource(R.string.settings_new_content_clear_history),
+                    subtitle = stringResource(R.string.settings_new_content_clear_history_summary),
+                    onClick = { actions.onAction("clearNewContentHistory") },
+                )
+            }
+            item {
                 BsSettingsToggleRow(
                     title = stringResource(R.string.settings_update_check),
                     subtitle = stringResource(R.string.settings_update_check_summary),
@@ -738,10 +745,24 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             )
         }
         item {
+            BsSettingsActionRow(
+                title = stringResource(R.string.settings_cuevana_domain_reset),
+                subtitle = stringResource(R.string.settings_cuevana_domain_reset_summary),
+                onClick = { actions.onAction("resetCuevanaDomain") },
+            )
+        }
+        item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_poseidon_domain),
                 valueLabel = state.poseidonDomain,
                 onClick = { editingField = "poseidonDomain" },
+            )
+        }
+        item {
+            BsSettingsActionRow(
+                title = stringResource(R.string.settings_poseidon_domain_reset),
+                subtitle = stringResource(R.string.settings_poseidon_domain_reset_summary),
+                onClick = { actions.onAction("resetPoseidonDomain") },
             )
         }
     }

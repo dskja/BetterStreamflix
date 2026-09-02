@@ -22,6 +22,13 @@ import androidx.navigation.fragment.findNavController
 import com.betterstreamflix.R
 import com.betterstreamflix.activities.main.MainMobileActivity
 import com.betterstreamflix.activities.tools.QrScannerActivity
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.betterstreamflix.download.DownloadFeature
+import com.betterstreamflix.notifications.NewContentNotifier
 import com.betterstreamflix.analytics.AnalyticsManager
 import com.betterstreamflix.backup.BackupRestoreManager
 import com.betterstreamflix.backup.ProviderBackupContext
@@ -211,6 +218,21 @@ class SettingsMobileFragment : ComposeHostFragment() {
                 },
                 onToggle = { key, value ->
                     SettingsComposeBridge.applyToggle(requireContext(), key, value)
+                    if (key == "newContentNotifications" && value) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val granted = ContextCompat.checkSelfPermission(
+                                requireContext(),
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (!granted) {
+                                ActivityCompat.requestPermissions(
+                                    requireActivity(),
+                                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                                    DownloadFeature.NOTIFICATION_PERMISSION_REQUEST,
+                                )
+                            }
+                        }
+                    }
                     if (key == "immersiveMode") {
                         (activity as? MainMobileActivity)?.updateImmersiveMode()
                     }
@@ -223,6 +245,15 @@ class SettingsMobileFragment : ComposeHostFragment() {
                 onAction = { key ->
                     when (key) {
                         "shareDiagnostics" -> AnalyticsManager.shareDiagnosticReport(requireContext())
+                        "clearNewContentHistory" -> {
+                            NewContentNotifier.clearSeenContent(requireContext())
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.settings_new_content_clear_history_done,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            bump()
+                        }
                         "openTraktSync" -> {
                             TraktSettings.setEnabled(requireContext(), !TraktSettings.isEnabled(requireContext()))
                             bump()

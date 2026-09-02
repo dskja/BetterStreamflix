@@ -102,7 +102,8 @@ internal object SettingsComposeBridge {
             "tmdbApiKey" -> UserPreferences.tmdbApiKey = value.trim()
             "subdlApiKey" -> UserPreferences.subdlApiKey = value.trim()
             "parentalPin" -> UserPreferences.parentalControlPin = value.trim()
-            "parentalMaxAge" -> UserPreferences.parentalControlMaxAge = value.toIntOrNull()
+            "parentalMaxAge" -> UserPreferences.parentalControlMaxAge =
+                value.trim().removeSuffix("+").toIntOrNull()
             "providerUrl" -> UserPreferences.providerUrl = value.trim()
             "streamingcommunityDomain", "editStreamingcommunityDomain" ->
                 UserPreferences.streamingcommunityDomain = value.trim()
@@ -125,6 +126,8 @@ internal object SettingsComposeBridge {
             "resetSerienstreamDomain" -> UserPreferences.serienstreamDomain = "186.2.175.5"
             "resetAniworldDomain" -> UserPreferences.aniworldDomain = "aniworld.to"
             "resetMoflixDomain" -> UserPreferences.moflixDomain = "moflix-stream.xyz"
+            "resetCuevanaDomain" -> UserPreferences.cuevanaDomain = "cuevana3.eu"
+            "resetPoseidonDomain" -> UserPreferences.poseidonDomain = "poseidonhd2.com"
             "refreshProviderUrl" -> {
                 val provider = UserPreferences.currentProvider
                 when {
