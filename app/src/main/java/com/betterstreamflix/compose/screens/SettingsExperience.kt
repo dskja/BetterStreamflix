@@ -36,6 +36,9 @@ import com.betterstreamflix.compose.components.BsSettingsSectionLabel
 import com.betterstreamflix.compose.components.BsSettingsTextFieldDialog
 import com.betterstreamflix.compose.components.BsSettingsToggleRow
 import com.betterstreamflix.compose.components.BsSettingsValueRow
+import androidx.compose.ui.platform.LocalContext
+import com.betterstreamflix.accessibility.AccessibilityHelper
+import com.betterstreamflix.accessibility.ReducedMotionHelper
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.utils.ThemeManager
 import java.util.Locale
@@ -83,6 +86,8 @@ data class SettingsUiState(
     val poseidonDomain: String,
     val updateCheckEnabled: Boolean,
     val newContentNotifications: Boolean,
+    val downloadNotifications: Boolean,
+    val playbackNotifications: Boolean,
     val versionName: String,
 )
 
@@ -123,7 +128,7 @@ private val BsThemeOptions = listOf(
 
 private val BsQualityOptions = listOf("", "360", "480", "720", "1080")
 
-private val BsLanguageOptions = listOf("system", "en", "de", "it", "fr", "es", "ar")
+private val BsLanguageOptions = listOf("system", "en", "de", "it", "fr", "es", "ar", "pl")
 
 private val BsDohOptions = listOf(
     "" to "None",
@@ -439,6 +444,9 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
 private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
     var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val reducedMotionOn = ReducedMotionHelper.isReducedMotion(context)
+    val fontScale = AccessibilityHelper.getFontScale(context)
 
     SettingsSectionScaffold(title = stringResource(R.string.settings_category_appearance), onBack = onBack) {
         item { BsSettingsSectionLabel(title = "Look & feel") }
@@ -464,6 +472,27 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 subtitle = stringResource(R.string.settings_app_language_summary),
                 valueLabel = state.appLanguageLabel,
                 onClick = { showLanguageDialog = true },
+            )
+        }
+        item { BsSettingsSectionLabel(title = "Accessibility") }
+        item {
+            BsSettingsValueRow(
+                title = stringResource(R.string.settings_reduced_motion_title),
+                subtitle = if (reducedMotionOn) {
+                    stringResource(R.string.settings_reduced_motion_on)
+                } else {
+                    stringResource(R.string.settings_reduced_motion_off)
+                },
+                valueLabel = if (reducedMotionOn) "On" else "Off",
+                onClick = { actions.onAction("openAccessibilitySettings") },
+            )
+        }
+        item {
+            BsSettingsValueRow(
+                title = stringResource(R.string.settings_font_scale_title),
+                subtitle = stringResource(R.string.settings_font_scale_open_summary),
+                valueLabel = String.format(Locale.getDefault(), "%.2f", fontScale),
+                onClick = { actions.onAction("openDisplaySettings") },
             )
         }
     }
@@ -622,6 +651,23 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
                 subtitle = stringResource(R.string.settings_subdl_api_key_summary),
                 valueLabel = state.subdlApiKeyMasked,
                 onClick = { showSubdlDialog = true },
+            )
+        }
+        item { BsSettingsSectionLabel(title = "Notifications") }
+        item {
+            BsSettingsToggleRow(
+                title = stringResource(R.string.settings_download_notifications),
+                subtitle = stringResource(R.string.settings_download_notifications_summary),
+                checked = state.downloadNotifications,
+                onCheckedChange = { actions.onToggle("downloadNotifications", it) },
+            )
+        }
+        item {
+            BsSettingsToggleRow(
+                title = stringResource(R.string.settings_playback_notifications),
+                subtitle = stringResource(R.string.settings_playback_notifications_summary),
+                checked = state.playbackNotifications,
+                onCheckedChange = { actions.onToggle("playbackNotifications", it) },
             )
         }
     }

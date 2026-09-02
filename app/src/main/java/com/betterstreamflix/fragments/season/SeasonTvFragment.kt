@@ -1,171 +1,128 @@
 package com.betterstreamflix.fragments.season
 
-import androidx.appcompat.app.AlertDialog
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.widget.Toast
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
+import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.betterstreamflix.R
-import com.betterstreamflix.adapters.AppAdapter
+import com.betterstreamflix.compose.ComposeHostFragment
+import com.betterstreamflix.compose.screens.SeasonScreen
 import com.betterstreamflix.database.AppDatabase
-import com.betterstreamflix.databinding.FragmentSeasonTvBinding
 import com.betterstreamflix.download.DownloadEnqueueHelper
+import com.betterstreamflix.download.DownloadManager
+import com.betterstreamflix.download.DownloadRepository
 import com.betterstreamflix.models.Episode
+import com.betterstreamflix.models.Video
 import com.betterstreamflix.utils.CacheUtils
-import com.betterstreamflix.utils.LoggingUtils
-import com.betterstreamflix.utils.dp
+import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
-class SeasonTvFragment : Fragment() {
+class SeasonTvFragment : ComposeHostFragment() {
 
-    private var hasAutoCleared409: Boolean = false
-
-    private var _binding: FragmentSeasonTvBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding is null. View has been destroyed.")
-
+    private var hasAutoCleared409 = false
     private val args by navArgs<SeasonTvFragmentArgs>()
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
+    private val downloadRepository by lazy { DownloadRepository(requireContext()) }
     private val viewModel by viewModelsFactory {
-        SeasonViewModel(
-            args.seasonId,
-            args.tvShowId,
-            database,
-        )
+        SeasonViewModel(args.seasonId, args.tvShowId, database)
     }
 
-    private val appAdapter = AppAdapter()
     private var allEpisodes: List<Episode> = emptyList()
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentSeasonTvBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    @Composable
+    override fun ScreenContent() {
+        val state by viewModel.state.collectAsStateWithLifecycle(initialValue = SeasonViewModel.State.LoadingEpisodes)
+        val downloads by downloadRepository.observeTasks()
+            .collectAsStateWithLifecycle(initialValue = emptyList())
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+        val episodes = (state as? SeasonViewModel.State.SuccessLoadingEpisodes)?.episodes.orEmpty()
+        if (episodes.isNotEmpty()) allEpisodes = episodes
 
-        initializeSeason()
+        val downloadStatusByEpisodeId = remember(downloads, episodes) {
+            episodes.associate { episode ->
+                episode.id to downloads.firstOrNull {
+                    it.videoId == episode.id &&
+                        it.status != DownloadManager.DownloadStatus.CANCELLED
+                }?.status
+            }
+        }
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
-                when (state) {
-                    SeasonViewModel.State.LoadingEpisodes -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
-                        pbIsLoading.visibility = View.VISIBLE
-                        gIsLoadingRetry.visibility = View.GONE
-                    }
-
-                    is SeasonViewModel.State.SuccessLoadingEpisodes -> {
-                        allEpisodes = state.episodes
-                        displaySeason(state.episodes)
-                        binding.isLoading.root.visibility = View.GONE
-                    }
-
-                    is SeasonViewModel.State.FailedLoadingEpisodes -> {
-                        // Auto clear cache on HTTP 409 and retry
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getSeasonEpisodes(args.seasonId)
-                            return@collect
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            state.error.message ?: "",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        binding.isLoading.apply {
-                            pbIsLoading.visibility = View.GONE
-                            gIsLoadingRetry.visibility = View.VISIBLE
-                            btnIsLoadingRetry.setOnClickListener { viewModel.getSeasonEpisodes(args.seasonId) }
-                            btnIsLoadingClearCache.setOnClickListener {
-                                CacheUtils.clearAppCache(requireContext())
-                                android.widget.Toast.makeText(requireContext(), getString(com.betterstreamflix.R.string.clear_cache_done), android.widget.Toast.LENGTH_SHORT).show()
-                                viewModel.getSeasonEpisodes(args.seasonId)
-                            }
-                            btnIsLoadingErrorDetails.setOnClickListener {
-                                LoggingUtils.showErrorDialog(requireContext(), state.error)
-                            }
-                            btnIsLoadingRetry.requestFocus()
-                        }
-                    }
+        androidx.compose.runtime.LaunchedEffect(state) {
+            if (state is SeasonViewModel.State.FailedLoadingEpisodes) {
+                val error = (state as SeasonViewModel.State.FailedLoadingEpisodes).error
+                val code = (error as? HttpException)?.code()
+                if (code == 409 && !hasAutoCleared409) {
+                    hasAutoCleared409 = true
+                    CacheUtils.clearAppCache(requireContext())
+                    Toast.makeText(requireContext(), R.string.clear_cache_done_409, Toast.LENGTH_SHORT).show()
+                    viewModel.getSeasonEpisodes(args.seasonId)
                 }
             }
         }
+
+        SeasonScreen(
+            seasonTitle = args.seasonTitle.orEmpty().ifBlank { getString(R.string.season_number, args.seasonNumber) },
+            episodes = episodes,
+            query = "",
+            onQueryChange = {},
+            isLoading = state is SeasonViewModel.State.LoadingEpisodes,
+            errorMessage = (state as? SeasonViewModel.State.FailedLoadingEpisodes)?.error?.message,
+            downloadStatusByEpisodeId = downloadStatusByEpisodeId,
+            onRetry = { viewModel.getSeasonEpisodes(args.seasonId) },
+            onEpisodeClick = ::openEpisode,
+            onDownloadEpisode = ::requestDownload,
+            onDownloadSeason = ::requestDownloadSeason,
+            isTvLayout = true,
+        )
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-
-    private fun initializeSeason() {
-        binding.tvSeasonTitle.text = args.seasonTitle
-
-        binding.btnSeasonDownloadAll.setOnClickListener {
-            requestDownloadSeason()
-        }
-
-        binding.hgvEpisodes.apply {
-            adapter = appAdapter.apply {
-                stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-            }
-            setItemSpacing(resources.getDimension(R.dimen.season_episodes_spacing).toInt())
-        }
-    }
-
-    private var focusedEpisodeIndex: Int? = null
-
-    private fun displaySeason(episodes: List<Episode>) {
-        val preparedEpisodes = episodes.onEach { episode ->
-            episode.itemType = AppAdapter.Type.EPISODE_TV_ITEM
-        }
-
-        val lastWatchedIndex = episodes
-            .filter { it.watchHistory != null }
-            .sortedByDescending { it.watchHistory?.lastEngagementTimeUtcMillis }
-            .firstOrNull()
-            ?.let { episodes.indexOf(it) }
-            ?: episodes.indexOfLast { it.isWatched }
-
-        appAdapter.submitList(preparedEpisodes)
-
-        if (focusedEpisodeIndex == null) {
-            val scrollIndex = when {
-                lastWatchedIndex == -1 -> 0
-                lastWatchedIndex < episodes.lastIndex -> lastWatchedIndex + 1
-                else -> lastWatchedIndex
-            }
-            binding.hgvEpisodes.scrollAndFocus(scrollIndex)
-            focusedEpisodeIndex = scrollIndex
-        }
-    }
-
-    private fun RecyclerView.scrollAndFocus(position: Int) {
-        scrollToPosition(position)
-        viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                viewTreeObserver.removeOnGlobalLayoutListener(this)
-                findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
-            }
-        })
+    private fun openEpisode(episode: Episode) {
+        val season = episode.season
+        val subtitle = season?.takeIf { it.number != 0 }?.let { s ->
+            getString(
+                R.string.player_subtitle_tv_show,
+                s.number,
+                episode.number,
+                episode.title ?: getString(R.string.episode_number, episode.number),
+            )
+        } ?: getString(
+            R.string.player_subtitle_tv_show_episode_only,
+            episode.number,
+            episode.title ?: getString(R.string.episode_number, episode.number),
+        )
+        findNavController().navigate(
+            SeasonTvFragmentDirections.actionSeasonToPlayer(
+                id = episode.id,
+                title = episode.tvShow?.title ?: "",
+                subtitle = subtitle,
+                videoType = Video.Type.Episode(
+                    id = episode.id,
+                    number = episode.number,
+                    title = episode.title,
+                    poster = episode.poster,
+                    overview = episode.overview,
+                    tvShow = Video.Type.Episode.TvShow(
+                        id = episode.tvShow?.id ?: "",
+                        title = episode.tvShow?.title ?: "",
+                        poster = episode.tvShow?.poster,
+                        banner = episode.tvShow?.banner,
+                        releaseDate = episode.tvShow?.released?.format("yyyy-MM-dd"),
+                        imdbId = episode.tvShow?.imdbId,
+                    ),
+                    season = Video.Type.Episode.Season(
+                        number = season?.number ?: 0,
+                        title = season?.title,
+                    ),
+                ),
+            ),
+        )
     }
 
     fun requestDownload(episode: Episode) {

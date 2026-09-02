@@ -70,6 +70,8 @@ internal object SettingsComposeBridge {
             poseidonDomain = UserPreferences.poseidonDomain,
             updateCheckEnabled = UserPreferences.updateCheckEnabled,
             newContentNotifications = NotificationPreferences.isNewContentNotificationsEnabled(context),
+            downloadNotifications = NotificationPreferences.isDownloadNotificationsEnabled(context),
+            playbackNotifications = NotificationPreferences.isPlaybackNotificationsEnabled(context),
             versionName = BuildConfig.VERSION_NAME,
         )
     }
@@ -85,6 +87,8 @@ internal object SettingsComposeBridge {
             "enableTmdb" -> UserPreferences.enableTmdb = value
             "updateCheckEnabled" -> UserPreferences.updateCheckEnabled = value
             "newContentNotifications" -> NotificationPreferences.setNewContentNotificationsEnabled(context, value)
+            "downloadNotifications" -> NotificationPreferences.setDownloadNotificationsEnabled(context, value)
+            "playbackNotifications" -> NotificationPreferences.setPlaybackNotificationsEnabled(context, value)
             "providerAutoupdate" -> {
                 val provider = UserPreferences.currentProvider ?: return
                 UserPreferences.setProviderCache(

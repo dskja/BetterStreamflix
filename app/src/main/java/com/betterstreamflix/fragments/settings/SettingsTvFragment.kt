@@ -215,6 +215,12 @@ class SettingsTvFragment : ComposeHostFragment() {
                             ).show()
                             bump()
                         }
+                        "openAccessibilitySettings" -> {
+                            com.betterstreamflix.accessibility.AccessibilityHelper.openAccessibilitySettings(requireContext())
+                        }
+                        "openDisplaySettings" -> {
+                            com.betterstreamflix.accessibility.AccessibilityHelper.openDisplaySettings(requireContext())
+                        }
                         else -> {
                             SettingsComposeBridge.applyAction(key)
                             bump()

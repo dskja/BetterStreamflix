@@ -258,6 +258,12 @@ class SettingsMobileFragment : ComposeHostFragment() {
                             TraktSettings.setEnabled(requireContext(), !TraktSettings.isEnabled(requireContext()))
                             bump()
                         }
+                        "openAccessibilitySettings" -> {
+                            com.betterstreamflix.accessibility.AccessibilityHelper.openAccessibilitySettings(requireContext())
+                        }
+                        "openDisplaySettings" -> {
+                            com.betterstreamflix.accessibility.AccessibilityHelper.openDisplaySettings(requireContext())
+                        }
                         else -> {
                             SettingsComposeBridge.applyAction(key)
                             bump()
