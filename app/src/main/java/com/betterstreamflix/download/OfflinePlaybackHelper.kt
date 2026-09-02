@@ -3,15 +3,17 @@ package com.betterstreamflix.download
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import com.betterstreamflix.R
 import com.betterstreamflix.activities.OfflinePlayerActivity
 
 /**
- * Offline playback helper — sets up ExoPlayer for local file playback.
+ * Offline playback helper — local file + Media3 offline playback.
  */
 @UnstableApi
 object OfflinePlaybackHelper {
@@ -38,15 +40,15 @@ object OfflinePlaybackHelper {
         OfflineMediaPaths.parseDownloadId(filePath)?.let { downloadId ->
             val manager = Media3OfflineDownloads.managerOrNull(context) ?: return false
             val download = manager.downloadIndex.getDownload(downloadId) ?: return false
-            return download.state == Download.STATE_COMPLETED ||
-                download.state == Download.STATE_DOWNLOADING
+            return download.state == Download.STATE_COMPLETED
         }
         val file = java.io.File(filePath)
         return file.exists() && file.length() > 0
     }
 
     fun isPlayable(filePath: String): Boolean {
-        if (OfflineMediaPaths.parseDownloadId(filePath) != null) {
+        OfflineMediaPaths.parseDownloadId(filePath)?.let {
+            // Without Context we can only verify the scheme; prefer isPlayable(context, …).
             return true
         }
         val file = java.io.File(filePath)
@@ -56,11 +58,19 @@ object OfflinePlaybackHelper {
     fun getLocalUri(filePath: String): Uri = Uri.fromFile(java.io.File(filePath))
 
     fun playLocal(context: Context, task: DownloadManager.DownloadTask) {
+        if (task.status != DownloadManager.DownloadStatus.COMPLETED) {
+            Toast.makeText(context, R.string.download_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
         playLocal(context, task.filePath, task.title)
     }
 
     fun playLocal(context: Context, filePath: String, title: String) {
         OfflineMediaPaths.parseDownloadId(filePath)?.let { downloadId ->
+            if (!isPlayable(context, filePath)) {
+                Toast.makeText(context, R.string.download_not_ready, Toast.LENGTH_SHORT).show()
+                return
+            }
             val intent = Intent(context, OfflinePlayerActivity::class.java).apply {
                 putExtra(OfflinePlayerActivity.EXTRA_DOWNLOAD_ID, downloadId)
                 putExtra(OfflinePlayerActivity.EXTRA_FILE_PATH, filePath)
@@ -70,13 +80,24 @@ object OfflinePlaybackHelper {
             return
         }
 
-        if (!isPlayable(filePath)) return
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(getLocalUri(filePath), "video/*")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(Intent.EXTRA_TITLE, title)
+        if (!isPlayable(filePath)) {
+            Toast.makeText(context, R.string.download_not_ready, Toast.LENGTH_SHORT).show()
+            return
         }
-        runCatching { context.startActivity(intent) }
+        val intent = Intent(context, OfflinePlayerActivity::class.java).apply {
+            putExtra(OfflinePlayerActivity.EXTRA_FILE_PATH, filePath)
+            putExtra(Intent.EXTRA_TITLE, title)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(intent) }.onFailure {
+            // Fallback to system viewer for progressive files.
+            val fallback = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(getLocalUri(filePath), "video/*")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra(Intent.EXTRA_TITLE, title)
+            }
+            runCatching { context.startActivity(fallback) }
+        }
     }
 
     private fun playMedia3Download(context: Context, player: ExoPlayer, downloadId: String) {
@@ -89,6 +110,8 @@ object OfflinePlaybackHelper {
         val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
             .setCache(cache)
             .setUpstreamDataSourceFactory(httpFactory)
+            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            .setCacheWriteDataSinkFactory(null) // read-only offline playback
         val dataSourceFactory = DefaultDataSource.Factory(context, cacheDataSourceFactory)
         val mediaSource = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory)
             .createMediaSource(androidx.media3.common.MediaItem.fromUri(download.request.uri))

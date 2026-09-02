@@ -63,16 +63,25 @@ object Media3DownloadSync {
             Download.STATE_FAILED -> DownloadManager.DownloadStatus.FAILED
             else -> DownloadManager.DownloadStatus.PENDING
         }
-        val percent = download.percentDownloaded
-        val downloadedBytes = if (percent > 0 && existing.fileSize > 0) {
-            (existing.fileSize * (percent / 100f)).toLong()
-        } else {
-            existing.downloadedBytes
+        val contentLength = download.contentLength.takeIf { it > 0 } ?: existing.fileSize
+        val downloadedBytes = when {
+            download.bytesDownloaded > 0 -> download.bytesDownloaded
+            download.percentDownloaded > 0f && contentLength > 0 ->
+                (contentLength * (download.percentDownloaded / 100f)).toLong()
+            else -> existing.downloadedBytes
+        }
+        val fileSize = when {
+            contentLength > 0 -> contentLength
+            download.percentDownloaded in 0.1f..99.9f && downloadedBytes > 0 ->
+                (downloadedBytes / (download.percentDownloaded / 100f)).toLong()
+            status == DownloadManager.DownloadStatus.COMPLETED && downloadedBytes > 0 -> downloadedBytes
+            else -> existing.fileSize
         }
         repository.upsert(
             existing.copy(
                 status = status.name,
                 downloadedBytes = downloadedBytes,
+                fileSize = fileSize,
                 completedAt = if (status == DownloadManager.DownloadStatus.COMPLETED) {
                     System.currentTimeMillis()
                 } else {

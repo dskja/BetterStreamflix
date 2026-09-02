@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
@@ -31,6 +32,7 @@ class DownloadsMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        DownloadFeature.ensureNotificationPermission(requireContext())
         render(view as ComposeView)
     }
 
@@ -39,10 +41,16 @@ class DownloadsMobileFragment : Fragment() {
             BetterStreamflixTheme {
                 val downloads by repository.observeTasks()
                     .collectAsStateWithLifecycle(initialValue = emptyList())
-                val storageMb = DownloadStorageManager.getDownloadSize(requireContext()) / (1024 * 1024)
+                val storageUsed = remember(downloads) {
+                    DownloadStorageManager.getDownloadSize(requireContext())
+                }
+                val storageFree = remember {
+                    DownloadStorageManager.getAvailableSpace(requireContext())
+                }
                 DownloadsScreen(
                     downloads = downloads,
-                    storageUsedMb = storageMb,
+                    storageUsedBytes = storageUsed,
+                    storageFreeBytes = storageFree,
                     onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
                     onOpen = { task -> OfflinePlaybackHelper.playLocal(requireContext(), task) },
                     onPause = { task -> DownloadManager.pauseDownload(requireContext(), task.id) },
@@ -51,6 +59,11 @@ class DownloadsMobileFragment : Fragment() {
                         DownloadFeature.retry(requireContext(), task.id)
                     },
                     onCancel = { task -> DownloadManager.cancelDownload(requireContext(), task.id) },
+                    onClearCompleted = {
+                        downloads
+                            .filter { it.status == DownloadManager.DownloadStatus.COMPLETED }
+                            .forEach { DownloadManager.cancelDownload(requireContext(), it.id) }
+                    },
                 )
             }
         }
