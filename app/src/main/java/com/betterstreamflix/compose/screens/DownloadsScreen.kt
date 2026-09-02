@@ -95,7 +95,9 @@ fun DownloadsScreen(
     onResumeAll: () -> Unit = {},
     onRetryFailed: () -> Unit = {},
     onClearFailed: () -> Unit = {},
+    isTvLayout: Boolean = false,
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
     val context = LocalContext.current
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -239,7 +241,7 @@ fun DownloadsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(horizontal = horizontalPadding, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top,
                 ) {
@@ -305,7 +307,7 @@ fun DownloadsScreen(
                         value = query,
                         onValueChange = { query = it },
                         placeholder = stringResource(R.string.downloads_search_hint),
-                        modifier = Modifier.padding(horizontal = 20.dp),
+                        modifier = Modifier.padding(horizontal = horizontalPadding),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 

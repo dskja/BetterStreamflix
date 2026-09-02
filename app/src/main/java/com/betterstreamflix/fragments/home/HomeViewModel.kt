@@ -66,6 +66,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
     private val _state = MutableStateFlow<State>(State.Loading)
     private val continueWatchingTvShowCache = ConcurrentHashMap<String, TvShow>()
+    private val continueWatchingMovieCache = ConcurrentHashMap<String, Movie>()
     private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
     private val _userDataCache = MutableStateFlow<UserDataCache.UserData?>(null)
     private var currentProvider: Provider? = null
@@ -116,6 +117,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     .associateBy { it.id }
             }
 
+            val enrichedMovies = enrichContinueWatchingMovies(watchingMovies)
+
             val enrichedEpisodes = enrichContinueWatchingEpisodes(
                 episodes = allEpisodes.map { episode ->
                     episode.copy(
@@ -127,7 +130,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 }
             )
 
-            (watchingMovies + enrichedEpisodes)
+            (enrichedMovies + enrichedEpisodes)
                 .sortedByDescending { item ->
                     when (item) {
                         is Movie -> item.watchHistory?.lastEngagementTimeUtcMillis
@@ -436,6 +439,25 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }
         getHome()
+    }
+
+    private suspend fun enrichContinueWatchingMovies(movies: List<Movie>): List<Movie> = coroutineScope {
+        val provider = UserPreferences.currentProvider ?: return@coroutineScope movies
+        movies.map { movie ->
+            async {
+                continueWatchingMovieCache[movie.id] ?: runCatching {
+                    provider.getMovie(movie.id)
+                }.getOrNull()?.also { fetched ->
+                    continueWatchingMovieCache[movie.id] = fetched
+                }?.let { fetched ->
+                    movie.copy(
+                        poster = fetched.poster ?: movie.poster,
+                        banner = fetched.banner ?: movie.banner,
+                        title = fetched.title.ifBlank { movie.title },
+                    ).apply { merge(movie) }
+                } ?: movie
+            }
+        }.awaitAll()
     }
 
     private suspend fun enrichContinueWatchingEpisodes(episodes: List<Episode>): List<Episode> = coroutineScope {

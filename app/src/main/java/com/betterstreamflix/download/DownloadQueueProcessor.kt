@@ -43,8 +43,8 @@ class DownloadQueueProcessor(private val context: Context) {
             it.copy(status = DownloadManager.DownloadStatus.DOWNLOADING)
         }
         DownloadNotificationBuilder.ensureChannel(context)
-        val nm = context.getSystemService(android.app.NotificationManager::class.java)
-        nm?.notify(
+        DownloadNotificationBuilder.notifyIfEnabled(
+            context,
             notificationId,
             DownloadNotificationBuilder.buildProgressNotification(context, task.title, 0),
         )
@@ -63,7 +63,8 @@ class DownloadQueueProcessor(private val context: Context) {
                     }
                     .onFailure { error ->
                         DownloadManager.markFailed(context, task.id, error.message ?: "HLS enqueue failed")
-                        nm?.notify(
+                        DownloadNotificationBuilder.notifyIfEnabled(
+                            context,
                             notificationId,
                             DownloadNotificationBuilder.buildFailedNotification(
                                 context,
@@ -83,7 +84,8 @@ class DownloadQueueProcessor(private val context: Context) {
                     }
                     .onFailure { error ->
                         DownloadManager.markFailed(context, task.id, error.message ?: "DASH enqueue failed")
-                        nm?.notify(
+                        DownloadNotificationBuilder.notifyIfEnabled(
+                            context,
                             notificationId,
                             DownloadNotificationBuilder.buildFailedNotification(
                                 context,
@@ -108,7 +110,8 @@ class DownloadQueueProcessor(private val context: Context) {
                         progress.downloadedBytes,
                         progress.totalBytes.coerceAtLeast(0L),
                     )
-                    nm?.notify(
+                    DownloadNotificationBuilder.notifyIfEnabled(
+                        context,
                         notificationId,
                         DownloadNotificationBuilder.buildProgressNotification(
                             context,
@@ -119,17 +122,19 @@ class DownloadQueueProcessor(private val context: Context) {
                 }
                 result.onSuccess {
                     DownloadManager.markCompleted(context, task.id)
-                    nm?.notify(
+                    DownloadNotificationBuilder.notifyIfEnabled(
+                        context,
                         notificationId,
                         DownloadNotificationBuilder.buildCompleteNotification(context, task.title),
                     )
                 }.onFailure { error ->
                     if (error is DownloadExecutor.AbortedException) {
                         // Pause/cancel already updated Room status.
-                        nm?.cancel(notificationId)
+                        DownloadNotificationBuilder.cancelIfEnabled(context, notificationId)
                     } else {
                         DownloadManager.markFailed(context, task.id, error.message ?: "Unknown error")
-                        nm?.notify(
+                        DownloadNotificationBuilder.notifyIfEnabled(
+                            context,
                             notificationId,
                             DownloadNotificationBuilder.buildFailedNotification(
                                 context,
