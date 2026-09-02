@@ -43,7 +43,7 @@ class SearchTvFragment : ComposeHostFragment() {
     }
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = State.Searching)
         var query by remember { mutableStateOf(viewModel.query) }
 

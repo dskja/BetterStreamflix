@@ -22,7 +22,7 @@ class ProvidersTvFragment : ComposeHostFragment() {
     private val viewModel by viewModels<ProvidersViewModel>()
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(
             initialValue = ProvidersViewModel.State.Loading,
         )

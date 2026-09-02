@@ -22,7 +22,7 @@ class GenresHubFragment : ComposeHostFragment() {
     }
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = GenresHubViewModel.State.Loading)
 
         if (state is GenresHubViewModel.State.Failed) {

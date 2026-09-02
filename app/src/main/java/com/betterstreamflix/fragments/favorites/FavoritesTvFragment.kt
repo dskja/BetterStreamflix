@@ -23,7 +23,7 @@ class FavoritesTvFragment : ComposeHostFragment() {
     }
 
     @Composable
-    override fun Content() {
+    override fun ScreenContent() {
         val sections by viewModel.sections.collectAsStateWithLifecycle(initialValue = emptyList())
         var sortMode by remember { mutableStateOf(viewModel.currentSortMode()) }
 
