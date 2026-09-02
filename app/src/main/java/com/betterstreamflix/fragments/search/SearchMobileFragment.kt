@@ -1,12 +1,17 @@
 package com.betterstreamflix.fragments.search
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.fragment.findNavController
 import com.betterstreamflix.R
@@ -28,11 +33,14 @@ class SearchMobileFragment : ComposeHostFragment() {
 
     private var hasAutoCleared409: Boolean = false
 
-    private val database by lazy { AppDatabase.getInstance(requireContext()) }
-    private val viewModel by viewModelsFactory { SearchViewModel(database) }
+    private val database by lazy { AppDatabase.getInstanceOrNull(requireContext()) }
+    private val viewModel by viewModelsFactory {
+        SearchViewModel(requireNotNull(database) { "Current provider is not set" })
+    }
 
     override fun onViewCreated(view: android.view.View, savedInstanceState: android.os.Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (database == null) return
 
         DeepLinkHandler.pendingSearchQuery?.let { pending ->
             DeepLinkHandler.pendingSearchQuery = null
@@ -44,6 +52,27 @@ class SearchMobileFragment : ComposeHostFragment() {
 
     @Composable
     override fun ScreenContent() {
+        if (database == null || UserPreferences.currentProvider == null) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                ) {
+                    com.betterstreamflix.compose.components.BsEmptyState(
+                        message = stringResource(R.string.providers_choose_title),
+                    )
+                    com.betterstreamflix.compose.components.BsPrimaryButton(
+                        text = stringResource(R.string.main_menu_change_provider),
+                        onClick = { findNavController().navigate(R.id.providers) },
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+            }
+            return
+        }
+
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = State.Searching)
         var query by remember { mutableStateOf(viewModel.query) }
 

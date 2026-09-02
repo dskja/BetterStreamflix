@@ -126,12 +126,15 @@ private val BsQualityOptions = listOf("", "360", "480", "720", "1080")
 private val BsLanguageOptions = listOf("system", "en", "de", "it", "fr", "es", "ar")
 
 private val BsDohOptions = listOf(
-    "disabled" to "Disabled",
-    "cloudflare" to "Cloudflare",
-    "google" to "Google",
-    "quad9" to "Quad9",
-    "adguard" to "AdGuard",
-    "mullvad" to "Mullvad",
+    "" to "None",
+    "https://dns.google/dns-query" to "Google",
+    "https://cloudflare-dns.com/dns-query" to "Cloudflare",
+    "https://doh.opendns.com/dns-query" to "OpenDNS",
+    "https://dns.quad9.net/dns-query" to "Quad9",
+    "https://doh.cleanbrowsing.org/doh/family-filter/" to "CleanBrowsing",
+    "https://dns.adguard-dns.com/dns-query" to "AdGuard",
+    "https://unfiltered.joindns4.eu/dns-query" to "DNS4EU",
+    "https://ns0.fdn.fr/dns-query" to "FDN",
 )
 
 private fun languageLabel(code: String): String = when (code) {
@@ -644,7 +647,7 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
 
 @Composable
 private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
-    var showUrlDialog by rememberSaveable { mutableStateOf(false) }
+    var editingField by rememberSaveable { mutableStateOf<String?>(null) }
 
     SettingsSectionScaffold(title = stringResource(R.string.settings_category_provider_title), onBack = onBack) {
         item { BsSettingsSectionLabel(title = state.providerName) }
@@ -652,7 +655,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_provider_url),
                 valueLabel = state.providerUrl,
-                onClick = { showUrlDialog = true },
+                onClick = { editingField = "providerUrl" },
             )
         }
         item {
@@ -673,7 +676,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_streamingcommunity_domain),
                 valueLabel = state.streamingcommunityDomain,
-                onClick = { actions.onAction("editStreamingcommunityDomain") },
+                onClick = { editingField = "streamingcommunityDomain" },
             )
         }
         item {
@@ -687,7 +690,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_serienstream_domain),
                 valueLabel = state.serienstreamDomain,
-                onClick = { actions.onAction("editSerienstreamDomain") },
+                onClick = { editingField = "serienstreamDomain" },
             )
         }
         item {
@@ -701,7 +704,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_aniworld_domain),
                 valueLabel = state.aniworldDomain,
-                onClick = { actions.onAction("editAniworldDomain") },
+                onClick = { editingField = "aniworldDomain" },
             )
         }
         item {
@@ -715,7 +718,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_moflix_domain),
                 valueLabel = state.moflixDomain,
-                onClick = { actions.onAction("editMoflixDomain") },
+                onClick = { editingField = "moflixDomain" },
             )
         }
         item {
@@ -729,27 +732,48 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_cuevana_domain),
                 valueLabel = state.cuevanaDomain,
-                onClick = { actions.onAction("editCuevanaDomain") },
+                onClick = { editingField = "cuevanaDomain" },
             )
         }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_poseidon_domain),
                 valueLabel = state.poseidonDomain,
-                onClick = { actions.onAction("editPoseidonDomain") },
+                onClick = { editingField = "poseidonDomain" },
             )
         }
     }
 
-    if (showUrlDialog) {
+    val field = editingField
+    if (field != null) {
+        val title = when (field) {
+            "providerUrl" -> stringResource(R.string.settings_category_provider_url)
+            "streamingcommunityDomain" -> stringResource(R.string.settings_category_streamingcommunity_domain)
+            "serienstreamDomain" -> stringResource(R.string.settings_category_serienstream_domain)
+            "aniworldDomain" -> stringResource(R.string.settings_category_aniworld_domain)
+            "moflixDomain" -> stringResource(R.string.settings_category_moflix_domain)
+            "cuevanaDomain" -> stringResource(R.string.settings_category_cuevana_domain)
+            "poseidonDomain" -> stringResource(R.string.settings_category_poseidon_domain)
+            else -> field
+        }
+        val initial = when (field) {
+            "providerUrl" -> state.providerUrl
+            "streamingcommunityDomain" -> state.streamingcommunityDomain
+            "serienstreamDomain" -> state.serienstreamDomain
+            "aniworldDomain" -> state.aniworldDomain
+            "moflixDomain" -> state.moflixDomain
+            "cuevanaDomain" -> state.cuevanaDomain
+            "poseidonDomain" -> state.poseidonDomain
+            else -> ""
+        }
         BsSettingsTextFieldDialog(
-            title = stringResource(R.string.settings_category_provider_url),
-            initial = state.providerUrl,
+            title = title,
+            initial = initial,
             onConfirm = {
-                actions.onEditText("providerUrl", it)
-                showUrlDialog = false
+                actions.onEditText(field, it)
+                editingField = null
             },
-            onDismiss = { showUrlDialog = false },
+            onDismiss = { editingField = null },
         )
     }
 }
