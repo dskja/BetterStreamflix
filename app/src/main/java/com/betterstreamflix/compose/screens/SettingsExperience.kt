@@ -375,7 +375,7 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
     var showBufferDialog by rememberSaveable { mutableStateOf(false) }
 
     SettingsSectionScaffold(title = stringResource(R.string.player_settings), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "Autoplay") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_autoplay)) }
         item {
             BsSettingsToggleRow(
                 title = stringResource(R.string.settings_autoplay),
@@ -407,7 +407,7 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
                 onClick = { showQualityDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = "Controls") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_controls)) }
         item {
             BsSettingsToggleRow(
                 title = stringResource(R.string.settings_player_gestures),
@@ -485,7 +485,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 onCheckedChange = { actions.onToggle("immersiveMode", it) },
             )
         }
-        item { BsSettingsSectionLabel(title = "Language") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_language)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_app_language_title),
@@ -895,7 +895,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
                 onClick = { actions.onAction("refreshProviderUrl") },
             )
         }
-        item { BsSettingsSectionLabel(title = "Domains") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_domains)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_streamingcommunity_domain),
@@ -1084,7 +1084,7 @@ private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActio
 @Composable
 private fun SettingsAboutSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
     SettingsSectionScaffold(title = stringResource(R.string.settings_about), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "BetterStreamflix") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_about_brand)) }
         item {
             BsSettingsActionRow(
                 title = stringResource(R.string.settings_about_version_name, state.versionName),

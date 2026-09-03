@@ -28,6 +28,7 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsHeroBanner
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
+import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
@@ -149,7 +150,7 @@ fun HomeScreen(
                         BsContentRow(
                             title = category.name.ifBlank { stringResource(R.string.home_featured_fallback) },
                             items = category.list,
-                            labelOf = ::itemLabel,
+                            labelOf = ::itemLabelOf,
                             showProgress = category.name == Category.CONTINUE_WATCHING,
                             onItemClick = { item, fromCw -> onItemClick(item, fromCw) },
                             onItemLongClick = onItemLongClick,
@@ -166,13 +167,6 @@ fun HomeScreen(
             }
         }
     }
-}
-
-private fun itemLabel(item: AppAdapter.Item): String = when (item) {
-    is Movie -> item.title.ifBlank { item.id }
-    is TvShow -> item.title.ifBlank { item.id }
-    is Episode -> item.title?.ifBlank { item.id } ?: item.id
-    else -> item.toString()
 }
 
 @Composable

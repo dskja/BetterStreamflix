@@ -32,6 +32,7 @@ import com.betterstreamflix.providers.ProviderHealthMonitor
 
 @Composable
 fun ProviderMarketplaceScreen(
+    isTvLayout: Boolean = false,
     onProviderSelected: (Provider) -> Unit = {},
 ) {
     var languageFilter by remember { mutableStateOf<String?>(null) }
@@ -48,6 +49,7 @@ fun ProviderMarketplaceScreen(
         "es" to "ES",
         "fr" to "FR",
     )
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -59,10 +61,10 @@ fun ProviderMarketplaceScreen(
                 text = stringResource(R.string.marketplace_filter_language),
                 style = MaterialTheme.typography.labelMedium,
                 color = BsColors.MistFaint,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
             )
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
+                contentPadding = PaddingValues(horizontal = horizontalPadding),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(languageOptions) { (code, label) ->
@@ -88,7 +90,7 @@ fun ProviderMarketplaceScreen(
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(20.dp),
+                    contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(providers, key = { it.name }) { provider ->

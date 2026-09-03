@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
@@ -30,6 +32,8 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsSearchResultRow
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
+import com.betterstreamflix.compose.components.itemKeyOf
+import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.models.Genre
@@ -99,6 +103,7 @@ fun SearchScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         recentQueries.forEach { recent ->
+                            val recentCd = stringResource(R.string.search_recent_query_cd, recent)
                             Text(
                                 text = recent,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -106,6 +111,7 @@ fun SearchScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(BsColors.InkSoft)
+                                    .semantics { contentDescription = recentCd }
                                     .clickable { onRecentClick(recent) }
                                     .padding(horizontal = 14.dp, vertical = 8.dp),
                             )
@@ -150,9 +156,9 @@ fun SearchScreen(
                                 )
                             }
                         }
-                        items(mediaResults, key = { resultKey(it) }) { item ->
+                        items(mediaResults, key = { itemKeyOf(it) }) { item ->
                             BsSearchResultRow(
-                                title = resultLabel(item),
+                                title = itemLabelOf(item),
                                 subtitle = resultSubtitle(item),
                                 imageUrl = posterOf(item),
                                 onClick = { onResultClick(item) },
@@ -163,20 +169,6 @@ fun SearchScreen(
             }
         }
     }
-}
-
-private fun resultKey(item: AppAdapter.Item): String = when (item) {
-    is Movie -> "movie:${item.id}"
-    is TvShow -> "tv:${item.id}"
-    is Genre -> "genre:${item.id}"
-    else -> item.hashCode().toString()
-}
-
-private fun resultLabel(item: AppAdapter.Item): String = when (item) {
-    is Movie -> item.title.ifBlank { item.id }
-    is TvShow -> item.title.ifBlank { item.id }
-    is Genre -> item.name.ifBlank { item.id }
-    else -> item.toString()
 }
 
 private fun resultSubtitle(item: AppAdapter.Item): String? = when (item) {

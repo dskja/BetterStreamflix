@@ -818,4 +818,14 @@
     <string name="provider_status_offline">offline</string>
     <string name="profile_max_age_label">Max age %d</string>
     <string name="player_title_offline">Offline playback</string>
+    <string name="bs_empty_title">Nothing here yet</string>
+    <string name="bs_error_title">Something broke</string>
+    <string name="bs_brand_mark">BETTERSTREAMFLIX</string>
+    <string name="settings_section_autoplay">Autoplay</string>
+    <string name="settings_section_controls">Controls</string>
+    <string name="settings_section_language">Language</string>
+    <string name="settings_section_domains">Domains</string>
+    <string name="settings_section_about_brand">BetterStreamflix</string>
+    <string name="dialog_close">Close</string>
+    <string name="search_recent_query_cd">Recent search: %1$s</string>
 </resources>

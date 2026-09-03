@@ -50,6 +50,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -58,6 +61,7 @@ import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.models.Episode
+import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.utils.format
@@ -91,7 +95,7 @@ fun BsBrandMark(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "BETTERSTREAMFLIX",
+            text = stringResource(R.string.bs_brand_mark),
             style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.headlineMedium,
             color = BsColors.Mist,
         )
@@ -260,7 +264,7 @@ fun BsContentRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            itemsIndexed(items, key = { index, item -> "${itemKey(item)}#$index" }) { _, item ->
+            itemsIndexed(items, key = { index, item -> "${itemKeyOf(item)}#$index" }) { _, item ->
                 if (showProgress) {
                     BsContinueWatchingCard(
                         title = labelOf(item),
@@ -384,11 +388,20 @@ fun BsContinueWatchingCard(
     }
 }
 
-private fun itemKey(item: AppAdapter.Item): String = when (item) {
+fun itemKeyOf(item: AppAdapter.Item): String = when (item) {
     is Movie -> "movie:${item.id}"
     is TvShow -> "tv:${item.id}"
     is Episode -> "episode:${item.id}"
+    is Genre -> "genre:${item.id}"
     else -> item.hashCode().toString()
+}
+
+fun itemLabelOf(item: AppAdapter.Item): String = when (item) {
+    is Movie -> item.title.ifBlank { item.id }
+    is TvShow -> item.title.ifBlank { item.id }
+    is Episode -> item.title?.ifBlank { item.id } ?: item.id
+    is Genre -> item.name.ifBlank { item.id }
+    else -> item.toString()
 }
 
 fun posterOf(item: AppAdapter.Item): String? = when (item) {
@@ -517,10 +530,16 @@ fun BsSearchResultRow(
 
 @Composable
 fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(40.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        contentAlignment = Alignment.Center,
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Nothing here yet",
+                text = stringResource(R.string.bs_empty_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = BsColors.Mist,
             )
@@ -536,10 +555,16 @@ fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun BsErrorState(message: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(40.dp)
+            .semantics { liveRegion = LiveRegionMode.Assertive },
+        contentAlignment = Alignment.Center,
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Something broke",
+                text = stringResource(R.string.bs_error_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = BsColors.Danger,
             )
