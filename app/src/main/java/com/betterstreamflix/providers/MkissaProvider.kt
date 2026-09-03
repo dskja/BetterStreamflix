@@ -365,7 +365,7 @@ object MkissaProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("People pages are not available in MKissa")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

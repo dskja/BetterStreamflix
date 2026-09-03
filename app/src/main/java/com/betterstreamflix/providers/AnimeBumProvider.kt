@@ -327,6 +327,6 @@ object AnimeBumProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Esta función no está disponible en AnimeBum")
+        return People(id = id, name = "", filmography = emptyList())
     }
 }

@@ -1244,7 +1244,7 @@ object AnimeUnityProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("AnimeUnity doesn't support people search")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

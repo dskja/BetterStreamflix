@@ -64,6 +64,9 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.betterstreamflix.R
 import com.betterstreamflix.BuildConfig
 import com.betterstreamflix.fragments.player.settings.PlayerSettingsView
+import com.betterstreamflix.fragments.player.WatchProgressHelper.hasFinished
+import com.betterstreamflix.fragments.player.WatchProgressHelper.hasReallyFinished
+import com.betterstreamflix.fragments.player.WatchProgressHelper.hasStarted
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.download.DownloadActionHelper
 import com.betterstreamflix.databinding.ContentExoControllerTvBinding
@@ -1406,11 +1409,6 @@ class PlayerTvFragment : Fragment() {
             player.playWhenReady = shouldPlay
         }
 
-
-        private fun ExoPlayer.hasStarted(): Boolean {
-            return (this.currentPosition > (this.duration * 0.005) || this.currentPosition > 20.seconds.inWholeMilliseconds)
-        }
-
         private fun recordRecentlyWatchedStart() {
             val playedAtMillis = System.currentTimeMillis()
             when (val videoType = currentVideoTypeForUi()) {
@@ -1468,15 +1466,6 @@ class PlayerTvFragment : Fragment() {
                     )
                 }
             }
-        }
-
-        private fun ExoPlayer.hasFinished(): Boolean {
-            return (this.currentPosition > (this.duration * 0.90))
-        }
-
-        private fun ExoPlayer.hasReallyFinished(): Boolean {
-            return this.duration > 0 &&
-                    this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
         }
 
         private fun currentVideoTypeForUi(): Video.Type = when (val type = args.videoType) {

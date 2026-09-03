@@ -334,5 +334,6 @@ object LatanimeProvider : Provider {
         )
     }
 
-    override suspend fun getPeople(id: String, page: Int): People = throw Exception("No soportado")
+    override suspend fun getPeople(id: String, page: Int): People =
+        People(id = id, name = "", filmography = emptyList())
 }

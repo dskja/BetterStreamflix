@@ -242,7 +242,7 @@ object LaCartoonsProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Esta función no está disponible en La Cartoons")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

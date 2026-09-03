@@ -76,7 +76,7 @@ class HomeTvFragment : ComposeHostFragment() {
 
         when (val current = state) {
             HomeViewModel.State.Loading -> {
-                HomeScreen(isLoading = true)
+                HomeScreen(isLoading = true, isTvLayout = true)
             }
             is HomeViewModel.State.SuccessLoading -> {
                 if (current.isStaleCache) {
@@ -89,6 +89,7 @@ class HomeTvFragment : ComposeHostFragment() {
                     }
                 }
                 HomeScreen(
+                    isTvLayout = true,
                     categories = localizeCategories(current.categories),
                     scrollToCategoryName = scrollToCategory,
                     onProviderClick = { findNavController().navigate(R.id.providers) },
@@ -116,6 +117,7 @@ class HomeTvFragment : ComposeHostFragment() {
                         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                     }
                     HomeScreen(
+                        isTvLayout = true,
                         isLoading = false,
                         errorMessage = message,
                         onRetry = { viewModel.getHome() },

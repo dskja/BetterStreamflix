@@ -61,6 +61,8 @@
     <string name="theme_retro_neon">Retro Neon</string>
 
     <string name="search_input_hint">Search movies, TV shows</string>
+    <string name="search_clear_history">Clear search history</string>
+    <string name="search_recent_title">Recent searches</string>
     <string name="search_input_hint_iptv">Search channels</string>
     <string name="global_search">Global search</string>
     <string name="search_empty_query">Please enter a search query</string>
@@ -159,6 +161,10 @@
     <string name="player_next_episode_dismiss">Dismiss</string>
     <string name="player_next_episode_ready">Next episode ready</string>
     <string name="player_next_episode_autoplay_in">Playing next in %ds</string>
+    <string name="player_seek_forward">Forward 10 seconds</string>
+    <string name="player_seek_back">Rewind 10 seconds</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_play">Play</string>
     <string name="player_buffering">Buffering…</string>
     <string name="player_aspect_ratio_fit">Fit to screen</string>
     <string name="player_aspect_ratio_fill">Stretch</string>
@@ -720,6 +726,13 @@
     <string name="settings_enable_tmdb_enabled">TMDb enabled</string>
     <string name="settings_enable_tmdb_disabled">TMDb disabled</string>
     <string name="settings_category_parental_control">Parental Control</string>
+    <string name="settings_tv_bypass_section">TV bypass</string>
+    <string name="settings_dns_section">DNS</string>
+    <string name="settings_parental_session_inactive">Inactive</string>
+    <string name="settings_parental_session_active">Active — age filter on</string>
+    <string name="settings_parental_session_title">Parental session</string>
+    <string name="settings_enable_tmdb_metadata">Enable TMDb metadata</string>
+    <string name="settings_metadata_section">Metadata</string>
     <string name="settings_parental_pin_title">Parental PIN</string>
     <string name="settings_parental_pin_summary">Set a PIN to protect parental-control changes</string>
     <string name="settings_parental_pin_not_set">PIN not set</string>

@@ -1,12 +1,17 @@
 package com.betterstreamflix.compose.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -14,6 +19,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
@@ -37,10 +43,16 @@ fun SearchScreen(
     isLoading: Boolean = false,
     isEmpty: Boolean = false,
     results: List<AppAdapter.Item> = emptyList(),
+    recentQueries: List<String> = emptyList(),
+    isTvLayout: Boolean = false,
     onBack: () -> Unit = {},
     onResultClick: (AppAdapter.Item) -> Unit = {},
     onBrowseGenres: () -> Unit = {},
+    onRecentClick: (String) -> Unit = {},
+    onClearHistory: () -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
             BsTopBar(
@@ -52,7 +64,7 @@ fun SearchScreen(
                 onValueChange = onQueryChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = horizontalPadding),
                 placeholder = { Text(stringResource(R.string.search_input_hint)) },
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
@@ -72,6 +84,39 @@ fun SearchScreen(
                     onClick = onBrowseGenres,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
+                if (recentQueries.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.search_recent_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BsColors.MistDim,
+                        modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = horizontalPadding, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        recentQueries.forEach { recent ->
+                            Text(
+                                text = recent,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = BsColors.Mist,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(BsColors.InkSoft)
+                                    .clickable { onRecentClick(recent) }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                    BsGhostButton(
+                        text = stringResource(R.string.search_clear_history),
+                        onClick = onClearHistory,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                }
             }
             when {
                 isLoading -> BsShimmerRow(modifier = Modifier.padding(top = 12.dp))
@@ -93,7 +138,7 @@ fun SearchScreen(
                                     text = stringResource(R.string.genres_hub_browse),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = BsColors.Mist,
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                    modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
                                 )
                             }
                             items(genreResults, key = { "genre:${it.id}" }) { genre ->

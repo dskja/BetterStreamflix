@@ -7,6 +7,7 @@ import com.betterstreamflix.compose.screens.SettingsUiState
 import com.betterstreamflix.notifications.NotificationPreferences
 import com.betterstreamflix.providers.ProviderConfigUrl
 import com.betterstreamflix.utils.AppLanguageManager
+import com.betterstreamflix.utils.ParentalPinLogic
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
 
@@ -48,6 +49,20 @@ internal object SettingsComposeBridge {
             tmdbApiKeyMasked = maskSecret(UserPreferences.tmdbApiKey),
             parentalMaxAgeLabel = maxAge?.let { "$it+" } ?: context.getString(R.string.settings_parental_max_age_disabled),
             hasParentalPin = UserPreferences.parentalControlPin.isNotBlank(),
+            hasAdminPin = UserPreferences.parentalControlAdminPin.isNotBlank(),
+            parentalLocked = ParentalPinLogic.isLocked(),
+            parentalSessionLabel = when {
+                !UserPreferences.isParentalControlActive ->
+                    context.getString(R.string.settings_parental_session_inactive)
+                UserPreferences.parentalControlHardLocked ->
+                    context.getString(R.string.settings_parental_locked_hard)
+                UserPreferences.isParentalControlTemporarilyLocked ->
+                    context.getString(
+                        R.string.settings_parental_locked_temporary,
+                        ParentalPinLogic.lockRemainingMinutes(),
+                    )
+                else -> context.getString(R.string.settings_parental_session_active)
+            },
             dohLabel = dohLabels[doh] ?: doh.ifBlank { "None" },
             dohValue = doh,
             subdlApiKeyMasked = maskSecret(UserPreferences.subdlApiKey),
@@ -100,14 +115,16 @@ internal object SettingsComposeBridge {
         }
     }
 
-    fun applyEditText(key: String, value: String) {
+    fun applyEditText(key: String, value: String): String? {
         when (key) {
             "autoplayBufferSec" -> UserPreferences.autoplayBuffer = value.toLongOrNull()?.coerceAtLeast(0L) ?: 3L
             "tmdbApiKey" -> UserPreferences.tmdbApiKey = value.trim()
             "subdlApiKey" -> UserPreferences.subdlApiKey = value.trim()
-            "parentalPin" -> UserPreferences.parentalControlPin = value.trim()
-            "parentalMaxAge" -> UserPreferences.parentalControlMaxAge =
-                value.trim().removeSuffix("+").toIntOrNull()
+            "parentalPin" -> return ParentalPinLogic.setParentalPin(value)
+            "parentalVerifyPin" -> return ParentalPinLogic.verifyCurrentPin(value)
+            "parentalAdminPin" -> return ParentalPinLogic.setAdminPin(value)
+            "parentalVerifyAdminPin" -> return ParentalPinLogic.verifyAdminPin(value)
+            "parentalMaxAge" -> return ParentalPinLogic.setMaxAge(value)
             "providerUrl" -> UserPreferences.providerUrl = value.trim()
             "streamingcommunityDomain", "editStreamingcommunityDomain" ->
                 UserPreferences.streamingcommunityDomain = value.trim()
@@ -122,6 +139,7 @@ internal object SettingsComposeBridge {
             "poseidonDomain", "editPoseidonDomain" ->
                 UserPreferences.poseidonDomain = value.trim()
         }
+        return null
     }
 
     fun applyAction(key: String) {
