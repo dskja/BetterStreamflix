@@ -26,6 +26,7 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
+import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.itemKeyOf
 import com.betterstreamflix.compose.theme.BsColors
@@ -87,12 +88,7 @@ fun FavoritesScreen(
                 ) {
                     sections.filter { it.items.isNotEmpty() }.forEach { section ->
                         item(key = "header-${section.section.key}") {
-                            Text(
-                                text = sectionTitle(section.section).uppercase(),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = BsColors.MistFaint,
-                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
-                            )
+                            BsSectionHeader(title = sectionTitle(section.section))
                         }
                         item(key = "row-${section.section.key}") {
                             LazyRow(

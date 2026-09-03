@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,9 +14,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
@@ -28,6 +24,7 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsHeroBanner
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
+import com.betterstreamflix.compose.components.BsStatusBanner
 import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.models.Category
@@ -51,7 +48,7 @@ fun HomeScreen(
     onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
     onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
-    val horizontalPadding = if (isTvLayout) 32.dp else 12.dp
+    val horizontalPadding = if (isTvLayout) 32.dp else 16.dp
     val listState = rememberLazyListState()
     val featured = categories
         .firstOrNull { it.name == Category.FEATURED || it.name.equals("Featured", ignoreCase = true) }
@@ -64,7 +61,6 @@ fun HomeScreen(
         val target = scrollToCategoryName ?: return@LaunchedEffect
         val index = rows.indexOfFirst { it.name == target }
         if (index >= 0) {
-            // +1 for hero item
             listState.animateScrollToItem(index + 1)
         }
     }
@@ -122,24 +118,24 @@ fun HomeScreen(
                     }
                     if (isOffline) {
                         item(key = "offline-banner") {
-                            HomeStatusBanner(
+                            BsStatusBanner(
                                 message = stringResource(R.string.home_banner_offline),
-                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
                             )
                         }
                     } else if (isStaleCache) {
                         item(key = "stale-banner") {
-                            HomeStatusBanner(
+                            BsStatusBanner(
                                 message = stringResource(R.string.home_banner_stale),
-                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
                             )
                         }
                     }
                     if (!parentalSessionLabel.isNullOrBlank()) {
                         item(key = "parental-chip") {
-                            HomeStatusBanner(
+                            BsStatusBanner(
                                 message = parentalSessionLabel,
-                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 6.dp),
                             )
                         }
                     }
@@ -160,24 +156,11 @@ fun HomeScreen(
                         BsGhostButton(
                             text = stringResource(R.string.home_switch_provider),
                             onClick = onProviderClick,
-                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp),
+                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 24.dp),
                         )
                     }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun HomeStatusBanner(message: String, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Text(
-        text = message,
-        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-        color = com.betterstreamflix.compose.theme.BsColors.AmberBright,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-    )
 }
