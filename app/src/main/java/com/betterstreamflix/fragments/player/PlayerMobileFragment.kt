@@ -83,6 +83,9 @@ import androidx.core.net.toUri
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.betterstreamflix.fragments.player.settings.PlayerSettingsView
+import com.betterstreamflix.fragments.player.WatchProgressHelper.hasFinished
+import com.betterstreamflix.fragments.player.WatchProgressHelper.hasReallyFinished
+import com.betterstreamflix.fragments.player.WatchProgressHelper.hasStarted
 import java.util.Base64 
 import java.io.File
 import java.io.FileOutputStream
@@ -1236,11 +1239,6 @@ class PlayerMobileFragment : Fragment() {
         }
     }
 
-
-    private fun ExoPlayer.hasStarted(): Boolean {
-        return (this.currentPosition > (this.duration * 0.005) || this.currentPosition > 20.seconds.inWholeMilliseconds)
-    }
-
     private fun recordRecentlyWatchedStart() {
         val playedAtMillis = System.currentTimeMillis()
         when (val videoType = currentVideoTypeForUi()) {
@@ -1298,15 +1296,6 @@ class PlayerMobileFragment : Fragment() {
                 )
             }
         }
-    }
-
-    private fun ExoPlayer.hasFinished(): Boolean {
-        return (this.currentPosition > (this.duration * 0.90))
-    }
-
-    private fun ExoPlayer.hasReallyFinished(): Boolean {
-        return this.duration > 0 &&
-                this.currentPosition >= (this.duration - UserPreferences.autoplayBuffer * 1000)
     }
 
     private fun currentVideoTypeForUi(): Video.Type = when (val type = args.videoType) {

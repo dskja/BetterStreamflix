@@ -36,12 +36,14 @@ import com.betterstreamflix.models.TvShow
 fun FavoritesScreen(
     sections: List<FavoritesViewModel.FavoriteSection>,
     sortMode: FavoritesViewModel.SortMode,
+    isTvLayout: Boolean = false,
     onSortModeChange: (FavoritesViewModel.SortMode) -> Unit = {},
     onMovieClick: (Movie) -> Unit = {},
     onTvShowClick: (TvShow) -> Unit = {},
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
     val hasItems = sections.any { it.items.isNotEmpty() }
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -88,12 +90,12 @@ fun FavoritesScreen(
                                 text = sectionTitle(section.section).uppercase(),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = BsColors.MistFaint,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
                             )
                         }
                         item(key = "row-${section.section.key}") {
                             LazyRow(
-                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                contentPadding = PaddingValues(horizontal = horizontalPadding),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                             ) {
                                 items(
