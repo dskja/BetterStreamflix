@@ -503,7 +503,11 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 } else {
                     stringResource(R.string.settings_reduced_motion_off)
                 },
-                valueLabel = if (reducedMotionOn) "On" else "Off",
+                valueLabel = if (reducedMotionOn) {
+                    stringResource(R.string.settings_autoplay_on)
+                } else {
+                    stringResource(R.string.settings_autoplay_off)
+                },
                 onClick = { actions.onAction("openAccessibilitySettings") },
             )
         }
