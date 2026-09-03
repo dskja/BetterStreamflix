@@ -818,6 +818,9 @@
     <string name="provider_status_offline">offline</string>
     <string name="profile_max_age_label">Max age %d</string>
     <string name="player_title_offline">Offline playback</string>
+    <!-- Continue Watching widget empty subtitle already uses app_name; favorites: -->
+    <string name="widget_favorites_empty">Tap to browse your favorites</string>
+    <string name="widget_continue_watching_empty">Nothing to resume yet</string>
     <string name="bs_empty_title">Nothing here yet</string>
     <string name="bs_error_title">Something broke</string>
     <string name="bs_brand_mark">BETTERSTREAMFLIX</string>
