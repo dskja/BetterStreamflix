@@ -52,6 +52,22 @@ fun PlayerControlsOverlay(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        if (state.title.isNotBlank()) {
+            Text(
+                text = state.title,
+                style = MaterialTheme.typography.titleSmall,
+                color = BsColors.Mist,
+                maxLines = 1,
+            )
+            if (state.subtitle.isNotBlank()) {
+                Text(
+                    text = state.subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BsColors.MistDim,
+                    maxLines = 1,
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

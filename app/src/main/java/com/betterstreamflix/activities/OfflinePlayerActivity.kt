@@ -102,6 +102,10 @@ class OfflinePlayerActivity : AppCompatActivity() {
     private fun bindOverlay(playerView: PlayerView) {
         val exo = player ?: return
         val overlay = composeOverlay ?: return
+        val title = intent.getStringExtra(EXTRA_TITLE)
+            ?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.player_title_offline)
+        playbackController.setMetadata(title)
         hideLegacyTimeBar(playerView)
         overlay.setContent {
             BetterStreamflixTheme {
@@ -201,5 +205,6 @@ class OfflinePlayerActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_DOWNLOAD_ID = "download_id"
         const val EXTRA_FILE_PATH = "file_path"
+        const val EXTRA_TITLE = "title"
     }
 }

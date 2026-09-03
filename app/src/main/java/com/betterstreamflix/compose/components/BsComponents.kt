@@ -49,9 +49,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsMotion
@@ -585,6 +587,12 @@ fun BsProviderChip(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.04f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "providerChipScale",
+    )
     val bg = when {
         selected -> BsColors.Amber
         else -> BsColors.InkPanel
@@ -595,9 +603,20 @@ fun BsProviderChip(
     }
     Row(
         modifier = modifier
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
-            .border(1.dp, if (selected) Color.Transparent else BsColors.Hairline, RoundedCornerShape(12.dp))
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = when {
+                    focused -> BsColors.FocusRing
+                    selected -> Color.Transparent
+                    else -> BsColors.Hairline
+                },
+                shape = RoundedCornerShape(12.dp),
+            )
             .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -611,7 +630,7 @@ fun BsProviderChip(
         Text(text = label, style = MaterialTheme.typography.titleMedium, color = fg)
         if (!healthy) {
             Text(
-                text = "offline",
+                text = stringResource(R.string.provider_status_offline),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (selected) BsColors.Ink else BsColors.Danger,
             )

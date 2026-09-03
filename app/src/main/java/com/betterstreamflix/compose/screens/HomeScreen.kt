@@ -15,6 +15,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
@@ -180,6 +183,7 @@ private fun HomeStatusBanner(message: String, modifier: Modifier = Modifier) {
         color = com.betterstreamflix.compose.theme.BsColors.AmberBright,
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
     )
 }

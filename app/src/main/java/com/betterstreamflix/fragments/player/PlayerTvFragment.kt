@@ -123,8 +123,6 @@ import com.betterstreamflix.extractors.TokenManager
 
 class PlayerTvFragment : Fragment() {
     companion object {
-        private const val NEXT_EPISODE_PREFETCH_THRESHOLD_MS = 60_000L
-        private const val NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS = 30_000L
         private const val NEXT_EPISODE_OVERLAY_ALPHA_UNFOCUSED = 0.72f
         private const val NEXT_EPISODE_OVERLAY_ALPHA_FOCUSED = 0.96f
     }
@@ -1044,34 +1042,6 @@ class PlayerTvFragment : Fragment() {
             )
         }
 
-        private fun decodeBase64Uri(uri: String): String? {
-            return try {
-                val parts = uri.split(",")
-                if (parts.size == 2 && parts[0].contains(";base64")) {
-                    val base64Data = parts[1]
-                    val decodedBytes = Base64.getDecoder().decode(base64Data)
-                    String(decodedBytes, Charsets.UTF_8)
-                } else {
-                    null
-                }
-            } catch (ignored: Exception) {
-                null
-            }
-        }
-
-        private fun extractUrlFromPlaylist(playlist: String): String? {
-            return try {
-                val lines = playlist.lines().map { it.trim() }
-                lines.firstOrNull { it.startsWith("http") }
-                    ?: lines.firstNotNullOfOrNull { line ->
-                        val regex = """URI=["'](http[^"']+)["']""".toRegex()
-                        regex.find(line)?.groupValues?.get(1)
-                    }
-            } catch (ignored: Exception) {
-                null
-            }
-        }
-
         private fun displayVideo(
             video: Video,
             server: Video.Server,
@@ -1136,9 +1106,9 @@ class PlayerTvFragment : Fragment() {
                 val initialSource = video.source
 
                 if (initialSource.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
-                    val playlistContent = decodeBase64Uri(initialSource)
+                    val playlistContent = VideoUrlUtils.decodeBase64Uri(initialSource)
                     val extractedUrl =
-                        if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
+                        if (playlistContent != null) VideoUrlUtils.extractUrlFromPlaylist(playlistContent) else null
 
                     if (extractedUrl != null) {
                         sourceUri = extractedUrl.toUri()
@@ -1493,8 +1463,11 @@ class PlayerTvFragment : Fragment() {
         }
 
         private fun updatePlayerHeader(videoType: Video.Type = currentVideoTypeForUi()) {
-            binding.pvPlayer.controller.binding.tvExoTitle.text = resolvePlayerTitle(videoType)
-            binding.pvPlayer.controller.binding.tvExoSubtitle.text = resolvePlayerSubtitle(videoType)
+            val title = resolvePlayerTitle(videoType)
+            val subtitle = resolvePlayerSubtitle(videoType)
+            binding.pvPlayer.controller.binding.tvExoTitle.text = title
+            binding.pvPlayer.controller.binding.tvExoSubtitle.text = subtitle
+            playbackController.setMetadata(title, subtitle)
         }
 
         private fun queueNextEpisodeForContinueWatching(provider: com.betterstreamflix.providers.Provider) {
@@ -1573,26 +1546,23 @@ class PlayerTvFragment : Fragment() {
             }
             val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
 
-            if (nextEpisodeOverlayDismissed) {
-                hideNextEpisodeOverlay()
-                return
-            }
-
-            if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
+            if (NextEpisodeOverlayLogic.shouldPrefetchNext(remainingMs)) {
                 ensureNextEpisodePrepared(currentEpisode)
             }
 
             val nextEpisode = EpisodeManager.peekNextEpisode()
-            val overlayThresholdMs = maxOf(
-                NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS,
-                UserPreferences.autoplayBuffer * 1000L
-            )
-            if (nextEpisode == null || remainingMs == 0L || remainingMs > overlayThresholdMs) {
+            if (!NextEpisodeOverlayLogic.shouldShowOverlay(
+                    hasNextEpisode = nextEpisode != null,
+                    remainingMs = remainingMs,
+                    autoplayBufferSeconds = UserPreferences.autoplayBuffer,
+                    dismissed = nextEpisodeOverlayDismissed,
+                )
+            ) {
                 hideNextEpisodeOverlay()
                 return
             }
 
-            showNextEpisodeOverlay(nextEpisode, remainingMs)
+            showNextEpisodeOverlay(nextEpisode!!, remainingMs)
         }
 
         private fun ensureNextEpisodePrepared(currentEpisode: Video.Type.Episode) {
@@ -1627,7 +1597,7 @@ class PlayerTvFragment : Fragment() {
             binding.tvNextEpisodeCountdown.text = if (UserPreferences.autoplay) {
                 getString(
                     R.string.player_next_episode_autoplay_in,
-                    ((remainingMs + 999L) / 1000L).toInt()
+                    NextEpisodeOverlayLogic.countdownSeconds(remainingMs),
                 )
             } else {
                 getString(R.string.player_next_episode_ready)

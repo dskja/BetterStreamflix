@@ -9,7 +9,7 @@
         android:id="@+id/providers"
         android:name="com.betterstreamflix.fragments.providers.ProvidersMobileFragment"
         android:label="fragment_providers_mobile"
-        tools:layout="@layout/fragment_providers_mobile">
+>
         <action
             android:id="@+id/action_providers_to_home"
             app:destination="@id/home" />

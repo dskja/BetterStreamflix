@@ -125,7 +125,9 @@ fun ProfilePickerScreen(
                         }
                         val badge = buildList {
                             if (profile.isKids) add(stringResource(R.string.profile_picker_kids))
-                            profile.parentalMaxAge?.let { add("Max age $it") }
+                            profile.parentalMaxAge?.let {
+                                add(stringResource(R.string.profile_max_age_label, it))
+                            }
                             if (profile.id == activeId) add(stringResource(R.string.profile_picker_active))
                         }.joinToString(" · ")
                         if (badge.isNotBlank()) {

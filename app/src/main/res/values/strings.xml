@@ -815,4 +815,7 @@
     <string name="home_banner_offline">You are offline. Showing cached content when available.</string>
     <string name="home_banner_stale">Showing cached home content. Pull refresh or retry when online.</string>
     <string name="settings_back">Back</string>
+    <string name="provider_status_offline">offline</string>
+    <string name="profile_max_age_label">Max age %d</string>
+    <string name="player_title_offline">Offline playback</string>
 </resources>

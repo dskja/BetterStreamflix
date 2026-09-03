@@ -30,9 +30,12 @@ fun GenresHubScreen(
     genres: List<Genre> = emptyList(),
     isLoading: Boolean = false,
     errorMessage: String? = null,
+    isTvLayout: Boolean = false,
     onGenreClick: (Genre) -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+    val gridMinSize = if (isTvLayout) 160.dp else 140.dp
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
             BsTopBar(title = stringResource(R.string.genres_hub_browse), showBrand = true)
@@ -59,9 +62,9 @@ fun GenresHubScreen(
                 }
                 else -> {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 140.dp),
+                        columns = GridCells.Adaptive(minSize = gridMinSize),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(20.dp),
+                        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {

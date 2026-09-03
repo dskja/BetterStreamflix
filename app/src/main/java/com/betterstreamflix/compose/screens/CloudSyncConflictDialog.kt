@@ -17,26 +17,30 @@ fun CloudSyncConflictDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sync_conflict_title)) },
+        title = { Text(stringResource(R.string.sync_conflict_title), color = BsColors.Mist) },
         text = {
+            Text(
+                text = stringResource(R.string.sync_conflict_message),
+                color = BsColors.MistDim,
+            )
+        },
+        confirmButton = {
+            BsGhostButton(
+                text = stringResource(R.string.sync_conflict_keep_local),
+                onClick = onKeepLocal,
+            )
+        },
+        dismissButton = {
             Column {
-                Text(stringResource(R.string.sync_conflict_message))
-                BsGhostButton(
-                    text = stringResource(R.string.sync_conflict_keep_local),
-                    onClick = onKeepLocal,
-                )
                 BsGhostButton(
                     text = stringResource(R.string.sync_conflict_use_cloud),
                     onClick = onUseCloud,
                 )
+                BsGhostButton(
+                    text = stringResource(android.R.string.cancel),
+                    onClick = onDismiss,
+                )
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            BsGhostButton(
-                text = stringResource(android.R.string.cancel),
-                onClick = onDismiss,
-            )
         },
         containerColor = BsColors.InkElevated,
     )
