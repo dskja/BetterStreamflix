@@ -196,6 +196,17 @@
             app:tint="#FFFFFF" />
     </LinearLayout>
 
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/compose_playback_overlay"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:elevation="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/pv_player"
+        app:layout_constraintEnd_toEndOf="@id/pv_player"
+        app:layout_constraintStart_toStartOf="@id/pv_player"
+        tools:visibility="visible" />
+
     <LinearLayout
         android:id="@+id/ll_volume"
         android:layout_width="wrap_content"

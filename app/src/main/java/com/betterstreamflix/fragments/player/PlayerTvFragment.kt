@@ -916,6 +916,13 @@ class PlayerTvFragment : Fragment() {
             binding.settings.onDownloadClicked = {
                 enqueueCurrentStreamDownload()
             }
+
+            setupPlayerComposeOverlay(
+                composeView = binding.composePlaybackOverlay,
+                playerView = binding.pvPlayer,
+                player = player,
+                playbackController = playbackController,
+            )
         }
 
         private fun enqueueCurrentStreamDownload() {

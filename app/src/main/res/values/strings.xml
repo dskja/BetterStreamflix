@@ -159,6 +159,7 @@
     <string name="player_next_episode_dismiss">Dismiss</string>
     <string name="player_next_episode_ready">Next episode ready</string>
     <string name="player_next_episode_autoplay_in">Playing next in %ds</string>
+    <string name="player_buffering">Buffering…</string>
     <string name="player_aspect_ratio_fit">Fit to screen</string>
     <string name="player_aspect_ratio_fill">Stretch</string>
     <string name="player_aspect_ratio_zoom">Zoom</string>

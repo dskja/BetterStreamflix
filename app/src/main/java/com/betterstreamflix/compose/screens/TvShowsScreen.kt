@@ -40,10 +40,13 @@ fun TvShowsScreen(
     isLoadingMore: Boolean = false,
     hasMore: Boolean = false,
     errorMessage: String? = null,
+    isTvLayout: Boolean = false,
     onShowClick: (TvShow) -> Unit = {},
     onLoadMore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+    val gridMinSize = if (isTvLayout) 140.dp else 124.dp
     val gridState = rememberLazyGridState()
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -87,9 +90,9 @@ fun TvShowsScreen(
                 else -> {
                     LazyVerticalGrid(
                         state = gridState,
-                        columns = GridCells.Adaptive(minSize = 124.dp),
+                        columns = GridCells.Adaptive(minSize = gridMinSize),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(20.dp),
+                        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
