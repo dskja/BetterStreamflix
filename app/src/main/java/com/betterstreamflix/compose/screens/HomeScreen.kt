@@ -56,12 +56,19 @@ fun HomeScreen(
         ?.firstOrNull()
         ?: categories.firstOrNull { it.list.isNotEmpty() }?.list?.firstOrNull()
     val rows = categories.filter { it.list.isNotEmpty() && it.name != Category.FEATURED }
+    val hasStatusBanner = isOffline || isStaleCache
+    val hasParentalBanner = !parentalSessionLabel.isNullOrBlank()
 
-    LaunchedEffect(scrollToCategoryName, rows) {
+    LaunchedEffect(scrollToCategoryName, rows, hasStatusBanner, hasParentalBanner) {
         val target = scrollToCategoryName ?: return@LaunchedEffect
         val index = rows.indexOfFirst { it.name == target }
-        if (index >= 0) {
-            listState.animateScrollToItem(index + 1)
+        val scrollIndex = homeCategoryScrollIndex(
+            categoryIndex = index,
+            hasStatusBanner = hasStatusBanner,
+            hasParentalBanner = hasParentalBanner,
+        )
+        if (scrollIndex >= 0) {
+            listState.animateScrollToItem(scrollIndex)
         }
     }
 
@@ -163,4 +170,20 @@ fun HomeScreen(
             }
         }
     }
+}
+
+/**
+ * LazyColumn index for a home category row, accounting for the hero and optional
+ * status / parental banners that precede category items.
+ */
+internal fun homeCategoryScrollIndex(
+    categoryIndex: Int,
+    hasStatusBanner: Boolean,
+    hasParentalBanner: Boolean,
+): Int {
+    if (categoryIndex < 0) return -1
+    var offset = 1 // hero
+    if (hasStatusBanner) offset++
+    if (hasParentalBanner) offset++
+    return categoryIndex + offset
 }
