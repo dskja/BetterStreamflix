@@ -46,6 +46,7 @@ class MoviesTvFragment : ComposeHostFragment() {
             isLoadingMore = state is MoviesViewModel.State.LoadingMore,
             hasMore = hasMore,
             errorMessage = (state as? MoviesViewModel.State.FailedLoading)?.error?.message,
+            isTvLayout = true,
             onMovieClick = ::openMovie,
             onLoadMore = { viewModel.loadMoreMovies() },
             onRetry = { viewModel.getMovies() },

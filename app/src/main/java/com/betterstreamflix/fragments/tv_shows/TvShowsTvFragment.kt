@@ -46,6 +46,7 @@ class TvShowsTvFragment : ComposeHostFragment() {
             isLoadingMore = state is TvShowsViewModel.State.LoadingMore,
             hasMore = hasMore,
             errorMessage = (state as? TvShowsViewModel.State.FailedLoading)?.error?.message,
+            isTvLayout = true,
             onShowClick = ::openShow,
             onLoadMore = { viewModel.loadMoreTvShows() },
             onRetry = { viewModel.getTvShows() },

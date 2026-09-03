@@ -17,7 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.betterstreamflix.R
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.fragments.player.PlayerPlaybackController
 import kotlin.math.max
@@ -84,7 +86,7 @@ fun PlayerControlsOverlay(
         }
         if (state.isBuffering) {
             Text(
-                text = "Buffering…",
+                text = stringResource(R.string.player_buffering),
                 style = MaterialTheme.typography.labelSmall,
                 color = BsColors.AmberBright,
             )

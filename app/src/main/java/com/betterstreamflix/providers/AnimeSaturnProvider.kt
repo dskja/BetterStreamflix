@@ -10,6 +10,8 @@ import com.betterstreamflix.models.Season
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.models.Video
 import com.betterstreamflix.utils.DnsResolver
+import com.betterstreamflix.utils.TmdbUtils
+import com.betterstreamflix.utils.UserPreferences
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import okhttp3.dnsoverhttps.DnsOverHttps
@@ -604,7 +606,20 @@ object AnimeSaturnProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        return People(id = id, name = "Person $id") // TODO: Implement people functionality
+        if (page > 1) {
+            return People(id = id, name = id)
+        }
+        val people = People(id = id, name = id)
+        if (!UserPreferences.enableTmdb) return people
+        val lookupName = id.substringAfterLast('/').ifBlank { id }
+        val enriched = TmdbUtils.enrichPersonByName(lookupName, language = language) ?: return people
+        return people.copy(
+            name = enriched.name.ifBlank { people.name },
+            image = enriched.image,
+            biography = enriched.biography,
+            placeOfBirth = enriched.placeOfBirth,
+            filmography = enriched.filmography,
+        )
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
