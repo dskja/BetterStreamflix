@@ -386,7 +386,7 @@ object AnimeFlvProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Not implemented for this provider")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

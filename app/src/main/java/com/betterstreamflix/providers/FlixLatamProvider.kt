@@ -387,7 +387,7 @@ object FlixLatamProvider : Provider {
     override suspend fun getVideo(server: Video.Server): Video = Extractor.extract(server.id)
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Esta función no está disponible en FlixLatam")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     private fun String.getId(): String = this.substringAfter(baseUrl).trim('/')

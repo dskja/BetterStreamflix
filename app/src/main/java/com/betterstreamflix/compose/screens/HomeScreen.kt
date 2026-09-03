@@ -36,12 +36,14 @@ fun HomeScreen(
     categories: List<Category> = emptyList(),
     isLoading: Boolean = false,
     errorMessage: String? = null,
+    isTvLayout: Boolean = false,
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
     onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
     onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 12.dp
     val listState = rememberLazyListState()
     val featured = categories
         .firstOrNull { it.name == Category.FEATURED || it.name.equals("Featured", ignoreCase = true) }
@@ -127,7 +129,7 @@ fun HomeScreen(
                         BsGhostButton(
                             text = stringResource(R.string.home_switch_provider),
                             onClick = onProviderClick,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp),
+                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp),
                         )
                     }
                 }

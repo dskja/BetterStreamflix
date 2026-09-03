@@ -86,6 +86,21 @@ class SearchTvFragment : ComposeHostFragment() {
         val isLoading = state is State.Searching || state is State.GlobalSearching
         val results = (state as? State.SuccessSearching)?.results.orEmpty()
         val isEmpty = state is State.SuccessSearching && results.isEmpty() && query.isNotBlank()
+        var recentQueries by remember {
+            mutableStateOf(
+                com.betterstreamflix.search.SearchHistoryManager.getHistory(requireContext())
+                    .map { it.query }
+                    .take(8),
+            )
+        }
+        LaunchedEffect(state) {
+            if (state is State.SuccessSearching) {
+                recentQueries = com.betterstreamflix.search.SearchHistoryManager
+                    .getHistory(requireContext())
+                    .map { it.query }
+                    .take(8)
+            }
+        }
 
         if (state is State.FailedSearching) {
             val failed = state as State.FailedSearching
@@ -124,8 +139,18 @@ class SearchTvFragment : ComposeHostFragment() {
             isLoading = isLoading,
             isEmpty = isEmpty,
             results = results,
+            recentQueries = recentQueries,
+            isTvLayout = true,
             onResultClick = ::onResultClick,
             onBrowseGenres = { findNavController().navigate(R.id.genres_hub) },
+            onRecentClick = { recent ->
+                query = recent
+                viewModel.search(recent)
+            },
+            onClearHistory = {
+                com.betterstreamflix.search.SearchHistoryManager.clearHistory(requireContext())
+                recentQueries = emptyList()
+            },
         )
     }
 

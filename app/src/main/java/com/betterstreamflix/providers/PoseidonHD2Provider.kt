@@ -490,7 +490,7 @@ object PoseidonHD2Provider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Function not available for Poseidonhd2")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.betterstreamflix.accessibility.AccessibilityHelper
 import com.betterstreamflix.accessibility.ReducedMotionHelper
 import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.utils.ParentalPinLogic
 import com.betterstreamflix.utils.ThemeManager
 import java.util.Locale
 
@@ -72,6 +73,9 @@ data class SettingsUiState(
     val tmdbApiKeyMasked: String,
     val parentalMaxAgeLabel: String,
     val hasParentalPin: Boolean,
+    val hasAdminPin: Boolean,
+    val parentalLocked: Boolean,
+    val parentalSessionLabel: String,
     val dohLabel: String,
     val dohValue: String,
     val subdlApiKeyMasked: String,
@@ -530,14 +534,40 @@ private fun stringResourceSafe(resId: Int): String = stringResource(resId)
 @Composable
 private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
     var showTmdbDialog by rememberSaveable { mutableStateOf(false) }
-    var showParentalPinDialog by rememberSaveable { mutableStateOf(false) }
+    var parentalPinStep by rememberSaveable { mutableStateOf<String?>(null) }
     var showParentalAgeDialog by rememberSaveable { mutableStateOf(false) }
+    var parentalError by remember { mutableStateOf<String?>(null) }
+
+    val hardLockedMsg = stringResource(R.string.settings_parental_locked_hard)
+    val tempLockedMsg = stringResource(
+        R.string.settings_parental_locked_temporary,
+        ParentalPinLogic.lockRemainingMinutes(),
+    )
+    val invalidPinMsg = stringResource(R.string.settings_parental_invalid_pin)
+    val invalidAdminMsg = stringResource(R.string.settings_parental_invalid_admin_pin)
+    val tooShortMsg = stringResource(R.string.settings_parental_pin_too_short)
+    val setPinFirstMsg = stringResource(R.string.settings_parental_set_pin_first)
+    val requiresTmdbMsg = stringResource(R.string.settings_parental_requires_tmdb)
+    val noAdminMsg = stringResource(R.string.settings_parental_set_admin_pin_first)
+
+    fun resolveParentalError(code: String?): String? = when (code) {
+        null -> null
+        "HARD_LOCKED" -> hardLockedMsg
+        "TEMP_LOCKED" -> tempLockedMsg
+        "INVALID" -> invalidPinMsg
+        "INVALID_ADMIN" -> invalidAdminMsg
+        "TOO_SHORT" -> tooShortMsg
+        "SET_PIN_FIRST" -> setPinFirstMsg
+        "REQUIRES_TMDB" -> requiresTmdbMsg
+        "NO_ADMIN" -> noAdminMsg
+        else -> code
+    }
 
     SettingsSectionScaffold(title = stringResource(R.string.settings_section_content_title), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "Metadata") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_metadata_section)) }
         item {
             BsSettingsToggleRow(
-                title = "Enable TMDb metadata",
+                title = stringResource(R.string.settings_enable_tmdb_title),
                 checked = state.enableTmdb,
                 onCheckedChange = { actions.onToggle("enableTmdb", it) },
             )
@@ -553,13 +583,37 @@ private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActi
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_category_parental_control)) }
         item {
             BsSettingsActionRow(
+                title = stringResource(R.string.settings_parental_session_title),
+                subtitle = state.parentalSessionLabel,
+                onClick = {},
+            )
+        }
+        item {
+            BsSettingsActionRow(
                 title = stringResource(R.string.settings_parental_pin_title),
                 subtitle = if (state.hasParentalPin) {
                     stringResource(R.string.settings_parental_pin_set)
                 } else {
                     stringResource(R.string.settings_parental_pin_not_set)
                 },
-                onClick = { showParentalPinDialog = true },
+                onClick = {
+                    parentalError = null
+                    parentalPinStep = if (state.hasParentalPin) "verify" else "set"
+                },
+            )
+        }
+        item {
+            BsSettingsActionRow(
+                title = stringResource(R.string.settings_parental_admin_pin_title),
+                subtitle = if (state.hasAdminPin) {
+                    stringResource(R.string.settings_parental_admin_pin_set)
+                } else {
+                    stringResource(R.string.settings_parental_admin_pin_not_set)
+                },
+                onClick = {
+                    parentalError = null
+                    parentalPinStep = if (state.hasAdminPin) "adminVerify" else "adminSet"
+                },
             )
         }
         item {
@@ -569,6 +623,18 @@ private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActi
                 valueLabel = state.parentalMaxAgeLabel,
                 onClick = { showParentalAgeDialog = true },
             )
+        }
+        if (state.parentalLocked) {
+            item {
+                BsSettingsActionRow(
+                    title = stringResource(R.string.settings_parental_unlock_title),
+                    subtitle = stringResource(R.string.settings_parental_unlock_summary),
+                    onClick = {
+                        parentalError = null
+                        parentalPinStep = "unlock"
+                    },
+                )
+            }
         }
     }
 
@@ -586,17 +652,103 @@ private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActi
         )
     }
 
-    if (showParentalPinDialog) {
-        BsSettingsTextFieldDialog(
-            title = stringResource(R.string.settings_parental_pin_title),
-            subtitle = stringResource(R.string.settings_parental_pin_hint),
+    when (parentalPinStep) {
+        "verify" -> BsSettingsTextFieldDialog(
+            title = stringResource(R.string.settings_parental_enter_current_pin_title),
+            subtitle = parentalError
+                ?: stringResource(R.string.settings_parental_enter_current_pin_message),
             initial = "",
             isPassword = true,
             onConfirm = {
-                actions.onEditText("parentalPin", it)
-                showParentalPinDialog = false
+                val err = resolveParentalError(ParentalPinLogic.verifyCurrentPin(it))
+                if (err == null) {
+                    parentalError = null
+                    parentalPinStep = "set"
+                    actions.onRefresh()
+                } else {
+                    parentalError = err
+                    actions.onRefresh()
+                }
             },
-            onDismiss = { showParentalPinDialog = false },
+            onDismiss = { parentalPinStep = null },
+        )
+        "set" -> BsSettingsTextFieldDialog(
+            title = stringResource(R.string.settings_parental_pin_title),
+            subtitle = parentalError
+                ?: stringResource(
+                    if (state.hasParentalPin) R.string.settings_parental_change_pin_message
+                    else R.string.settings_parental_set_new_pin_message,
+                ),
+            initial = "",
+            isPassword = true,
+            onConfirm = {
+                val err = resolveParentalError(ParentalPinLogic.setParentalPin(it))
+                if (err == null) {
+                    parentalPinStep = null
+                    parentalError = null
+                    actions.onRefresh()
+                } else {
+                    parentalError = err
+                }
+            },
+            onDismiss = { parentalPinStep = null },
+        )
+        "adminVerify" -> BsSettingsTextFieldDialog(
+            title = stringResource(R.string.settings_parental_enter_admin_pin_title),
+            subtitle = parentalError
+                ?: stringResource(R.string.settings_parental_enter_admin_pin_message),
+            initial = "",
+            isPassword = true,
+            onConfirm = {
+                val err = resolveParentalError(ParentalPinLogic.verifyAdminPin(it))
+                if (err == null) {
+                    parentalError = null
+                    parentalPinStep = "adminSet"
+                    actions.onRefresh()
+                } else {
+                    parentalError = err
+                }
+            },
+            onDismiss = { parentalPinStep = null },
+        )
+        "adminSet" -> BsSettingsTextFieldDialog(
+            title = stringResource(R.string.settings_parental_admin_pin_title),
+            subtitle = parentalError
+                ?: stringResource(
+                    if (state.hasAdminPin) R.string.settings_parental_change_admin_pin_message
+                    else R.string.settings_parental_set_new_admin_pin_message,
+                ),
+            initial = "",
+            isPassword = true,
+            onConfirm = {
+                val err = resolveParentalError(ParentalPinLogic.setAdminPin(it))
+                if (err == null) {
+                    parentalPinStep = null
+                    parentalError = null
+                    actions.onRefresh()
+                } else {
+                    parentalError = err
+                }
+            },
+            onDismiss = { parentalPinStep = null },
+        )
+        "unlock" -> BsSettingsTextFieldDialog(
+            title = stringResource(R.string.settings_parental_unlock_title),
+            subtitle = parentalError
+                ?: stringResource(R.string.settings_parental_enter_admin_pin_message),
+            initial = "",
+            isPassword = true,
+            onConfirm = {
+                val err = resolveParentalError(ParentalPinLogic.verifyAdminPin(it))
+                if (err == null) {
+                    parentalPinStep = null
+                    parentalError = null
+                    actions.onRefresh()
+                } else {
+                    parentalError = err
+                }
+            },
+            onDismiss = { parentalPinStep = null },
         )
     }
 
@@ -614,8 +766,9 @@ private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActi
             options = ageOptions,
             selectedValue = state.parentalMaxAgeLabel,
             onSelect = {
-                actions.onEditText("parentalMaxAge", it)
+                ParentalPinLogic.setMaxAge(it)
                 showParentalAgeDialog = false
+                actions.onRefresh()
             },
             onDismiss = { showParentalAgeDialog = false },
         )
@@ -628,7 +781,7 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
     var showSubdlDialog by rememberSaveable { mutableStateOf(false) }
 
     SettingsSectionScaffold(title = stringResource(R.string.settings_category_network_title), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "DNS") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_dns_section)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_streamingcommunity_dnsOverHttps),
@@ -636,7 +789,7 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
                 onClick = { showDohDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = "TV bypass") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_tv_bypass_section)) }
         item {
             BsSettingsActionRow(
                 title = stringResource(R.string.settings_scan_resolver_qr_title),

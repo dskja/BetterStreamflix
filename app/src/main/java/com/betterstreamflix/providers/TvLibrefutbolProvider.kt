@@ -242,7 +242,8 @@ object TvLibrefutbolProvider : IptvProvider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> = listOf(Episode(seasonId, 1, "Señal en Directo"))
     override suspend fun getGenre(id: String, page: Int): Genre = throw Exception("Not supported")
-    override suspend fun getPeople(id: String, page: Int): People = throw Exception("Not supported")
+    override suspend fun getPeople(id: String, page: Int): People =
+        People(id = id, name = "", filmography = emptyList())
     override suspend fun getMovies(page: Int): List<Movie> = emptyList()
     override suspend fun getMovie(id: String): Movie = throw Exception("Not supported")
 

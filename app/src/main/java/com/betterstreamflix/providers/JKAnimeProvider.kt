@@ -209,7 +209,7 @@ object JKAnimeProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw UnsupportedOperationException("JKAnime does not expose people pages")
+        return People(id = id, name = "", filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {

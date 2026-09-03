@@ -1590,6 +1590,6 @@ object CuevanaEuProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        throw Exception("Esta funzione non è disponibile nel provider Cuevana 3.")
+        return People(id = id, name = "", filmography = emptyList())
     }
 }

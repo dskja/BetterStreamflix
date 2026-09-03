@@ -59,6 +59,7 @@ class FavoritesTvFragment : ComposeHostFragment() {
         FavoritesScreen(
             sections = sections,
             sortMode = sortMode,
+            isTvLayout = true,
             onSortModeChange = { mode ->
                 viewModel.setSortMode(mode)
                 sortMode = mode

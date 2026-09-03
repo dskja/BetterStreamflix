@@ -18,11 +18,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.fragments.player.PlayerPlaybackController
 import kotlin.math.max
+
+private const val SEEK_STEP_MS = 10_000L
 
 @Composable
 fun PlayerControlsOverlay(
@@ -33,6 +37,13 @@ fun PlayerControlsOverlay(
 ) {
     val durationMs = max(state.durationMs, 1L)
     val positionFraction = (state.positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
+    val playPauseLabel = if (state.isPlaying) {
+        stringResource(R.string.player_pause)
+    } else {
+        stringResource(R.string.player_play)
+    }
+    val rewindLabel = stringResource(R.string.player_seek_back)
+    val forwardLabel = stringResource(R.string.player_seek_forward)
 
     Column(
         modifier = modifier
@@ -44,9 +55,24 @@ fun PlayerControlsOverlay(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            IconButton(onClick = onPlayPause) {
+            IconButton(
+                onClick = {
+                    onSeek((state.positionMs - SEEK_STEP_MS).coerceAtLeast(0L))
+                },
+                modifier = Modifier.semantics { contentDescription = rewindLabel },
+            ) {
+                Text(
+                    text = "−10",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = BsColors.Amber,
+                )
+            }
+            IconButton(
+                onClick = onPlayPause,
+                modifier = Modifier.semantics { contentDescription = playPauseLabel },
+            ) {
                 if (state.isPlaying) {
                     Text(
                         text = "❚❚",
@@ -56,10 +82,22 @@ fun PlayerControlsOverlay(
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play",
+                        contentDescription = playPauseLabel,
                         tint = BsColors.Amber,
                     )
                 }
+            }
+            IconButton(
+                onClick = {
+                    onSeek((state.positionMs + SEEK_STEP_MS).coerceAtMost(durationMs))
+                },
+                modifier = Modifier.semantics { contentDescription = forwardLabel },
+            ) {
+                Text(
+                    text = "+10",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = BsColors.Amber,
+                )
             }
             Text(
                 text = formatPlaybackTime(state.positionMs),
