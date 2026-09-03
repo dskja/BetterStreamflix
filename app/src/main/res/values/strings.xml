@@ -827,5 +827,6 @@
     <string name="settings_section_domains">Domains</string>
     <string name="settings_section_about_brand">BetterStreamflix</string>
     <string name="dialog_close">Close</string>
+    <string name="dialog_save">Save</string>
     <string name="search_recent_query_cd">Recent search: %1$s</string>
 </resources>
