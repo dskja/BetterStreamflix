@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,9 @@ fun HomeScreen(
     isLoading: Boolean = false,
     errorMessage: String? = null,
     isTvLayout: Boolean = false,
+    isOffline: Boolean = false,
+    isStaleCache: Boolean = false,
+    parentalSessionLabel: String? = null,
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
@@ -112,6 +116,29 @@ fun HomeScreen(
                             },
                         )
                     }
+                    if (isOffline) {
+                        item(key = "offline-banner") {
+                            HomeStatusBanner(
+                                message = stringResource(R.string.home_banner_offline),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
+                            )
+                        }
+                    } else if (isStaleCache) {
+                        item(key = "stale-banner") {
+                            HomeStatusBanner(
+                                message = stringResource(R.string.home_banner_stale),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
+                            )
+                        }
+                    }
+                    if (!parentalSessionLabel.isNullOrBlank()) {
+                        item(key = "parental-chip") {
+                            HomeStatusBanner(
+                                message = parentalSessionLabel,
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
+                            )
+                        }
+                    }
                     itemsIndexed(
                         rows,
                         key = { index, category -> "${category.name}#$index" },
@@ -143,4 +170,16 @@ private fun itemLabel(item: AppAdapter.Item): String = when (item) {
     is TvShow -> item.title.ifBlank { item.id }
     is Episode -> item.title?.ifBlank { item.id } ?: item.id
     else -> item.toString()
+}
+
+@Composable
+private fun HomeStatusBanner(message: String, modifier: Modifier = Modifier) {
+    androidx.compose.material3.Text(
+        text = message,
+        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+        color = com.betterstreamflix.compose.theme.BsColors.AmberBright,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+    )
 }

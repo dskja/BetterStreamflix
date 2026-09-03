@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsColors
@@ -39,6 +40,14 @@ fun ProviderMarketplaceScreen(
             .filter { languageFilter == null || it.language == languageFilter }
             .sortedBy { !ProviderHealthMonitor.isHealthy(it.name) }
     }
+    val languageOptions = listOf(
+        null to stringResource(R.string.marketplace_lang_all),
+        "en" to "EN",
+        "de" to "DE",
+        "it" to "IT",
+        "es" to "ES",
+        "fr" to "FR",
+    )
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -47,7 +56,7 @@ fun ProviderMarketplaceScreen(
                 showBrand = true,
             )
             Text(
-                text = "Filter by language",
+                text = stringResource(R.string.marketplace_filter_language),
                 style = MaterialTheme.typography.labelMedium,
                 color = BsColors.MistFaint,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -56,9 +65,7 @@ fun ProviderMarketplaceScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(
-                    listOf(null to "All", "en" to "EN", "de" to "DE", "it" to "IT", "es" to "ES"),
-                ) { (code, label) ->
+                items(languageOptions) { (code, label) ->
                     FilterChip(
                         selected = languageFilter == code,
                         onClick = { languageFilter = code },
@@ -72,19 +79,28 @@ fun ProviderMarketplaceScreen(
                     )
                 }
             }
-            LazyColumn(
-                contentPadding = PaddingValues(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(providers, key = { it.name }) { provider ->
-                    val healthy = ProviderHealthMonitor.isHealthy(provider.name)
-                    BsProviderChip(
-                        label = "${provider.name} (${provider.language})",
-                        selected = false,
-                        healthy = healthy,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onProviderSelected(provider) },
-                    )
+            if (providers.isEmpty()) {
+                BsEmptyState(
+                    message = stringResource(R.string.marketplace_empty),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(providers, key = { it.name }) { provider ->
+                        val healthy = ProviderHealthMonitor.isHealthy(provider.name)
+                        BsProviderChip(
+                            label = "${provider.name} (${provider.language})",
+                            selected = false,
+                            healthy = healthy,
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onProviderSelected(provider) },
+                        )
+                    }
                 }
             }
         }

@@ -575,6 +575,7 @@ fun BsShimmerRow(modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BsProviderChip(
     label: String,
@@ -582,6 +583,7 @@ fun BsProviderChip(
     modifier: Modifier = Modifier,
     healthy: Boolean = true,
     onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
     val bg = when {
         selected -> BsColors.Amber
@@ -596,7 +598,12 @@ fun BsProviderChip(
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .border(1.dp, if (selected) Color.Transparent else BsColors.Hairline, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -636,11 +643,6 @@ fun BsSettingsItem(title: String, subtitle: String? = null, modifier: Modifier =
                 .background(BsColors.Hairline),
         )
     }
-}
-
-@Composable
-fun TvFocusGroup(content: @Composable () -> Unit) {
-    content()
 }
 
 @Composable

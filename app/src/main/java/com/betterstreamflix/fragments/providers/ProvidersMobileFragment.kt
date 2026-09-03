@@ -53,6 +53,7 @@ class ProvidersMobileFragment : ComposeHostFragment() {
                 viewModel.setLanguageFilter(chip.code)
             },
             onProviderSelected = ::selectProvider,
+            onProviderFavoriteToggle = viewModel::toggleFavorite,
             onOpenMarketplace = {
                 findNavController().navigate(R.id.provider_marketplace)
             },

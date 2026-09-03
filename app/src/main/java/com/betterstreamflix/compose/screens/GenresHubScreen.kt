@@ -53,7 +53,7 @@ fun GenresHubScreen(
                 }
                 genres.isEmpty() -> {
                     BsEmptyState(
-                        message = stringResource(R.string.search_no_results),
+                        message = stringResource(R.string.genres_hub_empty),
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
