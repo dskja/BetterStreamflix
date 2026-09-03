@@ -482,7 +482,7 @@ private fun LibraryPane(
     onClearCompleted: () -> Unit,
 ) {
     if (items.isEmpty()) {
-        EmptyFilterMessage(stringResource(R.string.downloads_no_matches))
+        EmptyFilterMessage(stringResource(R.string.downloads_library_empty))
         return
     }
     LazyVerticalGrid(
@@ -527,7 +527,7 @@ private fun QueuePane(
     onResumeAll: () -> Unit,
 ) {
     if (items.isEmpty()) {
-        EmptyFilterMessage(stringResource(R.string.downloads_no_matches))
+        EmptyFilterMessage(stringResource(R.string.downloads_queue_empty))
         return
     }
     val canPause = items.any {
@@ -580,7 +580,7 @@ private fun FailedPane(
     onClearFailed: () -> Unit,
 ) {
     if (items.isEmpty()) {
-        EmptyFilterMessage(stringResource(R.string.downloads_no_matches))
+        EmptyFilterMessage(stringResource(R.string.downloads_failed_empty))
         return
     }
     Column(modifier = Modifier.fillMaxSize()) {

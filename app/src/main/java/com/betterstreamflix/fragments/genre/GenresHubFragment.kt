@@ -40,6 +40,7 @@ class GenresHubFragment : ComposeHostFragment() {
             genres = (state as? GenresHubViewModel.State.Success)?.genres.orEmpty(),
             isLoading = state is GenresHubViewModel.State.Loading,
             errorMessage = (state as? GenresHubViewModel.State.Failed)?.error?.message,
+            isTvLayout = com.betterstreamflix.utils.AppConfig.isTv,
             onGenreClick = ::openGenre,
             onRetry = { viewModel.loadGenres() },
         )

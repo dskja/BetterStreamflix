@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsProviderChip
@@ -41,12 +42,16 @@ fun ProvidersScreen(
     searchQuery: String,
     isLoading: Boolean,
     errorMessage: String? = null,
+    isTvLayout: Boolean = false,
     onSearchQueryChange: (String) -> Unit = {},
     onLanguageChipSelected: (LanguageChip) -> Unit = {},
     onProviderSelected: (Provider) -> Unit = {},
+    onProviderFavoriteToggle: (Provider) -> Unit = {},
     onOpenMarketplace: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
             BsTopBar(
@@ -64,22 +69,27 @@ fun ProvidersScreen(
                 onValueChange = onSearchQueryChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                    .padding(horizontal = horizontalPadding, vertical = 4.dp),
                 placeholder = { Text(stringResource(R.string.providers_search_hint)) },
                 singleLine = true,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BsColors.Amber,
                     unfocusedBorderColor = BsColors.Hairline,
                     focusedContainerColor = BsColors.InkPanel,
-                    unfocusedContainerColor = BsColors.InkPanel,
+                    unfocusedContainerColor = BsColors.InkElevated,
                     focusedTextColor = BsColors.Mist,
                     unfocusedTextColor = BsColors.Mist,
                     cursorColor = BsColors.Amber,
                 ),
             )
+            Text(
+                text = stringResource(R.string.providers_favorite_hint),
+                color = BsColors.MistFaint,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 2.dp),
+            )
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(languageChips, key = { it.code ?: "all" }) { chip ->
@@ -108,9 +118,15 @@ fun ProvidersScreen(
                         BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
                     }
                 }
+                providers.isEmpty() -> {
+                    BsEmptyState(
+                        message = stringResource(R.string.providers_empty),
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         itemsIndexed(
@@ -128,6 +144,7 @@ fun ProvidersScreen(
                                 healthy = !unhealthy,
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onProviderSelected(provider) },
+                                onLongClick = { onProviderFavoriteToggle(provider) },
                             )
                         }
                     }

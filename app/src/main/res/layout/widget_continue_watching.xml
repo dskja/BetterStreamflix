@@ -22,5 +22,5 @@
         android:layout_marginTop="4dp"
         android:textColor="#FFB0B0B0"
         android:textSize="13sp"
-        android:text="@string/app_name" />
+        android:text="@string/widget_continue_watching_empty" />
 </LinearLayout>

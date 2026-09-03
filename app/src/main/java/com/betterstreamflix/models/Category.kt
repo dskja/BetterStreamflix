@@ -11,7 +11,7 @@ class Category(
     var itemSpacing: Int = 0
 
 
-    override lateinit var itemType: AppAdapter.Type
+    override var itemType: AppAdapter.Type = AppAdapter.Type.LOADING_ITEM
 
 
     fun copy(
@@ -32,7 +32,6 @@ class Category(
         if (list != other.list) return false
         if (selectedIndex != other.selectedIndex) return false
         if (itemSpacing != other.itemSpacing) return false
-        if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
 
@@ -41,7 +40,7 @@ class Category(
         result = 31 * result + list.hashCode()
         result = 31 * result + selectedIndex
         result = 31 * result + itemSpacing
-        result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
+        result = 31 * result + itemType.hashCode()
         return result
     }
 

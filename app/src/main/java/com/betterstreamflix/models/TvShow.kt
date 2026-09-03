@@ -104,7 +104,7 @@ class TvShow(
 
 
     @Ignore
-    override lateinit var itemType: AppAdapter.Type
+    override var itemType: AppAdapter.Type = AppAdapter.Type.LOADING_ITEM
 
 
     fun copy(
@@ -178,7 +178,6 @@ class TvShow(
         if (lastPlayedAtMillis != other.lastPlayedAtMillis) return false
         if (lastPlayedEpisodeId != other.lastPlayedEpisodeId) return false
         if (isFavorite != other.isFavorite) return false
-        if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
 
@@ -204,7 +203,7 @@ class TvShow(
         result = 31 * result + isWatching.hashCode()
         result = 31 * result + (lastPlayedAtMillis?.hashCode() ?: 0)
         result = 31 * result + (lastPlayedEpisodeId?.hashCode() ?: 0)
-        result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
+        result = 31 * result + itemType.hashCode()
         return result
     }
 }

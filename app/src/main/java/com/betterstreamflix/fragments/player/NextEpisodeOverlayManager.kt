@@ -29,11 +29,6 @@ class NextEpisodeOverlayManager(
     private val player: ExoPlayer,
     private val database: AppDatabase,
 ) {
-    companion object {
-        private const val NEXT_EPISODE_PREFETCH_THRESHOLD_MS = 60_000L
-        private const val NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS = 30_000L
-    }
-
     private var nextEpisodeOverlayDismissed = false
     private var nextEpisodePrefetchTargetId: String? = null
     private var nextEpisodePrefetchJob: Job? = null
@@ -73,26 +68,23 @@ class NextEpisodeOverlayManager(
         }
         val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
 
-        if (nextEpisodeOverlayDismissed) {
-            hideNextEpisodeOverlay()
-            return
-        }
-
-        if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
+        if (NextEpisodeOverlayLogic.shouldPrefetchNext(remainingMs)) {
             ensureNextEpisodePrepared(currentEpisode)
         }
 
         val nextEpisode = EpisodeManager.peekNextEpisode()
-        val overlayThresholdMs = maxOf(
-            NEXT_EPISODE_OVERLAY_MIN_THRESHOLD_MS,
-            UserPreferences.autoplayBuffer * 1000L
-        )
-        if (nextEpisode == null || remainingMs == 0L || remainingMs > overlayThresholdMs) {
+        if (!NextEpisodeOverlayLogic.shouldShowOverlay(
+                hasNextEpisode = nextEpisode != null,
+                remainingMs = remainingMs,
+                autoplayBufferSeconds = UserPreferences.autoplayBuffer,
+                dismissed = nextEpisodeOverlayDismissed,
+            )
+        ) {
             hideNextEpisodeOverlay()
             return
         }
 
-        showNextEpisodeOverlay(nextEpisode, remainingMs)
+        showNextEpisodeOverlay(nextEpisode!!, remainingMs)
     }
 
     fun updateSkipIntroButton() {
@@ -131,7 +123,7 @@ class NextEpisodeOverlayManager(
         b.tvNextEpisodeCountdown.text = if (UserPreferences.autoplay) {
             fragment.getString(
                 R.string.player_next_episode_autoplay_in,
-                ((remainingMs + 999L) / 1000L).toInt()
+                NextEpisodeOverlayLogic.countdownSeconds(remainingMs),
             )
         } else {
             fragment.getString(R.string.player_next_episode_ready)

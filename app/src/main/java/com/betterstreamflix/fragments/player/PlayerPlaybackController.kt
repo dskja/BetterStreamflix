@@ -1,7 +1,6 @@
 package com.betterstreamflix.fragments.player
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class PlayerPlaybackController : ViewModel() {
 
     data class PlaybackUiState(
+        val title: String = "",
+        val subtitle: String = "",
         val isPlaying: Boolean = false,
         val positionMs: Long = 0L,
         val durationMs: Long = 0L,
@@ -20,6 +21,10 @@ class PlayerPlaybackController : ViewModel() {
 
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
+
+    fun setMetadata(title: String, subtitle: String = "") {
+        _state.value = _state.value.copy(title = title, subtitle = subtitle)
+    }
 
     fun updatePosition(positionMs: Long, durationMs: Long) {
         _state.value = _state.value.copy(positionMs = positionMs, durationMs = durationMs)

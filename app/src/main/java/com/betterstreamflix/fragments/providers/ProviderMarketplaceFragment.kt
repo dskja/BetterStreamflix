@@ -13,6 +13,7 @@ class ProviderMarketplaceFragment : ComposeHostFragment() {
     @Composable
     override fun ScreenContent() {
         ProviderMarketplaceScreen(
+            isTvLayout = com.betterstreamflix.utils.AppConfig.isTv,
             onProviderSelected = ::selectProvider,
         )
     }

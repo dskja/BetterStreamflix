@@ -26,7 +26,9 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
+import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsTopBar
+import com.betterstreamflix.compose.components.itemKeyOf
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.fragments.favorites.FavoritesViewModel
 import com.betterstreamflix.models.Movie
@@ -86,12 +88,7 @@ fun FavoritesScreen(
                 ) {
                     sections.filter { it.items.isNotEmpty() }.forEach { section ->
                         item(key = "header-${section.section.key}") {
-                            Text(
-                                text = sectionTitle(section.section).uppercase(),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = BsColors.MistFaint,
-                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
-                            )
+                            BsSectionHeader(title = sectionTitle(section.section))
                         }
                         item(key = "row-${section.section.key}") {
                             LazyRow(
@@ -100,7 +97,7 @@ fun FavoritesScreen(
                             ) {
                                 items(
                                     items = section.items,
-                                    key = { item -> itemKey(item) ?: item.hashCode().toString() },
+                                    key = { item -> itemKeyOf(item) },
                                 ) { item ->
                                     when (item) {
                                         is Movie -> BsPosterCard(
@@ -136,10 +133,4 @@ private fun sortModeLabel(mode: FavoritesViewModel.SortMode): String = when (mod
     FavoritesViewModel.SortMode.RECENTLY_ADDED -> stringResource(R.string.favorites_sort_recent)
     FavoritesViewModel.SortMode.TITLE_ASCENDING -> stringResource(R.string.favorites_sort_title_ascending)
     FavoritesViewModel.SortMode.TITLE_DESCENDING -> stringResource(R.string.favorites_sort_title_descending)
-}
-
-private fun itemKey(item: AppAdapter.Item): String? = when (item) {
-    is Movie -> "movie:${item.id}"
-    is TvShow -> "tv:${item.id}"
-    else -> null
 }

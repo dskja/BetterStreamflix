@@ -43,21 +43,6 @@ object WidgetUpdateScheduler {
     }
 
     /**
-     * Update widgets for a specific content type.
-     */
-    fun updateWidgetsForContent(context: Context, contentType: WidgetConfigurationHelper.WidgetContentType) {
-        when (contentType) {
-            WidgetConfigurationHelper.WidgetContentType.CONTINUE_WATCHING -> {
-                ContinueWatchingWidget.updateAllWidgets(context)
-            }
-            WidgetConfigurationHelper.WidgetContentType.FAVORITES -> {
-                FavoritesWidget.updateAllWidgets(context)
-            }
-            else -> updateAllWidgets(context)
-        }
-    }
-
-    /**
      * Check if any widgets are active.
      */
     fun hasActiveWidgets(context: Context): Boolean {

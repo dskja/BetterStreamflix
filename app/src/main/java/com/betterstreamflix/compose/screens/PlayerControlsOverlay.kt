@@ -48,10 +48,34 @@ fun PlayerControlsOverlay(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(BsColors.ScrimBottom)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .background(
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        androidx.compose.ui.graphics.Color(0x0007090D),
+                        androidx.compose.ui.graphics.Color(0xCC07090D),
+                        androidx.compose.ui.graphics.Color(0xF207090D),
+                    ),
+                ),
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        if (state.title.isNotBlank()) {
+            Text(
+                text = state.title,
+                style = MaterialTheme.typography.titleSmall,
+                color = BsColors.Mist,
+                maxLines = 1,
+            )
+            if (state.subtitle.isNotBlank()) {
+                Text(
+                    text = state.subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BsColors.MistDim,
+                    maxLines = 1,
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

@@ -57,4 +57,28 @@ class ParentalPinLogicTest {
     fun isLocked_falseByDefault() {
         assertFalse(ParentalPinLogic.isLocked())
     }
+
+    @Test
+    fun setParentalPin_blankClearsExisting() {
+        ParentalPinLogic.setParentalPin("5555")
+        ParentalPinLogic.setMaxAge("16+")
+        assertNull(ParentalPinLogic.setParentalPin(""))
+        assertTrue(UserPreferences.parentalControlPin.isBlank())
+        assertEquals(null, UserPreferences.parentalControlMaxAge)
+    }
+
+    @Test
+    fun setAdminPin_andVerify() {
+        assertEquals("NO_ADMIN", ParentalPinLogic.verifyAdminPin("1234"))
+        assertNull(ParentalPinLogic.setAdminPin("2468"))
+        assertEquals("INVALID_ADMIN", ParentalPinLogic.verifyAdminPin("0000"))
+        assertNull(ParentalPinLogic.verifyAdminPin("2468"))
+    }
+
+    @Test
+    fun setMaxAge_requiresTmdb() {
+        ParentalPinLogic.setParentalPin("1111")
+        UserPreferences.enableTmdb = false
+        assertEquals("REQUIRES_TMDB", ParentalPinLogic.setMaxAge("13+"))
+    }
 }

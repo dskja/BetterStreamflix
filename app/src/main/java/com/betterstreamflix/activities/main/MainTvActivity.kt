@@ -171,7 +171,7 @@ class MainTvActivity : FragmentActivity() {
                     }
                     MainViewModel.State.InstallingUpdate -> if (::updateAppDialog.isInitialized) updateAppDialog.isLoading = true
                     is MainViewModel.State.FailedUpdate -> {
-                        Toast.makeText(this@MainTvActivity, state.error.message ?: "Update failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainTvActivity, state.error.message ?: getString(R.string.update_failed), Toast.LENGTH_SHORT).show()
                     }
                     else -> {}
                 }

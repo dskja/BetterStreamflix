@@ -243,7 +243,7 @@ class MainMobileActivity : FragmentActivity() {
                         updateAppDialog?.isLoading = false
                         Toast.makeText(
                             this@MainMobileActivity,
-                            state.error.message ?: "Update failed",
+                            state.error.message ?: getString(R.string.update_failed),
                             Toast.LENGTH_SHORT
                         ).show()
                     }

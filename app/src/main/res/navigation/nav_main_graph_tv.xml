@@ -9,7 +9,7 @@
         android:id="@+id/providers"
         android:name="com.betterstreamflix.fragments.providers.ProvidersTvFragment"
         android:label="fragment_providers_tv"
-        tools:layout="@layout/fragment_providers_tv">
+>
         <action
             android:id="@+id/action_providers_to_home"
             app:destination="@id/home" />
@@ -35,8 +35,7 @@
     <fragment
         android:id="@+id/home"
         android:name="com.betterstreamflix.fragments.home.HomeTvFragment"
-        android:label="fragment_home_tv"
-        tools:layout="@layout/fragment_home_tv">
+        android:label="fragment_home_tv">
         <action
             android:id="@+id/action_home_to_movie"
             app:destination="@id/movie" />
@@ -47,8 +46,7 @@
     <fragment
         android:id="@+id/favorites"
         android:name="com.betterstreamflix.fragments.favorites.FavoritesTvFragment"
-        android:label="fragment_favorites_tv"
-        tools:layout="@layout/fragment_favorites_tv">
+        android:label="fragment_favorites_tv">
         <action
             android:id="@+id/action_favorites_to_movie"
             app:destination="@id/movie" />
@@ -59,8 +57,7 @@
     <fragment
         android:id="@+id/search"
         android:name="com.betterstreamflix.fragments.search.SearchTvFragment"
-        android:label="fragment_search_tv"
-        tools:layout="@layout/fragment_search_tv">
+        android:label="fragment_search_tv">
         <action
             android:id="@+id/action_search_to_movie"
             app:destination="@id/movie" />
@@ -74,8 +71,7 @@
     <fragment
         android:id="@+id/movies"
         android:name="com.betterstreamflix.fragments.movies.MoviesTvFragment"
-        android:label="fragment_movies_tv"
-        tools:layout="@layout/fragment_movies_tv">
+        android:label="fragment_movies_tv">
         <action
             android:id="@+id/action_movies_to_movie"
             app:destination="@id/movie" />
@@ -83,8 +79,7 @@
     <fragment
         android:id="@+id/tv_shows"
         android:name="com.betterstreamflix.fragments.tv_shows.TvShowsTvFragment"
-        android:label="fragment_tv_shows_tv"
-        tools:layout="@layout/fragment_tv_shows_tv">
+        android:label="fragment_tv_shows_tv">
         <action
             android:id="@+id/action_tv_shows_to_tv_show"
             app:destination="@id/tv_show" />
@@ -92,8 +87,7 @@
     <fragment
         android:id="@+id/movie"
         android:name="com.betterstreamflix.fragments.movie.MovieTvFragment"
-        android:label="fragment_movie_tv"
-        tools:layout="@layout/fragment_movie_tv">
+        android:label="fragment_movie_tv">
         <argument
             android:name="id"
             app:argType="string" />
@@ -113,8 +107,7 @@
     <fragment
         android:id="@+id/tv_show"
         android:name="com.betterstreamflix.fragments.tv_show.TvShowTvFragment"
-        android:label="fragment_tv_show_tv"
-        tools:layout="@layout/fragment_tv_show_tv">
+        android:label="fragment_tv_show_tv">
         <argument
             android:name="id"
             app:argType="string" />
@@ -145,8 +138,7 @@
     <fragment
         android:id="@+id/season"
         android:name="com.betterstreamflix.fragments.season.SeasonTvFragment"
-        android:label="fragment_season_tv"
-        tools:layout="@layout/fragment_season_tv">
+        android:label="fragment_season_tv">
         <action
             android:id="@+id/action_season_to_player"
             app:destination="@id/player" />
@@ -190,8 +182,7 @@
     <fragment
         android:id="@+id/genre"
         android:name="com.betterstreamflix.fragments.genre.GenreTvFragment"
-        android:label="fragment_genre_tv"
-        tools:layout="@layout/fragment_genre_tv">
+        android:label="fragment_genre_tv">
         <argument
             android:name="id"
             app:argType="string" />
@@ -208,8 +199,7 @@
     <fragment
         android:id="@+id/people"
         android:name="com.betterstreamflix.fragments.people.PeopleTvFragment"
-        android:label="fragment_people_tv"
-        tools:layout="@layout/fragment_people_tv">
+        android:label="fragment_people_tv">
         <argument
             android:name="id"
             app:argType="string" />

@@ -103,7 +103,7 @@ fun MediaDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isTvLayout) 360.dp else 280.dp)
+                            .height(if (isTvLayout) 380.dp else 300.dp)
                             .background(BsColors.InkSoft),
                     ) {
                         AsyncImage(
@@ -117,6 +117,11 @@ fun MediaDetailScreen(
                                 .fillMaxSize()
                                 .background(BsColors.HeroWash),
                         )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(BsColors.HeroSideWash),
+                        )
                         if (!isTvLayout) {
                             BsGhostButton(
                                 text = "‹",
@@ -126,10 +131,10 @@ fun MediaDetailScreen(
                         }
                     }
 
-                    Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 16.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 18.dp)) {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineLarge,
                             color = BsColors.Mist,
                         )
                         metaLine?.takeIf { it.isNotBlank() }?.let {
@@ -264,12 +269,23 @@ private fun ExpandableOverview(overview: String?, modifier: Modifier = Modifier)
 
 @Composable
 private fun DetailSectionLabel(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = BsColors.MistFaint,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(top = 18.dp, bottom = 10.dp),
-    )
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .width(3.dp)
+                .height(14.dp)
+                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+        )
+        Text(
+            text = text.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = BsColors.MistDim,
+        )
+    }
 }
 
 @Composable
