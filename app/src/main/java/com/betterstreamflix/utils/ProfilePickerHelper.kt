@@ -38,6 +38,7 @@ object ProfilePickerHelper {
                         ProfilePickerScreen(
                             profiles = profiles,
                             activeId = activeId,
+                            isTvLayout = AppConfig.isTv,
                             onSelect = { profile ->
                                 UserProfiles.setActive(profile.id)
                                 activeId = profile.id

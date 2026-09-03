@@ -12,7 +12,7 @@ open class Provider(
 ) : AppAdapter.Item {
 
 
-    override lateinit var itemType: AppAdapter.Type
+    override var itemType: AppAdapter.Type = AppAdapter.Type.LOADING_ITEM
 
     fun copy(
         name: String = this.name,

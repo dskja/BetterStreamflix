@@ -79,7 +79,7 @@ class Movie(
 
 
     @Ignore
-    override lateinit var itemType: AppAdapter.Type
+    override var itemType: AppAdapter.Type = AppAdapter.Type.LOADING_ITEM
 
 
     fun copy(
@@ -149,7 +149,6 @@ class Movie(
         if (watchedDate != other.watchedDate) return false
         if (watchHistory != other.watchHistory) return false
         if (lastPlayedAtMillis != other.lastPlayedAtMillis) return false
-        if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
 
@@ -175,7 +174,7 @@ class Movie(
         result = 31 * result + (watchedDate?.hashCode() ?: 0)
         result = 31 * result + (watchHistory?.hashCode() ?: 0)
         result = 31 * result + (lastPlayedAtMillis?.hashCode() ?: 0)
-        result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
+        result = 31 * result + itemType.hashCode()
         return result
     }
 }
