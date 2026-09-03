@@ -24,6 +24,8 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsHeroBanner
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
+import com.betterstreamflix.compose.components.BsStatusBanner
+import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
@@ -37,13 +39,16 @@ fun HomeScreen(
     isLoading: Boolean = false,
     errorMessage: String? = null,
     isTvLayout: Boolean = false,
+    isOffline: Boolean = false,
+    isStaleCache: Boolean = false,
+    parentalSessionLabel: String? = null,
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
     onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
     onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
-    val horizontalPadding = if (isTvLayout) 32.dp else 12.dp
+    val horizontalPadding = if (isTvLayout) 32.dp else 16.dp
     val listState = rememberLazyListState()
     val featured = categories
         .firstOrNull { it.name == Category.FEATURED || it.name.equals("Featured", ignoreCase = true) }
@@ -56,7 +61,6 @@ fun HomeScreen(
         val target = scrollToCategoryName ?: return@LaunchedEffect
         val index = rows.indexOfFirst { it.name == target }
         if (index >= 0) {
-            // +1 for hero item
             listState.animateScrollToItem(index + 1)
         }
     }
@@ -112,6 +116,29 @@ fun HomeScreen(
                             },
                         )
                     }
+                    if (isOffline) {
+                        item(key = "offline-banner") {
+                            BsStatusBanner(
+                                message = stringResource(R.string.home_banner_offline),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
+                            )
+                        }
+                    } else if (isStaleCache) {
+                        item(key = "stale-banner") {
+                            BsStatusBanner(
+                                message = stringResource(R.string.home_banner_stale),
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
+                            )
+                        }
+                    }
+                    if (!parentalSessionLabel.isNullOrBlank()) {
+                        item(key = "parental-chip") {
+                            BsStatusBanner(
+                                message = parentalSessionLabel,
+                                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 6.dp),
+                            )
+                        }
+                    }
                     itemsIndexed(
                         rows,
                         key = { index, category -> "${category.name}#$index" },
@@ -119,7 +146,7 @@ fun HomeScreen(
                         BsContentRow(
                             title = category.name.ifBlank { stringResource(R.string.home_featured_fallback) },
                             items = category.list,
-                            labelOf = ::itemLabel,
+                            labelOf = ::itemLabelOf,
                             showProgress = category.name == Category.CONTINUE_WATCHING,
                             onItemClick = { item, fromCw -> onItemClick(item, fromCw) },
                             onItemLongClick = onItemLongClick,
@@ -129,18 +156,11 @@ fun HomeScreen(
                         BsGhostButton(
                             text = stringResource(R.string.home_switch_provider),
                             onClick = onProviderClick,
-                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp),
+                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 24.dp),
                         )
                     }
                 }
             }
         }
     }
-}
-
-private fun itemLabel(item: AppAdapter.Item): String = when (item) {
-    is Movie -> item.title.ifBlank { item.id }
-    is TvShow -> item.title.ifBlank { item.id }
-    is Episode -> item.title?.ifBlank { item.id } ?: item.id
-    else -> item.toString()
 }

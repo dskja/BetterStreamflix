@@ -32,6 +32,8 @@ import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.ProviderChangeNotifier
+import com.betterstreamflix.utils.OfflineBanner
+import com.betterstreamflix.utils.ParentalPinLogic
 import com.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -79,18 +81,16 @@ class HomeTvFragment : ComposeHostFragment() {
                 HomeScreen(isLoading = true, isTvLayout = true)
             }
             is HomeViewModel.State.SuccessLoading -> {
-                if (current.isStaleCache) {
-                    LaunchedEffect(Unit) {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.home_cached_content_banner),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                }
                 HomeScreen(
                     isTvLayout = true,
                     categories = localizeCategories(current.categories),
+                    isOffline = !OfflineBanner.isOnline(requireContext()),
+                    isStaleCache = current.isStaleCache,
+                    parentalSessionLabel = if (UserPreferences.isParentalControlActive) {
+                        getString(R.string.settings_parental_session_active)
+                    } else {
+                        null
+                    },
                     scrollToCategoryName = scrollToCategory,
                     onProviderClick = { findNavController().navigate(R.id.providers) },
                     onItemClick = ::onItemClick,

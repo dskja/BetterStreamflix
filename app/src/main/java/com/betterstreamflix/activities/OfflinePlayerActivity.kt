@@ -1,13 +1,19 @@
 package com.betterstreamflix.activities
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -16,8 +22,12 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
+import com.betterstreamflix.R
+import com.betterstreamflix.compose.screens.PlayerControlsOverlay
+import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 import com.betterstreamflix.download.Media3OfflineDownloads
 import com.betterstreamflix.download.OfflineMediaPaths
+import com.betterstreamflix.fragments.player.PlayerPlaybackController
 import com.betterstreamflix.utils.AppConfig
 import com.betterstreamflix.utils.Constants
 import com.betterstreamflix.utils.ThemeManager
@@ -28,6 +38,8 @@ import java.io.File
 class OfflinePlayerActivity : AppCompatActivity() {
 
     private var player: ExoPlayer? = null
+    private val playbackController = PlayerPlaybackController()
+    private var composeOverlay: ComposeView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val themeRes = if (AppConfig.isTv) {
@@ -48,30 +60,92 @@ class OfflinePlayerActivity : AppCompatActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
+        val root = FrameLayout(this)
         val playerView = PlayerView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
             useController = true
+            controllerShowTimeoutMs = 3000
         }
-        setContentView(
-            FrameLayout(this).apply {
-                addView(playerView)
-            },
-        )
+        val overlay = ComposeView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM,
+            )
+            elevation = 12f
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        }
+        composeOverlay = overlay
+        root.addView(playerView)
+        root.addView(overlay)
+        setContentView(root)
 
         if (!downloadId.isNullOrBlank()) {
             if (!prepareMedia3(downloadId, playerView)) {
                 finish()
+            } else {
+                bindOverlay(playerView)
             }
             return
         }
 
         if (filePath.isNotBlank() && prepareProgressive(filePath, playerView)) {
+            bindOverlay(playerView)
             return
         }
         finish()
+    }
+
+    private fun bindOverlay(playerView: PlayerView) {
+        val exo = player ?: return
+        val overlay = composeOverlay ?: return
+        val title = intent.getStringExtra(EXTRA_TITLE)
+            ?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.player_title_offline)
+        playbackController.setMetadata(title)
+        hideLegacyTimeBar(playerView)
+        overlay.setContent {
+            BetterStreamflixTheme {
+                val state by playbackController.state.collectAsStateWithLifecycle()
+                PlayerControlsOverlay(
+                    state = state,
+                    onPlayPause = {
+                        if (exo.isPlaying) exo.pause() else exo.play()
+                    },
+                    onSeek = { positionMs -> exo.seekTo(positionMs) },
+                )
+            }
+        }
+        playerView.setControllerVisibilityListener(
+            PlayerView.ControllerVisibilityListener { visibility ->
+                overlay.visibility = visibility
+            },
+        )
+        exo.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                playbackController.setPlaying(isPlaying)
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                playbackController.setBuffering(playbackState == Player.STATE_BUFFERING)
+                playbackController.updatePosition(exo.currentPosition, exo.duration.coerceAtLeast(0L))
+            }
+        })
+        playbackController.setPlaying(exo.isPlaying)
+        playbackController.updatePosition(exo.currentPosition, exo.duration.coerceAtLeast(0L))
+    }
+
+    private fun hideLegacyTimeBar(playerView: PlayerView) {
+        val controllerRoot = playerView.findViewById<android.view.View>(R.id.exo_progress)
+            ?: playerView.findViewById(androidx.media3.ui.R.id.exo_progress)
+        controllerRoot?.visibility = android.view.View.GONE
+        playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_position)?.visibility =
+            android.view.View.GONE
+        playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_duration)?.visibility =
+            android.view.View.GONE
     }
 
     private fun prepareMedia3(downloadId: String, playerView: PlayerView): Boolean {
@@ -124,11 +198,13 @@ class OfflinePlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         player?.release()
         player = null
+        composeOverlay = null
         super.onDestroy()
     }
 
     companion object {
         const val EXTRA_DOWNLOAD_ID = "download_id"
         const val EXTRA_FILE_PATH = "file_path"
+        const val EXTRA_TITLE = "title"
     }
 }

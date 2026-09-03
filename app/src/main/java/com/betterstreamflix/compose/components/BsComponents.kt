@@ -13,6 +13,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,14 +51,22 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.models.Episode
+import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.utils.format
@@ -69,14 +80,30 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.42f)
+                .fillMaxWidth(0.72f)
+                .fillMaxHeight(0.46f)
+                .align(Alignment.TopEnd)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(Color(0x332D6B6A), Color.Transparent),
+                        colors = listOf(Color(0x402A5F5E), Color(0x182D6B6A), Color.Transparent),
                     ),
-                )
-                .align(Alignment.TopEnd),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.55f)
+                .fillMaxHeight(0.38f)
+                .align(Alignment.BottomStart)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color(0x28E8A838), Color(0x10E8A838), Color.Transparent),
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BsColors.AtmosphereSheen),
         )
         content()
     }
@@ -87,17 +114,29 @@ fun BsBrandMark(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
+    val pulse = rememberInfiniteTransition(label = "brandPulse")
+    val glow by pulse.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(BsMotion.BrandPulse, RepeatMode.Reverse),
+        label = "brandGlow",
+    )
     Column(modifier = modifier) {
         Text(
-            text = "BETTERSTREAMFLIX",
-            style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.headlineMedium,
+            text = stringResource(R.string.bs_brand_mark),
+            style = if (compact) {
+                MaterialTheme.typography.titleSmall.copy(letterSpacing = 1.4.sp)
+            } else {
+                MaterialTheme.typography.headlineMedium.copy(letterSpacing = 1.8.sp)
+            },
             color = BsColors.Mist,
         )
         Box(
             modifier = Modifier
-                .padding(top = 6.dp)
-                .width(if (compact) 36.dp else 56.dp)
-                .height(3.dp)
+                .padding(top = if (compact) 5.dp else 8.dp)
+                .width(if (compact) 40.dp else 64.dp)
+                .height(if (compact) 2.dp else 3.dp)
+                .graphicsLayer { alpha = glow }
                 .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
         )
     }
@@ -110,27 +149,97 @@ fun BsTopBar(
     showBrand: Boolean = false,
     actions: @Composable () -> Unit = {},
 ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                if (showBrand) {
+                    BsBrandMark(compact = true)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = BsColors.Mist,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            actions()
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BsColors.Hairline),
+        )
+    }
+}
+
+@Composable
+fun BsSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: @Composable (() -> Unit)? = null,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            if (showBrand) {
-                BsBrandMark(compact = true)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 10.dp)
+                    .width(3.dp)
+                    .height(14.dp)
+                    .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+            )
             Text(
-                text = title,
-                style = MaterialTheme.typography.headlineMedium,
-                color = BsColors.Mist,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = BsColors.MistDim,
             )
         }
-        actions()
+        trailing?.invoke()
+    }
+}
+
+@Composable
+fun BsStatusBanner(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(BsColors.InkPanel)
+            .border(1.dp, BsColors.Hairline, RoundedCornerShape(12.dp))
+            .background(BsColors.BannerStrip)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .size(8.dp)
+                .clip(RoundedCornerShape(50))
+                .background(BsColors.AmberBright),
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = BsColors.AmberBright,
+        )
     }
 }
 
@@ -140,10 +249,20 @@ fun BsPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = BsMotion.PressSpring,
+        label = "primaryPress",
+    )
     Button(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(10.dp),
+        modifier = modifier
+            .height(48.dp)
+            .scale(scale),
+        shape = RoundedCornerShape(12.dp),
+        interactionSource = interaction,
         colors = ButtonDefaults.buttonColors(
             containerColor = BsColors.Amber,
             contentColor = BsColors.Ink,
@@ -184,33 +303,46 @@ fun BsHeroBanner(
         animationSpec = BsMotion.HeroFade,
         label = "heroAlpha",
     )
-    androidx.compose.runtime.LaunchedEffect(Unit) { visible = true }
+    val rise by animateFloatAsState(
+        targetValue = if (visible) 0f else 18f,
+        animationSpec = BsMotion.HeroRise,
+        label = "heroRise",
+    )
+    LaunchedEffect(Unit) { visible = true }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(420.dp)
+            .height(440.dp)
             .alpha(alpha),
     ) {
         AsyncImage(
             model = imageUrl,
             contentDescription = title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().background(BsColors.InkSoft),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BsColors.InkSoft),
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BsColors.HeroWash),
         )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BsColors.HeroSideWash),
+        )
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 20.dp, vertical = 28.dp),
+                .offset(y = rise.dp)
+                .padding(horizontal = 20.dp, vertical = 30.dp),
         ) {
             if (brandVisible) {
                 BsBrandMark()
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
             Text(
                 text = title,
@@ -229,7 +361,7 @@ fun BsHeroBanner(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             BsPrimaryButton(text = ctaLabel, onClick = onCta)
         }
     }
@@ -247,18 +379,25 @@ fun BsContentRow(
     showProgress: Boolean = false,
 ) {
     if (items.isEmpty()) return
-    Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp)) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = BsColors.MistFaint,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-        )
+    var entered by remember { mutableStateOf(false) }
+    val rowAlpha by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = BsMotion.SoftEnter,
+        label = "rowAlpha",
+    )
+    LaunchedEffect(title) { entered = true }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 12.dp)
+            .alpha(rowAlpha),
+    ) {
+        BsSectionHeader(title = title)
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            itemsIndexed(items, key = { index, item -> "${itemKey(item)}#$index" }) { _, item ->
+            itemsIndexed(items, key = { index, item -> "${itemKeyOf(item)}#$index" }) { _, item ->
                 if (showProgress) {
                     BsContinueWatchingCard(
                         title = labelOf(item),
@@ -382,11 +521,20 @@ fun BsContinueWatchingCard(
     }
 }
 
-private fun itemKey(item: AppAdapter.Item): String = when (item) {
+fun itemKeyOf(item: AppAdapter.Item): String = when (item) {
     is Movie -> "movie:${item.id}"
     is TvShow -> "tv:${item.id}"
     is Episode -> "episode:${item.id}"
+    is Genre -> "genre:${item.id}"
     else -> item.hashCode().toString()
+}
+
+fun itemLabelOf(item: AppAdapter.Item): String = when (item) {
+    is Movie -> item.title.ifBlank { item.id }
+    is TvShow -> item.title.ifBlank { item.id }
+    is Episode -> item.title?.ifBlank { item.id } ?: item.id
+    is Genre -> item.name.ifBlank { item.id }
+    else -> item.toString()
 }
 
 fun posterOf(item: AppAdapter.Item): String? = when (item) {
@@ -455,7 +603,7 @@ fun BsPosterCard(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.15.sp),
             color = BsColors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -515,10 +663,23 @@ fun BsSearchResultRow(
 
 @Composable
 fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(40.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        contentAlignment = Alignment.Center,
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .width(48.dp)
+                    .height(3.dp)
+                    .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+            )
             Text(
-                text = "Nothing here yet",
+                text = stringResource(R.string.bs_empty_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = BsColors.Mist,
             )
@@ -534,10 +695,23 @@ fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun BsErrorState(message: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(40.dp)
+            .semantics { liveRegion = LiveRegionMode.Assertive },
+        contentAlignment = Alignment.Center,
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(BsColors.Danger),
+            )
             Text(
-                text = "Something broke",
+                text = stringResource(R.string.bs_error_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = BsColors.Danger,
             )
@@ -575,6 +749,7 @@ fun BsShimmerRow(modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BsProviderChip(
     label: String,
@@ -582,7 +757,14 @@ fun BsProviderChip(
     modifier: Modifier = Modifier,
     healthy: Boolean = true,
     onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.04f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "providerChipScale",
+    )
     val bg = when {
         selected -> BsColors.Amber
         else -> BsColors.InkPanel
@@ -593,10 +775,26 @@ fun BsProviderChip(
     }
     Row(
         modifier = modifier
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
-            .border(1.dp, if (selected) Color.Transparent else BsColors.Hairline, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = when {
+                    focused -> BsColors.FocusRing
+                    selected -> Color.Transparent
+                    else -> BsColors.Hairline
+                },
+                shape = RoundedCornerShape(12.dp),
+            )
+            .combinedClickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -604,7 +802,7 @@ fun BsProviderChip(
         Text(text = label, style = MaterialTheme.typography.titleMedium, color = fg)
         if (!healthy) {
             Text(
-                text = "offline",
+                text = stringResource(R.string.provider_status_offline),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (selected) BsColors.Ink else BsColors.Danger,
             )
@@ -636,11 +834,6 @@ fun BsSettingsItem(title: String, subtitle: String? = null, modifier: Modifier =
                 .background(BsColors.Hairline),
         )
     }
-}
-
-@Composable
-fun TvFocusGroup(content: @Composable () -> Unit) {
-    content()
 }
 
 @Composable

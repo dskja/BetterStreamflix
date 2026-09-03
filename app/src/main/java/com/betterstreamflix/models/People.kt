@@ -20,7 +20,7 @@ class People(
     val birthday: Calendar? = birthday?.toCalendar()
     val deathday: Calendar? = deathday?.toCalendar()
 
-    override lateinit var itemType: AppAdapter.Type
+    override var itemType: AppAdapter.Type = AppAdapter.Type.LOADING_ITEM
 
 
     fun copy(
@@ -57,7 +57,6 @@ class People(
         if (birthday != other.birthday) return false
         if (deathday != other.deathday) return false
         if (filmography != other.filmography) return false
-        if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
 
@@ -70,7 +69,7 @@ class People(
         result = 31 * result + (birthday?.hashCode() ?: 0)
         result = 31 * result + (deathday?.hashCode() ?: 0)
         result = 31 * result + filmography.hashCode()
-        result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
+        result = 31 * result + itemType.hashCode()
         return result
     }
 }

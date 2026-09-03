@@ -134,28 +134,44 @@ private val BsQualityOptions = listOf("", "360", "480", "720", "1080")
 
 private val BsLanguageOptions = listOf("system", "en", "de", "it", "fr", "es", "ar", "pl")
 
-private val BsDohOptions = listOf(
-    "" to "None",
-    "https://dns.google/dns-query" to "Google",
-    "https://cloudflare-dns.com/dns-query" to "Cloudflare",
-    "https://doh.opendns.com/dns-query" to "OpenDNS",
-    "https://dns.quad9.net/dns-query" to "Quad9",
-    "https://doh.cleanbrowsing.org/doh/family-filter/" to "CleanBrowsing",
-    "https://dns.adguard-dns.com/dns-query" to "AdGuard",
-    "https://unfiltered.joindns4.eu/dns-query" to "DNS4EU",
-    "https://ns0.fdn.fr/dns-query" to "FDN",
+private val BsDohOptionUrls = listOf(
+    "",
+    "https://dns.google/dns-query",
+    "https://cloudflare-dns.com/dns-query",
+    "https://doh.opendns.com/dns-query",
+    "https://dns.quad9.net/dns-query",
+    "https://doh.cleanbrowsing.org/doh/family-filter/",
+    "https://dns.adguard-dns.com/dns-query",
+    "https://unfiltered.joindns4.eu/dns-query",
+    "https://ns0.fdn.fr/dns-query",
 )
 
+@Composable
+private fun dohLabel(url: String): String = when (url) {
+    "" -> stringResource(R.string.settings_doh_none)
+    "https://dns.google/dns-query" -> "Google"
+    "https://cloudflare-dns.com/dns-query" -> "Cloudflare"
+    "https://doh.opendns.com/dns-query" -> "OpenDNS"
+    "https://dns.quad9.net/dns-query" -> "Quad9"
+    "https://doh.cleanbrowsing.org/doh/family-filter/" -> "CleanBrowsing"
+    "https://dns.adguard-dns.com/dns-query" -> "AdGuard"
+    "https://unfiltered.joindns4.eu/dns-query" -> "DNS4EU"
+    "https://ns0.fdn.fr/dns-query" -> "FDN"
+    else -> url
+}
+
+@Composable
 private fun languageLabel(code: String): String = when (code) {
-    "system" -> "System default"
-    "" -> "System default"
+    "system", "" -> stringResource(R.string.settings_language_system_default)
     else -> {
         val locale = Locale(code)
         locale.getDisplayName(locale).replaceFirstChar { c -> c.uppercaseChar() }
     }
 }
 
-private fun qualityLabel(height: String): String = if (height.isBlank()) "Auto" else "${height}p"
+@Composable
+private fun qualityLabel(height: String): String =
+    if (height.isBlank()) stringResource(R.string.settings_quality_auto) else "${height}p"
 
 @Composable
 fun SettingsExperience(
@@ -209,12 +225,12 @@ private fun SettingsHubBody(
         ),
         HubEntry(
             title = stringResource(R.string.player_settings),
-            subtitle = "Autoplay, buffering, quality and gestures",
+            subtitle = stringResource(R.string.settings_hub_playback_summary),
             onClick = { onNavigate(SettingsDestination.Playback) },
         ),
         HubEntry(
             title = stringResource(R.string.settings_category_appearance),
-            subtitle = "Theme, app language and immersive mode",
+            subtitle = stringResource(R.string.settings_hub_appearance_summary),
             onClick = { onNavigate(SettingsDestination.Appearance) },
         ),
         HubEntry(
@@ -229,7 +245,7 @@ private fun SettingsHubBody(
         ),
         HubEntry(
             title = stringResource(R.string.cloud_sync_title),
-            subtitle = "Account, Trakt and cloud sync",
+            subtitle = stringResource(R.string.settings_hub_cloud_summary),
             onClick = { onNavigate(SettingsDestination.Cloud) },
         ),
         HubEntry(
@@ -257,7 +273,7 @@ private fun SettingsHubBody(
                 BsBrandMark(compact = true)
                 Spacer(modifier = Modifier.height(10.dp))
                 androidx.compose.material3.Text(
-                    text = "Settings",
+                    text = stringResource(R.string.main_menu_settings),
                     style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
                     color = BsColors.Mist,
                 )
@@ -286,7 +302,7 @@ private fun SettingsHubBody(
                 )
             }
             item {
-                BsSettingsSectionLabel(title = "Quick access")
+                BsSettingsSectionLabel(title = stringResource(R.string.settings_quick_access))
             }
             item {
                 BsSettingsNavTile(
@@ -336,7 +352,7 @@ private fun SettingsSectionScaffold(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BsGhostButton(text = "\u2039 Back", onClick = onBack)
+            BsGhostButton(text = stringResource(R.string.settings_back), onClick = onBack)
             Spacer(modifier = Modifier.width(4.dp))
             androidx.compose.material3.Text(
                 text = title,
@@ -359,7 +375,7 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
     var showBufferDialog by rememberSaveable { mutableStateOf(false) }
 
     SettingsSectionScaffold(title = stringResource(R.string.player_settings), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "Autoplay") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_autoplay)) }
         item {
             BsSettingsToggleRow(
                 title = stringResource(R.string.settings_autoplay),
@@ -374,7 +390,7 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
                 onClick = { showBufferDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = "Buffering & quality") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_buffering_quality)) }
         item {
             BsSettingsToggleRow(
                 title = stringResource(R.string.settings_force_extra_buffer_title),
@@ -391,7 +407,7 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
                 onClick = { showQualityDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = "Controls") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_controls)) }
         item {
             BsSettingsToggleRow(
                 title = stringResource(R.string.settings_player_gestures),
@@ -409,8 +425,8 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
         }
         item {
             BsSettingsToggleRow(
-                title = "Disable provider auto subtitles",
-                subtitle = "Skip subtitles a server enables automatically",
+                title = stringResource(R.string.settings_disable_auto_subtitles_title),
+                subtitle = stringResource(R.string.settings_disable_auto_subtitles_summary),
                 checked = state.serverAutoSubtitlesDisabled,
                 onCheckedChange = { actions.onToggle("serverAutoSubtitlesDisabled", it) },
             )
@@ -453,7 +469,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
     val fontScale = AccessibilityHelper.getFontScale(context)
 
     SettingsSectionScaffold(title = stringResource(R.string.settings_category_appearance), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "Look & feel") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_look_feel)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_appearance),
@@ -469,7 +485,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 onCheckedChange = { actions.onToggle("immersiveMode", it) },
             )
         }
-        item { BsSettingsSectionLabel(title = "Language") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_language)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_app_language_title),
@@ -478,7 +494,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 onClick = { showLanguageDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = "Accessibility") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_accessibility)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_reduced_motion_title),
@@ -487,7 +503,11 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 } else {
                     stringResource(R.string.settings_reduced_motion_off)
                 },
-                valueLabel = if (reducedMotionOn) "On" else "Off",
+                valueLabel = if (reducedMotionOn) {
+                    stringResource(R.string.settings_autoplay_on)
+                } else {
+                    stringResource(R.string.settings_autoplay_off)
+                },
                 onClick = { actions.onAction("openAccessibilitySettings") },
             )
         }
@@ -797,7 +817,7 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
                 onClick = actions.onScanResolverQr,
             )
         }
-        item { BsSettingsSectionLabel(title = "Subtitles") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_subtitles)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_subdl_api_key),
@@ -806,7 +826,7 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
                 onClick = { showSubdlDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = "Notifications") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_notifications)) }
         item {
             BsSettingsToggleRow(
                 title = stringResource(R.string.settings_download_notifications),
@@ -828,7 +848,7 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
     if (showDohDialog) {
         BsSettingsChoiceDialog(
             title = stringResource(R.string.settings_category_streamingcommunity_dnsOverHttps),
-            options = BsDohOptions,
+            options = BsDohOptionUrls.map { it to dohLabel(it) },
             selectedValue = state.dohValue,
             onSelect = {
                 actions.onDohSelected(it)
@@ -879,7 +899,7 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
                 onClick = { actions.onAction("refreshProviderUrl") },
             )
         }
-        item { BsSettingsSectionLabel(title = "Domains") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_domains)) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_category_streamingcommunity_domain),
@@ -1011,7 +1031,7 @@ private fun SettingsCloudSection(state: SettingsUiState, actions: SettingsAction
                 onClick = { actions.onAction("openTraktSync") },
             )
         }
-        item { BsSettingsSectionLabel(title = "Maintenance") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_maintenance)) }
         item {
             BsSettingsActionRow(
                 title = stringResource(R.string.settings_refresh_cache_title),
@@ -1032,7 +1052,7 @@ private fun SettingsCloudSection(state: SettingsUiState, actions: SettingsAction
 @Composable
 private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
     SettingsSectionScaffold(title = stringResource(R.string.backup_category_title), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "User data") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_user_data)) }
         item {
             BsSettingsActionRow(
                 title = stringResource(R.string.backup_export_title),
@@ -1047,7 +1067,7 @@ private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActio
                 onClick = actions.onImportBackup,
             )
         }
-        item { BsSettingsSectionLabel(title = "Full database") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_full_database)) }
         item {
             BsSettingsActionRow(
                 title = stringResource(R.string.backup_db_export_title),
@@ -1068,7 +1088,7 @@ private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActio
 @Composable
 private fun SettingsAboutSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
     SettingsSectionScaffold(title = stringResource(R.string.settings_about), onBack = onBack) {
-        item { BsSettingsSectionLabel(title = "BetterStreamflix") }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_about_brand)) }
         item {
             BsSettingsActionRow(
                 title = stringResource(R.string.settings_about_version_name, state.versionName),

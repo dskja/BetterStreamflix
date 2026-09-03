@@ -39,6 +39,7 @@ import com.betterstreamflix.utils.UserProfiles
 fun ProfilePickerScreen(
     profiles: List<UserProfiles.Profile>,
     activeId: String,
+    isTvLayout: Boolean = false,
     onSelect: (UserProfiles.Profile) -> Unit = {},
     onAddProfile: (String) -> Unit = {},
     onDeleteProfile: (UserProfiles.Profile) -> Unit = {},
@@ -50,6 +51,7 @@ fun ProfilePickerScreen(
     var deletingProfile by remember { mutableStateOf<UserProfiles.Profile?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newProfileName by remember { mutableStateOf("") }
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -66,7 +68,7 @@ fun ProfilePickerScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                    .padding(horizontal = horizontalPadding, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(profiles, key = { it.id }) { profile ->
@@ -125,7 +127,9 @@ fun ProfilePickerScreen(
                         }
                         val badge = buildList {
                             if (profile.isKids) add(stringResource(R.string.profile_picker_kids))
-                            profile.parentalMaxAge?.let { add("Max age $it") }
+                            profile.parentalMaxAge?.let {
+                                add(stringResource(R.string.profile_max_age_label, it))
+                            }
                             if (profile.id == activeId) add(stringResource(R.string.profile_picker_active))
                         }.joinToString(" · ")
                         if (badge.isNotBlank()) {

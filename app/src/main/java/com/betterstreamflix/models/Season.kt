@@ -26,7 +26,7 @@ class Season(
 
 
     @Ignore
-    override lateinit var itemType: AppAdapter.Type
+    override var itemType: AppAdapter.Type = AppAdapter.Type.LOADING_ITEM
 
     fun copy(
         id: String = this.id,
@@ -56,7 +56,6 @@ class Season(
         if (poster != other.poster) return false
         if (tvShow != other.tvShow) return false
         if (episodes != other.episodes) return false
-        if (!::itemType.isInitialized || !other::itemType.isInitialized) return false
         return itemType == other.itemType
     }
 
@@ -67,7 +66,7 @@ class Season(
         result = 31 * result + (poster?.hashCode() ?: 0)
         result = 31 * result + (tvShow?.hashCode() ?: 0)
         result = 31 * result + episodes.hashCode()
-        result = 31 * result + (if (::itemType.isInitialized) itemType.hashCode() else 0)
+        result = 31 * result + itemType.hashCode()
         return result
     }
 }

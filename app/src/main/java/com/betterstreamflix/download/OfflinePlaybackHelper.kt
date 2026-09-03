@@ -74,6 +74,7 @@ object OfflinePlaybackHelper {
             val intent = Intent(context, OfflinePlayerActivity::class.java).apply {
                 putExtra(OfflinePlayerActivity.EXTRA_DOWNLOAD_ID, downloadId)
                 putExtra(OfflinePlayerActivity.EXTRA_FILE_PATH, filePath)
+                putExtra(OfflinePlayerActivity.EXTRA_TITLE, title)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             runCatching { context.startActivity(intent) }
@@ -86,7 +87,7 @@ object OfflinePlaybackHelper {
         }
         val intent = Intent(context, OfflinePlayerActivity::class.java).apply {
             putExtra(OfflinePlayerActivity.EXTRA_FILE_PATH, filePath)
-            putExtra(Intent.EXTRA_TITLE, title)
+            putExtra(OfflinePlayerActivity.EXTRA_TITLE, title)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         runCatching { context.startActivity(intent) }.onFailure {

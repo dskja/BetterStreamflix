@@ -27,7 +27,7 @@ class ContinueWatchingWidget : AppWidgetProvider() {
             val title = items.firstOrNull()?.title
                 ?: context.getString(R.string.home_continue_watching)
             val subtitle = items.firstOrNull()?.subtitle
-                ?: context.getString(R.string.app_name)
+                ?: context.getString(R.string.widget_continue_watching_empty)
             views.setTextViewText(R.id.widget_title, title)
             views.setTextViewText(R.id.widget_subtitle, subtitle)
 

@@ -927,35 +927,6 @@ class PlayerMobileFragment : Fragment() {
         }
     }
 
-    private fun decodeBase64Uri(uri: String): String? {
-        return try {
-            val parts = uri.split(",")
-            if (parts.size == 2 && parts[0].contains(";base64")) {
-                val base64Data = parts[1]
-                val decodedBytes = Base64.getDecoder().decode(base64Data)
-                String(decodedBytes, Charsets.UTF_8)
-            } else {
-                null
-            }
-        } catch (ignored: Exception) {
-            null
-        }
-    }
-
-    private fun extractUrlFromPlaylist(playlist: String): String? {
-        return try {
-            val lines = playlist.lines().map { it.trim() }
-            lines.firstOrNull { it.startsWith("http") }
-                ?: lines.firstNotNullOfOrNull { line ->
-                    val regex = """URI=["'](http[^"']+)["']""".toRegex()
-                    regex.find(line)?.groupValues?.get(1)
-                }
-        } catch (ignored: Exception) {
-            null
-        }
-    }
-
-
     private fun displayVideo(video: Video, server: Video.Server) {
         currentVideo = video
         currentServer = server
@@ -1020,8 +991,8 @@ class PlayerMobileFragment : Fragment() {
             val initialSource = video.source
 
             if (initialSource.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
-                val playlistContent = decodeBase64Uri(initialSource)
-                val extractedUrl = if (playlistContent != null) extractUrlFromPlaylist(playlistContent) else null
+                val playlistContent = VideoUrlUtils.decodeBase64Uri(initialSource)
+                val extractedUrl = if (playlistContent != null) VideoUrlUtils.extractUrlFromPlaylist(playlistContent) else null
                 
                 if (extractedUrl != null) {
                     sourceUri = extractedUrl.toUri()
@@ -1323,8 +1294,11 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private fun updatePlayerHeader(videoType: Video.Type = currentVideoTypeForUi()) {
-        binding.pvPlayer.controller.binding.tvExoTitle.text = resolvePlayerTitle(videoType)
-        binding.pvPlayer.controller.binding.tvExoSubtitle.text = resolvePlayerSubtitle(videoType)
+        val title = resolvePlayerTitle(videoType)
+        val subtitle = resolvePlayerSubtitle(videoType)
+        binding.pvPlayer.controller.binding.tvExoTitle.text = title
+        binding.pvPlayer.controller.binding.tvExoSubtitle.text = subtitle
+        playbackController.setMetadata(title, subtitle)
     }
 
     private fun queueNextEpisodeForContinueWatching(provider: com.betterstreamflix.providers.Provider) {

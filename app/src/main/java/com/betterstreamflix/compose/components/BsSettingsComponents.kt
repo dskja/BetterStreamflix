@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.betterstreamflix.R
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsMotion
 
@@ -315,12 +317,14 @@ fun BsSettingsTextFieldDialog(
     modifier: Modifier = Modifier,
     isPassword: Boolean = false,
     subtitle: String? = null,
-    confirmLabel: String = "Save",
-    dismissLabel: String = "Cancel",
+    confirmLabel: String? = null,
+    dismissLabel: String? = null,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var text by remember { mutableStateOf(initial) }
+    val resolvedConfirm = confirmLabel ?: stringResource(R.string.dialog_save)
+    val resolvedDismiss = dismissLabel ?: stringResource(R.string.option_cancel)
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -358,12 +362,12 @@ fun BsSettingsTextFieldDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(text) }) {
-                Text(text = confirmLabel, color = BsColors.AmberBright)
+                Text(text = resolvedConfirm, color = BsColors.AmberBright)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = dismissLabel, color = BsColors.MistDim)
+                Text(text = resolvedDismiss, color = BsColors.MistDim)
             }
         },
     )
@@ -423,7 +427,7 @@ fun BsSettingsChoiceDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Close", color = BsColors.AmberBright)
+                Text(text = stringResource(R.string.dialog_close), color = BsColors.AmberBright)
             }
         },
     )
