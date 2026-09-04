@@ -28,6 +28,7 @@ import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsStatusBanner
 import com.betterstreamflix.compose.components.bannerOf
 import com.betterstreamflix.compose.components.itemLabelOf
+import com.betterstreamflix.compose.components.metadataOf
 import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
@@ -124,6 +125,7 @@ fun HomeScreen(
                                     stringResource(R.string.home_hero_provider_subtitle, it)
                                 } ?: stringResource(R.string.home_hero_subtitle),
                                 imageUrl = heroImage,
+                                metadata = featured?.let(::metadataOf).orEmpty(),
                                 ctaLabel = if (featured != null) {
                                     stringResource(R.string.home_hero_open_now)
                                 } else {

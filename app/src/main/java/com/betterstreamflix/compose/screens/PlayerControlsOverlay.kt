@@ -22,11 +22,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -120,8 +123,13 @@ fun PlayerControlsOverlay(
     }
     val rewindLabel = stringResource(R.string.player_seek_back)
     val forwardLabel = stringResource(R.string.player_seek_forward)
+    var playFocused by remember { mutableStateOf(false) }
     val playScale by animateFloatAsState(
-        targetValue = if (state.isPlaying) 1f else 1.05f,
+        targetValue = when {
+            playFocused -> 1.08f
+            state.isPlaying -> 1f
+            else -> 1.04f
+        },
         animationSpec = BsMotion.pressSpec(),
         label = "playScale",
     )
@@ -219,10 +227,15 @@ fun PlayerControlsOverlay(
                     .size(58.dp)
                     .scale(playScale)
                     .focusRequester(playFocus)
+                    .onFocusChanged { playFocused = it.isFocused }
                     .focusable()
                     .clip(CircleShape)
                     .background(colors.Amber)
-                    .border(1.dp, colors.Specular, CircleShape)
+                    .border(
+                        if (playFocused) 2.dp else 1.dp,
+                        if (playFocused) colors.Mist else colors.Specular,
+                        CircleShape,
+                    )
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
@@ -232,16 +245,17 @@ fun PlayerControlsOverlay(
                 contentAlignment = Alignment.Center,
             ) {
                 if (state.isPlaying) {
-                    Text(
-                        text = "❚❚",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colors.Ink,
+                    Icon(
+                        imageVector = Icons.Default.Pause,
+                        contentDescription = playPauseLabel,
+                        tint = colors.Mist,
+                        modifier = Modifier.size(28.dp),
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = playPauseLabel,
-                        tint = colors.Ink,
+                        tint = colors.Mist,
                         modifier = Modifier.size(30.dp),
                     )
                 }
@@ -297,7 +311,9 @@ fun PlayerControlsOverlay(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

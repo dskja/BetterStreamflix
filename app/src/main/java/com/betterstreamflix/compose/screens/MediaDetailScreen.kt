@@ -18,10 +18,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -140,6 +146,7 @@ fun MediaDetailScreen(
                                 text = stringResource(R.string.settings_back),
                                 onClick = onBack,
                                 modifier = Modifier.padding(12.dp),
+                                leadingIcon = Icons.Filled.ArrowBack,
                             )
                         }
                         Column(
@@ -173,11 +180,18 @@ fun MediaDetailScreen(
                             if (showWatchButton || showFavoriteButton || showDownloadButton) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     if (showWatchButton && watchLabel != null) {
-                                        BsPrimaryButton(text = watchLabel, onClick = onWatch)
+                                        BsPrimaryButton(
+                                            text = watchLabel,
+                                            onClick = onWatch,
+                                            leadingIcon = Icons.Filled.PlayArrow,
+                                        )
                                     }
                                     if (showFavoriteButton) {
                                         BsGhostButton(
@@ -186,6 +200,11 @@ fun MediaDetailScreen(
                                                 else R.string.option_show_favorite,
                                             ),
                                             onClick = onToggleFavorite,
+                                            leadingIcon = if (isFavorite) {
+                                                Icons.Filled.Check
+                                            } else {
+                                                Icons.Filled.Add
+                                            },
                                         )
                                     }
                                     if (showDownloadButton) {
@@ -303,23 +322,12 @@ private fun ExpandableOverview(overview: String?, modifier: Modifier = Modifier)
 
 @Composable
 private fun DetailSectionLabel(text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(top = 18.dp, bottom = 10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(end = 10.dp)
-                .width(3.dp)
-                .height(14.dp)
-                .background(BsTheme.colors.Amber, RoundedCornerShape(2.dp)),
-        )
-        Text(
-            text = text.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = BsTheme.colors.MistDim,
-        )
-    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = BsTheme.colors.Mist,
+        modifier = Modifier.padding(top = 28.dp, bottom = 12.dp),
+    )
 }
 
 @Composable
