@@ -1,10 +1,11 @@
 package com.betterstreamflix.utils
 
-import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
+import androidx.compose.ui.graphics.toArgb
 import com.betterstreamflix.R
+import com.betterstreamflix.compose.theme.BsThemeCatalog
 
 object ThemeManager {
     const val DEFAULT = "default"
@@ -70,99 +71,16 @@ object ThemeManager {
         else -> R.string.theme_default
     }
 
-    fun palette(theme: String): Palette = when (theme) {
-        NERO_AMOLED_OLED -> Palette(
-            mobileNavBackground = color("#000000"),
-            mobileNavActive = color("#FF5A36"),
-            mobileNavInactive = color("#7A7A7A"),
-            systemBar = color("#000000"),
-            tvNavBackground = color("#050505"),
-            tvHeaderPrimary = color("#FFFFFF"),
-            tvHeaderSecondary = color("#BDBDBD"),
-        )
-        SUNSET_CINEMA -> Palette(
-            mobileNavBackground = color("#2B1812"),
-            mobileNavActive = color("#F39A5B"),
-            mobileNavInactive = color("#C49B86"),
-            systemBar = color("#2B1812"),
-            tvNavBackground = color("#2B1812"),
-            tvHeaderPrimary = color("#FFF0E5"),
-            tvHeaderSecondary = color("#D7B7A4"),
-        )
-        STEEL_BLUE -> Palette(
-            mobileNavBackground = color("#1A2430"),
-            mobileNavActive = color("#7DB3E8"),
-            mobileNavInactive = color("#8CA2B8"),
-            systemBar = color("#1A2430"),
-            tvNavBackground = color("#1A2430"),
-            tvHeaderPrimary = color("#EAF4FF"),
-            tvHeaderSecondary = color("#ADC5DA"),
-        )
-        FOREST_NIGHT -> Palette(
-            mobileNavBackground = color("#13221E"),
-            mobileNavActive = color("#65D7C2"),
-            mobileNavInactive = color("#8DB3AA"),
-            systemBar = color("#13221E"),
-            tvNavBackground = color("#13221E"),
-            tvHeaderPrimary = color("#E6FFF8"),
-            tvHeaderSecondary = color("#A8D1C7"),
-        )
-        CRIMSON_NOIR -> Palette(
-            mobileNavBackground = color("#241015"),
-            mobileNavActive = color("#D86A7A"),
-            mobileNavInactive = color("#A88891"),
-            systemBar = color("#241015"),
-            tvNavBackground = color("#241015"),
-            tvHeaderPrimary = color("#FFECEF"),
-            tvHeaderSecondary = color("#D6B2BA"),
-        )
-        MIDNIGHT_VIOLET -> Palette(
-            mobileNavBackground = color("#181726"),
-            mobileNavActive = color("#AFA3FF"),
-            mobileNavInactive = color("#8F8AAE"),
-            systemBar = color("#181726"),
-            tvNavBackground = color("#181726"),
-            tvHeaderPrimary = color("#F1EEFF"),
-            tvHeaderSecondary = color("#BFB9DD"),
-        )
-        NORD_FROST -> Palette(
-            mobileNavBackground = color("#18212A"),
-            mobileNavActive = color("#8ED0E8"),
-            mobileNavInactive = color("#8EA2B0"),
-            systemBar = color("#18212A"),
-            tvNavBackground = color("#18212A"),
-            tvHeaderPrimary = color("#EAF7FD"),
-            tvHeaderSecondary = color("#B1C9D6"),
-        )
-        EMERALD_LUXE -> Palette(
-            mobileNavBackground = color("#13211B"),
-            mobileNavActive = color("#7ED6A3"),
-            mobileNavInactive = color("#98AE9F"),
-            systemBar = color("#13211B"),
-            tvNavBackground = color("#13211B"),
-            tvHeaderPrimary = color("#EDF9F2"),
-            tvHeaderSecondary = color("#B6D0C0"),
-        )
-        RETRO_NEON -> Palette(
-            mobileNavBackground = color("#18181E"),
-            mobileNavActive = color("#4DE0D7"),
-            mobileNavInactive = color("#A56FBD"),
-            systemBar = color("#18181E"),
-            tvNavBackground = color("#18181E"),
-            tvHeaderPrimary = color("#F4F7FF"),
-            tvHeaderSecondary = color("#CFB7DA"),
-        )
-        else -> Palette(
-            mobileNavBackground = color("#08090B"),
-            mobileNavActive = color("#F7F7F4"),
-            mobileNavInactive = color("#66696F"),
-            systemBar = color("#08090B"),
-            tvNavBackground = color("#08090B"),
-            tvHeaderPrimary = color("#F7F7F4"),
-            tvHeaderSecondary = color("#9B9DA2"),
+    fun palette(theme: String): Palette {
+        val tokens = BsThemeCatalog.tokensFor(theme)
+        return Palette(
+            mobileNavBackground = tokens.Ink.toArgb(),
+            mobileNavActive = tokens.Amber.toArgb(),
+            mobileNavInactive = tokens.MistFaint.toArgb(),
+            systemBar = tokens.Ink.toArgb(),
+            tvNavBackground = tokens.Ink.toArgb(),
+            tvHeaderPrimary = tokens.Mist.toArgb(),
+            tvHeaderSecondary = tokens.MistDim.toArgb(),
         )
     }
-
-    @ColorInt
-    private fun color(hex: String): Int = Color.parseColor(hex)
 }

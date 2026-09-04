@@ -4,6 +4,7 @@
     android:minHeight="110dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_continue_watching"
+    android:previewLayout="@layout/widget_continue_watching"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:description="@string/home_continue_watching" />

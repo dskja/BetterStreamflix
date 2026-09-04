@@ -7,6 +7,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.view.isVisible
 import com.betterstreamflix.BuildConfig
+import com.betterstreamflix.R
 import com.betterstreamflix.databinding.DialogUpdateAppTvBinding
 import com.betterstreamflix.utils.GitHub
 
@@ -28,6 +29,7 @@ class UpdateAppTvDialog(
 
     init {
         setContentView(binding.root)
+        window?.setBackgroundDrawableResource(R.drawable.bg_dialog_arc)
 
         binding.tvUpdateCurrentVersion.text = BuildConfig.VERSION_NAME
 

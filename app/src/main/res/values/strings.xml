@@ -149,6 +149,7 @@
     <string name="player_subtitle_tv_show">S%d E%d • %s</string>
     <string name="player_subtitle_tv_show_episode_only">E%d • %s</string>
     <string name="player_picture_in_picture_not_supported">PiP is not supported on your device</string>
+    <string name="player_picture_in_picture">Picture in picture</string>
     <string name="player_external_player_title">Play using</string>
     <string name="player_external_player_error_video">Video not load yet</string>
     <string name="player_not_available_it_message">Not available on Italian servers, search for it on TMDB in other languages</string>

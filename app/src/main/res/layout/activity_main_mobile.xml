@@ -5,7 +5,7 @@
     android:id="@+id/main_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bs_ink"
+    android:background="?attr/app_background_color"
     tools:context=".activities.main.MainMobileActivity">
 
     <androidx.fragment.app.FragmentContainerView
@@ -14,7 +14,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:defaultNavHost="true"
-        app:layout_constraintBottom_toTopOf="@+id/bnv_main"
+        app:layout_constraintBottom_toTopOf="@+id/nav_divider"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -40,7 +40,7 @@
         android:id="@+id/bnv_main"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/bs_ink"
+        android:background="?attr/app_background_color"
         android:elevation="0dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
@@ -56,5 +56,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/menu_main_activity_mobile" />
+
+    <View
+        android:id="@+id/nav_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/bs_hairline"
+        app:layout_constraintBottom_toTopOf="@id/bnv_main"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

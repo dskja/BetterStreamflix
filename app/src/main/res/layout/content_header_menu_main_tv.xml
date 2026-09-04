@@ -8,7 +8,7 @@
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:padding="10dp"
-    android:background="@color/bs_ink">
+    android:background="?attr/app_background_color">
 
     <ImageView
         android:id="@+id/iv_navigation_header_icon"

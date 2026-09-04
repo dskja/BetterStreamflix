@@ -201,13 +201,6 @@ fun PlayerControlsOverlay(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .width(40.dp)
-                .height(2.dp)
-                .background(colors.Amber, RoundedCornerShape(1.dp)),
-        )
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -342,7 +335,10 @@ fun PlayerControlsOverlay(
                 )
             }
             if (onPip != null) {
-                PlayerGlassChip(label = "PiP", onClick = onPip)
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_picture_in_picture),
+                    onClick = onPip,
+                )
             }
             if (onExternalPlayer != null) {
                 PlayerGlassChip(

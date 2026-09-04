@@ -9,7 +9,7 @@ import com.betterstreamflix.utils.ThemeManager
 
 /**
  * Semantic Arc tokens for one active look.
- * Accent channel is named Amber historically; values are theme accents (cyan by default).
+ * Accent channel is named Amber historically; values are theme accents (vermilion in Arc).
  * Compose UI paints from [LocalBsColors] so theme changes restyle the whole app.
  */
 data class BsColorScheme(
