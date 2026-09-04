@@ -27,8 +27,16 @@ class PeopleTvFragment : ComposeHostFragment() {
     @Composable
     override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = PeopleViewModel.State.Loading)
-        val people = (state as? PeopleViewModel.State.SuccessLoading)?.people
-        val hasMore = (state as? PeopleViewModel.State.SuccessLoading)?.hasMore == true
+        val people = when (val current = state) {
+            is PeopleViewModel.State.SuccessLoading -> current.people
+            is PeopleViewModel.State.LoadingMore -> current.people
+            else -> null
+        }
+        val hasMore = when (val current = state) {
+            is PeopleViewModel.State.SuccessLoading -> current.hasMore
+            is PeopleViewModel.State.LoadingMore -> current.hasMore
+            else -> false
+        }
 
         if (state is PeopleViewModel.State.FailedLoading) {
             val error = (state as PeopleViewModel.State.FailedLoading).error

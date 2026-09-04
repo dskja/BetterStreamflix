@@ -67,7 +67,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
 
     sealed class State {
         data object Loading : State()
-        data object LoadingMore : State()
+        data class LoadingMore(val movies: List<Movie>, val hasMore: Boolean) : State()
         data class SuccessLoading(val movies: List<Movie>, val hasMore: Boolean) : State()
         data class FailedLoading(val error: Exception) : State()
     }
@@ -98,11 +98,14 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
     fun loadMoreMovies() = viewModelScope.launch(Dispatchers.IO) {
         val currentState = _state.value
         if (currentState is State.SuccessLoading) {
-            _state.emit(State.LoadingMore)
+            _state.emit(State.LoadingMore(currentState.movies, currentState.hasMore))
 
             try {
                 val movies = ParentalControlUtils.filterItems(
-                    UserPreferences.currentProvider?.getMovies(page + 1) ?: return@launch
+                    UserPreferences.currentProvider?.getMovies(page + 1) ?: run {
+                        _state.emit(currentState)
+                        return@launch
+                    }
                 ).filterIsInstance<Movie>()
 
                 page += 1
@@ -116,7 +119,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("MoviesViewModel", "loadMoreMovies: ", e)
-                _state.emit(State.FailedLoading(e))
+                _state.emit(currentState)
             }
         }
     }
