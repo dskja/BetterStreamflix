@@ -28,6 +28,7 @@ import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
+import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsColors
@@ -65,20 +66,26 @@ fun MoviesScreen(
             BsTopBar(
                 title = stringResource(R.string.main_menu_movies),
                 showBrand = true,
+                horizontalPadding = horizontalPadding,
             )
             when {
                 isLoading && movies.isEmpty() -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsColors.Amber)
+                    Column {
+                        BsShimmerRow()
+                        BsShimmerRow()
+                        BsShimmerRow()
                     }
                 }
                 errorMessage != null && movies.isEmpty() -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        BsErrorState(message = errorMessage, modifier = Modifier.fillMaxWidth())
-                        BsGhostButton(
-                            text = stringResource(R.string.loading_error_retry),
-                            onClick = onRetry,
-                        )
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            BsErrorState(message = errorMessage)
+                            BsGhostButton(
+                                text = stringResource(R.string.loading_error_retry),
+                                onClick = onRetry,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
                     }
                 }
                 movies.isEmpty() -> {

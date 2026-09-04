@@ -69,7 +69,7 @@ object ProfilePickerHelper {
         dialog.setCancelable(true)
         dialog.window?.setLayout(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
         )
         dialog.show()
     }

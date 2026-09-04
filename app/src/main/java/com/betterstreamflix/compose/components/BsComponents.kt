@@ -147,28 +147,53 @@ fun BsTopBar(
     title: String,
     modifier: Modifier = Modifier,
     showBrand: Boolean = false,
+    subtitle: String? = null,
+    onBack: (() -> Unit)? = null,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
     actions: @Composable () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = horizontalPadding, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                if (showBrand) {
-                    BsBrandMark(compact = true)
-                    Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (onBack != null) {
+                    BsGhostButton(
+                        text = stringResource(R.string.settings_back),
+                        onClick = onBack,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
                 }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = BsColors.Mist,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    if (showBrand) {
+                        BsBrandMark(compact = true)
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = BsColors.Mist,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!subtitle.isNullOrBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BsColors.MistDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
             }
             actions()
         }
@@ -542,6 +567,57 @@ fun posterOf(item: AppAdapter.Item): String? = when (item) {
     is TvShow -> item.poster ?: item.banner
     is Episode -> item.poster ?: item.tvShow?.poster
     else -> null
+}
+
+@Composable
+fun BsGenreTile(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.04f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "genreTileScale",
+    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(88.dp)
+            .scale(scale)
+            .clip(RoundedCornerShape(14.dp))
+            .background(BsColors.InkPanel)
+            .border(
+                width = 1.dp,
+                color = if (focused) BsColors.FocusRing else BsColors.Hairline,
+                shape = RoundedCornerShape(14.dp),
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(end = 12.dp)
+                .width(3.dp)
+                .height(28.dp)
+                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = BsColors.Mist,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)

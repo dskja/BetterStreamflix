@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -26,9 +24,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
+import com.betterstreamflix.compose.components.BsShimmerRow
+import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.models.Genre
@@ -48,8 +49,12 @@ fun GenreScreen(
     onLoadMore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+    val gridMinSize = if (isTvLayout) 140.dp else 124.dp
     val gridState = rememberLazyGridState()
     val shows = genre?.shows.orEmpty()
+    val title = genre?.name?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.genres_hub_browse)
     val shouldLoadMore by remember {
         derivedStateOf {
             val layoutInfo = gridState.layoutInfo
@@ -63,45 +68,55 @@ fun GenreScreen(
     }
 
     BsAtmosphere {
-        when {
-            isLoading && genre == null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = BsColors.Amber)
+        Column(modifier = Modifier.fillMaxSize()) {
+            BsTopBar(
+                title = title,
+                showBrand = genre == null,
+                horizontalPadding = horizontalPadding,
+            )
+            when {
+                isLoading && genre == null -> {
+                    BsShimmerRow()
+                    BsShimmerRow()
                 }
-            }
-            errorMessage != null && genre == null -> {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    BsErrorState(message = errorMessage, modifier = Modifier.fillMaxWidth())
-                    BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
+                errorMessage != null && genre == null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            BsErrorState(message = errorMessage)
+                            BsGhostButton(
+                                text = stringResource(R.string.loading_error_retry),
+                                onClick = onRetry,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
+                    }
                 }
-            }
-            else -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = genre?.name.orEmpty(),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = BsColors.Mist,
-                        modifier = Modifier.padding(
-                            horizontal = if (isTvLayout) 32.dp else 20.dp,
-                            vertical = 16.dp,
-                        ),
+                !isLoading && shows.isEmpty() -> {
+                    BsEmptyState(
+                        message = stringResource(R.string.genre_empty),
+                        modifier = Modifier.fillMaxSize(),
                     )
+                }
+                else -> {
                     LazyVerticalGrid(
                         state = gridState,
-                        columns = GridCells.Adaptive(minSize = 124.dp),
+                        columns = GridCells.Adaptive(minSize = gridMinSize),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = horizontalPadding,
+                            vertical = 8.dp,
+                        ),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         items(shows, key = { showKey(it) }) { show ->
-                            val title = when (show) {
+                            val showTitle = when (show) {
                                 is Movie -> show.title
                                 is TvShow -> show.title
                                 else -> ""
                             }
                             BsPosterCard(
-                                title = title,
+                                title = showTitle,
                                 imageUrl = posterOf(show),
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onShowClick(show) },
