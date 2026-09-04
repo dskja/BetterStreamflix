@@ -4,14 +4,14 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#FF12171F">
+    android:background="#FF111317">
 
     <TextView
         android:id="@+id/widget_favorites_heading"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/main_menu_favorites"
-        android:textColor="#FF3DE0C5"
+        android:textColor="#FFFF5A36"
         android:textSize="12sp"
         android:fontFamily="@font/manrope_semibold"
         android:textAllCaps="false" />
@@ -22,7 +22,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:text="@string/main_menu_favorites"
-        android:textColor="#FFF2F5F8"
+        android:textColor="#FFF7F7F4"
         android:textSize="16sp"
         android:textStyle="bold"
         android:fontFamily="@font/space_grotesk_bold"
@@ -34,7 +34,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#FF9AA6B5"
+        android:textColor="#FF9B9DA2"
         android:textSize="13sp"
         android:fontFamily="@font/manrope_regular"
         android:maxLines="2"

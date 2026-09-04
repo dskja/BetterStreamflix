@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Brush
  * Compose UI must use [BsTheme.colors] so selected themes actually restyle screens.
  */
 object BsColors {
-    private val t = BsThemeCatalog.signalNight
+    private val t = BsThemeCatalog.arc
 
     val Ink = t.Ink
     val InkElevated = t.InkElevated

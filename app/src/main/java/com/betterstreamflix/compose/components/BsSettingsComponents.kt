@@ -63,16 +63,9 @@ fun BsSettingsSectionLabel(
             .padding(top = 20.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .padding(end = 10.dp)
-                .width(2.dp)
-                .height(14.dp)
-                .background(BsTheme.colors.Amber, RoundedCornerShape(1.dp)),
-        )
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.labelMedium,
             color = BsTheme.colors.MistDim,
         )
     }
@@ -118,13 +111,6 @@ fun BsSettingsNavTile(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(if (subtitle.isNullOrBlank()) 18.dp else 32.dp)
-                        .background(BsTheme.colors.Amber, RoundedCornerShape(1.dp)),
-                )
-                Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,

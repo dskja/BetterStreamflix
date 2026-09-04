@@ -168,11 +168,11 @@ object BsThemeCatalog {
         ThemeManager.NORD_FROST -> nord
         ThemeManager.EMERALD_LUXE -> emerald
         ThemeManager.RETRO_NEON -> retro
-        else -> signalNight
+        else -> arc
     }
 
     /** Default Arc — near-black cinema surfaces + vivid vermilion. */
-    val signalNight = scheme(
+    val arc = scheme(
         ink = Color(0xFF08090B),
         elevated = Color(0xFF0D0F12),
         panel = Color(0xFF111317),
@@ -190,7 +190,7 @@ object BsThemeCatalog {
     )
 
     /** Back-compat alias used by [BsColors]. */
-    val obsidian get() = signalNight
+    val obsidian get() = arc
 
     val amoled = scheme(
         ink = Color(0xFF000000),
@@ -393,7 +393,7 @@ object BsThemeCatalog {
     )
 }
 
-val LocalBsColors = staticCompositionLocalOf { BsThemeCatalog.signalNight }
+val LocalBsColors = staticCompositionLocalOf { BsThemeCatalog.arc }
 
 object BsTheme {
     val colors: BsColorScheme
