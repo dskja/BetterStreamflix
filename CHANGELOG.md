@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased (Megaplan)
+## v2.0.0 — Arc
+
+### Arc interface
+- Complete mobile and TV visual redesign with the Arc design system
+- New compact navigation chrome, content hierarchy, hero metadata and responsive poster grids
+- Unified search, filters, empty/error states, downloads, profiles and settings surfaces
+- Redesigned media details, long-press actions, next-episode overlay and player controls
+- Consistent TV focus rings, Android dialogs, widgets, QR scanner and bypass tools
+- Space Grotesk display typography, Manrope body typography and vermilion accent palette
+
+### Release engineering
+- Release tags must match the app version (`v2.0.0`)
+- Signed APKs are now mandatory; unsigned artifacts can no longer be published
+- Mobile and TV release builds run lint, unit tests and localization parity checks
+- Published APKs include SHA-256 checksum files
 
 ### Massive update wave 2
 - Search: debounced queries, recent-search chips (mobile), history persistence
