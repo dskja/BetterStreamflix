@@ -606,4 +606,6 @@
     <string name="notification_new_content_message">%1$d new titles on your provider</string>
     <string name="profile_picker_continue">Continue</string>
     <string name="player_sleep_timer_started">Sleep timer: %1$d min</string>
+    <string name="search_clear_input">Suche löschen</string>
+    <string name="player_picture_in_picture">Bild-in-Bild</string>
 </resources>

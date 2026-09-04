@@ -576,4 +576,6 @@
     <string name="profile_picker_continue">Continue</string>
     <string name="player_sleep_timer_title">Sleep timer</string>
     <string name="player_sleep_timer_started">Sleep timer: %1$d min</string>
+    <string name="search_clear_input">مسح البحث</string>
+    <string name="player_picture_in_picture">صورة داخل صورة</string>
 </resources>
