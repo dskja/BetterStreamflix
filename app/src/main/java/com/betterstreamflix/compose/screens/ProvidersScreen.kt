@@ -30,7 +30,7 @@ import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.fragments.providers.LanguageChip
 import com.betterstreamflix.models.Provider
 import com.betterstreamflix.providers.ProviderHealthMonitor
@@ -75,18 +75,18 @@ fun ProvidersScreen(
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BsColors.Amber,
-                    unfocusedBorderColor = BsColors.Hairline,
-                    focusedContainerColor = BsColors.GlassStrong,
-                    unfocusedContainerColor = BsColors.Glass,
-                    focusedTextColor = BsColors.Mist,
-                    unfocusedTextColor = BsColors.Mist,
-                    cursorColor = BsColors.Amber,
+                    focusedBorderColor = BsTheme.colors.Amber,
+                    unfocusedBorderColor = BsTheme.colors.Hairline,
+                    focusedContainerColor = BsTheme.colors.GlassStrong,
+                    unfocusedContainerColor = BsTheme.colors.Glass,
+                    focusedTextColor = BsTheme.colors.Mist,
+                    unfocusedTextColor = BsTheme.colors.Mist,
+                    cursorColor = BsTheme.colors.Amber,
                 ),
             )
             Text(
                 text = stringResource(R.string.providers_favorite_hint),
-                color = BsColors.MistFaint,
+                color = BsTheme.colors.MistFaint,
                 modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 2.dp),
             )
             LazyRow(
@@ -99,10 +99,10 @@ fun ProvidersScreen(
                         onClick = { onLanguageChipSelected(chip) },
                         label = { Text(chip.name) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BsColors.Amber,
-                            selectedLabelColor = BsColors.Ink,
-                            containerColor = BsColors.Glass,
-                            labelColor = BsColors.MistDim,
+                            selectedContainerColor = BsTheme.colors.Amber,
+                            selectedLabelColor = BsTheme.colors.Ink,
+                            containerColor = BsTheme.colors.Glass,
+                            labelColor = BsTheme.colors.MistDim,
                         ),
                     )
                 }
@@ -110,7 +110,7 @@ fun ProvidersScreen(
             when {
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsColors.Amber)
+                        CircularProgressIndicator(color = BsTheme.colors.Amber)
                     }
                 }
                 errorMessage != null -> {

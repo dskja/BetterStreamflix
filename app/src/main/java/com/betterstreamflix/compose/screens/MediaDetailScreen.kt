@@ -46,7 +46,7 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.posterOf
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.People
 import com.betterstreamflix.models.Season
@@ -83,7 +83,7 @@ fun MediaDetailScreen(
         when {
             isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = BsColors.Amber)
+                    CircularProgressIndicator(color = BsTheme.colors.Amber)
                 }
             }
             errorMessage != null -> {
@@ -105,7 +105,7 @@ fun MediaDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(if (isTvLayout) 460.dp else 380.dp)
-                            .background(BsColors.InkSoft),
+                            .background(BsTheme.colors.InkSoft),
                     ) {
                         AsyncImage(
                             model = bannerUrl,
@@ -116,12 +116,12 @@ fun MediaDetailScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(BsColors.HeroWash),
+                                .background(BsTheme.colors.HeroWash),
                         )
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(BsColors.HeroSideWash),
+                                .background(BsTheme.colors.HeroSideWash),
                         )
                         if (!isTvLayout) {
                             BsGhostButton(
@@ -136,13 +136,13 @@ fun MediaDetailScreen(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.displayMedium,
-                            color = BsColors.Mist,
+                            color = BsTheme.colors.Mist,
                         )
                         metaLine?.takeIf { it.isNotBlank() }?.let {
                             Text(
                                 text = it,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = BsColors.MistDim,
+                                color = BsTheme.colors.MistDim,
                                 modifier = Modifier.padding(top = 6.dp),
                             )
                         }
@@ -150,7 +150,7 @@ fun MediaDetailScreen(
                             Text(
                                 text = it,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = BsColors.AmberBright,
+                                color = BsTheme.colors.AmberBright,
                                 modifier = Modifier.padding(top = 8.dp),
                             )
                         }
@@ -167,8 +167,8 @@ fun MediaDetailScreen(
                                         .fillMaxWidth()
                                         .padding(top = 10.dp)
                                         .height(3.dp),
-                                    color = BsColors.Amber,
-                                    trackColor = BsColors.Ink,
+                                    color = BsTheme.colors.Amber,
+                                    trackColor = BsTheme.colors.Ink,
                                 )
                             }
                         }
@@ -185,7 +185,7 @@ fun MediaDetailScreen(
                             Text(
                                 text = directors.joinToString(", ") { it.name },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = BsColors.MistDim,
+                                color = BsTheme.colors.MistDim,
                                 modifier = Modifier.padding(bottom = 8.dp),
                             )
                         }
@@ -249,7 +249,7 @@ private fun ExpandableOverview(overview: String?, modifier: Modifier = Modifier)
         Text(
             text = overview,
             style = MaterialTheme.typography.bodyLarge,
-            color = BsColors.MistDim,
+            color = BsTheme.colors.MistDim,
             maxLines = if (expanded) Int.MAX_VALUE else 4,
             overflow = TextOverflow.Ellipsis,
         )
@@ -259,7 +259,7 @@ private fun ExpandableOverview(overview: String?, modifier: Modifier = Modifier)
                     if (expanded) R.string.overview_show_less else R.string.overview_show_more,
                 ),
                 style = MaterialTheme.typography.labelMedium,
-                color = BsColors.AmberBright,
+                color = BsTheme.colors.AmberBright,
                 modifier = Modifier
                     .padding(top = 6.dp)
                     .clickable { expanded = !expanded },
@@ -279,12 +279,12 @@ private fun DetailSectionLabel(text: String) {
                 .padding(end = 10.dp)
                 .width(3.dp)
                 .height(14.dp)
-                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
         )
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = BsColors.MistDim,
+            color = BsTheme.colors.MistDim,
         )
     }
 }
@@ -305,13 +305,13 @@ private fun CastChip(person: People, onClick: () -> Unit) {
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(BsColors.InkPanel)
-                .border(1.dp, BsColors.Hairline, CircleShape),
+                .background(BsTheme.colors.InkPanel)
+                .border(1.dp, BsTheme.colors.Hairline, CircleShape),
         )
         Text(
             text = person.name,
             style = MaterialTheme.typography.labelSmall,
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 6.dp),
@@ -332,8 +332,8 @@ private fun SeasonChip(season: Season, onClick: () -> Unit) {
                 .fillMaxWidth()
                 .height(140.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(BsColors.InkPanel)
-                .border(1.dp, BsColors.Hairline, RoundedCornerShape(12.dp)),
+                .background(BsTheme.colors.InkPanel)
+                .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(12.dp)),
         ) {
             AsyncImage(
                 model = season.poster,
@@ -346,7 +346,7 @@ private fun SeasonChip(season: Season, onClick: () -> Unit) {
             text = season.title?.takeIf { it.isNotBlank() }
                 ?: stringResource(R.string.season_number, season.number),
             style = MaterialTheme.typography.labelMedium,
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 6.dp),

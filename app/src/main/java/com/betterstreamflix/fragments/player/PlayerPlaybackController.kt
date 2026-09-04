@@ -17,6 +17,9 @@ class PlayerPlaybackController : ViewModel() {
         val positionMs: Long = 0L,
         val durationMs: Long = 0L,
         val isBuffering: Boolean = false,
+        val canGoPrevious: Boolean = false,
+        val canGoNext: Boolean = false,
+        val showSkipIntro: Boolean = false,
     )
 
     private val _state = MutableStateFlow(PlaybackUiState())
@@ -36,5 +39,16 @@ class PlayerPlaybackController : ViewModel() {
 
     fun setBuffering(buffering: Boolean) {
         _state.value = _state.value.copy(isBuffering = buffering)
+    }
+
+    fun setEpisodeNavigation(canGoPrevious: Boolean, canGoNext: Boolean) {
+        val current = _state.value
+        if (current.canGoPrevious == canGoPrevious && current.canGoNext == canGoNext) return
+        _state.value = current.copy(canGoPrevious = canGoPrevious, canGoNext = canGoNext)
+    }
+
+    fun setSkipIntroVisible(visible: Boolean) {
+        if (_state.value.showSkipIntro == visible) return
+        _state.value = _state.value.copy(showSkipIntro = visible)
     }
 }

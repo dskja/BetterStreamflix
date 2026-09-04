@@ -70,7 +70,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsDisplayFont
 import com.betterstreamflix.download.DownloadArtworkStore
 import com.betterstreamflix.download.DownloadFeature
@@ -220,7 +220,7 @@ fun DownloadsScreen(
                                 listOf(
                                     Color(0x5505070A),
                                     Color(0xBB05070A),
-                                    BsColors.Ink,
+                                    BsTheme.colors.Ink,
                                 ),
                             ),
                         ),
@@ -369,10 +369,10 @@ private fun FilterTabs(
                 modifier = Modifier
                     .scale(scale)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (selected) BsColors.GlassPanelSelected else BsColors.GlassPanel)
+                    .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
                     .border(
                         1.dp,
-                        if (selected) BsColors.FocusRing else BsColors.Hairline,
+                        if (selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                         RoundedCornerShape(14.dp),
                     )
                     .selectable(
@@ -387,7 +387,7 @@ private fun FilterTabs(
                 Text(
                     text = if (count > 0) "$label  $count" else label,
                     style = MaterialTheme.typography.titleSmall,
-                    color = if (selected) BsColors.Mist else BsColors.MistFaint,
+                    color = if (selected) BsTheme.colors.Mist else BsTheme.colors.MistFaint,
                 )
             }
         }
@@ -406,10 +406,10 @@ private fun SearchField(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(BsColors.GlassPanel)
+            .background(BsTheme.colors.GlassPanel)
             .border(
                 1.dp,
-                if (focused) BsColors.FocusRing else BsColors.Hairline,
+                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                 RoundedCornerShape(16.dp),
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -418,9 +418,9 @@ private fun SearchField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            cursorBrush = SolidColor(BsColors.Amber),
+            cursorBrush = SolidColor(BsTheme.colors.Amber),
             textStyle = TextStyle(
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
                 fontSize = 15.sp,
                 fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
             ),
@@ -433,7 +433,7 @@ private fun SearchField(
                         Text(
                             text = placeholder,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = BsColors.MistFaint,
+                            color = BsTheme.colors.MistFaint,
                         )
                     }
                     inner()
@@ -462,19 +462,19 @@ private fun DownloadsEmptyHero(modifier: Modifier = Modifier) {
                     .width(56.dp)
                     .height(3.dp)
                     .alpha(glow)
-                    .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                    .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
             )
             Spacer(modifier = Modifier.height(28.dp))
             Text(
                 text = stringResource(R.string.downloads_empty_title),
                 style = MaterialTheme.typography.headlineLarge.copy(fontFamily = BsDisplayFont),
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.downloads_empty_message),
                 style = MaterialTheme.typography.bodyLarge,
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
             )
         }
     }
@@ -651,7 +651,7 @@ private fun OfflinePosterCard(
                 .fillMaxWidth()
                 .height(176.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
                 model = DownloadArtworkStore.coilModel(task.artworkUrl),
@@ -673,7 +673,7 @@ private fun OfflinePosterCard(
             Text(
                 text = stringResource(R.string.download_open),
                 style = MaterialTheme.typography.labelLarge,
-                color = BsColors.AmberBright,
+                color = BsTheme.colors.AmberBright,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(10.dp),
@@ -682,7 +682,7 @@ private fun OfflinePosterCard(
         Text(
             text = task.title,
             style = MaterialTheme.typography.labelMedium,
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp, start = 2.dp, end = 2.dp),
@@ -690,7 +690,7 @@ private fun OfflinePosterCard(
         Text(
             text = stringResource(R.string.download_delete),
             style = MaterialTheme.typography.labelSmall,
-            color = BsColors.MistFaint,
+            color = BsTheme.colors.MistFaint,
             modifier = Modifier
                 .padding(top = 2.dp, start = 2.dp)
                 .clickable(onClick = onDelete),
@@ -788,7 +788,7 @@ private fun MediaDownloadRow(
                 modifier = Modifier
                     .size(width = 58.dp, height = 84.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(BsColors.InkSoft),
+                    .background(BsTheme.colors.InkSoft),
             ) {
                 AsyncImage(
                     model = DownloadArtworkStore.coilModel(task.artworkUrl),
@@ -801,7 +801,7 @@ private fun MediaDownloadRow(
                 Text(
                     text = task.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = BsColors.Mist,
+                    color = BsTheme.colors.Mist,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -810,9 +810,9 @@ private fun MediaDownloadRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (task.status == DownloadManager.DownloadStatus.FAILED) {
-                        BsColors.Danger
+                        BsTheme.colors.Danger
                     } else {
-                        BsColors.MistFaint
+                        BsTheme.colors.MistFaint
                     },
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -821,7 +821,7 @@ private fun MediaDownloadRow(
                     Text(
                         text = liveStatsLabel,
                         style = MaterialTheme.typography.labelMedium,
-                        color = BsColors.AmberBright,
+                        color = BsTheme.colors.AmberBright,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
@@ -829,7 +829,7 @@ private fun MediaDownloadRow(
                     Text(
                         text = task.errorMessage,
                         style = MaterialTheme.typography.bodySmall,
-                        color = BsColors.Danger,
+                        color = BsTheme.colors.Danger,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 4.dp),
@@ -849,8 +849,8 @@ private fun MediaDownloadRow(
                                 .fillMaxWidth()
                                 .height(2.dp)
                                 .clip(RoundedCornerShape(1.dp)),
-                            color = BsColors.Amber,
-                            trackColor = BsColors.InkSoft,
+                            color = BsTheme.colors.Amber,
+                            trackColor = BsTheme.colors.InkSoft,
                         )
                     } else {
                         LinearProgressIndicator(
@@ -858,8 +858,8 @@ private fun MediaDownloadRow(
                                 .fillMaxWidth()
                                 .height(2.dp)
                                 .clip(RoundedCornerShape(1.dp)),
-                            color = BsColors.Amber,
-                            trackColor = BsColors.InkSoft,
+                            color = BsTheme.colors.Amber,
+                            trackColor = BsTheme.colors.InkSoft,
                         )
                     }
                 }
@@ -868,7 +868,7 @@ private fun MediaDownloadRow(
                 Text(
                     text = primary.first,
                     style = MaterialTheme.typography.labelLarge,
-                    color = BsColors.AmberBright,
+                    color = BsTheme.colors.AmberBright,
                     modifier = Modifier
                         .clickable(onClick = primary.second)
                         .padding(vertical = 4.dp),
@@ -876,7 +876,7 @@ private fun MediaDownloadRow(
                 Text(
                     text = secondary.first,
                     style = MaterialTheme.typography.labelMedium,
-                    color = BsColors.MistFaint,
+                    color = BsTheme.colors.MistFaint,
                     modifier = Modifier
                         .clickable(onClick = secondary.second)
                         .padding(vertical = 4.dp),
@@ -888,7 +888,7 @@ private fun MediaDownloadRow(
                 .padding(top = 14.dp)
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(BsColors.Hairline),
+                .background(BsTheme.colors.Hairline),
         )
     }
 }

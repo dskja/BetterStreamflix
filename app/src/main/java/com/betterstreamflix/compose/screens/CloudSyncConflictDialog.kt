@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsGhostButton
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 
 @Composable
 fun CloudSyncConflictDialog(
@@ -17,11 +17,11 @@ fun CloudSyncConflictDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sync_conflict_title), color = BsColors.Mist) },
+        title = { Text(stringResource(R.string.sync_conflict_title), color = BsTheme.colors.Mist) },
         text = {
             Text(
                 text = stringResource(R.string.sync_conflict_message),
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
             )
         },
         confirmButton = {
@@ -42,6 +42,6 @@ fun CloudSyncConflictDialog(
                 )
             }
         },
-        containerColor = BsColors.InkElevated,
+        containerColor = BsTheme.colors.InkElevated,
     )
 }

@@ -46,7 +46,7 @@ import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.models.Episode
@@ -110,7 +110,7 @@ fun SeasonScreen(
                             seasonTitle,
                         ),
                         style = MaterialTheme.typography.labelSmall,
-                        color = BsColors.MistFaint,
+                        color = BsTheme.colors.MistFaint,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 40.dp, vertical = 4.dp),
@@ -129,17 +129,17 @@ fun SeasonScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(BsColors.InkPanel)
+                                .background(BsTheme.colors.InkPanel)
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsColors.Mist),
-                            cursorBrush = SolidColor(BsColors.Amber),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsTheme.colors.Mist),
+                            cursorBrush = SolidColor(BsTheme.colors.Amber),
                             singleLine = true,
                             decorationBox = { inner ->
                                 if (query.isEmpty()) {
                                     Text(
                                         stringResource(R.string.search_episodes),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = BsColors.MistFaint,
+                                        color = BsTheme.colors.MistFaint,
                                     )
                                 }
                                 inner()
@@ -153,7 +153,7 @@ fun SeasonScreen(
                     Text(
                         text = stringResource(R.string.download_season_all_hint),
                         style = MaterialTheme.typography.labelSmall,
-                        color = BsColors.MistFaint,
+                        color = BsTheme.colors.MistFaint,
                         modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 6.dp),
                     )
                 }
@@ -162,7 +162,7 @@ fun SeasonScreen(
             when {
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsColors.Amber)
+                        CircularProgressIndicator(color = BsTheme.colors.Amber)
                     }
                 }
                 errorMessage != null -> {
@@ -254,7 +254,7 @@ private fun SeasonEpisodeCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(BsColors.InkPanel)
+            .background(BsTheme.colors.InkPanel)
             .clickable(onClick = onOpen)
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -264,7 +264,7 @@ private fun SeasonEpisodeCard(
                 .width(100.dp)
                 .height(56.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
                 model = episode.poster ?: episode.tvShow?.poster,
@@ -279,8 +279,8 @@ private fun SeasonEpisodeCard(
                         .fillMaxWidth()
                         .height(3.dp)
                         .align(Alignment.BottomCenter),
-                    color = BsColors.Amber,
-                    trackColor = BsColors.Ink,
+                    color = BsTheme.colors.Amber,
+                    trackColor = BsTheme.colors.Ink,
                 )
             }
         }
@@ -288,12 +288,12 @@ private fun SeasonEpisodeCard(
             Text(
                 text = episodeLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = BsColors.AmberBright,
+                color = BsTheme.colors.AmberBright,
             )
             Text(
                 text = episode.title.orEmpty(),
                 style = MaterialTheme.typography.titleSmall,
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
@@ -302,7 +302,7 @@ private fun SeasonEpisodeCard(
                 Text(
                     text = overview,
                     style = MaterialTheme.typography.bodySmall,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp),
@@ -311,7 +311,7 @@ private fun SeasonEpisodeCard(
             Text(
                 text = downloadLabel,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (downloadEnabled) BsColors.AmberBright else BsColors.MistFaint,
+                color = if (downloadEnabled) BsTheme.colors.AmberBright else BsTheme.colors.MistFaint,
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .clickable(enabled = downloadEnabled, onClick = onDownload),
@@ -358,7 +358,7 @@ private fun SeasonTvEpisodeCard(
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clip(RoundedCornerShape(14.dp))
-            .background(BsColors.InkPanel)
+            .background(BsTheme.colors.InkPanel)
             .clickable(onClick = onOpen)
             .padding(10.dp),
     ) {
@@ -367,7 +367,7 @@ private fun SeasonTvEpisodeCard(
                 .fillMaxWidth()
                 .height(112.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
                 model = episode.poster ?: episode.tvShow?.poster,
@@ -382,21 +382,21 @@ private fun SeasonTvEpisodeCard(
                         .fillMaxWidth()
                         .height(3.dp)
                         .align(Alignment.BottomCenter),
-                    color = BsColors.Amber,
-                    trackColor = BsColors.Ink,
+                    color = BsTheme.colors.Amber,
+                    trackColor = BsTheme.colors.Ink,
                 )
             }
         }
         Text(
             text = episodeLabel,
             style = MaterialTheme.typography.labelSmall,
-            color = BsColors.AmberBright,
+            color = BsTheme.colors.AmberBright,
             modifier = Modifier.padding(top = 8.dp),
         )
         Text(
             text = episode.title.orEmpty(),
             style = MaterialTheme.typography.titleSmall,
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 4.dp),
@@ -404,7 +404,7 @@ private fun SeasonTvEpisodeCard(
         Text(
             text = downloadLabel,
             style = MaterialTheme.typography.labelMedium,
-            color = BsColors.MistFaint,
+            color = BsTheme.colors.MistFaint,
             modifier = Modifier
                 .padding(top = 8.dp)
                 .clickable(onClick = onDownload),

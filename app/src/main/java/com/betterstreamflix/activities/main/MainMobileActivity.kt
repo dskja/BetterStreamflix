@@ -680,6 +680,7 @@ class MainMobileActivity : FragmentActivity() {
             )
         )
 
+        binding.root.setBackgroundColor(palette.mobileNavBackground)
         binding.bnvMain.setBackgroundColor(palette.mobileNavBackground)
         binding.bnvMain.itemIconTintList = navColors
         binding.bnvMain.itemTextColor = navColors

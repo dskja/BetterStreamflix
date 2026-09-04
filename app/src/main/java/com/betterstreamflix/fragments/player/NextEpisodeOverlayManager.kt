@@ -28,6 +28,7 @@ class NextEpisodeOverlayManager(
     private val fragment: Fragment,
     private val player: ExoPlayer,
     private val database: AppDatabase,
+    private val playbackController: PlayerPlaybackController? = null,
 ) {
     private var nextEpisodeOverlayDismissed = false
     private var nextEpisodePrefetchTargetId: String? = null
@@ -154,6 +155,7 @@ class NextEpisodeOverlayManager(
     }
 
     private fun showSkipIntroButton(show: Boolean) {
+        playbackController?.setSkipIntroVisible(show)
         val cb = controllerBinding ?: return
         val btnSkipIntro = cb.btnSkipIntro
         if (show && btnSkipIntro.isGone) {

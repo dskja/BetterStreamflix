@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Genre
@@ -85,10 +85,10 @@ fun BsGlassPanel(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(if (selected) BsColors.GlassPanelSelected else BsColors.GlassPanel)
+            .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
             .border(
                 width = 1.dp,
-                color = if (selected) BsColors.FocusRing else BsColors.Hairline,
+                color = if (selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                 shape = shape,
             ),
     ) {
@@ -97,7 +97,7 @@ fun BsGlassPanel(
                 .fillMaxWidth()
                 .height(1.dp)
                 .align(Alignment.TopCenter)
-                .background(BsColors.SpecularEdge),
+                .background(BsTheme.colors.SpecularEdge),
         )
         content()
     }
@@ -105,10 +105,11 @@ fun BsGlassPanel(
 
 @Composable
 fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val colors = BsTheme.colors
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(BsColors.Atmosphere),
+            .background(colors.Atmosphere),
     ) {
         Box(
             modifier = Modifier
@@ -118,8 +119,8 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0x422A6462),
-                            Color(0x1A2A6462),
+                            colors.SeaGlassSoft.copy(alpha = 0.26f),
+                            colors.SeaGlassSoft.copy(alpha = 0.10f),
                             Color.Transparent,
                         ),
                     ),
@@ -133,8 +134,8 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0x38E9B04A),
-                            Color(0x16E9B04A),
+                            colors.Amber.copy(alpha = 0.22f),
+                            colors.Amber.copy(alpha = 0.08f),
                             Color.Transparent,
                         ),
                     ),
@@ -149,7 +150,7 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0x14FFFFFF),
+                            colors.SpecularSoft,
                             Color.Transparent,
                         ),
                     ),
@@ -158,12 +159,12 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BsColors.AtmosphereSheen),
+                .background(colors.AtmosphereSheen),
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BsColors.CinemaVignette),
+                .background(colors.CinemaVignette),
         )
         content()
     }
@@ -189,7 +190,7 @@ fun BsBrandMark(
             } else {
                 MaterialTheme.typography.headlineMedium.copy(letterSpacing = 1.8.sp)
             },
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
         )
         Box(
             modifier = Modifier
@@ -197,7 +198,7 @@ fun BsBrandMark(
                 .width(if (compact) 40.dp else 64.dp)
                 .height(if (compact) 2.dp else 3.dp)
                 .graphicsLayer { alpha = glow }
-                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
         )
     }
 }
@@ -215,13 +216,13 @@ fun BsTopBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(BsColors.GlassTopBar),
+            .background(BsTheme.colors.GlassTopBar),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(BsColors.SpecularEdge),
+                .background(BsTheme.colors.SpecularEdge),
         )
         Row(
             modifier = Modifier
@@ -249,7 +250,7 @@ fun BsTopBar(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.headlineMedium,
-                        color = BsColors.Mist,
+                        color = BsTheme.colors.Mist,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -257,7 +258,7 @@ fun BsTopBar(
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = BsColors.MistDim,
+                            color = BsTheme.colors.MistDim,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 2.dp),
@@ -271,7 +272,7 @@ fun BsTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(BsColors.Hairline),
+                .background(BsTheme.colors.Hairline),
         )
     }
 }
@@ -295,12 +296,12 @@ fun BsSectionHeader(
                     .padding(end = 10.dp)
                     .width(3.dp)
                     .height(14.dp)
-                    .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                    .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
             )
             Text(
                 text = title.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
             )
         }
         trailing?.invoke()
@@ -316,7 +317,7 @@ fun BsStatusBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BsColors.BannerStrip)
+                .background(BsTheme.colors.BannerStrip)
                 .padding(horizontal = 14.dp, vertical = 12.dp)
                 .semantics { liveRegion = LiveRegionMode.Polite },
             verticalAlignment = Alignment.CenterVertically,
@@ -326,12 +327,12 @@ fun BsStatusBanner(
                     .padding(end = 10.dp)
                     .size(8.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(BsColors.AmberBright),
+                    .background(BsTheme.colors.AmberBright),
             )
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,
-                color = BsColors.AmberBright,
+                color = BsTheme.colors.AmberBright,
             )
         }
     }
@@ -358,8 +359,8 @@ fun BsPrimaryButton(
         shape = RoundedCornerShape(14.dp),
         interactionSource = interaction,
         colors = ButtonDefaults.buttonColors(
-            containerColor = BsColors.Amber,
-            contentColor = BsColors.Ink,
+            containerColor = BsTheme.colors.Amber,
+            contentColor = BsTheme.colors.Ink,
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
     ) {
@@ -377,9 +378,9 @@ fun BsGhostButton(
         onClick = onClick,
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(BsColors.GlassSoft)
-            .border(1.dp, BsColors.Hairline, RoundedCornerShape(12.dp)),
-        colors = ButtonDefaults.textButtonColors(contentColor = BsColors.AmberBright),
+            .background(BsTheme.colors.GlassSoft)
+            .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(12.dp)),
+        colors = ButtonDefaults.textButtonColors(contentColor = BsTheme.colors.AmberBright),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
@@ -420,17 +421,17 @@ fun BsHeroBanner(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BsColors.HeroWash),
+                .background(BsTheme.colors.HeroWash),
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BsColors.HeroSideWash),
+                .background(BsTheme.colors.HeroSideWash),
         )
         Column(
             modifier = Modifier
@@ -445,7 +446,7 @@ fun BsHeroBanner(
             Text(
                 text = title,
                 style = MaterialTheme.typography.displayLarge,
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -454,7 +455,7 @@ fun BsHeroBanner(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -580,7 +581,7 @@ fun BsContinueWatchingCard(
                 .fillMaxWidth()
                 .height(200.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
                 model = imageUrl,
@@ -595,7 +596,7 @@ fun BsContinueWatchingCard(
                         .fillMaxWidth()
                         .height(3.dp)
                         .align(Alignment.BottomCenter),
-                    color = BsColors.Amber,
+                    color = BsTheme.colors.Amber,
                     trackColor = Color(0x6607090D),
                 )
             }
@@ -604,14 +605,14 @@ fun BsContinueWatchingCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = BsColors.AmberBright,
+                color = BsTheme.colors.AmberBright,
                 modifier = Modifier.padding(top = 6.dp, start = 2.dp),
             )
         }
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium,
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 4.dp, start = 2.dp, end = 2.dp),
@@ -660,10 +661,10 @@ fun BsGenreTile(
             .height(88.dp)
             .scale(scale)
             .clip(RoundedCornerShape(14.dp))
-            .background(BsColors.InkPanel)
+            .background(BsTheme.colors.InkPanel)
             .border(
                 width = 1.dp,
-                color = if (focused) BsColors.FocusRing else BsColors.Hairline,
+                color = if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                 shape = RoundedCornerShape(14.dp),
             )
             .onFocusChanged { focused = it.isFocused }
@@ -681,12 +682,12 @@ fun BsGenreTile(
                 .padding(end = 12.dp)
                 .width(3.dp)
                 .height(28.dp)
-                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
         )
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -721,7 +722,7 @@ fun BsPosterCard(
                 onLongClick = onLongClick,
             )
             .then(
-                if (focused) Modifier.border(2.dp, BsColors.FocusRing, RoundedCornerShape(12.dp))
+                if (focused) Modifier.border(2.dp, BsTheme.colors.FocusRing, RoundedCornerShape(12.dp))
                 else Modifier,
             ),
     ) {
@@ -730,7 +731,7 @@ fun BsPosterCard(
                 .fillMaxWidth()
                 .height(186.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
                 model = imageUrl,
@@ -753,7 +754,7 @@ fun BsPosterCard(
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.15.sp),
-            color = BsColors.Mist,
+            color = BsTheme.colors.Mist,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp, start = 2.dp, end = 2.dp),
@@ -781,7 +782,7 @@ fun BsSearchResultRow(
             modifier = Modifier
                 .size(width = 56.dp, height = 80.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(BsColors.InkSoft),
+                .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
                 model = imageUrl,
@@ -794,7 +795,7 @@ fun BsSearchResultRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -802,7 +803,7 @@ fun BsSearchResultRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = BsColors.MistFaint,
+                    color = BsTheme.colors.MistFaint,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -829,18 +830,18 @@ fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
                         .padding(bottom = 16.dp)
                         .width(48.dp)
                         .height(3.dp)
-                        .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                        .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
                 )
                 Text(
                     text = stringResource(R.string.bs_empty_title),
                     style = MaterialTheme.typography.titleLarge,
-                    color = BsColors.Mist,
+                    color = BsTheme.colors.Mist,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                 )
             }
         }
@@ -866,18 +867,18 @@ fun BsErrorState(message: String, modifier: Modifier = Modifier) {
                         .padding(bottom = 16.dp)
                         .size(10.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(BsColors.Danger),
+                        .background(BsTheme.colors.Danger),
                 )
                 Text(
                     text = stringResource(R.string.bs_error_title),
                     style = MaterialTheme.typography.titleLarge,
-                    color = BsColors.Danger,
+                    color = BsTheme.colors.Danger,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                 )
             }
         }
@@ -902,7 +903,7 @@ fun BsShimmerRow(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(width = 124.dp, height = 178.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(BsColors.InkSoft.copy(alpha = pulse)),
+                    .background(BsTheme.colors.InkSoft.copy(alpha = pulse)),
             )
         }
     }
@@ -925,12 +926,12 @@ fun BsProviderChip(
         label = "providerChipScale",
     )
     val bg = when {
-        selected -> BsColors.Amber
-        else -> BsColors.InkPanel
+        selected -> BsTheme.colors.Amber
+        else -> BsTheme.colors.InkPanel
     }
     val fg = when {
-        selected -> BsColors.Ink
-        else -> BsColors.Mist
+        selected -> BsTheme.colors.Ink
+        else -> BsTheme.colors.Mist
     }
     Row(
         modifier = modifier
@@ -942,9 +943,9 @@ fun BsProviderChip(
             .border(
                 width = if (focused) 2.dp else 1.dp,
                 color = when {
-                    focused -> BsColors.FocusRing
+                    focused -> BsTheme.colors.FocusRing
                     selected -> Color.Transparent
-                    else -> BsColors.Hairline
+                    else -> BsTheme.colors.Hairline
                 },
                 shape = RoundedCornerShape(12.dp),
             )
@@ -963,7 +964,7 @@ fun BsProviderChip(
             Text(
                 text = stringResource(R.string.provider_status_offline),
                 style = MaterialTheme.typography.labelSmall,
-                color = if (selected) BsColors.Ink else BsColors.Danger,
+                color = if (selected) BsTheme.colors.Ink else BsTheme.colors.Danger,
             )
         }
     }
@@ -976,12 +977,12 @@ fun BsSettingsItem(title: String, subtitle: String? = null, modifier: Modifier =
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 14.dp),
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
+        Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsTheme.colors.Mist)
         if (!subtitle.isNullOrBlank()) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
@@ -990,7 +991,7 @@ fun BsSettingsItem(title: String, subtitle: String? = null, modifier: Modifier =
                 .padding(top = 14.dp)
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(BsColors.Hairline),
+                .background(BsTheme.colors.Hairline),
         )
     }
 }
@@ -1022,7 +1023,7 @@ fun BsDownloadProgress(progress: Float, modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .height(4.dp)
             .clip(RoundedCornerShape(2.dp)),
-        color = BsColors.Amber,
-        trackColor = BsColors.InkSoft,
+        color = BsTheme.colors.Amber,
+        trackColor = BsTheme.colors.InkSoft,
     )
 }
