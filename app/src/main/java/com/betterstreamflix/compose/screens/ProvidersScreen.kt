@@ -57,6 +57,7 @@ fun ProvidersScreen(
             BsTopBar(
                 title = stringResource(R.string.providers_choose_title),
                 showBrand = true,
+                horizontalPadding = horizontalPadding,
                 actions = {
                     BsGhostButton(
                         text = stringResource(R.string.provider_marketplace_title),

@@ -67,8 +67,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
-import com.betterstreamflix.compose.components.BsBrandMark
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsDisplayFont
 import com.betterstreamflix.download.DownloadArtworkStore
@@ -207,18 +207,18 @@ fun DownloadsScreen(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(340.dp)
-                        .alpha(0.28f),
+                        .height(220.dp)
+                        .alpha(0.22f),
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(340.dp)
+                        .height(220.dp)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0x6607090D),
-                                    Color(0xCC07090D),
+                                    Color(0x5505070A),
+                                    Color(0xBB05070A),
                                     BsColors.Ink,
                                 ),
                             ),
@@ -228,10 +228,10 @@ fun DownloadsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp)
+                        .height(160.dp)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color(0x33E8A838), Color(0x110B121A), Color.Transparent),
+                                listOf(Color(0x33E9B04A), Color(0x110B121A), Color.Transparent),
                             ),
                         ),
                 )
@@ -242,42 +242,27 @@ fun DownloadsScreen(
                     .fillMaxSize()
                     .alpha(headerAlpha),
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = horizontalPadding, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        BsBrandMark(compact = true)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.downloads_title),
-                            style = MaterialTheme.typography.displayMedium,
-                            color = BsColors.Mist,
+                BsTopBar(
+                    title = stringResource(R.string.downloads_title),
+                    showBrand = true,
+                    subtitle = storageLabel
+                        ?: if (downloads.isEmpty()) {
+                            stringResource(R.string.downloads_empty_title)
+                        } else {
+                            stringResource(
+                                R.string.downloads_count_summary,
+                                ready.size,
+                                queue.size,
+                            )
+                        },
+                    horizontalPadding = horizontalPadding,
+                    actions = {
+                        BsGhostButton(
+                            text = stringResource(R.string.main_menu_settings),
+                            onClick = { showSettings = true },
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = storageLabel
-                                ?: if (downloads.isEmpty()) {
-                                    stringResource(R.string.downloads_empty_title)
-                                } else {
-                                    stringResource(
-                                        R.string.downloads_count_summary,
-                                        ready.size,
-                                        queue.size,
-                                    )
-                                },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = BsColors.MistDim,
-                        )
-                    }
-                    BsGhostButton(
-                        text = stringResource(R.string.main_menu_settings),
-                        onClick = { showSettings = true },
-                    )
-                }
+                    },
+                )
 
                 if (showSettings) {
                     DownloadSettingsSheet(
@@ -307,7 +292,7 @@ fun DownloadsScreen(
                         horizontalPadding = horizontalPadding,
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     SearchField(
                         value = query,
                         onValueChange = { query = it },
@@ -364,7 +349,7 @@ private fun FilterTabs(
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = horizontalPadding)
             .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         DownloadsFilter.entries.forEach { tab ->
             val selected = filter == tab
@@ -374,6 +359,11 @@ private fun FilterTabs(
                 DownloadsFilter.FAILED -> stringResource(R.string.downloads_filter_failed)
             }
             val count = counts[tab] ?: 0
+            val indicatorWidth by animateFloatAsState(
+                targetValue = if (selected) 1f else 0f,
+                animationSpec = BsMotion.TabSelect,
+                label = "dlTabIndicator",
+            )
             Column(
                 modifier = Modifier
                     .selectable(
@@ -383,7 +373,7 @@ private fun FilterTabs(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
                     )
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 10.dp),
             ) {
                 Text(
                     text = if (count > 0) "$label  $count" else label,
@@ -393,7 +383,7 @@ private fun FilterTabs(
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
-                        .width(if (selected) 32.dp else 0.dp)
+                        .width((36f * indicatorWidth).dp)
                         .height(2.dp)
                         .background(BsColors.Amber, RoundedCornerShape(1.dp)),
                 )

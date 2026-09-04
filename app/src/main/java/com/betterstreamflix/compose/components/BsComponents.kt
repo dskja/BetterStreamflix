@@ -80,23 +80,31 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.72f)
-                .fillMaxHeight(0.46f)
+                .fillMaxWidth(0.78f)
+                .fillMaxHeight(0.52f)
                 .align(Alignment.TopEnd)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(Color(0x402A5F5E), Color(0x182D6B6A), Color.Transparent),
+                        colors = listOf(
+                            Color(0x382A6462),
+                            Color(0x182A6462),
+                            Color.Transparent,
+                        ),
                     ),
                 ),
         )
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.55f)
-                .fillMaxHeight(0.38f)
+                .fillMaxWidth(0.62f)
+                .fillMaxHeight(0.42f)
                 .align(Alignment.BottomStart)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(Color(0x28E8A838), Color(0x10E8A838), Color.Transparent),
+                        colors = listOf(
+                            Color(0x30E9B04A),
+                            Color(0x14E9B04A),
+                            Color.Transparent,
+                        ),
                     ),
                 ),
         )
@@ -104,6 +112,11 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
             modifier = Modifier
                 .fillMaxSize()
                 .background(BsColors.AtmosphereSheen),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BsColors.CinemaVignette),
         )
         content()
     }
@@ -284,14 +297,15 @@ fun BsPrimaryButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .height(48.dp)
+            .height(50.dp)
             .scale(scale),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         interactionSource = interaction,
         colors = ButtonDefaults.buttonColors(
             containerColor = BsColors.Amber,
             contentColor = BsColors.Ink,
         ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
@@ -338,7 +352,7 @@ fun BsHeroBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(440.dp)
+            .height(520.dp)
             .alpha(alpha),
     ) {
         AsyncImage(
@@ -363,21 +377,21 @@ fun BsHeroBanner(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .offset(y = rise.dp)
-                .padding(horizontal = 20.dp, vertical = 30.dp),
+                .padding(horizontal = 22.dp, vertical = 36.dp),
         ) {
             if (brandVisible) {
                 BsBrandMark()
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(22.dp))
             }
             Text(
                 text = title,
-                style = MaterialTheme.typography.displayMedium,
+                style = MaterialTheme.typography.displayLarge,
                 color = BsColors.Mist,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (!subtitle.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyLarge,
@@ -386,7 +400,7 @@ fun BsHeroBanner(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(22.dp))
             BsPrimaryButton(text = ctaLabel, onClick = onCta)
         }
     }

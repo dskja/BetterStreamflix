@@ -6,16 +6,16 @@
     <color name="ic_banner_background">#07090D</color>
 
     <!-- Obsidian Stream palette -->
-    <color name="bs_ink">#07090D</color>
-    <color name="bs_ink_elevated">#10151C</color>
-    <color name="bs_ink_panel">#161D27</color>
-    <color name="bs_ink_soft">#1E2733</color>
-    <color name="bs_amber">#E8A838</color>
-    <color name="bs_amber_bright">#F2C15A</color>
-    <color name="bs_amber_muted">#9A6E24</color>
-    <color name="bs_mist">#E8EDF4</color>
-    <color name="bs_mist_dim">#A8B3C4</color>
-    <color name="bs_mist_faint">#6B778A</color>
+    <color name="bs_ink">#05070A</color>
+    <color name="bs_ink_elevated">#0C1118</color>
+    <color name="bs_ink_panel">#141B24</color>
+    <color name="bs_ink_soft">#1C2531</color>
+    <color name="bs_amber">#E9B04A</color>
+    <color name="bs_amber_bright">#F6D07A</color>
+    <color name="bs_amber_muted">#A6792C</color>
+    <color name="bs_mist">#F1F4F8</color>
+    <color name="bs_mist_dim">#B0BAC8</color>
+    <color name="bs_mist_faint">#6F7B8E</color>
     <color name="bs_sea_glass">#3D8B8A</color>
     <color name="bs_danger">#E05A5A</color>
     <color name="bs_hairline">#22E8EDF4</color>

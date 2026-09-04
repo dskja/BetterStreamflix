@@ -51,9 +51,9 @@ fun PlayerControlsOverlay(
             .background(
                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                     colors = listOf(
-                        androidx.compose.ui.graphics.Color(0x0007090D),
-                        androidx.compose.ui.graphics.Color(0xCC07090D),
-                        androidx.compose.ui.graphics.Color(0xF207090D),
+                        androidx.compose.ui.graphics.Color(0x0005070A),
+                        androidx.compose.ui.graphics.Color(0xCC05070A),
+                        androidx.compose.ui.graphics.Color(0xF505070A),
                     ),
                 ),
             )
