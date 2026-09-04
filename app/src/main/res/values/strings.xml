@@ -791,8 +791,8 @@
     <string name="settings_quick_access">Quick access</string>
     <string name="settings_section_buffering_quality">Buffering &amp; quality</string>
     <string name="settings_section_look_feel">Look &amp; feel</string>
-    <string name="settings_theme_gallery_title">Cinema themes</string>
-    <string name="settings_theme_gallery_subtitle">Tap a look to apply it instantly</string>
+    <string name="settings_theme_gallery_title">Liquid Glass looks</string>
+    <string name="settings_theme_gallery_subtitle">Pick a cinema look — applies on tap</string>
     <string name="settings_theme_selected">Selected</string>
     <string name="player_overlay_live">Playing</string>
     <string name="settings_section_accessibility">Accessibility</string>

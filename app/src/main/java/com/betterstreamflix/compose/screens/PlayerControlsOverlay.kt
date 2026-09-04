@@ -83,16 +83,7 @@ fun PlayerControlsOverlay(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0x0005070A),
-                        Color(0x9905070A),
-                        Color(0xEE05070A),
-                        Color(0xF805070A),
-                    ),
-                ),
-            )
+            .background(BsColors.PlayerGlass)
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -238,10 +229,10 @@ private fun PlayerSeekChip(
 ) {
     Box(
         modifier = Modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(BsColors.InkGlass)
-            .border(1.dp, BsColors.HairlineStrong, RoundedCornerShape(20.dp))
+            .height(42.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(BsColors.GlassPanel)
+            .border(1.dp, BsColors.HairlineStrong, RoundedCornerShape(14.dp))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -251,6 +242,13 @@ private fun PlayerSeekChip(
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(14.dp))
+                .background(BsColors.SpecularEdge)
+                .alpha(0.35f),
+        )
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,

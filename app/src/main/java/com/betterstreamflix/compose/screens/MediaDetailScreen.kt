@@ -1,6 +1,7 @@
 package com.betterstreamflix.compose.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -304,7 +305,8 @@ private fun CastChip(person: People, onClick: () -> Unit) {
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(BsColors.InkPanel),
+                .background(BsColors.InkPanel)
+                .border(1.dp, BsColors.Hairline, CircleShape),
         )
         Text(
             text = person.name,
@@ -329,8 +331,9 @@ private fun SeasonChip(season: Season, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(BsColors.InkPanel),
+                .clip(RoundedCornerShape(12.dp))
+                .background(BsColors.InkPanel)
+                .border(1.dp, BsColors.Hairline, RoundedCornerShape(12.dp)),
         ) {
             AsyncImage(
                 model = season.poster,

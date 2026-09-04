@@ -77,8 +77,8 @@ fun ProvidersScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BsColors.Amber,
                     unfocusedBorderColor = BsColors.Hairline,
-                    focusedContainerColor = BsColors.InkPanel,
-                    unfocusedContainerColor = BsColors.InkElevated,
+                    focusedContainerColor = BsColors.GlassStrong,
+                    unfocusedContainerColor = BsColors.Glass,
                     focusedTextColor = BsColors.Mist,
                     unfocusedTextColor = BsColors.Mist,
                     cursorColor = BsColors.Amber,
@@ -101,7 +101,7 @@ fun ProvidersScreen(
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = BsColors.Amber,
                             selectedLabelColor = BsColors.Ink,
-                            containerColor = BsColors.InkPanel,
+                            containerColor = BsColors.Glass,
                             labelColor = BsColors.MistDim,
                         ),
                     )

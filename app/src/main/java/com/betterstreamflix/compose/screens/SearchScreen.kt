@@ -98,8 +98,8 @@ fun SearchScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BsColors.Amber,
                     unfocusedBorderColor = BsColors.Hairline,
-                    focusedContainerColor = BsColors.InkPanel,
-                    unfocusedContainerColor = BsColors.InkElevated,
+                    focusedContainerColor = BsColors.GlassStrong,
+                    unfocusedContainerColor = BsColors.Glass,
                     focusedTextColor = BsColors.Mist,
                     unfocusedTextColor = BsColors.Mist,
                     cursorColor = BsColors.Amber,
@@ -136,7 +136,7 @@ fun SearchScreen(
                                 color = BsColors.Mist,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(BsColors.InkPanel)
+                                    .background(BsColors.GlassPanel)
                                     .border(1.dp, BsColors.Hairline, RoundedCornerShape(14.dp))
                                     .focusable()
                                     .semantics { contentDescription = recentCd }

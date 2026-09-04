@@ -79,8 +79,7 @@ fun BsSettingsSectionLabel(
 }
 
 /**
- * A hub destination tile — a large, focusable navigation entry with an amber hairline
- * accent, used on the Settings hub to route into a settings sub-section.
+ * A hub destination tile — liquid-glass navigation entry into a settings section.
  */
 @Composable
 fun BsSettingsNavTile(
@@ -92,75 +91,75 @@ fun BsSettingsNavTile(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.02f else 1f,
+        targetValue = if (focused) 1.015f else 1f,
         animationSpec = BsMotion.FocusSpring,
         label = "navTileScale",
     )
-    Row(
+    BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (focused) BsColors.InkPanel else BsColors.InkElevated)
-            .border(
-                width = 1.dp,
-                color = if (focused) BsColors.FocusRing else BsColors.Hairline,
-                shape = RoundedCornerShape(14.dp),
-            )
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
-            )
-            .padding(horizontal = 18.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            ),
+        selected = focused,
+        corner = 16.dp,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(if (subtitle.isNullOrBlank()) 20.dp else 34.dp)
-                    .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(if (subtitle.isNullOrBlank()) 20.dp else 34.dp)
+                        .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                )
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = BsColors.Mist,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!subtitle.isNullOrBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BsColors.MistDim,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 3.dp),
+                        )
+                    }
+                }
+            }
+            if (!accentHint.isNullOrBlank()) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = BsColors.Mist,
+                    text = accentHint,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BsColors.AmberBright,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = BsColors.MistDim,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 3.dp),
-                    )
-                }
+            } else {
+                Text(
+                    text = "\u203A",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = BsColors.MistFaint,
+                )
             }
-        }
-        if (!accentHint.isNullOrBlank()) {
-            Text(
-                text = accentHint,
-                style = MaterialTheme.typography.labelSmall,
-                color = BsColors.AmberBright,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        } else {
-            Text(
-                text = "\u203A",
-                style = MaterialTheme.typography.titleLarge,
-                color = BsColors.MistFaint,
-            )
         }
     }
 }
@@ -324,7 +323,141 @@ private fun BsSettingsHairline(modifier: Modifier = Modifier) {
 }
 
 /**
- * Visual theme swatch used in the Appearance gallery.
+ * Full-width liquid-glass theme picker row (safe inside LazyColumn — no nested LazyRow).
+ */
+@Composable
+fun BsThemePickRow(
+    title: String,
+    selected: Boolean,
+    accent: Color,
+    canvas: Color,
+    soft: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = when {
+            focused -> 1.01f
+            selected -> 1.005f
+            else -> 1f
+        },
+        animationSpec = BsMotion.FocusSpring,
+        label = "themePickScale",
+    )
+    BsGlassPanel(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding, vertical = 6.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            ),
+        selected = selected || focused,
+        corner = 18.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(88.dp)
+                    .height(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(canvas)
+                    .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(BsColors.Specular),
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(10.dp)
+                        .width(32.dp)
+                        .height(7.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(accent),
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .width(16.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(soft.copy(alpha = 0.85f)),
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (selected) BsColors.Mist else BsColors.MistDim,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (selected) {
+                        stringResource(R.string.settings_theme_selected)
+                    } else {
+                        stringResource(R.string.settings_theme_gallery_subtitle)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (selected) accent else BsColors.MistFaint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(22.dp)
+                    .height(22.dp)
+                    .clip(RoundedCornerShape(50))
+                    .border(
+                        width = 1.5.dp,
+                        color = if (selected) accent else BsColors.HairlineStrong,
+                        shape = RoundedCornerShape(50),
+                    )
+                    .then(
+                        if (selected) {
+                            Modifier.background(accent.copy(alpha = 0.25f))
+                        } else {
+                            Modifier
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .width(10.dp)
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(accent),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Visual theme swatch used in compact galleries (TV or legacy). Prefer [BsThemePickRow].
  */
 @Composable
 fun BsThemeGalleryCard(
@@ -336,85 +469,16 @@ fun BsThemeGalleryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = when {
-            focused -> 1.04f
-            selected -> 1.02f
-            else -> 1f
-        },
-        animationSpec = BsMotion.FocusSpring,
-        label = "themeCardScale",
+    BsThemePickRow(
+        title = title,
+        selected = selected,
+        accent = accent,
+        canvas = canvas,
+        soft = soft,
+        onClick = onClick,
+        modifier = modifier,
+        horizontalPadding = 0.dp,
     )
-    Column(
-        modifier = modifier
-            .width(132.dp)
-            .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(BsColors.InkElevated)
-            .border(
-                width = if (selected || focused) 1.5.dp else 1.dp,
-                color = when {
-                    selected -> accent
-                    focused -> BsColors.FocusRing
-                    else -> BsColors.Hairline
-                },
-                shape = RoundedCornerShape(16.dp),
-            )
-            .onFocusChanged { focused = it.isFocused }
-            .focusable()
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = onClick,
-            )
-            .padding(10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(canvas),
-        ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-                    .width(36.dp)
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(accent),
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(10.dp)
-                    .width(18.dp)
-                    .height(18.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(soft),
-            )
-            if (selected) {
-                Text(
-                    text = stringResource(R.string.settings_theme_selected),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accent,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp),
-                )
-            }
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) BsColors.Mist else BsColors.MistDim,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 10.dp, start = 2.dp, end = 2.dp, bottom = 2.dp),
-        )
-    }
 }
 
 /**
@@ -429,43 +493,47 @@ fun BsSettingsFeatureCard(
     modifier: Modifier = Modifier,
     horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
 ) {
-    Row(
+    BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = horizontalPadding, vertical = 8.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(BsColors.InkPanel)
-            .border(1.dp, if (checked) BsColors.FocusRing else BsColors.Hairline, RoundedCornerShape(18.dp))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = { onCheckedChange(!checked) },
-            )
-            .padding(horizontal = 18.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            ),
+        selected = checked,
+        corner = 18.dp,
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = BsColors.MistDim,
-                modifier = Modifier.padding(top = 4.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BsColors.MistDim,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = BsColors.Ink,
+                    checkedTrackColor = BsColors.Amber,
+                    checkedBorderColor = Color.Transparent,
+                    uncheckedThumbColor = BsColors.MistDim,
+                    uncheckedTrackColor = BsColors.InkSoft,
+                    uncheckedBorderColor = BsColors.Hairline,
+                ),
             )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = BsColors.Ink,
-                checkedTrackColor = BsColors.Amber,
-                checkedBorderColor = Color.Transparent,
-                uncheckedThumbColor = BsColors.MistDim,
-                uncheckedTrackColor = BsColors.InkSoft,
-                uncheckedBorderColor = BsColors.Hairline,
-            ),
-        )
     }
 }
 
