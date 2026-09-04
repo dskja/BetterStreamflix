@@ -52,6 +52,7 @@ fun FavoritesScreen(
             BsTopBar(
                 title = stringResource(R.string.main_menu_favorites),
                 showBrand = true,
+                horizontalPadding = horizontalPadding,
                 actions = {
                     if (hasItems) {
                         BsGhostButton(

@@ -1,28 +1,51 @@
 package com.betterstreamflix.compose.screens
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.fragments.player.PlayerPlaybackController
 import kotlin.math.max
 
@@ -44,89 +67,127 @@ fun PlayerControlsOverlay(
     }
     val rewindLabel = stringResource(R.string.player_seek_back)
     val forwardLabel = stringResource(R.string.player_seek_forward)
+    val playScale by animateFloatAsState(
+        targetValue = if (state.isPlaying) 1f else 1.04f,
+        animationSpec = BsMotion.PressSpring,
+        label = "playScale",
+    )
+    val bufferPulse = rememberInfiniteTransition(label = "bufferPulse")
+    val bufferAlpha by bufferPulse.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "bufferAlpha",
+    )
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                brush = Brush.verticalGradient(
                     colors = listOf(
-                        androidx.compose.ui.graphics.Color(0x0007090D),
-                        androidx.compose.ui.graphics.Color(0xCC07090D),
-                        androidx.compose.ui.graphics.Color(0xF207090D),
+                        Color(0x0005070A),
+                        Color(0x9905070A),
+                        Color(0xEE05070A),
+                        Color(0xF805070A),
                     ),
                 ),
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (state.title.isNotBlank()) {
-            Text(
-                text = state.title,
-                style = MaterialTheme.typography.titleSmall,
-                color = BsColors.Mist,
-                maxLines = 1,
-            )
-            if (state.subtitle.isNotBlank()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = state.subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = BsColors.MistDim,
+                    text = state.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = BsColors.Mist,
                     maxLines = 1,
+                )
+                if (state.subtitle.isNotBlank()) {
+                    Text(
+                        text = state.subtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = BsColors.MistDim,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .width(36.dp)
+                        .height(2.dp)
+                        .background(BsColors.AmberGlow, RoundedCornerShape(1.dp)),
                 )
             }
         }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            IconButton(
-                onClick = {
-                    onSeek((state.positionMs - SEEK_STEP_MS).coerceAtLeast(0L))
-                },
-                modifier = Modifier.semantics { contentDescription = rewindLabel },
-            ) {
-                Text(
-                    text = "−10",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = BsColors.Amber,
-                )
+            PlayerSeekChip(label = "−10", contentDescription = rewindLabel) {
+                onSeek((state.positionMs - SEEK_STEP_MS).coerceAtLeast(0L))
             }
-            IconButton(
-                onClick = onPlayPause,
-                modifier = Modifier.semantics { contentDescription = playPauseLabel },
+
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .scale(playScale)
+                    .clip(CircleShape)
+                    .background(BsColors.Amber)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = onPlayPause,
+                    )
+                    .semantics { contentDescription = playPauseLabel },
+                contentAlignment = Alignment.Center,
             ) {
                 if (state.isPlaying) {
                     Text(
                         text = "❚❚",
                         style = MaterialTheme.typography.titleMedium,
-                        color = BsColors.Amber,
+                        color = BsColors.Ink,
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = playPauseLabel,
-                        tint = BsColors.Amber,
+                        tint = BsColors.Ink,
+                        modifier = Modifier.size(30.dp),
                     )
                 }
             }
-            IconButton(
-                onClick = {
-                    onSeek((state.positionMs + SEEK_STEP_MS).coerceAtMost(durationMs))
-                },
-                modifier = Modifier.semantics { contentDescription = forwardLabel },
-            ) {
-                Text(
-                    text = "+10",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = BsColors.Amber,
-                )
+
+            PlayerSeekChip(label = "+10", contentDescription = forwardLabel) {
+                onSeek((state.positionMs + SEEK_STEP_MS).coerceAtMost(durationMs))
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = if (state.isPlaying) {
+                    stringResource(R.string.player_overlay_live)
+                } else {
+                    playPauseLabel
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = BsColors.AmberBright,
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(
                 text = formatPlaybackTime(state.positionMs),
-                style = MaterialTheme.typography.bodySmall,
-                color = BsColors.MistDim,
+                style = MaterialTheme.typography.labelLarge,
+                color = BsColors.Mist,
             )
             Slider(
                 modifier = Modifier.weight(1f),
@@ -135,24 +196,66 @@ fun PlayerControlsOverlay(
                     onSeek((fraction * durationMs).toLong())
                 },
                 colors = SliderDefaults.colors(
-                    thumbColor = BsColors.Amber,
+                    thumbColor = BsColors.AmberBright,
                     activeTrackColor = BsColors.Amber,
                     inactiveTrackColor = BsColors.InkSoft,
                 ),
             )
             Text(
                 text = formatPlaybackTime(state.durationMs),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelLarge,
                 color = BsColors.MistDim,
             )
         }
+
         if (state.isBuffering) {
-            Text(
-                text = stringResource(R.string.player_buffering),
-                style = MaterialTheme.typography.labelSmall,
-                color = BsColors.AmberBright,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.alpha(bufferAlpha),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(BsColors.AmberBright),
+                )
+                Text(
+                    text = stringResource(R.string.player_buffering),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = BsColors.AmberBright,
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun PlayerSeekChip(
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(BsColors.InkGlass)
+            .border(1.dp, BsColors.HairlineStrong, RoundedCornerShape(20.dp))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .semantics { this.contentDescription = contentDescription }
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = BsColors.AmberBright,
+        )
     }
 }
 

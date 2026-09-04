@@ -103,7 +103,7 @@ fun MediaDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isTvLayout) 380.dp else 300.dp)
+                            .height(if (isTvLayout) 460.dp else 380.dp)
                             .background(BsColors.InkSoft),
                     ) {
                         AsyncImage(
@@ -124,17 +124,17 @@ fun MediaDetailScreen(
                         )
                         if (!isTvLayout) {
                             BsGhostButton(
-                                text = "‹",
+                                text = stringResource(R.string.settings_back),
                                 onClick = onBack,
                                 modifier = Modifier.padding(12.dp),
                             )
                         }
                     }
 
-                    Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 18.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 20.dp)) {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.headlineLarge,
+                            style = MaterialTheme.typography.displayMedium,
                             color = BsColors.Mist,
                         )
                         metaLine?.takeIf { it.isNotBlank() }?.let {
