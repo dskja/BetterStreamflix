@@ -42,7 +42,7 @@ object BsMotion {
     )
     val PressSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMediumHigh,
+        stiffness = Spring.StiffnessMedium,
     )
     val HeroFade = tween<Float>(durationMillis = 480)
     val HeroRise = tween<Float>(durationMillis = 520)
