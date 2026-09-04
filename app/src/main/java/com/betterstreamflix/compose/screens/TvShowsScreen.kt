@@ -88,7 +88,7 @@ fun TvShowsScreen(
                         }
                     }
                 }
-                shows.isEmpty() -> {
+                shows.isEmpty() && !isLoadingMore -> {
                     BsEmptyState(
                         message = stringResource(R.string.tv_shows_empty),
                         modifier = Modifier.fillMaxSize(),

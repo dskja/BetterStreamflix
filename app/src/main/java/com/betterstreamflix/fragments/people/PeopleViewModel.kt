@@ -85,7 +85,7 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
 
     sealed class State {
         data object Loading : State()
-        data object LoadingMore : State()
+        data class LoadingMore(val people: People, val hasMore: Boolean) : State()
         data class SuccessLoading(val people: People, val hasMore: Boolean) : State()
         data class FailedLoading(val error: Exception) : State()
     }
@@ -114,10 +114,13 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
     fun loadMorePeopleFilmography() = viewModelScope.launch(Dispatchers.IO) {
         val currentState = _state.value
         if (currentState is State.SuccessLoading) {
-            _state.emit(State.LoadingMore)
+            _state.emit(State.LoadingMore(currentState.people, currentState.hasMore))
 
             try {
-                val people = UserPreferences.currentProvider?.getPeople(id, page + 1) ?: return@launch
+                val people = UserPreferences.currentProvider?.getPeople(id, page + 1) ?: run {
+                    _state.emit(currentState)
+                    return@launch
+                }
 
                 page += 1
 
@@ -132,7 +135,7 @@ class PeopleViewModel(private val id: String, database: AppDatabase) : ViewModel
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("PeopleViewModel", "loadMorePeopleFilmography: ", e)
-                _state.emit(State.FailedLoading(e))
+                _state.emit(currentState)
             }
         }
     }

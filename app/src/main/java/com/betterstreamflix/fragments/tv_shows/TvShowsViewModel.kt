@@ -68,7 +68,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
 
     sealed class State {
         data object Loading : State()
-        data object LoadingMore : State()
+        data class LoadingMore(val tvShows: List<TvShow>, val hasMore: Boolean) : State()
         data class SuccessLoading(val tvShows: List<TvShow>, val hasMore: Boolean) : State()
         data class FailedLoading(val error: Exception) : State()
     }
@@ -99,11 +99,14 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
     fun loadMoreTvShows() = viewModelScope.launch(Dispatchers.IO) {
         val currentState = _state.value
         if (currentState is State.SuccessLoading) {
-            _state.emit(State.LoadingMore)
+            _state.emit(State.LoadingMore(currentState.tvShows, currentState.hasMore))
 
             try {
                 val tvShows = ParentalControlUtils.filterItems(
-                    UserPreferences.currentProvider?.getTvShows(page + 1) ?: return@launch
+                    UserPreferences.currentProvider?.getTvShows(page + 1) ?: run {
+                        _state.emit(currentState)
+                        return@launch
+                    }
                 ).filterIsInstance<TvShow>()
 
                 page += 1
@@ -117,7 +120,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("TvShowsViewModel", "loadMoreTvShows: ", e)
-                _state.emit(State.FailedLoading(e))
+                _state.emit(currentState)
             }
         }
     }

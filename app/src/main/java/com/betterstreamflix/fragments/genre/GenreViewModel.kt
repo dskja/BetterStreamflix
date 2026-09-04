@@ -94,7 +94,7 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
 
     sealed class State {
         data object Loading : State()
-        data object LoadingMore : State()
+        data class LoadingMore(val genre: Genre, val hasMore: Boolean) : State()
         data class SuccessLoading(val genre: Genre, val hasMore: Boolean) : State()
         data class FailedLoading(val error: Exception) : State()
     }
@@ -125,12 +125,15 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
     fun loadMoreGenreShows() = viewModelScope.launch(Dispatchers.IO) {
         val currentState = _state.value
         if (currentState is State.SuccessLoading) {
-            _state.emit(State.LoadingMore)
+            _state.emit(State.LoadingMore(currentState.genre, currentState.hasMore))
 
             try {
                 val genre = UserPreferences.currentProvider?.getGenre(id, page + 1)?.let {
                     it.copy(shows = ParentalControlUtils.filterShows(it.shows))
-                } ?: return@launch
+                } ?: run {
+                    _state.emit(currentState)
+                    return@launch
+                }
 
                 page += 1
 
@@ -148,7 +151,7 @@ class GenreViewModel(private val id: String, database: AppDatabase) : ViewModel(
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("GenreViewModel", "loadMoreGenreShows: ", e)
-                _state.emit(State.FailedLoading(e))
+                _state.emit(currentState)
             }
         }
     }
