@@ -122,16 +122,17 @@ class ProvidersViewModel : ViewModel() {
 
     fun toggleFavorite(provider: ModelProvider) {
         val favorites = UserPreferences.favoriteProviders.toMutableSet()
-        provider.isFavorite = !provider.isFavorite
-        if (provider.isFavorite) {
+        val newFavorite = !provider.isFavorite
+        if (newFavorite) {
             favorites.add(provider.name)
         } else {
             favorites.remove(provider.name)
         }
         UserPreferences.favoriteProviders = favorites
 
+        // Emit new provider instances so StateFlow does not suppress equal SuccessLoading.
         allProviders = allProviders.map { p ->
-            if (p.name == provider.name) provider else p
+            if (p.name == provider.name) p.copy(isFavorite = newFavorite) else p
         }
 
         viewModelScope.launch(Dispatchers.IO) {
