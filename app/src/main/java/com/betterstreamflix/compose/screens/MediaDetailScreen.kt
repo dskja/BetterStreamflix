@@ -69,6 +69,8 @@ fun MediaDetailScreen(
     watchProgress: Float? = null,
     showWatchButton: Boolean = false,
     showDownloadButton: Boolean = false,
+    isFavorite: Boolean = false,
+    showFavoriteButton: Boolean = false,
     cast: List<People> = emptyList(),
     directors: List<People> = emptyList(),
     seasons: List<Season> = emptyList(),
@@ -79,6 +81,7 @@ fun MediaDetailScreen(
     onBack: () -> Unit = {},
     onWatch: () -> Unit = {},
     onDownload: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
     onCastClick: (People) -> Unit = {},
     onSeasonClick: (Season) -> Unit = {},
     onRecommendationClick: (Show) -> Unit = {},
@@ -171,10 +174,32 @@ fun MediaDetailScreen(
                                     modifier = Modifier.padding(top = 8.dp),
                                 )
                             }
-                            if (showWatchButton && watchLabel != null) {
+                            if (showWatchButton || showFavoriteButton || showDownloadButton) {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                BsPrimaryButton(text = watchLabel, onClick = onWatch)
-                                if (watchProgress != null && watchProgress > 0f) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    if (showWatchButton && watchLabel != null) {
+                                        BsPrimaryButton(text = watchLabel, onClick = onWatch)
+                                    }
+                                    if (showFavoriteButton) {
+                                        BsGhostButton(
+                                            text = stringResource(
+                                                if (isFavorite) R.string.option_show_unfavorite
+                                                else R.string.option_show_favorite,
+                                            ),
+                                            onClick = onToggleFavorite,
+                                        )
+                                    }
+                                    if (showDownloadButton) {
+                                        BsGhostButton(
+                                            text = stringResource(R.string.download_episode),
+                                            onClick = onDownload,
+                                        )
+                                    }
+                                }
+                                if (showWatchButton && watchProgress != null && watchProgress > 0f) {
                                     LinearProgressIndicator(
                                         progress = { watchProgress },
                                         modifier = Modifier
@@ -191,14 +216,6 @@ fun MediaDetailScreen(
 
                     Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 20.dp)) {
                         ExpandableOverview(overview = overview, modifier = Modifier.padding(top = 4.dp))
-
-                        if (showDownloadButton) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            BsGhostButton(
-                                text = stringResource(R.string.download_episode),
-                                onClick = onDownload,
-                            )
-                        }
 
                         if (directors.isNotEmpty()) {
                             DetailSectionLabel(stringResource(R.string.movie_directors))

@@ -36,6 +36,8 @@ fun FavoritesScreen(
     onSortModeChange: (FavoritesViewModel.SortMode) -> Unit = {},
     onMovieClick: (Movie) -> Unit = {},
     onTvShowClick: (TvShow) -> Unit = {},
+    onMovieLongClick: (Movie) -> Unit = {},
+    onTvShowLongClick: (TvShow) -> Unit = {},
 ) {
     val hasItems = sections.any { it.items.isNotEmpty() }
     val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
@@ -91,11 +93,13 @@ fun FavoritesScreen(
                                             title = item.title,
                                             imageUrl = item.poster ?: item.banner,
                                             onClick = { onMovieClick(item) },
+                                            onLongClick = { onMovieLongClick(item) },
                                         )
                                         is TvShow -> BsPosterCard(
                                             title = item.title,
                                             imageUrl = item.poster ?: item.banner,
                                             onClick = { onTvShowClick(item) },
+                                            onLongClick = { onTvShowLongClick(item) },
                                         )
                                     }
                                 }

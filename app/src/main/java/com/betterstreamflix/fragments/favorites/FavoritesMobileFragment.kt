@@ -23,6 +23,7 @@ import com.betterstreamflix.compose.screens.FavoritesScreen
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.UserPreferences
 import com.betterstreamflix.utils.viewModelsFactory
 
@@ -65,6 +66,12 @@ class FavoritesMobileFragment : ComposeHostFragment() {
             },
             onMovieClick = { movie -> navigateToMovie(movie) },
             onTvShowClick = { tvShow -> navigateToTvShow(tvShow) },
+            onMovieLongClick = { movie ->
+                ShowOptionsDialog(requireContext(), movie, isTv = false).show()
+            },
+            onTvShowLongClick = { tvShow ->
+                ShowOptionsDialog(requireContext(), tvShow, isTv = false).show()
+            },
         )
     }
 
