@@ -83,7 +83,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
 
     protected var currentSettings = Setting.MAIN
 
-    protected enum class Setting {
+    enum class Setting {
         MAIN,
         QUALITY,
         AUDIO,
@@ -389,6 +389,172 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         this.onServerSelected = onServerSelected
     }
 
+
+
+    fun titleFor(setting: Setting): String = when (setting) {
+        Setting.MAIN -> context.getString(R.string.player_settings_title)
+        Setting.QUALITY -> context.getString(R.string.player_settings_quality_title)
+        Setting.AUDIO -> context.getString(R.string.player_settings_audio_title)
+        Setting.SUBTITLES -> context.getString(R.string.player_settings_subtitles_title)
+        Setting.SUBTITLE_OFFSET -> context.getString(R.string.player_settings_subtitle_offset_title)
+        Setting.CAPTION_STYLE -> context.getString(R.string.player_settings_caption_style_title)
+        Setting.CAPTION_STYLE_FONT_COLOR -> context.getString(R.string.player_settings_caption_style_font_color_title)
+        Setting.CAPTION_STYLE_TEXT_SIZE -> context.getString(R.string.player_settings_caption_style_text_size_title)
+        Setting.CAPTION_STYLE_FONT_OPACITY -> context.getString(R.string.player_settings_caption_style_font_opacity_title)
+        Setting.CAPTION_STYLE_EDGE_STYLE -> context.getString(R.string.player_settings_caption_style_edge_style_title)
+        Setting.CAPTION_STYLE_BACKGROUND_COLOR -> context.getString(R.string.player_settings_caption_style_background_color_title)
+        Setting.CAPTION_STYLE_BACKGROUND_OPACITY -> context.getString(R.string.player_settings_caption_style_background_opacity_title)
+        Setting.CAPTION_STYLE_WINDOW_COLOR -> context.getString(R.string.player_settings_caption_style_window_color_title)
+        Setting.CAPTION_STYLE_WINDOW_OPACITY -> context.getString(R.string.player_settings_caption_style_window_opacity_title)
+        Setting.CAPTION_STYLE_MARGIN -> context.getString(R.string.player_settings_caption_style_margin_title)
+        Setting.OPEN_SUBTITLES -> context.getString(R.string.player_settings_open_subtitles_title)
+        Setting.SUBDL -> context.getString(R.string.player_settings_subdl_title)
+        Setting.SPEED -> context.getString(R.string.player_settings_speed_title)
+        Setting.EXTRA_BUFFERING -> context.getString(R.string.player_settings_extra_buffer_title)
+        Setting.SOFTWARE_DECODER -> context.getString(R.string.player_settings_software_decoder_title)
+        Setting.SERVERS -> context.getString(R.string.player_settings_servers_title)
+        Setting.GESTURES -> context.getString(R.string.player_settings_gestures_title)
+        Setting.KEEP_SCREEN_ON -> context.getString(R.string.player_settings_keep_screen_on_title)
+        Setting.MANUAL_ZOOM -> context.getString(R.string.player_settings_title)
+    }
+
+    fun itemsFor(setting: Setting, isTv: Boolean): List<Item> = when (setting) {
+        Setting.MAIN -> if (isTv) Settings.listTv else Settings.listMobile
+        Setting.QUALITY -> Settings.Quality.list
+        Setting.AUDIO -> Settings.Audio.list
+        Setting.SUBTITLES -> Settings.Subtitle.list
+        Setting.SUBTITLE_OFFSET -> Settings.Subtitle.Offset.list
+        Setting.CAPTION_STYLE -> Settings.Subtitle.Style.list
+        Setting.CAPTION_STYLE_FONT_COLOR -> Settings.Subtitle.Style.FontColor.list
+        Setting.CAPTION_STYLE_TEXT_SIZE -> Settings.Subtitle.Style.TextSize.list
+        Setting.CAPTION_STYLE_FONT_OPACITY -> Settings.Subtitle.Style.FontOpacity.list
+        Setting.CAPTION_STYLE_EDGE_STYLE -> Settings.Subtitle.Style.EdgeStyle.list
+        Setting.CAPTION_STYLE_BACKGROUND_COLOR -> Settings.Subtitle.Style.BackgroundColor.list
+        Setting.CAPTION_STYLE_BACKGROUND_OPACITY -> Settings.Subtitle.Style.BackgroundOpacity.list
+        Setting.CAPTION_STYLE_WINDOW_COLOR -> Settings.Subtitle.Style.WindowColor.list
+        Setting.CAPTION_STYLE_WINDOW_OPACITY -> Settings.Subtitle.Style.WindowOpacity.list
+        Setting.CAPTION_STYLE_MARGIN -> Settings.Subtitle.Style.Margin.list
+        Setting.OPEN_SUBTITLES -> Settings.Subtitle.OpenSubtitles.list
+        Setting.SUBDL -> Settings.Subtitle.SubDLSubtitles.list
+        Setting.SPEED -> Settings.Speed.list
+        Setting.EXTRA_BUFFERING -> Settings.ExtraBuffering.list
+        Setting.SOFTWARE_DECODER -> Settings.SoftwareDecoder.list
+        Setting.SERVERS -> Settings.Server.list
+        Setting.GESTURES -> Settings.Gestures.list
+        Setting.KEEP_SCREEN_ON -> Settings.KeepScreenOn.list
+        Setting.MANUAL_ZOOM -> if (isTv) Settings.listTv else Settings.listMobile
+    }
+
+    fun parentOf(setting: Setting): Setting? = when (setting) {
+        Setting.MAIN -> null
+        Setting.QUALITY, Setting.AUDIO, Setting.SUBTITLES, Setting.SPEED, Setting.SERVERS,
+        Setting.GESTURES, Setting.KEEP_SCREEN_ON, Setting.EXTRA_BUFFERING, Setting.SOFTWARE_DECODER,
+        Setting.MANUAL_ZOOM -> Setting.MAIN
+        Setting.SUBTITLE_OFFSET, Setting.CAPTION_STYLE, Setting.OPEN_SUBTITLES, Setting.SUBDL -> Setting.SUBTITLES
+        Setting.CAPTION_STYLE_FONT_COLOR, Setting.CAPTION_STYLE_TEXT_SIZE, Setting.CAPTION_STYLE_FONT_OPACITY,
+        Setting.CAPTION_STYLE_EDGE_STYLE, Setting.CAPTION_STYLE_BACKGROUND_COLOR, Setting.CAPTION_STYLE_BACKGROUND_OPACITY,
+        Setting.CAPTION_STYLE_WINDOW_COLOR, Setting.CAPTION_STYLE_WINDOW_OPACITY, Setting.CAPTION_STYLE_MARGIN -> Setting.CAPTION_STYLE
+    }
+
+    /**
+     * Shared item click dispatcher for Compose hosts.
+     * @return next screen to show, or null if the panel should close / stay and refresh
+     */
+    sealed class NavResult {
+        data class Open(val setting: Setting) : NavResult()
+        data object Close : NavResult()
+        data object Refresh : NavResult()
+    }
+
+    fun dispatchItemClick(item: Item, isTvLayout: Boolean): NavResult {
+        fun afterLeaf(): NavResult = if (isTvLayout) NavResult.Close else NavResult.Open(Setting.MAIN)
+        return when (item) {
+            is Settings -> when (item) {
+                Settings.Quality -> NavResult.Open(Setting.QUALITY)
+                Settings.Audio -> NavResult.Open(Setting.AUDIO)
+                Settings.Subtitle -> NavResult.Open(Setting.SUBTITLES)
+                Settings.Speed -> NavResult.Open(Setting.SPEED)
+                Settings.ExtraBuffering -> NavResult.Open(Setting.EXTRA_BUFFERING)
+                Settings.SoftwareDecoder -> NavResult.Open(Setting.SOFTWARE_DECODER)
+                Settings.Server -> NavResult.Open(Setting.SERVERS)
+                Settings.Gestures -> NavResult.Open(Setting.GESTURES)
+                Settings.KeepScreenOn -> NavResult.Open(Setting.KEEP_SCREEN_ON)
+                Settings.Download -> {
+                    (this as? PlayerSettingsMobileView)?.onDownloadClicked?.invoke()
+                        ?: (this as? PlayerSettingsTvView)?.onDownloadClicked?.invoke()
+                    NavResult.Close
+                }
+                Settings.ManualZoom -> {
+                    (this as? PlayerSettingsMobileView)?.onManualZoomClicked?.invoke()
+                        ?: (this as? PlayerSettingsTvView)?.onManualZoomClicked?.invoke()
+                    NavResult.Close
+                }
+            }
+            is Settings.Quality -> { onQualitySelected.invoke(item); afterLeaf() }
+            is Settings.Audio -> { onAudioSelected.invoke(item); afterLeaf() }
+            is Settings.Subtitle -> when (item) {
+                Settings.Subtitle.Style -> NavResult.Open(Setting.CAPTION_STYLE)
+                Settings.Subtitle.Offset -> NavResult.Open(Setting.SUBTITLE_OFFSET)
+                is Settings.Subtitle.None, is Settings.Subtitle.TextTrackInformation -> {
+                    onSubtitleSelected.invoke(item); afterLeaf()
+                }
+                Settings.Subtitle.LocalSubtitles -> {
+                    onLocalSubtitlesClicked?.invoke(); NavResult.Close
+                }
+                Settings.Subtitle.OpenSubtitles -> NavResult.Open(Setting.OPEN_SUBTITLES)
+                Settings.Subtitle.SubDLSubtitles -> NavResult.Open(Setting.SUBDL)
+            }
+            is Settings.Subtitle.Offset.Value -> {
+                onSubtitleOffsetSelected.invoke(item); NavResult.Open(Setting.SUBTITLES)
+            }
+            is Settings.Subtitle.Style -> when (item) {
+                Settings.Subtitle.Style.ResetStyle -> {
+                    onTextSizeSelected.invoke(Settings.Subtitle.Style.TextSize.DEFAULT)
+                    onCaptionStyleChanged.invoke(Settings.Subtitle.Style.DEFAULT)
+                    NavResult.Close
+                }
+                Settings.Subtitle.Style.FontColor -> NavResult.Open(Setting.CAPTION_STYLE_FONT_COLOR)
+                Settings.Subtitle.Style.TextSize -> NavResult.Open(Setting.CAPTION_STYLE_TEXT_SIZE)
+                Settings.Subtitle.Style.FontOpacity -> NavResult.Open(Setting.CAPTION_STYLE_FONT_OPACITY)
+                Settings.Subtitle.Style.EdgeStyle -> NavResult.Open(Setting.CAPTION_STYLE_EDGE_STYLE)
+                Settings.Subtitle.Style.BackgroundColor -> NavResult.Open(Setting.CAPTION_STYLE_BACKGROUND_COLOR)
+                Settings.Subtitle.Style.BackgroundOpacity -> NavResult.Open(Setting.CAPTION_STYLE_BACKGROUND_OPACITY)
+                Settings.Subtitle.Style.WindowColor -> NavResult.Open(Setting.CAPTION_STYLE_WINDOW_COLOR)
+                Settings.Subtitle.Style.WindowOpacity -> NavResult.Open(Setting.CAPTION_STYLE_WINDOW_OPACITY)
+                Settings.Subtitle.Style.Margin -> NavResult.Open(Setting.CAPTION_STYLE_MARGIN)
+            }
+            is Settings.Subtitle.Style.FontColor -> { onFontColorSelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.TextSize -> { onTextSizeSelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.FontOpacity -> { onFontOpacitySelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.EdgeStyle -> { onEdgeStyleSelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.BackgroundColor -> { onBackgroundColorSelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.BackgroundOpacity -> { onBackgroundOpacitySelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.WindowColor -> { onWindowColorSelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.WindowOpacity -> { onWindowOpacitySelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.Style.Margin -> { onMarginSelected.invoke(item); NavResult.Open(Setting.CAPTION_STYLE) }
+            is Settings.Subtitle.OpenSubtitles.Subtitle -> { onOpenSubtitleSelected?.invoke(item); afterLeaf() }
+            is Settings.Subtitle.SubDLSubtitles.Subtitle -> { onSubDLSubtitleSelected?.invoke(item); afterLeaf() }
+            is Settings.Speed -> { onSpeedSelected.invoke(item); afterLeaf() }
+            is Settings.ExtraBuffering -> { onExtraBufferingSelected.invoke(item); afterLeaf() }
+            is Settings.SoftwareDecoder -> { onSoftwareDecoderSelected.invoke(item); afterLeaf() }
+            is Settings.Gestures -> {
+                when (item) {
+                    is Settings.Gestures.On -> UserPreferences.playerGestures = true
+                    is Settings.Gestures.Off -> UserPreferences.playerGestures = false
+                }
+                afterLeaf()
+            }
+            is Settings.KeepScreenOn -> {
+                when (item) {
+                    is Settings.KeepScreenOn.On -> UserPreferences.keepScreenOnWhenPaused = true
+                    is Settings.KeepScreenOn.Off -> UserPreferences.keepScreenOnWhenPaused = false
+                }
+                afterLeaf()
+            }
+            is Settings.Server -> { onServerSelected?.invoke(item); afterLeaf() }
+            else -> NavResult.Refresh
+        }
+    }
 
     interface Item
 

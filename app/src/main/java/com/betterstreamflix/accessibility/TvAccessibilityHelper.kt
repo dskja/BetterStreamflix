@@ -2,7 +2,7 @@ package com.betterstreamflix.accessibility
 
 import android.content.Context
 import android.view.KeyEvent
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
 
 /**
  * TV accessibility helper — provides enhanced TV navigation support
@@ -34,7 +34,7 @@ object TvAccessibilityHelper {
     /**
      * Map a remote key event to a player action.
      */
-    fun handlePlayerKey(player: ExoPlayer, keyCode: Int): Boolean {
+    fun handlePlayerKey(player: Player, keyCode: Int): Boolean {
         when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 player.play()
