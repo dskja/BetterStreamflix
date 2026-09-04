@@ -42,6 +42,6 @@ fun CloudSyncConflictDialog(
                 )
             }
         },
-        containerColor = BsTheme.colors.InkElevated,
+        containerColor = BsTheme.colors.GlassStrong,
     )
 }

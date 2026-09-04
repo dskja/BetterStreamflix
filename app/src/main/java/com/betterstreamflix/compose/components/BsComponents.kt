@@ -395,6 +395,9 @@ fun BsHeroBanner(
     ctaLabel: String,
     onCta: () -> Unit,
     modifier: Modifier = Modifier,
+    secondaryCtaLabel: String? = null,
+    onSecondaryCta: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(
@@ -412,7 +415,7 @@ fun BsHeroBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(520.dp)
+            .height(if (compact) 420.dp else 560.dp)
             .alpha(alpha),
     ) {
         AsyncImage(
@@ -432,6 +435,13 @@ fun BsHeroBanner(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BsTheme.colors.HeroSideWash),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .align(Alignment.TopCenter)
+                .background(BsTheme.colors.SpecularEdge),
         )
         Column(
             modifier = Modifier
@@ -461,7 +471,12 @@ fun BsHeroBanner(
                 )
             }
             Spacer(modifier = Modifier.height(22.dp))
-            BsPrimaryButton(text = ctaLabel, onClick = onCta)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                BsPrimaryButton(text = ctaLabel, onClick = onCta)
+                if (!secondaryCtaLabel.isNullOrBlank() && onSecondaryCta != null) {
+                    BsGhostButton(text = secondaryCtaLabel, onClick = onSecondaryCta)
+                }
+            }
         }
     }
 }
@@ -597,7 +612,7 @@ fun BsContinueWatchingCard(
                         .height(3.dp)
                         .align(Alignment.BottomCenter),
                     color = BsTheme.colors.Amber,
-                    trackColor = Color(0x6607090D),
+                    trackColor = BsTheme.colors.Ink.copy(alpha = 0.40f),
                 )
             }
         }
@@ -643,6 +658,13 @@ fun posterOf(item: AppAdapter.Item): String? = when (item) {
     else -> null
 }
 
+fun bannerOf(item: AppAdapter.Item): String? = when (item) {
+    is Movie -> item.banner ?: item.poster
+    is TvShow -> item.banner ?: item.poster
+    is Episode -> item.tvShow?.banner ?: item.poster ?: item.tvShow?.poster
+    else -> posterOf(item)
+}
+
 @Composable
 fun BsGenreTile(
     title: String,
@@ -655,42 +677,42 @@ fun BsGenreTile(
         animationSpec = BsMotion.FocusSpring,
         label = "genreTileScale",
     )
-    Row(
+    BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(96.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(BsTheme.colors.InkPanel)
-            .border(
-                width = 1.dp,
-                color = if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                shape = RoundedCornerShape(14.dp),
-            )
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
-            )
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            ),
+        selected = focused,
+        corner = 16.dp,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .padding(end = 12.dp)
-                .width(3.dp)
-                .height(28.dp)
-                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = BsTheme.colors.Mist,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .width(3.dp)
+                    .height(32.dp)
+                    .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = BsTheme.colors.Mist,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -746,7 +768,7 @@ fun BsPosterCard(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xCC07090D)),
+                            listOf(Color.Transparent, BsTheme.colors.Ink.copy(alpha = 0.80f)),
                         ),
                     ),
             )
@@ -769,44 +791,208 @@ fun BsSearchResultRow(
     imageUrl: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isGenre: Boolean = false,
 ) {
-    Row(
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.02f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "searchRowScale",
+    )
+    BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 20.dp, vertical = 5.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            ),
+        selected = focused,
+        corner = 14.dp,
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 56.dp, height = 80.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(BsTheme.colors.InkSoft),
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = BsTheme.colors.Mist,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = BsTheme.colors.MistFaint,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+            if (isGenre || imageUrl.isNullOrBlank()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BsTheme.colors.InkSoft),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(BsTheme.colors.AmberGlow),
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BsTheme.colors.InkSoft),
+                ) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = BsTheme.colors.Mist,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BsTheme.colors.MistFaint,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BsGlassFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = when {
+            focused -> 1.06f
+            selected -> 1.02f
+            else -> 1f
+        },
+        animationSpec = BsMotion.FocusSpring,
+        label = "glassFilterScale",
+    )
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                when {
+                    selected || focused -> BsTheme.colors.GlassPanelSelected
+                    else -> BsTheme.colors.GlassPanel
+                },
+            )
+            .border(
+                1.dp,
+                when {
+                    focused -> BsTheme.colors.FocusRing
+                    selected -> BsTheme.colors.FocusRing
+                    else -> BsTheme.colors.Hairline
+                },
+                RoundedCornerShape(14.dp),
+            )
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            color = if (selected || focused) BsTheme.colors.Mist else BsTheme.colors.MistFaint,
+        )
+    }
+}
+
+@Composable
+fun BsGlassSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BsTheme.colors.GlassPanel)
+            .border(
+                1.dp,
+                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                RoundedCornerShape(16.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(BsTheme.colors.Amber),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = BsTheme.colors.Mist),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focused = it.isFocused },
+            decorationBox = { inner ->
+                Box {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = BsTheme.colors.MistFaint,
+                        )
+                    }
+                    inner()
+                }
+            },
+        )
+    }
+}
+
+@Composable
+fun BsLoadMoreFooter(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "loadMore")
+    val pulse by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "loadMorePulse",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BsGlassPanel(corner = 12.dp) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 28.dp, vertical = 14.dp)
+                    .width(72.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(BsTheme.colors.AmberBright.copy(alpha = pulse)),
+            )
         }
     }
 }
@@ -916,6 +1102,7 @@ fun BsProviderChip(
     selected: Boolean,
     modifier: Modifier = Modifier,
     healthy: Boolean = true,
+    favorite: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
@@ -925,47 +1112,54 @@ fun BsProviderChip(
         animationSpec = BsMotion.FocusSpring,
         label = "providerChipScale",
     )
-    val bg = when {
-        selected -> BsTheme.colors.Amber
-        else -> BsTheme.colors.InkPanel
-    }
-    val fg = when {
-        selected -> BsTheme.colors.Ink
-        else -> BsTheme.colors.Mist
-    }
-    Row(
+    BsGlassPanel(
         modifier = modifier
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .border(
-                width = if (focused) 2.dp else 1.dp,
-                color = when {
-                    focused -> BsTheme.colors.FocusRing
-                    selected -> Color.Transparent
-                    else -> BsTheme.colors.Hairline
-                },
-                shape = RoundedCornerShape(12.dp),
-            )
             .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
                 onLongClick = onLongClick,
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            ),
+        selected = selected || focused,
+        corner = 14.dp,
     ) {
-        Text(text = label, style = MaterialTheme.typography.titleMedium, color = fg)
-        if (!healthy) {
-            Text(
-                text = stringResource(R.string.provider_status_offline),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) BsTheme.colors.Ink else BsTheme.colors.Danger,
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                if (favorite) {
+                    Text(
+                        text = "★",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = BsTheme.colors.AmberBright,
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = BsTheme.colors.Mist,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (!healthy) {
+                Text(
+                    text = stringResource(R.string.provider_status_offline),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BsTheme.colors.Danger,
+                )
+            }
         }
     }
 }

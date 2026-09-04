@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -27,11 +26,11 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsLoadMoreFooter
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
-import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Movie
 
 @Composable
@@ -113,14 +112,7 @@ fun MoviesScreen(
                         }
                         if (isLoadingMore) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(color = BsTheme.colors.Amber)
-                                }
+                                BsLoadMoreFooter()
                             }
                         }
                     }

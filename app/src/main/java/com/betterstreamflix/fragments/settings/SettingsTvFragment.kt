@@ -29,6 +29,7 @@ import com.betterstreamflix.compose.screens.SettingsExperience
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.TmdbProvider
+import com.betterstreamflix.sync.TraktSettings
 import com.betterstreamflix.utils.AppLanguageManager
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.UserDataCache
@@ -224,6 +225,10 @@ class SettingsTvFragment : ComposeHostFragment() {
                             ).show()
                             bump()
                         }
+                        "openTraktSync" -> {
+                            TraktSettings.setEnabled(requireContext(), !TraktSettings.isEnabled(requireContext()))
+                            bump()
+                        }
                         "openAccessibilitySettings" -> {
                             com.betterstreamflix.accessibility.AccessibilityHelper.openAccessibilitySettings(requireContext())
                         }
@@ -231,8 +236,16 @@ class SettingsTvFragment : ComposeHostFragment() {
                             com.betterstreamflix.accessibility.AccessibilityHelper.openDisplaySettings(requireContext())
                         }
                         else -> {
-                            SettingsComposeBridge.applyAction(key)
-                            bump()
+                            if (!CloudAccountSettingsController.handleComposeAction(
+                                    this,
+                                    lifecycleScope,
+                                    key,
+                                    ::bump,
+                                )
+                            ) {
+                                SettingsComposeBridge.applyAction(key)
+                                bump()
+                            }
                         }
                     }
                 },

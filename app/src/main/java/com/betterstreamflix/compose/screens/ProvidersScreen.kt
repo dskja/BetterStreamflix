@@ -1,7 +1,6 @@
 package com.betterstreamflix.compose.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,12 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +21,10 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassFilterChip
+import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsProviderChip
+import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.fragments.providers.LanguageChip
@@ -65,24 +61,11 @@ fun ProvidersScreen(
                     )
                 },
             )
-            OutlinedTextField(
+            BsGlassSearchField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding, vertical = 4.dp),
-                placeholder = { Text(stringResource(R.string.providers_search_hint)) },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BsTheme.colors.Amber,
-                    unfocusedBorderColor = BsTheme.colors.Hairline,
-                    focusedContainerColor = BsTheme.colors.GlassStrong,
-                    unfocusedContainerColor = BsTheme.colors.Glass,
-                    focusedTextColor = BsTheme.colors.Mist,
-                    unfocusedTextColor = BsTheme.colors.Mist,
-                    cursorColor = BsTheme.colors.Amber,
-                ),
+                placeholder = stringResource(R.string.providers_search_hint),
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
             )
             Text(
                 text = stringResource(R.string.providers_favorite_hint),
@@ -94,24 +77,16 @@ fun ProvidersScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(languageChips, key = { it.code ?: "all" }) { chip ->
-                    FilterChip(
+                    BsGlassFilterChip(
+                        label = chip.name,
                         selected = chip.isSelected,
                         onClick = { onLanguageChipSelected(chip) },
-                        label = { Text(chip.name) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BsTheme.colors.Amber,
-                            selectedLabelColor = BsTheme.colors.Ink,
-                            containerColor = BsTheme.colors.Glass,
-                            labelColor = BsTheme.colors.MistDim,
-                        ),
                     )
                 }
             }
             when {
                 isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsTheme.colors.Amber)
-                    }
+                    BsShimmerRow()
                 }
                 errorMessage != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -135,14 +110,11 @@ fun ProvidersScreen(
                             key = { index, provider -> "${provider.name}#$index" },
                         ) { _, provider ->
                             val unhealthy = !ProviderHealthMonitor.isHealthy(provider.provider.name)
-                            val label = buildString {
-                                append(provider.name)
-                                if (provider.isFavorite) append("  ★")
-                            }
                             BsProviderChip(
-                                label = label,
+                                label = provider.name,
                                 selected = false,
                                 healthy = !unhealthy,
+                                favorite = provider.isFavorite,
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onProviderSelected(provider) },
                                 onLongClick = { onProviderFavoriteToggle(provider) },

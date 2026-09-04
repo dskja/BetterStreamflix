@@ -69,6 +69,7 @@ import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsDisplayFont
@@ -218,8 +219,8 @@ fun DownloadsScreen(
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0x5505070A),
-                                    Color(0xBB05070A),
+                                    BsTheme.colors.Ink.copy(alpha = 0.33f),
+                                    BsTheme.colors.Ink.copy(alpha = 0.73f),
                                     BsTheme.colors.Ink,
                                 ),
                             ),
@@ -232,7 +233,11 @@ fun DownloadsScreen(
                         .height(160.dp)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color(0x33E9B04A), Color(0x110B121A), Color.Transparent),
+                                listOf(
+                                    BsTheme.colors.Amber.copy(alpha = 0.20f),
+                                    BsTheme.colors.InkElevated.copy(alpha = 0.07f),
+                                    Color.Transparent,
+                                ),
                             ),
                         ),
                 )
@@ -354,6 +359,7 @@ private fun FilterTabs(
     ) {
         DownloadsFilter.entries.forEach { tab ->
             val selected = filter == tab
+            var focused by remember(tab) { mutableStateOf(false) }
             val label = when (tab) {
                 DownloadsFilter.LIBRARY -> stringResource(R.string.downloads_filter_ready)
                 DownloadsFilter.QUEUE -> stringResource(R.string.downloads_filter_active)
@@ -361,8 +367,12 @@ private fun FilterTabs(
             }
             val count = counts[tab] ?: 0
             val scale by animateFloatAsState(
-                targetValue = if (selected) 1.02f else 1f,
-                animationSpec = BsMotion.TabSelect,
+                targetValue = when {
+                    focused -> 1.06f
+                    selected -> 1.02f
+                    else -> 1f
+                },
+                animationSpec = BsMotion.FocusSpring,
                 label = "dlTabScale",
             )
             Box(
@@ -372,9 +382,11 @@ private fun FilterTabs(
                     .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
                     .border(
                         1.dp,
-                        if (selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                        if (focused || selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                         RoundedCornerShape(14.dp),
                     )
+                    .onFocusChanged { focused = it.isFocused }
+                    .focusable()
                     .selectable(
                         selected = selected,
                         role = Role.Tab,
@@ -650,8 +662,13 @@ private fun OfflinePosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(176.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(BsTheme.colors.InkSoft),
+                .clip(RoundedCornerShape(14.dp))
+                .background(BsTheme.colors.InkSoft)
+                .border(
+                    1.dp,
+                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                    RoundedCornerShape(14.dp),
+                ),
         ) {
             AsyncImage(
                 model = DownloadArtworkStore.coilModel(task.artworkUrl),
@@ -666,7 +683,7 @@ private fun OfflinePosterCard(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xE607090D)),
+                            listOf(Color.Transparent, BsTheme.colors.Ink.copy(alpha = 0.90f)),
                         ),
                     ),
             )
@@ -777,118 +794,118 @@ private fun MediaDownloadRow(
                 this.alpha = alpha
                 translationY = offset
             }
-            .clickable(enabled = task.canOpen, onClick = onOpen)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 6.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        BsGlassPanel(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = task.canOpen, onClick = onOpen),
+            corner = 14.dp,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 58.dp, height = 84.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(BsTheme.colors.InkSoft),
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                AsyncImage(
-                    model = DownloadArtworkStore.coilModel(task.artworkUrl),
-                    contentDescription = task.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = BsTheme.colors.Mist,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (task.status == DownloadManager.DownloadStatus.FAILED) {
-                        BsTheme.colors.Danger
-                    } else {
-                        BsTheme.colors.MistFaint
-                    },
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!liveStatsLabel.isNullOrBlank()) {
-                    Text(
-                        text = liveStatsLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = BsTheme.colors.AmberBright,
-                        modifier = Modifier.padding(top = 4.dp),
+                Box(
+                    modifier = Modifier
+                        .size(width = 58.dp, height = 84.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(BsTheme.colors.InkSoft),
+                ) {
+                    AsyncImage(
+                        model = DownloadArtworkStore.coilModel(task.artworkUrl),
+                        contentDescription = task.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
-                if (!task.errorMessage.isNullOrBlank()) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = task.errorMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = BsTheme.colors.Danger,
+                        text = task.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = BsTheme.colors.Mist,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
                     )
-                }
-                if (showProgress && (
-                        task.status == DownloadManager.DownloadStatus.DOWNLOADING ||
-                            task.status == DownloadManager.DownloadStatus.PENDING ||
-                            task.status == DownloadManager.DownloadStatus.PAUSED
-                        )
-                ) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    if (task.fileSize > 0L) {
-                        LinearProgressIndicator(
-                            progress = { task.progressFraction },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .clip(RoundedCornerShape(1.dp)),
-                            color = BsTheme.colors.Amber,
-                            trackColor = BsTheme.colors.InkSoft,
-                        )
-                    } else {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .clip(RoundedCornerShape(1.dp)),
-                            color = BsTheme.colors.Amber,
-                            trackColor = BsTheme.colors.InkSoft,
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (task.status == DownloadManager.DownloadStatus.FAILED) {
+                            BsTheme.colors.Danger
+                        } else {
+                            BsTheme.colors.MistFaint
+                        },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!liveStatsLabel.isNullOrBlank()) {
+                        Text(
+                            text = liveStatsLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BsTheme.colors.AmberBright,
+                            modifier = Modifier.padding(top = 4.dp),
                         )
                     }
+                    if (!task.errorMessage.isNullOrBlank()) {
+                        Text(
+                            text = task.errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BsTheme.colors.Danger,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    if (showProgress && (
+                            task.status == DownloadManager.DownloadStatus.DOWNLOADING ||
+                                task.status == DownloadManager.DownloadStatus.PENDING ||
+                                task.status == DownloadManager.DownloadStatus.PAUSED
+                            )
+                    ) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        if (task.fileSize > 0L) {
+                            LinearProgressIndicator(
+                                progress = { task.progressFraction },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .clip(RoundedCornerShape(1.dp)),
+                                color = BsTheme.colors.Amber,
+                                trackColor = BsTheme.colors.InkSoft,
+                            )
+                        } else {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .clip(RoundedCornerShape(1.dp)),
+                                color = BsTheme.colors.Amber,
+                                trackColor = BsTheme.colors.InkSoft,
+                            )
+                        }
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = primary.first,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BsTheme.colors.AmberBright,
+                        modifier = Modifier
+                            .clickable(onClick = primary.second)
+                            .padding(vertical = 4.dp),
+                    )
+                    Text(
+                        text = secondary.first,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = BsTheme.colors.MistFaint,
+                        modifier = Modifier
+                            .clickable(onClick = secondary.second)
+                            .padding(vertical = 4.dp),
+                    )
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = primary.first,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = BsTheme.colors.AmberBright,
-                    modifier = Modifier
-                        .clickable(onClick = primary.second)
-                        .padding(vertical = 4.dp),
-                )
-                Text(
-                    text = secondary.first,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = BsTheme.colors.MistFaint,
-                    modifier = Modifier
-                        .clickable(onClick = secondary.second)
-                        .padding(vertical = 4.dp),
-                )
-            }
         }
-        Box(
-            modifier = Modifier
-                .padding(top = 14.dp)
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(BsTheme.colors.Hairline),
-        )
     }
 }

@@ -20,6 +20,7 @@ class PlayerPlaybackController : ViewModel() {
         val canGoPrevious: Boolean = false,
         val canGoNext: Boolean = false,
         val showSkipIntro: Boolean = false,
+        val isLocked: Boolean = false,
     )
 
     private val _state = MutableStateFlow(PlaybackUiState())
@@ -50,5 +51,10 @@ class PlayerPlaybackController : ViewModel() {
     fun setSkipIntroVisible(visible: Boolean) {
         if (_state.value.showSkipIntro == visible) return
         _state.value = _state.value.copy(showSkipIntro = visible)
+    }
+
+    fun setLocked(locked: Boolean) {
+        if (_state.value.isLocked == locked) return
+        _state.value = _state.value.copy(isLocked = locked)
     }
 }

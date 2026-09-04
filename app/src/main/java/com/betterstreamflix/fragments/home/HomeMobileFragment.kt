@@ -24,7 +24,7 @@ import com.betterstreamflix.fragments.home.HomeMobileFragmentDirections
 import com.betterstreamflix.fragments.movie.MovieMobileFragmentDirections
 import com.betterstreamflix.fragments.tv_show.TvShowMobileFragmentDirections
 import com.betterstreamflix.models.Video
-import com.betterstreamflix.ui.ShowOptionsMobileDialog
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
@@ -218,9 +218,8 @@ class HomeMobileFragment : ComposeHostFragment() {
 
     private fun onItemLongClick(item: AppAdapter.Item) {
         when (item) {
-            is Movie -> ShowOptionsMobileDialog(requireContext(), item).show()
-            is TvShow -> ShowOptionsMobileDialog(requireContext(), item).show()
-            is Episode -> ShowOptionsMobileDialog(requireContext(), item).show()
+            is Movie, is TvShow, is Episode ->
+                ShowOptionsDialog(requireContext(), item, isTv = false).show()
             else -> Unit
         }
     }

@@ -9,7 +9,7 @@
         android:color="@color/bs_hairline" />
 
     <corners
-        android:topLeftRadius="20dp"
-        android:topRightRadius="20dp" />
+        android:topLeftRadius="16dp"
+        android:bottomLeftRadius="16dp" />
 
 </shape>

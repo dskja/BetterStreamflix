@@ -6,10 +6,15 @@ import com.betterstreamflix.R
 import com.betterstreamflix.compose.screens.SettingsUiState
 import com.betterstreamflix.notifications.NotificationPreferences
 import com.betterstreamflix.providers.ProviderConfigUrl
+import com.betterstreamflix.sync.CloudSyncManager
+import com.betterstreamflix.sync.SupabaseProvider
+import com.betterstreamflix.sync.TraktSettings
 import com.betterstreamflix.utils.AppLanguageManager
 import com.betterstreamflix.utils.ParentalPinLogic
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
+import java.text.DateFormat
+import java.util.Date
 
 internal object SettingsComposeBridge {
 
@@ -88,7 +93,33 @@ internal object SettingsComposeBridge {
             downloadNotifications = NotificationPreferences.isDownloadNotificationsEnabled(context),
             playbackNotifications = NotificationPreferences.isPlaybackNotificationsEnabled(context),
             versionName = BuildConfig.VERSION_NAME,
+            traktEnabled = TraktSettings.isEnabled(context),
+            cloudConfigured = SupabaseProvider.isConfigured,
+            cloudSignedIn = CloudSyncManager.currentUserEmail() != null,
+            cloudStatusLabel = cloudStatusLabel(context),
         )
+    }
+
+    private fun cloudStatusLabel(context: Context): String {
+        if (!SupabaseProvider.isConfigured) {
+            return context.getString(R.string.cloud_sync_signed_out)
+        }
+        val email = CloudSyncManager.currentUserEmail()
+        if (email == null) {
+            return context.getString(R.string.cloud_sync_signed_out)
+        }
+        val lastSynced = CloudSyncManager.lastSyncedAtMillis(context)
+        return if (lastSynced > 0L) {
+            val formatted = DateFormat.getDateTimeInstance(
+                DateFormat.SHORT,
+                DateFormat.SHORT,
+            ).format(Date(lastSynced))
+            context.getString(R.string.cloud_sync_signed_in_as, email) +
+                "\n" + context.getString(R.string.sync_last_synced, formatted)
+        } else {
+            context.getString(R.string.cloud_sync_signed_in_as, email) +
+                "\n" + context.getString(R.string.sync_status_ok)
+        }
     }
 
     fun applyToggle(context: Context, key: String, value: Boolean) {
@@ -112,6 +143,7 @@ internal object SettingsComposeBridge {
                     value.toString(),
                 )
             }
+            "traktEnabled" -> TraktSettings.setEnabled(context, value)
         }
     }
 

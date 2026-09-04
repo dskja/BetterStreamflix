@@ -25,8 +25,8 @@ import com.betterstreamflix.compose.components.BsHeroBanner
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsStatusBanner
+import com.betterstreamflix.compose.components.bannerOf
 import com.betterstreamflix.compose.components.itemLabelOf
-import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.models.Category
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Movie
@@ -105,7 +105,7 @@ fun HomeScreen(
                             is Episode -> featured.tvShow?.title ?: featured.title.orEmpty()
                             else -> stringResource(R.string.home_hero_fallback_title)
                         }.ifBlank { stringResource(R.string.home_hero_fallback_title) }
-                        val heroImage = featured?.let(::posterOf)
+                        val heroImage = featured?.let(::bannerOf)
                         val providerName = UserPreferences.currentProvider?.name
                         BsHeroBanner(
                             title = heroTitle,
@@ -121,6 +121,9 @@ fun HomeScreen(
                             onCta = {
                                 if (featured != null) onItemClick(featured, false) else onProviderClick()
                             },
+                            secondaryCtaLabel = stringResource(R.string.home_switch_provider),
+                            onSecondaryCta = onProviderClick,
+                            compact = isTvLayout,
                         )
                     }
                     if (isOffline) {

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/app_background_color">
+    android:background="@drawable/bg_dialog_show_options_tv">
 
     <ImageView
         android:id="@+id/iv_options_show_poster"
@@ -25,7 +25,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/bs_mist"
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"

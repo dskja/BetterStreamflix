@@ -67,52 +67,111 @@ object CloudAccountSettingsController {
         }
 
         signIn?.setOnPreferenceClickListener {
-            showCredentialsDialog(fragment, R.string.cloud_sync_sign_in) { email, password ->
-                runProgressAction(fragment, scope, ::refresh, email, password) { onProgress ->
-                    CloudSyncManager.signIn(
-                        fragment.requireContext(),
-                        email,
-                        password,
-                        onProgress,
-                    )
-                    R.string.cloud_sync_sign_in_success
-                }
-            }
+            startSignIn(fragment, scope, ::refresh)
             true
         }
 
         signUp?.setOnPreferenceClickListener {
-            showCredentialsDialog(fragment, R.string.cloud_sync_sign_up) { email, password ->
-                runProgressAction(fragment, scope, ::refresh, email, password) { onProgress ->
-                    val signedIn = CloudSyncManager.signUp(
-                        fragment.requireContext(),
-                        email,
-                        password,
-                        onProgress,
-                    )
-                    if (signedIn) R.string.cloud_sync_sign_up_success else R.string.cloud_sync_confirm_email
-                }
-            }
+            startSignUp(fragment, scope, ::refresh)
             true
         }
 
         signOut?.setOnPreferenceClickListener {
-            runAction(fragment, scope, ::refresh) {
-                CloudSyncManager.signOut(fragment.requireContext())
-                R.string.cloud_sync_sign_out_success
-            }
+            startSignOut(fragment, scope, ::refresh)
             true
         }
 
         syncNow?.setOnPreferenceClickListener {
-            runProgressAction(fragment, scope, ::refresh) { onProgress ->
-                CloudSyncManager.syncNow(fragment.requireContext(), onProgress)
-                R.string.cloud_sync_success
-            }
+            startSyncNow(fragment, scope, ::refresh)
             true
         }
 
         refresh()
+    }
+
+    fun handleComposeAction(
+        fragment: Fragment,
+        scope: LifecycleCoroutineScope,
+        action: String,
+        onRefresh: () -> Unit,
+    ): Boolean {
+        return when (action) {
+            "cloudSignIn" -> {
+                startSignIn(fragment, scope, onRefresh)
+                true
+            }
+            "cloudSignUp" -> {
+                startSignUp(fragment, scope, onRefresh)
+                true
+            }
+            "cloudSignOut" -> {
+                startSignOut(fragment, scope, onRefresh)
+                true
+            }
+            "cloudSyncNow" -> {
+                startSyncNow(fragment, scope, onRefresh)
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun startSignIn(
+        fragment: Fragment,
+        scope: LifecycleCoroutineScope,
+        refresh: () -> Unit,
+    ) {
+        showCredentialsDialog(fragment, R.string.cloud_sync_sign_in) { email, password ->
+            runProgressAction(fragment, scope, refresh, email, password) { onProgress ->
+                CloudSyncManager.signIn(
+                    fragment.requireContext(),
+                    email,
+                    password,
+                    onProgress,
+                )
+                R.string.cloud_sync_sign_in_success
+            }
+        }
+    }
+
+    private fun startSignUp(
+        fragment: Fragment,
+        scope: LifecycleCoroutineScope,
+        refresh: () -> Unit,
+    ) {
+        showCredentialsDialog(fragment, R.string.cloud_sync_sign_up) { email, password ->
+            runProgressAction(fragment, scope, refresh, email, password) { onProgress ->
+                val signedIn = CloudSyncManager.signUp(
+                    fragment.requireContext(),
+                    email,
+                    password,
+                    onProgress,
+                )
+                if (signedIn) R.string.cloud_sync_sign_up_success else R.string.cloud_sync_confirm_email
+            }
+        }
+    }
+
+    private fun startSignOut(
+        fragment: Fragment,
+        scope: LifecycleCoroutineScope,
+        refresh: () -> Unit,
+    ) {
+        runAction(fragment, scope, refresh) {
+            CloudSyncManager.signOut(fragment.requireContext())
+            R.string.cloud_sync_sign_out_success
+        }
+    }
+
+    private fun startSyncNow(
+        fragment: Fragment,
+        scope: LifecycleCoroutineScope,
+        refresh: () -> Unit,
+    ) {
+        runProgressAction(fragment, scope, refresh) { onProgress ->
+            CloudSyncManager.syncNow(fragment.requireContext(), onProgress)
+            R.string.cloud_sync_success
+        }
     }
 
     private fun showCredentialsDialog(

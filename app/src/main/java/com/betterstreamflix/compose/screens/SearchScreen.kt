@@ -1,5 +1,6 @@
 package com.betterstreamflix.compose.screens
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,8 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -36,6 +36,7 @@ import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsSearchResultRow
 import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsShimmerRow
@@ -43,6 +44,7 @@ import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.itemKeyOf
 import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
+import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
@@ -64,7 +66,6 @@ fun SearchScreen(
     onClearHistory: () -> Unit = {},
 ) {
     val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
-    var fieldFocused by remember { mutableStateOf(false) }
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -73,37 +74,11 @@ fun SearchScreen(
                 showBrand = true,
                 horizontalPadding = horizontalPadding,
             )
-            OutlinedTextField(
+            BsGlassSearchField(
                 value = query,
                 onValueChange = onQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding, vertical = 8.dp)
-                    .onFocusChanged { fieldFocused = it.isFocused }
-                    .then(
-                        if (fieldFocused) {
-                            Modifier.border(1.dp, BsTheme.colors.FocusRing, RoundedCornerShape(16.dp))
-                        } else {
-                            Modifier
-                        },
-                    ),
-                placeholder = {
-                    Text(
-                        stringResource(R.string.search_input_hint),
-                        color = BsTheme.colors.MistFaint,
-                    )
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BsTheme.colors.Amber,
-                    unfocusedBorderColor = BsTheme.colors.Hairline,
-                    focusedContainerColor = BsTheme.colors.GlassStrong,
-                    unfocusedContainerColor = BsTheme.colors.Glass,
-                    focusedTextColor = BsTheme.colors.Mist,
-                    unfocusedTextColor = BsTheme.colors.Mist,
-                    cursorColor = BsTheme.colors.Amber,
-                ),
+                placeholder = stringResource(R.string.search_input_hint),
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
             )
             if (query.isBlank()) {
                 BsGhostButton(
@@ -130,14 +105,26 @@ fun SearchScreen(
                     ) {
                         recentQueries.forEach { recent ->
                             val recentCd = stringResource(R.string.search_recent_query_cd, recent)
+                            var focused by remember(recent) { mutableStateOf(false) }
+                            val scale by animateFloatAsState(
+                                targetValue = if (focused) 1.06f else 1f,
+                                animationSpec = BsMotion.FocusSpring,
+                                label = "recentChipScale",
+                            )
                             Text(
                                 text = recent,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = BsTheme.colors.Mist,
                                 modifier = Modifier
+                                    .scale(scale)
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(BsTheme.colors.GlassPanel)
-                                    .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(14.dp))
+                                    .border(
+                                        1.dp,
+                                        if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                                        RoundedCornerShape(14.dp),
+                                    )
+                                    .onFocusChanged { focused = it.isFocused }
                                     .focusable()
                                     .semantics { contentDescription = recentCd }
                                     .clickable { onRecentClick(recent) }
@@ -170,6 +157,7 @@ fun SearchScreen(
                                     title = genre.name,
                                     subtitle = stringResource(R.string.search_genre_browse),
                                     imageUrl = null,
+                                    isGenre = true,
                                     onClick = { onResultClick(genre) },
                                 )
                             }

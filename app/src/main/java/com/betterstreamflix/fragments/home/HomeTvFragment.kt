@@ -228,9 +228,8 @@ class HomeTvFragment : ComposeHostFragment() {
 
     private fun onItemLongClick(item: AppAdapter.Item) {
         when (item) {
-            is Movie -> com.betterstreamflix.ui.ShowOptionsTvDialog(requireContext(), item).show()
-            is TvShow -> com.betterstreamflix.ui.ShowOptionsTvDialog(requireContext(), item).show()
-            is Episode -> com.betterstreamflix.ui.ShowOptionsTvDialog(requireContext(), item).show()
+            is Movie, is TvShow, is Episode ->
+                com.betterstreamflix.ui.ShowOptionsDialog(requireContext(), item, isTv = true).show()
             else -> Unit
         }
     }
