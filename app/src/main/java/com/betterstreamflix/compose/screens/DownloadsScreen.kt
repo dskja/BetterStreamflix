@@ -218,8 +218,8 @@ fun DownloadsScreen(
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0x5505070A),
-                                    Color(0xBB05070A),
+                                    BsTheme.colors.Ink.copy(alpha = 0.33f),
+                                    BsTheme.colors.Ink.copy(alpha = 0.73f),
                                     BsTheme.colors.Ink,
                                 ),
                             ),
@@ -232,7 +232,11 @@ fun DownloadsScreen(
                         .height(160.dp)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color(0x33E9B04A), Color(0x110B121A), Color.Transparent),
+                                listOf(
+                                    BsTheme.colors.Amber.copy(alpha = 0.20f),
+                                    BsTheme.colors.InkElevated.copy(alpha = 0.07f),
+                                    Color.Transparent,
+                                ),
                             ),
                         ),
                 )
@@ -666,7 +670,7 @@ private fun OfflinePosterCard(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xE607090D)),
+                            listOf(Color.Transparent, BsTheme.colors.Ink.copy(alpha = 0.90f)),
                         ),
                     ),
             )

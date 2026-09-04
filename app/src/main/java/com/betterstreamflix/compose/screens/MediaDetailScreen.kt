@@ -104,7 +104,7 @@ fun MediaDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isTvLayout) 460.dp else 380.dp)
+                            .height(if (isTvLayout) 520.dp else 440.dp)
                             .background(BsTheme.colors.InkSoft),
                     ) {
                         AsyncImage(
@@ -123,6 +123,13 @@ fun MediaDetailScreen(
                                 .fillMaxSize()
                                 .background(BsTheme.colors.HeroSideWash),
                         )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .align(Alignment.TopCenter)
+                                .background(BsTheme.colors.SpecularEdge),
+                        )
                         if (!isTvLayout) {
                             BsGhostButton(
                                 text = stringResource(R.string.settings_back),
@@ -130,48 +137,55 @@ fun MediaDetailScreen(
                                 modifier = Modifier.padding(12.dp),
                             )
                         }
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 24.dp),
+                        ) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.displayMedium,
+                                color = BsTheme.colors.Mist,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            metaLine?.takeIf { it.isNotBlank() }?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = BsTheme.colors.MistDim,
+                                    modifier = Modifier.padding(top = 6.dp),
+                                )
+                            }
+                            genresLine?.takeIf { it.isNotBlank() }?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = BsTheme.colors.AmberBright,
+                                    modifier = Modifier.padding(top = 8.dp),
+                                )
+                            }
+                            if (showWatchButton && watchLabel != null) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                BsPrimaryButton(text = watchLabel, onClick = onWatch)
+                                if (watchProgress != null && watchProgress > 0f) {
+                                    LinearProgressIndicator(
+                                        progress = { watchProgress },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp)
+                                            .height(3.dp),
+                                        color = BsTheme.colors.Amber,
+                                        trackColor = BsTheme.colors.Ink.copy(alpha = 0.55f),
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 20.dp)) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.displayMedium,
-                            color = BsTheme.colors.Mist,
-                        )
-                        metaLine?.takeIf { it.isNotBlank() }?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = BsTheme.colors.MistDim,
-                                modifier = Modifier.padding(top = 6.dp),
-                            )
-                        }
-                        genresLine?.takeIf { it.isNotBlank() }?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = BsTheme.colors.AmberBright,
-                                modifier = Modifier.padding(top = 8.dp),
-                            )
-                        }
+                        ExpandableOverview(overview = overview, modifier = Modifier.padding(top = 4.dp))
 
-                        ExpandableOverview(overview = overview, modifier = Modifier.padding(top = 12.dp))
-
-                        if (showWatchButton && watchLabel != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            BsPrimaryButton(text = watchLabel, onClick = onWatch)
-                            if (watchProgress != null && watchProgress > 0f) {
-                                LinearProgressIndicator(
-                                    progress = { watchProgress },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 10.dp)
-                                        .height(3.dp),
-                                    color = BsTheme.colors.Amber,
-                                    trackColor = BsTheme.colors.Ink,
-                                )
-                            }
-                        }
                         if (showDownloadButton) {
                             Spacer(modifier = Modifier.height(10.dp))
                             BsGhostButton(

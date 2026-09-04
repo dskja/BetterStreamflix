@@ -678,11 +678,13 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.btnExoLock.setOnClickListener {
             binding.pvPlayer.controller.binding.gControlsLock.isGone = true
             binding.pvPlayer.controller.binding.btnExoUnlock.isVisible = true
+            playbackController.setLocked(true)
         }
 
         binding.pvPlayer.controller.binding.btnExoUnlock.setOnClickListener {
             binding.pvPlayer.controller.binding.gControlsLock.isVisible = true
             binding.pvPlayer.controller.binding.btnExoUnlock.isGone = true
+            playbackController.setLocked(false)
         }
 
         binding.pvPlayer.controller.binding.btnExoPictureInPicture.setOnClickListener {
@@ -812,6 +814,13 @@ class PlayerMobileFragment : Fragment() {
             onSkipIntro = {
                 binding.pvPlayer.controller.binding.btnSkipIntro.performClick()
             },
+            onToggleLock = {
+                val locked = !playbackController.state.value.isLocked
+                playbackController.setLocked(locked)
+                binding.pvPlayer.controller.binding.gControlsLock.isGone = locked
+                binding.pvPlayer.controller.binding.btnExoUnlock.isVisible = locked
+            },
+            onCaptions = { binding.settings.show() },
         )
     }
 

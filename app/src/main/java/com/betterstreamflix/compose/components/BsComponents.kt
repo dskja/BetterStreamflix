@@ -395,6 +395,9 @@ fun BsHeroBanner(
     ctaLabel: String,
     onCta: () -> Unit,
     modifier: Modifier = Modifier,
+    secondaryCtaLabel: String? = null,
+    onSecondaryCta: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(
@@ -412,7 +415,7 @@ fun BsHeroBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(520.dp)
+            .height(if (compact) 420.dp else 560.dp)
             .alpha(alpha),
     ) {
         AsyncImage(
@@ -432,6 +435,13 @@ fun BsHeroBanner(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BsTheme.colors.HeroSideWash),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .align(Alignment.TopCenter)
+                .background(BsTheme.colors.SpecularEdge),
         )
         Column(
             modifier = Modifier
@@ -461,7 +471,12 @@ fun BsHeroBanner(
                 )
             }
             Spacer(modifier = Modifier.height(22.dp))
-            BsPrimaryButton(text = ctaLabel, onClick = onCta)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                BsPrimaryButton(text = ctaLabel, onClick = onCta)
+                if (!secondaryCtaLabel.isNullOrBlank() && onSecondaryCta != null) {
+                    BsGhostButton(text = secondaryCtaLabel, onClick = onSecondaryCta)
+                }
+            }
         }
     }
 }
@@ -597,7 +612,7 @@ fun BsContinueWatchingCard(
                         .height(3.dp)
                         .align(Alignment.BottomCenter),
                     color = BsTheme.colors.Amber,
-                    trackColor = Color(0x6607090D),
+                    trackColor = BsTheme.colors.Ink.copy(alpha = 0.40f),
                 )
             }
         }
@@ -643,6 +658,13 @@ fun posterOf(item: AppAdapter.Item): String? = when (item) {
     else -> null
 }
 
+fun bannerOf(item: AppAdapter.Item): String? = when (item) {
+    is Movie -> item.banner ?: item.poster
+    is TvShow -> item.banner ?: item.poster
+    is Episode -> item.tvShow?.banner ?: item.poster ?: item.tvShow?.poster
+    else -> posterOf(item)
+}
+
 @Composable
 fun BsGenreTile(
     title: String,
@@ -655,42 +677,42 @@ fun BsGenreTile(
         animationSpec = BsMotion.FocusSpring,
         label = "genreTileScale",
     )
-    Row(
+    BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(96.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(BsTheme.colors.InkPanel)
-            .border(
-                width = 1.dp,
-                color = if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                shape = RoundedCornerShape(14.dp),
-            )
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
-            )
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            ),
+        selected = focused,
+        corner = 16.dp,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .padding(end = 12.dp)
-                .width(3.dp)
-                .height(28.dp)
-                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = BsTheme.colors.Mist,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .width(3.dp)
+                    .height(32.dp)
+                    .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = BsTheme.colors.Mist,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -746,7 +768,7 @@ fun BsPosterCard(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xCC07090D)),
+                            listOf(Color.Transparent, BsTheme.colors.Ink.copy(alpha = 0.80f)),
                         ),
                     ),
             )

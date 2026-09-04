@@ -72,10 +72,32 @@ fun PlayerControlsOverlay(
     onPreviousEpisode: (() -> Unit)? = null,
     onNextEpisode: (() -> Unit)? = null,
     onSkipIntro: (() -> Unit)? = null,
+    onToggleLock: (() -> Unit)? = null,
+    onCaptions: (() -> Unit)? = null,
 ) {
     if (!visible) return
 
     val colors = BsTheme.colors
+
+    if (state.isLocked) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(colors.PlayerGlass)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (onToggleLock != null) {
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_unlock_controls),
+                    onClick = onToggleLock,
+                )
+            }
+        }
+        return
+    }
+
     val durationMs = max(state.durationMs, 1L)
     val positionFraction = (state.positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
     val playPauseLabel = if (state.isPlaying) {
@@ -268,6 +290,18 @@ fun PlayerControlsOverlay(
                 PlayerGlassChip(
                     label = stringResource(R.string.player_skip_intro),
                     onClick = onSkipIntro,
+                )
+            }
+            if (onCaptions != null) {
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_captions_short),
+                    onClick = onCaptions,
+                )
+            }
+            if (onToggleLock != null) {
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_lock_controls),
+                    onClick = onToggleLock,
                 )
             }
             if (onAspectRatio != null) {

@@ -29,7 +29,7 @@ import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.itemKeyOf
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.fragments.favorites.FavoritesViewModel
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
@@ -46,6 +46,7 @@ fun FavoritesScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     val hasItems = sections.any { it.items.isNotEmpty() }
     val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+    val colors = BsTheme.colors
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -62,10 +63,16 @@ fun FavoritesScreen(
                         DropdownMenu(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false },
+                            containerColor = colors.InkElevated,
                         ) {
                             FavoritesViewModel.SortMode.entries.forEach { mode ->
                                 DropdownMenuItem(
-                                    text = { Text(sortModeLabel(mode)) },
+                                    text = {
+                                        Text(
+                                            text = sortModeLabel(mode),
+                                            color = if (mode == sortMode) colors.AmberBright else colors.Mist,
+                                        )
+                                    },
                                     onClick = {
                                         onSortModeChange(mode)
                                         showSortMenu = false

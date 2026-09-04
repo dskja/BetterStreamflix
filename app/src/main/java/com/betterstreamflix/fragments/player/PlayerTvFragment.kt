@@ -942,6 +942,11 @@ class PlayerTvFragment : Fragment() {
                 onSkipIntro = {
                     binding.pvPlayer.controller.binding.btnSkipIntro.performClick()
                 },
+                onToggleLock = {
+                    val locked = !playbackController.state.value.isLocked
+                    playbackController.setLocked(locked)
+                },
+                onCaptions = { binding.settings.show() },
             )
         }
 
