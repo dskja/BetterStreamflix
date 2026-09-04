@@ -1251,7 +1251,11 @@ fun BsLoadMoreFooter(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
+fun BsEmptyState(
+    message: String,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1272,7 +1276,7 @@ fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
                         .background(BsTheme.colors.Amber, RoundedCornerShape(1.dp)),
                 )
                 Text(
-                    text = stringResource(R.string.bs_empty_title),
+                    text = title ?: stringResource(R.string.bs_empty_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = BsTheme.colors.Mist,
                 )

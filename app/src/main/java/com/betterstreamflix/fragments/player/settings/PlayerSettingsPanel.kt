@@ -96,7 +96,7 @@ fun PlayerSettingsPanel(
             if (setting != Setting.MAIN) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.settings_back),
                     tint = colors.Mist,
                     modifier = Modifier
                         .size(36.dp)
@@ -121,7 +121,7 @@ fun PlayerSettingsPanel(
             if (!isTvLayout) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = null,
+                    contentDescription = stringResource(android.R.string.cancel),
                     tint = colors.Mist,
                     modifier = Modifier
                         .size(36.dp)

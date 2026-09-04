@@ -1,11 +1,8 @@
 package com.betterstreamflix.compose.screens
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +14,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +35,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,9 +66,9 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsGlassSearchField
+import com.betterstreamflix.compose.components.BsIconButton
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
-import com.betterstreamflix.compose.theme.BsDisplayFont
 import com.betterstreamflix.download.DownloadArtworkStore
 import com.betterstreamflix.download.DownloadFeature
 import com.betterstreamflix.download.DownloadLiveStats
@@ -281,7 +281,11 @@ fun DownloadsScreen(
                 }
 
                 if (downloads.isEmpty()) {
-                    DownloadsEmptyHero(modifier = Modifier.fillMaxSize())
+                    BsEmptyState(
+                        title = stringResource(R.string.downloads_empty_title),
+                        message = stringResource(R.string.downloads_empty_message),
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 } else {
                     FilterTabs(
                         filter = filter,
@@ -370,43 +374,6 @@ private fun FilterTabs(
 }
 
 @Composable
-private fun DownloadsEmptyHero(modifier: Modifier = Modifier) {
-    val pulse = rememberInfiniteTransition(label = "emptyPulse")
-    val glow by pulse.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
-        label = "emptyGlow",
-    )
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 36.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(56.dp)
-                    .height(3.dp)
-                    .alpha(glow)
-                    .background(BsTheme.colors.Amber, RoundedCornerShape(2.dp)),
-            )
-            Spacer(modifier = Modifier.height(28.dp))
-            Text(
-                text = stringResource(R.string.downloads_empty_title),
-                style = MaterialTheme.typography.headlineLarge.copy(fontFamily = BsDisplayFont),
-                color = BsTheme.colors.Mist,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.downloads_empty_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = BsTheme.colors.MistDim,
-            )
-        }
-    }
-}
-
-@Composable
 private fun LibraryPane(
     items: List<DownloadManager.DownloadTask>,
     horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
@@ -419,7 +386,7 @@ private fun LibraryPane(
         EmptyFilterMessage(stringResource(R.string.downloads_library_empty))
         return
     }
-    val gridMin = if (isTvLayout) 140.dp else 118.dp
+    val gridMin = if (isTvLayout) 140.dp else 124.dp
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = gridMin),
         modifier = Modifier.fillMaxSize(),
@@ -575,13 +542,13 @@ private fun OfflinePosterCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(176.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .aspectRatio(0.70f)
+                .clip(RoundedCornerShape(12.dp))
                 .background(BsTheme.colors.InkSoft)
                 .border(
-                    1.dp,
-                    if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
-                    RoundedCornerShape(10.dp),
+                    if (focused) 2.dp else 1.dp,
+                    if (focused) BsTheme.colors.Amber else BsTheme.colors.Hairline,
+                    RoundedCornerShape(12.dp),
                 ),
         ) {
             AsyncImage(
@@ -609,6 +576,15 @@ private fun OfflinePosterCard(
                     .align(Alignment.BottomStart)
                     .padding(10.dp),
             )
+            BsIconButton(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = stringResource(R.string.download_delete),
+                onClick = onDelete,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(36.dp),
+            )
         }
         Text(
             text = task.title,
@@ -617,14 +593,6 @@ private fun OfflinePosterCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp, start = 2.dp, end = 2.dp),
-        )
-        Text(
-            text = stringResource(R.string.download_delete),
-            style = MaterialTheme.typography.labelSmall,
-            color = BsTheme.colors.MistFaint,
-            modifier = Modifier
-                .padding(top = 2.dp, start = 2.dp)
-                .clickable(onClick = onDelete),
         )
     }
 }
