@@ -301,12 +301,13 @@ private fun buildShowOptionsActions(
     val actions = mutableListOf<ShowOptionsAction>()
     when (item) {
         is Episode -> {
-            if (canOpenTvShow && item.tvShow != null) {
+            val tvShow = item.tvShow
+            if (canOpenTvShow && tvShow != null) {
                 actions += ShowOptionsAction(
                     id = "open_tv_show",
                     label = context.getString(R.string.option_episode_open_tv_show),
                 ) {
-                    onOpenTvShow(item.tvShow!!)
+                    onOpenTvShow(tvShow)
                     onDismiss()
                 }
             }

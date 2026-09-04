@@ -123,9 +123,12 @@ class NextEpisodeOverlayManager(
             ensureNextEpisodePrepared(currentEpisode)
         }
 
-        val nextEpisode = EpisodeManager.peekNextEpisode()
+        val nextEpisode = EpisodeManager.peekNextEpisode() ?: run {
+            hideOverlay()
+            return
+        }
         if (!NextEpisodeOverlayLogic.shouldShowOverlay(
-                hasNextEpisode = nextEpisode != null,
+                hasNextEpisode = true,
                 remainingMs = remainingMs,
                 autoplayBufferSeconds = UserPreferences.autoplayBuffer,
                 dismissed = nextEpisodeOverlayDismissed,
@@ -135,7 +138,7 @@ class NextEpisodeOverlayManager(
             return
         }
 
-        showNextEpisodeOverlay(nextEpisode!!, remainingMs)
+        showNextEpisodeOverlay(nextEpisode, remainingMs)
     }
 
     fun updateSkipIntroButton() {

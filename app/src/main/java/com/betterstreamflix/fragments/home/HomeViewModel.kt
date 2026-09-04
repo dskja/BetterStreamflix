@@ -264,6 +264,14 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     }
                 }
 
+                val recommended = try {
+                    buildRecommendedCategory(history, state.categories)
+                } catch (error: Throwable) {
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    Log.w("HomeViewModel", "buildRecommendedCategory failed", error)
+                    null
+                }
+
                 val categories = ParentalControlUtils.filterCategories(listOfNotNull(
 
                     // FEATURED
@@ -306,12 +314,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         list = history.recentlyWatched,
                     ),
 
-                    runCatching { buildRecommendedCategory(history, state.categories) }
-                        .onFailure { error ->
-                            if (error is kotlinx.coroutines.CancellationException) throw error
-                            Log.w("HomeViewModel", "buildRecommendedCategory failed", error)
-                        }
-                        .getOrNull(),
+                    recommended,
 
                     // FAVORITES
                     Category(
@@ -352,7 +355,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun buildRecommendedCategory(
+    private suspend fun buildRecommendedCategory(
         history: HomeHistory,
         providerCategories: List<Category>,
     ): Category? {

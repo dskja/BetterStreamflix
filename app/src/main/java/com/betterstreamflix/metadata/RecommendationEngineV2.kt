@@ -2,20 +2,17 @@ package com.betterstreamflix.metadata
 
 import com.betterstreamflix.database.AppDataRepository
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 /**
  * Recommendation engine v2 — TMDB metadata + watch-history scoring.
  */
 object RecommendationEngineV2 {
 
-    fun scoreByWatchHistory(
+    suspend fun scoreByWatchHistory(
         context: android.content.Context,
         availableContent: List<RecommendableItem>,
     ): List<RecommendableItem> {
-        val history = runBlocking {
-            AppDataRepository(context).getWatchHistory().first()
-        }
+        val history = AppDataRepository(context).getWatchHistory().first()
         if (history.isEmpty()) return availableContent.take(20)
 
         val genreWeights = mutableMapOf<String, Double>()
