@@ -227,28 +227,6 @@
         errorLine1="            fallback(R.drawable.glide_fallback_cover)"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/betterstreamflix/ui/ShowOptionsTvDialog.kt"
-            line="260"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="CheckResult"
-        message="The result of `fallback` is not used"
-        errorLine1="            fallback(R.drawable.glide_fallback_cover)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/betterstreamflix/ui/ShowOptionsTvDialog.kt"
-            line="360"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="CheckResult"
-        message="The result of `fallback` is not used"
-        errorLine1="            fallback(R.drawable.glide_fallback_cover)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
             file="src/main/java/com/betterstreamflix/adapters/viewholders/TvShowViewHolder.kt"
             line="225"
             column="13"/>

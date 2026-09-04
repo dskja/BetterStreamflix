@@ -18,6 +18,7 @@ import com.betterstreamflix.models.People
 import com.betterstreamflix.models.Show
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.models.Video
+import com.betterstreamflix.ui.ShowOptionsActions
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
@@ -65,6 +66,8 @@ class MovieTvFragment : ComposeHostFragment() {
             watchProgress = watchProgress,
             showWatchButton = movie != null,
             showDownloadButton = movie != null,
+            isFavorite = movie?.isFavorite == true,
+            showFavoriteButton = movie != null,
             cast = movie?.cast.orEmpty(),
             directors = movie?.directors.orEmpty(),
             recommendations = movie?.recommendations.orEmpty(),
@@ -73,6 +76,9 @@ class MovieTvFragment : ComposeHostFragment() {
             isTvLayout = true,
             onWatch = { movie?.let(::openPlayer) },
             onDownload = { movie?.let(::requestDownload) },
+            onToggleFavorite = {
+                movie?.let { ShowOptionsActions.toggleFavorite(requireContext(), it, viewLifecycleOwner.lifecycleScope) }
+            },
             onCastClick = ::openPerson,
             onRecommendationClick = ::openRecommendation,
             onRetry = { viewModel.getMovie(args.id) },

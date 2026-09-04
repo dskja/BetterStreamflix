@@ -18,6 +18,7 @@ import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.download.DownloadRepository
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Video
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
@@ -77,6 +78,9 @@ class SeasonTvFragment : ComposeHostFragment() {
             downloadStatusByEpisodeId = downloadStatusByEpisodeId,
             onRetry = { viewModel.getSeasonEpisodes(args.seasonId) },
             onEpisodeClick = ::openEpisode,
+            onEpisodeLongClick = { episode ->
+                ShowOptionsDialog(requireContext(), episode, isTv = true).show()
+            },
             onDownloadEpisode = ::requestDownload,
             onDownloadSeason = ::requestDownloadSeason,
             isTvLayout = true,

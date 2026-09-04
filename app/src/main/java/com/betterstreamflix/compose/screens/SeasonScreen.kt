@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +68,7 @@ fun SeasonScreen(
     onBack: () -> Unit = {},
     onRetry: () -> Unit = {},
     onEpisodeClick: (Episode) -> Unit = {},
+    onEpisodeLongClick: (Episode) -> Unit = {},
     onDownloadEpisode: (Episode) -> Unit = {},
     onDownloadSeason: () -> Unit = {},
     isTvLayout: Boolean = false,
@@ -182,6 +185,7 @@ fun SeasonScreen(
                                     episode = episode,
                                     downloadStatus = downloadStatusByEpisodeId[episode.id],
                                     onOpen = { onEpisodeClick(episode) },
+                                    onLongClick = { onEpisodeLongClick(episode) },
                                     onDownload = { onDownloadEpisode(episode) },
                                 )
                             }
@@ -196,6 +200,7 @@ fun SeasonScreen(
                                     episode = episode,
                                     downloadStatus = downloadStatusByEpisodeId[episode.id],
                                     onOpen = { onEpisodeClick(episode) },
+                                    onLongClick = { onEpisodeLongClick(episode) },
                                     onDownload = { onDownloadEpisode(episode) },
                                 )
                             }
@@ -248,11 +253,13 @@ private fun SeasonSearchField(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SeasonEpisodeCard(
     episode: Episode,
     downloadStatus: DownloadManager.DownloadStatus?,
     onOpen: () -> Unit,
+    onLongClick: () -> Unit,
     onDownload: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -290,10 +297,11 @@ private fun SeasonEpisodeCard(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clickable(
+            .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onOpen,
+                onLongClick = onLongClick,
             ),
         selected = focused,
         corner = 14.dp,
@@ -351,18 +359,27 @@ private fun SeasonEpisodeCard(
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
-                if (downloadEnabled) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
+                    if (downloadEnabled) {
+                        BsGhostButton(
+                            text = downloadLabel,
+                            onClick = onDownload,
+                        )
+                    } else {
+                        Text(
+                            text = downloadLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BsTheme.colors.MistFaint,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                    }
                     BsGhostButton(
-                        text = downloadLabel,
-                        onClick = onDownload,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                } else {
-                    Text(
-                        text = downloadLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = BsTheme.colors.MistFaint,
-                        modifier = Modifier.padding(top = 8.dp),
+                        text = "⋯",
+                        onClick = onLongClick,
                     )
                 }
             }
@@ -370,11 +387,13 @@ private fun SeasonEpisodeCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SeasonTvEpisodeCard(
     episode: Episode,
     downloadStatus: DownloadManager.DownloadStatus?,
     onOpen: () -> Unit,
+    onLongClick: () -> Unit,
     onDownload: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -407,10 +426,11 @@ private fun SeasonTvEpisodeCard(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clickable(
+            .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onOpen,
+                onLongClick = onLongClick,
             ),
         selected = focused,
         corner = 14.dp,
@@ -459,6 +479,10 @@ private fun SeasonTvEpisodeCard(
                 text = downloadLabel,
                 onClick = onDownload,
                 modifier = Modifier.padding(top = 4.dp),
+            )
+            BsGhostButton(
+                text = "⋯",
+                onClick = onLongClick,
             )
         }
     }
