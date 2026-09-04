@@ -378,12 +378,12 @@ private fun FilterTabs(
             Box(
                 modifier = Modifier
                     .scale(scale)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) BsTheme.colors.InkSoft else BsTheme.colors.InkPanel)
                     .border(
                         1.dp,
-                        if (focused || selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                        RoundedCornerShape(14.dp),
+                        if (focused || selected) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
+                        RoundedCornerShape(10.dp),
                     )
                     .onFocusChanged { focused = it.isFocused }
                     .focusable()
@@ -417,12 +417,12 @@ private fun SearchField(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(BsTheme.colors.GlassPanel)
+            .clip(RoundedCornerShape(12.dp))
+            .background(BsTheme.colors.InkPanel)
             .border(
                 1.dp,
-                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                RoundedCornerShape(16.dp),
+                if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
+                RoundedCornerShape(12.dp),
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
@@ -474,7 +474,7 @@ private fun DownloadsEmptyHero(modifier: Modifier = Modifier) {
                     .width(56.dp)
                     .height(3.dp)
                     .alpha(glow)
-                    .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
+                    .background(BsTheme.colors.Amber, RoundedCornerShape(2.dp)),
             )
             Spacer(modifier = Modifier.height(28.dp))
             Text(
@@ -662,12 +662,12 @@ private fun OfflinePosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(176.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(BsTheme.colors.InkSoft)
                 .border(
                     1.dp,
-                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                    RoundedCornerShape(14.dp),
+                    if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
+                    RoundedCornerShape(10.dp),
                 ),
         ) {
             AsyncImage(
@@ -800,7 +800,7 @@ private fun MediaDownloadRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = task.canOpen, onClick = onOpen),
-            corner = 14.dp,
+            corner = 10.dp,
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),

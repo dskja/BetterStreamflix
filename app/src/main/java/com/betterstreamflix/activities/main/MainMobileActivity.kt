@@ -681,24 +681,12 @@ class MainMobileActivity : FragmentActivity() {
         )
 
         binding.root.setBackgroundColor(palette.mobileNavBackground)
-        // Soft elevated glass chrome for the bottom nav (opaque enough for contrast).
-        val navGlass = android.graphics.Color.argb(
-            0xF2,
-            android.graphics.Color.red(palette.mobileNavBackground),
-            android.graphics.Color.green(palette.mobileNavBackground),
-            android.graphics.Color.blue(palette.mobileNavBackground),
-        )
-        binding.bnvMain.setBackgroundColor(navGlass)
-        binding.bnvMain.elevation = 12f
+        binding.bnvMain.setBackgroundColor(palette.mobileNavBackground)
+        binding.bnvMain.elevation = 0f
         binding.bnvMain.itemIconTintList = navColors
         binding.bnvMain.itemTextColor = navColors
         binding.bnvMain.itemActiveIndicatorColor = ColorStateList.valueOf(
-            android.graphics.Color.argb(
-                0x33,
-                android.graphics.Color.red(palette.mobileNavActive),
-                android.graphics.Color.green(palette.mobileNavActive),
-                android.graphics.Color.blue(palette.mobileNavActive),
-            ),
+            android.graphics.Color.TRANSPARENT,
         )
 
         window.statusBarColor = palette.systemBar

@@ -63,15 +63,8 @@ fun BsSettingsSectionLabel(
             .padding(top = 20.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .padding(end = 10.dp)
-                .width(3.dp)
-                .height(12.dp)
-                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
-        )
         Text(
-            text = title.uppercase(),
+            text = title,
             style = MaterialTheme.typography.labelMedium,
             color = BsTheme.colors.MistDim,
         )
@@ -79,7 +72,7 @@ fun BsSettingsSectionLabel(
 }
 
 /**
- * A hub destination tile — liquid-glass navigation entry into a settings section.
+ * A hub destination tile — Arc navigation entry into a settings section.
  */
 @Composable
 fun BsSettingsNavTile(
@@ -108,23 +101,16 @@ fun BsSettingsNavTile(
                 onClick = onClick,
             ),
         selected = focused,
-        corner = 16.dp,
+        corner = 12.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 18.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier
-                        .width(3.dp)
-                        .height(if (subtitle.isNullOrBlank()) 20.dp else 34.dp)
-                        .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
-                )
-                Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
@@ -195,7 +181,7 @@ fun BsSettingsToggleRow(
             .background(if (focused) BsTheme.colors.GlassSoft else Color.Transparent)
             .border(
                 width = if (focused) 1.dp else 0.dp,
-                color = if (focused) BsTheme.colors.FocusRing else Color.Transparent,
+                color = if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else Color.Transparent,
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -259,7 +245,7 @@ fun BsSettingsValueRow(
             .background(if (focused) BsTheme.colors.GlassSoft else Color.Transparent)
             .border(
                 width = if (focused) 1.dp else 0.dp,
-                color = if (focused) BsTheme.colors.FocusRing else Color.Transparent,
+                color = if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else Color.Transparent,
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -319,7 +305,7 @@ fun BsSettingsActionRow(
             .background(if (focused) BsTheme.colors.GlassSoft else Color.Transparent)
             .border(
                 width = if (focused) 1.dp else 0.dp,
-                color = if (focused) BsTheme.colors.FocusRing else Color.Transparent,
+                color = if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else Color.Transparent,
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -357,7 +343,7 @@ private fun BsSettingsHairline(modifier: Modifier = Modifier) {
 }
 
 /**
- * Full-width liquid-glass theme picker row (safe inside LazyColumn — no nested LazyRow).
+ * Full-width Arc theme picker row (safe inside LazyColumn — no nested LazyRow).
  */
 @Composable
 fun BsThemePickRow(
@@ -393,7 +379,7 @@ fun BsThemePickRow(
                 onClick = onClick,
             ),
         selected = selected || focused,
-        corner = 18.dp,
+        corner = 12.dp,
     ) {
         Row(
             modifier = Modifier
@@ -546,7 +532,7 @@ fun BsSettingsFeatureCard(
                 onClick = { onCheckedChange(!checked) },
             ),
         selected = checked || focused,
-        corner = 18.dp,
+        corner = 12.dp,
     ) {
         Row(
             modifier = Modifier

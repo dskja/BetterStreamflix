@@ -295,7 +295,7 @@ private fun SettingsHubBody(
                         .fillMaxWidth()
                         .padding(horizontal = horizontalPadding, vertical = 10.dp),
                     selected = true,
-                    corner = 20.dp,
+                    corner = 12.dp,
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         androidx.compose.material3.Text(

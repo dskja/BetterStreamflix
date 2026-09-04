@@ -21,6 +21,7 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsContentRow
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsHomeChrome
 import com.betterstreamflix.compose.components.BsHeroBanner
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
@@ -45,6 +46,8 @@ fun HomeScreen(
     onRetry: () -> Unit = {},
     scrollToCategoryName: String? = null,
     onProviderClick: () -> Unit = {},
+    onMoviesClick: () -> Unit = {},
+    onTvShowsClick: () -> Unit = {},
     onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
     onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
@@ -99,6 +102,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     item(key = "hero") {
+                        val providerName = UserPreferences.currentProvider?.name
                         val heroTitle = when (featured) {
                             is Movie -> featured.title
                             is TvShow -> featured.title
@@ -106,25 +110,31 @@ fun HomeScreen(
                             else -> stringResource(R.string.home_hero_fallback_title)
                         }.ifBlank { stringResource(R.string.home_hero_fallback_title) }
                         val heroImage = featured?.let(::bannerOf)
-                        val providerName = UserPreferences.currentProvider?.name
-                        BsHeroBanner(
-                            title = heroTitle,
-                            subtitle = providerName?.let {
-                                stringResource(R.string.home_hero_provider_subtitle, it)
-                            } ?: stringResource(R.string.home_hero_subtitle),
-                            imageUrl = heroImage,
-                            ctaLabel = if (featured != null) {
-                                stringResource(R.string.home_hero_open_now)
-                            } else {
-                                stringResource(R.string.home_hero_choose_provider)
-                            },
-                            onCta = {
-                                if (featured != null) onItemClick(featured, false) else onProviderClick()
-                            },
-                            secondaryCtaLabel = stringResource(R.string.home_switch_provider),
-                            onSecondaryCta = onProviderClick,
-                            compact = isTvLayout,
-                        )
+                        Column {
+                            BsHomeChrome(
+                                providerName = providerName,
+                                onProviderClick = onProviderClick,
+                                onMoviesClick = onMoviesClick,
+                                onTvShowsClick = onTvShowsClick,
+                                isTvLayout = isTvLayout,
+                            )
+                            BsHeroBanner(
+                                title = heroTitle,
+                                subtitle = providerName?.let {
+                                    stringResource(R.string.home_hero_provider_subtitle, it)
+                                } ?: stringResource(R.string.home_hero_subtitle),
+                                imageUrl = heroImage,
+                                ctaLabel = if (featured != null) {
+                                    stringResource(R.string.home_hero_open_now)
+                                } else {
+                                    stringResource(R.string.home_hero_choose_provider)
+                                },
+                                onCta = {
+                                    if (featured != null) onItemClick(featured, false) else onProviderClick()
+                                },
+                                compact = isTvLayout,
+                            )
+                        }
                     }
                     if (isOffline) {
                         item(key = "offline-banner") {

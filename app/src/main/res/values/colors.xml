@@ -1,61 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="white">#E8EDF4</color>
-    <color name="black">#07090D</color>
-    <color name="ic_launcher_background">#07090D</color>
-    <color name="ic_banner_background">#07090D</color>
+    <color name="white">#F7F7F4</color>
+    <color name="black">#08090B</color>
+    <color name="ic_launcher_background">#08090B</color>
+    <color name="ic_banner_background">#08090B</color>
 
-    <!-- Obsidian Stream palette -->
-    <color name="bs_ink">#05070A</color>
-    <color name="bs_ink_elevated">#0C1118</color>
-    <color name="bs_ink_panel">#141B24</color>
-    <color name="bs_ink_soft">#1C2531</color>
-    <color name="bs_amber">#E9B04A</color>
-    <color name="bs_amber_bright">#F6D07A</color>
-    <color name="bs_amber_muted">#A6792C</color>
-    <color name="bs_mist">#F1F4F8</color>
-    <color name="bs_mist_dim">#B0BAC8</color>
-    <color name="bs_mist_faint">#6F7B8E</color>
-    <color name="bs_sea_glass">#3D8B8A</color>
-    <color name="bs_danger">#E05A5A</color>
-    <color name="bs_hairline">#22E8EDF4</color>
+    <!-- Arc palette -->
+    <color name="bs_ink">#08090B</color>
+    <color name="bs_ink_elevated">#0D0F12</color>
+    <color name="bs_ink_panel">#111317</color>
+    <color name="bs_ink_soft">#1A1D22</color>
+    <color name="bs_amber">#FF5A36</color>
+    <color name="bs_amber_bright">#FF795C</color>
+    <color name="bs_amber_muted">#B93B21</color>
+    <color name="bs_mist">#F7F7F4</color>
+    <color name="bs_mist_dim">#9B9DA2</color>
+    <color name="bs_mist_faint">#66696F</color>
+    <color name="bs_sea_glass">#80D6A2</color>
+    <color name="bs_danger">#E35F5F</color>
+    <color name="bs_hairline">#1FF2F5F8</color>
 
-    <color name="app_background">#07090D</color>
-    <color name="favorite_selected">#E8A838</color>
+    <color name="app_background">#08090B</color>
+    <color name="favorite_selected">#FF5A36</color>
 
     <array name="genres">
-        <item>#3D8B8A</item>
-        <item>#E8A838</item>
-        <item>#1E2733</item>
-        <item>#9A6E24</item>
-        <item>#2D6B6A</item>
-        <item>#4CAF7A</item>
-        <item>#161D27</item>
-        <item>#F2C15A</item>
-        <item>#6B778A</item>
-        <item>#A86B2D</item>
-        <item>#E05A5A</item>
+        <item>#FF5A36</item>
+        <item>#E08A5A</item>
+        <item>#1A222D</item>
+        <item>#2A9E8C</item>
+        <item>#1A6B5E</item>
+        <item>#4DB787</item>
+        <item>#0D0F12</item>
+        <item>#6FF0DA</item>
+        <item>#657384</item>
+        <item>#8A5238</item>
+        <item>#E35F5F</item>
         <item>#777777</item>
-        <item>#C49A3C</item>
+        <item>#2A9E8C</item>
+        <item>#5BB8E8</item>
+        <item>#1A6B5E</item>
         <item>#537AA1</item>
-        <item>#006450</item>
-        <item>#5179A1</item>
         <item>#BA5D07</item>
-        <item>#E05A5A</item>
-        <item>#3D8B8A</item>
+        <item>#E35F5F</item>
+        <item>#FF5A36</item>
         <item>#056952</item>
         <item>#7D4B32</item>
-        <item>#10151C</item>
-        <item>#E8A838</item>
+        <item>#08090B</item>
+        <item>#E08A5A</item>
         <item>#A56752</item>
         <item>#477D95</item>
         <item>#B06239</item>
-        <item>#0D73EC</item>
-        <item>#2D6B6A</item>
+        <item>#FF5A36</item>
+        <item>#1A6B5E</item>
         <item>#8C1932</item>
-        <item>#9A6E24</item>
+        <item>#2A9E8C</item>
         <item>#E41D63</item>
         <item>#27856A</item>
-        <item>#E8A838</item>
+        <item>#FF5A36</item>
     </array>
 </resources>

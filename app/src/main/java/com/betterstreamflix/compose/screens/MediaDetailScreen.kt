@@ -112,9 +112,12 @@ fun MediaDetailScreen(
                 ) {
                     Box(
                         modifier = Modifier
+                            .padding(horizontal = if (isTvLayout) 28.dp else 12.dp)
                             .fillMaxWidth()
                             .height(if (isTvLayout) 520.dp else 440.dp)
-                            .background(BsTheme.colors.InkSoft),
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(BsTheme.colors.InkSoft)
+                            .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(22.dp)),
                     ) {
                         AsyncImage(
                             model = bannerUrl,
@@ -132,13 +135,6 @@ fun MediaDetailScreen(
                                 .fillMaxSize()
                                 .background(BsTheme.colors.HeroSideWash),
                         )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .align(Alignment.TopCenter)
-                                .background(BsTheme.colors.SpecularEdge),
-                        )
                         if (!isTvLayout) {
                             BsGhostButton(
                                 text = stringResource(R.string.settings_back),
@@ -149,7 +145,7 @@ fun MediaDetailScreen(
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 24.dp),
+                                .padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 28.dp),
                         ) {
                             Text(
                                 text = title,
@@ -316,7 +312,7 @@ private fun DetailSectionLabel(text: String) {
                 .padding(end = 10.dp)
                 .width(3.dp)
                 .height(14.dp)
-                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
+                .background(BsTheme.colors.Amber, RoundedCornerShape(2.dp)),
         )
         Text(
             text = text.uppercase(),
@@ -348,10 +344,10 @@ private fun CastChip(person: People, onClick: () -> Unit) {
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(BsTheme.colors.GlassPanel)
+                .background(BsTheme.colors.InkPanel)
                 .border(
                     1.dp,
-                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                    if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
                     CircleShape,
                 ),
         ) {
@@ -403,12 +399,12 @@ private fun SeasonChip(season: Season, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(BsTheme.colors.GlassPanel)
+                .clip(RoundedCornerShape(10.dp))
+                .background(BsTheme.colors.InkPanel)
                 .border(
                     1.dp,
-                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                    RoundedCornerShape(14.dp),
+                    if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
+                    RoundedCornerShape(10.dp),
                 ),
         ) {
             AsyncImage(

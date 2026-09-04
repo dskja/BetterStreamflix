@@ -115,15 +115,19 @@ fun SearchScreen(
                             Text(
                                 text = recent,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = BsTheme.colors.Mist,
+                                color = if (focused) BsTheme.colors.AmberBright else BsTheme.colors.Mist,
                                 modifier = Modifier
                                     .scale(scale)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(BsTheme.colors.GlassPanel)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (focused) BsTheme.colors.Amber.copy(alpha = 0.14f)
+                                        else BsTheme.colors.InkPanel,
+                                    )
                                     .border(
                                         1.dp,
-                                        if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                                        RoundedCornerShape(14.dp),
+                                        if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f)
+                                        else BsTheme.colors.Hairline,
+                                        RoundedCornerShape(10.dp),
                                     )
                                     .onFocusChanged { focused = it.isFocused }
                                     .focusable()

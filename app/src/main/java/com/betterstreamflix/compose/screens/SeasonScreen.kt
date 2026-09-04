@@ -221,12 +221,12 @@ private fun SeasonSearchField(
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(BsTheme.colors.GlassPanel)
+            .clip(RoundedCornerShape(10.dp))
+            .background(BsTheme.colors.InkPanel)
             .border(
                 1.dp,
-                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                RoundedCornerShape(14.dp),
+                if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
+                RoundedCornerShape(10.dp),
             )
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
@@ -304,7 +304,7 @@ private fun SeasonEpisodeCard(
                 onLongClick = onLongClick,
             ),
         selected = focused,
-        corner = 14.dp,
+        corner = 10.dp,
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -433,7 +433,7 @@ private fun SeasonTvEpisodeCard(
                 onLongClick = onLongClick,
             ),
         selected = focused,
-        corner = 14.dp,
+        corner = 10.dp,
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             Box(
