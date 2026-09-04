@@ -14,17 +14,6 @@
         android:title="@string/main_menu_search" />
 
     <item
-        android:id="@id/movies"
-        android:icon="@drawable/ic_menu_movie"
-        android:title="@string/main_menu_movies" />
-
-    <item
-        android:id="@id/tv_shows"
-        android:icon="@drawable/ic_menu_tv"
-        android:title="@string/main_menu_tv_shows" />
-
-    <!-- BottomNavigationView max is 6; Favorites remain on Home + nav graph. -->
-    <item
         android:id="@id/downloads"
         android:icon="@drawable/ic_menu_downloads"
         android:title="@string/downloads_title" />

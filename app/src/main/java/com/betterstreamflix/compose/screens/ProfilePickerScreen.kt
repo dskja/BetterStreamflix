@@ -229,7 +229,7 @@ private fun ProfileAvatarCard(
                     .border(
                         width = if (isActive || focused) 3.dp else 1.dp,
                         color = when {
-                            focused -> BsTheme.colors.FocusRing
+                            focused -> BsTheme.colors.Amber.copy(alpha = 0.55f)
                             isActive -> BsTheme.colors.Amber
                             else -> BsTheme.colors.Hairline
                         },
@@ -302,7 +302,7 @@ private fun ProfileManageDialog(
         onDismissRequest = onDismiss,
         title = { Text(profile.name) },
         text = {
-            BsGlassPanel(corner = 14.dp) {
+            BsGlassPanel(corner = 10.dp) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

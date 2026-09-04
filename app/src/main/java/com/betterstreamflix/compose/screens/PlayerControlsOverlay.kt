@@ -61,7 +61,7 @@ import kotlin.math.max
 private const val SEEK_STEP_MS = 10_000L
 
 /**
- * Premium Liquid Glass player chrome — the only visible controls.
+ * Arc player chrome — the only visible controls.
  * Anchored bottom so gesture / video taps still reach PlayerView.
  */
 @Composable
@@ -197,7 +197,7 @@ fun PlayerControlsOverlay(
             modifier = Modifier
                 .width(40.dp)
                 .height(2.dp)
-                .background(colors.AmberGlow, RoundedCornerShape(1.dp)),
+                .background(colors.Amber, RoundedCornerShape(1.dp)),
         )
 
         Row(
@@ -377,12 +377,12 @@ private fun PlayerSeekChip(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (focused) colors.GlassPanelSelected else colors.GlassPanel)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (focused) colors.InkSoft else colors.InkPanel)
             .border(
                 1.dp,
-                if (focused) colors.FocusRing else colors.HairlineStrong,
-                RoundedCornerShape(14.dp),
+                if (focused) colors.Amber.copy(alpha = 0.55f) else colors.HairlineStrong,
+                RoundedCornerShape(10.dp),
             )
             .clickable(
                 indication = null,
@@ -424,10 +424,10 @@ private fun PlayerGlassChip(
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (focused) colors.GlassPanelSelected else colors.GlassPanel)
+            .background(if (focused) colors.InkSoft else colors.InkPanel)
             .border(
                 1.dp,
-                if (focused) colors.FocusRing else colors.Hairline,
+                if (focused) colors.Amber.copy(alpha = 0.55f) else colors.Hairline,
                 RoundedCornerShape(12.dp),
             )
             .clickable(
@@ -459,8 +459,8 @@ private fun PlayerGlassIconButton(
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clip(CircleShape)
-            .background(if (focused) colors.GlassPanelSelected else colors.GlassPanel)
-            .border(1.dp, if (focused) colors.FocusRing else colors.Hairline, CircleShape)
+            .background(if (focused) colors.InkSoft else colors.InkPanel)
+            .border(1.dp, if (focused) colors.Amber.copy(alpha = 0.55f) else colors.Hairline, CircleShape)
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },

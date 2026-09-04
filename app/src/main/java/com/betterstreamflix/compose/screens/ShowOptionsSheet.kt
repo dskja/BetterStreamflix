@@ -100,7 +100,7 @@ fun ShowOptionsSheet(
     val shape = if (isTvLayout) {
         RoundedCornerShape(0.dp)
     } else {
-        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     }
 
     Box(
