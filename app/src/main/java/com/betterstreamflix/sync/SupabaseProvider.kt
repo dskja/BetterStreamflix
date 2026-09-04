@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.betterstreamflix.StreamFlixApp
 import com.betterstreamflix.utils.FileLogger
+import com.betterstreamflix.utils.UserProfiles
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.SettingsSessionManager
@@ -20,18 +21,27 @@ object SupabaseProvider {
     private const val SESSION_KEY = "streamflix_supabase_session"
     private val clientsMutex = Mutex()
 
+    private data class ProfileClient(
+        val fingerprint: String,
+        val client: SupabaseClient,
+    )
+
+    private val clients = mutableMapOf<String, ProfileClient>()
+
     @Volatile
-    private var clientInstance: SupabaseClient? = null
-    @Volatile
-    private var clientFingerprint: String? = null
+    private var configFingerprint: String? = null
 
     val isConfigured: Boolean
         get() = readConfig(StreamFlixApp.instance)?.let { it.first.isNotEmpty() } == true
 
+    /** Active-profile client; prefer [clientFor] / [clientOrNull] in profile-scoped paths. */
     val client: SupabaseClient
-        get() = clientInstance ?: error("Supabase has not been initialized")
+        get() = clientOrNull(UserProfiles.active().id)
+            ?: error("Supabase has not been initialized for the active profile")
 
-    fun activeClientOrNull(): SupabaseClient? = clientInstance
+    fun activeClientOrNull(): SupabaseClient? = clientOrNull(UserProfiles.active().id)
+
+    fun clientOrNull(profileId: String): SupabaseClient? = clients[profileId]?.client
 
     fun configured(context: Context): Boolean = readConfig(context) != null
 
@@ -43,7 +53,7 @@ object SupabaseProvider {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(PUBLIC_KEY, "").orEmpty()
 
-    fun saveConfig(context: Context, url: String, publicKey: String) {
+    suspend fun saveConfig(context: Context, url: String, publicKey: String) {
         val normalizedUrl = normalizeUrl(url)
             ?: throw IllegalArgumentException("Enter a valid HTTPS Supabase URL")
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -51,12 +61,32 @@ object SupabaseProvider {
             .putString(URL_KEY, normalizedUrl)
             .putString(PUBLIC_KEY, publicKey.trim())
             .apply()
-        clientInstance = null
-        clientFingerprint = null
+        invalidateAllClients()
     }
 
-    suspend fun initialize(context: Context) {
-        FileLogger.i("SupabaseProvider", "initialize() called")
+    suspend fun clientFor(context: Context, profileId: String): SupabaseClient {
+        initialize(context, profileId)
+        return clients[profileId]?.client
+            ?: error("Supabase has not been initialized for profile $profileId")
+    }
+
+    suspend fun removeProfile(profileId: String) {
+        clientsMutex.withLock {
+            clients.remove(profileId)?.let { existing ->
+                runCatching { existing.client.close() }
+            }
+        }
+    }
+
+    /**
+     * Initialize the Supabase client for [profileId] (defaults to the active local profile).
+     * URL/key remain global; only the Auth session storage is profile-scoped.
+     */
+    suspend fun initialize(
+        context: Context,
+        profileId: String = UserProfiles.active().id,
+    ) {
+        FileLogger.i("SupabaseProvider", "initialize() called for profile=$profileId")
         val config = readConfig(context)
         if (config == null) {
             FileLogger.i("SupabaseProvider", "initialize: no config found, skipping (not configured)")
@@ -64,13 +94,16 @@ object SupabaseProvider {
         }
         FileLogger.i("SupabaseProvider", "initialize: config found, url=${config.first}")
         val fingerprint = config.first + "\u0000" + config.second
-        clientInstance?.takeIf { clientFingerprint == fingerprint }?.let {
-            FileLogger.i("SupabaseProvider", "initialize: client already exists with same fingerprint")
+        clients[profileId]?.takeIf { it.fingerprint == fingerprint }?.let {
+            FileLogger.i("SupabaseProvider", "initialize: client already exists for profile=$profileId")
             return
         }
-        FileLogger.i("SupabaseProvider", "initialize: creating new SupabaseClient...")
+        FileLogger.i("SupabaseProvider", "initialize: creating new SupabaseClient for profile=$profileId")
         clientsMutex.withLock {
-            clientInstance?.takeIf { clientFingerprint == fingerprint }?.let { return@withLock }
+            clients[profileId]?.takeIf { it.fingerprint == fingerprint }?.let { return@withLock }
+            if (configFingerprint != null && configFingerprint != fingerprint) {
+                closeAllClientsLocked()
+            }
             try {
                 createSupabaseClient(
                     supabaseUrl = config.first,
@@ -78,15 +111,21 @@ object SupabaseProvider {
                 ) {
                     install(Auth) {
                         sessionManager = SettingsSessionManager(
-                            key = "$SESSION_KEY-${fingerprint.hashCode()}",
+                            key = sessionKey(profileId, fingerprint),
                         )
                     }
                     install(Postgrest)
                     install(Realtime)
-                }.also {
-                    clientInstance = it
-                    clientFingerprint = fingerprint
-                    FileLogger.i("SupabaseProvider", "initialize: ✓ SupabaseClient created successfully")
+                }.also { created ->
+                    clients[profileId]?.client?.let { old ->
+                        runCatching { old.close() }
+                    }
+                    clients[profileId] = ProfileClient(fingerprint, created)
+                    configFingerprint = fingerprint
+                    FileLogger.i(
+                        "SupabaseProvider",
+                        "initialize: ✓ SupabaseClient created for profile=$profileId",
+                    )
                 }
             } catch (e: Exception) {
                 FileLogger.e("SupabaseProvider", "initialize: ✗ FAILED to create client", e)
@@ -96,13 +135,36 @@ object SupabaseProvider {
     }
 
     suspend fun clearConfig(context: Context) {
-        clientInstance?.close()
-        clientInstance = null
-        clientFingerprint = null
+        invalidateAllClients()
+        configFingerprint = null
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .clear()
             .apply()
+    }
+
+    private suspend fun invalidateAllClients() {
+        runCatching { CloudRealtimeSync.stop() }
+        clientsMutex.withLock {
+            closeAllClientsLocked()
+        }
+        configFingerprint = null
+    }
+
+    private suspend fun closeAllClientsLocked() {
+        clients.values.forEach { existing ->
+            runCatching { existing.client.close() }
+        }
+        clients.clear()
+    }
+
+    /**
+     * Default profile keeps the legacy unsuffixed session key so existing users
+     * are not signed out during the profiles migration.
+     */
+    internal fun sessionKey(profileId: String, fingerprint: String): String {
+        val legacy = "$SESSION_KEY-${fingerprint.hashCode()}"
+        return if (profileId == UserProfiles.DEFAULT_ID) legacy else "$legacy-$profileId"
     }
 
     private fun readConfig(context: Context): Pair<String, String>? {

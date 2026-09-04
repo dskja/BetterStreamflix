@@ -16,6 +16,7 @@ import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.Season
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.utils.UserProfiles
 
 @Database(
     entities = [
@@ -44,18 +45,60 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
         @Volatile
         private var currentProviderName: String? = null
+        @Volatile
+        private var currentProfileId: String? = null
 
-        private fun sanitizeProviderName(name: String): String {
-            // Rimuove caratteri non validi per i nomi dei file DB, 
-            // come spazi, parentesi, e li converte in lowercase.
+        private fun sanitizeName(name: String): String {
             return name.lowercase()
                 .replace("[^a-z0-9]".toRegex(), "_")
-                .replace("__+".toRegex(), "_") // Sostituisce doppie underscore con una singola
-                .trim('_') // Rimuove underscore iniziale/finale
+                .replace("__+".toRegex(), "_")
+                .trim('_')
         }
 
-        fun databaseNameFor(providerName: String): String =
-            "${sanitizeProviderName(providerName)}.db"
+        /** Profile-scoped DB name: `{profileId}_{provider}.db`. */
+        fun databaseNameFor(
+            providerName: String,
+            profileId: String = UserProfiles.active().id,
+        ): String = "${sanitizeName(profileId)}_${sanitizeName(providerName)}.db"
+
+        /**
+         * Resolve the on-disk database name for [profileId]/providerName].
+         * For the default profile, keep reading the legacy `{provider}.db` until
+         * a one-time rename to `default_{provider}.db` succeeds.
+         */
+        fun resolveDatabaseName(
+            context: Context,
+            providerName: String,
+            profileId: String,
+        ): String {
+            val scoped = databaseNameFor(providerName, profileId)
+            if (profileId != UserProfiles.DEFAULT_ID) return scoped
+
+            val appContext = context.applicationContext
+            val scopedFile = appContext.getDatabasePath(scoped)
+            if (scopedFile.exists()) return scoped
+
+            val legacy = "${sanitizeName(providerName)}.db"
+            val legacyFile = appContext.getDatabasePath(legacy)
+            if (legacyFile.exists()) {
+                val renamed = runCatching {
+                    legacyFile.renameTo(scopedFile) && scopedFile.exists()
+                }.getOrDefault(false)
+                if (renamed) {
+                    // Also migrate Room sidecar files when present.
+                    listOf("-shm", "-wal").forEach { suffix ->
+                        val from = appContext.getDatabasePath(legacy + suffix)
+                        val to = appContext.getDatabasePath(scoped + suffix)
+                        if (from.exists() && !to.exists()) {
+                            runCatching { from.renameTo(to) }
+                        }
+                    }
+                    return scoped
+                }
+                return legacy
+            }
+            return scoped
+        }
 
         fun setup(context: Context) {
             if (UserPreferences.currentProvider == null) return
@@ -73,37 +116,84 @@ abstract class AppDatabase : RoomDatabase() {
             val providerName = UserPreferences.currentProvider?.name
                 ?: currentProviderName
                 ?: throw IllegalStateException("Current provider is not set")
+            val profileId = UserProfiles.active().id
 
-            return INSTANCE?.takeIf { currentProviderName == providerName } ?: synchronized(this) {
-                INSTANCE?.takeIf { currentProviderName == providerName } ?: run {
+            return INSTANCE?.takeIf {
+                currentProviderName == providerName && currentProfileId == profileId
+            } ?: synchronized(this) {
+                INSTANCE?.takeIf {
+                    currentProviderName == providerName && currentProfileId == profileId
+                } ?: run {
                     INSTANCE?.close()
-                    buildDatabase(providerName, context).also { instance ->
+                    buildDatabase(providerName, context, profileId).also { instance ->
                         INSTANCE = instance
                         currentProviderName = providerName
+                        currentProfileId = profileId
                     }
                 }
             }
         }
 
-        // Metodo per forzare il cambio di database quando cambia il provider
+        /** Close the cached instance so the next open uses the active profile/provider. */
         fun resetInstance() {
             synchronized(this) {
                 INSTANCE?.close()
                 INSTANCE = null
                 currentProviderName = null
+                currentProfileId = null
             }
         }
 
-        fun getInstanceForProvider(providerName: String, context: Context): AppDatabase {
-            return buildDatabase(providerName, context)
+        fun getInstanceForProvider(
+            providerName: String,
+            context: Context,
+            profileId: String = UserProfiles.active().id,
+        ): AppDatabase {
+            return buildDatabase(providerName, context, profileId)
         }
 
-        private fun buildDatabase(providerName: String, context: Context): AppDatabase {
-            val sanitizedName = sanitizeProviderName(providerName)
+        /** Delete all Room databases belonging to [profileId], if it is not the active cache. */
+        fun deleteProfileDatabases(context: Context, profileId: String) {
+            if (currentProfileId == profileId) {
+                resetInstance()
+            }
+            val prefix = "${sanitizeName(profileId)}_"
+            val dbDir = context.applicationContext.getDatabasePath("placeholder").parentFile
+                ?: return
+            dbDir.listFiles()?.forEach { file ->
+                if (file.name.startsWith(prefix) &&
+                    (file.name.endsWith(".db") ||
+                        file.name.endsWith(".db-shm") ||
+                        file.name.endsWith(".db-wal"))
+                ) {
+                    runCatching { file.delete() }
+                }
+            }
+            // Default profile may still use legacy `{provider}.db` names.
+            if (profileId == UserProfiles.DEFAULT_ID) {
+                dbDir.listFiles()?.forEach { file ->
+                    val name = file.name
+                    if (!name.contains('_') &&
+                        (name.endsWith(".db") ||
+                            name.endsWith(".db-shm") ||
+                            name.endsWith(".db-wal"))
+                    ) {
+                        runCatching { file.delete() }
+                    }
+                }
+            }
+        }
+
+        private fun buildDatabase(
+            providerName: String,
+            context: Context,
+            profileId: String,
+        ): AppDatabase {
+            val dbName = resolveDatabaseName(context, providerName, profileId)
             return Room.databaseBuilder(
                 context = context.applicationContext,
                 klass = AppDatabase::class.java,
-                name = "$sanitizedName.db"
+                name = dbName,
             )
                 .allowMainThreadQueries()
                 .addMigrations(MIGRATION_1_2)

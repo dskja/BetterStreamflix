@@ -6,6 +6,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.compose.screens.SettingsUiState
 import com.betterstreamflix.notifications.NotificationPreferences
 import com.betterstreamflix.providers.ProviderConfigUrl
+import com.betterstreamflix.sync.CloudAccountStore
 import com.betterstreamflix.sync.CloudSyncManager
 import com.betterstreamflix.sync.SupabaseProvider
 import com.betterstreamflix.sync.TraktSettings
@@ -13,6 +14,7 @@ import com.betterstreamflix.utils.AppLanguageManager
 import com.betterstreamflix.utils.ParentalPinLogic
 import com.betterstreamflix.utils.ThemeManager
 import com.betterstreamflix.utils.UserPreferences
+import com.betterstreamflix.utils.UserProfiles
 import java.text.DateFormat
 import java.util.Date
 
@@ -95,21 +97,25 @@ internal object SettingsComposeBridge {
             versionName = BuildConfig.VERSION_NAME,
             traktEnabled = TraktSettings.isEnabled(context),
             cloudConfigured = SupabaseProvider.isConfigured,
-            cloudSignedIn = CloudSyncManager.currentUserEmail() != null,
+            cloudSignedIn = CloudSyncManager.currentUserEmail(UserProfiles.active().id) != null ||
+                CloudAccountStore.activeUserEmail(context, UserProfiles.active().id) != null,
             cloudStatusLabel = cloudStatusLabel(context),
         )
     }
 
     private fun cloudStatusLabel(context: Context): String {
+        val profile = UserProfiles.active()
+        val profileLine = context.getString(R.string.cloud_sync_profile_line, profile.name)
         if (!SupabaseProvider.isConfigured) {
-            return context.getString(R.string.cloud_sync_signed_out)
+            return profileLine + "\n" + context.getString(R.string.cloud_sync_signed_out)
         }
-        val email = CloudSyncManager.currentUserEmail()
+        val email = CloudSyncManager.currentUserEmail(profile.id)
+            ?: CloudAccountStore.activeUserEmail(context, profile.id)
         if (email == null) {
-            return context.getString(R.string.cloud_sync_signed_out)
+            return profileLine + "\n" + context.getString(R.string.cloud_sync_signed_out)
         }
-        val lastSynced = CloudSyncManager.lastSyncedAtMillis(context)
-        return if (lastSynced > 0L) {
+        val lastSynced = CloudSyncManager.lastSyncedAtMillis(context, profile.id)
+        val accountLine = if (lastSynced > 0L) {
             val formatted = DateFormat.getDateTimeInstance(
                 DateFormat.SHORT,
                 DateFormat.SHORT,
@@ -120,6 +126,7 @@ internal object SettingsComposeBridge {
             context.getString(R.string.cloud_sync_signed_in_as, email) +
                 "\n" + context.getString(R.string.sync_status_ok)
         }
+        return profileLine + "\n" + accountLine
     }
 
     fun applyToggle(context: Context, key: String, value: Boolean) {

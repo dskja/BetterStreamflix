@@ -13,6 +13,8 @@ import com.betterstreamflix.providers.TmdbProvider
 import com.betterstreamflix.ui.UserDataNotifier
 import com.betterstreamflix.utils.FileLogger
 import com.betterstreamflix.utils.UserDataCache
+import com.betterstreamflix.utils.UserProfiles
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
@@ -33,43 +35,88 @@ object CloudSyncManager {
     var isApplyingRemote: Boolean = false
         private set
 
-    fun currentUserId(): String? = if (!SupabaseProvider.isConfigured) {
-        null
-    } else {
-        SupabaseProvider.activeClientOrNull()?.auth?.currentSessionOrNull()?.user?.id
-    }
+    fun currentUserId(profileId: String = UserProfiles.active().id): String? =
+        if (!SupabaseProvider.isConfigured) {
+            null
+        } else {
+            SupabaseProvider.clientOrNull(profileId)?.auth?.currentSessionOrNull()?.user?.id
+        }
 
-    fun currentUserEmail(): String? = if (!SupabaseProvider.isConfigured) {
-        null
-    } else {
-        SupabaseProvider.activeClientOrNull()?.auth?.currentSessionOrNull()?.user?.email
-    }
+    fun currentUserEmail(profileId: String = UserProfiles.active().id): String? =
+        if (!SupabaseProvider.isConfigured) {
+            null
+        } else {
+            SupabaseProvider.clientOrNull(profileId)?.auth?.currentSessionOrNull()?.user?.email
+        }
 
     suspend fun initialize(context: Context) {
         FileLogger.i("CloudSyncManager", "initialize() called")
         val appContext = context.applicationContext
+        val profileId = UserProfiles.active().id
+        UserProfiles.pruneOrphanCloudState(appContext)
         if (!SupabaseProvider.isConfigured) {
             FileLogger.i("CloudSyncManager", "initialize: Supabase not configured, skipping")
             return
         }
-        FileLogger.i("CloudSyncManager", "initialize: calling SupabaseProvider.initialize()")
-        SupabaseProvider.initialize(appContext)
+        FileLogger.i("CloudSyncManager", "initialize: calling SupabaseProvider.initialize($profileId)")
+        val client = SupabaseProvider.clientFor(appContext, profileId)
 
         FileLogger.i("CloudSyncManager", "initialize: awaiting auth initialization")
-        SupabaseProvider.client.auth.awaitInitialization()
-        val userId = currentUserId()
-        FileLogger.i("CloudSyncManager", "initialize: userId=$userId")
+        client.auth.awaitInitialization()
+        val userId = currentUserId(profileId)
+        FileLogger.i("CloudSyncManager", "initialize: userId=$userId profile=$profileId")
         if (userId == null) {
             FileLogger.i("CloudSyncManager", "initialize: no user session, stopping sync")
             CloudRealtimeSync.stop()
-            CloudAccountStore.setActiveUserId(appContext, null)
+            // Preserve ownership marker; only clear the active session user id.
+            CloudAccountStore.setActiveAccount(
+                appContext,
+                profileId,
+                userId = null,
+                email = null,
+            )
             return
         }
         FileLogger.i("CloudSyncManager", "initialize: activating account for userId=$userId")
-        activateAccount(appContext, userId)
-        CloudRealtimeSync.start(appContext, userId)
-        CloudSyncScheduler.schedulePeriodic(appContext)
+        activateAccount(appContext, profileId, userId, client)
+        CloudRealtimeSync.start(appContext, profileId, userId)
+        CloudSyncScheduler.schedulePeriodic(appContext, profileId, userId)
         FileLogger.i("CloudSyncManager", "initialize: ✓ complete")
+    }
+
+    suspend fun onProfileChanged(context: Context, profileId: String) {
+        val appContext = context.applicationContext
+        CloudRealtimeSync.stop()
+        CloudSyncScheduler.cancelPeriodic(appContext)
+        AppDatabase.resetInstance()
+        if (!SupabaseProvider.isConfigured) return
+        runCatching {
+            val client = SupabaseProvider.clientFor(appContext, profileId)
+            client.auth.awaitInitialization()
+            val userId = client.auth.currentSessionOrNull()?.user?.id
+            if (userId == null) {
+                CloudAccountStore.setActiveAccount(appContext, profileId, null, null)
+                return
+            }
+            if (UserProfiles.active().id != profileId) return
+            activateAccount(appContext, profileId, userId, client)
+            if (UserProfiles.active().id != profileId) return
+            CloudRealtimeSync.start(appContext, profileId, userId)
+            CloudSyncScheduler.schedulePeriodic(appContext, profileId, userId)
+        }.onFailure {
+            Log.w(TAG, "onProfileChanged failed for profile=$profileId", it)
+        }
+    }
+
+    suspend fun onProfileDeleted(context: Context, profileId: String) {
+        val appContext = context.applicationContext
+        CloudRealtimeSync.stopIfProfile(profileId)
+        CloudSyncScheduler.cancelForProfile(appContext, profileId)
+        CloudMutationStore.clearProfile(appContext, profileId)
+        CloudAccountStore.clearProfile(appContext, profileId)
+        SupabaseProvider.removeProfile(profileId)
+        UserDataCache.clearProfile(appContext, profileId)
+        AppDatabase.deleteProfileDatabases(appContext, profileId)
     }
 
     suspend fun signIn(
@@ -79,22 +126,31 @@ object CloudSyncManager {
         onProgress: (CloudSyncProgress) -> Unit = {},
     ) {
         requireConfigured()
-        SupabaseProvider.initialize(context.applicationContext)
+        val appContext = context.applicationContext
+        val profileId = UserProfiles.active().id
+        val client = SupabaseProvider.clientFor(appContext, profileId)
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.AUTHENTICATING))
-        SupabaseProvider.client.auth.signInWith(Email) {
+        client.auth.signInWith(Email) {
             this.email = email
             this.password = password
         }
-        SupabaseProvider.client.auth.awaitInitialization()
-        val userId = currentUserId() ?: error("Sign in did not create a session")
+        client.auth.awaitInitialization()
+        val userId = client.auth.currentSessionOrNull()?.user?.id
+            ?: error("Sign in did not create a session")
+        ensureAccountNotLinkedElsewhere(appContext, profileId, userId)
+        if (UserProfiles.active().id != profileId) {
+            error("Active profile changed during sign-in")
+        }
         activateAccount(
-            context = context.applicationContext,
+            context = appContext,
+            profileId = profileId,
             userId = userId,
+            client = client,
             onProgress = onProgress,
             mergeLocalOnLogin = true,
         )
-        CloudRealtimeSync.start(context.applicationContext, userId)
-        CloudSyncScheduler.schedulePeriodic(context.applicationContext)
+        CloudRealtimeSync.start(appContext, profileId, userId)
+        CloudSyncScheduler.schedulePeriodic(appContext, profileId, userId)
     }
 
     suspend fun signUp(
@@ -104,22 +160,30 @@ object CloudSyncManager {
         onProgress: (CloudSyncProgress) -> Unit = {},
     ): Boolean {
         requireConfigured()
-        SupabaseProvider.initialize(context.applicationContext)
+        val appContext = context.applicationContext
+        val profileId = UserProfiles.active().id
+        val client = SupabaseProvider.clientFor(appContext, profileId)
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.AUTHENTICATING))
-        SupabaseProvider.client.auth.signUpWith(Email) {
+        client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
         }
-        SupabaseProvider.client.auth.awaitInitialization()
-        val userId = currentUserId() ?: return false
+        client.auth.awaitInitialization()
+        val userId = client.auth.currentSessionOrNull()?.user?.id ?: return false
+        ensureAccountNotLinkedElsewhere(appContext, profileId, userId)
+        if (UserProfiles.active().id != profileId) {
+            error("Active profile changed during sign-up")
+        }
         activateAccount(
-            context = context.applicationContext,
+            context = appContext,
+            profileId = profileId,
             userId = userId,
+            client = client,
             onProgress = onProgress,
             mergeLocalOnLogin = true,
         )
-        CloudRealtimeSync.start(context.applicationContext, userId)
-        CloudSyncScheduler.schedulePeriodic(context.applicationContext)
+        CloudRealtimeSync.start(appContext, profileId, userId)
+        CloudSyncScheduler.schedulePeriodic(appContext, profileId, userId)
         return true
     }
 
@@ -132,64 +196,77 @@ object CloudSyncManager {
     ) {
         requireConfigured()
         val appContext = context.applicationContext
-        SupabaseProvider.initialize(appContext)
+        val profileId = UserProfiles.active().id
+        val client = SupabaseProvider.clientFor(appContext, profileId)
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.AUTHENTICATING))
-        SupabaseProvider.client.auth.signInWith(Email) {
+        client.auth.signInWith(Email) {
             this.email = email
             this.password = password
         }
-        SupabaseProvider.client.auth.awaitInitialization()
-        val userId = currentUserId() ?: error("Sign in did not create a session")
+        client.auth.awaitInitialization()
+        val userId = client.auth.currentSessionOrNull()?.user?.id
+            ?: error("Sign in did not create a session")
+        ensureAccountNotLinkedElsewhere(appContext, profileId, userId)
+        if (UserProfiles.active().id != profileId) {
+            error("Active profile changed during sign-in")
+        }
         accountSyncMutex.withLock {
             isApplyingRemote = true
             try {
                 if (keepLocal) {
-                    forceMergeLocalAccount(appContext, userId, onProgress)
+                    forceMergeLocalAccount(appContext, profileId, userId, client, onProgress)
                 } else {
-                    replaceLocalWithCloud(appContext, userId, onProgress)
+                    replaceLocalWithCloud(appContext, profileId, userId, client, onProgress)
                 }
                 onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
-                CloudAccountStore.setActiveUserId(appContext, userId)
-                markLastSynced(appContext)
+                persistActiveAccount(appContext, profileId, userId, client)
+                markLastSynced(appContext, profileId)
             } finally {
                 isApplyingRemote = false
             }
         }
-        CloudRealtimeSync.start(appContext, userId)
-        CloudSyncScheduler.schedulePeriodic(appContext)
+        CloudRealtimeSync.start(appContext, profileId, userId)
+        CloudSyncScheduler.schedulePeriodic(appContext, profileId, userId)
     }
 
     suspend fun signOut(context: Context) {
         val appContext = context.applicationContext
+        val profileId = UserProfiles.active().id
         CloudRealtimeSync.stop()
-        runCatching { flushPending(appContext) }
+        runCatching { flushPending(appContext, profileId) }
             .onFailure { Log.w(TAG, "Failed to flush pending mutations before sign-out", it) }
         if (SupabaseProvider.isConfigured) {
-            runCatching { SupabaseProvider.client.auth.signOut() }
-                .onFailure { Log.w(TAG, "Remote sign-out failed; clearing local session anyway", it) }
+            runCatching {
+                SupabaseProvider.clientFor(appContext, profileId).auth.signOut()
+            }.onFailure { Log.w(TAG, "Remote sign-out failed; clearing local session anyway", it) }
         }
-        CloudMutationStore.clearForUser(appContext, currentUserId())
-        CloudSyncScheduler.cancelPeriodic(appContext)
-        CloudAccountStore.setActiveUserId(appContext, null)
+        CloudMutationStore.clearForUser(appContext, profileId, currentUserId(profileId))
+        CloudSyncScheduler.cancelForProfile(appContext, profileId)
+        CloudAccountStore.setActiveAccount(appContext, profileId, null, null)
     }
 
     suspend fun syncNow(
         context: Context,
+        profileId: String = UserProfiles.active().id,
         onProgress: (CloudSyncProgress) -> Unit = {},
     ) = accountSyncMutex.withLock {
-        syncNowLocked(context, onProgress)
+        syncNowLocked(context, profileId, onProgress)
     }
 
     private suspend fun syncNowLocked(
         context: Context,
+        profileId: String,
         onProgress: (CloudSyncProgress) -> Unit,
     ) {
         val appContext = context.applicationContext
-        val userId = currentUserId() ?: error("Sign in before synchronizing")
+        val client = SupabaseProvider.clientFor(appContext, profileId)
+        client.auth.awaitInitialization()
+        val userId = client.auth.currentSessionOrNull()?.user?.id
+            ?: error("Sign in before synchronizing")
         try {
-            flushPending(appContext, onProgress)
+            flushPending(appContext, profileId, client, onProgress)
             onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
-            val remote = fetchRemote()
+            val remote = fetchRemote(client)
             onProgress(
                 CloudSyncProgress(
                     CloudSyncProgress.Stage.APPLYING_CLOUD,
@@ -197,78 +274,103 @@ object CloudSyncManager {
                     total = remote.size,
                 ),
             )
-            withContext(Dispatchers.IO) { applyRemote(appContext, remote) }
+            if (UserProfiles.active().id != profileId) {
+                Log.i(TAG, "Skipping apply; profile $profileId is no longer active")
+                return
+            }
+            withContext(Dispatchers.IO) { applyRemote(appContext, profileId, remote) }
             onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
-            CloudAccountStore.setActiveUserId(appContext, userId)
-            markLastSynced(appContext)
+            persistActiveAccount(appContext, profileId, userId, client)
+            markLastSynced(appContext, profileId)
         } catch (e: Exception) {
-            Log.e(TAG, "syncNow failed for user $userId", e)
+            Log.e(TAG, "syncNow failed for user $userId profile $profileId", e)
             throw e
         }
     }
 
-    fun lastSyncedAtMillis(context: Context): Long =
-        context.getSharedPreferences("cloud_sync_meta", Context.MODE_PRIVATE)
-            .getLong("last_synced_at", 0L)
+    fun lastSyncedAtMillis(
+        context: Context,
+        profileId: String = UserProfiles.active().id,
+    ): Long {
+        val prefs = context.getSharedPreferences("cloud_sync_meta", Context.MODE_PRIVATE)
+        val scoped = prefs.getLong(lastSyncedKey(profileId), 0L)
+        if (scoped > 0L) return scoped
+        // One-time: migrate unsuffixed legacy timestamp to the default profile.
+        if (profileId == UserProfiles.DEFAULT_ID) {
+            val legacy = prefs.getLong("last_synced_at", 0L)
+            if (legacy > 0L) {
+                prefs.edit()
+                    .putLong(lastSyncedKey(profileId), legacy)
+                    .remove("last_synced_at")
+                    .apply()
+                return legacy
+            }
+        }
+        return 0L
+    }
 
-    private fun markLastSynced(context: Context) {
+    private fun lastSyncedKey(profileId: String) = "last_synced_at_$profileId"
+
+    private fun markLastSynced(context: Context, profileId: String) {
         context.getSharedPreferences("cloud_sync_meta", Context.MODE_PRIVATE)
             .edit()
-            .putLong("last_synced_at", System.currentTimeMillis())
+            .putLong(lastSyncedKey(profileId), System.currentTimeMillis())
             .apply()
     }
 
     suspend fun flushPending(
         context: Context,
+        profileId: String = UserProfiles.active().id,
+        client: SupabaseClient? = null,
         onProgress: (CloudSyncProgress) -> Unit = {},
     ) {
-        val userId = currentUserId() ?: return
+        val appContext = context.applicationContext
+        val supabase = client ?: SupabaseProvider.clientFor(appContext, profileId)
+        val userId = supabase.auth.currentSessionOrNull()?.user?.id ?: return
         val maxIterations = 10
         var iteration = 0
         while (iteration < maxIterations) {
             iteration++
-            val pending = CloudMutationStore.pendingForUser(context, userId)
+            val pending = CloudMutationStore.pendingForUser(appContext, profileId, userId)
             if (pending.isEmpty()) return
-            // The queue can contain playback state created before this device
-            // went offline. Fetch first so it cannot overwrite newer progress
-            // that another device has already uploaded.
-            val remoteByKey = fetchRemote().associateBy { it.queueKey }
+            val remoteByKey = fetchRemote(supabase).associateBy { it.queueKey }
             val uploadable = pending.filter { mutation ->
                 val remote = remoteByKey[mutation.queueKey]
                 remote == null || pendingStateWins(mutation, remote)
             }
             val successfullyUploaded = if (uploadable.isNotEmpty()) {
-                upsert(uploadable, onProgress)
+                upsert(supabase, uploadable, onProgress)
             } else {
                 emptyList()
             }
-            // Acknowledge only what was actually uploaded. Stale mutations
-            // (skipped because remote is newer) are also acknowledged since
-            // they don't need to be uploaded. acknowledge() keeps any newer
-            // version that was queued while this upload was in progress.
             val acknowledged = successfullyUploaded +
                 pending.filter { it !in uploadable }
-            CloudMutationStore.acknowledge(context, acknowledged)
+            CloudMutationStore.acknowledge(appContext, profileId, acknowledged)
         }
-        Log.w(TAG, "flushPending hit max iterations ($maxIterations); " +
-            "mutations still pending for user $userId")
+        Log.w(
+            TAG,
+            "flushPending hit max iterations ($maxIterations); " +
+                "mutations still pending for user $userId profile $profileId",
+        )
     }
 
     private suspend fun activateAccount(
         context: Context,
+        profileId: String,
         userId: String,
+        client: SupabaseClient,
         onProgress: (CloudSyncProgress) -> Unit = {},
         mergeLocalOnLogin: Boolean = false,
     ) = accountSyncMutex.withLock {
-        val previousUserId = CloudAccountStore.activeUserId(context)
+        val previousUserId = CloudAccountStore.activeUserId(context, profileId)
         if (previousUserId == userId && !mergeLocalOnLogin) {
-            syncNowLocked(context, onProgress)
+            syncNowLocked(context, profileId, onProgress)
             return@withLock
         }
 
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
-        val remote = fetchRemote()
-        val legacyOwnerId = CloudAccountStore.legacyOwnerId(context)
+        val remote = fetchRemote(client)
+        val legacyOwnerId = CloudAccountStore.legacyOwnerId(context, profileId)
         val canMergeLocal = shouldMergeLocal(
             previousUserId = previousUserId,
             legacyOwnerId = legacyOwnerId,
@@ -281,7 +383,7 @@ object CloudSyncManager {
             if (canMergeLocal) {
                 onProgress(CloudSyncProgress(CloudSyncProgress.Stage.PREPARING_LOCAL))
                 val local = withContext(Dispatchers.IO) {
-                    collectLocalState(context, userId)
+                    collectLocalState(context, profileId, userId)
                 }
                 onProgress(CloudSyncProgress(CloudSyncProgress.Stage.MERGING))
                 val merged = mergeForFirstLogin(
@@ -291,11 +393,11 @@ object CloudSyncManager {
                 )
                 if (local.isNotEmpty()) {
                     val localKeys = local.mapTo(hashSetOf()) { it.queueKey }
-                    upsert(merged.filter { it.queueKey in localKeys }, onProgress)
+                    upsert(client, merged.filter { it.queueKey in localKeys }, onProgress)
                 }
                 val finalRemote = if (local.isEmpty()) remote else {
                     onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
-                    fetchRemote()
+                    fetchRemote(client)
                 }
                 onProgress(
                     CloudSyncProgress(
@@ -305,17 +407,15 @@ object CloudSyncManager {
                     ),
                 )
                 withContext(Dispatchers.IO) {
-                    applyRemoteInternal(context, finalRemote)
+                    applyRemoteInternal(context, profileId, finalRemote)
                 }
-                CloudAccountStore.claimLegacyData(context, userId)
+                CloudAccountStore.claimLegacyData(context, profileId, userId)
             } else {
                 val local = withContext(Dispatchers.IO) {
-                    collectLocalState(context, userId)
+                    collectLocalState(context, profileId, userId)
                 }
                 if (local.isNotEmpty()) {
-                    // Do not silently destroy local state when reconnecting a
-                    // device to a different cloud account.
-                    runCatching { SupabaseProvider.client.auth.signOut() }
+                    runCatching { client.auth.signOut() }
                     CloudRealtimeSync.stop()
                     throw CloudAccountDataConflictException()
                 }
@@ -328,11 +428,11 @@ object CloudSyncManager {
                     ),
                 )
                 withContext(Dispatchers.IO) {
-                    applyRemoteInternal(context, remote)
+                    applyRemoteInternal(context, profileId, remote)
                 }
             }
             onProgress(CloudSyncProgress(CloudSyncProgress.Stage.FINALIZING))
-            CloudAccountStore.setActiveUserId(context, userId)
+            persistActiveAccount(context, profileId, userId, client)
         } finally {
             isApplyingRemote = false
         }
@@ -340,37 +440,41 @@ object CloudSyncManager {
 
     internal suspend fun applyRealtimeState(
         context: Context,
+        profileId: String,
         state: RemoteMediaState,
     ) = accountSyncMutex.withLock {
-        val userId = currentUserId()
+        if (UserProfiles.active().id != profileId) return@withLock
+        val userId = currentUserId(profileId)
         val pending = userId?.let {
-            CloudMutationStore.pendingForUser(context, it)
+            CloudMutationStore.pendingForUser(context, profileId, it)
         }.orEmpty()
         if (!shouldApplyRealtimeState(userId, state, pending)) return@withLock
 
         withContext(Dispatchers.IO) {
-            applyRemote(context.applicationContext, listOf(state))
+            applyRemote(context.applicationContext, profileId, listOf(state))
         }
     }
 
     internal suspend fun deleteRealtimeState(
         context: Context,
+        profileId: String,
         state: RemoteMediaState,
     ) = accountSyncMutex.withLock {
-        val userId = currentUserId()
+        if (UserProfiles.active().id != profileId) return@withLock
+        val userId = currentUserId(profileId)
         if (userId == null || state.userId != userId) return@withLock
 
         withContext(Dispatchers.IO) {
-            deleteRemoteState(context.applicationContext, state)
+            deleteRemoteState(context.applicationContext, profileId, state)
         }
     }
 
-    private fun deleteRemoteState(context: Context, state: RemoteMediaState) {
+    private fun deleteRemoteState(context: Context, profileId: String, state: RemoteMediaState) {
         val provider = providerByName(state.provider) ?: run {
             Log.w(TAG, "Skipping delete for unavailable provider ${state.provider}")
             return
         }
-        val db = AppDatabase.getInstanceForProvider(provider.name, context)
+        val db = AppDatabase.getInstanceForProvider(provider.name, context, profileId)
         try {
             db.runInTransaction {
                 when (state.mediaType) {
@@ -380,9 +484,15 @@ object CloudSyncManager {
                 }
             }
             when (state.mediaType) {
-                "movie" -> UserDataCache.writeMovies(context, provider, db.movieDao().getAll())
-                "tv_show" -> UserDataCache.writeTvShows(context, provider, db.tvShowDao().getAllForBackup())
-                "episode" -> UserDataCache.writeEpisodes(context, provider, db.episodeDao().getAllForBackup())
+                "movie" -> UserDataCache.writeMovies(
+                    context, provider, db.movieDao().getAll(), profileId,
+                )
+                "tv_show" -> UserDataCache.writeTvShows(
+                    context, provider, db.tvShowDao().getAllForBackup(), profileId,
+                )
+                "episode" -> UserDataCache.writeEpisodes(
+                    context, provider, db.episodeDao().getAllForBackup(), profileId,
+                )
             }
         } finally {
             db.close()
@@ -440,15 +550,17 @@ object CloudSyncManager {
 
     private suspend fun forceMergeLocalAccount(
         context: Context,
+        profileId: String,
         userId: String,
+        client: SupabaseClient,
         onProgress: (CloudSyncProgress) -> Unit,
     ) {
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.PREPARING_LOCAL))
         val local = withContext(Dispatchers.IO) {
-            collectLocalState(context, userId)
+            collectLocalState(context, profileId, userId)
         }
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.MERGING))
-        val remote = fetchRemote()
+        val remote = fetchRemote(client)
         val merged = mergeForFirstLogin(
             remote = remote,
             local = local,
@@ -456,11 +568,11 @@ object CloudSyncManager {
         )
         if (local.isNotEmpty()) {
             val localKeys = local.mapTo(hashSetOf()) { it.queueKey }
-            upsert(merged.filter { it.queueKey in localKeys }, onProgress)
+            upsert(client, merged.filter { it.queueKey in localKeys }, onProgress)
         }
         val finalRemote = if (local.isEmpty()) remote else {
             onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
-            fetchRemote()
+            fetchRemote(client)
         }
         onProgress(
             CloudSyncProgress(
@@ -470,21 +582,23 @@ object CloudSyncManager {
             ),
         )
         withContext(Dispatchers.IO) {
-            applyRemoteInternal(context, finalRemote)
+            applyRemoteInternal(context, profileId, finalRemote)
         }
-        CloudAccountStore.claimLegacyData(context, userId)
+        CloudAccountStore.claimLegacyData(context, profileId, userId)
     }
 
     private suspend fun replaceLocalWithCloud(
         context: Context,
+        profileId: String,
         userId: String,
+        client: SupabaseClient,
         onProgress: (CloudSyncProgress) -> Unit,
     ) {
         withContext(Dispatchers.IO) {
-            clearLocalUserState(context)
+            clearLocalUserState(context, profileId)
         }
         onProgress(CloudSyncProgress(CloudSyncProgress.Stage.CHECKING_CLOUD))
-        val remote = fetchRemote()
+        val remote = fetchRemote(client)
         onProgress(
             CloudSyncProgress(
                 CloudSyncProgress.Stage.APPLYING_CLOUD,
@@ -493,9 +607,9 @@ object CloudSyncManager {
             ),
         )
         withContext(Dispatchers.IO) {
-            applyRemoteInternal(context, remote)
+            applyRemoteInternal(context, profileId, remote)
         }
-        CloudAccountStore.claimLegacyData(context, userId)
+        CloudAccountStore.claimLegacyData(context, profileId, userId)
     }
 
     internal fun mergeForFirstLogin(
@@ -558,8 +672,6 @@ object CloudSyncManager {
                 remote.favoritedAtMillis,
                 local.favoritedAtMillis,
             ),
-            // Watched state is replaceable. OR made it impossible for a newer
-            // local "unwatched" state to clear a stale cloud completion.
             isWatched = newest.isWatched,
             watchedAtMillis = newest.watchedAtMillis,
             lastEngagementAtMillis = latestHistory?.lastEngagementAtMillis,
@@ -580,9 +692,9 @@ object CloudSyncManager {
         else -> maxOf(first, second)
     }
 
-    private suspend fun fetchRemote(): List<RemoteMediaState> =
+    private suspend fun fetchRemote(client: SupabaseClient): List<RemoteMediaState> =
         collectPages(FETCH_PAGE_SIZE) { from, to ->
-            SupabaseProvider.client.from(TABLE).select {
+            client.from(TABLE).select {
                 order("provider", Order.ASCENDING)
                 order("media_type", Order.ASCENDING)
                 order("media_id", Order.ASCENDING)
@@ -606,6 +718,7 @@ object CloudSyncManager {
     }
 
     private suspend fun upsert(
+        client: SupabaseClient,
         states: List<RemoteMediaState>,
         onProgress: (CloudSyncProgress) -> Unit = {},
     ): List<RemoteMediaState> {
@@ -619,7 +732,7 @@ object CloudSyncManager {
             ),
         )
         states.chunked(250).forEach { chunk ->
-            SupabaseProvider.client.from(TABLE).upsert(chunk) {
+            client.from(TABLE).upsert(chunk) {
                 onConflict = "user_id,provider,media_type,media_id"
             }
             uploadedStates += chunk
@@ -635,10 +748,14 @@ object CloudSyncManager {
         return uploadedStates
     }
 
-    private fun collectLocalState(context: Context, userId: String): List<RemoteMediaState> {
+    private fun collectLocalState(
+        context: Context,
+        profileId: String,
+        userId: String,
+    ): List<RemoteMediaState> {
         val states = mutableListOf<RemoteMediaState>()
-        existingProviders(context).forEach { provider ->
-            val db = AppDatabase.getInstanceForProvider(provider.name, context)
+        existingProviders(context, profileId).forEach { provider ->
+            val db = AppDatabase.getInstanceForProvider(provider.name, context, profileId)
             try {
                 db.movieDao().getAll()
                     .filter { movie ->
@@ -684,22 +801,30 @@ object CloudSyncManager {
         return states
     }
 
-    private fun applyRemote(context: Context, states: List<RemoteMediaState>) {
+    private fun applyRemote(
+        context: Context,
+        profileId: String,
+        states: List<RemoteMediaState>,
+    ) {
         isApplyingRemote = true
         try {
-            applyRemoteInternal(context, states)
+            applyRemoteInternal(context, profileId, states)
         } finally {
             isApplyingRemote = false
         }
     }
 
-    private fun applyRemoteInternal(context: Context, states: List<RemoteMediaState>) {
+    private fun applyRemoteInternal(
+        context: Context,
+        profileId: String,
+        states: List<RemoteMediaState>,
+    ) {
         states.groupBy { it.provider }.forEach { (providerName, providerStates) ->
             val provider = providerByName(providerName) ?: run {
                 Log.w(TAG, "Skipping state for unavailable provider $providerName")
                 return@forEach
             }
-            val db = AppDatabase.getInstanceForProvider(provider.name, context)
+            val db = AppDatabase.getInstanceForProvider(provider.name, context, profileId)
             try {
                 val statesToApply = providerStates.filter { state ->
                     shouldApplyRemoteState(db, state)
@@ -772,9 +897,15 @@ object CloudSyncManager {
                 }
 
                 runCatching {
-                    UserDataCache.writeMovies(context, provider, db.movieDao().getAll())
-                    UserDataCache.writeTvShows(context, provider, db.tvShowDao().getAllForBackup())
-                    UserDataCache.writeEpisodes(context, provider, db.episodeDao().getAllForBackup())
+                    UserDataCache.writeMovies(
+                        context, provider, db.movieDao().getAll(), profileId,
+                    )
+                    UserDataCache.writeTvShows(
+                        context, provider, db.tvShowDao().getAllForBackup(), profileId,
+                    )
+                    UserDataCache.writeEpisodes(
+                        context, provider, db.episodeDao().getAllForBackup(), profileId,
+                    )
                 }.onFailure { e ->
                     Log.w(TAG, "Failed to write cache for provider ${provider.name}", e)
                 }
@@ -785,11 +916,6 @@ object CloudSyncManager {
         UserDataNotifier.notifyChanged()
     }
 
-    /**
-     * Realtime can deliver the same row more than once. Replacing an identical
-     * Room entity still invalidates every observing Flow, so only apply newer,
-     * materially different state.
-     */
     private fun shouldApplyRemoteState(
         database: AppDatabase,
         state: RemoteMediaState,
@@ -850,9 +976,9 @@ object CloudSyncManager {
         watchHistory?.lastEngagementTimeUtcMillis,
     ).maxOrNull() ?: Long.MIN_VALUE
 
-    private fun clearLocalUserState(context: Context) {
-        existingProviders(context).forEach { provider ->
-            val db = AppDatabase.getInstanceForProvider(provider.name, context)
+    private fun clearLocalUserState(context: Context, profileId: String) {
+        existingProviders(context, profileId).forEach { provider ->
+            val db = AppDatabase.getInstanceForProvider(provider.name, context, profileId)
             try {
                 db.runInTransaction {
                     db.movieDao().clearUserState()
@@ -863,15 +989,17 @@ object CloudSyncManager {
                 db.close()
             }
         }
-        UserDataCache.clearAll(context)
+        UserDataCache.clearProfile(context, profileId)
         UserDataNotifier.notifyChanged()
     }
 
-    private fun existingProviders(context: Context): List<Provider> = allProviders()
-        .distinctBy { it.name }
-        .filter { provider ->
-        context.getDatabasePath(AppDatabase.databaseNameFor(provider.name)).exists()
-        }
+    private fun existingProviders(context: Context, profileId: String): List<Provider> =
+        allProviders()
+            .distinctBy { it.name }
+            .filter { provider ->
+                val name = AppDatabase.resolveDatabaseName(context, provider.name, profileId)
+                context.getDatabasePath(name).exists()
+            }
 
     private fun allProviders(): List<Provider> = (Provider.providers.keys +
         listOf("it", "en", "es", "de", "fr").map(::TmdbProvider)).toList()
@@ -883,6 +1011,27 @@ object CloudSyncManager {
         check(SupabaseProvider.isConfigured) {
             "Configure Supabase in Settings > Account & sync before signing in"
         }
+    }
+
+    private fun ensureAccountNotLinkedElsewhere(
+        context: Context,
+        profileId: String,
+        userId: String,
+    ) {
+        val existing = CloudAccountStore.profileIdForUser(context, userId) ?: return
+        if (existing == profileId) return
+        val name = UserProfiles.list().find { it.id == existing }?.name ?: existing
+        throw CloudAccountAlreadyLinkedException(existing, name)
+    }
+
+    private fun persistActiveAccount(
+        context: Context,
+        profileId: String,
+        userId: String,
+        client: SupabaseClient,
+    ) {
+        val email = client.auth.currentSessionOrNull()?.user?.email
+        CloudAccountStore.setActiveAccount(context, profileId, userId, email)
     }
 
     private fun Movie.stateTimestamp(): Long = listOfNotNull(

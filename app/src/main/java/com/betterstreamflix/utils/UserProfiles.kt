@@ -1,14 +1,23 @@
 package com.betterstreamflix.utils
 
+import com.betterstreamflix.StreamFlixApp
+import com.betterstreamflix.database.AppDatabase
+import com.betterstreamflix.sync.CloudAccountStore
+import com.betterstreamflix.sync.CloudSyncManager
+import com.betterstreamflix.ui.UserDataNotifier
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
 /**
  * Lightweight local profiles (household / kids) stored in SharedPreferences.
- * Cloud mapping via profile_id can be layered on later.
+ * Cloud Auth sessions and sync queues are scoped by [Profile.id].
  */
 object UserProfiles {
+
+    const val DEFAULT_ID = "default"
 
     data class Profile(
         val id: String,
@@ -51,9 +60,23 @@ object UserProfiles {
 
     fun setActive(profileId: String) {
         if (!UserPreferences.isReady()) return
+        val previousId = runCatching { active().id }.getOrNull()
+        if (previousId == profileId) {
+            val profile = list().find { it.id == profileId } ?: return
+            UserPreferences.parentalControlMaxAge = profile.parentalMaxAge
+            return
+        }
         UserPreferences.prefs.edit().putString(KEY_ACTIVE, profileId).apply()
         val profile = list().find { it.id == profileId } ?: return
         UserPreferences.parentalControlMaxAge = profile.parentalMaxAge
+        AppDatabase.resetInstance()
+        UserDataNotifier.notifyChanged()
+        runCatching {
+            val app = StreamFlixApp.instance
+            app.applicationScope.launch(Dispatchers.IO) {
+                CloudSyncManager.onProfileChanged(app, profileId)
+            }
+        }
     }
 
     fun upsert(profile: Profile) {
@@ -73,14 +96,27 @@ object UserProfiles {
     }
 
     fun delete(profileId: String) {
+        if (profileId == DEFAULT_ID && list().size <= 1) return
         val remaining = list().filterNot { it.id == profileId }.ifEmpty { listOf(defaultProfile()) }
+        val wasActive = active().id == profileId
         persist(remaining)
-        if (active().id == profileId) {
+        runCatching {
+            val app = StreamFlixApp.instance
+            app.applicationScope.launch(Dispatchers.IO) {
+                CloudSyncManager.onProfileDeleted(app, profileId)
+            }
+        }
+        if (wasActive) {
             setActive(remaining.first().id)
         }
     }
 
-    private fun defaultProfile() = Profile(id = "default", name = "Default")
+    /** Drop cloud metadata for profiles that no longer exist. */
+    fun pruneOrphanCloudState(context: android.content.Context) {
+        CloudAccountStore.pruneOrphans(context, list().map { it.id }.toSet())
+    }
+
+    private fun defaultProfile() = Profile(id = DEFAULT_ID, name = "Default")
 
     private fun persist(profiles: List<Profile>) {
         if (!UserPreferences.isReady()) return
