@@ -1571,7 +1571,11 @@ class PlayerTvFragment : Fragment() {
                 }
                 onVisibilityChanged = { visible ->
                     if (_binding != null) {
-                        bindTvFocusToPlaybackChrome(binding.composePlaybackOverlay, visible)
+                        bindTvFocusToPlaybackChrome(
+                            playbackComposeView = binding.composePlaybackOverlay,
+                            playerView = binding.pvPlayer,
+                            visible,
+                        )
                     }
                 }
             }

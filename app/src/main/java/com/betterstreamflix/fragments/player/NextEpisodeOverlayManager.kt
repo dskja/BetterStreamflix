@@ -213,10 +213,29 @@ class NextEpisodeOverlayManager(
         nextEpisodePrefetchJob?.cancel()
     }
 
-    /** Wire D-pad focus between next-episode ComposeView and playback chrome ComposeView. */
-    fun bindTvFocusToPlaybackChrome(playbackComposeView: View, overlayVisible: Boolean) {
+    /**
+     * Wire D-pad focus between next-episode ComposeView and playback chrome ComposeView.
+     * Shows Media3 controller first so [playbackComposeView] is VISIBLE — otherwise Down
+     * targets a GONE chrome and traps focus on Play/Dismiss.
+     */
+    fun bindTvFocusToPlaybackChrome(
+        playbackComposeView: View,
+        playerView: androidx.media3.ui.PlayerView?,
+        overlayVisible: Boolean,
+    ) {
         if (!isTvLayout) return
-        composeView.nextFocusDownId = if (overlayVisible) playbackComposeView.id else View.NO_ID
-        playbackComposeView.nextFocusUpId = if (overlayVisible) composeView.id else View.NO_ID
+        if (overlayVisible) {
+            playerView?.controllerShowTimeoutMs = 0
+            playerView?.showController()
+            playbackComposeView.visibility = View.VISIBLE
+            composeView.nextFocusDownId = playbackComposeView.id
+            playbackComposeView.nextFocusUpId = composeView.id
+        } else {
+            if (playerView != null && playerView.controllerShowTimeoutMs == 0) {
+                playerView.controllerShowTimeoutMs = 4_000
+            }
+            composeView.nextFocusDownId = View.NO_ID
+            playbackComposeView.nextFocusUpId = View.NO_ID
+        }
     }
 }
