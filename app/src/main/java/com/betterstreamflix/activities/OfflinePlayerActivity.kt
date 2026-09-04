@@ -1,6 +1,8 @@
 package com.betterstreamflix.activities
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -40,6 +42,16 @@ class OfflinePlayerActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
     private val playbackController = PlayerPlaybackController()
     private var composeOverlay: ComposeView? = null
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private val progressRunnable = object : Runnable {
+        override fun run() {
+            val exo = player ?: return
+            if (exo.isPlaying) {
+                syncPlaybackPosition(exo)
+            }
+            progressHandler.postDelayed(this, POSITION_POLL_MS)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val themeRes = if (AppConfig.isTv) {
@@ -115,7 +127,13 @@ class OfflinePlayerActivity : AppCompatActivity() {
                     onPlayPause = {
                         if (exo.isPlaying) exo.pause() else exo.play()
                     },
-                    onSeek = { positionMs -> exo.seekTo(positionMs) },
+                    onSeek = { positionMs ->
+                        exo.seekTo(positionMs)
+                        playbackController.updatePosition(
+                            positionMs,
+                            exo.duration.coerceAtLeast(0L),
+                        )
+                    },
                 )
             }
         }
@@ -127,15 +145,33 @@ class OfflinePlayerActivity : AppCompatActivity() {
         exo.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 playbackController.setPlaying(isPlaying)
+                syncPlaybackPosition(exo)
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 playbackController.setBuffering(playbackState == Player.STATE_BUFFERING)
-                playbackController.updatePosition(exo.currentPosition, exo.duration.coerceAtLeast(0L))
+                syncPlaybackPosition(exo)
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int,
+            ) {
+                syncPlaybackPosition(exo)
             }
         })
         playbackController.setPlaying(exo.isPlaying)
-        playbackController.updatePosition(exo.currentPosition, exo.duration.coerceAtLeast(0L))
+        syncPlaybackPosition(exo)
+        progressHandler.removeCallbacks(progressRunnable)
+        progressHandler.post(progressRunnable)
+    }
+
+    private fun syncPlaybackPosition(exo: ExoPlayer) {
+        playbackController.updatePosition(
+            exo.currentPosition,
+            exo.duration.coerceAtLeast(0L),
+        )
     }
 
     private fun hideLegacyTimeBar(playerView: PlayerView) {
@@ -190,12 +226,22 @@ class OfflinePlayerActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (player != null) {
+            progressHandler.removeCallbacks(progressRunnable)
+            progressHandler.post(progressRunnable)
+        }
+    }
+
     override fun onStop() {
         super.onStop()
+        progressHandler.removeCallbacks(progressRunnable)
         player?.pause()
     }
 
     override fun onDestroy() {
+        progressHandler.removeCallbacks(progressRunnable)
         player?.release()
         player = null
         composeOverlay = null
@@ -206,5 +252,6 @@ class OfflinePlayerActivity : AppCompatActivity() {
         const val EXTRA_DOWNLOAD_ID = "download_id"
         const val EXTRA_FILE_PATH = "file_path"
         const val EXTRA_TITLE = "title"
+        private const val POSITION_POLL_MS = 500L
     }
 }
