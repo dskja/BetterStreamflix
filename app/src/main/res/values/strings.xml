@@ -406,6 +406,8 @@
     <string name="cloud_sync_account_status">Account status</string>
     <string name="cloud_sync_signed_out">Not signed in</string>
     <string name="cloud_sync_signed_in_as">Signed in as %1$s</string>
+    <string name="cloud_sync_profile_line">Profile: %1$s</string>
+    <string name="cloud_sync_account_already_linked">This account is already linked to the local profile \"%1$s\". Sign out there first, or use a different account.</string>
     <string name="cloud_sync_sign_in">Sign in</string>
     <string name="cloud_sync_sign_in_summary">Use an existing email and password</string>
     <string name="cloud_sync_sign_up">Create account</string>
