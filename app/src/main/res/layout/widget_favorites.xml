@@ -4,16 +4,17 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#FF181818">
+    android:background="#FF12171F">
 
     <TextView
         android:id="@+id/widget_favorites_heading"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/main_menu_favorites"
-        android:textColor="#FFE8A838"
+        android:textColor="#FF3DE0C5"
         android:textSize="12sp"
-        android:textAllCaps="true" />
+        android:fontFamily="@font/plus_jakarta_sans_semibold"
+        android:textAllCaps="false" />
 
     <TextView
         android:id="@+id/widget_favorites_title"
@@ -21,9 +22,10 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:text="@string/main_menu_favorites"
-        android:textColor="#FFFFFFFF"
+        android:textColor="#FFF2F5F8"
         android:textSize="16sp"
         android:textStyle="bold"
+        android:fontFamily="@font/sora_bold"
         android:maxLines="2"
         android:ellipsize="end" />
 
@@ -32,8 +34,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#FFB0B0B0"
+        android:textColor="#FF9AA6B5"
         android:textSize="13sp"
+        android:fontFamily="@font/plus_jakarta_sans_regular"
         android:maxLines="2"
         android:ellipsize="end"
         android:text="@string/widget_favorites_empty" />

@@ -3,11 +3,11 @@ package com.betterstreamflix.compose.theme
 import androidx.compose.ui.graphics.Brush
 
 /**
- * Default Obsidian fallback for non-composable call sites.
+ * Default Signal Night fallback for non-composable call sites.
  * Compose UI must use [BsTheme.colors] so selected themes actually restyle screens.
  */
 object BsColors {
-    private val t = BsThemeCatalog.obsidian
+    private val t = BsThemeCatalog.signalNight
 
     val Ink = t.Ink
     val InkElevated = t.InkElevated

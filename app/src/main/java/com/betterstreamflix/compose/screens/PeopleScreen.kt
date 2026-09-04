@@ -183,7 +183,7 @@ private fun PeopleHeader(
     var bioExpanded by rememberSaveable { mutableStateOf(false) }
     BsGlassPanel(
         modifier = modifier.fillMaxWidth(),
-        corner = 18.dp,
+        corner = 12.dp,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

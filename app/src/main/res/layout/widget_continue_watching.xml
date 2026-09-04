@@ -4,23 +4,25 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#FF181818">
+    android:background="#FF12171F">
 
     <TextView
         android:id="@+id/widget_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/home_continue_watching"
-        android:textColor="#FFFFFFFF"
+        android:textColor="#FFF2F5F8"
         android:textSize="16sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:fontFamily="@font/sora_bold" />
 
     <TextView
         android:id="@+id/widget_subtitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#FFB0B0B0"
+        android:textColor="#FF9AA6B5"
         android:textSize="13sp"
+        android:fontFamily="@font/plus_jakarta_sans_regular"
         android:text="@string/widget_continue_watching_empty" />
 </LinearLayout>

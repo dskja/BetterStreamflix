@@ -18,7 +18,7 @@ val LocalBsThemeId = staticCompositionLocalOf { ThemeManager.DEFAULT }
 private fun cinemaScheme(tokens: BsColorScheme) = darkColorScheme(
     primary = tokens.Amber,
     onPrimary = tokens.Ink,
-    primaryContainer = tokens.Amber.copy(alpha = 0.22f),
+    primaryContainer = tokens.Amber.copy(alpha = 0.18f),
     onPrimaryContainer = tokens.Mist,
     secondary = tokens.SeaGlass,
     onSecondary = tokens.Ink,
@@ -34,22 +34,22 @@ private fun cinemaScheme(tokens: BsColorScheme) = darkColorScheme(
 )
 
 object BsMotion {
-    val SoftEnter = tween<Float>(durationMillis = 480)
-    val SoftEnterSlow = tween<Float>(durationMillis = 680)
+    val SoftEnter = tween<Float>(durationMillis = 320)
+    val SoftEnterSlow = tween<Float>(durationMillis = 420)
     val FocusSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow,
-    )
-    val PressSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMedium,
     )
-    val HeroFade = tween<Float>(durationMillis = 720)
-    val HeroRise = tween<Float>(durationMillis = 820)
-    val BrandPulse = tween<Float>(durationMillis = 1800)
-    val TabSelect = tween<Float>(durationMillis = 280)
-    val ContentCrossfade = tween<Float>(durationMillis = 360)
-    val PlayerFade = tween<Float>(durationMillis = 220)
+    val PressSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMediumHigh,
+    )
+    val HeroFade = tween<Float>(durationMillis = 480)
+    val HeroRise = tween<Float>(durationMillis = 520)
+    val BrandPulse = tween<Float>(durationMillis = 1600)
+    val TabSelect = tween<Float>(durationMillis = 240)
+    val ContentCrossfade = tween<Float>(durationMillis = 280)
+    val PlayerFade = tween<Float>(durationMillis = 200)
 
     /** Instant tween used when reduced motion is preferred. */
     val Reduced = tween<Float>(durationMillis = 0)

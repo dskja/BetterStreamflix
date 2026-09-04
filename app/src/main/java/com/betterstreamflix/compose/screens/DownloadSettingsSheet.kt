@@ -51,7 +51,7 @@ fun DownloadSettingsSheet(
     Dialog(onDismissRequest = onDismiss) {
         BsGlassPanel(
             modifier = Modifier.fillMaxWidth(),
-            corner = 20.dp,
+            corner = 12.dp,
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
