@@ -34,6 +34,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -82,6 +85,12 @@ fun PlayerControlsOverlay(
     if (!visible) return
 
     val colors = BsTheme.colors
+    val playFocus = remember { FocusRequester() }
+    LaunchedEffect(visible, state.isLocked) {
+        if (visible && !state.isLocked) {
+            runCatching { playFocus.requestFocus() }
+        }
+    }
 
     if (state.isLocked) {
         Column(
@@ -209,6 +218,7 @@ fun PlayerControlsOverlay(
                 modifier = Modifier
                     .size(58.dp)
                     .scale(playScale)
+                    .focusRequester(playFocus)
                     .focusable()
                     .clip(CircleShape)
                     .background(colors.Amber)

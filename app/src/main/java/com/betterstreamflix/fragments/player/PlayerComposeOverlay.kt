@@ -68,6 +68,9 @@ fun Fragment.setupPlayerComposeOverlay(
             composeView.visibility = visibility
             // Re-hide legacy every time Media3 tries to show it.
             if (visibility == View.VISIBLE) {
+                composeView.isFocusable = true
+                composeView.isFocusableInTouchMode = true
+                composeView.post { composeView.requestFocus() }
                 hideLegacyPlayerChrome(playerView)
             }
         },

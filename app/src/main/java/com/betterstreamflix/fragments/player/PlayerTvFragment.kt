@@ -1677,33 +1677,24 @@ class PlayerTvFragment : Fragment() {
         }
 
         private fun updateNextEpisodeOverlayFocusBindings(overlayVisible: Boolean) {
-            val controllerBinding = binding.pvPlayer.controller.binding
             val overlayActionId = binding.btnNextEpisodeAction.id
             val overlayDismissId = binding.btnNextEpisodeDismiss.id
-
-            controllerBinding.exoSettings.nextFocusUpId = if (overlayVisible) overlayActionId else View.NO_ID
-            controllerBinding.btnExoAspectRatio.nextFocusUpId = if (overlayVisible) overlayActionId else View.NO_ID
-            controllerBinding.exoProgress.nextFocusUpId = View.NO_ID
-            controllerBinding.btnCustomNext.nextFocusDownId = R.id.exo_progress
-            controllerBinding.exoPlayPause.nextFocusDownId = R.id.exo_progress
-
-            controllerBinding.btnSkipIntro.nextFocusLeftId = if (overlayVisible) overlayActionId else View.NO_ID
-            controllerBinding.btnSkipIntro.nextFocusUpId = if (overlayVisible) overlayActionId else View.NO_ID
-            controllerBinding.btnSkipIntro.nextFocusDownId = if (overlayVisible) overlayActionId else View.NO_ID
+            val composeOverlayId = binding.composePlaybackOverlay.id
 
             binding.btnNextEpisodeAction.nextFocusLeftId = overlayDismissId
             binding.btnNextEpisodeAction.nextFocusRightId = overlayDismissId
-            binding.btnNextEpisodeAction.nextFocusUpId = controllerBinding.exoPlayPause.id
+            binding.btnNextEpisodeAction.nextFocusUpId = View.NO_ID
             binding.btnNextEpisodeAction.nextFocusDownId =
-                if (controllerBinding.btnSkipIntro.isVisible) controllerBinding.btnSkipIntro.id
-                else controllerBinding.exoSettings.id
+                if (overlayVisible) composeOverlayId else View.NO_ID
 
             binding.btnNextEpisodeDismiss.nextFocusLeftId = overlayActionId
             binding.btnNextEpisodeDismiss.nextFocusRightId = overlayActionId
-            binding.btnNextEpisodeDismiss.nextFocusUpId = controllerBinding.exoPlayPause.id
+            binding.btnNextEpisodeDismiss.nextFocusUpId = View.NO_ID
             binding.btnNextEpisodeDismiss.nextFocusDownId =
-                if (controllerBinding.btnSkipIntro.isVisible) controllerBinding.btnSkipIntro.id
-                else controllerBinding.exoSettings.id
+                if (overlayVisible) composeOverlayId else View.NO_ID
+
+            binding.composePlaybackOverlay.nextFocusUpId =
+                if (overlayVisible) overlayActionId else View.NO_ID
         }
 
         private fun showSkipIntroButton(show: Boolean) {
