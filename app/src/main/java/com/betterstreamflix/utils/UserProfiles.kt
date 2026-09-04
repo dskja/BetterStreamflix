@@ -6,6 +6,9 @@ import com.betterstreamflix.sync.CloudAccountStore
 import com.betterstreamflix.sync.CloudSyncManager
 import com.betterstreamflix.ui.UserDataNotifier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -28,6 +31,11 @@ object UserProfiles {
 
     private const val KEY_PROFILES = "LOCAL_PROFILES_JSON"
     private const val KEY_ACTIVE = "LOCAL_PROFILE_ACTIVE_ID"
+
+    private val _activeProfileChanges = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    /** Emits the new active profile id whenever [setActive] switches profiles. */
+    val activeProfileChanges: SharedFlow<String> = _activeProfileChanges.asSharedFlow()
 
     fun list(): List<Profile> {
         if (!UserPreferences.isReady()) return emptyList()
@@ -71,6 +79,7 @@ object UserProfiles {
         UserPreferences.parentalControlMaxAge = profile.parentalMaxAge
         AppDatabase.resetInstance()
         UserDataNotifier.notifyChanged()
+        _activeProfileChanges.tryEmit(profileId)
         runCatching {
             val app = StreamFlixApp.instance
             app.applicationScope.launch(Dispatchers.IO) {
