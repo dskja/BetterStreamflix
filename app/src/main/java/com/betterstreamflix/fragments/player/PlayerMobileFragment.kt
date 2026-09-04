@@ -756,14 +756,6 @@ class PlayerMobileFragment : Fragment() {
             it.isGone = true
         }
 
-        binding.btnNextEpisodeAction.setOnClickListener {
-            nextEpisodeOverlayManager.hideOverlay()
-            playNextEpisodeAcrossSeasons()
-        }
-        binding.btnNextEpisodeDismiss.setOnClickListener {
-            nextEpisodeOverlayManager.dismissOverlay()
-        }
-
         binding.settings.onManualZoomClicked = {
             binding.settings.hide()
             binding.pvPlayer.hideController()
@@ -1542,7 +1534,15 @@ class PlayerMobileFragment : Fragment() {
             }
         }
 
-        nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database, playbackController).apply {
+        nextEpisodeOverlayManager = NextEpisodeOverlayManager(
+            fragment = this,
+            player = player,
+            database = database,
+            composeView = binding.composeNextEpisodeOverlay,
+            playbackController = playbackController,
+            isTvLayout = false,
+        ).apply {
+            onPlayNext = { playNextEpisodeAcrossSeasons() }
             onPrefetchComplete = {
                 if (isAdded && _binding != null) {
                     setupEpisodeNavigationButtons()
