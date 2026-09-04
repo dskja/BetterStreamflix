@@ -1,0 +1,6 @@
+interface:
+  display_name: "BetterStreamflix"
+  short_description: "Repo-specific patterns and workflows for BetterStreamflix"
+  default_prompt: "Use the BetterStreamflix repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
