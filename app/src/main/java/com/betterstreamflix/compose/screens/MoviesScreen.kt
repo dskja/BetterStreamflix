@@ -42,6 +42,7 @@ fun MoviesScreen(
     errorMessage: String? = null,
     isTvLayout: Boolean = false,
     onMovieClick: (Movie) -> Unit = {},
+    onMovieLongClick: (Movie) -> Unit = {},
     onLoadMore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
@@ -108,6 +109,7 @@ fun MoviesScreen(
                                 imageUrl = posterOf(movie),
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onMovieClick(movie) },
+                                onLongClick = { onMovieLongClick(movie) },
                             )
                         }
                         if (isLoadingMore) {

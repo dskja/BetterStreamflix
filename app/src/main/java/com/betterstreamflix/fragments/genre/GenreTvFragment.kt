@@ -13,6 +13,7 @@ import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.Show
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.viewModelsFactory
 import retrofit2.HttpException
@@ -59,6 +60,7 @@ class GenreTvFragment : ComposeHostFragment() {
             errorMessage = (state as? GenreViewModel.State.FailedLoading)?.error?.message,
             isTvLayout = true,
             onShowClick = ::openShow,
+            onShowLongClick = ::onShowLongClick,
             onLoadMore = { viewModel.loadMoreGenreShows() },
             onRetry = { viewModel.getGenre(args.id) },
         )
@@ -74,6 +76,14 @@ class GenreTvFragment : ComposeHostFragment() {
                     banner = show.banner,
                 ),
             )
+        }
+    }
+
+    private fun onShowLongClick(show: Show) {
+        when (show) {
+            is Movie, is TvShow ->
+                ShowOptionsDialog(requireContext(), show, isTv = true).show()
+            else -> Unit
         }
     }
 }

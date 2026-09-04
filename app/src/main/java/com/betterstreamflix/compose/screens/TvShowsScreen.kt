@@ -42,6 +42,7 @@ fun TvShowsScreen(
     errorMessage: String? = null,
     isTvLayout: Boolean = false,
     onShowClick: (TvShow) -> Unit = {},
+    onShowLongClick: (TvShow) -> Unit = {},
     onLoadMore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
@@ -108,6 +109,7 @@ fun TvShowsScreen(
                                 imageUrl = posterOf(show),
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onShowClick(show) },
+                                onLongClick = { onShowLongClick(show) },
                             )
                         }
                         if (isLoadingMore) {

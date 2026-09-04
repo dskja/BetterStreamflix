@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Shared mutation engine for show options (movie / TV show / episode).
- * Logic extracted from [ShowOptionsMobileDialog] so Compose and legacy hosts stay in sync.
+ * Used by [ShowOptionsDialog] / Compose hosts so behavior stays in sync.
  */
 object ShowOptionsActions {
 

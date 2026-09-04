@@ -23,6 +23,7 @@ import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.providers.Provider
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.DeepLinkHandler
 import com.betterstreamflix.utils.LoggingUtils
@@ -153,6 +154,7 @@ class SearchMobileFragment : ComposeHostFragment() {
                 recentQueries = emptyList()
             },
             onResultClick = ::onResultClick,
+            onResultLongClick = ::onResultLongClick,
         )
     }
 
@@ -182,6 +184,14 @@ class SearchMobileFragment : ComposeHostFragment() {
                     ),
                 )
             }
+        }
+    }
+
+    private fun onResultLongClick(item: AppAdapter.Item) {
+        when (item) {
+            is Movie, is TvShow ->
+                ShowOptionsDialog(requireContext(), item, isTv = false).show()
+            else -> Unit
         }
     }
 

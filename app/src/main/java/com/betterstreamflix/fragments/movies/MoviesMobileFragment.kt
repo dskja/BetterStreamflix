@@ -10,6 +10,7 @@ import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.MoviesScreen
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.Movie
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.viewModelsFactory
 import retrofit2.HttpException
@@ -55,6 +56,9 @@ class MoviesMobileFragment : ComposeHostFragment() {
             hasMore = hasMore,
             errorMessage = (state as? MoviesViewModel.State.FailedLoading)?.error?.message,
             onMovieClick = ::openMovie,
+            onMovieLongClick = { movie ->
+                ShowOptionsDialog(requireContext(), movie, isTv = false).show()
+            },
             onLoadMore = { viewModel.loadMoreMovies() },
             onRetry = { viewModel.getMovies() },
         )

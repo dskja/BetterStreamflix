@@ -45,6 +45,7 @@ fun GenreScreen(
     errorMessage: String? = null,
     isTvLayout: Boolean = false,
     onShowClick: (Show) -> Unit = {},
+    onShowLongClick: (Show) -> Unit = {},
     onLoadMore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
@@ -119,6 +120,7 @@ fun GenreScreen(
                                 imageUrl = posterOf(show),
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onShowClick(show) },
+                                onLongClick = { onShowLongClick(show) },
                             )
                         }
                         if (isLoadingMore) {

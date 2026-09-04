@@ -10,6 +10,7 @@ import com.betterstreamflix.compose.ComposeHostFragment
 import com.betterstreamflix.compose.screens.TvShowsScreen
 import com.betterstreamflix.database.AppDatabase
 import com.betterstreamflix.models.TvShow
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.viewModelsFactory
 import retrofit2.HttpException
@@ -55,6 +56,9 @@ class TvShowsMobileFragment : ComposeHostFragment() {
             hasMore = hasMore,
             errorMessage = (state as? TvShowsViewModel.State.FailedLoading)?.error?.message,
             onShowClick = ::openShow,
+            onShowLongClick = { show ->
+                ShowOptionsDialog(requireContext(), show, isTv = false).show()
+            },
             onLoadMore = { viewModel.loadMoreTvShows() },
             onRetry = { viewModel.getTvShows() },
         )

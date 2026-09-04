@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.betterstreamflix.R
@@ -17,6 +18,7 @@ import com.betterstreamflix.models.Season
 import com.betterstreamflix.models.Show
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.models.Video
+import com.betterstreamflix.ui.ShowOptionsActions
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
@@ -71,6 +73,8 @@ class TvShowTvFragment : ComposeHostFragment() {
             watchLabel = watchLabel(episodeSeason, episode),
             watchProgress = watchProgress,
             showWatchButton = episode != null,
+            isFavorite = tvShow?.isFavorite == true,
+            showFavoriteButton = tvShow != null,
             cast = tvShow?.cast.orEmpty(),
             directors = tvShow?.directors.orEmpty(),
             seasons = tvShow?.seasons.orEmpty(),
@@ -79,6 +83,9 @@ class TvShowTvFragment : ComposeHostFragment() {
             errorMessage = (state as? TvShowViewModel.State.FailedLoading)?.error?.message,
             isTvLayout = true,
             onWatch = { tvShow?.let { openPlayer(it, episode, episodeSeason) } },
+            onToggleFavorite = {
+                tvShow?.let { ShowOptionsActions.toggleFavorite(requireContext(), it, viewLifecycleOwner.lifecycleScope) }
+            },
             onCastClick = ::openPerson,
             onSeasonClick = { season -> tvShow?.let { openSeason(it, season) } },
             onRecommendationClick = ::openRecommendation,

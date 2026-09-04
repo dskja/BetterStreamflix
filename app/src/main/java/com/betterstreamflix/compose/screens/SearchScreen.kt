@@ -61,6 +61,7 @@ fun SearchScreen(
     isTvLayout: Boolean = false,
     onBack: () -> Unit = {},
     onResultClick: (AppAdapter.Item) -> Unit = {},
+    onResultLongClick: (AppAdapter.Item) -> Unit = {},
     onBrowseGenres: () -> Unit = {},
     onRecentClick: (String) -> Unit = {},
     onClearHistory: () -> Unit = {},
@@ -168,6 +169,7 @@ fun SearchScreen(
                                 subtitle = resultSubtitle(item),
                                 imageUrl = posterOf(item),
                                 onClick = { onResultClick(item) },
+                                onLongClick = { onResultLongClick(item) },
                             )
                         }
                     }

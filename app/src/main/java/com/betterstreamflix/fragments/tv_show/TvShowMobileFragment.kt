@@ -19,10 +19,10 @@ import com.betterstreamflix.models.Season
 import com.betterstreamflix.models.Show
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.models.Video
+import com.betterstreamflix.ui.ShowOptionsActions
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
-import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
 class TvShowMobileFragment : ComposeHostFragment() {
@@ -74,6 +74,8 @@ class TvShowMobileFragment : ComposeHostFragment() {
             watchLabel = watchLabel(episodeSeason, episode),
             watchProgress = watchProgress,
             showWatchButton = episode != null,
+            isFavorite = tvShow?.isFavorite == true,
+            showFavoriteButton = tvShow != null,
             cast = tvShow?.cast.orEmpty(),
             directors = tvShow?.directors.orEmpty(),
             seasons = tvShow?.seasons.orEmpty(),
@@ -82,6 +84,9 @@ class TvShowMobileFragment : ComposeHostFragment() {
             errorMessage = (state as? TvShowViewModel.State.FailedLoading)?.error?.message,
             onBack = { findNavController().navigateUp() },
             onWatch = { tvShow?.let { openPlayer(it, episode, episodeSeason) } },
+            onToggleFavorite = {
+                tvShow?.let { ShowOptionsActions.toggleFavorite(requireContext(), it, viewLifecycleOwner.lifecycleScope) }
+            },
             onCastClick = ::openPerson,
             onSeasonClick = { season -> tvShow?.let { openSeason(it, season) } },
             onRecommendationClick = ::openRecommendation,

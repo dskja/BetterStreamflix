@@ -20,6 +20,7 @@ import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.download.DownloadRepository
 import com.betterstreamflix.models.Episode
 import com.betterstreamflix.models.Video
+import com.betterstreamflix.ui.ShowOptionsDialog
 import com.betterstreamflix.utils.CacheUtils
 import com.betterstreamflix.utils.format
 import com.betterstreamflix.utils.viewModelsFactory
@@ -81,6 +82,9 @@ class SeasonMobileFragment : ComposeHostFragment() {
             onBack = { findNavController().navigateUp() },
             onRetry = { viewModel.getSeasonEpisodes(args.seasonId) },
             onEpisodeClick = ::openEpisode,
+            onEpisodeLongClick = { episode ->
+                ShowOptionsDialog(requireContext(), episode, isTv = false).show()
+            },
             onDownloadEpisode = ::requestDownload,
             onDownloadSeason = ::requestDownloadSeason,
         )

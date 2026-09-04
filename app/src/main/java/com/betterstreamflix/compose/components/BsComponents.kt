@@ -785,6 +785,7 @@ fun BsPosterCard(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun BsSearchResultRow(
     title: String,
     subtitle: String?,
@@ -792,6 +793,7 @@ fun BsSearchResultRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isGenre: Boolean = false,
+    onLongClick: () -> Unit = {},
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -806,10 +808,11 @@ fun BsSearchResultRow(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clickable(
+            .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
+                onLongClick = onLongClick,
             ),
         selected = focused,
         corner = 14.dp,
