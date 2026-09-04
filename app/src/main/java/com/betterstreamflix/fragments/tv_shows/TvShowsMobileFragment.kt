@@ -24,8 +24,16 @@ class TvShowsMobileFragment : ComposeHostFragment() {
     override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = TvShowsViewModel.State.Loading)
 
-        val shows = (state as? TvShowsViewModel.State.SuccessLoading)?.tvShows.orEmpty()
-        val hasMore = (state as? TvShowsViewModel.State.SuccessLoading)?.hasMore == true
+        val shows = when (val current = state) {
+            is TvShowsViewModel.State.SuccessLoading -> current.tvShows
+            is TvShowsViewModel.State.LoadingMore -> current.tvShows
+            else -> emptyList()
+        }
+        val hasMore = when (val current = state) {
+            is TvShowsViewModel.State.SuccessLoading -> current.hasMore
+            is TvShowsViewModel.State.LoadingMore -> current.hasMore
+            else -> false
+        }
 
         if (state is TvShowsViewModel.State.FailedLoading) {
             val error = (state as TvShowsViewModel.State.FailedLoading).error

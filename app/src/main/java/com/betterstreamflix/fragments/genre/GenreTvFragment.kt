@@ -27,8 +27,16 @@ class GenreTvFragment : ComposeHostFragment() {
     @Composable
     override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = GenreViewModel.State.Loading)
-        val genre = (state as? GenreViewModel.State.SuccessLoading)?.genre
-        val hasMore = (state as? GenreViewModel.State.SuccessLoading)?.hasMore == true
+        val genre = when (val current = state) {
+            is GenreViewModel.State.SuccessLoading -> current.genre
+            is GenreViewModel.State.LoadingMore -> current.genre
+            else -> null
+        }
+        val hasMore = when (val current = state) {
+            is GenreViewModel.State.SuccessLoading -> current.hasMore
+            is GenreViewModel.State.LoadingMore -> current.hasMore
+            else -> false
+        }
 
         if (state is GenreViewModel.State.FailedLoading) {
             val error = (state as GenreViewModel.State.FailedLoading).error

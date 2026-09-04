@@ -24,8 +24,16 @@ class MoviesTvFragment : ComposeHostFragment() {
     override fun ScreenContent() {
         val state by viewModel.state.collectAsStateWithLifecycle(initialValue = MoviesViewModel.State.Loading)
 
-        val movies = (state as? MoviesViewModel.State.SuccessLoading)?.movies.orEmpty()
-        val hasMore = (state as? MoviesViewModel.State.SuccessLoading)?.hasMore == true
+        val movies = when (val current = state) {
+            is MoviesViewModel.State.SuccessLoading -> current.movies
+            is MoviesViewModel.State.LoadingMore -> current.movies
+            else -> emptyList()
+        }
+        val hasMore = when (val current = state) {
+            is MoviesViewModel.State.SuccessLoading -> current.hasMore
+            is MoviesViewModel.State.LoadingMore -> current.hasMore
+            else -> false
+        }
 
         if (state is MoviesViewModel.State.FailedLoading) {
             val error = (state as MoviesViewModel.State.FailedLoading).error

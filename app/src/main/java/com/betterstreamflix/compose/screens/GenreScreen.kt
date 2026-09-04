@@ -91,7 +91,7 @@ fun GenreScreen(
                         }
                     }
                 }
-                !isLoading && shows.isEmpty() -> {
+                !isLoading && !isLoadingMore && shows.isEmpty() -> {
                     BsEmptyState(
                         message = stringResource(R.string.genre_empty),
                         modifier = Modifier.fillMaxSize(),

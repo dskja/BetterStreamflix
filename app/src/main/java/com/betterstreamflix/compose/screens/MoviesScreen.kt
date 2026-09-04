@@ -88,7 +88,7 @@ fun MoviesScreen(
                         }
                     }
                 }
-                movies.isEmpty() -> {
+                movies.isEmpty() && !isLoadingMore -> {
                     BsEmptyState(
                         message = stringResource(R.string.movies_empty),
                         modifier = Modifier.fillMaxSize(),
