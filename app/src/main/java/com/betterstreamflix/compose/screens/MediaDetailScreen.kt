@@ -53,6 +53,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsIconButton
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
@@ -142,11 +143,11 @@ fun MediaDetailScreen(
                                 .background(BsTheme.colors.HeroSideWash),
                         )
                         if (!isTvLayout) {
-                            BsGhostButton(
-                                text = stringResource(R.string.settings_back),
+                            BsIconButton(
+                                imageVector = Icons.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.settings_back),
                                 onClick = onBack,
                                 modifier = Modifier.padding(12.dp),
-                                leadingIcon = Icons.Filled.ArrowBack,
                             )
                         }
                         Column(

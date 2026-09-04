@@ -62,6 +62,7 @@
 
     <string name="search_input_hint">Search movies, TV shows</string>
     <string name="search_clear_history">Clear search history</string>
+    <string name="search_clear_input">Clear search</string>
     <string name="search_recent_title">Recent searches</string>
     <string name="search_input_hint_iptv">Search channels</string>
     <string name="global_search">Global search</string>

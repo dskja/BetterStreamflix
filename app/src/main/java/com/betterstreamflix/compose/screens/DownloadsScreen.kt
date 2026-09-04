@@ -35,8 +35,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +56,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +63,7 @@ import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsTopBar
@@ -351,55 +349,22 @@ private fun FilterTabs(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = horizontalPadding, vertical = 4.dp)
-            .selectableGroup(),
+            .padding(horizontal = horizontalPadding, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         DownloadsFilter.entries.forEach { tab ->
             val selected = filter == tab
-            var focused by remember(tab) { mutableStateOf(false) }
             val label = when (tab) {
                 DownloadsFilter.LIBRARY -> stringResource(R.string.downloads_filter_ready)
                 DownloadsFilter.QUEUE -> stringResource(R.string.downloads_filter_active)
                 DownloadsFilter.FAILED -> stringResource(R.string.downloads_filter_failed)
             }
             val count = counts[tab] ?: 0
-            val scale by animateFloatAsState(
-                targetValue = when {
-                    focused -> 1.06f
-                    selected -> 1.02f
-                    else -> 1f
-                },
-                animationSpec = BsMotion.FocusSpring,
-                label = "dlTabScale",
+            BsGlassFilterChip(
+                label = if (count > 0) "$label  $count" else label,
+                selected = selected,
+                onClick = { onFilter(tab) },
             )
-            Box(
-                modifier = Modifier
-                    .scale(scale)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (selected) BsTheme.colors.InkSoft else BsTheme.colors.InkPanel)
-                    .border(
-                        1.dp,
-                        if (focused || selected) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
-                        RoundedCornerShape(10.dp),
-                    )
-                    .onFocusChanged { focused = it.isFocused }
-                    .focusable()
-                    .selectable(
-                        selected = selected,
-                        role = Role.Tab,
-                        onClick = { onFilter(tab) },
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                    )
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                Text(
-                    text = if (count > 0) "$label  $count" else label,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = if (selected) BsTheme.colors.Mist else BsTheme.colors.MistFaint,
-                )
-            }
         }
     }
 }

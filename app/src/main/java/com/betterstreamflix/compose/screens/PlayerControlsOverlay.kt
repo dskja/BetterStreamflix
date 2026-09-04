@@ -206,6 +206,35 @@ fun PlayerControlsOverlay(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Text(
+                text = formatPlaybackTime(state.positionMs),
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.Mist,
+            )
+            Slider(
+                modifier = Modifier.weight(1f),
+                value = positionFraction,
+                onValueChange = { fraction ->
+                    onSeek((fraction * durationMs).toLong())
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor = colors.AmberBright,
+                    activeTrackColor = colors.Amber,
+                    inactiveTrackColor = colors.InkSoft.copy(alpha = 0.7f),
+                ),
+            )
+            Text(
+                text = formatPlaybackTime(state.durationMs),
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.MistDim,
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             if (state.canGoPrevious && onPreviousEpisode != null) {
                 PlayerSeekChip(
                     label = "‹ Ep",
@@ -271,35 +300,6 @@ fun PlayerControlsOverlay(
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = colors.AmberBright,
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = formatPlaybackTime(state.positionMs),
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.Mist,
-            )
-            Slider(
-                modifier = Modifier.weight(1f),
-                value = positionFraction,
-                onValueChange = { fraction ->
-                    onSeek((fraction * durationMs).toLong())
-                },
-                colors = SliderDefaults.colors(
-                    thumbColor = colors.AmberBright,
-                    activeTrackColor = colors.Amber,
-                    inactiveTrackColor = colors.InkSoft.copy(alpha = 0.7f),
-                ),
-            )
-            Text(
-                text = formatPlaybackTime(state.durationMs),
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.MistDim,
             )
         }
 

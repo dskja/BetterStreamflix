@@ -65,8 +65,8 @@ fun BsSettingsSectionLabel(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = BsTheme.colors.MistDim,
+            style = MaterialTheme.typography.titleSmall,
+            color = BsTheme.colors.Mist,
         )
     }
 }
@@ -171,6 +171,7 @@ fun BsSettingsToggleRow(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
+            .clip(RoundedCornerShape(10.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
@@ -182,6 +183,7 @@ fun BsSettingsToggleRow(
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp),
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -235,6 +237,7 @@ fun BsSettingsValueRow(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
+            .clip(RoundedCornerShape(10.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
@@ -246,6 +249,7 @@ fun BsSettingsValueRow(
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp),
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -295,6 +299,7 @@ fun BsSettingsActionRow(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
+            .clip(RoundedCornerShape(10.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
@@ -306,6 +311,7 @@ fun BsSettingsActionRow(
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp),
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,

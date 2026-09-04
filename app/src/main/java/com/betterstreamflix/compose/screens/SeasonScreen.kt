@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +46,7 @@ import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassPanel
+import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
@@ -129,9 +128,10 @@ fun SeasonScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        SeasonSearchField(
+                        BsGlassSearchField(
                             value = query,
                             onValueChange = onQueryChange,
+                            placeholder = stringResource(R.string.search_episodes),
                             modifier = Modifier.weight(1f),
                         )
                         BsPrimaryButton(
@@ -209,47 +209,6 @@ fun SeasonScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SeasonSearchField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(BsTheme.colors.InkPanel)
-            .border(
-                1.dp,
-                if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
-                RoundedCornerShape(10.dp),
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-    ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onFocusChanged { focused = it.isFocused },
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsTheme.colors.Mist),
-            cursorBrush = SolidColor(BsTheme.colors.Amber),
-            singleLine = true,
-            decorationBox = { inner ->
-                if (value.isEmpty()) {
-                    Text(
-                        stringResource(R.string.search_episodes),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = BsTheme.colors.MistFaint,
-                    )
-                }
-                inner()
-            },
-        )
     }
 }
 

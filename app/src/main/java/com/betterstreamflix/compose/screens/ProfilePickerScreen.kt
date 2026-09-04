@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -48,6 +50,8 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassPanel
+import com.betterstreamflix.compose.components.BsIconButton
+import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.compose.theme.BsTheme
@@ -170,12 +174,13 @@ fun ProfilePickerScreen(
                     Text(stringResource(R.string.profile_picker_delete_confirm, profile.name))
                 },
                 confirmButton = {
-                    BsGhostButton(
+                    BsPrimaryButton(
                         text = stringResource(R.string.profile_picker_delete),
                         onClick = {
                             onDeleteProfile(profile)
                             deletingProfile = null
                         },
+                        containerColor = BsTheme.colors.Danger,
                     )
                 },
                 dismissButton = {
@@ -223,7 +228,7 @@ private fun ProfileAvatarCard(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(104.dp)
+                    .size(96.dp)
                     .clip(CircleShape)
                     .background(avatarTint)
                     .border(
@@ -254,7 +259,7 @@ private fun ProfileAvatarCard(
                     Text(
                         text = stringResource(R.string.profile_picker_active),
                         style = MaterialTheme.typography.labelSmall,
-                        color = BsTheme.colors.Ink,
+                        color = BsTheme.colors.Mist,
                     )
                 }
             }
@@ -282,10 +287,11 @@ private fun ProfileAvatarCard(
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
-        BsGhostButton(
-            text = stringResource(R.string.profile_picker_edit_name),
+        BsIconButton(
+            imageVector = Icons.Filled.MoreVert,
+            contentDescription = stringResource(R.string.profile_picker_edit_name),
             onClick = onManage,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
@@ -371,7 +377,7 @@ private fun ProfileDialog(
             )
         },
         confirmButton = {
-            BsGhostButton(text = stringResource(android.R.string.ok), onClick = onConfirm)
+            BsPrimaryButton(text = stringResource(android.R.string.ok), onClick = onConfirm)
         },
         dismissButton = {
             BsGhostButton(text = stringResource(android.R.string.cancel), onClick = onDismiss)

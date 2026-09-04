@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -251,11 +252,11 @@ fun BsTopBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (onBack != null) {
-                    BsGhostButton(
-                        text = stringResource(R.string.settings_back),
+                    BsIconButton(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.settings_back),
                         onClick = onBack,
                         modifier = Modifier.padding(end = 8.dp),
-                        leadingIcon = Icons.Filled.ArrowBack,
                     )
                 }
                 if (showBrand) {
@@ -353,6 +354,7 @@ fun BsPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
+    containerColor: Color? = null,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -380,7 +382,7 @@ fun BsPrimaryButton(
         shape = RoundedCornerShape(10.dp),
         interactionSource = interaction,
         colors = ButtonDefaults.buttonColors(
-            containerColor = BsTheme.colors.Amber,
+            containerColor = containerColor ?: BsTheme.colors.Amber,
             contentColor = BsTheme.colors.Mist,
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
@@ -437,6 +439,48 @@ fun BsGhostButton(
             )
         }
         Text(text = text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+fun BsIconButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.08f else 1f,
+        animationSpec = BsMotion.focusSpec(),
+        label = "iconButtonFocus",
+    )
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .scale(scale)
+            .clip(CircleShape)
+            .background(if (focused) BsTheme.colors.Amber else BsTheme.colors.InkPanel.copy(alpha = 0.88f))
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) BsTheme.colors.Mist else BsTheme.colors.HairlineStrong,
+                shape = CircleShape,
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            tint = BsTheme.colors.Mist,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
@@ -1169,7 +1213,7 @@ fun BsGlassSearchField(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.search_clear_history),
+                    contentDescription = stringResource(R.string.search_clear_input),
                     tint = BsTheme.colors.MistDim,
                     modifier = Modifier.size(18.dp),
                 )

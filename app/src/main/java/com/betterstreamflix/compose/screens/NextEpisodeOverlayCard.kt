@@ -180,34 +180,20 @@ fun NextEpisodeOverlayCard(
                             )
                         }
                     } else {
-                        Text(
-                            text = stringResource(R.string.player_next_episode_action),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = colors.Ink,
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.Amber)
-                                .clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    onClick = onPlay,
-                                )
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.player_next_episode_dismiss),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.MistDim,
-                            modifier = Modifier
-                                .padding(top = 6.dp)
-                                .clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    onClick = onDismiss,
-                                )
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                        )
+                        Row(
+                            modifier = Modifier.padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            NextEpisodeActionChip(
+                                label = stringResource(R.string.player_next_episode_action),
+                                onClick = onPlay,
+                            )
+                            NextEpisodeIconChip(
+                                contentDescription = stringResource(R.string.player_next_episode_dismiss),
+                                onClick = onDismiss,
+                            )
+                        }
                     }
                 }
             }

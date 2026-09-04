@@ -1,10 +1,5 @@
 package com.betterstreamflix.compose.screens
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,27 +10,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.adapters.AppAdapter
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsSearchResultRow
 import com.betterstreamflix.compose.components.BsSectionHeader
@@ -44,8 +28,6 @@ import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.itemKeyOf
 import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
-import com.betterstreamflix.compose.theme.BsMotion
-import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
@@ -85,7 +67,7 @@ fun SearchScreen(
                 BsGhostButton(
                     text = stringResource(R.string.genres_hub_browse),
                     onClick = onBrowseGenres,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 2.dp),
                 )
                 if (recentQueries.isNotEmpty()) {
                     BsSectionHeader(
@@ -105,35 +87,10 @@ fun SearchScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         recentQueries.forEach { recent ->
-                            val recentCd = stringResource(R.string.search_recent_query_cd, recent)
-                            var focused by remember(recent) { mutableStateOf(false) }
-                            val scale by animateFloatAsState(
-                                targetValue = if (focused) 1.06f else 1f,
-                                animationSpec = BsMotion.FocusSpring,
-                                label = "recentChipScale",
-                            )
-                            Text(
-                                text = recent,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (focused) BsTheme.colors.AmberBright else BsTheme.colors.Mist,
-                                modifier = Modifier
-                                    .scale(scale)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(
-                                        if (focused) BsTheme.colors.Amber.copy(alpha = 0.14f)
-                                        else BsTheme.colors.InkPanel,
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f)
-                                        else BsTheme.colors.Hairline,
-                                        RoundedCornerShape(10.dp),
-                                    )
-                                    .onFocusChanged { focused = it.isFocused }
-                                    .focusable()
-                                    .semantics { contentDescription = recentCd }
-                                    .clickable { onRecentClick(recent) }
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                            BsGlassFilterChip(
+                                label = recent,
+                                selected = false,
+                                onClick = { onRecentClick(recent) },
                             )
                         }
                     }
