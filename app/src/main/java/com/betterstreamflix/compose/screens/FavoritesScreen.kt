@@ -24,6 +24,7 @@ import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.itemKeyOf
+import com.betterstreamflix.compose.components.metadataOf
 import com.betterstreamflix.fragments.favorites.FavoritesViewModel
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
@@ -92,12 +93,14 @@ fun FavoritesScreen(
                                         is Movie -> BsPosterCard(
                                             title = item.title,
                                             imageUrl = item.poster ?: item.banner,
+                                            subtitle = metadataOf(item).take(2).joinToString(" · ").ifBlank { null },
                                             onClick = { onMovieClick(item) },
                                             onLongClick = { onMovieLongClick(item) },
                                         )
                                         is TvShow -> BsPosterCard(
                                             title = item.title,
                                             imageUrl = item.poster ?: item.banner,
+                                            subtitle = metadataOf(item).take(2).joinToString(" · ").ifBlank { null },
                                             onClick = { onTvShowClick(item) },
                                             onLongClick = { onTvShowLongClick(item) },
                                         )

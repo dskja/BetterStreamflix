@@ -15,11 +15,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -132,35 +136,39 @@ fun ShowOptionsSheet(
                     )
                 }
 
-                AsyncImage(
-                    model = header.posterUrl,
-                    contentDescription = header.title,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(if (isTvLayout) 220.dp else 150.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(BsTheme.colors.InkSoft),
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = header.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = BsTheme.colors.Mist,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (header.subtitle.isNotBlank()) {
-                    Text(
-                        text = header.subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = BsTheme.colors.MistDim,
-                        modifier = Modifier.padding(top = 4.dp),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    AsyncImage(
+                        model = header.posterUrl,
+                        contentDescription = header.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .width(if (isTvLayout) 118.dp else 92.dp)
+                            .height(if (isTvLayout) 168.dp else 132.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BsTheme.colors.InkSoft),
                     )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = header.title,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = BsTheme.colors.Mist,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (header.subtitle.isNotBlank()) {
+                            Text(
+                                text = header.subtitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = BsTheme.colors.MistDim,
+                                modifier = Modifier.padding(top = 6.dp),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -220,13 +228,22 @@ private fun ShowOptionsActionRow(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
                 color = if (muted) BsTheme.colors.MistDim else BsTheme.colors.Mist,
+                modifier = Modifier.weight(1f),
             )
+            if (!muted) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = if (focused) BsTheme.colors.Amber else BsTheme.colors.MistFaint,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }

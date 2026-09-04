@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -30,6 +29,7 @@ import com.betterstreamflix.compose.components.BsLoadMoreFooter
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
+import com.betterstreamflix.compose.components.metadataOf
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.models.TvShow
 
@@ -107,7 +107,8 @@ fun TvShowsScreen(
                             BsPosterCard(
                                 title = show.title,
                                 imageUrl = posterOf(show),
-                                modifier = Modifier.fillMaxWidth(),
+                                subtitle = metadataOf(show).take(2).joinToString(" · ").ifBlank { null },
+                                fillWidth = true,
                                 onClick = { onShowClick(show) },
                                 onLongClick = { onShowLongClick(show) },
                             )

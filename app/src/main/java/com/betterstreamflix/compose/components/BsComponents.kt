@@ -15,6 +15,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Info
@@ -146,6 +148,12 @@ fun BsHomeChrome(
     isTvLayout: Boolean = false,
 ) {
     val padding = if (isTvLayout) 32.dp else 20.dp
+    var providerFocused by remember { mutableStateOf(false) }
+    val providerScale by animateFloatAsState(
+        targetValue = if (providerFocused) 1.08f else 1f,
+        animationSpec = BsMotion.focusSpec(),
+        label = "providerAvatarScale",
+    )
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -158,9 +166,16 @@ fun BsHomeChrome(
             Box(
                 modifier = Modifier
                     .size(if (isTvLayout) 44.dp else 38.dp)
+                    .scale(providerScale)
                     .clip(RoundedCornerShape(50))
-                    .background(BsTheme.colors.InkPanel)
-                    .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(50))
+                    .background(if (providerFocused) BsTheme.colors.Amber else BsTheme.colors.InkPanel)
+                    .border(
+                        1.dp,
+                        if (providerFocused) BsTheme.colors.Mist else BsTheme.colors.Hairline,
+                        RoundedCornerShape(50),
+                    )
+                    .onFocusChanged { providerFocused = it.isFocused }
+                    .focusable()
                     .clickable(onClick = onProviderClick),
                 contentAlignment = Alignment.Center,
             ) {
@@ -243,11 +258,17 @@ fun BsTopBar(
                         leadingIcon = Icons.Filled.ArrowBack,
                     )
                 }
+                if (showBrand) {
+                    BsBrandMark(compact = true)
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp)
+                            .width(1.dp)
+                            .height(28.dp)
+                            .background(BsTheme.colors.HairlineStrong),
+                    )
+                }
                 Column(modifier = Modifier.weight(1f)) {
-                    if (showBrand) {
-                        BsBrandMark(compact = true)
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
                     Text(
                         text = title,
                         style = MaterialTheme.typography.headlineMedium,
@@ -828,21 +849,33 @@ fun BsGenreTile(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Box(
-                modifier = Modifier
-                    .padding(end = 12.dp)
-                    .width(3.dp)
-                    .height(32.dp)
-                    .background(BsTheme.colors.Amber, RoundedCornerShape(2.dp)),
-            )
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = BsTheme.colors.Mist,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            Box(
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (focused) BsTheme.colors.Amber else BsTheme.colors.InkSoft,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = BsTheme.colors.Mist,
+                    modifier = Modifier.size(17.dp),
+                )
+            }
         }
     }
 }
@@ -854,6 +887,7 @@ fun BsPosterCard(
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
     subtitle: String? = null,
+    fillWidth: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
@@ -865,7 +899,7 @@ fun BsPosterCard(
     )
     Column(
         modifier = modifier
-            .width(124.dp)
+            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier.width(124.dp))
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
@@ -879,7 +913,7 @@ fun BsPosterCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(176.dp)
+                .then(if (fillWidth) Modifier.aspectRatio(0.70f) else Modifier.height(176.dp))
                 .clip(RoundedCornerShape(12.dp))
                 .background(BsTheme.colors.InkSoft)
                 .border(
