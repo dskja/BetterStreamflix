@@ -29,7 +29,7 @@ import androidx.compose.ui.window.Dialog
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPrimaryButton
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.download.DownloadPolicyManager
 import com.betterstreamflix.download.DownloadStorageManager
 
@@ -49,13 +49,13 @@ fun DownloadSettingsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BsColors.InkPanel, RoundedCornerShape(16.dp))
+                .background(BsTheme.colors.InkPanel, RoundedCornerShape(16.dp))
                 .padding(20.dp),
         ) {
             Text(
                 text = stringResource(R.string.download_settings_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
             )
             Text(
                 text = stringResource(
@@ -64,11 +64,11 @@ fun DownloadSettingsSheet(
                     DownloadStorageManager.formatSize(free),
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
                 modifier = Modifier.padding(top = 6.dp),
             )
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = BsColors.Hairline)
+            HorizontalDivider(color = BsTheme.colors.Hairline)
             Spacer(modifier = Modifier.height(12.dp))
 
             SettingsToggleRow(
@@ -95,7 +95,7 @@ fun DownloadSettingsSheet(
                 },
             )
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = BsColors.Hairline)
+            HorizontalDivider(color = BsTheme.colors.Hairline)
             Spacer(modifier = Modifier.height(12.dp))
             BsGhostButton(
                 text = stringResource(R.string.downloads_clear_completed),
@@ -128,15 +128,15 @@ private fun SettingsToggleRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall, color = BsColors.Mist)
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = BsColors.MistDim)
+            Text(text = title, style = MaterialTheme.typography.titleSmall, color = BsTheme.colors.Mist)
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistDim)
         }
         Switch(
             checked = checked,
             onCheckedChange = onChecked,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = BsColors.Amber,
-                checkedTrackColor = BsColors.Amber.copy(alpha = 0.35f),
+                checkedThumbColor = BsTheme.colors.Amber,
+                checkedTrackColor = BsTheme.colors.Amber.copy(alpha = 0.35f),
             ),
         )
     }
@@ -151,15 +151,15 @@ private fun SettingsStepperRow(
     onIncrease: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = title, style = MaterialTheme.typography.titleSmall, color = BsColors.Mist)
-        Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = BsColors.MistDim)
+        Text(text = title, style = MaterialTheme.typography.titleSmall, color = BsTheme.colors.Mist)
+        Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistDim)
         Row(
             modifier = Modifier.padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BsGhostButton(text = "−", onClick = onDecrease)
-            Text(text = "$value%", style = MaterialTheme.typography.titleMedium, color = BsColors.AmberBright)
+            Text(text = "$value%", style = MaterialTheme.typography.titleMedium, color = BsTheme.colors.AmberBright)
             BsGhostButton(text = "+", onClick = onIncrease)
         }
     }

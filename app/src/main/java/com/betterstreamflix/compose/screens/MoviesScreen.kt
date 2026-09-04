@@ -31,7 +31,7 @@ import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Movie
 
 @Composable
@@ -119,7 +119,7 @@ fun MoviesScreen(
                                         .padding(16.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    CircularProgressIndicator(color = BsColors.Amber)
+                                    CircularProgressIndicator(color = BsTheme.colors.Amber)
                                 }
                             }
                         }

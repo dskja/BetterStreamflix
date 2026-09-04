@@ -79,7 +79,7 @@ class OfflinePlayerActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
             useController = true
-            controllerShowTimeoutMs = 3000
+            controllerShowTimeoutMs = 4_000
         }
         val overlay = ComposeView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -118,7 +118,7 @@ class OfflinePlayerActivity : AppCompatActivity() {
             ?.takeIf { it.isNotBlank() }
             ?: getString(R.string.player_title_offline)
         playbackController.setMetadata(title)
-        hideLegacyTimeBar(playerView)
+        com.betterstreamflix.fragments.player.hideLegacyPlayerChrome(playerView)
         overlay.setContent {
             BetterStreamflixTheme {
                 val state by playbackController.state.collectAsStateWithLifecycle()
@@ -134,14 +134,19 @@ class OfflinePlayerActivity : AppCompatActivity() {
                             exo.duration.coerceAtLeast(0L),
                         )
                     },
+                    onBack = { finish() },
                 )
             }
         }
         playerView.setControllerVisibilityListener(
             PlayerView.ControllerVisibilityListener { visibility ->
                 overlay.visibility = visibility
+                if (visibility == android.view.View.VISIBLE) {
+                    com.betterstreamflix.fragments.player.hideLegacyPlayerChrome(playerView)
+                }
             },
         )
+        playerView.showController()
         exo.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 playbackController.setPlaying(isPlaying)
@@ -172,16 +177,6 @@ class OfflinePlayerActivity : AppCompatActivity() {
             exo.currentPosition,
             exo.duration.coerceAtLeast(0L),
         )
-    }
-
-    private fun hideLegacyTimeBar(playerView: PlayerView) {
-        val controllerRoot = playerView.findViewById<android.view.View>(R.id.exo_progress)
-            ?: playerView.findViewById(androidx.media3.ui.R.id.exo_progress)
-        controllerRoot?.visibility = android.view.View.GONE
-        playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_position)?.visibility =
-            android.view.View.GONE
-        playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_duration)?.visibility =
-            android.view.View.GONE
     }
 
     private fun prepareMedia3(downloadId: String, playerView: PlayerView): Boolean {

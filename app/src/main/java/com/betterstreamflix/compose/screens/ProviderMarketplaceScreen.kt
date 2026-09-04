@@ -26,7 +26,7 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ProviderHealthMonitor
 
@@ -71,10 +71,10 @@ fun ProviderMarketplaceScreen(
                         onClick = { languageFilter = code },
                         label = { Text(label) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BsColors.Amber,
-                            selectedLabelColor = BsColors.Ink,
-                            containerColor = BsColors.InkPanel,
-                            labelColor = BsColors.MistDim,
+                            selectedContainerColor = BsTheme.colors.Amber,
+                            selectedLabelColor = BsTheme.colors.Ink,
+                            containerColor = BsTheme.colors.InkPanel,
+                            labelColor = BsTheme.colors.MistDim,
                         ),
                     )
                 }

@@ -777,6 +777,41 @@ class PlayerMobileFragment : Fragment() {
             playerView = binding.pvPlayer,
             player = player,
             playbackController = playbackController,
+            onBack = {
+                runCatching { findNavController().navigateUp() }
+            },
+            onSettings = { binding.settings.show() },
+            onPip = {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.player_picture_in_picture_not_supported),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                } else {
+                    enterPIPMode()
+                }
+            },
+            onAspectRatio = {
+                val newResize = UserPreferences.playerResize.next()
+                zoomToast?.cancel()
+                zoomToast = Toast.makeText(requireContext(), newResize.stringRes, Toast.LENGTH_SHORT)
+                zoomToast?.show()
+                UserPreferences.playerResize = newResize
+                updatePlayerScale()
+            },
+            onExternalPlayer = {
+                binding.pvPlayer.controller.binding.btnExoExternalPlayer.performClick()
+            },
+            onPreviousEpisode = {
+                binding.pvPlayer.controller.binding.btnCustomPrev.performClick()
+            },
+            onNextEpisode = {
+                binding.pvPlayer.controller.binding.btnCustomNext.performClick()
+            },
+            onSkipIntro = {
+                binding.pvPlayer.controller.binding.btnSkipIntro.performClick()
+            },
         )
     }
 
@@ -899,6 +934,10 @@ class PlayerMobileFragment : Fragment() {
             viewModel::playPreviousEpisode
         )
         handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, ::playNextEpisodeAcrossSeasons)
+        playbackController.setEpisodeNavigation(
+            canGoPrevious = EpisodeManager.hasPreviousEpisode(),
+            canGoNext = EpisodeManager.hasNextEpisode(),
+        )
     }
 
     private fun refreshEpisodeNavigation(type: Video.Type.Episode) {
@@ -1494,7 +1533,7 @@ class PlayerMobileFragment : Fragment() {
             }
         }
 
-        nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database).apply {
+        nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database, playbackController).apply {
             onPrefetchComplete = {
                 if (isAdded && _binding != null) {
                     setupEpisodeNavigationButtons()
