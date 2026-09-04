@@ -18,7 +18,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Run provider smoke
         id: smoke
