@@ -9,7 +9,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -54,7 +53,7 @@ import java.util.Locale
 class SettingsMobileFragment : ComposeHostFragment() {
 
     private lateinit var backupRestoreManager: BackupRestoreManager
-    private var backupLoadingDialog: AlertDialog? = null
+    private val backupLoadingDialog by lazy { BackupLoadingDialogHost(this) }
     private var currentDestination: SettingsDestination = SettingsDestination.Hub
     private var revision by mutableIntStateOf(0)
 
@@ -392,19 +391,9 @@ class SettingsMobileFragment : ComposeHostFragment() {
 
     private fun showLoading(titleRes: Int?) {
         if (titleRes == null) {
-            backupLoadingDialog?.dismiss()
-            backupLoadingDialog = null
+            backupLoadingDialog.dismiss()
             return
         }
-        if (backupLoadingDialog?.isShowing == true) {
-            backupLoadingDialog?.setTitle(titleRes)
-            return
-        }
-        backupLoadingDialog = AlertDialog.Builder(requireContext())
-            .setTitle(titleRes)
-            .setMessage(R.string.settings_refresh_cache_message)
-            .setCancelable(false)
-            .create()
-            .also { it.show() }
+        backupLoadingDialog.show(titleRes)
     }
 }

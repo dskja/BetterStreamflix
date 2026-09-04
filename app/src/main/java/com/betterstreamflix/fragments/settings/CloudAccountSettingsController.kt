@@ -1,23 +1,21 @@
 package com.betterstreamflix.fragments.settings
 
 import android.app.Dialog
-import android.text.InputType
-import android.text.method.PasswordTransformationMethod
-import android.util.Patterns
-import android.view.Gravity
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
+import android.view.WindowManager
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.preference.Preference
 import com.betterstreamflix.R
+import com.betterstreamflix.compose.screens.CloudCredentialsDialog
 import com.betterstreamflix.compose.screens.CloudSyncConflictDialog
+import com.betterstreamflix.compose.screens.CloudSyncProgressDialog
 import com.betterstreamflix.compose.theme.BetterStreamflixTheme
 import com.betterstreamflix.sync.CloudAccountAlreadyLinkedException
 import com.betterstreamflix.sync.CloudAccountDataConflictException
@@ -28,6 +26,8 @@ import com.betterstreamflix.utils.UserProfiles
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 object CloudAccountSettingsController {
@@ -141,7 +141,7 @@ object CloudAccountSettingsController {
         scope: LifecycleCoroutineScope,
         refresh: () -> Unit,
     ) {
-        showCredentialsDialog(fragment, R.string.cloud_sync_sign_in) { email, password ->
+        showCredentialsDialog(fragment, scope, R.string.cloud_sync_sign_in) { email, password ->
             runProgressAction(fragment, scope, refresh, email, password) { onProgress ->
                 CloudSyncManager.signIn(
                     fragment.requireContext(),
@@ -159,7 +159,7 @@ object CloudAccountSettingsController {
         scope: LifecycleCoroutineScope,
         refresh: () -> Unit,
     ) {
-        showCredentialsDialog(fragment, R.string.cloud_sync_sign_up) { email, password ->
+        showCredentialsDialog(fragment, scope, R.string.cloud_sync_sign_up) { email, password ->
             runProgressAction(fragment, scope, refresh, email, password) { onProgress ->
                 val signedIn = CloudSyncManager.signUp(
                     fragment.requireContext(),
@@ -199,52 +199,36 @@ object CloudAccountSettingsController {
 
     private fun showCredentialsDialog(
         fragment: Fragment,
+        scope: LifecycleCoroutineScope,
         titleRes: Int,
         onSubmit: (String, String) -> Unit,
     ) {
-        val context = fragment.requireContext()
-        val padding = (24 * context.resources.displayMetrics.density).toInt()
-        val email = EditText(context).apply {
-            hint = context.getString(R.string.cloud_sync_email_hint)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            isSingleLine = true
+        if (!fragment.isAdded) return
+        val startedProfileId = UserProfiles.active().id
+        val dialog = Dialog(fragment.requireContext())
+        var dismissedByProfileSwitch = false
+        val profileWatch = watchProfileSwitch(scope, startedProfileId) {
+            dismissedByProfileSwitch = true
+            if (dialog.isShowing) dialog.dismiss()
         }
-        val password = EditText(context).apply {
-            hint = context.getString(R.string.cloud_sync_password_hint)
-            isSingleLine = true
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = PasswordTransformationMethod.getInstance()
-        }
-        val content = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding / 2, padding, 0)
-            addView(email, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            addView(password, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        }
-        val dialog = AlertDialog.Builder(context)
-            .setTitle(titleRes)
-            .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(titleRes, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val emailValue = email.text.toString().trim()
-                val passwordValue = password.text.toString()
-                if (!Patterns.EMAIL_ADDRESS.matcher(emailValue).matches()) {
-                    Toast.makeText(context, R.string.cloud_sync_invalid_credentials, Toast.LENGTH_LONG).show()
-                    return@setOnClickListener
-                }
-                if (passwordValue.length < 6) {
-                    Toast.makeText(context, R.string.cloud_sync_invalid_credentials, Toast.LENGTH_LONG).show()
-                    return@setOnClickListener
-                }
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = false
-                dialog.dismiss()
-                onSubmit(emailValue, passwordValue)
-            }
-        }
+        dialog.setOnDismissListener { profileWatch.cancel() }
+        dialog.setContentView(
+            composeHost(fragment) {
+                CloudCredentialsDialog(
+                    titleRes = titleRes,
+                    onConfirm = { email, password ->
+                        if (dismissedByProfileSwitch || UserProfiles.active().id != startedProfileId) {
+                            dialog.dismiss()
+                            return@CloudCredentialsDialog
+                        }
+                        dialog.dismiss()
+                        onSubmit(email, password)
+                    },
+                    onDismiss = { dialog.dismiss() },
+                )
+            },
+        )
+        styleGlassDialog(dialog, cancelable = true)
         dialog.show()
     }
 
@@ -256,52 +240,34 @@ object CloudAccountSettingsController {
         conflictPassword: String? = null,
         action: suspend ((CloudSyncProgress) -> Unit) -> Int,
     ) {
-        val context = fragment.requireContext()
-        val padding = (24 * context.resources.displayMetrics.density).toInt()
-        val progressBar = ProgressBar(
-            context,
-            null,
-            android.R.attr.progressBarStyleHorizontal,
+        if (!fragment.isAdded) return
+        val startedProfileId = UserProfiles.active().id
+        val progressState = mutableStateOf<CloudSyncProgress?>(null)
+        val dialog = Dialog(fragment.requireContext())
+        dialog.setContentView(
+            composeHost(fragment) {
+                CloudSyncProgressDialog(progress = progressState.value)
+            },
         )
-        val message = TextView(context).apply {
-            setText(R.string.cloud_sync_progress_connecting)
-        }
-        val content = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(padding, padding, padding, padding)
-            addView(
-                progressBar,
-                LinearLayout.LayoutParams(
-                    (72 * context.resources.displayMetrics.density).toInt(),
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ),
-            )
-            addView(
-                message,
-                LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f,
-                ).apply {
-                    marginStart = padding
-                },
-            )
-        }
-        val dialog = AlertDialog.Builder(context)
-            .setTitle(R.string.cloud_sync_progress_title)
-            .setView(content)
-            .setCancelable(false)
-            .create()
-        dialog.setCanceledOnTouchOutside(false)
+        styleGlassDialog(dialog, cancelable = false)
         dialog.show()
 
-        scope.launch {
+        lateinit var actionJob: Job
+        val profileWatch = watchProfileSwitch(scope, startedProfileId) {
+            if (dialog.isShowing) dialog.dismiss()
+            if (::actionJob.isInitialized) actionJob.cancel()
+        }
+
+        actionJob = scope.launch {
             try {
-                val resultMessage = action { progress ->
-                    updateProgress(fragment, progressBar, message, progress)
+                if (UserProfiles.active().id != startedProfileId) {
+                    throw CancellationException("Profile switched")
                 }
-                dialog.dismiss()
+                val resultMessage = action { progress ->
+                    if (!fragment.isAdded || UserProfiles.active().id != startedProfileId) return@action
+                    progressState.value = progress
+                }
+                if (dialog.isShowing) dialog.dismiss()
                 refresh()
                 if (fragment.isAdded) {
                     Toast.makeText(
@@ -311,10 +277,13 @@ object CloudAccountSettingsController {
                     ).show()
                 }
             } catch (cancellation: CancellationException) {
+                if (dialog.isShowing) dialog.dismiss()
                 throw cancellation
             } catch (error: Throwable) {
                 if (dialog.isShowing) dialog.dismiss()
-                if (error is CloudAccountDataConflictException &&
+                if (UserProfiles.active().id != startedProfileId) {
+                    // Profile switched mid-flight — discard result.
+                } else if (error is CloudAccountDataConflictException &&
                     !conflictEmail.isNullOrBlank() &&
                     !conflictPassword.isNullOrBlank()
                 ) {
@@ -323,6 +292,7 @@ object CloudAccountSettingsController {
                     showError(fragment, error)
                 }
             } finally {
+                profileWatch.cancel()
                 if (dialog.isShowing) dialog.dismiss()
             }
         }
@@ -336,98 +306,97 @@ object CloudAccountSettingsController {
         password: String,
     ) {
         if (!fragment.isAdded) return
+        val startedProfileId = UserProfiles.active().id
         val conflictDialog = Dialog(fragment.requireContext())
+        val profileWatch = watchProfileSwitch(scope, startedProfileId) {
+            if (conflictDialog.isShowing) conflictDialog.dismiss()
+        }
+        conflictDialog.setOnDismissListener { profileWatch.cancel() }
         conflictDialog.setContentView(
-            ComposeView(fragment.requireContext()).apply {
-                setContent {
-                    BetterStreamflixTheme {
-                        CloudSyncConflictDialog(
-                            onKeepLocal = {
-                                conflictDialog.dismiss()
-                                runProgressAction(fragment, scope, refresh) { onProgress ->
-                                    CloudSyncManager.completeSignInAfterConflict(
-                                        fragment.requireContext(),
-                                        email,
-                                        password,
-                                        keepLocal = true,
-                                        onProgress = onProgress,
-                                    )
-                                    R.string.cloud_sync_sign_in_success
-                                }
-                            },
-                            onUseCloud = {
-                                conflictDialog.dismiss()
-                                runProgressAction(fragment, scope, refresh) { onProgress ->
-                                    CloudSyncManager.completeSignInAfterConflict(
-                                        fragment.requireContext(),
-                                        email,
-                                        password,
-                                        keepLocal = false,
-                                        onProgress = onProgress,
-                                    )
-                                    R.string.cloud_sync_sign_in_success
-                                }
-                            },
-                            onDismiss = { conflictDialog.dismiss() },
-                        )
-                    }
-                }
+            composeHost(fragment) {
+                CloudSyncConflictDialog(
+                    onKeepLocal = {
+                        if (UserProfiles.active().id != startedProfileId) {
+                            conflictDialog.dismiss()
+                            return@CloudSyncConflictDialog
+                        }
+                        conflictDialog.dismiss()
+                        runProgressAction(fragment, scope, refresh) { onProgress ->
+                            CloudSyncManager.completeSignInAfterConflict(
+                                fragment.requireContext(),
+                                email,
+                                password,
+                                keepLocal = true,
+                                onProgress = onProgress,
+                            )
+                            R.string.cloud_sync_sign_in_success
+                        }
+                    },
+                    onUseCloud = {
+                        if (UserProfiles.active().id != startedProfileId) {
+                            conflictDialog.dismiss()
+                            return@CloudSyncConflictDialog
+                        }
+                        conflictDialog.dismiss()
+                        runProgressAction(fragment, scope, refresh) { onProgress ->
+                            CloudSyncManager.completeSignInAfterConflict(
+                                fragment.requireContext(),
+                                email,
+                                password,
+                                keepLocal = false,
+                                onProgress = onProgress,
+                            )
+                            R.string.cloud_sync_sign_in_success
+                        }
+                    },
+                    onDismiss = { conflictDialog.dismiss() },
+                )
             },
         )
-        conflictDialog.setCancelable(true)
-        conflictDialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-        )
+        styleGlassDialog(conflictDialog, cancelable = true)
         conflictDialog.show()
     }
 
-    private fun updateProgress(
+    private fun watchProfileSwitch(
+        scope: LifecycleCoroutineScope,
+        startedProfileId: String,
+        onSwitched: () -> Unit,
+    ): Job {
+        return scope.launch {
+            UserProfiles.activeProfileChanges.first { it != startedProfileId }
+            onSwitched()
+        }
+    }
+
+    private fun composeHost(
         fragment: Fragment,
-        progressBar: ProgressBar,
-        message: TextView,
-        progress: CloudSyncProgress,
-    ) {
-        if (!fragment.isAdded) return
-        when (progress.stage) {
-            CloudSyncProgress.Stage.AUTHENTICATING -> {
-                progressBar.isIndeterminate = true
-                message.setText(R.string.cloud_sync_progress_authenticating)
+        content: @androidx.compose.runtime.Composable () -> Unit,
+    ): ComposeView {
+        return ComposeView(fragment.requireContext()).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setContent {
+                BetterStreamflixTheme {
+                    content()
+                }
             }
-            CloudSyncProgress.Stage.CHECKING_CLOUD -> {
-                progressBar.isIndeterminate = true
-                message.setText(R.string.cloud_sync_progress_checking_cloud)
-            }
-            CloudSyncProgress.Stage.PREPARING_LOCAL -> {
-                progressBar.isIndeterminate = true
-                message.setText(R.string.cloud_sync_progress_preparing_local)
-            }
-            CloudSyncProgress.Stage.MERGING -> {
-                progressBar.isIndeterminate = true
-                message.setText(R.string.cloud_sync_progress_merging)
-            }
-            CloudSyncProgress.Stage.UPLOADING -> {
-                progressBar.isIndeterminate = false
-                progressBar.max = progress.total.coerceAtLeast(1)
-                progressBar.progress = progress.current
-                message.text = fragment.getString(
-                    R.string.cloud_sync_progress_uploading,
-                    progress.current,
-                    progress.total,
-                )
-            }
-            CloudSyncProgress.Stage.APPLYING_CLOUD -> {
-                progressBar.isIndeterminate = true
-                message.text = fragment.resources.getQuantityString(
-                    R.plurals.cloud_sync_progress_applying_cloud,
-                    progress.total,
-                    progress.total,
-                )
-            }
-            CloudSyncProgress.Stage.FINALIZING -> {
-                progressBar.isIndeterminate = true
-                message.setText(R.string.cloud_sync_progress_finalizing)
-            }
+        }
+    }
+
+    private fun styleGlassDialog(dialog: Dialog, cancelable: Boolean) {
+        dialog.setCancelable(cancelable)
+        dialog.setCanceledOnTouchOutside(cancelable)
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(0.5f)
+            setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
         }
     }
 
