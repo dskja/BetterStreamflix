@@ -41,11 +41,20 @@ object UserDataCache {
     // CACHE FILE
     // -------------------------
 
-    private fun cacheKey(provider: Provider): String {
+    private fun cacheKey(
+        provider: Provider,
+        profileId: String = UserProfiles.active().id,
+    ): String {
         val baseUrlKey = provider.baseUrl.trim().trimEnd('/')
-        return listOf(provider.name, baseUrlKey)
+        val providerKey = listOf(provider.name, baseUrlKey)
             .filter { it.isNotEmpty() }
             .joinToString("__")
+        return if (profileId == UserProfiles.DEFAULT_ID) {
+            // Keep legacy key for default so existing caches remain valid.
+            providerKey
+        } else {
+            "${profileId}__$providerKey"
+        }
     }
 
     private fun cacheFile(context: Context, cacheKey: String): File {
@@ -59,8 +68,12 @@ object UserDataCache {
     // READ / WRITE
     // -------------------------
 
-    fun read(context: Context, provider: Provider): UserData? {
-        val key = cacheKey(provider)
+    fun read(
+        context: Context,
+        provider: Provider,
+        profileId: String = UserProfiles.active().id,
+    ): UserData? {
+        val key = cacheKey(provider, profileId)
 
         memoryCache[key]?.let { return it }
 
@@ -74,8 +87,13 @@ object UserDataCache {
         }.getOrNull()
     }
 
-    fun write(context: Context, provider: Provider, newData: UserData) {
-        val key = cacheKey(provider)
+    fun write(
+        context: Context,
+        provider: Provider,
+        newData: UserData,
+        profileId: String = UserProfiles.active().id,
+    ) {
+        val key = cacheKey(provider, profileId)
         val normalizedData = newData.normalized()
         val oldData = memoryCache[key]
 
@@ -96,8 +114,12 @@ object UserDataCache {
         UserDataNotifier.notifyChanged()
     }
 
-    fun clear(context: Context, provider: Provider) {
-        val key = cacheKey(provider)
+    fun clear(
+        context: Context,
+        provider: Provider,
+        profileId: String = UserProfiles.active().id,
+    ) {
+        val key = cacheKey(provider, profileId)
         memoryCache.remove(key)
         cacheFile(context, key).delete()
     }
@@ -110,12 +132,51 @@ object UserDataCache {
         }
     }
 
+    fun clearProfile(context: Context, profileId: String) {
+        val keyPrefix = if (profileId == UserProfiles.DEFAULT_ID) {
+            null
+        } else {
+            "${profileId}__"
+        }
+        val memoryKeys = memoryCache.keys.filter { key ->
+            if (keyPrefix != null) key.startsWith(keyPrefix)
+            else !key.contains("__") || key.substringBefore("__").let { head ->
+                // Legacy default keys are provider__url; profile keys start with profileId__.
+                head == UserProfiles.DEFAULT_ID || !looksLikeProfileId(head)
+            }
+        }
+        memoryKeys.forEach { memoryCache.remove(it) }
+
+        val cacheDir = File(context.filesDir, "user-data-cache")
+        if (!cacheDir.exists()) return
+        val safeProfile = profileId.replace(Regex("[^a-zA-Z0-9._-]+"), "_")
+        cacheDir.listFiles()?.forEach { file ->
+            val name = file.name
+            val shouldDelete = if (profileId == UserProfiles.DEFAULT_ID) {
+                // Keep files belonging to other profiles (UUID-prefixed).
+                !Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}").containsMatchIn(name)
+            } else {
+                name.startsWith(safeProfile)
+            }
+            if (shouldDelete) runCatching { file.delete() }
+        }
+    }
+
+    private fun looksLikeProfileId(value: String): Boolean =
+        value == UserProfiles.DEFAULT_ID ||
+            Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}$").matches(value)
+
     // -------------------------
     // WRITE HELPERS (FIXED)
     // -------------------------
 
-    fun writeMovies(context: Context, provider: Provider, movies: List<Movie>) {
-        val current = read(context, provider) ?: UserData()
+    fun writeMovies(
+        context: Context,
+        provider: Provider,
+        movies: List<Movie>,
+        profileId: String = UserProfiles.active().id,
+    ) {
+        val current = read(context, provider, profileId) ?: UserData()
         val moviesById = movies.associateBy { it.id }
 
         val newData = current.copy(
@@ -129,11 +190,16 @@ object UserDataCache {
                 .map { it.toCached() }
         )
 
-        write(context, provider, newData)
+        write(context, provider, newData, profileId)
     }
 
-    fun writeTvShows(context: Context, provider: Provider, tvShows: List<TvShow>) {
-        val current = read(context, provider) ?: UserData()
+    fun writeTvShows(
+        context: Context,
+        provider: Provider,
+        tvShows: List<TvShow>,
+        profileId: String = UserProfiles.active().id,
+    ) {
+        val current = read(context, provider, profileId) ?: UserData()
         val tvShowsById = tvShows.associateBy { it.id }
 
         val newData = current.copy(
@@ -143,11 +209,16 @@ object UserDataCache {
                 .map { it.toCached() }
         )
 
-        write(context, provider, newData)
+        write(context, provider, newData, profileId)
     }
 
-    fun writeEpisodes(context: Context, provider: Provider, episodes: List<Episode>) {
-        val current = read(context, provider) ?: UserData()
+    fun writeEpisodes(
+        context: Context,
+        provider: Provider,
+        episodes: List<Episode>,
+        profileId: String = UserProfiles.active().id,
+    ) {
+        val current = read(context, provider, profileId) ?: UserData()
         val episodesById = episodes.associateBy { it.id }
 
         val newData = current.copy(
@@ -157,7 +228,7 @@ object UserDataCache {
                 .map { it.toCached() }
         )
 
-        write(context, provider, newData)
+        write(context, provider, newData, profileId)
     }
 
     // -------------------------

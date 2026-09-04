@@ -19,10 +19,13 @@ import androidx.preference.Preference
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.screens.CloudSyncConflictDialog
 import com.betterstreamflix.compose.theme.BetterStreamflixTheme
+import com.betterstreamflix.sync.CloudAccountAlreadyLinkedException
 import com.betterstreamflix.sync.CloudAccountDataConflictException
 import com.betterstreamflix.sync.CloudSyncManager
 import com.betterstreamflix.sync.CloudSyncProgress
 import com.betterstreamflix.sync.SupabaseProvider
+import com.betterstreamflix.utils.UserProfiles
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -40,9 +43,14 @@ object CloudAccountSettingsController {
         val syncNow = findPreference("cloud_sync_now")
 
         fun refresh() {
-            val email = CloudSyncManager.currentUserEmail()
-            val lastSynced = CloudSyncManager.lastSyncedAtMillis(fragment.requireContext())
-            status.summary = when {
+            val profile = UserProfiles.active()
+            val email = CloudSyncManager.currentUserEmail(profile.id)
+                ?: com.betterstreamflix.sync.CloudAccountStore.activeUserEmail(
+                    fragment.requireContext(),
+                    profile.id,
+                )
+            val lastSynced = CloudSyncManager.lastSyncedAtMillis(fragment.requireContext(), profile.id)
+            val accountLine = when {
                 email == null -> fragment.getString(R.string.cloud_sync_signed_out)
                 lastSynced > 0L -> {
                     val formatted = java.text.DateFormat.getDateTimeInstance(
@@ -55,6 +63,8 @@ object CloudAccountSettingsController {
                 else -> fragment.getString(R.string.cloud_sync_signed_in_as, email) +
                     "\n" + fragment.getString(R.string.sync_status_ok)
             }
+            status.summary = fragment.getString(R.string.cloud_sync_profile_line, profile.name) +
+                "\n" + accountLine
             signIn?.isVisible = email == null
             signUp?.isVisible = email == null
             signOut?.isVisible = email != null
@@ -87,6 +97,16 @@ object CloudAccountSettingsController {
         }
 
         refresh()
+        if (SupabaseProvider.isConfigured) {
+            scope.launch {
+                runCatching {
+                    val profileId = UserProfiles.active().id
+                    SupabaseProvider.initialize(fragment.requireContext(), profileId)
+                    SupabaseProvider.clientOrNull(profileId)?.auth?.awaitInitialization()
+                }
+                if (fragment.isAdded) refresh()
+            }
+        }
     }
 
     fun handleComposeAction(
@@ -169,7 +189,10 @@ object CloudAccountSettingsController {
         refresh: () -> Unit,
     ) {
         runProgressAction(fragment, scope, refresh) { onProgress ->
-            CloudSyncManager.syncNow(fragment.requireContext(), onProgress)
+            CloudSyncManager.syncNow(
+                fragment.requireContext(),
+                onProgress = onProgress,
+            )
             R.string.cloud_sync_success
         }
     }
@@ -431,6 +454,11 @@ object CloudAccountSettingsController {
     private fun showError(fragment: Fragment, error: Throwable) {
         if (!fragment.isAdded) return
         val message = when (error) {
+            is CloudAccountAlreadyLinkedException ->
+                fragment.getString(
+                    R.string.cloud_sync_account_already_linked,
+                    error.existingProfileName,
+                )
             is RestException -> when {
                 error.message?.contains("Invalid login credentials", true) == true ->
                     fragment.getString(R.string.cloud_sync_error, "Invalid email or password")

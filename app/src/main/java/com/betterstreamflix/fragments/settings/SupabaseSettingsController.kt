@@ -80,17 +80,17 @@ object SupabaseSettingsController {
                 return@setOnPreferenceChangeListener false
             }
             val currentKey = SupabaseProvider.getPublicKey(context)
-            runCatching {
-                SupabaseProvider.saveConfig(context, newUrl, currentKey)
-            }.onSuccess {
-                refresh()
-                scope.launch {
+            scope.launch {
+                runCatching {
+                    SupabaseProvider.saveConfig(context, newUrl, currentKey)
+                }.onSuccess {
+                    refresh()
                     SupabaseProvider.initialize(context)
                     CloudAccountSettingsController.bind(fragment, scope, findPreference)
+                    Toast.makeText(context, R.string.supabase_config_saved, Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(context, R.string.supabase_config_invalid, Toast.LENGTH_LONG).show()
                 }
-                Toast.makeText(context, R.string.supabase_config_saved, Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(context, R.string.supabase_config_invalid, Toast.LENGTH_LONG).show()
             }
             false
         }
@@ -98,17 +98,17 @@ object SupabaseSettingsController {
         key?.setOnPreferenceChangeListener { _, newValue ->
             val newKey = newValue.toString().trim()
             val currentUrl = SupabaseProvider.getUrl(context)
-            runCatching {
-                SupabaseProvider.saveConfig(context, currentUrl, newKey)
-            }.onSuccess {
-                refresh()
-                scope.launch {
+            scope.launch {
+                runCatching {
+                    SupabaseProvider.saveConfig(context, currentUrl, newKey)
+                }.onSuccess {
+                    refresh()
                     SupabaseProvider.initialize(context)
                     CloudAccountSettingsController.bind(fragment, scope, findPreference)
+                    Toast.makeText(context, R.string.supabase_config_saved, Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(context, R.string.supabase_config_invalid, Toast.LENGTH_LONG).show()
                 }
-                Toast.makeText(context, R.string.supabase_config_saved, Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(context, R.string.supabase_config_invalid, Toast.LENGTH_LONG).show()
             }
             false
         }
