@@ -809,6 +809,9 @@
     <string name="marketplace_lang_all">All</string>
     <string name="marketplace_empty">No providers for this language</string>
     <string name="genres_hub_empty">No genres available</string>
+    <string name="genre_empty">No titles in this genre yet</string>
+    <string name="people_filmography_empty">No filmography available</string>
+    <string name="profile_picker_empty">No profiles yet. Add one to get started.</string>
     <string name="downloads_queue_empty">Download queue is empty</string>
     <string name="downloads_failed_empty">No failed downloads</string>
     <string name="downloads_library_empty">No offline titles yet</string>

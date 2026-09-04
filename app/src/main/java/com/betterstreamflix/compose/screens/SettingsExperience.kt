@@ -181,17 +181,23 @@ fun SettingsExperience(
     actions: SettingsActions,
     isTv: Boolean = false,
 ) {
+    val horizontalPadding = if (isTv) 32.dp else 20.dp
     BsAtmosphere {
         when (destination) {
-            SettingsDestination.Hub -> SettingsHubBody(onNavigate = onNavigate, state = state, actions = actions)
-            SettingsDestination.Content -> SettingsContentSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.Playback -> SettingsPlaybackSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.Appearance -> SettingsAppearanceSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.Network -> SettingsNetworkSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.Provider -> SettingsProviderSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.Cloud -> SettingsCloudSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.Backup -> SettingsBackupSection(state = state, actions = actions, onBack = actions.onBack)
-            SettingsDestination.About -> SettingsAboutSection(state = state, actions = actions, onBack = actions.onBack)
+            SettingsDestination.Hub -> SettingsHubBody(
+                onNavigate = onNavigate,
+                state = state,
+                actions = actions,
+                horizontalPadding = horizontalPadding,
+            )
+            SettingsDestination.Content -> SettingsContentSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.Playback -> SettingsPlaybackSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.Appearance -> SettingsAppearanceSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.Network -> SettingsNetworkSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.Provider -> SettingsProviderSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.Cloud -> SettingsCloudSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.Backup -> SettingsBackupSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
+            SettingsDestination.About -> SettingsAboutSection(state = state, actions = actions, onBack = actions.onBack, horizontalPadding = horizontalPadding)
         }
     }
 }
@@ -208,6 +214,7 @@ private fun SettingsHubBody(
     onNavigate: (SettingsDestination) -> Unit,
     state: SettingsUiState,
     actions: SettingsActions,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
 ) {
     var visible by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { visible = true }
@@ -264,7 +271,7 @@ private fun SettingsHubBody(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .padding(horizontal = horizontalPadding, vertical = 18.dp)
                 .alpha(headerAlpha),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -343,13 +350,14 @@ private fun SettingsHubBody(
 private fun SettingsSectionScaffold(
     title: String,
     onBack: () -> Unit,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
     content: LazyListScope.() -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = horizontalPadding, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BsGhostButton(text = stringResource(R.string.settings_back), onClick = onBack)
@@ -370,11 +378,11 @@ private fun SettingsSectionScaffold(
 }
 
 @Composable
-private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
+private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
     var showQualityDialog by rememberSaveable { mutableStateOf(false) }
     var showBufferDialog by rememberSaveable { mutableStateOf(false) }
 
-    SettingsSectionScaffold(title = stringResource(R.string.player_settings), onBack = onBack) {
+    SettingsSectionScaffold(title = stringResource(R.string.player_settings), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_autoplay)) }
         item {
             BsSettingsToggleRow(
@@ -461,14 +469,14 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
 }
 
 @Composable
-private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
+private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
     var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val reducedMotionOn = ReducedMotionHelper.isReducedMotion(context)
     val fontScale = AccessibilityHelper.getFontScale(context)
 
-    SettingsSectionScaffold(title = stringResource(R.string.settings_category_appearance), onBack = onBack) {
+    SettingsSectionScaffold(title = stringResource(R.string.settings_category_appearance), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_look_feel)) }
         item {
             BsSettingsValueRow(
@@ -552,7 +560,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
 private fun stringResourceSafe(resId: Int): String = stringResource(resId)
 
 @Composable
-private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
+private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
     var showTmdbDialog by rememberSaveable { mutableStateOf(false) }
     var parentalPinStep by rememberSaveable { mutableStateOf<String?>(null) }
     var showParentalAgeDialog by rememberSaveable { mutableStateOf(false) }
@@ -583,7 +591,7 @@ private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActi
         else -> code
     }
 
-    SettingsSectionScaffold(title = stringResource(R.string.settings_section_content_title), onBack = onBack) {
+    SettingsSectionScaffold(title = stringResource(R.string.settings_section_content_title), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_metadata_section)) }
         item {
             BsSettingsToggleRow(
@@ -796,11 +804,11 @@ private fun SettingsContentSection(state: SettingsUiState, actions: SettingsActi
 }
 
 @Composable
-private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
+private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
     var showDohDialog by rememberSaveable { mutableStateOf(false) }
     var showSubdlDialog by rememberSaveable { mutableStateOf(false) }
 
-    SettingsSectionScaffold(title = stringResource(R.string.settings_category_network_title), onBack = onBack) {
+    SettingsSectionScaffold(title = stringResource(R.string.settings_category_network_title), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_dns_section)) }
         item {
             BsSettingsValueRow(
@@ -874,10 +882,10 @@ private fun SettingsNetworkSection(state: SettingsUiState, actions: SettingsActi
 }
 
 @Composable
-private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
+private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
     var editingField by rememberSaveable { mutableStateOf<String?>(null) }
 
-    SettingsSectionScaffold(title = stringResource(R.string.settings_category_provider_title), onBack = onBack) {
+    SettingsSectionScaffold(title = stringResource(R.string.settings_category_provider_title), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = state.providerName) }
         item {
             BsSettingsValueRow(
@@ -1021,8 +1029,8 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
 }
 
 @Composable
-private fun SettingsCloudSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
-    SettingsSectionScaffold(title = stringResource(R.string.cloud_sync_title), onBack = onBack) {
+private fun SettingsCloudSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
+    SettingsSectionScaffold(title = stringResource(R.string.cloud_sync_title), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.trakt_settings_title)) }
         item {
             BsSettingsActionRow(
@@ -1050,8 +1058,8 @@ private fun SettingsCloudSection(state: SettingsUiState, actions: SettingsAction
 }
 
 @Composable
-private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
-    SettingsSectionScaffold(title = stringResource(R.string.backup_category_title), onBack = onBack) {
+private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
+    SettingsSectionScaffold(title = stringResource(R.string.backup_category_title), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_user_data)) }
         item {
             BsSettingsActionRow(
@@ -1086,8 +1094,8 @@ private fun SettingsBackupSection(state: SettingsUiState, actions: SettingsActio
 }
 
 @Composable
-private fun SettingsAboutSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit) {
-    SettingsSectionScaffold(title = stringResource(R.string.settings_about), onBack = onBack) {
+private fun SettingsAboutSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
+    SettingsSectionScaffold(title = stringResource(R.string.settings_about), onBack = onBack, horizontalPadding = horizontalPadding) {
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_about_brand)) }
         item {
             BsSettingsActionRow(

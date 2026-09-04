@@ -39,9 +39,12 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
+import com.betterstreamflix.compose.components.BsShimmerRow
+import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.models.Movie
@@ -65,6 +68,8 @@ fun PeopleScreen(
     onLoadMore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+    val gridMinSize = if (isTvLayout) 140.dp else 124.dp
     val gridState = rememberLazyGridState()
     val filmography = people?.filmography.orEmpty()
     val shouldLoadMore by remember {
@@ -85,57 +90,84 @@ fun PeopleScreen(
     BsAtmosphere {
         when {
             isLoading && people == null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = BsColors.Amber)
+                Column(modifier = Modifier.fillMaxSize()) {
+                    BsTopBar(
+                        title = displayName.ifBlank { stringResource(R.string.people_biography) },
+                        onBack = if (isTvLayout) null else onBack,
+                        horizontalPadding = horizontalPadding,
+                    )
+                    BsShimmerRow()
+                    BsShimmerRow()
                 }
             }
             errorMessage != null && people == null -> {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    BsErrorState(message = errorMessage, modifier = Modifier.fillMaxWidth())
-                    BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        BsErrorState(message = errorMessage)
+                        BsGhostButton(
+                            text = stringResource(R.string.loading_error_retry),
+                            onClick = onRetry,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
                 }
             }
             else -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    if (!isTvLayout) {
-                        BsGhostButton(text = "‹", onClick = onBack, modifier = Modifier.padding(12.dp))
-                    }
+                    BsTopBar(
+                        title = displayName.ifBlank { stringResource(R.string.people_biography) },
+                        onBack = if (isTvLayout) null else onBack,
+                        horizontalPadding = horizontalPadding,
+                    )
                     PeopleHeader(
                         name = displayName,
                         imageUrl = imageUrl,
                         people = people,
-                        modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp),
+                        modifier = Modifier.padding(horizontal = horizontalPadding),
                     )
-                    LazyVerticalGrid(
-                        state = gridState,
-                        columns = GridCells.Adaptive(minSize = 124.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        items(filmography, key = { showKey(it) }) { show ->
-                            val title = when (show) {
-                                is Movie -> show.title
-                                is TvShow -> show.title
-                                else -> ""
-                            }
-                            BsPosterCard(
-                                title = title,
-                                imageUrl = posterOf(show),
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { onFilmographyClick(show) },
+                    when {
+                        filmography.isEmpty() && !isLoadingMore -> {
+                            BsEmptyState(
+                                message = stringResource(R.string.people_filmography_empty),
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
-                        if (isLoadingMore) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(color = BsColors.Amber)
+                        else -> {
+                            LazyVerticalGrid(
+                                state = gridState,
+                                columns = GridCells.Adaptive(minSize = gridMinSize),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    horizontal = horizontalPadding,
+                                    vertical = 12.dp,
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                items(filmography, key = { showKey(it) }) { show ->
+                                    val title = when (show) {
+                                        is Movie -> show.title
+                                        is TvShow -> show.title
+                                        else -> ""
+                                    }
+                                    BsPosterCard(
+                                        title = title,
+                                        imageUrl = posterOf(show),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = { onFilmographyClick(show) },
+                                    )
+                                }
+                                if (isLoadingMore) {
+                                    item(span = { GridItemSpan(maxLineSpan) }) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            CircularProgressIndicator(color = BsColors.Amber)
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -51,15 +51,31 @@ import com.betterstreamflix.compose.theme.BsMotion
  * Small uppercase section label used to separate groups of settings rows.
  */
 @Composable
-fun BsSettingsSectionLabel(title: String, modifier: Modifier = Modifier) {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = BsColors.MistFaint,
+fun BsSettingsSectionLabel(
+    title: String,
+    modifier: Modifier = Modifier,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
+) {
+    Row(
         modifier = modifier
-            .padding(horizontal = 20.dp)
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding)
             .padding(top = 20.dp, bottom = 8.dp),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .width(3.dp)
+                .height(12.dp)
+                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+        )
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = BsColors.MistDim,
+        )
+    }
 }
 
 /**

@@ -5,11 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,10 +18,10 @@ import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
+import com.betterstreamflix.compose.components.BsGenreTile
 import com.betterstreamflix.compose.components.BsGhostButton
-import com.betterstreamflix.compose.components.BsPosterCard
+import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.models.Genre
 
 @Composable
@@ -35,23 +34,31 @@ fun GenresHubScreen(
     onRetry: () -> Unit = {},
 ) {
     val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
-    val gridMinSize = if (isTvLayout) 160.dp else 140.dp
+    val gridMinSize = if (isTvLayout) 200.dp else 160.dp
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
-            BsTopBar(title = stringResource(R.string.genres_hub_browse), showBrand = true)
+            BsTopBar(
+                title = stringResource(R.string.genres_hub_browse),
+                showBrand = true,
+                horizontalPadding = horizontalPadding,
+            )
             when {
                 isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsColors.Amber)
+                    Column {
+                        BsShimmerRow()
+                        BsShimmerRow()
                     }
                 }
                 errorMessage != null -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        BsErrorState(message = errorMessage, modifier = Modifier.fillMaxWidth())
-                        BsGhostButton(
-                            text = stringResource(R.string.loading_error_retry),
-                            onClick = onRetry,
-                        )
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            BsErrorState(message = errorMessage)
+                            BsGhostButton(
+                                text = stringResource(R.string.loading_error_retry),
+                                onClick = onRetry,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
                     }
                 }
                 genres.isEmpty() -> {
@@ -69,9 +76,8 @@ fun GenresHubScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         items(genres, key = { it.id }) { genre ->
-                            BsPosterCard(
+                            BsGenreTile(
                                 title = genre.name,
-                                modifier = Modifier.fillMaxWidth(),
                                 onClick = { onGenreClick(genre) },
                             )
                         }
