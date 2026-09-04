@@ -7,13 +7,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -29,17 +34,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsMotion
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.utils.UserProfiles
 
 @Composable
@@ -58,7 +69,9 @@ fun ProfilePickerScreen(
     var deletingProfile by remember { mutableStateOf<UserProfiles.Profile?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newProfileName by remember { mutableStateOf("") }
+    var manageProfile by remember { mutableStateOf<UserProfiles.Profile?>(null) }
     val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
+    val minCell = if (isTvLayout) 160.dp else 132.dp
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -79,30 +92,51 @@ fun ProfilePickerScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = horizontalPadding, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = minCell),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        horizontal = horizontalPadding,
+                        vertical = 20.dp,
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     items(profiles, key = { it.id }) { profile ->
-                        ProfileRow(
+                        ProfileAvatarCard(
                             profile = profile,
-                            activeId = activeId,
-                            canDelete = profiles.size > 1,
+                            isActive = profile.id == activeId,
                             onSelect = { onSelect(profile) },
-                            onEdit = {
-                                editingProfile = profile
-                                editName = profile.name
-                            },
-                            onDelete = { deletingProfile = profile },
-                            onToggleKids = { checked -> onToggleKids(profile, checked) },
+                            onManage = { manageProfile = profile },
                         )
                     }
                 }
             }
         }
 
+        manageProfile?.let { profile ->
+            ProfileManageDialog(
+                profile = profile,
+                onToggleKids = { checked ->
+                    onToggleKids(profile, checked)
+                    manageProfile = profile.copy(isKids = checked)
+                },
+                onEdit = {
+                    manageProfile = null
+                    editingProfile = profile
+                    editName = profile.name
+                },
+                onDelete = if (profiles.size > 1) {
+                    {
+                        manageProfile = null
+                        deletingProfile = profile
+                    }
+                } else {
+                    null
+                },
+                onDismiss = { manageProfile = null },
+            )
+        }
         if (showAddDialog) {
             ProfileDialog(
                 title = stringResource(R.string.profile_picker_add),
@@ -157,98 +191,157 @@ fun ProfilePickerScreen(
 }
 
 @Composable
-private fun ProfileRow(
+private fun ProfileAvatarCard(
     profile: UserProfiles.Profile,
-    activeId: String,
-    canDelete: Boolean,
+    isActive: Boolean,
     onSelect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onToggleKids: (Boolean) -> Unit,
+    onManage: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.02f else 1f,
+        targetValue = if (focused) 1.06f else 1f,
         animationSpec = BsMotion.FocusSpring,
-        label = "profileRowScale",
+        label = "profileAvatarScale",
     )
+    val initials = profileInitials(profile.name)
+    val avatarTint = avatarColor(profile.id)
+
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .border(
-                1.dp,
-                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
-                RoundedCornerShape(14.dp),
-            )
-            .background(BsTheme.colors.InkPanel, RoundedCornerShape(14.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onSelect,
-            )
-            .padding(16.dp),
+            ),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = profile.name,
-                style = MaterialTheme.typography.titleLarge,
-                color = BsTheme.colors.Mist,
-                modifier = Modifier.weight(1f),
-            )
-            BsGhostButton(
-                text = stringResource(R.string.profile_picker_edit_name),
-                onClick = onEdit,
-            )
-            if (canDelete) {
-                BsGhostButton(
-                    text = stringResource(R.string.profile_picker_delete),
-                    onClick = onDelete,
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(104.dp)
+                    .clip(CircleShape)
+                    .background(avatarTint)
+                    .border(
+                        width = if (isActive || focused) 3.dp else 1.dp,
+                        color = when {
+                            focused -> BsTheme.colors.FocusRing
+                            isActive -> BsTheme.colors.Amber
+                            else -> BsTheme.colors.Hairline
+                        },
+                        shape = CircleShape,
+                    ),
+            ) {
+                Text(
+                    text = initials,
+                    style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = 1.2.sp),
+                    color = BsTheme.colors.Mist,
                 )
             }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                stringResource(R.string.profile_picker_kids),
-                color = BsTheme.colors.MistDim,
-            )
-            Switch(
-                checked = profile.isKids,
-                onCheckedChange = onToggleKids,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = BsTheme.colors.Ink,
-                    checkedTrackColor = BsTheme.colors.Amber,
-                ),
-            )
-        }
-        val badge = buildList {
-            if (profile.isKids) add(stringResource(R.string.profile_picker_kids))
-            profile.parentalMaxAge?.let {
-                add(stringResource(R.string.profile_max_age_label, it))
+            if (isActive) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 2.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BsTheme.colors.Amber)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.profile_picker_active),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = BsTheme.colors.Ink,
+                    )
+                }
             }
-            if (profile.id == activeId) add(stringResource(R.string.profile_picker_active))
+        }
+        Text(
+            text = profile.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = BsTheme.colors.Mist,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        val meta = buildList {
+            if (profile.isKids) add(stringResource(R.string.profile_picker_kids))
+            profile.parentalMaxAge?.let { add(stringResource(R.string.profile_max_age_label, it)) }
         }.joinToString(" · ")
-        if (badge.isNotBlank()) {
+        if (meta.isNotBlank()) {
             Text(
-                text = badge,
-                style = MaterialTheme.typography.bodyMedium,
+                text = meta,
+                style = MaterialTheme.typography.labelSmall,
                 color = BsTheme.colors.MistFaint,
-                modifier = Modifier.padding(top = 6.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
+        BsGhostButton(
+            text = stringResource(R.string.profile_picker_edit_name),
+            onClick = onManage,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
+}
+
+@Composable
+private fun ProfileManageDialog(
+    profile: UserProfiles.Profile,
+    onToggleKids: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(profile.name) },
+        text = {
+            BsGlassPanel(corner = 14.dp) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(R.string.profile_picker_kids),
+                            color = BsTheme.colors.Mist,
+                        )
+                        Switch(
+                            checked = profile.isKids,
+                            onCheckedChange = onToggleKids,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = BsTheme.colors.Ink,
+                                checkedTrackColor = BsTheme.colors.Amber,
+                            ),
+                        )
+                    }
+                    BsGhostButton(
+                        text = stringResource(R.string.profile_picker_edit_name),
+                        onClick = onEdit,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    onDelete?.let {
+                        BsGhostButton(
+                            text = stringResource(R.string.profile_picker_delete),
+                            onClick = it,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            BsGhostButton(text = stringResource(android.R.string.ok), onClick = onDismiss)
+        },
+        containerColor = BsTheme.colors.InkElevated,
+    )
 }
 
 @Composable
@@ -283,4 +376,26 @@ private fun ProfileDialog(
         },
         containerColor = BsTheme.colors.InkElevated,
     )
+}
+
+private fun profileInitials(name: String): String {
+    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    return when {
+        parts.isEmpty() -> "?"
+        parts.size == 1 -> parts[0].take(2).uppercase()
+        else -> "${parts[0].first()}${parts[1].first()}".uppercase()
+    }
+}
+
+private fun avatarColor(id: String): Color {
+    val palette = listOf(
+        Color(0xFF1F3A4A),
+        Color(0xFF3A2F1F),
+        Color(0xFF2A3A2F),
+        Color(0xFF3A2432),
+        Color(0xFF24323A),
+        Color(0xFF2F2A3A),
+    )
+    val index = (id.hashCode().and(0x7FFFFFFF)) % palette.size
+    return palette[index]
 }

@@ -791,45 +791,120 @@ fun BsSearchResultRow(
     imageUrl: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isGenre: Boolean = false,
 ) {
-    Row(
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.02f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "searchRowScale",
+    )
+    BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 20.dp, vertical = 5.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            ),
+        selected = focused,
+        corner = 14.dp,
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 56.dp, height = 80.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(BsTheme.colors.InkSoft),
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = BsTheme.colors.Mist,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!subtitle.isNullOrBlank()) {
+            if (isGenre || imageUrl.isNullOrBlank()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BsTheme.colors.InkSoft),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(BsTheme.colors.AmberGlow),
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BsTheme.colors.InkSoft),
+                ) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = BsTheme.colors.MistFaint,
-                    modifier = Modifier.padding(top = 4.dp),
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = BsTheme.colors.Mist,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BsTheme.colors.MistFaint,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+fun BsGlassFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.02f else 1f,
+        animationSpec = BsMotion.TabSelect,
+        label = "glassFilterScale",
+    )
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
+            .border(
+                1.dp,
+                if (selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                RoundedCornerShape(14.dp),
+            )
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            color = if (selected) BsTheme.colors.Mist else BsTheme.colors.MistFaint,
+        )
     }
 }
 
@@ -938,6 +1013,7 @@ fun BsProviderChip(
     selected: Boolean,
     modifier: Modifier = Modifier,
     healthy: Boolean = true,
+    favorite: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
@@ -947,47 +1023,54 @@ fun BsProviderChip(
         animationSpec = BsMotion.FocusSpring,
         label = "providerChipScale",
     )
-    val bg = when {
-        selected -> BsTheme.colors.Amber
-        else -> BsTheme.colors.InkPanel
-    }
-    val fg = when {
-        selected -> BsTheme.colors.Ink
-        else -> BsTheme.colors.Mist
-    }
-    Row(
+    BsGlassPanel(
         modifier = modifier
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .border(
-                width = if (focused) 2.dp else 1.dp,
-                color = when {
-                    focused -> BsTheme.colors.FocusRing
-                    selected -> Color.Transparent
-                    else -> BsTheme.colors.Hairline
-                },
-                shape = RoundedCornerShape(12.dp),
-            )
             .combinedClickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
                 onLongClick = onLongClick,
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            ),
+        selected = selected || focused,
+        corner = 14.dp,
     ) {
-        Text(text = label, style = MaterialTheme.typography.titleMedium, color = fg)
-        if (!healthy) {
-            Text(
-                text = stringResource(R.string.provider_status_offline),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) BsTheme.colors.Ink else BsTheme.colors.Danger,
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                if (favorite) {
+                    Text(
+                        text = "★",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = BsTheme.colors.AmberBright,
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = BsTheme.colors.Mist,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (!healthy) {
+                Text(
+                    text = stringResource(R.string.provider_status_offline),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BsTheme.colors.Danger,
+                )
+            }
         }
     }
 }

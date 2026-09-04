@@ -2,6 +2,7 @@ package com.betterstreamflix.compose.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
@@ -186,49 +188,70 @@ private fun PeopleHeader(
     modifier: Modifier = Modifier,
 ) {
     var bioExpanded by rememberSaveable { mutableStateOf(false) }
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(BsTheme.colors.InkPanel),
-            )
-            Column(modifier = Modifier.padding(start = 16.dp)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = BsTheme.colors.Mist,
-                )
-                people?.birthday?.format("MMMM dd, yyyy")?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistDim)
+    BsGlassPanel(
+        modifier = modifier.fillMaxWidth(),
+        corner = 18.dp,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(BsTheme.colors.InkSoft)
+                        .border(1.dp, BsTheme.colors.Hairline, CircleShape),
+                ) {
+                    if (!imageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Text(
+                            text = name.trim().take(1).uppercase().ifBlank { "?" },
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = BsTheme.colors.Mist,
+                        )
+                    }
                 }
-                people?.placeOfBirth?.takeIf { it.isNotBlank() }?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistFaint)
+                Column(modifier = Modifier.padding(start = 16.dp)) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = BsTheme.colors.Mist,
+                    )
+                    people?.birthday?.format("MMMM dd, yyyy")?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistDim)
+                    }
+                    people?.placeOfBirth?.takeIf { it.isNotBlank() }?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistFaint)
+                    }
                 }
             }
-        }
-        people?.biography?.takeIf { it.isNotBlank() }?.let { bio ->
-            Text(
-                text = bio,
-                style = MaterialTheme.typography.bodyMedium,
-                color = BsTheme.colors.MistDim,
-                maxLines = if (bioExpanded) Int.MAX_VALUE else 6,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 14.dp),
-            )
-            if (bio.length > 200) {
+            people?.biography?.takeIf { it.isNotBlank() }?.let { bio ->
                 Text(
-                    text = stringResource(if (bioExpanded) R.string.overview_show_less else R.string.overview_show_more),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = BsTheme.colors.AmberBright,
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .clickable { bioExpanded = !bioExpanded },
+                    text = bio,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BsTheme.colors.MistDim,
+                    maxLines = if (bioExpanded) Int.MAX_VALUE else 6,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 14.dp),
                 )
+                if (bio.length > 200) {
+                    Text(
+                        text = stringResource(if (bioExpanded) R.string.overview_show_less else R.string.overview_show_more),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = BsTheme.colors.AmberBright,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .clickable { bioExpanded = !bioExpanded },
+                    )
+                }
             }
         }
     }

@@ -170,6 +170,7 @@ fun SearchScreen(
                                     title = genre.name,
                                     subtitle = stringResource(R.string.search_genre_browse),
                                     imageUrl = null,
+                                    isGenre = true,
                                     onClick = { onResultClick(genre) },
                                 )
                             }

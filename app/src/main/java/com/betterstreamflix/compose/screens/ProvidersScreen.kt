@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -28,6 +26,7 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
@@ -94,16 +93,10 @@ fun ProvidersScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(languageChips, key = { it.code ?: "all" }) { chip ->
-                    FilterChip(
+                    BsGlassFilterChip(
+                        label = chip.name,
                         selected = chip.isSelected,
                         onClick = { onLanguageChipSelected(chip) },
-                        label = { Text(chip.name) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BsTheme.colors.Amber,
-                            selectedLabelColor = BsTheme.colors.Ink,
-                            containerColor = BsTheme.colors.Glass,
-                            labelColor = BsTheme.colors.MistDim,
-                        ),
                     )
                 }
             }
@@ -135,14 +128,11 @@ fun ProvidersScreen(
                             key = { index, provider -> "${provider.name}#$index" },
                         ) { _, provider ->
                             val unhealthy = !ProviderHealthMonitor.isHealthy(provider.provider.name)
-                            val label = buildString {
-                                append(provider.name)
-                                if (provider.isFavorite) append("  ★")
-                            }
                             BsProviderChip(
-                                label = label,
+                                label = provider.name,
                                 selected = false,
                                 healthy = !unhealthy,
+                                favorite = provider.isFavorite,
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onProviderSelected(provider) },
                                 onLongClick = { onProviderFavoriteToggle(provider) },

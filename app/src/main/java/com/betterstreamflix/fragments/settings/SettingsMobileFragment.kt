@@ -274,8 +274,16 @@ class SettingsMobileFragment : ComposeHostFragment() {
                             com.betterstreamflix.accessibility.AccessibilityHelper.openDisplaySettings(requireContext())
                         }
                         else -> {
-                            SettingsComposeBridge.applyAction(key)
-                            bump()
+                            if (!CloudAccountSettingsController.handleComposeAction(
+                                    this,
+                                    lifecycleScope,
+                                    key,
+                                    ::bump,
+                                )
+                            ) {
+                                SettingsComposeBridge.applyAction(key)
+                                bump()
+                            }
                         }
                     }
                 },
