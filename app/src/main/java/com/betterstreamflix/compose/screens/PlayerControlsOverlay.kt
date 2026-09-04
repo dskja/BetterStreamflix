@@ -17,13 +17,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -37,27 +40,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
-import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsMotion
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.fragments.player.PlayerPlaybackController
 import kotlin.math.max
 
 private const val SEEK_STEP_MS = 10_000L
 
+/**
+ * Premium Liquid Glass player chrome — the only visible controls.
+ * Anchored bottom so gesture / video taps still reach PlayerView.
+ */
 @Composable
 fun PlayerControlsOverlay(
     state: PlayerPlaybackController.PlaybackUiState,
     onPlayPause: () -> Unit,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    visible: Boolean = true,
+    onBack: (() -> Unit)? = null,
+    onSettings: (() -> Unit)? = null,
+    onPip: (() -> Unit)? = null,
+    onAspectRatio: (() -> Unit)? = null,
+    onExternalPlayer: (() -> Unit)? = null,
 ) {
+    if (!visible) return
+
+    val colors = BsTheme.colors
     val durationMs = max(state.durationMs, 1L)
     val positionFraction = (state.positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
     val playPauseLabel = if (state.isPlaying) {
@@ -68,7 +83,7 @@ fun PlayerControlsOverlay(
     val rewindLabel = stringResource(R.string.player_seek_back)
     val forwardLabel = stringResource(R.string.player_seek_forward)
     val playScale by animateFloatAsState(
-        targetValue = if (state.isPlaying) 1f else 1.04f,
+        targetValue = if (state.isPlaying) 1f else 1.05f,
         animationSpec = BsMotion.PressSpring,
         label = "playScale",
     )
@@ -83,36 +98,69 @@ fun PlayerControlsOverlay(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(BsColors.PlayerGlass)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+            .background(colors.PlayerGlass)
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (state.title.isNotBlank()) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                PlayerGlassIconButton(
+                    onClick = onBack,
+                    contentDescription = stringResource(R.string.settings_back),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = colors.Mist,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = state.title,
+                    text = state.title.ifBlank { stringResource(R.string.player_title_offline) },
                     style = MaterialTheme.typography.titleMedium,
-                    color = BsColors.Mist,
+                    color = colors.Mist,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (state.subtitle.isNotBlank()) {
                     Text(
                         text = state.subtitle,
                         style = MaterialTheme.typography.labelMedium,
-                        color = BsColors.MistDim,
+                        color = colors.MistDim,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .width(36.dp)
-                        .height(2.dp)
-                        .background(BsColors.AmberGlow, RoundedCornerShape(1.dp)),
-                )
+            }
+            if (onSettings != null) {
+                PlayerGlassIconButton(
+                    onClick = onSettings,
+                    contentDescription = stringResource(R.string.player_settings),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = colors.AmberBright,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
+
+        Box(
+            modifier = Modifier
+                .width(40.dp)
+                .height(2.dp)
+                .background(colors.AmberGlow, RoundedCornerShape(1.dp)),
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -122,13 +170,13 @@ fun PlayerControlsOverlay(
             PlayerSeekChip(label = "−10", contentDescription = rewindLabel) {
                 onSeek((state.positionMs - SEEK_STEP_MS).coerceAtLeast(0L))
             }
-
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(58.dp)
                     .scale(playScale)
                     .clip(CircleShape)
-                    .background(BsColors.Amber)
+                    .background(colors.Amber)
+                    .border(1.dp, colors.Specular, CircleShape)
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
@@ -141,24 +189,21 @@ fun PlayerControlsOverlay(
                     Text(
                         text = "❚❚",
                         style = MaterialTheme.typography.titleMedium,
-                        color = BsColors.Ink,
+                        color = colors.Ink,
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = playPauseLabel,
-                        tint = BsColors.Ink,
+                        tint = colors.Ink,
                         modifier = Modifier.size(30.dp),
                     )
                 }
             }
-
             PlayerSeekChip(label = "+10", contentDescription = forwardLabel) {
                 onSeek((state.positionMs + SEEK_STEP_MS).coerceAtMost(durationMs))
             }
-
             Spacer(modifier = Modifier.weight(1f))
-
             Text(
                 text = if (state.isPlaying) {
                     stringResource(R.string.player_overlay_live)
@@ -166,7 +211,7 @@ fun PlayerControlsOverlay(
                     playPauseLabel
                 },
                 style = MaterialTheme.typography.labelSmall,
-                color = BsColors.AmberBright,
+                color = colors.AmberBright,
             )
         }
 
@@ -178,7 +223,7 @@ fun PlayerControlsOverlay(
             Text(
                 text = formatPlaybackTime(state.positionMs),
                 style = MaterialTheme.typography.labelLarge,
-                color = BsColors.Mist,
+                color = colors.Mist,
             )
             Slider(
                 modifier = Modifier.weight(1f),
@@ -187,35 +232,57 @@ fun PlayerControlsOverlay(
                     onSeek((fraction * durationMs).toLong())
                 },
                 colors = SliderDefaults.colors(
-                    thumbColor = BsColors.AmberBright,
-                    activeTrackColor = BsColors.Amber,
-                    inactiveTrackColor = BsColors.InkSoft,
+                    thumbColor = colors.AmberBright,
+                    activeTrackColor = colors.Amber,
+                    inactiveTrackColor = colors.InkSoft.copy(alpha = 0.7f),
                 ),
             )
             Text(
                 text = formatPlaybackTime(state.durationMs),
                 style = MaterialTheme.typography.labelLarge,
-                color = BsColors.MistDim,
+                color = colors.MistDim,
             )
         }
 
-        if (state.isBuffering) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.alpha(bufferAlpha),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(BsColors.AmberBright),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onAspectRatio != null) {
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_aspect_ratio_fit),
+                    onClick = onAspectRatio,
                 )
-                Text(
-                    text = stringResource(R.string.player_buffering),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = BsColors.AmberBright,
+            }
+            if (onPip != null) {
+                PlayerGlassChip(label = "PiP", onClick = onPip)
+            }
+            if (onExternalPlayer != null) {
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_external_player_title),
+                    onClick = onExternalPlayer,
                 )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            if (state.isBuffering) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.alpha(bufferAlpha),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(colors.AmberBright),
+                    )
+                    Text(
+                        text = stringResource(R.string.player_buffering),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.AmberBright,
+                    )
+                }
             }
         }
     }
@@ -227,12 +294,13 @@ private fun PlayerSeekChip(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
+    val colors = BsTheme.colors
     Box(
         modifier = Modifier
-            .height(42.dp)
+            .height(44.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(BsColors.GlassPanel)
-            .border(1.dp, BsColors.HairlineStrong, RoundedCornerShape(14.dp))
+            .background(colors.GlassPanel)
+            .border(1.dp, colors.HairlineStrong, RoundedCornerShape(14.dp))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -242,18 +310,61 @@ private fun PlayerSeekChip(
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(RoundedCornerShape(14.dp))
-                .background(BsColors.SpecularEdge)
-                .alpha(0.35f),
-        )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = BsColors.AmberBright,
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.AmberBright,
         )
+    }
+}
+
+@Composable
+private fun PlayerGlassChip(
+    label: String,
+    onClick: () -> Unit,
+) {
+    val colors = BsTheme.colors
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelMedium,
+        color = colors.AmberBright,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(colors.GlassPanel)
+            .border(1.dp, colors.Hairline, RoundedCornerShape(12.dp))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun PlayerGlassIconButton(
+    onClick: () -> Unit,
+    contentDescription: String,
+    content: @Composable () -> Unit,
+) {
+    val colors = BsTheme.colors
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(colors.GlassPanel)
+            .border(1.dp, colors.Hairline, CircleShape)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
     }
 }
 

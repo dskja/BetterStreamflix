@@ -46,7 +46,7 @@ import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.posterOf
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.People
 import com.betterstreamflix.models.Show
@@ -165,7 +165,7 @@ fun PeopleScreen(
                                                 .padding(16.dp),
                                             contentAlignment = Alignment.Center,
                                         ) {
-                                            CircularProgressIndicator(color = BsColors.Amber)
+                                            CircularProgressIndicator(color = BsTheme.colors.Amber)
                                         }
                                     }
                                 }
@@ -195,19 +195,19 @@ private fun PeopleHeader(
                 modifier = Modifier
                     .size(96.dp)
                     .clip(CircleShape)
-                    .background(BsColors.InkPanel),
+                    .background(BsTheme.colors.InkPanel),
             )
             Column(modifier = Modifier.padding(start = 16.dp)) {
                 Text(
                     text = name,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = BsColors.Mist,
+                    color = BsTheme.colors.Mist,
                 )
                 people?.birthday?.format("MMMM dd, yyyy")?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsColors.MistDim)
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistDim)
                 }
                 people?.placeOfBirth?.takeIf { it.isNotBlank() }?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsColors.MistFaint)
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistFaint)
                 }
             }
         }
@@ -215,7 +215,7 @@ private fun PeopleHeader(
             Text(
                 text = bio,
                 style = MaterialTheme.typography.bodyMedium,
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
                 maxLines = if (bioExpanded) Int.MAX_VALUE else 6,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 14.dp),
@@ -224,7 +224,7 @@ private fun PeopleHeader(
                 Text(
                     text = stringResource(if (bioExpanded) R.string.overview_show_less else R.string.overview_show_more),
                     style = MaterialTheme.typography.labelMedium,
-                    color = BsColors.AmberBright,
+                    color = BsTheme.colors.AmberBright,
                     modifier = Modifier
                         .padding(top = 4.dp)
                         .clickable { bioExpanded = !bioExpanded },

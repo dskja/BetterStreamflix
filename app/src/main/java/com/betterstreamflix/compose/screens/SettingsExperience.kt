@@ -2,7 +2,10 @@ package com.betterstreamflix.compose.screens
 
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
@@ -39,7 +43,7 @@ import com.betterstreamflix.compose.components.BsSettingsValueRow
 import androidx.compose.ui.platform.LocalContext
 import com.betterstreamflix.accessibility.AccessibilityHelper
 import com.betterstreamflix.accessibility.ReducedMotionHelper
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.utils.ParentalPinLogic
 import com.betterstreamflix.utils.ThemeManager
 import java.util.Locale
@@ -280,6 +284,47 @@ private fun SettingsHubBody(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 32.dp),
         ) {
+            item {
+                val colors = BsTheme.colors
+                com.betterstreamflix.compose.components.BsGlassPanel(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = horizontalPadding, vertical = 10.dp),
+                    selected = true,
+                    corner = 20.dp,
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        androidx.compose.material3.Text(
+                            text = stringResource(R.string.settings_theme_gallery_title),
+                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                            color = colors.Mist,
+                        )
+                        androidx.compose.material3.Text(
+                            text = state.themeLabel,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                            color = colors.AmberBright,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(colors.Ink, colors.InkPanel, colors.Amber, colors.SeaGlass, colors.Mist).forEach { swatch ->
+                                Box(
+                                    modifier = Modifier
+                                        .width(36.dp)
+                                        .height(28.dp)
+                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                        .background(swatch)
+                                        .border(1.dp, colors.Hairline, androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
+                                )
+                            }
+                        }
+                        BsGhostButton(
+                            text = stringResource(R.string.settings_category_appearance),
+                            onClick = { onNavigate(SettingsDestination.Appearance) },
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                }
+            }
             items(entries.size) { index ->
                 val entry = entries[index]
                 var tileVisible by remember { mutableStateOf(false) }
@@ -460,7 +505,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
             androidx.compose.material3.Text(
                 text = stringResource(R.string.settings_theme_gallery_subtitle),
                 style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
                 modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
             )
         }

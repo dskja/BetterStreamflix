@@ -43,7 +43,7 @@ import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.components.itemKeyOf
 import com.betterstreamflix.compose.components.itemLabelOf
 import com.betterstreamflix.compose.components.posterOf
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
@@ -82,7 +82,7 @@ fun SearchScreen(
                     .onFocusChanged { fieldFocused = it.isFocused }
                     .then(
                         if (fieldFocused) {
-                            Modifier.border(1.dp, BsColors.FocusRing, RoundedCornerShape(16.dp))
+                            Modifier.border(1.dp, BsTheme.colors.FocusRing, RoundedCornerShape(16.dp))
                         } else {
                             Modifier
                         },
@@ -90,19 +90,19 @@ fun SearchScreen(
                 placeholder = {
                     Text(
                         stringResource(R.string.search_input_hint),
-                        color = BsColors.MistFaint,
+                        color = BsTheme.colors.MistFaint,
                     )
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BsColors.Amber,
-                    unfocusedBorderColor = BsColors.Hairline,
-                    focusedContainerColor = BsColors.GlassStrong,
-                    unfocusedContainerColor = BsColors.Glass,
-                    focusedTextColor = BsColors.Mist,
-                    unfocusedTextColor = BsColors.Mist,
-                    cursorColor = BsColors.Amber,
+                    focusedBorderColor = BsTheme.colors.Amber,
+                    unfocusedBorderColor = BsTheme.colors.Hairline,
+                    focusedContainerColor = BsTheme.colors.GlassStrong,
+                    unfocusedContainerColor = BsTheme.colors.Glass,
+                    focusedTextColor = BsTheme.colors.Mist,
+                    unfocusedTextColor = BsTheme.colors.Mist,
+                    cursorColor = BsTheme.colors.Amber,
                 ),
             )
             if (query.isBlank()) {
@@ -133,11 +133,11 @@ fun SearchScreen(
                             Text(
                                 text = recent,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = BsColors.Mist,
+                                color = BsTheme.colors.Mist,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(BsColors.GlassPanel)
-                                    .border(1.dp, BsColors.Hairline, RoundedCornerShape(14.dp))
+                                    .background(BsTheme.colors.GlassPanel)
+                                    .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(14.dp))
                                     .focusable()
                                     .semantics { contentDescription = recentCd }
                                     .clickable { onRecentClick(recent) }

@@ -4,7 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_exo_controller"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:alpha="0"
+    android:clickable="false"
+    android:focusable="false">
 
     <View
         android:id="@+id/exo_controls_background"

@@ -38,7 +38,7 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.utils.UserProfiles
 
@@ -150,7 +150,7 @@ fun ProfilePickerScreen(
                         onClick = { deletingProfile = null },
                     )
                 },
-                containerColor = BsColors.InkElevated,
+                containerColor = BsTheme.colors.InkElevated,
             )
         }
     }
@@ -178,10 +178,10 @@ private fun ProfileRow(
             .scale(scale)
             .border(
                 1.dp,
-                if (focused) BsColors.FocusRing else BsColors.Hairline,
+                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                 RoundedCornerShape(14.dp),
             )
-            .background(BsColors.InkPanel, RoundedCornerShape(14.dp))
+            .background(BsTheme.colors.InkPanel, RoundedCornerShape(14.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
@@ -199,7 +199,7 @@ private fun ProfileRow(
             Text(
                 text = profile.name,
                 style = MaterialTheme.typography.titleLarge,
-                color = BsColors.Mist,
+                color = BsTheme.colors.Mist,
                 modifier = Modifier.weight(1f),
             )
             BsGhostButton(
@@ -222,14 +222,14 @@ private fun ProfileRow(
         ) {
             Text(
                 stringResource(R.string.profile_picker_kids),
-                color = BsColors.MistDim,
+                color = BsTheme.colors.MistDim,
             )
             Switch(
                 checked = profile.isKids,
                 onCheckedChange = onToggleKids,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = BsColors.Ink,
-                    checkedTrackColor = BsColors.Amber,
+                    checkedThumbColor = BsTheme.colors.Ink,
+                    checkedTrackColor = BsTheme.colors.Amber,
                 ),
             )
         }
@@ -244,7 +244,7 @@ private fun ProfileRow(
             Text(
                 text = badge,
                 style = MaterialTheme.typography.bodyMedium,
-                color = BsColors.MistFaint,
+                color = BsTheme.colors.MistFaint,
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
@@ -270,8 +270,8 @@ private fun ProfileDialog(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BsColors.Amber,
-                    cursorColor = BsColors.Amber,
+                    focusedBorderColor = BsTheme.colors.Amber,
+                    cursorColor = BsTheme.colors.Amber,
                 ),
             )
         },
@@ -281,6 +281,6 @@ private fun ProfileDialog(
         dismissButton = {
             BsGhostButton(text = stringResource(android.R.string.cancel), onClick = onDismiss)
         },
-        containerColor = BsColors.InkElevated,
+        containerColor = BsTheme.colors.InkElevated,
     )
 }

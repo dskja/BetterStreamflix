@@ -923,6 +923,16 @@ class PlayerTvFragment : Fragment() {
                 playerView = binding.pvPlayer,
                 player = player,
                 playbackController = playbackController,
+                onBack = {
+                    runCatching { findNavController().navigateUp() }
+                },
+                onSettings = { binding.settings.show() },
+                onAspectRatio = {
+                    val newResize = UserPreferences.playerResize.next()
+                    Toast.makeText(requireContext(), newResize.stringRes, Toast.LENGTH_SHORT).show()
+                    UserPreferences.playerResize = newResize
+                    updatePlayerScale()
+                },
             )
         }
 

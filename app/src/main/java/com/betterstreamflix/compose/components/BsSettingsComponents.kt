@@ -44,7 +44,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
-import com.betterstreamflix.compose.theme.BsColors
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsMotion
 
 /**
@@ -68,12 +68,12 @@ fun BsSettingsSectionLabel(
                 .padding(end = 10.dp)
                 .width(3.dp)
                 .height(12.dp)
-                .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
         )
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = BsColors.MistDim,
+            color = BsTheme.colors.MistDim,
         )
     }
 }
@@ -122,14 +122,14 @@ fun BsSettingsNavTile(
                     modifier = Modifier
                         .width(3.dp)
                         .height(if (subtitle.isNullOrBlank()) 20.dp else 34.dp)
-                        .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                        .background(BsTheme.colors.AmberGlow, RoundedCornerShape(2.dp)),
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        color = BsColors.Mist,
+                        color = BsTheme.colors.Mist,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -137,7 +137,7 @@ fun BsSettingsNavTile(
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = BsColors.MistDim,
+                            color = BsTheme.colors.MistDim,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 3.dp),
@@ -149,7 +149,7 @@ fun BsSettingsNavTile(
                 Text(
                     text = accentHint,
                     style = MaterialTheme.typography.labelSmall,
-                    color = BsColors.AmberBright,
+                    color = BsTheme.colors.AmberBright,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -157,7 +157,7 @@ fun BsSettingsNavTile(
                 Text(
                     text = "\u203A",
                     style = MaterialTheme.typography.titleLarge,
-                    color = BsColors.MistFaint,
+                    color = BsTheme.colors.MistFaint,
                 )
             }
         }
@@ -188,12 +188,12 @@ fun BsSettingsToggleRow(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsTheme.colors.Mist)
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -202,12 +202,12 @@ fun BsSettingsToggleRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = BsColors.Ink,
-                checkedTrackColor = BsColors.Amber,
+                checkedThumbColor = BsTheme.colors.Ink,
+                checkedTrackColor = BsTheme.colors.Amber,
                 checkedBorderColor = Color.Transparent,
-                uncheckedThumbColor = BsColors.MistDim,
-                uncheckedTrackColor = BsColors.InkSoft,
-                uncheckedBorderColor = BsColors.Hairline,
+                uncheckedThumbColor = BsTheme.colors.MistDim,
+                uncheckedTrackColor = BsTheme.colors.InkSoft,
+                uncheckedBorderColor = BsTheme.colors.Hairline,
             ),
         )
     }
@@ -236,18 +236,18 @@ fun BsSettingsValueRow(
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
             )
-            .background(if (focused) BsColors.InkPanel else Color.Transparent)
+            .background(if (focused) BsTheme.colors.InkPanel else Color.Transparent)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsTheme.colors.Mist)
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -255,7 +255,7 @@ fun BsSettingsValueRow(
         Text(
             text = valueLabel,
             style = MaterialTheme.typography.labelLarge,
-            color = BsColors.AmberBright,
+            color = BsTheme.colors.AmberBright,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -275,7 +275,7 @@ fun BsSettingsActionRow(
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val titleColor = if (destructive) BsColors.Danger else BsColors.Mist
+    val titleColor = if (destructive) BsTheme.colors.Danger else BsTheme.colors.Mist
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -286,7 +286,7 @@ fun BsSettingsActionRow(
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
             )
-            .background(if (focused) BsColors.InkPanel else Color.Transparent)
+            .background(if (focused) BsTheme.colors.InkPanel else Color.Transparent)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -297,7 +297,7 @@ fun BsSettingsActionRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -305,7 +305,7 @@ fun BsSettingsActionRow(
         Text(
             text = "\u203A",
             style = MaterialTheme.typography.titleLarge,
-            color = if (destructive) BsColors.Danger else BsColors.MistFaint,
+            color = if (destructive) BsTheme.colors.Danger else BsTheme.colors.MistFaint,
         )
     }
     BsSettingsHairline()
@@ -318,7 +318,7 @@ private fun BsSettingsHairline(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .height(1.dp)
-            .background(BsColors.Hairline),
+            .background(BsTheme.colors.Hairline),
     )
 }
 
@@ -380,7 +380,7 @@ fun BsThemePickRow(
                         .align(Alignment.TopCenter)
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(BsColors.Specular),
+                        .background(BsTheme.colors.Specular),
                 )
                 Box(
                     modifier = Modifier
@@ -406,7 +406,7 @@ fun BsThemePickRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (selected) BsColors.Mist else BsColors.MistDim,
+                    color = if (selected) BsTheme.colors.Mist else BsTheme.colors.MistDim,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -417,7 +417,7 @@ fun BsThemePickRow(
                         stringResource(R.string.settings_theme_gallery_subtitle)
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (selected) accent else BsColors.MistFaint,
+                    color = if (selected) accent else BsTheme.colors.MistFaint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 3.dp),
@@ -430,7 +430,7 @@ fun BsThemePickRow(
                     .clip(RoundedCornerShape(50))
                     .border(
                         width = 1.5.dp,
-                        color = if (selected) accent else BsColors.HairlineStrong,
+                        color = if (selected) accent else BsTheme.colors.HairlineStrong,
                         shape = RoundedCornerShape(50),
                     )
                     .then(
@@ -513,11 +513,11 @@ fun BsSettingsFeatureCard(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
+                Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsTheme.colors.Mist)
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = BsColors.MistDim,
+                    color = BsTheme.colors.MistDim,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -525,12 +525,12 @@ fun BsSettingsFeatureCard(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = BsColors.Ink,
-                    checkedTrackColor = BsColors.Amber,
+                    checkedThumbColor = BsTheme.colors.Ink,
+                    checkedTrackColor = BsTheme.colors.Amber,
                     checkedBorderColor = Color.Transparent,
-                    uncheckedThumbColor = BsColors.MistDim,
-                    uncheckedTrackColor = BsColors.InkSoft,
-                    uncheckedBorderColor = BsColors.Hairline,
+                    uncheckedThumbColor = BsTheme.colors.MistDim,
+                    uncheckedTrackColor = BsTheme.colors.InkSoft,
+                    uncheckedBorderColor = BsTheme.colors.Hairline,
                 ),
             )
         }
@@ -558,17 +558,17 @@ fun BsSettingsTextFieldDialog(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        containerColor = BsColors.InkElevated,
-        titleContentColor = BsColors.Mist,
-        textContentColor = BsColors.MistDim,
-        title = { Text(text = title, style = MaterialTheme.typography.titleLarge, color = BsColors.Mist) },
+        containerColor = BsTheme.colors.InkElevated,
+        titleContentColor = BsTheme.colors.Mist,
+        textContentColor = BsTheme.colors.MistDim,
+        title = { Text(text = title, style = MaterialTheme.typography.titleLarge, color = BsTheme.colors.Mist) },
         text = {
             Column {
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = BsColors.MistDim,
+                        color = BsTheme.colors.MistDim,
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
                 }
@@ -578,13 +578,13 @@ fun BsSettingsTextFieldDialog(
                     singleLine = true,
                     visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = BsColors.Mist,
-                        unfocusedTextColor = BsColors.Mist,
-                        focusedBorderColor = BsColors.Amber,
-                        unfocusedBorderColor = BsColors.Hairline,
-                        cursorColor = BsColors.Amber,
-                        focusedContainerColor = BsColors.InkPanel,
-                        unfocusedContainerColor = BsColors.InkPanel,
+                        focusedTextColor = BsTheme.colors.Mist,
+                        unfocusedTextColor = BsTheme.colors.Mist,
+                        focusedBorderColor = BsTheme.colors.Amber,
+                        unfocusedBorderColor = BsTheme.colors.Hairline,
+                        cursorColor = BsTheme.colors.Amber,
+                        focusedContainerColor = BsTheme.colors.InkPanel,
+                        unfocusedContainerColor = BsTheme.colors.InkPanel,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -592,12 +592,12 @@ fun BsSettingsTextFieldDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(text) }) {
-                Text(text = resolvedConfirm, color = BsColors.AmberBright)
+                Text(text = resolvedConfirm, color = BsTheme.colors.AmberBright)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = resolvedDismiss, color = BsColors.MistDim)
+                Text(text = resolvedDismiss, color = BsTheme.colors.MistDim)
             }
         },
     )
@@ -618,9 +618,9 @@ fun BsSettingsChoiceDialog(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        containerColor = BsColors.InkElevated,
-        titleContentColor = BsColors.Mist,
-        title = { Text(text = title, style = MaterialTheme.typography.titleLarge, color = BsColors.Mist) },
+        containerColor = BsTheme.colors.InkElevated,
+        titleContentColor = BsTheme.colors.Mist,
+        title = { Text(text = title, style = MaterialTheme.typography.titleLarge, color = BsTheme.colors.Mist) },
         text = {
             LazyColumn {
                 items(options) { (value, label) ->
@@ -641,15 +641,15 @@ fun BsSettingsChoiceDialog(
                             selected = isSelected,
                             onClick = { onSelect(value) },
                             colors = RadioButtonDefaults.colors(
-                                selectedColor = BsColors.Amber,
-                                unselectedColor = BsColors.MistFaint,
+                                selectedColor = BsTheme.colors.Amber,
+                                unselectedColor = BsTheme.colors.MistFaint,
                             ),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = label,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = if (isSelected) BsColors.Mist else BsColors.MistDim,
+                            color = if (isSelected) BsTheme.colors.Mist else BsTheme.colors.MistDim,
                         )
                     }
                 }
@@ -657,7 +657,7 @@ fun BsSettingsChoiceDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.dialog_close), color = BsColors.AmberBright)
+                Text(text = stringResource(R.string.dialog_close), color = BsTheme.colors.AmberBright)
             }
         },
     )
