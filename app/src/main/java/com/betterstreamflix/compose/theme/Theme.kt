@@ -111,8 +111,8 @@ private fun schemeFor(themeId: String) = when (themeId) {
 }
 
 object BsMotion {
-    val SoftEnter = tween<Float>(durationMillis = 520)
-    val SoftEnterSlow = tween<Float>(durationMillis = 720)
+    val SoftEnter = tween<Float>(durationMillis = 480)
+    val SoftEnterSlow = tween<Float>(durationMillis = 680)
     val FocusSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessMediumLow,
@@ -121,9 +121,11 @@ object BsMotion {
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMedium,
     )
-    val HeroFade = tween<Float>(durationMillis = 780)
-    val HeroRise = tween<Float>(durationMillis = 860)
-    val BrandPulse = tween<Float>(durationMillis = 1600)
+    val HeroFade = tween<Float>(durationMillis = 720)
+    val HeroRise = tween<Float>(durationMillis = 820)
+    val BrandPulse = tween<Float>(durationMillis = 1800)
+    val TabSelect = tween<Float>(durationMillis = 280)
+    val ContentCrossfade = tween<Float>(durationMillis = 360)
 }
 
 @Composable

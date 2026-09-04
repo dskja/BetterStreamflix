@@ -152,7 +152,16 @@ class SettingsMobileFragment : ComposeHostFragment() {
                         findNavController().navigate(R.id.providers)
                     }
                 },
-                onOpenDownloads = { findNavController().navigate(R.id.downloads) },
+                onOpenDownloads = {
+                    findNavController().navigate(
+                        R.id.downloads,
+                        null,
+                        androidx.navigation.navOptions {
+                            launchSingleTop = true
+                            restoreState = true
+                        },
+                    )
+                },
                 onOpenAbout = { findNavController().navigate(R.id.action_settings_to_settings_about) },
                 onOpenHelp = {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/dskja/BetterStreamflix")))

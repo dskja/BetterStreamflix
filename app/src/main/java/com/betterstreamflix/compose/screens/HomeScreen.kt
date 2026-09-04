@@ -48,7 +48,7 @@ fun HomeScreen(
     onItemClick: (AppAdapter.Item, fromContinueWatching: Boolean) -> Unit = { _, _ -> },
     onItemLongClick: (AppAdapter.Item) -> Unit = {},
 ) {
-    val horizontalPadding = if (isTvLayout) 32.dp else 16.dp
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
     val listState = rememberLazyListState()
     val featured = categories
         .firstOrNull { it.name == Category.FEATURED || it.name.equals("Featured", ignoreCase = true) }

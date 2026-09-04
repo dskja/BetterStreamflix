@@ -268,24 +268,13 @@ private fun SettingsHubBody(
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = horizontalPadding, vertical = 18.dp)
-                .alpha(headerAlpha),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                BsBrandMark(compact = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                androidx.compose.material3.Text(
-                    text = stringResource(R.string.main_menu_settings),
-                    style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
-                    color = BsColors.Mist,
-                )
-            }
-        }
+        com.betterstreamflix.compose.components.BsTopBar(
+            title = stringResource(R.string.main_menu_settings),
+            showBrand = true,
+            subtitle = stringResource(R.string.settings_about_version_name, state.versionName),
+            horizontalPadding = horizontalPadding,
+            modifier = Modifier.alpha(headerAlpha),
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -354,21 +343,11 @@ private fun SettingsSectionScaffold(
     content: LazyListScope.() -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = horizontalPadding, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BsGhostButton(text = stringResource(R.string.settings_back), onClick = onBack)
-            Spacer(modifier = Modifier.width(4.dp))
-            androidx.compose.material3.Text(
-                text = title,
-                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
-                color = BsColors.Mist,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
+        com.betterstreamflix.compose.components.BsTopBar(
+            title = title,
+            onBack = onBack,
+            horizontalPadding = horizontalPadding,
+        )
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp),
@@ -470,30 +449,53 @@ private fun SettingsPlaybackSection(state: SettingsUiState, actions: SettingsAct
 
 @Composable
 private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
-    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val reducedMotionOn = ReducedMotionHelper.isReducedMotion(context)
     val fontScale = AccessibilityHelper.getFontScale(context)
 
     SettingsSectionScaffold(title = stringResource(R.string.settings_category_appearance), onBack = onBack, horizontalPadding = horizontalPadding) {
-        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_look_feel)) }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_theme_gallery_title), horizontalPadding = horizontalPadding) }
         item {
-            BsSettingsValueRow(
-                title = stringResource(R.string.settings_category_appearance),
-                valueLabel = state.themeLabel,
-                onClick = { showThemeDialog = true },
+            androidx.compose.material3.Text(
+                text = stringResource(R.string.settings_theme_gallery_subtitle),
+                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                color = BsColors.MistDim,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
             )
         }
         item {
-            BsSettingsToggleRow(
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = horizontalPadding,
+                    vertical = 10.dp,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(BsThemeOptions.size) { index ->
+                    val themeId = BsThemeOptions[index]
+                    val palette = ThemeManager.palette(themeId)
+                    com.betterstreamflix.compose.components.BsThemeGalleryCard(
+                        title = stringResourceSafe(ThemeManager.titleRes(themeId)),
+                        selected = state.themeId == themeId,
+                        accent = androidx.compose.ui.graphics.Color(palette.mobileNavActive),
+                        canvas = androidx.compose.ui.graphics.Color(palette.mobileNavBackground),
+                        soft = androidx.compose.ui.graphics.Color(palette.tvHeaderSecondary),
+                        onClick = { actions.onThemeSelected(themeId) },
+                    )
+                }
+            }
+        }
+        item {
+            com.betterstreamflix.compose.components.BsSettingsFeatureCard(
                 title = stringResource(R.string.settings_immersive_mode),
                 subtitle = stringResource(R.string.settings_immersive_mode_summary),
                 checked = state.immersiveMode,
                 onCheckedChange = { actions.onToggle("immersiveMode", it) },
+                horizontalPadding = horizontalPadding,
             )
         }
-        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_language)) }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_language), horizontalPadding = horizontalPadding) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_app_language_title),
@@ -502,7 +504,7 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 onClick = { showLanguageDialog = true },
             )
         }
-        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_accessibility)) }
+        item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_accessibility), horizontalPadding = horizontalPadding) }
         item {
             BsSettingsValueRow(
                 title = stringResource(R.string.settings_reduced_motion_title),
@@ -527,19 +529,6 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 onClick = { actions.onAction("openDisplaySettings") },
             )
         }
-    }
-
-    if (showThemeDialog) {
-        BsSettingsChoiceDialog(
-            title = stringResource(R.string.settings_category_appearance),
-            options = BsThemeOptions.map { it to stringResourceSafe(ThemeManager.titleRes(it)) },
-            selectedValue = state.themeId,
-            onSelect = {
-                actions.onThemeSelected(it)
-                showThemeDialog = false
-            },
-            onDismiss = { showThemeDialog = false },
-        )
     }
 
     if (showLanguageDialog) {

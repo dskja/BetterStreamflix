@@ -324,6 +324,152 @@ private fun BsSettingsHairline(modifier: Modifier = Modifier) {
 }
 
 /**
+ * Visual theme swatch used in the Appearance gallery.
+ */
+@Composable
+fun BsThemeGalleryCard(
+    title: String,
+    selected: Boolean,
+    accent: Color,
+    canvas: Color,
+    soft: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = when {
+            focused -> 1.04f
+            selected -> 1.02f
+            else -> 1f
+        },
+        animationSpec = BsMotion.FocusSpring,
+        label = "themeCardScale",
+    )
+    Column(
+        modifier = modifier
+            .width(132.dp)
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
+            .background(BsColors.InkElevated)
+            .border(
+                width = if (selected || focused) 1.5.dp else 1.dp,
+                color = when {
+                    selected -> accent
+                    focused -> BsColors.FocusRing
+                    else -> BsColors.Hairline
+                },
+                shape = RoundedCornerShape(16.dp),
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            )
+            .padding(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(canvas),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+                    .width(36.dp)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(accent),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .width(18.dp)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(soft),
+            )
+            if (selected) {
+                Text(
+                    text = stringResource(R.string.settings_theme_selected),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accent,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp),
+                )
+            }
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) BsColors.Mist else BsColors.MistDim,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 10.dp, start = 2.dp, end = 2.dp, bottom = 2.dp),
+        )
+    }
+}
+
+/**
+ * Premium glass-style settings feature card (e.g. Immersive Mode).
+ */
+@Composable
+fun BsSettingsFeatureCard(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding, vertical = 8.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(BsColors.InkPanel)
+            .border(1.dp, if (checked) BsColors.FocusRing else BsColors.Hairline, RoundedCornerShape(18.dp))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = { onCheckedChange(!checked) },
+            )
+            .padding(horizontal = 18.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 14.dp)) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = BsColors.Mist)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = BsColors.MistDim,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = BsColors.Ink,
+                checkedTrackColor = BsColors.Amber,
+                checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = BsColors.MistDim,
+                uncheckedTrackColor = BsColors.InkSoft,
+                uncheckedBorderColor = BsColors.Hairline,
+            ),
+        )
+    }
+}
+
+/**
  * A dialog that lets the user type or edit a text value (optionally password-masked).
  */
 @Composable

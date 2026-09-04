@@ -71,6 +71,7 @@ fun SearchScreen(
             BsTopBar(
                 title = stringResource(R.string.main_menu_search),
                 showBrand = true,
+                horizontalPadding = horizontalPadding,
             )
             OutlinedTextField(
                 value = query,

@@ -370,6 +370,7 @@ class MainMobileActivity : FragmentActivity() {
             R.id.movies,
             R.id.tv_shows,
             R.id.favorites,
+            R.id.downloads,
             R.id.settings,
         )
     }
