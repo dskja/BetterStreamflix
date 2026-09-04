@@ -26,6 +26,9 @@ fun Fragment.setupPlayerComposeOverlay(
     onPip: (() -> Unit)? = null,
     onAspectRatio: (() -> Unit)? = null,
     onExternalPlayer: (() -> Unit)? = null,
+    onPreviousEpisode: (() -> Unit)? = null,
+    onNextEpisode: (() -> Unit)? = null,
+    onSkipIntro: (() -> Unit)? = null,
 ) {
     composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
     composeView.setContent {
@@ -43,6 +46,9 @@ fun Fragment.setupPlayerComposeOverlay(
                 onPip = onPip,
                 onAspectRatio = onAspectRatio,
                 onExternalPlayer = onExternalPlayer,
+                onPreviousEpisode = onPreviousEpisode,
+                onNextEpisode = onNextEpisode,
+                onSkipIntro = onSkipIntro,
             )
         }
     }

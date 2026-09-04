@@ -803,6 +803,15 @@ class PlayerMobileFragment : Fragment() {
             onExternalPlayer = {
                 binding.pvPlayer.controller.binding.btnExoExternalPlayer.performClick()
             },
+            onPreviousEpisode = {
+                binding.pvPlayer.controller.binding.btnCustomPrev.performClick()
+            },
+            onNextEpisode = {
+                binding.pvPlayer.controller.binding.btnCustomNext.performClick()
+            },
+            onSkipIntro = {
+                binding.pvPlayer.controller.binding.btnSkipIntro.performClick()
+            },
         )
     }
 
@@ -925,6 +934,10 @@ class PlayerMobileFragment : Fragment() {
             viewModel::playPreviousEpisode
         )
         handleNavigationButton(btnNext, EpisodeManager::hasNextEpisode, ::playNextEpisodeAcrossSeasons)
+        playbackController.setEpisodeNavigation(
+            canGoPrevious = EpisodeManager.hasPreviousEpisode(),
+            canGoNext = EpisodeManager.hasNextEpisode(),
+        )
     }
 
     private fun refreshEpisodeNavigation(type: Video.Type.Episode) {
@@ -1520,7 +1533,7 @@ class PlayerMobileFragment : Fragment() {
             }
         }
 
-        nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database).apply {
+        nextEpisodeOverlayManager = NextEpisodeOverlayManager(this, player, database, playbackController).apply {
             onPrefetchComplete = {
                 if (isAdded && _binding != null) {
                     setupEpisodeNavigationButtons()

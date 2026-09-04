@@ -933,6 +933,15 @@ class PlayerTvFragment : Fragment() {
                     UserPreferences.playerResize = newResize
                     updatePlayerScale()
                 },
+                onPreviousEpisode = {
+                    binding.pvPlayer.controller.binding.btnCustomPrev.performClick()
+                },
+                onNextEpisode = {
+                    binding.pvPlayer.controller.binding.btnCustomNext.performClick()
+                },
+                onSkipIntro = {
+                    binding.pvPlayer.controller.binding.btnSkipIntro.performClick()
+                },
             )
         }
 
@@ -1049,6 +1058,10 @@ class PlayerTvFragment : Fragment() {
                 btnNext,
                 EpisodeManager::hasNextEpisode,
                 ::playNextEpisodeAcrossSeasons
+            )
+            playbackController.setEpisodeNavigation(
+                canGoPrevious = EpisodeManager.hasPreviousEpisode(),
+                canGoNext = EpisodeManager.hasNextEpisode(),
             )
         }
 
@@ -1689,6 +1702,7 @@ class PlayerTvFragment : Fragment() {
         }
 
         private fun showSkipIntroButton(show: Boolean) {
+            playbackController.setSkipIntroVisible(show)
             val btnSkipIntro = binding.pvPlayer.controller.binding.btnSkipIntro
             if (show && btnSkipIntro.isGone) {
                 val fadeIn = android.view.animation.AnimationUtils.loadAnimation(

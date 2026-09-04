@@ -69,6 +69,9 @@ fun PlayerControlsOverlay(
     onPip: (() -> Unit)? = null,
     onAspectRatio: (() -> Unit)? = null,
     onExternalPlayer: (() -> Unit)? = null,
+    onPreviousEpisode: (() -> Unit)? = null,
+    onNextEpisode: (() -> Unit)? = null,
+    onSkipIntro: (() -> Unit)? = null,
 ) {
     if (!visible) return
 
@@ -167,6 +170,12 @@ fun PlayerControlsOverlay(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (state.canGoPrevious && onPreviousEpisode != null) {
+                PlayerSeekChip(
+                    label = "‹ Ep",
+                    contentDescription = stringResource(R.string.player_previous_episode),
+                ) { onPreviousEpisode() }
+            }
             PlayerSeekChip(label = "−10", contentDescription = rewindLabel) {
                 onSeek((state.positionMs - SEEK_STEP_MS).coerceAtLeast(0L))
             }
@@ -202,6 +211,12 @@ fun PlayerControlsOverlay(
             }
             PlayerSeekChip(label = "+10", contentDescription = forwardLabel) {
                 onSeek((state.positionMs + SEEK_STEP_MS).coerceAtMost(durationMs))
+            }
+            if (state.canGoNext && onNextEpisode != null) {
+                PlayerSeekChip(
+                    label = "Ep ›",
+                    contentDescription = stringResource(R.string.player_next_episode_button),
+                ) { onNextEpisode() }
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
@@ -249,6 +264,12 @@ fun PlayerControlsOverlay(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (state.showSkipIntro && onSkipIntro != null) {
+                PlayerGlassChip(
+                    label = stringResource(R.string.player_skip_intro),
+                    onClick = onSkipIntro,
+                )
+            }
             if (onAspectRatio != null) {
                 PlayerGlassChip(
                     label = stringResource(R.string.player_aspect_ratio_fit),

@@ -157,6 +157,8 @@
     <string name="feature_not_supported">This feature is not supported yet</string>
     <string name="source_failed_try_next">This source failed. Trying the next one…</string>
     <string name="player_next_episode_up_next">Up next</string>
+    <string name="player_previous_episode">Previous episode</string>
+    <string name="player_next_episode_button">Next episode</string>
     <string name="player_next_episode_action">Play now</string>
     <string name="player_next_episode_dismiss">Dismiss</string>
     <string name="player_next_episode_ready">Next episode ready</string>
