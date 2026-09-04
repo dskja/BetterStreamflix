@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -48,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -348,7 +351,7 @@ fun BsPrimaryButton(
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = BsMotion.PressSpring,
+        animationSpec = BsMotion.pressSpec(),
         label = "primaryPress",
     )
     Button(
@@ -500,6 +503,8 @@ fun BsContentRow(
         label = "rowAlpha",
     )
     LaunchedEffect(title) { entered = true }
+    val listState = rememberLazyListState()
+    var restoredFocusKey by remember(title) { mutableStateOf<String?>(null) }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -508,10 +513,25 @@ fun BsContentRow(
     ) {
         BsSectionHeader(title = title)
         LazyRow(
+            state = listState,
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            itemsIndexed(items, key = { index, item -> "${itemKeyOf(item)}#$index" }) { _, item ->
+            itemsIndexed(items, key = { index, item -> "${itemKeyOf(item)}#$index" }) { index, item ->
+                val itemKey = itemKeyOf(item)
+                val focusRequester = remember(itemKey) { FocusRequester() }
+                LaunchedEffect(restoredFocusKey, items) {
+                    if (restoredFocusKey == itemKey) {
+                        runCatching { focusRequester.requestFocus() }
+                    }
+                }
+                val focusModifier = Modifier
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { state ->
+                        if (state.isFocused) {
+                            restoredFocusKey = itemKey
+                        }
+                    }
                 if (showProgress) {
                     BsContinueWatchingCard(
                         title = labelOf(item),
@@ -520,6 +540,7 @@ fun BsContentRow(
                         subtitle = continueSubtitleOf(item),
                         onClick = { onItemClick(item, showProgress) },
                         onLongClick = { onItemLongClick(item) },
+                        modifier = focusModifier,
                     )
                 } else {
                     BsPosterCard(
@@ -527,6 +548,7 @@ fun BsContentRow(
                         imageUrl = imageOf(item),
                         onClick = { onItemClick(item, showProgress) },
                         onLongClick = { onItemLongClick(item) },
+                        modifier = focusModifier,
                     )
                 }
             }
@@ -575,7 +597,7 @@ fun BsContinueWatchingCard(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.05f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "cwScale",
     )
     Column(
@@ -674,7 +696,7 @@ fun BsGenreTile(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.04f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "genreTileScale",
     )
     BsGlassPanel(
@@ -728,7 +750,7 @@ fun BsPosterCard(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.07f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "posterScale",
     )
     Column(
@@ -798,7 +820,7 @@ fun BsSearchResultRow(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.02f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "searchRowScale",
     )
     BsGlassPanel(
@@ -888,7 +910,7 @@ fun BsGlassFilterChip(
             selected -> 1.02f
             else -> 1f
         },
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "glassFilterScale",
     )
     Box(
@@ -1112,7 +1134,7 @@ fun BsProviderChip(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.04f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "providerChipScale",
     )
     BsGlassPanel(
@@ -1201,7 +1223,7 @@ fun TvScaleOnFocus(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.08f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "tvFocusScale",
     )
     content(

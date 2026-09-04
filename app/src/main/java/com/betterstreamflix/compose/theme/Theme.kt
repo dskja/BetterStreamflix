@@ -50,6 +50,23 @@ object BsMotion {
     val TabSelect = tween<Float>(durationMillis = 280)
     val ContentCrossfade = tween<Float>(durationMillis = 360)
     val PlayerFade = tween<Float>(durationMillis = 220)
+
+    /** Instant tween used when reduced motion is preferred. */
+    val Reduced = tween<Float>(durationMillis = 0)
+
+    @Composable
+    fun rememberMotionEnabled(): Boolean {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        return !com.betterstreamflix.accessibility.ReducedMotionHelper.isReducedMotion(context)
+    }
+
+    @Composable
+    fun focusSpec(): androidx.compose.animation.core.FiniteAnimationSpec<Float> =
+        if (rememberMotionEnabled()) FocusSpring else Reduced
+
+    @Composable
+    fun pressSpec(): androidx.compose.animation.core.FiniteAnimationSpec<Float> =
+        if (rememberMotionEnabled()) PressSpring else Reduced
 }
 
 @Composable
