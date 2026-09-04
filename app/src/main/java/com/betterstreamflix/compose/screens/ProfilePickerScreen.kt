@@ -184,7 +184,7 @@ fun ProfilePickerScreen(
                         onClick = { deletingProfile = null },
                     )
                 },
-                containerColor = BsTheme.colors.InkElevated,
+                containerColor = BsTheme.colors.GlassStrong,
             )
         }
     }
@@ -340,7 +340,7 @@ private fun ProfileManageDialog(
         confirmButton = {
             BsGhostButton(text = stringResource(android.R.string.ok), onClick = onDismiss)
         },
-        containerColor = BsTheme.colors.InkElevated,
+        containerColor = BsTheme.colors.GlassStrong,
     )
 }
 
@@ -365,6 +365,8 @@ private fun ProfileDialog(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BsTheme.colors.Amber,
                     cursorColor = BsTheme.colors.Amber,
+                    focusedContainerColor = BsTheme.colors.Glass,
+                    unfocusedContainerColor = BsTheme.colors.GlassSoft,
                 ),
             )
         },
@@ -374,7 +376,7 @@ private fun ProfileDialog(
         dismissButton = {
             BsGhostButton(text = stringResource(android.R.string.cancel), onClick = onDismiss)
         },
-        containerColor = BsTheme.colors.InkElevated,
+        containerColor = BsTheme.colors.GlassStrong,
     )
 }
 
@@ -387,14 +389,15 @@ private fun profileInitials(name: String): String {
     }
 }
 
+@Composable
 private fun avatarColor(id: String): Color {
     val palette = listOf(
-        Color(0xFF1F3A4A),
-        Color(0xFF3A2F1F),
-        Color(0xFF2A3A2F),
-        Color(0xFF3A2432),
-        Color(0xFF24323A),
-        Color(0xFF2F2A3A),
+        BsTheme.colors.InkSoft,
+        BsTheme.colors.InkPanel,
+        BsTheme.colors.AmberMuted.copy(alpha = 0.55f),
+        BsTheme.colors.SeaGlass.copy(alpha = 0.45f),
+        BsTheme.colors.Amber.copy(alpha = 0.35f),
+        BsTheme.colors.GlassStrong,
     )
     val index = (id.hashCode().and(0x7FFFFFFF)) % palette.size
     return palette[index]

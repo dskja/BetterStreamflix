@@ -22,6 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -124,7 +126,11 @@ private fun SettingsToggleRow(
     onChecked: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(BsTheme.colors.GlassSoft)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -136,8 +142,12 @@ private fun SettingsToggleRow(
             checked = checked,
             onCheckedChange = onChecked,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = BsTheme.colors.Amber,
-                checkedTrackColor = BsTheme.colors.Amber.copy(alpha = 0.35f),
+                checkedThumbColor = BsTheme.colors.Ink,
+                checkedTrackColor = BsTheme.colors.Amber,
+                checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = BsTheme.colors.MistDim,
+                uncheckedTrackColor = BsTheme.colors.InkSoft,
+                uncheckedBorderColor = BsTheme.colors.Hairline,
             ),
         )
     }
@@ -151,7 +161,13 @@ private fun SettingsStepperRow(
     onDecrease: () -> Unit,
     onIncrease: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(BsTheme.colors.GlassSoft)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
         Text(text = title, style = MaterialTheme.typography.titleSmall, color = BsTheme.colors.Mist)
         Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = BsTheme.colors.MistDim)
         Row(

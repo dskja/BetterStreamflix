@@ -359,6 +359,7 @@ private fun FilterTabs(
     ) {
         DownloadsFilter.entries.forEach { tab ->
             val selected = filter == tab
+            var focused by remember(tab) { mutableStateOf(false) }
             val label = when (tab) {
                 DownloadsFilter.LIBRARY -> stringResource(R.string.downloads_filter_ready)
                 DownloadsFilter.QUEUE -> stringResource(R.string.downloads_filter_active)
@@ -366,8 +367,12 @@ private fun FilterTabs(
             }
             val count = counts[tab] ?: 0
             val scale by animateFloatAsState(
-                targetValue = if (selected) 1.02f else 1f,
-                animationSpec = BsMotion.TabSelect,
+                targetValue = when {
+                    focused -> 1.06f
+                    selected -> 1.02f
+                    else -> 1f
+                },
+                animationSpec = BsMotion.FocusSpring,
                 label = "dlTabScale",
             )
             Box(
@@ -377,9 +382,11 @@ private fun FilterTabs(
                     .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
                     .border(
                         1.dp,
-                        if (selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                        if (focused || selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
                         RoundedCornerShape(14.dp),
                     )
+                    .onFocusChanged { focused = it.isFocused }
+                    .focusable()
                     .selectable(
                         selected = selected,
                         role = Role.Tab,

@@ -22,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +49,7 @@ import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.models.Movie
@@ -87,8 +87,9 @@ fun MediaDetailScreen(
     BsAtmosphere {
         when {
             isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = BsTheme.colors.Amber)
+                Column(modifier = Modifier.fillMaxSize()) {
+                    BsShimmerRow()
+                    BsShimmerRow()
                 }
             }
             errorMessage != null -> {

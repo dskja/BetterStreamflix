@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,6 +47,7 @@ import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.compose.theme.BsTheme
@@ -147,8 +147,9 @@ fun SeasonScreen(
 
             when {
                 isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsTheme.colors.Amber)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        BsShimmerRow()
+                        BsShimmerRow()
                     }
                 }
                 errorMessage != null -> {

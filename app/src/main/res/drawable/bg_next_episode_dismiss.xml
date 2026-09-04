@@ -5,17 +5,17 @@
             <solid android:color="#1AFFFFFF" />
             <stroke
                 android:width="2dp"
-                android:color="?attr/colorAccent" />
-            <corners android:radius="999dp" />
+                android:color="@color/bs_amber" />
+            <corners android:radius="14dp" />
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#12FFFFFF" />
+            <solid android:color="#14FFFFFF" />
             <stroke
-                android:width="2dp"
-                android:color="?attr/colorAccent" />
-            <corners android:radius="999dp" />
+                android:width="1.5dp"
+                android:color="@color/bs_mist_faint" />
+            <corners android:radius="14dp" />
         </shape>
     </item>
     <item>
@@ -23,8 +23,8 @@
             <solid android:color="#0DFFFFFF" />
             <stroke
                 android:width="1dp"
-                android:color="#33FFFFFF" />
-            <corners android:radius="999dp" />
+                android:color="@color/bs_hairline" />
+            <corners android:radius="14dp" />
         </shape>
     </item>
 </selector>

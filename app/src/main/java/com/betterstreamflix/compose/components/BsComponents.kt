@@ -878,19 +878,35 @@ fun BsGlassFilterChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.02f else 1f,
-        animationSpec = BsMotion.TabSelect,
+        targetValue = when {
+            focused -> 1.06f
+            selected -> 1.02f
+            else -> 1f
+        },
+        animationSpec = BsMotion.FocusSpring,
         label = "glassFilterScale",
     )
     Box(
         modifier = modifier
             .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) BsTheme.colors.GlassPanelSelected else BsTheme.colors.GlassPanel)
+            .background(
+                when {
+                    selected || focused -> BsTheme.colors.GlassPanelSelected
+                    else -> BsTheme.colors.GlassPanel
+                },
+            )
             .border(
                 1.dp,
-                if (selected) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                when {
+                    focused -> BsTheme.colors.FocusRing
+                    selected -> BsTheme.colors.FocusRing
+                    else -> BsTheme.colors.Hairline
+                },
                 RoundedCornerShape(14.dp),
             )
             .clickable(
@@ -903,8 +919,81 @@ fun BsGlassFilterChip(
         Text(
             text = label,
             style = MaterialTheme.typography.titleSmall,
-            color = if (selected) BsTheme.colors.Mist else BsTheme.colors.MistFaint,
+            color = if (selected || focused) BsTheme.colors.Mist else BsTheme.colors.MistFaint,
         )
+    }
+}
+
+@Composable
+fun BsGlassSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BsTheme.colors.GlassPanel)
+            .border(
+                1.dp,
+                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                RoundedCornerShape(16.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(BsTheme.colors.Amber),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = BsTheme.colors.Mist),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focused = it.isFocused },
+            decorationBox = { inner ->
+                Box {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = BsTheme.colors.MistFaint,
+                        )
+                    }
+                    inner()
+                }
+            },
+        )
+    }
+}
+
+@Composable
+fun BsLoadMoreFooter(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "loadMore")
+    val pulse by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "loadMorePulse",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BsGlassPanel(corner = 12.dp) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 28.dp, vertical = 14.dp)
+                    .width(72.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(BsTheme.colors.AmberBright.copy(alpha = pulse)),
+            )
+        }
     }
 }
 
