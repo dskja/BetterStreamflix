@@ -122,7 +122,7 @@ fun PlayerControlsOverlay(
     val forwardLabel = stringResource(R.string.player_seek_forward)
     val playScale by animateFloatAsState(
         targetValue = if (state.isPlaying) 1f else 1.05f,
-        animationSpec = BsMotion.PressSpring,
+        animationSpec = BsMotion.pressSpec(),
         label = "playScale",
     )
     val bufferPulse = rememberInfiniteTransition(label = "bufferPulse")
@@ -368,7 +368,7 @@ private fun PlayerSeekChip(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.08f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "seekChipScale",
     )
     Box(
@@ -410,7 +410,7 @@ private fun PlayerGlassChip(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.06f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "glassChipScale",
     )
     Text(
@@ -449,7 +449,7 @@ private fun PlayerGlassIconButton(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.1f else 1f,
-        animationSpec = BsMotion.FocusSpring,
+        animationSpec = BsMotion.focusSpec(),
         label = "glassIconScale",
     )
     Box(

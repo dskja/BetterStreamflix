@@ -109,6 +109,12 @@ class PlayerTvView @JvmOverloads constructor(
 
         if (controller.isVisible) return super.dispatchKeyEvent(event)
 
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            com.betterstreamflix.accessibility.TvAccessibilityHelper.handlePlayerKey(player, event.keyCode)
+        ) {
+            return true
+        }
+
         return when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT -> {
                 if (event.action == KeyEvent.ACTION_DOWN) {
