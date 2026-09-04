@@ -97,6 +97,10 @@ data class SettingsUiState(
     val downloadNotifications: Boolean,
     val playbackNotifications: Boolean,
     val versionName: String,
+    val traktEnabled: Boolean = false,
+    val cloudConfigured: Boolean = false,
+    val cloudSignedIn: Boolean = false,
+    val cloudStatusLabel: String = "",
 )
 
 data class SettingsActions(
@@ -1056,12 +1060,62 @@ private fun SettingsProviderSection(state: SettingsUiState, actions: SettingsAct
 @Composable
 private fun SettingsCloudSection(state: SettingsUiState, actions: SettingsActions, onBack: () -> Unit, horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp) {
     SettingsSectionScaffold(title = stringResource(R.string.cloud_sync_title), onBack = onBack, horizontalPadding = horizontalPadding) {
+        item { BsSettingsSectionLabel(title = stringResource(R.string.cloud_sync_account_category)) }
+        item {
+            BsSettingsValueRow(
+                title = stringResource(R.string.cloud_sync_account_status),
+                valueLabel = if (!state.cloudConfigured) {
+                    "—"
+                } else if (state.cloudSignedIn) {
+                    "✓"
+                } else {
+                    "—"
+                },
+                subtitle = state.cloudStatusLabel.ifBlank {
+                    stringResource(R.string.cloud_sync_signed_out)
+                },
+                onClick = {},
+            )
+        }
+        if (state.cloudConfigured && !state.cloudSignedIn) {
+            item {
+                BsSettingsActionRow(
+                    title = stringResource(R.string.cloud_sync_sign_in),
+                    subtitle = stringResource(R.string.cloud_sync_sign_in_summary),
+                    onClick = { actions.onAction("cloudSignIn") },
+                )
+            }
+            item {
+                BsSettingsActionRow(
+                    title = stringResource(R.string.cloud_sync_sign_up),
+                    subtitle = stringResource(R.string.cloud_sync_sign_up_summary),
+                    onClick = { actions.onAction("cloudSignUp") },
+                )
+            }
+        }
+        if (state.cloudConfigured && state.cloudSignedIn) {
+            item {
+                BsSettingsActionRow(
+                    title = stringResource(R.string.cloud_sync_now),
+                    subtitle = stringResource(R.string.cloud_sync_now_summary),
+                    onClick = { actions.onAction("cloudSyncNow") },
+                )
+            }
+            item {
+                BsSettingsActionRow(
+                    title = stringResource(R.string.cloud_sync_sign_out),
+                    destructive = true,
+                    onClick = { actions.onAction("cloudSignOut") },
+                )
+            }
+        }
         item { BsSettingsSectionLabel(title = stringResource(R.string.trakt_settings_title)) }
         item {
-            BsSettingsActionRow(
+            BsSettingsToggleRow(
                 title = stringResource(R.string.trakt_enabled_title),
                 subtitle = stringResource(R.string.trakt_enabled_summary),
-                onClick = { actions.onAction("openTraktSync") },
+                checked = state.traktEnabled,
+                onCheckedChange = { actions.onToggle("traktEnabled", it) },
             )
         }
         item { BsSettingsSectionLabel(title = stringResource(R.string.settings_section_maintenance)) }

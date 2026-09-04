@@ -29,6 +29,8 @@ fun Fragment.setupPlayerComposeOverlay(
     onPreviousEpisode: (() -> Unit)? = null,
     onNextEpisode: (() -> Unit)? = null,
     onSkipIntro: (() -> Unit)? = null,
+    onToggleLock: (() -> Unit)? = null,
+    onCaptions: (() -> Unit)? = null,
 ) {
     composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
     composeView.setContent {
@@ -49,6 +51,8 @@ fun Fragment.setupPlayerComposeOverlay(
                 onPreviousEpisode = onPreviousEpisode,
                 onNextEpisode = onNextEpisode,
                 onSkipIntro = onSkipIntro,
+                onToggleLock = onToggleLock,
+                onCaptions = onCaptions,
             )
         }
     }
@@ -64,6 +68,9 @@ fun Fragment.setupPlayerComposeOverlay(
             composeView.visibility = visibility
             // Re-hide legacy every time Media3 tries to show it.
             if (visibility == View.VISIBLE) {
+                composeView.isFocusable = true
+                composeView.isFocusableInTouchMode = true
+                composeView.post { composeView.requestFocus() }
                 hideLegacyPlayerChrome(playerView)
             }
         },

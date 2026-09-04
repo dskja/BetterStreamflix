@@ -370,6 +370,9 @@
     <string name="clear_cache_done">Cache cleared</string>
     <string name="clear_cache_done_409">Cache cleared automatically due to HTTP 409</string>
     <string name="player_skip_intro">Skip intro</string>
+    <string name="player_lock_controls">Lock</string>
+    <string name="player_unlock_controls">Unlock</string>
+    <string name="player_captions_short">CC</string>
     <string name="voice_search">Voice search</string>
     <string name="voice_error_no_match">Nothing was recognized</string>
     <string name="voice_error_timeout">Timeout occurred</string>

@@ -201,6 +201,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:elevation="10dp"
+        android:focusable="true"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/pv_player"
         app:layout_constraintEnd_toEndOf="@id/pv_player"

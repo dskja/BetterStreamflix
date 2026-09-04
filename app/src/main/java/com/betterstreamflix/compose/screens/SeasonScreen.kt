@@ -1,13 +1,16 @@
 package com.betterstreamflix.compose.screens
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,16 +29,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.betterstreamflix.R
@@ -44,10 +45,12 @@ import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
-import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsMotion
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.download.DownloadManager
 import com.betterstreamflix.models.Episode
 
@@ -123,27 +126,10 @@ fun SeasonScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicTextField(
+                        SeasonSearchField(
                             value = query,
                             onValueChange = onQueryChange,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(BsTheme.colors.InkPanel)
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsTheme.colors.Mist),
-                            cursorBrush = SolidColor(BsTheme.colors.Amber),
-                            singleLine = true,
-                            decorationBox = { inner ->
-                                if (query.isEmpty()) {
-                                    Text(
-                                        stringResource(R.string.search_episodes),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = BsTheme.colors.MistFaint,
-                                    )
-                                }
-                                inner()
-                            },
+                            modifier = Modifier.weight(1f),
                         )
                         BsPrimaryButton(
                             text = stringResource(R.string.download_season_all_short, episodes.size),
@@ -161,8 +147,9 @@ fun SeasonScreen(
 
             when {
                 isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BsTheme.colors.Amber)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        BsShimmerRow()
+                        BsShimmerRow()
                     }
                 }
                 errorMessage != null -> {
@@ -221,12 +208,59 @@ fun SeasonScreen(
 }
 
 @Composable
+private fun SeasonSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(BsTheme.colors.GlassPanel)
+            .border(
+                1.dp,
+                if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                RoundedCornerShape(14.dp),
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focused = it.isFocused },
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsTheme.colors.Mist),
+            cursorBrush = SolidColor(BsTheme.colors.Amber),
+            singleLine = true,
+            decorationBox = { inner ->
+                if (value.isEmpty()) {
+                    Text(
+                        stringResource(R.string.search_episodes),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = BsTheme.colors.MistFaint,
+                    )
+                }
+                inner()
+            },
+        )
+    }
+}
+
+@Composable
 private fun SeasonEpisodeCard(
     episode: Episode,
     downloadStatus: DownloadManager.DownloadStatus?,
     onOpen: () -> Unit,
     onDownload: () -> Unit,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.02f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "epCardScale",
+    )
     val seasonNumber = episode.season?.number ?: 0
     val episodeLabel = when {
         seasonNumber > 0 -> stringResource(R.string.tv_show_item_season_number_episode_number, seasonNumber, episode.number)
@@ -250,72 +284,88 @@ private fun SeasonEpisodeCard(
         downloadStatus != DownloadManager.DownloadStatus.DOWNLOADING &&
         downloadStatus != DownloadManager.DownloadStatus.PENDING
 
-    Row(
+    BsGlassPanel(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(BsTheme.colors.InkPanel)
-            .clickable(onClick = onOpen)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onOpen,
+            ),
+        selected = focused,
+        corner = 14.dp,
     ) {
-        Box(
-            modifier = Modifier
-                .width(100.dp)
-                .height(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(BsTheme.colors.InkSoft),
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            AsyncImage(
-                model = episode.poster ?: episode.tvShow?.poster,
-                contentDescription = episode.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            if (watchProgress != null && watchProgress > 0f) {
-                LinearProgressIndicator(
-                    progress = { watchProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .align(Alignment.BottomCenter),
-                    color = BsTheme.colors.Amber,
-                    trackColor = BsTheme.colors.Ink,
+            Box(
+                modifier = Modifier
+                    .width(100.dp)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(BsTheme.colors.InkSoft),
+            ) {
+                AsyncImage(
+                    model = episode.poster ?: episode.tvShow?.poster,
+                    contentDescription = episode.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
                 )
+                if (watchProgress != null && watchProgress > 0f) {
+                    LinearProgressIndicator(
+                        progress = { watchProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .align(Alignment.BottomCenter),
+                        color = BsTheme.colors.Amber,
+                        trackColor = BsTheme.colors.Ink,
+                    )
+                }
             }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = episodeLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = BsTheme.colors.AmberBright,
-            )
-            Text(
-                text = episode.title.orEmpty(),
-                style = MaterialTheme.typography.titleSmall,
-                color = BsTheme.colors.Mist,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            episode.overview?.takeIf { it.isNotBlank() }?.let { overview ->
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = overview,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = BsTheme.colors.MistDim,
+                    text = episodeLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BsTheme.colors.AmberBright,
+                )
+                Text(
+                    text = episode.title.orEmpty(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = BsTheme.colors.Mist,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 2.dp),
                 )
+                episode.overview?.takeIf { it.isNotBlank() }?.let { overview ->
+                    Text(
+                        text = overview,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BsTheme.colors.MistDim,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+                if (downloadEnabled) {
+                    BsGhostButton(
+                        text = downloadLabel,
+                        onClick = onDownload,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                } else {
+                    Text(
+                        text = downloadLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = BsTheme.colors.MistFaint,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
             }
-            Text(
-                text = downloadLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (downloadEnabled) BsTheme.colors.AmberBright else BsTheme.colors.MistFaint,
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .clickable(enabled = downloadEnabled, onClick = onDownload),
-            )
         }
     }
 }
@@ -351,63 +401,65 @@ private fun SeasonTvEpisodeCard(
         else -> stringResource(R.string.download_episode)
     }
 
-    Column(
+    BsGlassPanel(
         modifier = Modifier
             .width(200.dp)
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clip(RoundedCornerShape(14.dp))
-            .background(BsTheme.colors.InkPanel)
-            .clickable(onClick = onOpen)
-            .padding(10.dp),
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onOpen,
+            ),
+        selected = focused,
+        corner = 14.dp,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(112.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(BsTheme.colors.InkSoft),
-        ) {
-            AsyncImage(
-                model = episode.poster ?: episode.tvShow?.poster,
-                contentDescription = episode.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            if (watchProgress != null && watchProgress > 0f) {
-                LinearProgressIndicator(
-                    progress = { watchProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .align(Alignment.BottomCenter),
-                    color = BsTheme.colors.Amber,
-                    trackColor = BsTheme.colors.Ink,
+        Column(modifier = Modifier.padding(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(112.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(BsTheme.colors.InkSoft),
+            ) {
+                AsyncImage(
+                    model = episode.poster ?: episode.tvShow?.poster,
+                    contentDescription = episode.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
                 )
+                if (watchProgress != null && watchProgress > 0f) {
+                    LinearProgressIndicator(
+                        progress = { watchProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .align(Alignment.BottomCenter),
+                        color = BsTheme.colors.Amber,
+                        trackColor = BsTheme.colors.Ink,
+                    )
+                }
             }
+            Text(
+                text = episodeLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = BsTheme.colors.AmberBright,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Text(
+                text = episode.title.orEmpty(),
+                style = MaterialTheme.typography.titleSmall,
+                color = BsTheme.colors.Mist,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            BsGhostButton(
+                text = downloadLabel,
+                onClick = onDownload,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
-        Text(
-            text = episodeLabel,
-            style = MaterialTheme.typography.labelSmall,
-            color = BsTheme.colors.AmberBright,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Text(
-            text = episode.title.orEmpty(),
-            style = MaterialTheme.typography.titleSmall,
-            color = BsTheme.colors.Mist,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        Text(
-            text = downloadLabel,
-            style = MaterialTheme.typography.labelMedium,
-            color = BsTheme.colors.MistFaint,
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .clickable(onClick = onDownload),
-        )
     }
 }

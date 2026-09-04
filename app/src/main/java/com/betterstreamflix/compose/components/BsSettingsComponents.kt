@@ -165,7 +165,7 @@ fun BsSettingsNavTile(
 }
 
 /**
- * A toggle row backed by a Material3 [Switch] with Obsidian colors.
+ * A toggle row backed by a Material3 [Switch] with theme colors + TV focus.
  */
 @Composable
 fun BsSettingsToggleRow(
@@ -175,13 +175,27 @@ fun BsSettingsToggleRow(
     modifier: Modifier = Modifier,
     onCheckedChange: (Boolean) -> Unit,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.01f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "settingsToggleScale",
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = { onCheckedChange(!checked) },
+            )
+            .background(if (focused) BsTheme.colors.GlassSoft else Color.Transparent)
+            .border(
+                width = if (focused) 1.dp else 0.dp,
+                color = if (focused) BsTheme.colors.FocusRing else Color.Transparent,
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -226,9 +240,15 @@ fun BsSettingsValueRow(
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.01f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "settingsValueScale",
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
@@ -236,7 +256,11 @@ fun BsSettingsValueRow(
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
             )
-            .background(if (focused) BsTheme.colors.InkPanel else Color.Transparent)
+            .background(if (focused) BsTheme.colors.GlassSoft else Color.Transparent)
+            .border(
+                width = if (focused) 1.dp else 0.dp,
+                color = if (focused) BsTheme.colors.FocusRing else Color.Transparent,
+            )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -275,10 +299,16 @@ fun BsSettingsActionRow(
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.01f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "settingsActionScale",
+    )
     val titleColor = if (destructive) BsTheme.colors.Danger else BsTheme.colors.Mist
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(
@@ -286,7 +316,11 @@ fun BsSettingsActionRow(
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick,
             )
-            .background(if (focused) BsTheme.colors.InkPanel else Color.Transparent)
+            .background(if (focused) BsTheme.colors.GlassSoft else Color.Transparent)
+            .border(
+                width = if (focused) 1.dp else 0.dp,
+                color = if (focused) BsTheme.colors.FocusRing else Color.Transparent,
+            )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -493,16 +527,25 @@ fun BsSettingsFeatureCard(
     modifier: Modifier = Modifier,
     horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.015f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "featureCardScale",
+    )
     BsGlassPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = horizontalPadding, vertical = 8.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = { onCheckedChange(!checked) },
             ),
-        selected = checked,
+        selected = checked || focused,
         corner = 18.dp,
     ) {
         Row(
@@ -558,7 +601,7 @@ fun BsSettingsTextFieldDialog(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        containerColor = BsTheme.colors.InkElevated,
+        containerColor = BsTheme.colors.GlassStrong,
         titleContentColor = BsTheme.colors.Mist,
         textContentColor = BsTheme.colors.MistDim,
         title = { Text(text = title, style = MaterialTheme.typography.titleLarge, color = BsTheme.colors.Mist) },
@@ -583,8 +626,8 @@ fun BsSettingsTextFieldDialog(
                         focusedBorderColor = BsTheme.colors.Amber,
                         unfocusedBorderColor = BsTheme.colors.Hairline,
                         cursorColor = BsTheme.colors.Amber,
-                        focusedContainerColor = BsTheme.colors.InkPanel,
-                        unfocusedContainerColor = BsTheme.colors.InkPanel,
+                        focusedContainerColor = BsTheme.colors.Glass,
+                        unfocusedContainerColor = BsTheme.colors.GlassSoft,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -618,7 +661,7 @@ fun BsSettingsChoiceDialog(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        containerColor = BsTheme.colors.InkElevated,
+        containerColor = BsTheme.colors.GlassStrong,
         titleContentColor = BsTheme.colors.Mist,
         title = { Text(text = title, style = MaterialTheme.typography.titleLarge, color = BsTheme.colors.Mist) },
         text = {
@@ -629,6 +672,7 @@ fun BsSettingsChoiceDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) BsTheme.colors.GlassSoft else Color.Transparent)
                             .clickable(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() },
