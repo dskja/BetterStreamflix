@@ -669,8 +669,8 @@ fun BsPosterCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(178.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .height(186.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(BsColors.InkSoft),
         ) {
             AsyncImage(

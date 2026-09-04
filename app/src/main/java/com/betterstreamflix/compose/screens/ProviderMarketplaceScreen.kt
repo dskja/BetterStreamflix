@@ -56,12 +56,10 @@ fun ProviderMarketplaceScreen(
             BsTopBar(
                 title = stringResource(R.string.provider_marketplace_title),
                 showBrand = true,
+                horizontalPadding = horizontalPadding,
             )
-            Text(
-                text = stringResource(R.string.marketplace_filter_language),
-                style = MaterialTheme.typography.labelMedium,
-                color = BsColors.MistFaint,
-                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 8.dp),
+            com.betterstreamflix.compose.components.BsSectionHeader(
+                title = stringResource(R.string.marketplace_filter_language),
             )
             LazyRow(
                 contentPadding = PaddingValues(horizontal = horizontalPadding),
