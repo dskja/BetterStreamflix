@@ -29,15 +29,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.betterstreamflix.compose.theme.BsMotion
 import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
@@ -305,23 +310,50 @@ private fun DetailSectionLabel(text: String) {
 
 @Composable
 private fun CastChip(person: People, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.06f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "castChipScale",
+    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(88.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick),
     ) {
-        AsyncImage(
-            model = person.image,
-            contentDescription = person.name,
-            contentScale = ContentScale.Crop,
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(BsTheme.colors.InkPanel)
-                .border(1.dp, BsTheme.colors.Hairline, CircleShape),
-        )
+                .background(BsTheme.colors.GlassPanel)
+                .border(
+                    1.dp,
+                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                    CircleShape,
+                ),
+        ) {
+            if (!person.image.isNullOrBlank()) {
+                AsyncImage(
+                    model = person.image,
+                    contentDescription = person.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                )
+            } else {
+                Text(
+                    text = person.name.trim().take(1).uppercase().ifBlank { "?" },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = BsTheme.colors.Mist,
+                )
+            }
+        }
         Text(
             text = person.name,
             style = MaterialTheme.typography.labelSmall,
@@ -335,9 +367,17 @@ private fun CastChip(person: People, onClick: () -> Unit) {
 
 @Composable
 private fun SeasonChip(season: Season, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.05f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "seasonChipScale",
+    )
     Column(
         modifier = Modifier
             .width(100.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick),
     ) {
@@ -345,15 +385,26 @@ private fun SeasonChip(season: Season, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(BsTheme.colors.InkPanel)
-                .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(14.dp))
+                .background(BsTheme.colors.GlassPanel)
+                .border(
+                    1.dp,
+                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                    RoundedCornerShape(14.dp),
+                ),
         ) {
             AsyncImage(
                 model = season.poster,
                 contentDescription = season.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .align(Alignment.TopCenter)
+                    .background(BsTheme.colors.SpecularEdge),
             )
         }
         Text(

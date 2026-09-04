@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,12 +35,15 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -205,6 +209,7 @@ fun PlayerControlsOverlay(
                 modifier = Modifier
                     .size(58.dp)
                     .scale(playScale)
+                    .focusable()
                     .clip(CircleShape)
                     .background(colors.Amber)
                     .border(1.dp, colors.Specular, CircleShape)
@@ -350,12 +355,25 @@ private fun PlayerSeekChip(
     onClick: () -> Unit,
 ) {
     val colors = BsTheme.colors
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.08f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "seekChipScale",
+    )
     Box(
         modifier = Modifier
             .height(44.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clip(RoundedCornerShape(14.dp))
-            .background(colors.GlassPanel)
-            .border(1.dp, colors.HairlineStrong, RoundedCornerShape(14.dp))
+            .background(if (focused) colors.GlassPanelSelected else colors.GlassPanel)
+            .border(
+                1.dp,
+                if (focused) colors.FocusRing else colors.HairlineStrong,
+                RoundedCornerShape(14.dp),
+            )
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -379,6 +397,12 @@ private fun PlayerGlassChip(
     onClick: () -> Unit,
 ) {
     val colors = BsTheme.colors
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.06f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "glassChipScale",
+    )
     Text(
         text = label,
         style = MaterialTheme.typography.labelMedium,
@@ -386,9 +410,16 @@ private fun PlayerGlassChip(
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clip(RoundedCornerShape(12.dp))
-            .background(colors.GlassPanel)
-            .border(1.dp, colors.Hairline, RoundedCornerShape(12.dp))
+            .background(if (focused) colors.GlassPanelSelected else colors.GlassPanel)
+            .border(
+                1.dp,
+                if (focused) colors.FocusRing else colors.Hairline,
+                RoundedCornerShape(12.dp),
+            )
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -405,12 +436,21 @@ private fun PlayerGlassIconButton(
     content: @Composable () -> Unit,
 ) {
     val colors = BsTheme.colors
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.1f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "glassIconScale",
+    )
     Box(
         modifier = Modifier
             .size(40.dp)
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clip(CircleShape)
-            .background(colors.GlassPanel)
-            .border(1.dp, colors.Hairline, CircleShape)
+            .background(if (focused) colors.GlassPanelSelected else colors.GlassPanel)
+            .border(1.dp, if (focused) colors.FocusRing else colors.Hairline, CircleShape)
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },

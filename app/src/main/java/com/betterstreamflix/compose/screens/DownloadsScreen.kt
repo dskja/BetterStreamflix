@@ -69,6 +69,7 @@ import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.compose.theme.BsDisplayFont
@@ -654,8 +655,13 @@ private fun OfflinePosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(176.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(BsTheme.colors.InkSoft),
+                .clip(RoundedCornerShape(14.dp))
+                .background(BsTheme.colors.InkSoft)
+                .border(
+                    1.dp,
+                    if (focused) BsTheme.colors.FocusRing else BsTheme.colors.Hairline,
+                    RoundedCornerShape(14.dp),
+                ),
         ) {
             AsyncImage(
                 model = DownloadArtworkStore.coilModel(task.artworkUrl),
@@ -781,118 +787,118 @@ private fun MediaDownloadRow(
                 this.alpha = alpha
                 translationY = offset
             }
-            .clickable(enabled = task.canOpen, onClick = onOpen)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 6.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        BsGlassPanel(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = task.canOpen, onClick = onOpen),
+            corner = 14.dp,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 58.dp, height = 84.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(BsTheme.colors.InkSoft),
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                AsyncImage(
-                    model = DownloadArtworkStore.coilModel(task.artworkUrl),
-                    contentDescription = task.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = BsTheme.colors.Mist,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (task.status == DownloadManager.DownloadStatus.FAILED) {
-                        BsTheme.colors.Danger
-                    } else {
-                        BsTheme.colors.MistFaint
-                    },
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!liveStatsLabel.isNullOrBlank()) {
-                    Text(
-                        text = liveStatsLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = BsTheme.colors.AmberBright,
-                        modifier = Modifier.padding(top = 4.dp),
+                Box(
+                    modifier = Modifier
+                        .size(width = 58.dp, height = 84.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(BsTheme.colors.InkSoft),
+                ) {
+                    AsyncImage(
+                        model = DownloadArtworkStore.coilModel(task.artworkUrl),
+                        contentDescription = task.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
-                if (!task.errorMessage.isNullOrBlank()) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = task.errorMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = BsTheme.colors.Danger,
+                        text = task.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = BsTheme.colors.Mist,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
                     )
-                }
-                if (showProgress && (
-                        task.status == DownloadManager.DownloadStatus.DOWNLOADING ||
-                            task.status == DownloadManager.DownloadStatus.PENDING ||
-                            task.status == DownloadManager.DownloadStatus.PAUSED
-                        )
-                ) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    if (task.fileSize > 0L) {
-                        LinearProgressIndicator(
-                            progress = { task.progressFraction },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .clip(RoundedCornerShape(1.dp)),
-                            color = BsTheme.colors.Amber,
-                            trackColor = BsTheme.colors.InkSoft,
-                        )
-                    } else {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .clip(RoundedCornerShape(1.dp)),
-                            color = BsTheme.colors.Amber,
-                            trackColor = BsTheme.colors.InkSoft,
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (task.status == DownloadManager.DownloadStatus.FAILED) {
+                            BsTheme.colors.Danger
+                        } else {
+                            BsTheme.colors.MistFaint
+                        },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!liveStatsLabel.isNullOrBlank()) {
+                        Text(
+                            text = liveStatsLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BsTheme.colors.AmberBright,
+                            modifier = Modifier.padding(top = 4.dp),
                         )
                     }
+                    if (!task.errorMessage.isNullOrBlank()) {
+                        Text(
+                            text = task.errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BsTheme.colors.Danger,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    if (showProgress && (
+                            task.status == DownloadManager.DownloadStatus.DOWNLOADING ||
+                                task.status == DownloadManager.DownloadStatus.PENDING ||
+                                task.status == DownloadManager.DownloadStatus.PAUSED
+                            )
+                    ) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        if (task.fileSize > 0L) {
+                            LinearProgressIndicator(
+                                progress = { task.progressFraction },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .clip(RoundedCornerShape(1.dp)),
+                                color = BsTheme.colors.Amber,
+                                trackColor = BsTheme.colors.InkSoft,
+                            )
+                        } else {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .clip(RoundedCornerShape(1.dp)),
+                                color = BsTheme.colors.Amber,
+                                trackColor = BsTheme.colors.InkSoft,
+                            )
+                        }
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = primary.first,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BsTheme.colors.AmberBright,
+                        modifier = Modifier
+                            .clickable(onClick = primary.second)
+                            .padding(vertical = 4.dp),
+                    )
+                    Text(
+                        text = secondary.first,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = BsTheme.colors.MistFaint,
+                        modifier = Modifier
+                            .clickable(onClick = secondary.second)
+                            .padding(vertical = 4.dp),
+                    )
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = primary.first,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = BsTheme.colors.AmberBright,
-                    modifier = Modifier
-                        .clickable(onClick = primary.second)
-                        .padding(vertical = 4.dp),
-                )
-                Text(
-                    text = secondary.first,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = BsTheme.colors.MistFaint,
-                    modifier = Modifier
-                        .clickable(onClick = secondary.second)
-                        .padding(vertical = 4.dp),
-                )
-            }
         }
-        Box(
-            modifier = Modifier
-                .padding(top = 14.dp)
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(BsTheme.colors.Hairline),
-        )
     }
 }

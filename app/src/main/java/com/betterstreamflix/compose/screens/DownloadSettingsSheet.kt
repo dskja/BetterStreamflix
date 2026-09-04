@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.download.DownloadPolicyManager
@@ -46,71 +47,71 @@ fun DownloadSettingsSheet(
     val free = remember { DownloadStorageManager.getAvailableSpace(context) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(BsTheme.colors.InkPanel, RoundedCornerShape(16.dp))
-                .padding(20.dp),
+        BsGlassPanel(
+            modifier = Modifier.fillMaxWidth(),
+            corner = 20.dp,
         ) {
-            Text(
-                text = stringResource(R.string.download_settings_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = BsTheme.colors.Mist,
-            )
-            Text(
-                text = stringResource(
-                    R.string.download_settings_storage,
-                    DownloadStorageManager.formatSize(used),
-                    DownloadStorageManager.formatSize(free),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = BsTheme.colors.MistDim,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = BsTheme.colors.Hairline)
-            Spacer(modifier = Modifier.height(12.dp))
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = stringResource(R.string.download_settings_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = BsTheme.colors.Mist,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.download_settings_storage,
+                        DownloadStorageManager.formatSize(used),
+                        DownloadStorageManager.formatSize(free),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BsTheme.colors.MistDim,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = BsTheme.colors.Hairline)
+                Spacer(modifier = Modifier.height(12.dp))
 
-            SettingsToggleRow(
-                title = stringResource(R.string.download_settings_wifi_only),
-                subtitle = stringResource(R.string.download_settings_wifi_only_hint),
-                checked = wifiOnly,
-                onChecked = {
-                    wifiOnly = it
-                    DownloadPolicyManager.setWifiOnly(context, it)
-                },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            SettingsStepperRow(
-                title = stringResource(R.string.download_settings_min_battery),
-                subtitle = stringResource(R.string.download_settings_min_battery_hint, minBattery),
-                value = minBattery,
-                onDecrease = {
-                    minBattery = (minBattery - 5).coerceAtLeast(0)
-                    DownloadPolicyManager.setMinBatteryLevel(context, minBattery)
-                },
-                onIncrease = {
-                    minBattery = (minBattery + 5).coerceAtMost(80)
-                    DownloadPolicyManager.setMinBatteryLevel(context, minBattery)
-                },
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = BsTheme.colors.Hairline)
-            Spacer(modifier = Modifier.height(12.dp))
-            BsGhostButton(
-                text = stringResource(R.string.downloads_clear_completed),
-                onClick = onClearCompleted,
-            )
-            BsGhostButton(
-                text = stringResource(R.string.downloads_clear_failed),
-                onClick = onClearFailed,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            BsPrimaryButton(
-                text = stringResource(R.string.download_settings_done),
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                SettingsToggleRow(
+                    title = stringResource(R.string.download_settings_wifi_only),
+                    subtitle = stringResource(R.string.download_settings_wifi_only_hint),
+                    checked = wifiOnly,
+                    onChecked = {
+                        wifiOnly = it
+                        DownloadPolicyManager.setWifiOnly(context, it)
+                    },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                SettingsStepperRow(
+                    title = stringResource(R.string.download_settings_min_battery),
+                    subtitle = stringResource(R.string.download_settings_min_battery_hint, minBattery),
+                    value = minBattery,
+                    onDecrease = {
+                        minBattery = (minBattery - 5).coerceAtLeast(0)
+                        DownloadPolicyManager.setMinBatteryLevel(context, minBattery)
+                    },
+                    onIncrease = {
+                        minBattery = (minBattery + 5).coerceAtMost(80)
+                        DownloadPolicyManager.setMinBatteryLevel(context, minBattery)
+                    },
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = BsTheme.colors.Hairline)
+                Spacer(modifier = Modifier.height(12.dp))
+                BsGhostButton(
+                    text = stringResource(R.string.downloads_clear_completed),
+                    onClick = onClearCompleted,
+                )
+                BsGhostButton(
+                    text = stringResource(R.string.downloads_clear_failed),
+                    onClick = onClearFailed,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                BsPrimaryButton(
+                    text = stringResource(R.string.download_settings_done),
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
