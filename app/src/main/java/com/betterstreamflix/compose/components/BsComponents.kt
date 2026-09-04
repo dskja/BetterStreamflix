@@ -731,6 +731,32 @@ fun continueSubtitleOf(item: AppAdapter.Item): String? = when (item) {
     else -> null
 }
 
+@Composable
+fun BsProgressBar(
+    progress: Float? = null,
+    modifier: Modifier = Modifier,
+    thickness: androidx.compose.ui.unit.Dp = 3.dp,
+) {
+    val barModifier = modifier
+        .fillMaxWidth()
+        .height(thickness)
+        .clip(RoundedCornerShape(thickness))
+    if (progress == null) {
+        LinearProgressIndicator(
+            modifier = barModifier,
+            color = BsTheme.colors.Amber,
+            trackColor = BsTheme.colors.InkSoft,
+        )
+    } else {
+        LinearProgressIndicator(
+            progress = { progress.coerceIn(0f, 1f) },
+            modifier = barModifier,
+            color = BsTheme.colors.Amber,
+            trackColor = BsTheme.colors.InkSoft,
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BsContinueWatchingCard(
@@ -780,14 +806,10 @@ fun BsContinueWatchingCard(
                 modifier = Modifier.fillMaxSize(),
             )
             if (progress != null && progress > 0f) {
-                LinearProgressIndicator(
-                    progress = { progress },
+                BsProgressBar(
+                    progress = progress,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
                         .align(Alignment.BottomCenter),
-                    color = BsTheme.colors.Amber,
-                    trackColor = BsTheme.colors.Ink.copy(alpha = 0.45f),
                 )
             }
         }
@@ -1468,13 +1490,5 @@ fun TvScaleOnFocus(
 
 @Composable
 fun BsDownloadProgress(progress: Float, modifier: Modifier = Modifier) {
-    LinearProgressIndicator(
-        progress = { progress.coerceIn(0f, 1f) },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(4.dp)
-            .clip(RoundedCornerShape(2.dp)),
-        color = BsTheme.colors.Amber,
-        trackColor = BsTheme.colors.InkSoft,
-    )
+    BsProgressBar(progress = progress, modifier = modifier, thickness = 4.dp)
 }

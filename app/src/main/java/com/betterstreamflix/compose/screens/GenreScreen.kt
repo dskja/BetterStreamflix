@@ -25,7 +25,7 @@ import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
-import com.betterstreamflix.compose.components.BsGhostButton
+import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsLoadMoreFooter
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsShimmerRow
@@ -83,7 +83,7 @@ fun GenreScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             BsErrorState(message = errorMessage)
-                            BsGhostButton(
+                            BsPrimaryButton(
                                 text = stringResource(R.string.loading_error_retry),
                                 onClick = onRetry,
                                 modifier = Modifier.padding(top = 12.dp),

@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +47,7 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.components.BsProgressBar
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsMotion
@@ -159,7 +159,7 @@ fun SeasonScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             BsErrorState(message = errorMessage)
-                            BsGhostButton(
+                            BsPrimaryButton(
                                 text = stringResource(R.string.loading_error_retry),
                                 onClick = onRetry,
                                 modifier = Modifier.padding(top = 12.dp),
@@ -283,14 +283,10 @@ private fun SeasonEpisodeCard(
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (watchProgress != null && watchProgress > 0f) {
-                    LinearProgressIndicator(
-                        progress = { watchProgress },
+                    BsProgressBar(
+                        progress = watchProgress,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
                             .align(Alignment.BottomCenter),
-                        color = BsTheme.colors.Amber,
-                        trackColor = BsTheme.colors.Ink,
                     )
                 }
             }
@@ -409,14 +405,10 @@ private fun SeasonTvEpisodeCard(
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (watchProgress != null && watchProgress > 0f) {
-                    LinearProgressIndicator(
-                        progress = { watchProgress },
+                    BsProgressBar(
+                        progress = watchProgress,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
                             .align(Alignment.BottomCenter),
-                        color = BsTheme.colors.Amber,
-                        trackColor = BsTheme.colors.Ink,
                     )
                 }
             }

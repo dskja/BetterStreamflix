@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,6 +55,7 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsIconButton
 import com.betterstreamflix.compose.components.BsPosterCard
 import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.components.BsProgressBar
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.posterOf
 import com.betterstreamflix.compose.theme.BsTheme
@@ -108,7 +108,7 @@ fun MediaDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     BsErrorState(message = errorMessage, modifier = Modifier.padding(top = 80.dp))
-                    BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
+                    BsPrimaryButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
                 }
             }
             else -> {
@@ -216,14 +216,10 @@ fun MediaDetailScreen(
                                     }
                                 }
                                 if (showWatchButton && watchProgress != null && watchProgress > 0f) {
-                                    LinearProgressIndicator(
-                                        progress = { watchProgress },
+                                    BsProgressBar(
+                                        progress = watchProgress,
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 10.dp)
-                                            .height(3.dp),
-                                        color = BsTheme.colors.Amber,
-                                        trackColor = BsTheme.colors.Ink.copy(alpha = 0.55f),
+                                            .padding(top = 10.dp),
                                     )
                                 }
                             }

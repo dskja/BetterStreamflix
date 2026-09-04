@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +66,7 @@ import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassPanel
 import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsIconButton
+import com.betterstreamflix.compose.components.BsProgressBar
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.download.DownloadArtworkStore
@@ -748,23 +748,13 @@ private fun MediaDownloadRow(
                     ) {
                         Spacer(modifier = Modifier.height(10.dp))
                         if (task.fileSize > 0L) {
-                            LinearProgressIndicator(
-                                progress = { task.progressFraction },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .clip(RoundedCornerShape(1.dp)),
-                                color = BsTheme.colors.Amber,
-                                trackColor = BsTheme.colors.InkSoft,
+                            BsProgressBar(
+                                progress = task.progressFraction,
+                                thickness = 3.dp,
                             )
                         } else {
-                            LinearProgressIndicator(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .clip(RoundedCornerShape(1.dp)),
-                                color = BsTheme.colors.Amber,
-                                trackColor = BsTheme.colors.InkSoft,
+                            BsProgressBar(
+                                thickness = 3.dp,
                             )
                         }
                     }

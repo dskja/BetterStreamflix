@@ -24,6 +24,7 @@ import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsProviderChip
+import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
@@ -91,7 +92,7 @@ fun ProvidersScreen(
                 errorMessage != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         BsErrorState(message = errorMessage, modifier = Modifier.fillMaxWidth())
-                        BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
+                        BsPrimaryButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
                     }
                 }
                 providers.isEmpty() -> {
