@@ -26,8 +26,7 @@ fun CloudSyncProgressDialog(
     progress: CloudSyncProgress?,
 ) {
     val message = progressMessage(progress)
-    val determinate = progress?.stage == CloudSyncProgress.Stage.UPLOADING
-    val fraction = if (determinate && progress != null && progress.total > 0) {
+    val fraction = if (progress?.stage == CloudSyncProgress.Stage.UPLOADING && progress.total > 0) {
         progress.current.toFloat() / progress.total.toFloat()
     } else {
         null
