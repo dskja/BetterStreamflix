@@ -252,13 +252,14 @@ object CloudAccountSettingsController {
         styleGlassDialog(dialog, cancelable = false)
         dialog.show()
 
-        lateinit var actionJob: Job
+        val actionJobRef = java.util.concurrent.atomic.AtomicReference<Job?>(null)
         val profileWatch = watchProfileSwitch(scope, startedProfileId) {
             if (dialog.isShowing) dialog.dismiss()
-            if (::actionJob.isInitialized) actionJob.cancel()
+            actionJobRef.get()?.cancel()
         }
 
-        actionJob = scope.launch {
+        actionJobRef.set(
+            scope.launch {
             try {
                 if (UserProfiles.active().id != startedProfileId) {
                     throw CancellationException("Profile switched")
@@ -295,7 +296,8 @@ object CloudAccountSettingsController {
                 profileWatch.cancel()
                 if (dialog.isShowing) dialog.dismiss()
             }
-        }
+        },
+        )
     }
 
     private fun showConflictDialog(
