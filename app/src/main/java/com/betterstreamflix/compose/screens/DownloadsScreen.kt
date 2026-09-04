@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.compose.components.BsEmptyState
@@ -347,9 +348,9 @@ private fun FilterTabs(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = horizontalPadding)
+            .padding(horizontal = horizontalPadding, vertical = 4.dp)
             .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         DownloadsFilter.entries.forEach { tab ->
             val selected = filter == tab
@@ -359,13 +360,21 @@ private fun FilterTabs(
                 DownloadsFilter.FAILED -> stringResource(R.string.downloads_filter_failed)
             }
             val count = counts[tab] ?: 0
-            val indicatorWidth by animateFloatAsState(
-                targetValue = if (selected) 1f else 0f,
+            val scale by animateFloatAsState(
+                targetValue = if (selected) 1.02f else 1f,
                 animationSpec = BsMotion.TabSelect,
-                label = "dlTabIndicator",
+                label = "dlTabScale",
             )
-            Column(
+            Box(
                 modifier = Modifier
+                    .scale(scale)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (selected) BsColors.GlassPanelSelected else BsColors.GlassPanel)
+                    .border(
+                        1.dp,
+                        if (selected) BsColors.FocusRing else BsColors.Hairline,
+                        RoundedCornerShape(14.dp),
+                    )
                     .selectable(
                         selected = selected,
                         role = Role.Tab,
@@ -373,19 +382,12 @@ private fun FilterTabs(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
                     )
-                    .padding(vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Text(
                     text = if (count > 0) "$label  $count" else label,
                     style = MaterialTheme.typography.titleSmall,
                     color = if (selected) BsColors.Mist else BsColors.MistFaint,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .width((36f * indicatorWidth).dp)
-                        .height(2.dp)
-                        .background(BsColors.Amber, RoundedCornerShape(1.dp)),
                 )
             }
         }
@@ -400,7 +402,18 @@ private fun SearchField(
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
-    Column(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BsColors.GlassPanel)
+            .border(
+                1.dp,
+                if (focused) BsColors.FocusRing else BsColors.Hairline,
+                RoundedCornerShape(16.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -426,13 +439,6 @@ private fun SearchField(
                     inner()
                 }
             },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(if (focused) BsColors.Amber else BsColors.Hairline),
         )
     }
 }

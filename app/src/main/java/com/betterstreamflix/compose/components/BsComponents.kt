@@ -71,6 +71,38 @@ import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.utils.format
 
+/**
+ * Liquid-glass panel shell — translucent fill, specular top edge, hairline border.
+ */
+@Composable
+fun BsGlassPanel(
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    corner: androidx.compose.ui.unit.Dp = 18.dp,
+    content: @Composable () -> Unit,
+) {
+    val shape = RoundedCornerShape(corner)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(if (selected) BsColors.GlassPanelSelected else BsColors.GlassPanel)
+            .border(
+                width = 1.dp,
+                color = if (selected) BsColors.FocusRing else BsColors.Hairline,
+                shape = shape,
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .align(Alignment.TopCenter)
+                .background(BsColors.SpecularEdge),
+        )
+        content()
+    }
+}
+
 @Composable
 fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(
@@ -80,14 +112,14 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.78f)
-                .fillMaxHeight(0.52f)
+                .fillMaxWidth(0.82f)
+                .fillMaxHeight(0.55f)
                 .align(Alignment.TopEnd)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0x382A6462),
-                            Color(0x182A6462),
+                            Color(0x422A6462),
+                            Color(0x1A2A6462),
                             Color.Transparent,
                         ),
                     ),
@@ -95,14 +127,29 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
         )
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.62f)
-                .fillMaxHeight(0.42f)
+                .fillMaxWidth(0.68f)
+                .fillMaxHeight(0.48f)
                 .align(Alignment.BottomStart)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0x30E9B04A),
-                            Color(0x14E9B04A),
+                            Color(0x38E9B04A),
+                            Color(0x16E9B04A),
+                            Color.Transparent,
+                        ),
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.4f)
+                .fillMaxHeight(0.28f)
+                .align(Alignment.Center)
+                .offset(y = (-40).dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0x14FFFFFF),
                             Color.Transparent,
                         ),
                     ),
@@ -165,7 +212,17 @@ fun BsTopBar(
     horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
     actions: @Composable () -> Unit = {},
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(BsColors.GlassTopBar),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BsColors.SpecularEdge),
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,29 +312,28 @@ fun BsStatusBanner(
     message: String,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(BsColors.InkPanel)
-            .border(1.dp, BsColors.Hairline, RoundedCornerShape(12.dp))
-            .background(BsColors.BannerStrip)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
+    BsGlassPanel(modifier = modifier.fillMaxWidth(), corner = 14.dp) {
+        Row(
             modifier = Modifier
-                .padding(end = 10.dp)
-                .size(8.dp)
-                .clip(RoundedCornerShape(50))
-                .background(BsColors.AmberBright),
-        )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            color = BsColors.AmberBright,
-        )
+                .fillMaxWidth()
+                .background(BsColors.BannerStrip)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 10.dp)
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(BsColors.AmberBright),
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = BsColors.AmberBright,
+            )
+        }
     }
 }
 
@@ -319,7 +375,10 @@ fun BsGhostButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(BsColors.GlassSoft)
+            .border(1.dp, BsColors.Hairline, RoundedCornerShape(12.dp)),
         colors = ButtonDefaults.textButtonColors(contentColor = BsColors.AmberBright),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge)
@@ -756,29 +815,34 @@ fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(40.dp)
+            .padding(28.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .width(48.dp)
-                    .height(3.dp)
-                    .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
-            )
-            Text(
-                text = stringResource(R.string.bs_empty_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = BsColors.Mist,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = BsColors.MistDim,
-            )
+        BsGlassPanel(corner = 20.dp) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .width(48.dp)
+                        .height(3.dp)
+                        .background(BsColors.AmberGlow, RoundedCornerShape(2.dp)),
+                )
+                Text(
+                    text = stringResource(R.string.bs_empty_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = BsColors.Mist,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BsColors.MistDim,
+                )
+            }
         }
     }
 }
@@ -788,29 +852,34 @@ fun BsErrorState(message: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(40.dp)
+            .padding(28.dp)
             .semantics { liveRegion = LiveRegionMode.Assertive },
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(BsColors.Danger),
-            )
-            Text(
-                text = stringResource(R.string.bs_error_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = BsColors.Danger,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = BsColors.MistDim,
-            )
+        BsGlassPanel(corner = 20.dp) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(BsColors.Danger),
+                )
+                Text(
+                    text = stringResource(R.string.bs_error_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = BsColors.Danger,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BsColors.MistDim,
+                )
+            }
         }
     }
 }

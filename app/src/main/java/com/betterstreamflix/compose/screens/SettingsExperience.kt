@@ -464,27 +464,18 @@ private fun SettingsAppearanceSection(state: SettingsUiState, actions: SettingsA
                 modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
             )
         }
-        item {
-            androidx.compose.foundation.lazy.LazyRow(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = horizontalPadding,
-                    vertical = 10.dp,
-                ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(BsThemeOptions.size) { index ->
-                    val themeId = BsThemeOptions[index]
-                    val palette = ThemeManager.palette(themeId)
-                    com.betterstreamflix.compose.components.BsThemeGalleryCard(
-                        title = stringResourceSafe(ThemeManager.titleRes(themeId)),
-                        selected = state.themeId == themeId,
-                        accent = androidx.compose.ui.graphics.Color(palette.mobileNavActive),
-                        canvas = androidx.compose.ui.graphics.Color(palette.mobileNavBackground),
-                        soft = androidx.compose.ui.graphics.Color(palette.tvHeaderSecondary),
-                        onClick = { actions.onThemeSelected(themeId) },
-                    )
-                }
-            }
+        items(BsThemeOptions.size) { index ->
+            val themeId = BsThemeOptions[index]
+            val palette = ThemeManager.palette(themeId)
+            com.betterstreamflix.compose.components.BsThemePickRow(
+                title = stringResourceSafe(ThemeManager.titleRes(themeId)),
+                selected = state.themeId == themeId,
+                accent = androidx.compose.ui.graphics.Color(palette.mobileNavActive),
+                canvas = androidx.compose.ui.graphics.Color(palette.mobileNavBackground),
+                soft = androidx.compose.ui.graphics.Color(palette.tvHeaderSecondary),
+                onClick = { actions.onThemeSelected(themeId) },
+                horizontalPadding = horizontalPadding,
+            )
         }
         item {
             com.betterstreamflix.compose.components.BsSettingsFeatureCard(
