@@ -79,7 +79,7 @@ fun BsSettingsSectionLabel(
 }
 
 /**
- * A hub destination tile — Signal Night navigation entry into a settings section.
+ * A hub destination tile — Arc navigation entry into a settings section.
  */
 @Composable
 fun BsSettingsNavTile(
@@ -357,7 +357,7 @@ private fun BsSettingsHairline(modifier: Modifier = Modifier) {
 }
 
 /**
- * Full-width Signal Night theme picker row (safe inside LazyColumn — no nested LazyRow).
+ * Full-width Arc theme picker row (safe inside LazyColumn — no nested LazyRow).
  */
 @Composable
 fun BsThemePickRow(

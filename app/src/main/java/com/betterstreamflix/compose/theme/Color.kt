@@ -3,7 +3,7 @@ package com.betterstreamflix.compose.theme
 import androidx.compose.ui.graphics.Brush
 
 /**
- * Default Signal Night fallback for non-composable call sites.
+ * Default Arc fallback for non-composable call sites.
  * Compose UI must use [BsTheme.colors] so selected themes actually restyle screens.
  */
 object BsColors {

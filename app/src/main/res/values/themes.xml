@@ -3,11 +3,11 @@
     <style name="AppTheme.Mobile" parent="Theme.AppCompat">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="app_background_color">#0B0E12</item>
-        <item name="android:colorBackground">#0B0E12</item>
-        <item name="colorAccent">#3DE0C5</item>
-        <item name="android:textColorPrimary">#F2F5F8</item>
-        <item name="android:textColorSecondary">#9AA6B5</item>
+        <item name="app_background_color">#08090B</item>
+        <item name="android:colorBackground">#08090B</item>
+        <item name="colorAccent">#FF5A36</item>
+        <item name="android:textColorPrimary">#F7F7F4</item>
+        <item name="android:textColorSecondary">#9B9DA2</item>
         <item name="home_gradient_drawable">@drawable/bg_home_gradient_default</item>
         <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_default</item>
         <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_default</item>
@@ -16,7 +16,7 @@
 
     <style name="BottomNavLabelStyle" parent="Widget.Design.BottomNavigationView">
         <item name="android:textSize">11sp</item>
-        <item name="android:fontFamily">@font/plus_jakarta_sans_medium</item>
+        <item name="android:fontFamily">@font/manrope_medium</item>
         <item name="android:textAllCaps">false</item>
     </style>
 
@@ -25,7 +25,7 @@
         <item name="app_background_color">#000000</item>
         <item name="android:windowBackground">@drawable/bg_splash_screen_amoled</item>
         <item name="android:colorBackground">#000000</item>
-        <item name="colorAccent">#3DE0C5</item>
+        <item name="colorAccent">#FF5A36</item>
         <item name="android:textColorPrimary">#FFFFFF</item>
         <item name="android:textColorSecondary">#BDBDBD</item>
         <item name="alertDialogTheme">@style/Theme.Amoled.Dialog.Alert</item>
@@ -139,18 +139,18 @@
         <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_neon</item>
     </style>
 
-    <!-- Tema di Default für TV — Signal Night -->
+    <!-- Default TV theme — Arc -->
     <style name="AppTheme.Tv" parent="Theme.Leanback">
-        <item name="app_background_color">#0B0E12</item>
+        <item name="app_background_color">#08090B</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlayLeanback</item>
         <item name="alertDialogTheme">@style/Theme.AppCompat.Dialog.Alert</item>
-        <item name="colorAccent">#3DE0C5</item>
-        <item name="colorControlActivated">#3DE0C5</item>
-        <item name="colorControlNormal">#9AA6B5</item>
+        <item name="colorAccent">#FF5A36</item>
+        <item name="colorControlActivated">#FF5A36</item>
+        <item name="colorControlNormal">#9B9DA2</item>
         <item name="android:windowBackground">@drawable/bg_splash_screen</item>
-        <item name="android:colorBackground">#0B0E12</item>
-        <item name="android:textColorPrimary">#F2F5F8</item>
-        <item name="android:textColorSecondary">#9AA6B5</item>
+        <item name="android:colorBackground">#08090B</item>
+        <item name="android:textColorPrimary">#F7F7F4</item>
+        <item name="android:textColorSecondary">#9B9DA2</item>
         <item name="home_gradient_drawable">@drawable/bg_home_gradient_default</item>
         <item name="movie_banner_gradient_drawable">@drawable/bg_movie_banner_gradient_default</item>
         <item name="tv_show_banner_gradient_drawable">@drawable/bg_tv_show_banner_gradient_default</item>
@@ -164,7 +164,7 @@
         <item name="android:colorBackground">#000000</item>
         <item name="android:windowShowWallpaper">false</item>
         <item name="android:windowBackgroundFallback">#000000</item>
-        <item name="colorAccent">#3DE0C5</item>
+        <item name="colorAccent">#FF5A36</item>
         <item name="colorControlActivated">#FFFFFF</item>
         <item name="colorControlNormal">#BDBDBD</item>
         <item name="android:textColorPrimary">#FFFFFF</item>
@@ -346,7 +346,7 @@
         <item name="android:colorBackground">#000000</item>
         <item name="android:textColorPrimary">#FFFFFF</item>
         <item name="android:textColorSecondary">#BDBDBD</item>
-        <item name="colorAccent">#3DE0C5</item>
+        <item name="colorAccent">#FF5A36</item>
     </style>
 
     <style name="AppTheme.SplashScreen" parent="Theme.AppCompat">

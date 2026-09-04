@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 import com.betterstreamflix.utils.ThemeManager
 
 /**
- * Semantic Signal Night tokens for one active look.
+ * Semantic Arc tokens for one active look.
  * Accent channel is named Amber historically; values are theme accents (cyan by default).
  * Compose UI paints from [LocalBsColors] so theme changes restyle the whole app.
  */
@@ -100,18 +100,18 @@ data class BsColorScheme(
     val HeroWash: Brush
         get() = Brush.verticalGradient(
             listOf(
-                Ink.copy(alpha = 0.05f),
-                Ink.copy(alpha = 0.28f),
-                Ink.copy(alpha = 0.72f),
-                Ink.copy(alpha = 0.96f),
+                Ink.copy(alpha = 0.06f),
+                Ink.copy(alpha = 0.12f),
+                Ink.copy(alpha = 0.46f),
+                Ink.copy(alpha = 0.94f),
             ),
         )
 
     val HeroSideWash: Brush
         get() = Brush.horizontalGradient(
             listOf(
-                Ink.copy(alpha = 0.78f),
-                Ink.copy(alpha = 0.32f),
+                Ink.copy(alpha = 0.48f),
+                Ink.copy(alpha = 0.14f),
                 Color.Transparent,
             ),
         )
@@ -171,22 +171,22 @@ object BsThemeCatalog {
         else -> signalNight
     }
 
-    /** Default Signal Night — graphite + electric cyan. */
+    /** Default Arc — near-black cinema surfaces + vivid vermilion. */
     val signalNight = scheme(
-        ink = Color(0xFF0B0E12),
-        elevated = Color(0xFF12171F),
-        panel = Color(0xFF1A222D),
-        soft = Color(0xFF242E3B),
-        deep = Color(0xFF07090C),
-        accent = Color(0xFF3DE0C5),
-        accentBright = Color(0xFF6FF0DA),
-        accentMuted = Color(0xFF2A9E8C),
-        accentDeep = Color(0xFF1A6B5E),
-        text = Color(0xFFF2F5F8),
-        textDim = Color(0xFF9AA6B5),
-        textFaint = Color(0xFF657384),
-        secondary = Color(0xFFE08A5A),
-        secondarySoft = Color(0xFF8A5238),
+        ink = Color(0xFF08090B),
+        elevated = Color(0xFF0D0F12),
+        panel = Color(0xFF111317),
+        soft = Color(0xFF1A1D22),
+        deep = Color(0xFF050608),
+        accent = Color(0xFFFF5A36),
+        accentBright = Color(0xFFFF795C),
+        accentMuted = Color(0xFFB93B21),
+        accentDeep = Color(0xFF6F2415),
+        text = Color(0xFFF7F7F4),
+        textDim = Color(0xFF9B9DA2),
+        textFaint = Color(0xFF66696F),
+        secondary = Color(0xFF80D6A2),
+        secondarySoft = Color(0xFF285A3C),
     )
 
     /** Back-compat alias used by [BsColors]. */
@@ -198,14 +198,14 @@ object BsThemeCatalog {
         panel = Color(0xFF141414),
         soft = Color(0xFF1C1C1C),
         deep = Color(0xFF000000),
-        accent = Color(0xFF3DE0C5),
-        accentBright = Color(0xFF6FF0DA),
+        accent = Color(0xFFFF5A36),
+        accentBright = Color(0xFFFF795C),
         accentMuted = Color(0xFF8A8A8A),
-        accentDeep = Color(0xFF1A6B5E),
+        accentDeep = Color(0xFF6F2415),
         text = Color(0xFFFFFFFF),
         textDim = Color(0xFFBDBDBD),
         textFaint = Color(0xFF7A7A7A),
-        secondary = Color(0xFFE08A5A),
+        secondary = Color(0xFF80D6A2),
         secondarySoft = Color(0xFF444444),
     )
 

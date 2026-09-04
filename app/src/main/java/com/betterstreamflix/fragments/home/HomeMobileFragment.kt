@@ -94,6 +94,8 @@ class HomeMobileFragment : ComposeHostFragment() {
                     },
                     scrollToCategoryName = scrollToCategory,
                     onProviderClick = { findNavController().navigate(R.id.providers) },
+                    onMoviesClick = { findNavController().navigate(R.id.movies) },
+                    onTvShowsClick = { findNavController().navigate(R.id.tv_shows) },
                     onItemClick = ::onItemClick,
                     onItemLongClick = ::onItemLongClick,
                 )

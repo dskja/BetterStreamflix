@@ -14,7 +14,7 @@
         android:textColor="#FFF2F5F8"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:fontFamily="@font/sora_bold" />
+        android:fontFamily="@font/space_grotesk_bold" />
 
     <TextView
         android:id="@+id/widget_subtitle"
@@ -23,6 +23,6 @@
         android:layout_marginTop="4dp"
         android:textColor="#FF9AA6B5"
         android:textSize="13sp"
-        android:fontFamily="@font/plus_jakarta_sans_regular"
+        android:fontFamily="@font/manrope_regular"
         android:text="@string/widget_continue_watching_empty" />
 </LinearLayout>

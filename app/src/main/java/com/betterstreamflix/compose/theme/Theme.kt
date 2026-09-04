@@ -17,7 +17,7 @@ val LocalBsThemeId = staticCompositionLocalOf { ThemeManager.DEFAULT }
 
 private fun cinemaScheme(tokens: BsColorScheme) = darkColorScheme(
     primary = tokens.Amber,
-    onPrimary = tokens.Ink,
+    onPrimary = tokens.Mist,
     primaryContainer = tokens.Amber.copy(alpha = 0.18f),
     onPrimaryContainer = tokens.Mist,
     secondary = tokens.SeaGlass,

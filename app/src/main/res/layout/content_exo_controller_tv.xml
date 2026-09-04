@@ -29,7 +29,7 @@
         android:layout_marginEnd="16dp"
         android:textColor="@color/bs_mist"
         android:textSize="34sp"
-        android:fontFamily="@font/sora_bold"
+        android:fontFamily="@font/space_grotesk_bold"
         app:layout_constraintEnd_toStartOf="@id/btn_exo_external_player"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"

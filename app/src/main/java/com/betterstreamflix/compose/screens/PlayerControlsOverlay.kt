@@ -61,7 +61,7 @@ import kotlin.math.max
 private const val SEEK_STEP_MS = 10_000L
 
 /**
- * Signal Night player chrome — the only visible controls.
+ * Arc player chrome — the only visible controls.
  * Anchored bottom so gesture / video taps still reach PlayerView.
  */
 @Composable

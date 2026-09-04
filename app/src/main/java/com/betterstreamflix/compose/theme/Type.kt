@@ -9,30 +9,30 @@ import androidx.compose.material3.Typography
 import com.betterstreamflix.R
 
 val BsDisplayFont = FontFamily(
-    Font(R.font.sora_medium, FontWeight.Medium),
-    Font(R.font.sora_bold, FontWeight.Bold),
+    Font(R.font.space_grotesk_medium, FontWeight.Medium),
+    Font(R.font.space_grotesk_bold, FontWeight.Bold),
 )
 
 val BsBodyFont = FontFamily(
-    Font(R.font.plus_jakarta_sans_regular, FontWeight.Normal),
-    Font(R.font.plus_jakarta_sans_medium, FontWeight.Medium),
-    Font(R.font.plus_jakarta_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.manrope_regular, FontWeight.Normal),
+    Font(R.font.manrope_medium, FontWeight.Medium),
+    Font(R.font.manrope_semibold, FontWeight.SemiBold),
 )
 
 val BsTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = BsDisplayFont,
         fontWeight = FontWeight.Bold,
-        fontSize = 46.sp,
-        lineHeight = 50.sp,
-        letterSpacing = (-1.0).sp,
+        fontSize = 42.sp,
+        lineHeight = 43.sp,
+        letterSpacing = (-1.2).sp,
     ),
     displayMedium = TextStyle(
         fontFamily = BsDisplayFont,
         fontWeight = FontWeight.Bold,
-        fontSize = 36.sp,
-        lineHeight = 42.sp,
-        letterSpacing = (-0.7).sp,
+        fontSize = 34.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.9).sp,
     ),
     headlineLarge = TextStyle(
         fontFamily = BsDisplayFont,
