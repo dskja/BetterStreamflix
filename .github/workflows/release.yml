@@ -118,7 +118,7 @@ jobs:
           merge-multiple: true
 
       - name: Create Release & Upload APKs
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref }}
           name: BetterStreamflix ${{ github.ref_name }}
