@@ -112,9 +112,12 @@ fun MediaDetailScreen(
                 ) {
                     Box(
                         modifier = Modifier
+                            .padding(horizontal = if (isTvLayout) 28.dp else 12.dp)
                             .fillMaxWidth()
                             .height(if (isTvLayout) 520.dp else 440.dp)
-                            .background(BsTheme.colors.InkSoft),
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(BsTheme.colors.InkSoft)
+                            .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(22.dp)),
                     ) {
                         AsyncImage(
                             model = bannerUrl,

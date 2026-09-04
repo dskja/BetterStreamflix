@@ -54,7 +54,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -114,14 +113,14 @@ fun BsBrandMark(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "BETTER",
+            text = stringResource(R.string.app_name).take(6).uppercase(),
             style = MaterialTheme.typography.labelSmall.copy(
                 letterSpacing = if (compact) 1.8.sp else 2.4.sp,
             ),
             color = BsTheme.colors.Amber,
         )
         Text(
-            text = stringResource(R.string.bs_brand_mark).uppercase(),
+            text = stringResource(R.string.bs_brand_mark).drop(6).uppercase(),
             style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge,
             color = BsTheme.colors.Mist,
             modifier = Modifier.padding(top = 2.dp),
@@ -158,7 +157,8 @@ fun BsHomeChrome(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = providerName?.firstOrNull()?.uppercase() ?: "B",
+                    text = providerName?.firstOrNull()?.uppercase()
+                        ?: stringResource(R.string.app_name).take(1).uppercase(),
                     style = MaterialTheme.typography.titleSmall,
                     color = BsTheme.colors.Mist,
                 )

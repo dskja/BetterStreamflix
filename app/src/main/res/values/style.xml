@@ -20,7 +20,7 @@
         <item name="android:paddingBottom">10dp</item>
         <item name="android:paddingStart">18dp</item>
         <item name="android:paddingEnd">18dp</item>
-        <item name="android:textColor">@color/bs_ink</item>
+        <item name="android:textColor">@color/bs_mist</item>
         <item name="android:fontFamily">@font/manrope_semibold</item>
         <item name="android:textAllCaps">false</item>
     </style>
