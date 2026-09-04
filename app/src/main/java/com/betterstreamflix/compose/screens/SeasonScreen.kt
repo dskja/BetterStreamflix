@@ -8,12 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -44,8 +42,10 @@ import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
 import com.betterstreamflix.compose.components.BsEmptyState
+import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPrimaryButton
+import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsColors
 import com.betterstreamflix.compose.theme.BsMotion
 import com.betterstreamflix.download.DownloadManager
@@ -67,6 +67,7 @@ fun SeasonScreen(
     onDownloadSeason: () -> Unit = {},
     isTvLayout: Boolean = false,
 ) {
+    val horizontalPadding = if (isTvLayout) 32.dp else 20.dp
     val filtered = if (query.isBlank()) {
         episodes
     } else {
@@ -78,45 +79,23 @@ fun SeasonScreen(
 
     BsAtmosphere {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = if (isTvLayout) 32.dp else 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (isTvLayout) Arrangement.Center else Arrangement.Start,
-            ) {
-                if (!isTvLayout) {
-                    BsGhostButton(text = "‹", onClick = onBack)
-                }
-                Column(
-                    modifier = Modifier
-                        .then(if (isTvLayout) Modifier else Modifier.weight(1f))
-                        .padding(horizontal = 8.dp),
-                    horizontalAlignment = if (isTvLayout) Alignment.CenterHorizontally else Alignment.Start,
-                ) {
-                    Text(
-                        text = seasonTitle,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = BsColors.Mist,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (episodes.isNotEmpty()) {
-                        Text(
-                            text = stringResource(R.string.season_episode_count, episodes.size),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = BsColors.MistDim,
-                        )
-                    }
-                }
-            }
+            BsTopBar(
+                title = seasonTitle,
+                subtitle = if (episodes.isNotEmpty()) {
+                    stringResource(R.string.season_episode_count, episodes.size)
+                } else {
+                    null
+                },
+                onBack = if (isTvLayout) null else onBack,
+                horizontalPadding = horizontalPadding,
+            )
 
             if (!isLoading && episodes.isNotEmpty()) {
                 if (isTvLayout) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 32.dp, vertical = 8.dp),
+                            .padding(horizontal = horizontalPadding, vertical = 8.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         BsPrimaryButton(
@@ -137,46 +116,46 @@ fun SeasonScreen(
                             .padding(horizontal = 40.dp, vertical = 4.dp),
                     )
                 } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BasicTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(BsColors.InkPanel)
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsColors.Mist),
-                        cursorBrush = SolidColor(BsColors.Amber),
-                        singleLine = true,
-                        decorationBox = { inner ->
-                            if (query.isEmpty()) {
-                                Text(
-                                    stringResource(R.string.search_episodes),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = BsColors.MistFaint,
-                                )
-                            }
-                            inner()
-                        },
+                            .fillMaxWidth()
+                            .padding(horizontal = horizontalPadding),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BasicTextField(
+                            value = query,
+                            onValueChange = onQueryChange,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(BsColors.InkPanel)
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = BsColors.Mist),
+                            cursorBrush = SolidColor(BsColors.Amber),
+                            singleLine = true,
+                            decorationBox = { inner ->
+                                if (query.isEmpty()) {
+                                    Text(
+                                        stringResource(R.string.search_episodes),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = BsColors.MistFaint,
+                                    )
+                                }
+                                inner()
+                            },
+                        )
+                        BsPrimaryButton(
+                            text = stringResource(R.string.download_season_all_short, episodes.size),
+                            onClick = onDownloadSeason,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.download_season_all_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = BsColors.MistFaint,
+                        modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 6.dp),
                     )
-                    BsPrimaryButton(
-                        text = stringResource(R.string.download_season_all_short, episodes.size),
-                        onClick = onDownloadSeason,
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.download_season_all_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = BsColors.MistFaint,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-                )
                 }
             }
 
@@ -187,13 +166,15 @@ fun SeasonScreen(
                     }
                 }
                 errorMessage != null -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        BsEmptyState(message = errorMessage)
-                        BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            BsErrorState(message = errorMessage)
+                            BsGhostButton(
+                                text = stringResource(R.string.loading_error_retry),
+                                onClick = onRetry,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
                     }
                 }
                 filtered.isEmpty() -> {
@@ -205,7 +186,7 @@ fun SeasonScreen(
                 else -> {
                     if (isTvLayout) {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
+                            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(18.dp),
                             modifier = Modifier.fillMaxSize(),
                         ) {
@@ -219,19 +200,19 @@ fun SeasonScreen(
                             }
                         }
                     } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        itemsIndexed(filtered, key = { _, ep -> ep.id }) { _, episode ->
-                            SeasonEpisodeCard(
-                                episode = episode,
-                                downloadStatus = downloadStatusByEpisodeId[episode.id],
-                                onOpen = { onEpisodeClick(episode) },
-                                onDownload = { onDownloadEpisode(episode) },
-                            )
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            itemsIndexed(filtered, key = { _, ep -> ep.id }) { _, episode ->
+                                SeasonEpisodeCard(
+                                    episode = episode,
+                                    downloadStatus = downloadStatusByEpisodeId[episode.id],
+                                    onOpen = { onEpisodeClick(episode) },
+                                    onDownload = { onDownloadEpisode(episode) },
+                                )
+                            }
                         }
-                    }
                     }
                 }
             }

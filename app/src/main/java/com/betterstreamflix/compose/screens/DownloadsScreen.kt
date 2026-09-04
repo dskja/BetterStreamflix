@@ -9,6 +9,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import com.betterstreamflix.compose.theme.BsMotion
+import com.betterstreamflix.compose.components.BsEmptyState
+import androidx.compose.ui.draw.scale
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -270,7 +274,7 @@ fun DownloadsScreen(
                         )
                     }
                     BsGhostButton(
-                        text = "⚙",
+                        text = stringResource(R.string.main_menu_settings),
                         onClick = { showSettings = true },
                     )
                 }
@@ -300,6 +304,7 @@ fun DownloadsScreen(
                             DownloadsFilter.FAILED to failed.size,
                         ),
                         onFilter = { filter = it },
+                        horizontalPadding = horizontalPadding,
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -314,6 +319,8 @@ fun DownloadsScreen(
                     when (filter) {
                         DownloadsFilter.LIBRARY -> LibraryPane(
                             items = readyView,
+                            horizontalPadding = horizontalPadding,
+                            isTvLayout = isTvLayout,
                             onOpen = onOpen,
                             onDelete = onCancel,
                             onClearCompleted = onClearCompleted,
@@ -321,6 +328,7 @@ fun DownloadsScreen(
                         DownloadsFilter.QUEUE -> QueuePane(
                             items = queueView,
                             liveSpeeds = liveSpeeds,
+                            horizontalPadding = horizontalPadding,
                             onOpen = onOpen,
                             onPause = onPause,
                             onResume = onResume,
@@ -330,6 +338,7 @@ fun DownloadsScreen(
                         )
                         DownloadsFilter.FAILED -> FailedPane(
                             items = failedView,
+                            horizontalPadding = horizontalPadding,
                             onRetry = onResume,
                             onDelete = onCancel,
                             onRetryFailed = onRetryFailed,
@@ -347,12 +356,13 @@ private fun FilterTabs(
     filter: DownloadsFilter,
     counts: Map<DownloadsFilter, Int>,
     onFilter: (DownloadsFilter) -> Unit,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = horizontalPadding)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
@@ -477,6 +487,8 @@ private fun DownloadsEmptyHero(modifier: Modifier = Modifier) {
 @Composable
 private fun LibraryPane(
     items: List<DownloadManager.DownloadTask>,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
+    isTvLayout: Boolean = false,
     onOpen: (DownloadManager.DownloadTask) -> Unit,
     onDelete: (DownloadManager.DownloadTask) -> Unit,
     onClearCompleted: () -> Unit,
@@ -485,10 +497,11 @@ private fun LibraryPane(
         EmptyFilterMessage(stringResource(R.string.downloads_library_empty))
         return
     }
+    val gridMin = if (isTvLayout) 140.dp else 118.dp
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 118.dp),
+        columns = GridCells.Adaptive(minSize = gridMin),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 48.dp),
+        contentPadding = PaddingValues(start = horizontalPadding, top = 8.dp, end = horizontalPadding, bottom = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
@@ -519,6 +532,7 @@ private fun LibraryPane(
 private fun QueuePane(
     items: List<DownloadManager.DownloadTask>,
     liveSpeeds: Map<String, Long> = emptyMap(),
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
     onOpen: (DownloadManager.DownloadTask) -> Unit,
     onPause: (DownloadManager.DownloadTask) -> Unit,
     onResume: (DownloadManager.DownloadTask) -> Unit,
@@ -540,7 +554,7 @@ private fun QueuePane(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = horizontalPadding),
         ) {
             if (canPause) {
                 BsGhostButton(text = stringResource(R.string.downloads_pause_all), onClick = onPauseAll)
@@ -574,6 +588,7 @@ private fun QueuePane(
 @Composable
 private fun FailedPane(
     items: List<DownloadManager.DownloadTask>,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
     onRetry: (DownloadManager.DownloadTask) -> Unit,
     onDelete: (DownloadManager.DownloadTask) -> Unit,
     onRetryFailed: () -> Unit,
@@ -588,7 +603,7 @@ private fun FailedPane(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = horizontalPadding),
         ) {
             BsGhostButton(text = stringResource(R.string.downloads_retry_failed), onClick = onRetryFailed)
             BsGhostButton(text = stringResource(R.string.downloads_clear_failed), onClick = onClearFailed)
@@ -609,14 +624,10 @@ private fun FailedPane(
 
 @Composable
 private fun EmptyFilterMessage(message: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(40.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge, color = BsColors.MistDim)
-    }
+    BsEmptyState(
+        message = message,
+        modifier = Modifier.fillMaxSize(),
+    )
 }
 
 @Composable
@@ -625,9 +636,18 @@ private fun OfflinePosterCard(
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.04f else 1f,
+        animationSpec = BsMotion.FocusSpring,
+        label = "offlinePosterScale",
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(scale)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
             .clickable(onClick = onOpen),
     ) {
         Box(
