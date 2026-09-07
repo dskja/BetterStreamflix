@@ -41,5 +41,5 @@ dependencies {
 
     implementation 'com.squareup.retrofit2:retrofit:3.0.0'
 
-    implementation 'org.jsoup:jsoup:1.21.2'
+    implementation 'org.jsoup:jsoup:1.23.1'
 }
