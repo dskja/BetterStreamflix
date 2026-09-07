@@ -105,7 +105,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import okhttp3.internal.userAgent
 import java.util.Locale
 import com.betterstreamflix.extractors.TokenManager
 
@@ -994,7 +993,7 @@ class PlayerMobileFragment : Fragment() {
 
         httpDataSource.setDefaultRequestProperties(
             mapOf(
-                "User-Agent" to userAgent,
+                "User-Agent" to "okhttp/4.12.0",
             ) + (video.headers ?: emptyMap())
         )
 

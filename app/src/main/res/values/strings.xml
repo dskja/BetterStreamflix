@@ -846,21 +846,4 @@
     <string name="dialog_close">Close</string>
     <string name="dialog_save">Save</string>
     <string name="search_recent_query_cd">Recent search: %1$s</string>
-
-    <!-- Custom Provider -->
-    <string name="add_custom_provider_title">Add Custom Provider</string>
-    <string name="add_custom_provider_name">Name</string>
-    <string name="add_custom_provider_name_hint">Provider name</string>
-    <string name="add_custom_provider_url">Base URL</string>
-    <string name="add_custom_provider_url_hint">https://example.com</string>
-    <string name="add_custom_provider_logo">Logo URL</string>
-    <string name="add_custom_provider_logo_hint">https://example.com/logo.png</string>
-    <string name="add_custom_provider_language">Language</string>
-    <string name="add_custom_provider_language_hint">en</string>
-    <string name="add_custom_provider_supports_movies">Supports movies</string>
-    <string name="add_custom_provider_supports_tv">Supports TV shows</string>
-    <string name="add_custom_provider_error">Please fill in all required fields</string>
-    <string name="add_custom_provider_duplicate">A provider with this name already exists</string>
-    <string name="add_custom_provider_add">Add</string>
-    <string name="add_custom_provider_cancel">Cancel</string>
 </resources>
