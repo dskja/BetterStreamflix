@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.0.0 — Arc
+
+### Arc interface
+- Complete mobile and TV visual redesign with the Arc design system
+- New compact navigation chrome, content hierarchy, hero metadata and responsive poster grids
+- Unified search, filters, empty/error states, downloads, profiles and settings surfaces
+- Redesigned media details, long-press actions, next-episode overlay and player controls
+- Consistent TV focus rings, Android dialogs, widgets, QR scanner and bypass tools
+- Space Grotesk display typography, Manrope body typography and vermilion accent palette
+
+### Release engineering
+- Release tags must match the app version (`v2.0.0`)
+- Signed APKs are now mandatory; unsigned artifacts can no longer be published
+- Mobile and TV release builds run lint, unit tests and localization parity checks
+- Published APKs include SHA-256 checksum files
+
+### Bug fixes
+- Fix Android TV playback crash on devices with buggy hardware decoders (Xiaomi TV P1, #41)
+- Always enable ExoPlayer decoder fallback; auto-switch to software decoder when all servers fail
+- Fix nightly CI startup failure: inline workflow steps instead of reusable workflow reference
+
+### Providers
+- Add KinogerProvider (kinoger.to, German, movies + TV shows)
+- Add CustomProvider system for user-defined providers
+
 ## Unreleased (Megaplan)
 
 ### Massive update wave 2

@@ -8,9 +8,47 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  preflight:
+    name: Validate release metadata
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+      SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+      SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify tag matches app version
+        run: |
+          VERSION_NAME="$(awk '/^[[:space:]]*versionName / { print $2; exit }' app/build.gradle | tr -d '"')"
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::Could not read versionName from app/build.gradle"
+            exit 1
+          fi
+          if [ "v$VERSION_NAME" != "${{ github.ref_name }}" ]; then
+            echo "::error::Tag ${{ github.ref_name }} does not match app version v$VERSION_NAME"
+            exit 1
+          fi
+
+      - name: Require release signing credentials
+        run: |
+          for name in SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required release secret $name is missing"
+              exit 1
+            fi
+          done
+
   build:
     name: Build Release APK (${{ matrix.app_layout }})
+    needs: preflight
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,7 +73,7 @@ jobs:
       - name: Install NDK and CMake
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-36" || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-36" "build-tools;35.0.0"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
 
@@ -65,14 +103,17 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
-            echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > $HOME/signing-keystore.jks
-            echo "SIGNING_KEYSTORE_PATH=$HOME/signing-keystore.jks" >> $GITHUB_ENV
-            echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> $GITHUB_ENV
-            echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> $GITHUB_ENV
-            echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> $GITHUB_ENV
-          else
-            echo "No signing keystore provided — release APK will be unsigned"
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$HOME/signing-keystore.jks"
+          echo "SIGNING_KEYSTORE_PATH=$HOME/signing-keystore.jks" >> "$GITHUB_ENV"
+          echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Run release checks
+        run: |
+          ./gradlew lint testDebugUnitTest --stacktrace
+          if [ "${{ matrix.app_layout }}" = "mobile" ]; then
+            python3 scripts/check_string_parity.py
           fi
 
       - name: Build release APK
@@ -82,25 +123,22 @@ jobs:
         run: |
           APK_FILE="app/build/outputs/apk/release/app-release.apk"
           if [ ! -f "$APK_FILE" ]; then
-            APK_FILE="app/build/outputs/apk/release/app-release-unsigned.apk"
-          fi
-          if [ ! -f "$APK_FILE" ]; then
-            echo "No APK found!"
+            echo "::error::Signed release APK was not produced"
             exit 1
           fi
-          echo "APK found: $APK_FILE"
-          if $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs "$APK_FILE" 2>/dev/null; then
-            echo "APK is signed"
-          else
-            echo "WARNING: APK may not be signed"
-          fi
-          cp "$APK_FILE" "/tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK_FILE"
+          RELEASE_FILE="/tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk"
+          cp "$APK_FILE" "$RELEASE_FILE"
+          sha256sum "$RELEASE_FILE" > "$RELEASE_FILE.sha256"
 
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: BetterStreamflix-${{ matrix.app_layout }}
-          path: /tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk
+          path: |
+            /tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk
+            /tmp/BetterStreamflix-${{ github.ref_name }}-${{ matrix.app_layout }}.apk.sha256
+          if-no-files-found: error
 
   release:
     name: Create GitHub Release
@@ -120,7 +158,8 @@ jobs:
       - name: Create Release & Upload APKs
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ github.ref_name }}
           name: BetterStreamflix ${{ github.ref_name }}
-          body_path: CHANGELOG.md
+          generate_release_notes: true
+          fail_on_unmatched_files: true
           files: release-apks/*
