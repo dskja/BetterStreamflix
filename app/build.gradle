@@ -225,7 +225,7 @@ dependencies {
     testImplementation "androidx.test:core:1.6.1"
     testImplementation "androidx.test.ext:junit:1.2.1"
     testImplementation "com.google.truth:truth:1.4.4"
-    implementation 'org.conscrypt:conscrypt-android:2.5.2'
+    implementation 'org.conscrypt:conscrypt-android:2.6.3'
     implementation "androidx.browser:browser:1.7.0"
     implementation "org.nanohttpd:nanohttpd:2.3.1"
     implementation "com.google.zxing:core:3.5.1"
