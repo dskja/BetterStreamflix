@@ -20,10 +20,20 @@
 - Fix Android TV playback crash on devices with buggy hardware decoders (Xiaomi TV P1, #41)
 - Always enable ExoPlayer decoder fallback; auto-switch to software decoder when all servers fail
 - Fix nightly CI startup failure: inline workflow steps instead of reusable workflow reference
+- Fix all CI builds: bump minSdk from 21 to 23 (required by Room 2.8.4)
+- Fix okhttp3.internal.userAgent unresolved reference in player fragments
+- Remove obsolete dexOptions block (deprecated since AGP 8.0)
+- Remove duplicate Room declarations in build.gradle
 
 ### Providers
 - Add KinogerProvider (kinoger.to, German, movies + TV shows)
-- Add CustomProvider system for user-defined providers
+
+### Dependencies
+- Kotlin 2.2.10, KSP 2.3.11
+- Room 2.8.4 (requires minSdk 23)
+- Ktor 3.5.2, Jsoup 1.23.1, Conscrypt 2.6.3, Java-WebSocket 1.6.0
+- ConstraintLayout 2.2.2
+- GitHub Actions: codeql-action v4, gradle/actions v6, softprops/action-gh-release v3
 
 ## Unreleased (Megaplan)
 
