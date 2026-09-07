@@ -1196,11 +1196,20 @@ class PlayerMobileFragment : Fragment() {
             override fun onPlayerError(error: PlaybackException) {
                 super.onPlayerError(error)
                 Log.e("PlayerMobileFragment", "onPlayerError: ", error)
-                
+
                 val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
                 if (nextServer != null) {
                     Log.i("PlayerMobileFragment", "Playback failed, trying next server: ${nextServer.name}")
                     viewModel.getVideo(nextServer)
+                } else if (!currentSoftwareDecoder) {
+                    // All servers failed with hardware decoder — retry with software decoder.
+                    Log.w("PlayerMobileFragment", "All servers failed with hardware decoder, retrying with software decoder")
+                    Toast.makeText(requireContext(), "Switching to software decoder…", Toast.LENGTH_SHORT).show()
+                    initializePlayer(currentExtraBuffering, softwareDecoder = true)
+                    currentServer?.let { viewModel.getVideo(it) }
+                } else {
+                    Log.e("PlayerMobileFragment", "All servers exhausted (software decoder already active)")
+                    Toast.makeText(requireContext(), "Unable to play this video on any server.", Toast.LENGTH_LONG).show()
                 }
             }
         })

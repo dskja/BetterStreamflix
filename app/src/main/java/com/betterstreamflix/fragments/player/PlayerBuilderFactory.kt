@@ -40,12 +40,17 @@ object PlayerBuilderFactory {
             .build()
 
         val renderersFactory = SubtitleOffsetRenderersFactory(context).apply {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || softwareDecoder) {
-                setEnableDecoderFallback(true)
-                if (softwareDecoder) {
-                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-                }
-            }
+            // Always enable decoder fallback so ExoPlayer can switch to an alternative
+            // decoder when the primary (hardware) decoder fails. This is critical for
+            // devices with buggy hardware decoders (e.g. Xiaomi TV P1, cheap Android TVs).
+            setEnableDecoderFallback(true)
+            // EXTENSION_RENDERER_MODE_ON keeps hardware decoders primary but allows
+            // software (FFmpeg) decoders as fallback. EXTENSION_RENDERER_MODE_PREFER
+            // (softwareDecoder=true) forces software decoders first.
+            setExtensionRendererMode(
+                if (softwareDecoder) DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+                else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+            )
         }
 
         return ExoPlayer.Builder(context, renderersFactory)
