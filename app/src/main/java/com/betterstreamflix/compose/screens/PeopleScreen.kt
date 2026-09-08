@@ -140,8 +140,10 @@ fun PeopleScreen(
                                 columns = GridCells.Adaptive(minSize = gridMinSize),
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
-                                    horizontal = horizontalPadding,
-                                    vertical = 12.dp,
+                                    start = horizontalPadding,
+                                    end = horizontalPadding,
+                                    top = 12.dp,
+                                    bottom = 110.dp,
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp),

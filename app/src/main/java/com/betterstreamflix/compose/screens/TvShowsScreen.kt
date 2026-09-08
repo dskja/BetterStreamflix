@@ -99,7 +99,7 @@ fun TvShowsScreen(
                         state = gridState,
                         columns = GridCells.Adaptive(minSize = gridMinSize),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
+                        contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = 8.dp, bottom = 110.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {

@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +26,7 @@ import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsTopBar
+import com.betterstreamflix.compose.theme.BsTheme
 import com.betterstreamflix.providers.Provider
 import com.betterstreamflix.providers.ProviderHealthMonitor
 
@@ -54,6 +57,12 @@ fun ProviderMarketplaceScreen(
                 title = stringResource(R.string.provider_marketplace_title),
                 showBrand = true,
                 horizontalPadding = horizontalPadding,
+            )
+            Text(
+                text = stringResource(R.string.providers_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = BsTheme.colors.MistDim,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 2.dp),
             )
             BsSectionHeader(
                 title = stringResource(R.string.marketplace_filter_language),

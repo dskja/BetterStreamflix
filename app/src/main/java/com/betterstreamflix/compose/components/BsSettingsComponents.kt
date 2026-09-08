@@ -101,7 +101,7 @@ fun BsSettingsNavTile(
                 onClick = onClick,
             ),
         selected = focused,
-        corner = 12.dp,
+        corner = 22.dp,
     ) {
         Row(
             modifier = Modifier
@@ -379,7 +379,7 @@ fun BsThemePickRow(
                 onClick = onClick,
             ),
         selected = selected || focused,
-        corner = 12.dp,
+        corner = 22.dp,
     ) {
         Row(
             modifier = Modifier
@@ -532,7 +532,7 @@ fun BsSettingsFeatureCard(
                 onClick = { onCheckedChange(!checked) },
             ),
         selected = checked || focused,
-        corner = 12.dp,
+        corner = 22.dp,
     ) {
         Row(
             modifier = Modifier

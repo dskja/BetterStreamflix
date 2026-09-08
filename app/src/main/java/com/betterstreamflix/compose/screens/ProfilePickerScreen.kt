@@ -96,8 +96,10 @@ fun ProfilePickerScreen(
                     columns = GridCells.Adaptive(minSize = minCell),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        horizontal = horizontalPadding,
-                        vertical = 20.dp,
+                        start = horizontalPadding,
+                        end = horizontalPadding,
+                        top = 20.dp,
+                        bottom = 110.dp,
                     ),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),

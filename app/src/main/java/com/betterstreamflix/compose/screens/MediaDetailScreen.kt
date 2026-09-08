@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
@@ -45,6 +49,7 @@ import com.betterstreamflix.compose.theme.BsMotion
 import coil.compose.AsyncImage
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsLayout
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsPosterCard
@@ -110,107 +115,146 @@ fun MediaDetailScreen(
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
                 ) {
+                    val heroShape = RoundedCornerShape(BsLayout.HeroRadius)
+                    val heroPad = if (isTvLayout) 28.dp else 16.dp
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = if (isTvLayout) 28.dp else 12.dp)
-                            .fillMaxWidth()
-                            .height(if (isTvLayout) 520.dp else 440.dp)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(BsTheme.colors.InkSoft)
-                            .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(22.dp)),
+                            .padding(horizontal = heroPad)
+                            .padding(top = 8.dp)
+                            .fillMaxWidth(),
                     ) {
-                        AsyncImage(
-                            model = bannerUrl,
-                            contentDescription = title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(horizontal = 24.dp)
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .offset(y = 16.dp)
+                                .background(
+                                    Brush.radialGradient(
+                                        listOf(
+                                            BsTheme.colors.Amber.copy(alpha = 0.50f),
+                                            BsTheme.colors.AmberMuted.copy(alpha = 0.16f),
+                                            Color.Transparent,
+                                        ),
+                                    ),
+                                ),
                         )
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(BsTheme.colors.HeroWash),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(BsTheme.colors.HeroSideWash),
-                        )
-                        if (!isTvLayout) {
-                            BsGhostButton(
-                                text = stringResource(R.string.settings_back),
-                                onClick = onBack,
-                                modifier = Modifier.padding(12.dp),
-                            )
-                        }
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 28.dp),
+                                .fillMaxWidth()
+                                .height(if (isTvLayout) 540.dp else 460.dp)
+                                .shadow(
+                                    elevation = 28.dp,
+                                    shape = heroShape,
+                                    ambientColor = BsTheme.colors.Amber.copy(alpha = 0.32f),
+                                    spotColor = BsTheme.colors.Amber.copy(alpha = 0.42f),
+                                )
+                                .clip(heroShape)
+                                .background(BsTheme.colors.InkSoft)
+                                .border(1.dp, BsTheme.colors.HairlineStrong, heroShape),
                         ) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.displayMedium,
-                                color = BsTheme.colors.Mist,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
+                            AsyncImage(
+                                model = bannerUrl,
+                                contentDescription = title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
                             )
-                            metaLine?.takeIf { it.isNotBlank() }?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = BsTheme.colors.MistDim,
-                                    modifier = Modifier.padding(top = 6.dp),
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(BsTheme.colors.HeroWash),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(BsTheme.colors.HeroSideWash),
+                            )
+                            if (!isTvLayout) {
+                                BsGhostButton(
+                                    text = stringResource(R.string.settings_back),
+                                    onClick = onBack,
+                                    modifier = Modifier.padding(14.dp),
                                 )
                             }
-                            genresLine?.takeIf { it.isNotBlank() }?.let {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = if (isTvLayout) 32.dp else 22.dp, vertical = 24.dp),
+                            ) {
                                 Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = BsTheme.colors.AmberBright,
-                                    modifier = Modifier.padding(top = 8.dp),
+                                    text = title,
+                                    style = MaterialTheme.typography.displayMedium,
+                                    color = BsTheme.colors.Mist,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                            }
-                            if (showWatchButton || showFavoriteButton || showDownloadButton) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    if (showWatchButton && watchLabel != null) {
-                                        BsPrimaryButton(text = watchLabel, onClick = onWatch)
-                                    }
-                                    if (showFavoriteButton) {
-                                        BsGhostButton(
-                                            text = stringResource(
-                                                if (isFavorite) R.string.option_show_unfavorite
-                                                else R.string.option_show_favorite,
-                                            ),
-                                            onClick = onToggleFavorite,
-                                        )
-                                    }
-                                    if (showDownloadButton) {
-                                        BsGhostButton(
-                                            text = stringResource(R.string.download_episode),
-                                            onClick = onDownload,
-                                        )
-                                    }
-                                }
-                                if (showWatchButton && watchProgress != null && watchProgress > 0f) {
-                                    LinearProgressIndicator(
-                                        progress = { watchProgress },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 10.dp)
-                                            .height(3.dp),
-                                        color = BsTheme.colors.Amber,
-                                        trackColor = BsTheme.colors.Ink.copy(alpha = 0.55f),
+                                metaLine?.takeIf { it.isNotBlank() }?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = BsTheme.colors.MistDim,
+                                        modifier = Modifier.padding(top = 6.dp),
                                     )
+                                }
+                                genresLine?.takeIf { it.isNotBlank() }?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = BsTheme.colors.AmberBright,
+                                        modifier = Modifier.padding(top = 8.dp),
+                                    )
+                                }
+                                if (showWatchButton || showFavoriteButton || showDownloadButton) {
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        if (showWatchButton && watchLabel != null) {
+                                            BsPrimaryButton(
+                                                text = watchLabel,
+                                                onClick = onWatch,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .fillMaxWidth(),
+                                            )
+                                        }
+                                        if (showFavoriteButton) {
+                                            BsGhostButton(
+                                                text = stringResource(
+                                                    if (isFavorite) R.string.option_show_unfavorite
+                                                    else R.string.option_show_favorite,
+                                                ),
+                                                onClick = onToggleFavorite,
+                                            )
+                                        }
+                                        if (showDownloadButton) {
+                                            BsGhostButton(
+                                                text = stringResource(R.string.download_episode),
+                                                onClick = onDownload,
+                                            )
+                                        }
+                                    }
+                                    if (showWatchButton && watchProgress != null && watchProgress > 0f) {
+                                        LinearProgressIndicator(
+                                            progress = { watchProgress },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 12.dp)
+                                                .height(3.dp),
+                                            color = BsTheme.colors.Amber,
+                                            trackColor = BsTheme.colors.Ink.copy(alpha = 0.55f),
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
 
-                    Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 20.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = if (isTvLayout) 32.dp else 20.dp, vertical = 20.dp).padding(bottom = if (isTvLayout) 32.dp else BsLayout.NavBottomInset)) {
                         ExpandableOverview(overview = overview, modifier = Modifier.padding(top = 4.dp))
 
                         if (directors.isNotEmpty()) {
@@ -399,12 +443,12 @@ private fun SeasonChip(season: Season, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .background(BsTheme.colors.InkPanel)
                 .border(
                     1.dp,
                     if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
-                    RoundedCornerShape(10.dp),
+                    RoundedCornerShape(18.dp),
                 ),
         ) {
             AsyncImage(

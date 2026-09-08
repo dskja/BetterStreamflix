@@ -286,7 +286,7 @@ private fun SettingsHubBody(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 32.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 110.dp),
         ) {
             item {
                 val colors = BsTheme.colors
@@ -399,7 +399,7 @@ private fun SettingsSectionScaffold(
         )
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 110.dp),
             content = content,
         )
     }

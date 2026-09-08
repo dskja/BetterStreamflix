@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.betterstreamflix.R
 import com.betterstreamflix.compose.components.BsAtmosphere
+import com.betterstreamflix.compose.components.BsLayout
 import com.betterstreamflix.compose.components.BsEmptyState
 import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
@@ -26,6 +27,7 @@ import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassSearchField
 import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsProviderChip
+import com.betterstreamflix.compose.components.BsSectionHeader
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
 import com.betterstreamflix.compose.theme.BsTheme
@@ -87,12 +89,7 @@ fun ProvidersScreen(
                     )
                 }
             }
-            Text(
-                text = stringResource(R.string.providers_favorite_hint),
-                style = MaterialTheme.typography.labelMedium,
-                color = BsTheme.colors.MistFaint,
-                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
-            )
+            BsSectionHeader(title = stringResource(R.string.providers_favorite_hint))
             when {
                 isLoading -> {
                     BsShimmerRow()
@@ -121,8 +118,10 @@ fun ProvidersScreen(
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(
-                            horizontal = horizontalPadding,
-                            vertical = 8.dp,
+                            start = horizontalPadding,
+                            end = horizontalPadding,
+                            top = 8.dp,
+                            bottom = 16.dp,
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize(),
@@ -155,6 +154,6 @@ fun ProvidersScreen(
 @Composable
 private fun SpacerBottomNav() {
     androidx.compose.foundation.layout.Spacer(
-        modifier = Modifier.padding(bottom = 96.dp),
+        modifier = Modifier.padding(bottom = BsLayout.NavBottomInset),
     )
 }

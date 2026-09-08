@@ -72,7 +72,7 @@ fun FavoritesScreen(
                     }
                 }
                 LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 110.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     sections.filter { it.items.isNotEmpty() }.forEach { section ->

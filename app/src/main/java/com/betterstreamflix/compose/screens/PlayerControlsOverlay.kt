@@ -377,12 +377,12 @@ private fun PlayerSeekChip(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(if (focused) colors.InkSoft else colors.InkPanel)
             .border(
                 1.dp,
                 if (focused) colors.Amber.copy(alpha = 0.55f) else colors.HairlineStrong,
-                RoundedCornerShape(10.dp),
+                RoundedCornerShape(18.dp),
             )
             .clickable(
                 indication = null,
@@ -423,12 +423,12 @@ private fun PlayerGlassChip(
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(if (focused) colors.InkSoft else colors.InkPanel)
             .border(
                 1.dp,
                 if (focused) colors.Amber.copy(alpha = 0.55f) else colors.Hairline,
-                RoundedCornerShape(12.dp),
+                RoundedCornerShape(20.dp),
             )
             .clickable(
                 indication = null,

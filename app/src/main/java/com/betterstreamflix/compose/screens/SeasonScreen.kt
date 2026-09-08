@@ -192,7 +192,7 @@ fun SeasonScreen(
                         }
                     } else {
                         LazyColumn(
-                            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
+                            contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = 8.dp, bottom = 110.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             itemsIndexed(filtered, key = { _, ep -> ep.id }) { _, episode ->
@@ -221,12 +221,12 @@ private fun SeasonSearchField(
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(BsTheme.colors.InkPanel)
             .border(
                 1.dp,
                 if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
-                RoundedCornerShape(10.dp),
+                RoundedCornerShape(18.dp),
             )
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
@@ -314,7 +314,7 @@ private fun SeasonEpisodeCard(
                 modifier = Modifier
                     .width(100.dp)
                     .height(56.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(BsTheme.colors.InkSoft),
             ) {
                 AsyncImage(
@@ -440,7 +440,7 @@ private fun SeasonTvEpisodeCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(112.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(BsTheme.colors.InkSoft),
             ) {
                 AsyncImage(

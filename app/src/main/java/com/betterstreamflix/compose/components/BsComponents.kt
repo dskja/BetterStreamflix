@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -71,6 +72,14 @@ import com.betterstreamflix.models.Genre
 import com.betterstreamflix.models.Movie
 import com.betterstreamflix.models.TvShow
 import com.betterstreamflix.utils.format
+
+/** Shared mobile inset under the floating bottom nav. */
+object BsLayout {
+    val NavBottomInset = 110.dp
+    val ScreenGutter = 20.dp
+    val HeroRadius = 32.dp
+    val CardRadius = 24.dp
+}
 
 /** Pulse panel — soft glass surface, amber focus. */
 @Composable
@@ -111,16 +120,31 @@ fun BsAtmosphere(modifier: Modifier = Modifier, content: @Composable () -> Unit)
             .fillMaxSize()
             .background(BsTheme.colors.Ink),
     ) {
-        // Soft amber ambient glow (Peacock-style depth)
+        // Top amber wash — Peacock depth without purple glow kitsch
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(280.dp)
+                .height(340.dp)
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            BsTheme.colors.Amber.copy(alpha = 0.10f),
+                            BsTheme.colors.Amber.copy(alpha = 0.14f),
+                            BsTheme.colors.AmberMuted.copy(alpha = 0.05f),
+                            Color.Transparent,
+                        ),
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 48.dp, end = 8.dp)
+                .size(220.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            BsTheme.colors.AmberBright.copy(alpha = 0.08f),
                             Color.Transparent,
                         ),
                     ),
@@ -142,7 +166,7 @@ fun BsBrandMark(
         } else {
             MaterialTheme.typography.headlineMedium
         },
-        color = BsTheme.colors.Mist,
+        color = BsTheme.colors.AmberBright,
         modifier = modifier,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -209,15 +233,21 @@ fun BsHomeChrome(
                     .size(42.dp)
                     .clip(RoundedCornerShape(50))
                     .background(BsTheme.colors.InkPanel.copy(alpha = 0.88f))
-                    .border(1.dp, BsTheme.colors.Hairline, RoundedCornerShape(50))
+                    .border(1.dp, BsTheme.colors.HairlineStrong, RoundedCornerShape(50))
                     .clickable(onClick = onProviderClick),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "☰",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = BsTheme.colors.Mist,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(3) {
+                        Box(
+                            modifier = Modifier
+                                .width(16.dp)
+                                .height(2.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(BsTheme.colors.Mist),
+                        )
+                    }
+                }
             }
         }
         LazyRow(
@@ -263,7 +293,7 @@ fun BsTopBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(BsTheme.colors.Ink),
+            .background(BsTheme.colors.GlassTopBar),
     ) {
         Row(
             modifier = Modifier
@@ -326,6 +356,13 @@ fun BsSectionHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 10.dp)
+                    .width(3.dp)
+                    .height(14.dp)
+                    .background(BsTheme.colors.Amber, RoundedCornerShape(2.dp)),
+            )
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(letterSpacing = (-0.2).sp),
@@ -382,7 +419,7 @@ fun BsPrimaryButton(
     val shape = RoundedCornerShape(28.dp)
     Box(
         modifier = modifier
-            .height(52.dp)
+            .height(54.dp)
             .scale(scale)
             .clip(shape)
             .background(BsTheme.colors.PulseCta)
@@ -442,98 +479,128 @@ fun BsHeroBanner(
         label = "heroAlpha",
     )
     val rise by animateFloatAsState(
-        targetValue = if (visible) 0f else 16f,
+        targetValue = if (visible) 0f else 18f,
         animationSpec = BsMotion.HeroRise,
         label = "heroRise",
     )
     LaunchedEffect(Unit) { visible = true }
 
-    val cardRadius = 28.dp
+    val cardRadius = BsLayout.HeroRadius
     val shape = RoundedCornerShape(cardRadius)
+    val sidePad = if (compact) 28.dp else 20.dp
+    val cardHeight = if (compact) 500.dp else 448.dp
+
     Box(
         modifier = modifier
-            .padding(horizontal = if (compact) 28.dp else 20.dp)
+            .padding(horizontal = sidePad)
             .fillMaxWidth()
-            .height(if (compact) 480.dp else 420.dp)
-            .alpha(alpha)
-            .clip(shape)
-            .background(BsTheme.colors.InkSoft)
-            .border(1.dp, BsTheme.colors.Hairline, shape),
+            .alpha(alpha),
     ) {
-        // Soft amber under-glow behind the Peacock hero card
+        // Peacock under-glow — sits OUTSIDE the clipped card
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .padding(horizontal = 28.dp)
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(56.dp)
                 .offset(y = 18.dp)
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            BsTheme.colors.Amber.copy(alpha = 0.35f),
+                        colors = listOf(
+                            BsTheme.colors.Amber.copy(alpha = 0.55f),
+                            BsTheme.colors.AmberMuted.copy(alpha = 0.18f),
                             Color.Transparent,
                         ),
                     ),
                 ),
-        )
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(BsTheme.colors.InkSoft),
         )
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color.Transparent,
-                            BsTheme.colors.Ink.copy(alpha = 0.55f),
-                            BsTheme.colors.Ink.copy(alpha = 0.92f),
+                .fillMaxWidth()
+                .height(cardHeight)
+                .shadow(
+                    elevation = 28.dp,
+                    shape = shape,
+                    ambientColor = BsTheme.colors.Amber.copy(alpha = 0.35f),
+                    spotColor = BsTheme.colors.Amber.copy(alpha = 0.45f),
+                )
+                .clip(shape)
+                .background(BsTheme.colors.InkSoft)
+                .border(1.dp, BsTheme.colors.HairlineStrong, shape),
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(BsTheme.colors.InkSoft),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                BsTheme.colors.Ink.copy(alpha = 0.35f),
+                                BsTheme.colors.Ink.copy(alpha = 0.78f),
+                                BsTheme.colors.Ink.copy(alpha = 0.96f),
+                            ),
                         ),
                     ),
-                ),
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(y = rise.dp)
-                .padding(horizontal = 20.dp, vertical = 22.dp),
-        ) {
-            if (brandVisible) {
-                Text(
-                    text = stringResource(R.string.home_featured_fallback).uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
-                    color = BsTheme.colors.AmberBright,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.displayMedium,
-                color = BsTheme.colors.Mist,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(y = rise.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 22.dp, vertical = 22.dp),
+            ) {
+                if (brandVisible) {
+                    Text(
+                        text = stringResource(R.string.home_featured_fallback).uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.4.sp),
+                        color = BsTheme.colors.AmberBright,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = BsTheme.colors.MistDim,
+                    text = title,
+                    style = MaterialTheme.typography.displayMedium,
+                    color = BsTheme.colors.Mist,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BsPrimaryButton(text = ctaLabel, onClick = onCta)
-                if (!secondaryCtaLabel.isNullOrBlank() && onSecondaryCta != null) {
-                    BsGhostButton(text = secondaryCtaLabel, onClick = onSecondaryCta)
+                if (!subtitle.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = BsTheme.colors.MistDim,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BsPrimaryButton(
+                        text = ctaLabel,
+                        onClick = onCta,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
+                    if (!secondaryCtaLabel.isNullOrBlank() && onSecondaryCta != null) {
+                        BsGhostButton(
+                            text = secondaryCtaLabel,
+                            onClick = onSecondaryCta,
+                        )
+                    }
                 }
             }
         }
@@ -768,7 +835,7 @@ fun BsGenreTile(
                 onClick = onClick,
             ),
         selected = focused,
-        corner = 12.dp,
+        corner = 20.dp,
     ) {
         Row(
             modifier = Modifier
@@ -822,7 +889,7 @@ fun BsPosterCard(
                 onLongClick = onLongClick,
             )
             .then(
-                if (focused) Modifier.border(2.dp, BsTheme.colors.AmberBright.copy(alpha = 0.75f), RoundedCornerShape(20.dp))
+                if (focused) Modifier.border(2.dp, BsTheme.colors.AmberBright.copy(alpha = 0.75f), RoundedCornerShape(BsLayout.CardRadius))
                 else Modifier,
             ),
     ) {
@@ -830,7 +897,7 @@ fun BsPosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(158.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(BsLayout.CardRadius))
                 .background(BsTheme.colors.InkSoft),
         ) {
             AsyncImage(
@@ -905,7 +972,7 @@ fun BsSearchResultRow(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(width = 56.dp, height = 80.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(BsTheme.colors.InkSoft),
                 ) {
                     Box(
@@ -920,7 +987,7 @@ fun BsSearchResultRow(
                 Box(
                     modifier = Modifier
                         .size(width = 56.dp, height = 80.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(BsTheme.colors.InkSoft),
                 ) {
                     AsyncImage(
@@ -1017,7 +1084,7 @@ fun BsGlassSearchField(
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(28.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1092,7 +1159,7 @@ fun BsEmptyState(message: String, modifier: Modifier = Modifier) {
             .semantics { liveRegion = LiveRegionMode.Polite },
         contentAlignment = Alignment.Center,
     ) {
-        BsGlassPanel(corner = 12.dp) {
+        BsGlassPanel(corner = 24.dp) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
@@ -1129,7 +1196,7 @@ fun BsErrorState(message: String, modifier: Modifier = Modifier) {
             .semantics { liveRegion = LiveRegionMode.Assertive },
         contentAlignment = Alignment.Center,
     ) {
-        BsGlassPanel(corner = 12.dp) {
+        BsGlassPanel(corner = 24.dp) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
@@ -1174,7 +1241,7 @@ fun BsShimmerRow(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .size(width = 124.dp, height = 178.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(BsLayout.CardRadius))
                     .background(BsTheme.colors.InkSoft.copy(alpha = pulse)),
             )
         }
@@ -1226,8 +1293,8 @@ fun BsProviderChip(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(BsTheme.colors.PulseCta),
                     contentAlignment = Alignment.Center,
                 ) {

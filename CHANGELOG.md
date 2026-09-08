@@ -4,10 +4,12 @@
 
 ### Pulse interface
 - New default **Pulse** design system: charcoal surfaces, amber→orange CTA gradient, soft glass panels
-- Peacock-style featured **Hero Card** with under-glow and gradient Watch Now button
-- Floating pill bottom navigation on mobile
+- Peacock-style featured **Hero Card**: 32dp radius, amber under-glow outside the clip, soft shadow, full-width gradient Watch CTA
+- Detail screen uses the same Peacock hero card language as Home
+- Floating pill bottom navigation on mobile (glass panel + amber hairline)
 - Redesigned home chrome (avatar greeting + category pills)
-- Provider picker/marketplace cards aligned to Pulse (glass tiles, accent initials)
+- Provider picker and marketplace share the same Pulse chrome, chips, and insets
+- Search, Favorites, Movies, TV, Downloads, Settings, Profile, Season, People, Genres aligned to Pulse radii and nav insets
 - Default theme label renamed from Arc → Pulse
 
 ## v2.0.0 — Arc

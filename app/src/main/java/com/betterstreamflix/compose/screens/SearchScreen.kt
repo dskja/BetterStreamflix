@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -118,7 +119,7 @@ fun SearchScreen(
                                 color = if (focused) BsTheme.colors.AmberBright else BsTheme.colors.Mist,
                                 modifier = Modifier
                                     .scale(scale)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(50))
                                     .background(
                                         if (focused) BsTheme.colors.Amber.copy(alpha = 0.14f)
                                         else BsTheme.colors.InkPanel,
@@ -127,7 +128,7 @@ fun SearchScreen(
                                         1.dp,
                                         if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f)
                                         else BsTheme.colors.Hairline,
-                                        RoundedCornerShape(10.dp),
+                                        RoundedCornerShape(50),
                                     )
                                     .onFocusChanged { focused = it.isFocused }
                                     .focusable()
@@ -152,6 +153,7 @@ fun SearchScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(top = 8.dp),
+                        contentPadding = PaddingValues(bottom = 110.dp),
                     ) {
                         if (genreResults.isNotEmpty()) {
                             item(key = "browse-genres-header") {

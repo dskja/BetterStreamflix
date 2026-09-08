@@ -417,12 +417,12 @@ private fun SearchField(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(BsTheme.colors.InkPanel)
             .border(
                 1.dp,
                 if (focused) BsTheme.colors.Amber.copy(alpha = 0.55f) else BsTheme.colors.Hairline,
-                RoundedCornerShape(12.dp),
+                RoundedCornerShape(20.dp),
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
@@ -509,7 +509,7 @@ private fun LibraryPane(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = gridMin),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = horizontalPadding, top = 8.dp, end = horizontalPadding, bottom = 48.dp),
+        contentPadding = PaddingValues(start = horizontalPadding, top = 8.dp, end = horizontalPadding, bottom = 110.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
@@ -571,7 +571,7 @@ private fun QueuePane(
                 BsGhostButton(text = stringResource(R.string.downloads_resume_all), onClick = onResumeAll)
             }
         }
-        LazyColumn(contentPadding = PaddingValues(bottom = 48.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
             itemsIndexed(items, key = { _, t -> t.id }) { index, task ->
                 val primary = when (task.status) {
                     DownloadManager.DownloadStatus.PAUSED ->
@@ -616,7 +616,7 @@ private fun FailedPane(
             BsGhostButton(text = stringResource(R.string.downloads_retry_failed), onClick = onRetryFailed)
             BsGhostButton(text = stringResource(R.string.downloads_clear_failed), onClick = onClearFailed)
         }
-        LazyColumn(contentPadding = PaddingValues(bottom = 48.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
             itemsIndexed(items, key = { _, t -> t.id }) { index, task ->
                 MediaDownloadRow(
                     task = task,
