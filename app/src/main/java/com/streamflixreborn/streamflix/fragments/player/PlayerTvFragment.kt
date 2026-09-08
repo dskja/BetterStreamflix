@@ -82,6 +82,7 @@ import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.UserDataCache
+import com.streamflixreborn.streamflix.utils.ProviderAudioLanguage
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
@@ -1760,10 +1761,10 @@ class PlayerTvFragment : Fragment() {
                     )
 
                     val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                    if (lang == "es") {
+                    ProviderAudioLanguage.preferredAudioLanguages(lang)?.let { codes ->
                         player.trackSelectionParameters =
                             player.trackSelectionParameters.buildUpon()
-                                .setPreferredAudioLanguage("spa")
+                                .setPreferredAudioLanguages(*codes)
                                 .build()
                     }
 
