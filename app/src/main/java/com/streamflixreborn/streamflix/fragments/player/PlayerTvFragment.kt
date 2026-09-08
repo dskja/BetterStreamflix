@@ -103,6 +103,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
+import com.streamflixreborn.streamflix.utils.DeviceCapabilities
 import com.streamflixreborn.streamflix.utils.QrUtils
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
@@ -1751,19 +1752,25 @@ class PlayerTvFragment : Fragment() {
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
             player = buildPlayer(extraBuffering).also { player ->
+                    // Avoid Media3 audio-focus ducking (AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK),
+                    // which makes music / ambience / distant voices suddenly go quiet on
+                    // Smart TVs. CONTENT_TYPE_UNKNOWN also avoids OEM "movie" dialogue
+                    // enhancement / night-mode style processing some firmwares apply.
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
-                            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                            .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
                             .build(),
-                        true,
+                        /* handleAudioFocus= */ false,
                     )
 
-                    val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                    if (lang == "es") {
+                    val preferredLanguages = DeviceCapabilities.preferredAudioLanguages(
+                        UserPreferences.currentProvider?.language
+                    )
+                    if (preferredLanguages.isNotEmpty()) {
                         player.trackSelectionParameters =
                             player.trackSelectionParameters.buildUpon()
-                                .setPreferredAudioLanguage("spa")
+                                .setPreferredAudioLanguages(*preferredLanguages.toTypedArray())
                                 .build()
                     }
 
@@ -1958,9 +1965,9 @@ class PlayerTvFragment : Fragment() {
                 player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
                         .build(),
-                    true,
+                    /* handleAudioFocus= */ false,
                 )
             }
 
