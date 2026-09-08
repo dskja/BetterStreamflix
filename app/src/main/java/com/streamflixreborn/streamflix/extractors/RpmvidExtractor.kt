@@ -32,6 +32,12 @@ class RpmvidExtractor : Extractor() {
         private val IV = "1234567890oiuytr".toByteArray()
     }
 
+    private data class StreamCandidate(
+        val url: String,
+        val headers: Map<String, String>,
+        val maintainToken: Boolean = false,
+    )
+
     private val client = OkHttpClient.Builder()
         .dns(DnsResolver.doh)
         .addInterceptor(object : Interceptor {
@@ -86,63 +92,78 @@ class RpmvidExtractor : Extractor() {
         val hlsPath = json.get("hls")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
         val hlsTiktok = json.get("hlsVideoTiktok")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
         val sourcePath = json.get("source")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
+        val cfNativePath = json.get("cfNative")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
         var cfPath = json.get("cf")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
         val cfExpire = json.get("cfExpire")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotEmpty() }
 
-        var maintainToken = false
-        val (finalUrl, headers) = when {
-            !hlsPath.isNullOrEmpty() -> {
-                "$mainLink$hlsPath" to mapOf("Referer" to mainLink)
-            }
-            !hlsTiktok.isNullOrEmpty() -> {
-                var v = ""
-                var domain = ""
-                try {
-                    val configStr = json.get("streamingConfig")?.asString
-                    if (!configStr.isNullOrEmpty()) {
-                        val config = JsonParser.parseString(configStr).asJsonObject
-                        val tiktok = config.getAsJsonObject("adjust")?.getAsJsonObject("Tiktok")
-                        v = tiktok?.getAsJsonObject("params")?.get("v")?.asString ?: ""
-                        domain = tiktok?.get("domain")?.asString ?: ""
-                    }
-                } catch (e: Exception) { }
-                val tiktokPath = if (domain.isNotEmpty() && hlsTiktok.startsWith("/hls/")) {
-                    hlsTiktok.replaceFirst("/hls/", "/hlsmod/$domain/")
-                } else hlsTiktok
-                val query = if (v.isNotEmpty()) "?v=$v" else ""
-                "$mainLink$tiktokPath$query" to mapOf("Referer" to mainLink)
-            }
+        val refererHeaders = mapOf("Referer" to mainLink)
+        val candidates = mutableListOf<StreamCandidate>()
 
-            !cfPath.isNullOrEmpty() && !cfPath!!.contains("skyforgeconcepts.shop") -> {
-
-                val pk = json.getAsJsonObject("pk")
-                val k = pk?.get("k")?.takeIf { !it.isJsonNull }?.asString
-                val kx = pk?.get("kx")?.takeIf { !it.isJsonNull }?.asString
-
-                if (!k.isNullOrEmpty() && !kx.isNullOrEmpty()) {
-                    cfPath = "$cfPath?k=$k&kx=$kx"
-                } else if (!cfExpire.isNullOrEmpty()) {
-                    val parts = cfExpire.split("::")
-                    if (parts.size >= 2) {
-                        cfPath = "$cfPath?t=${parts[0]}&e=${parts[1]}"
-                    }
-                }
-                
-                if (cfPath != null && cfPath!!.contains("?")) {
-                    val uri = android.net.Uri.parse(cfPath)
-                    TokenManager.latestQuery = uri.encodedQuery
-                    maintainToken = true
-                }
-                
-                cfPath to mapOf("Referer" to mainLink, "Origin" to mainLink)
-
-            }
-
-            !sourcePath.isNullOrEmpty() -> {
-                sourcePath to mapOf("Referer" to mainLink)
-            }
-            else -> throw Exception("Missing hls, hlsVideoTiktok, cf or source in response")
+        // Prefer in-house / Cloudflare-native mirrors. TikTok CDN playlists often
+        // advertise H.264 but serve placeholder PNG "segments" to app clients,
+        // which then fall through to broken hosts (e.g. AV1 MP4Upload → black screen).
+        if (!sourcePath.isNullOrEmpty()) {
+            candidates += StreamCandidate(sourcePath, refererHeaders)
         }
+        if (!cfNativePath.isNullOrEmpty()) {
+            candidates += StreamCandidate(cfNativePath, refererHeaders)
+        }
+        if (!hlsPath.isNullOrEmpty()) {
+            candidates += StreamCandidate("$mainLink$hlsPath", refererHeaders)
+        }
+
+        if (!cfPath.isNullOrEmpty() && !cfPath.contains("skyforgeconcepts.shop")) {
+            val pk = json.getAsJsonObject("pk")
+            val k = pk?.get("k")?.takeIf { !it.isJsonNull }?.asString
+            val kx = pk?.get("kx")?.takeIf { !it.isJsonNull }?.asString
+
+            if (!k.isNullOrEmpty() && !kx.isNullOrEmpty()) {
+                cfPath = "$cfPath?k=$k&kx=$kx"
+            } else if (!cfExpire.isNullOrEmpty()) {
+                val parts = cfExpire.split("::")
+                if (parts.size >= 2) {
+                    cfPath = "$cfPath?t=${parts[0]}&e=${parts[1]}"
+                }
+            }
+
+            var maintainToken = false
+            if (cfPath.contains("?")) {
+                val uri = android.net.Uri.parse(cfPath)
+                TokenManager.latestQuery = uri.encodedQuery
+                maintainToken = true
+            }
+
+            candidates += StreamCandidate(
+                url = cfPath,
+                headers = mapOf("Referer" to mainLink, "Origin" to mainLink),
+                maintainToken = maintainToken,
+            )
+        }
+
+        if (!hlsTiktok.isNullOrEmpty()) {
+            var v = ""
+            var domain = ""
+            try {
+                val configStr = json.get("streamingConfig")?.asString
+                if (!configStr.isNullOrEmpty()) {
+                    val config = JsonParser.parseString(configStr).asJsonObject
+                    val tiktok = config.getAsJsonObject("adjust")?.getAsJsonObject("Tiktok")
+                    v = tiktok?.getAsJsonObject("params")?.get("v")?.asString ?: ""
+                    domain = tiktok?.get("domain")?.asString ?: ""
+                }
+            } catch (_: Exception) {
+            }
+            val tiktokPath = if (domain.isNotEmpty() && hlsTiktok.startsWith("/hls/")) {
+                hlsTiktok.replaceFirst("/hls/", "/hlsmod/$domain/")
+            } else {
+                hlsTiktok
+            }
+            val query = if (v.isNotEmpty()) "?v=$v" else ""
+            candidates += StreamCandidate("$mainLink$tiktokPath$query", refererHeaders)
+        }
+
+        val selected = candidates.firstOrNull()
+            ?: throw Exception("Missing source, cfNative, hls, cf or hlsVideoTiktok in response")
 
         val defaultSub = json.getAsJsonObject("defaultSubtitle")
                                 ?.get("defaultSubtitle")?.asString?:""
@@ -165,12 +186,18 @@ class RpmvidExtractor : Extractor() {
                 )
             } ?: emptyList()
 
+        val mimeType = when {
+            selected.url.contains(".m3u8", ignoreCase = true) -> MimeTypes.APPLICATION_M3U8
+            selected.url.contains(".mp4", ignoreCase = true) -> MimeTypes.VIDEO_MP4
+            else -> MimeTypes.APPLICATION_M3U8
+        }
+
         return Video(
-            source = finalUrl,
+            source = selected.url,
             subtitles,
-            headers = headers,
-            type = MimeTypes.APPLICATION_M3U8,
-            maintainToken = maintainToken
+            headers = selected.headers,
+            type = mimeType,
+            maintainToken = selected.maintainToken
         )
     }
 
