@@ -234,6 +234,16 @@ class PlayerTvFragment : Fragment() {
             isSetupDone = true
         }
 
+        // Resume after transient pause/focus glitches (common on Fire TV / TV boxes).
+        // Mobile already does this; TV previously paused in onPause and never resumed.
+        if (::player.isInitialized && !player.isPlaying && player.playbackState != Player.STATE_IDLE) {
+            try {
+                player.play()
+            } catch (e: Exception) {
+                Log.w("Player", "play() on resume ignored", e)
+            }
+        }
+
         try {
             val filter = IntentFilter("ACTION_PLAYER_CHOSEN_TV")
             ContextCompat.registerReceiver(
@@ -388,16 +398,20 @@ class PlayerTvFragment : Fragment() {
                         }
 
                         is PlayerViewModel.State.LoadingVideo -> {
-                            player.setMediaItem(
-                                MediaItem.Builder()
-                                    .setUri("".toUri())
-                                    .setMediaMetadata(
-                                        MediaMetadata.Builder()
-                                            .setMediaServerId(state.server.id)
-                                            .build()
-                                    )
-                                    .build()
-                            )
+                            // Avoid clearing a playing stream to an empty URI when switching
+                            // servers mid-playback (causes a brief glitch then stalled pause).
+                            if (!::player.isInitialized || !player.isPlaying) {
+                                player.setMediaItem(
+                                    MediaItem.Builder()
+                                        .setUri("".toUri())
+                                        .setMediaMetadata(
+                                            MediaMetadata.Builder()
+                                                .setMediaServerId(state.server.id)
+                                                .build()
+                                        )
+                                        .build()
+                                )
+                            }
                         }
 
                         is PlayerViewModel.State.SuccessLoadingVideo -> {
@@ -602,7 +616,15 @@ class PlayerTvFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        // Do not pause ExoPlayer here. Brief onPause callbacks (overlays, WebView,
+        // system focus flashes) are common on Android TV / Fire TV and were pausing
+        // playback permanently because onResume never called play().
+        stopProgressHandler()
+        hideNextEpisodeOverlay()
+    }
 
+    override fun onStop() {
+        super.onStop()
         if (::player.isInitialized) {
             try {
                 player.pause()
@@ -610,9 +632,6 @@ class PlayerTvFragment : Fragment() {
                 Log.w("Player", "pause() ignored, player already released")
             }
         }
-
-        stopProgressHandler()
-        hideNextEpisodeOverlay()
     }
 
         override fun onDestroyView() {
@@ -1310,10 +1329,22 @@ class PlayerTvFragment : Fragment() {
                     super.onPlayerError(error)
                     Log.e("PlayerTvFragment", "onPlayerError: ", error)
 
+                    // Mid-playback fallback clears the media URI (LoadingVideo → "") which
+                    // looks like a glitch then pause. Only auto-try the next server before
+                    // playback has meaningfully started; otherwise surface the error.
+                    if (::player.isInitialized && player.hasStarted()) {
+                        val message = error.message ?: error.errorCodeName
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                        return
+                    }
+
                     val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
                     if (nextServer != null) {
                         Log.i("PlayerTvFragment", "Playback failed, trying next server: ${nextServer.name}")
                         viewModel.getVideo(nextServer)
+                    } else {
+                        val message = error.message ?: error.errorCodeName
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                     }
                 }
             })
@@ -1751,12 +1782,15 @@ class PlayerTvFragment : Fragment() {
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
             player = buildPlayer(extraBuffering).also { player ->
+                    // handleAudioFocus=false: Fire TV / cheap boxes often steal audio focus
+                    // briefly (system sounds, Alexa, HDMI-CEC), and Media3 would pause without
+                    // auto-resume — matching the reported "automatic pause" after a glitch.
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
                             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                             .build(),
-                        true,
+                        /* handleAudioFocus= */ false,
                     )
 
                     val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
@@ -1960,7 +1994,7 @@ class PlayerTvFragment : Fragment() {
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                         .build(),
-                    true,
+                    /* handleAudioFocus= */ false,
                 )
             }
 
