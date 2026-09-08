@@ -374,7 +374,13 @@
     <string name="settings_category_poseidon">Poseidonhd2-Einstellungen</string>
     <string name="settings_category_poseidon_domain">Poseidonhd2-Domainname</string>
     <string name="settings_scan_resolver_qr_title">TV-Bypass-QR scannen</string>
-    <string name="settings_scan_resolver_qr_summary">Öffne die Kamera und scanne den auf dem TV angezeigten QR-Code</string>
+    <string name="settings_scan_resolver_qr_summary">Nutze diesen StreamFlix-Scanner für den QR auf dem TV — die normale Handykamera öffnet oft Google statt der App</string>
+    <string name="player_bypass_qr_title">Captcha am Handy lösen</string>
+    <string name="player_bypass_qr_instructions">1. Öffne StreamFlix am Handy (gleiches WLAN wie der TV).\n2. Einstellungen → TV-Bypass-QR scannen (nicht nur die Systemkamera).\n3. Captcha lösen, dann Weiter tippen. Dieser Dialog schließt sich automatisch.</string>
+    <string name="player_bypass_qr_endpoint">TV-Endpunkt: %1$s</string>
+    <string name="player_bypass_qr_emulator_note">Emulator erkannt: Setze unter TV-Einstellungen „Bypass advertised host“ auf die LAN-IP deines PCs, damit das Handy dieses Gerät erreicht.</string>
+    <string name="player_bypass_retry_needed">Für diesen Titel ist weiterhin ein Captcha nötig. Scanne den QR erneut mit StreamFlix.</string>
+    <string name="player_bypass_no_lan_ip">Keine LAN-IP für den QR gefunden. Setze unter Einstellungen „Bypass advertised host“ (z. B. 192.168.x.x).</string>
     <string name="settings_scan_resolver_invalid_qr">Dieser QR-Code ist kein StreamFlix-Bypass-Link.</string>
     <string name="settings_scan_resolver_failed">QR-Scanner konnte auf diesem Gerät nicht gestartet werden.</string>
     <string name="settings_category_provider_url_manual">Manuell eingeben</string>

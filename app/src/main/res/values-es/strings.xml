@@ -260,7 +260,7 @@
     <string name="settings_category_network_title">Conexión y servicios</string>
     <string name="settings_screen_network_summary">DNS, bypass para TV y claves de servicios de subtitulos</string>
     <string name="settings_scan_resolver_qr_title">Escanear QR de bypass TV</string>
-    <string name="settings_scan_resolver_qr_summary">Abre la cámara y escanea el código QR mostrado en la TV</string>
+    <string name="settings_scan_resolver_qr_summary">Usa el escáner de StreamFlix para el QR de la TV — la cámara del sistema a menudo abre Google en lugar de la app</string>
     <string name="settings_scan_resolver_invalid_qr">Este código QR no es un enlace de bypass de StreamFlix.</string>
     <string name="settings_scan_resolver_failed">No se pudo iniciar el escáner QR en este dispositivo.</string>
     <string name="settings_scan_resolver_camera_permission_denied">Se necesita permiso de la cámara para escanear el codigo QR.</string>

@@ -389,7 +389,7 @@
     <string name="settings_category_poseidon">Impostazioni Poseidonhd2</string>
     <string name="settings_category_poseidon_domain">Nome di dominio Poseidonhd2</string>
     <string name="settings_scan_resolver_qr_title">Scansiona QR bypass TV</string>
-    <string name="settings_scan_resolver_qr_summary">Apri la fotocamera e scansiona il codice QR mostrato sulla TV</string>
+    <string name="settings_scan_resolver_qr_summary">Usa lo scanner StreamFlix per il QR sulla TV — la fotocamera di sistema spesso apre Google invece dell\'app</string>
     <string name="settings_scan_resolver_invalid_qr">Questo codice QR non è un link di bypass StreamFlix.</string>
     <string name="settings_scan_resolver_failed">Impossibile avviare lo scanner QR su questo dispositivo.</string>
     <string name="settings_category_provider_url_manual">Inserisci manualmente</string>

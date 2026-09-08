@@ -726,7 +726,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 networkSettingsCategory.title = originalTitle
             }
 
-            if (BuildConfig.DEBUG && findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST") == null) {
+            // Available in release too: some TV sticks report a non-LAN IP (VPN/docker),
+            // so users need to set the phone-reachable address manually.
+            if (findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST") == null) {
                 val hostPreference = EditTextPreference(requireContext()).apply {
                     key = "BYPASS_WS_ADVERTISED_HOST"
                     title = "Bypass advertised host"
