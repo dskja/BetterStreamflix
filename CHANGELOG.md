@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Pulse
+
+### Pulse interface
+- New default **Pulse** design system: charcoal surfaces, amber→orange CTA gradient, soft glass panels
+- Peacock-style featured **Hero Card** with under-glow and gradient Watch Now button
+- Floating pill bottom navigation on mobile
+- Redesigned home chrome (avatar greeting + category pills)
+- Provider picker/marketplace cards aligned to Pulse (glass tiles, accent initials)
+- Default theme label renamed from Arc → Pulse
+
 ## v2.0.0 — Arc
 
 ### Arc interface
