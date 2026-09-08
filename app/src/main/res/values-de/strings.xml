@@ -61,6 +61,7 @@
     <string name="option_show_mark_all_previous_unwatched">Bis hier als Ungesehen markieren</string>
     <string name="option_show_unwatched">Als Ungesehen markieren</string>
     <string name="option_clear_program">Aus Weiterschauen entfernen</string>
+    <string name="option_clear_recently_watched">Aus Zuletzt angesehen entfernen</string>
     <string name="option_cancel">Abbrechen</string>
 
     <string name="episode_item_info">S%d E%d • %s</string>
@@ -334,6 +335,16 @@
     <string name="error_dialog_no_cause">Keine Ursache</string>
     <string name="player_settings_gestures_title">Gesten</string>
     <string name="player_settings_keep_screen_on_title">Bildschirm bei Pause anlassen</string>
+
+    <string name="settings_category_home_library">Startbildschirm-Bibliothek</string>
+    <string name="settings_show_continue_watching_title">Weiterschauen anzeigen</string>
+    <string name="settings_show_continue_watching_summary">Die Weiterschauen-Zeile auf dem Startbildschirm anzeigen</string>
+    <string name="settings_show_recently_watched_title">Zuletzt angesehen anzeigen</string>
+    <string name="settings_show_recently_watched_summary">Die Zuletzt-angesehen-Zeile auf dem Startbildschirm anzeigen</string>
+    <string name="settings_clear_recently_watched_title">Zuletzt angesehen leeren</string>
+    <string name="settings_clear_recently_watched_summary">Alle Einträge aus Zuletzt angesehen entfernen</string>
+    <string name="settings_clear_recently_watched_confirm_message">Alle Einträge aus Zuletzt angesehen löschen? Das kann nicht rückgängig gemacht werden.</string>
+    <string name="settings_clear_recently_watched_toast">Zuletzt angesehen geleert</string>
 
     <string name="settings_category_tmdb">TMDb-Einstellungen</string>
     <string name="settings_tmdb_api_key">Eigener TMDb API-Key</string>

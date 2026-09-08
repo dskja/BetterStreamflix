@@ -62,6 +62,7 @@
     <string name="option_show_mark_all_previous_unwatched">Segna come non visto fino a qui</string>
     <string name="option_show_unwatched">Segna come non visto</string>
     <string name="option_clear_program">Rimuovi da Continua a Guardare</string>
+    <string name="option_clear_recently_watched">Rimuovi da Visti di recente</string>
     <string name="option_cancel">Annulla</string>
 
     <string name="episode_item_info">S%d E%d • %s</string>
@@ -366,6 +367,16 @@
     <string name="settings_theme_title">Tema dell\'app</string>
     <string name="player_settings_gestures_title">Gesture</string>
     <string name="player_settings_keep_screen_on_title">Schermo attivo in pausa</string>
+
+    <string name="settings_category_home_library">Libreria home</string>
+    <string name="settings_show_continue_watching_title">Mostra Continua a guardare</string>
+    <string name="settings_show_continue_watching_summary">Mostra la riga Continua a guardare nella schermata home</string>
+    <string name="settings_show_recently_watched_title">Mostra Visti di recente</string>
+    <string name="settings_show_recently_watched_summary">Mostra la riga Visti di recente nella schermata home</string>
+    <string name="settings_clear_recently_watched_title">Svuota Visti di recente</string>
+    <string name="settings_clear_recently_watched_summary">Rimuovi tutte le voci da Visti di recente</string>
+    <string name="settings_clear_recently_watched_confirm_message">Svuotare tutte le voci di Visti di recente? L\'operazione non può essere annullata.</string>
+    <string name="settings_clear_recently_watched_toast">Visti di recente svuotati</string>
 
     <string name="settings_category_tmdb">Impostazioni TMDb</string>
     <string name="settings_tmdb_api_key">API Key TMDb personalizzata</string>

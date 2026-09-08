@@ -70,6 +70,7 @@
     <string name="option_show_mark_all_previous_unwatched">Marcar como no visto hasta aquí</string>
     <string name="option_show_unwatched">Marcar como no visto</string>
     <string name="option_clear_program">Quitar de continuar viendo</string>
+    <string name="option_clear_recently_watched">Quitar de Vistos recientemente</string>
     <string name="option_cancel">Cancelar</string>
 
     <string name="episode_item_info">T%d E%d • %s</string>
@@ -426,6 +427,16 @@
     <string name="settings_app_language_italian">Italiano</string>
     <string name="player_settings_gestures_title">Gestos</string>
     <string name="player_settings_keep_screen_on_title">Mantener pantalla encendida en pausa</string>
+
+    <string name="settings_category_home_library">Biblioteca de inicio</string>
+    <string name="settings_show_continue_watching_title">Mostrar Seguir viendo</string>
+    <string name="settings_show_continue_watching_summary">Mostrar la fila Seguir viendo en la pantalla de inicio</string>
+    <string name="settings_show_recently_watched_title">Mostrar Vistos recientemente</string>
+    <string name="settings_show_recently_watched_summary">Mostrar la fila Vistos recientemente en la pantalla de inicio</string>
+    <string name="settings_clear_recently_watched_title">Vaciar Vistos recientemente</string>
+    <string name="settings_clear_recently_watched_summary">Eliminar todas las entradas de Vistos recientemente</string>
+    <string name="settings_clear_recently_watched_confirm_message">¿Vaciar todas las entradas de Vistos recientemente? Esta acción no se puede deshacer.</string>
+    <string name="settings_clear_recently_watched_toast">Vistos recientemente vaciado</string>
 
     <string name="settings_category_tmdb">Ajustes de TMDB</string>
     <string name="settings_tmdb_api_key">Clave API de TMDB personalizada</string>

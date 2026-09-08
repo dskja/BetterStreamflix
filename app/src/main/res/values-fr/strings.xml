@@ -60,6 +60,7 @@
     <string name="option_show_mark_all_previous_unwatched">Marquer comme non vu jusqu\'ici</string>
     <string name="option_show_unwatched">Marquer comme non vu</string>
     <string name="option_clear_program">Retirer de Continuer à regarder</string>
+    <string name="option_clear_recently_watched">Retirer de Regardés récemment</string>
     <string name="option_cancel">Annuler</string>
 
     <string name="episode_item_info">S%d E%d • %s</string>
@@ -367,6 +368,16 @@
     <string name="settings_theme_title">Thème de l\'application</string>
     <string name="player_settings_gestures_title">Contrôles tactiles</string>
     <string name="player_settings_keep_screen_on_title">Écran actif en pause</string>
+
+    <string name="settings_category_home_library">Bibliothèque d\'accueil</string>
+    <string name="settings_show_continue_watching_title">Afficher Continuer à regarder</string>
+    <string name="settings_show_continue_watching_summary">Afficher la rangée Continuer à regarder sur l\'écran d\'accueil</string>
+    <string name="settings_show_recently_watched_title">Afficher Regardés récemment</string>
+    <string name="settings_show_recently_watched_summary">Afficher la rangée Regardés récemment sur l\'écran d\'accueil</string>
+    <string name="settings_clear_recently_watched_title">Vider Regardés récemment</string>
+    <string name="settings_clear_recently_watched_summary">Supprimer toutes les entrées de Regardés récemment</string>
+    <string name="settings_clear_recently_watched_confirm_message">Vider toutes les entrées de Regardés récemment ? Cette action est irréversible.</string>
+    <string name="settings_clear_recently_watched_toast">Regardés récemment vidé</string>
 
     <string name="settings_category_tmdb">Paramètres TMDb</string>
     <string name="settings_tmdb_api_key">Clé API TMDb personnalisée</string>

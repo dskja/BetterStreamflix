@@ -186,6 +186,20 @@ object UserPreferences {
             }
         }
 
+    /** When false, Home hides the Continue Watching row. */
+    var showContinueWatching: Boolean
+        get() = Key.SHOW_CONTINUE_WATCHING.getBoolean() ?: true
+        set(value) {
+            Key.SHOW_CONTINUE_WATCHING.setBoolean(value)
+        }
+
+    /** When false, Home hides the Recently Watched row. */
+    var showRecentlyWatched: Boolean
+        get() = Key.SHOW_RECENTLY_WATCHED.getBoolean() ?: true
+        set(value) {
+            Key.SHOW_RECENTLY_WATCHED.setBoolean(value)
+        }
+
     var parentalControlPin: String
         get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
         set(value) {
@@ -556,6 +570,8 @@ object UserPreferences {
         AUTOPLAY_BUFFER,
         SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
+        SHOW_CONTINUE_WATCHING,
+        SHOW_RECENTLY_WATCHED,
         PARENTAL_CONTROL_PIN,
         PARENTAL_CONTROL_ADMIN_PIN,
         PARENTAL_CONTROL_MAX_AGE,

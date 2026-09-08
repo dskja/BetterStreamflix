@@ -277,12 +277,12 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                                     else -> null
                                 }
                             },
-                    ),
+                    ).takeIf { UserPreferences.showContinueWatching },
 
                     Category(
                         name = Category.RECENTLY_WATCHED,
                         list = history.recentlyWatched,
-                    ),
+                    ).takeIf { UserPreferences.showRecentlyWatched },
 
                     // FAVORITES
                     Category(

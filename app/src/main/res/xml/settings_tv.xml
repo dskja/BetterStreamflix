@@ -25,6 +25,28 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_home_library_settings"
+            android:title="@string/settings_category_home_library">
+
+            <SwitchPreferenceCompat
+                android:key="SHOW_CONTINUE_WATCHING"
+                android:title="@string/settings_show_continue_watching_title"
+                android:summary="@string/settings_show_continue_watching_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="SHOW_RECENTLY_WATCHED"
+                android:title="@string/settings_show_recently_watched_title"
+                android:summary="@string/settings_show_recently_watched_summary"
+                android:defaultValue="true" />
+
+            <Preference
+                android:key="CLEAR_RECENTLY_WATCHED"
+                android:title="@string/settings_clear_recently_watched_title"
+                android:summary="@string/settings_clear_recently_watched_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_parental_control_settings"
             android:title="@string/settings_category_parental_control">
 
