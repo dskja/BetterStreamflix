@@ -1,52 +1,53 @@
 package com.streamflixreborn.streamflix.providers
 
 import android.util.Base64
-import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.extractors.Extractor
-import com.streamflixreborn.streamflix.models.*
-import com.streamflixreborn.streamflix.models.doramasflix.ApiResponse
-import com.streamflixreborn.streamflix.models.doramasflix.TokenModel
-import com.streamflixreborn.streamflix.models.doramasflix.VideoToken
-import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.models.Category
+import com.streamflixreborn.streamflix.models.Episode
+import com.streamflixreborn.streamflix.models.Genre
+import com.streamflixreborn.streamflix.models.Movie
+import com.streamflixreborn.streamflix.models.People
+import com.streamflixreborn.streamflix.models.Season
+import com.streamflixreborn.streamflix.models.Show
+import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.NetworkClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import okhttp3.Cache
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Headers
-import retrofit2.http.POST
 import retrofit2.http.Url
-import java.io.File
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 object DoramasflixProvider : Provider {
 
     override val name = "Doramasflix"
     override val baseUrl = "https://doramasflix.in"
-    private const val apiUrl = "https://sv1.fluxcedene.net/api/"
     override val language = "es"
+    override val logo: String =
+        "https://assets.seriesapi.co/brands/doramasflix/websites/6a651fa138cbd16df74343be/logo/logo-1785013866419.png"
 
-    private val client = getOkHttpClient()
+    private const val ACTION_GET_MOVIES = "c0ca8d9c46e61791ede8543b5de57b3fce2522bae2"
+    private const val ACTION_GET_PAGINATION_DORAMAS = "c05872141d5f29f0089a4c629adc4889fdcf5f84e3"
+    private const val ACTION_GET_EPISODE_LINKS = "4042b6ff7262141961145bdab7008e4c92323e054d"
+    private const val ACTION_GET_MOVIE_LINKS = "40a81e120660afa2566d1235e6a4c05b1114d87a48"
+    private const val ACTION_GET_EPISODES_PAGINATION = "40c389f001a72f0eb6ae05c14b824cb0d8d17926c5"
 
-    private val service = Retrofit.Builder()
-        .baseUrl(apiUrl)
-        .addConverterFactory(GsonConverterFactory.create(Gson()))
-        .client(client)
-        .build()
-        .create(DoramasflixService::class.java)
+    private val client = NetworkClient.default
 
     private val serviceHtml = Retrofit.Builder()
         .baseUrl(baseUrl)
@@ -54,19 +55,6 @@ object DoramasflixProvider : Provider {
         .client(client)
         .build()
         .create(DoramasflixService::class.java)
-
-    private fun getOkHttpClient(): OkHttpClient {
-        val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-
-        val clientBuilder = OkHttpClient.Builder()
-            .cache(appCache)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .connectTimeout(30, TimeUnit.SECONDS)
-
-        return clientBuilder.dns(DnsResolver.doh).build()
-    }
-
-    private const val accessPlatform = "RxARncfg1S_MdpSrCvreoLu_SikCGMzE1NzQzODc3NjE2MQ=="
 
     private val languages = arrayOf(
         Pair("36", "[ENG]"),
@@ -88,29 +76,167 @@ object DoramasflixProvider : Provider {
     }
 
     private interface DoramasflixService {
-        @POST("gql")
-        @Headers(
-            "accept: application/json, text/plain, */*",
-            "platform: doramasflix",
-            "authorization: Bear",
-            "x-access-jwt-token: ",
-            "x-access-platform: $accessPlatform"
-        )
-        suspend fun getApiResponse(@Body body: okhttp3.RequestBody): ApiResponse
-
         @GET
         suspend fun getPage(@Url url: String): Document
-
-        @POST
-        @Headers("Content-Type: application/json")
-        suspend fun postApi(@Url url: String, @Body body: okhttp3.RequestBody): VideoToken
     }
 
-    private fun getPosterUrl(path: String?): String {
-        return if (path?.startsWith("http") == true) {
-            path
-        } else {
-            "https://image.tmdb.org/t/p/w500$path"
+    private fun getPosterUrl(path: String?): String? {
+        if (path.isNullOrBlank()) return null
+        return if (path.startsWith("http")) path else "https://image.tmdb.org/t/p/w500$path"
+    }
+
+    private fun absoluteUrl(pathOrUrl: String): String {
+        return if (pathOrUrl.startsWith("http")) pathOrUrl else "$baseUrl/${pathOrUrl.removePrefix("/")}"
+    }
+
+    private fun pagePath(id: String): String {
+        return id.removePrefix(baseUrl).removePrefix("/")
+    }
+
+    /**
+     * Call a Next.js server action on doramasflix.in.
+     * The site moved off Pages Router (__NEXT_DATA__) / public GraphQL (Cloudflare 403)
+     * to App Router server actions for catalogs and stream links.
+     */
+    private suspend fun callServerAction(
+        path: String,
+        actionId: String,
+        payload: JsonObject,
+    ): JsonElement? = withContext(Dispatchers.IO) {
+        val url = absoluteUrl(path)
+        val body = JsonArray().apply { add(payload) }.toString()
+            .toRequestBody("text/plain;charset=UTF-8".toMediaType())
+        val request = Request.Builder()
+            .url(url)
+            .post(body)
+            .header("Accept", "text/x-component")
+            .header("Next-Action", actionId)
+            .header("Origin", baseUrl)
+            .header("Referer", url)
+            .header("Content-Type", "text/plain;charset=UTF-8")
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return@withContext null
+            val text = response.body?.string().orEmpty()
+            parseServerActionPayload(text)
+        }
+    }
+
+    private fun parseServerActionPayload(text: String): JsonElement? {
+        // Next flight response: "0:{...}\n1:<json>"
+        val line = text.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.startsWith("1:") }
+            ?: return null
+        return try {
+            JsonParser.parseString(line.removePrefix("1:"))
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun Document.htmlSource(): String = this.outerHtml()
+
+    private fun extractJsonLd(document: Document, type: String): JsonObject? {
+        for (script in document.select("script[type=application/ld+json]")) {
+            try {
+                val element = JsonParser.parseString(script.data())
+                if (element.isJsonObject) {
+                    val obj = element.asJsonObject
+                    if (obj.get("@type")?.asString == type) return obj
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return null
+    }
+
+    private fun extractRegexGroup(source: String, regex: Regex): String? {
+        return regex.find(source)?.groupValues?.getOrNull(1)
+    }
+
+    /** Match keys inside Next.js RSC flight payloads (quotes are often escaped). */
+    private fun extractRscString(source: String, key: String): String? {
+        val pattern = Regex("""\\?"$key\\?"\s*:\s*\\?"((?:\\\\.|[^"\\])*)\\?""" + "\"")
+        return extractRegexGroup(source, pattern)?.replace("\\\"", "\"")?.replace("\\\\", "\\")
+    }
+
+    private fun extractRscObjectId(source: String, objectKey: String): String? {
+        val pattern = Regex(
+            """\\?"$objectKey\\?"\s*:\s*\\?\{\s*\\?"_id\\?"\s*:\s*\\?"([a-f0-9]{24})\\?""" + "\""
+        )
+        return extractRegexGroup(source, pattern)
+    }
+
+    private fun parseShowCards(document: Document, hrefContains: String): List<Show> {
+        val seen = linkedSetOf<String>()
+        val shows = mutableListOf<Show>()
+        for (anchor in document.select("article a[href*=/$hrefContains/], a[href*=/$hrefContains/]")) {
+            val href = anchor.attr("href").substringBefore("?").trim()
+            if (!href.contains("/$hrefContains/") || href.count { it == '/' } < 2) continue
+            val path = href.removePrefix(baseUrl).removePrefix("/")
+            if (!seen.add(path)) continue
+            val img = anchor.selectFirst("img")
+            val title = img?.attr("alt")?.ifBlank { null }
+                ?: anchor.attr("aria-label").removePrefix("Ver ").ifBlank { null }
+                ?: path.substringAfterLast('/')
+            val poster = img?.attr("src")?.ifBlank { null } ?: img?.attr("data-src")
+            val show = if (hrefContains == "peliculas-online") {
+                Movie(id = path, title = title, poster = poster)
+            } else {
+                TvShow(id = path, title = title, poster = poster)
+            }
+            shows.add(show)
+        }
+        return shows
+    }
+
+    private fun movieFromActionItem(item: JsonObject): Movie {
+        val slug = item.get("slug")?.asString.orEmpty()
+        val name = item.get("name")?.asString.orEmpty()
+        val nameEs = item.get("name_es")?.asString
+        return Movie(
+            id = "peliculas-online/$slug",
+            title = listOfNotNull(name, nameEs?.takeIf { it.isNotBlank() && it != name })
+                .joinToString(" (").let { if (it.contains("(")) "$it)" else it },
+            poster = getPosterUrl(item.get("poster_path")?.asString ?: item.get("poster")?.asString),
+        )
+    }
+
+    private fun doramaFromActionItem(item: JsonObject): TvShow {
+        val slug = item.get("slug")?.asString.orEmpty()
+        val name = item.get("name")?.asString.orEmpty()
+        val nameEs = item.get("name_es")?.asString
+        return TvShow(
+            id = "doramas-online/$slug",
+            title = listOfNotNull(name, nameEs?.takeIf { it.isNotBlank() && it != name })
+                .joinToString(" (").let { if (it.contains("(")) "$it)" else it },
+            poster = getPosterUrl(item.get("poster_path")?.asString ?: item.get("poster")?.asString),
+        )
+    }
+
+    private fun unwrapEmbedShortener(link: String): String {
+        if (!link.contains("embedshortener.co/e/")) return link
+        return try {
+            val token = link.substringAfter("/e/").substringBefore("?").substringBefore("#")
+            val payload = token.split(".").getOrNull(1) ?: return link
+            val padded = payload + "=".repeat((4 - payload.length % 4) % 4)
+            val json = String(Base64.decode(padded, Base64.URL_SAFE or Base64.NO_WRAP), StandardCharsets.UTF_8)
+            val innerB64 = JsonParser.parseString(json).asJsonObject.get("link")?.asString ?: return link
+            val innerPadded = innerB64 + "=".repeat((4 - innerB64.length % 4) % 4)
+            String(Base64.decode(innerPadded, Base64.URL_SAFE or Base64.NO_WRAP), StandardCharsets.UTF_8)
+        } catch (_: Exception) {
+            link
+        }
+    }
+
+    private fun serverNameFromUrl(url: String): String {
+        return try {
+            URL(url).host.split(".").first { it != "www" && it.isNotBlank() }
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        } catch (_: Exception) {
+            "Server"
         }
     }
 
@@ -122,36 +248,17 @@ object DoramasflixProvider : Provider {
                 val popularMoviesDeferred = async { getMovies(1) }
 
                 val homeDocument = homeDeferred.await()
-                val bannerShows = homeDocument.select("article.styles__Article-nxyw6x-3").mapNotNull { element ->
-                    val href = element.selectFirst("div.styles__Buttons-sc-78uayx-17 a")?.attr("href") ?: return@mapNotNull null
-                    val bannerUrl = element.selectFirst("noscript img")?.attr("src")
-                    val title = element.selectFirst("h2.styles__Title-sc-78uayx-1")?.text() ?: return@mapNotNull null
-
-                    val id = href.removePrefix("/")
-
-                    if (href.contains("/peliculas-online/")) {
-                        Movie(
-                            id = id,
-                            title = title,
-                            banner = getPosterUrl(bannerUrl)
-                        )
-                    } else {
-                        TvShow(
-                            id = id,
-                            title = title,
-                            banner = getPosterUrl(bannerUrl)
-                        )
-                    }
+                val bannerShows = parseShowCards(homeDocument, "doramas-online").take(12).ifEmpty {
+                    parseShowCards(homeDocument, "peliculas-online").take(12)
                 }
 
-                val categories = mutableListOf(
+                listOf(
                     Category(name = Category.FEATURED, list = bannerShows),
                     Category(name = "Doramas Populares", list = popularDoramasDeferred.await()),
-                    Category(name = "Películas Populares", list = popularMoviesDeferred.await())
+                    Category(name = "Películas Populares", list = popularMoviesDeferred.await()),
                 )
-                categories
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -161,105 +268,110 @@ object DoramasflixProvider : Provider {
             return listOf(
                 Genre("doramas", "Doramas"),
                 Genre("peliculas", "Películas"),
-                Genre("variedades", "Variedades")
+                Genre("variedades", "Variedades"),
             )
         }
 
-        val searchQuery = """
-            {"operationName":"searchAll","variables":{"input":"$query"},"query":"query searchAll(${'$'}input: String!) {\n  searchDorama(input: ${'$'}input, limit: 32) {\n    _id\n    slug\n    name\n    name_es\n    poster_path\n    poster\n    __typename\n  }\n  searchMovie(input: ${'$'}input, limit: 32) {\n    _id\n    name\n    name_es\n    slug\n    poster_path\n    poster\n    __typename\n  }\n}\n"}
-        """.trimIndent()
-        val body = searchQuery.toRequestBody("application/json".toMediaType())
-
         return try {
-            val response = service.getApiResponse(body)
+            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+            val document = serviceHtml.getPage("$baseUrl/buscar?q=$encoded&page=$page")
             val results = mutableListOf<AppAdapter.Item>()
-
-            response.data?.searchDorama?.forEach { show ->
-                results.add(
-                    TvShow(
-                        id = "doramas-online/${show.slug}",
-                        title = "${show.name} (${show.nameEs ?: ""})".trim(),
-                        poster = getPosterUrl(show.posterPath ?: show.poster)
-                    )
-                )
-            }
-
-            response.data?.searchMovie?.forEach { show ->
-                results.add(
-                    Movie(
-                        id = "peliculas-online/${show.slug}",
-                        title = "${show.name} (${show.nameEs ?: ""})".trim(),
-                        poster = getPosterUrl(show.posterPath ?: show.poster)
-                    )
-                )
-            }
-
+            results += parseShowCards(document, "doramas-online")
+            results += parseShowCards(document, "peliculas-online")
             results
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        val query = """
-            {"operationName":"listMovies","variables":{"perPage":20,"sort":"POPULARITY_DESC","filter":{},"page":$page},"query":"query listMovies(${'$'}page: Int, ${'$'}perPage: Int, ${'$'}sort: SortFindManyMovieInput, ${'$'}filter: FilterFindManyMovieInput) {\n  paginationMovie(page: ${'$'}page, perPage: ${'$'}perPage, sort: ${'$'}sort, filter: ${'$'}filter) {\n    items {\n      _id\n      name\n      name_es\n      slug\n      poster_path\n      poster\n      __typename\n    }\n  }\n}\n"}
-        """.trimIndent()
-        val body = query.toRequestBody("application/json".toMediaType())
-
         return try {
-            val response = service.getApiResponse(body)
-            response.data?.paginationMovie?.items?.map {
-                Movie(
-                    id = "peliculas-online/${it.slug}",
-                    title = "${it.name} (${it.nameEs ?: ""})".trim(),
-                    poster = getPosterUrl(it.posterPath ?: it.poster)
-                )
-            } ?: emptyList()
-        } catch (e: Exception) {
+            val payload = JsonObject().apply {
+                addProperty("page", page)
+                addProperty("limit", 20)
+                addProperty("sort", "POPULARITY_DESC")
+                addProperty("brandHost", "doramasflix.in")
+            }
+            val element = callServerAction("peliculas-online", ACTION_GET_MOVIES, payload)
+            when {
+                element == null || !element.isJsonArray -> {
+                    if (page == 1) {
+                        parseShowCards(serviceHtml.getPage("$baseUrl/peliculas-online"), "peliculas-online")
+                            .filterIsInstance<Movie>()
+                    } else emptyList()
+                }
+                else -> element.asJsonArray.mapNotNull {
+                    runCatching { movieFromActionItem(it.asJsonObject) }.getOrNull()
+                }
+            }
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val query = """
-            {"operationName":"listDoramas","variables":{"page":$page,"sort":"POPULARITY_DESC","perPage":20,"filter":{"isTVShow":false}},"query":"query listDoramas(${'$'}page: Int, ${'$'}perPage: Int, ${'$'}sort: SortFindManyDoramaInput, ${'$'}filter: FilterFindManyDoramaInput) {\n  paginationDorama(page: ${'$'}page, perPage: ${'$'}perPage, sort: ${'$'}sort, filter: ${'$'}filter) {\n    items {\n      _id\n      name\n      name_es\n      slug\n      poster_path\n      poster\n      __typename\n    }\n  }\n}\n"}
-        """.trimIndent()
-        val body = query.toRequestBody("application/json".toMediaType())
-
         return try {
-            val response = service.getApiResponse(body)
-            response.data?.paginationDorama?.items?.map {
-                TvShow(
-                    id = "doramas-online/${it.slug}",
-                    title = "${it.name} (${it.nameEs ?: ""})".trim(),
-                    poster = getPosterUrl(it.posterPath ?: it.poster)
-                )
-            } ?: emptyList()
-        } catch (e: Exception) {
+            val payload = JsonObject().apply {
+                addProperty("page", page)
+                addProperty("limit", 20)
+                addProperty("sort", "POPULARITY_DESC")
+                add("filter", JsonObject().apply { addProperty("isTVShow", false) })
+                addProperty("brandHost", "doramasflix.in")
+            }
+            val element = callServerAction("doramas-online", ACTION_GET_PAGINATION_DORAMAS, payload)
+            val items = when {
+                element == null -> null
+                element.isJsonObject -> element.asJsonObject.getAsJsonArray("items")
+                element.isJsonArray -> element.asJsonArray
+                else -> null
+            }
+            when {
+                items == null -> {
+                    if (page == 1) {
+                        parseShowCards(serviceHtml.getPage("$baseUrl/doramas-online"), "doramas-online")
+                            .filterIsInstance<TvShow>()
+                    } else emptyList()
+                }
+                else -> items.mapNotNull {
+                    runCatching { doramaFromActionItem(it.asJsonObject) }.getOrNull()
+                }
+            }
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     override suspend fun getMovie(id: String): Movie {
         return try {
-            val url = if (id.startsWith("http")) id else "$baseUrl/$id"
-            val document = serviceHtml.getPage(url)
-            val script = document.selectFirst("script#__NEXT_DATA__")?.data()
-                ?: throw Exception("No se pudo encontrar el script de datos.")
+            val path = pagePath(id)
+            val document = serviceHtml.getPage(absoluteUrl(path))
+            val source = document.htmlSource()
 
-            val jsonObject = JsonParser.parseString(script).asJsonObject
-            val apolloState = jsonObject.getAsJsonObject("props")
-                .getAsJsonObject("pageProps")
-                .getAsJsonObject("apolloState")
+            val ld = extractJsonLd(document, "Movie")
+            val movieId = extractRscObjectId(source, "movie")
+            val name = ld?.get("name")?.asString
+            val nameEs = ld?.get("alternateName")?.asString
+            val overview = ld?.get("description")?.asString
+            val poster = ld?.get("image")?.asString
+                ?: extractRegexGroup(
+                    source,
+                    Regex("""\\?"poster_path\\?"\s*:\s*\\?"(/[^"\\]+)\\?""" + "\""),
+                )?.let { getPosterUrl(it) }
 
-            val movieData = apolloState.entrySet().firstOrNull { (key, _) -> key.startsWith("Movie:") }?.value?.asJsonObject
-                ?: throw Exception("No se encontraron datos de la película en el JSON.")
+            if (name.isNullOrBlank() && movieId == null && ld == null) {
+                throw Exception("No se pudo encontrar el script de datos.")
+            }
 
+            val titleName = name.orEmpty()
             Movie(
-                id = movieData.get("_id").asString,
-                title = "${movieData.get("name").asString} (${movieData.get("name_es")?.asString ?: ""})".trim(),
-                overview = movieData.get("overview")?.asString,
-                poster = getPosterUrl(movieData.get("poster_path")?.asString ?: movieData.get("poster")?.asString),
+                id = path,
+                title = listOfNotNull(
+                    titleName.takeIf { it.isNotBlank() },
+                    nameEs?.takeIf { it.isNotBlank() && it != titleName },
+                ).joinToString(" (").let { if (it.contains("(")) "$it)" else it }
+                    .ifBlank { path.substringAfterLast('/') },
+                overview = overview,
+                poster = poster,
             )
         } catch (e: Exception) {
             throw Exception("No se pudieron cargar los detalles de la película: ${e.message}")
@@ -268,42 +380,70 @@ object DoramasflixProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         return try {
-            val url = if (id.startsWith("http")) id else "$baseUrl/$id"
-            val document = serviceHtml.getPage(url)
-            val script = document.selectFirst("script#__NEXT_DATA__")?.data()
-                ?: throw Exception("No se pudo encontrar el script de datos.")
+            val path = pagePath(id)
+            val document = serviceHtml.getPage(absoluteUrl(path))
+            val source = document.htmlSource()
+            val ld = extractJsonLd(document, "TVSeries")
 
-            val jsonObject = JsonParser.parseString(script).asJsonObject
-            val apolloState = jsonObject.getAsJsonObject("props")
-                .getAsJsonObject("pageProps")
-                .getAsJsonObject("apolloState")
-
-            val doramaData = apolloState.entrySet().firstOrNull { (key, _) -> key.startsWith("Dorama:") || key.startsWith("Movie:") }?.value?.asJsonObject
-                ?: throw Exception("No se encontraron datos del dorama en el JSON.")
-
-            val doramaId = doramaData.get("_id").asString
-
-            val seasonQuery = """
-                {"operationName":"listSeasons","variables":{"serie_id":"$doramaId"},"query":"query listSeasons(${'$'}serie_id: MongoID!) {\n  listSeasons(sort: NUMBER_ASC, filter: {serie_id: ${'$'}serie_id}) {\n    slug\n    season_number\n    poster_path\n    __typename\n  }\n}\n"}
-            """.trimIndent()
-            val seasonBody = seasonQuery.toRequestBody("application/json".toMediaType())
-            val seasonResponse = service.getApiResponse(seasonBody)
-
-            val seasons = seasonResponse.data?.listSeasons?.map {
-                Season(
-                    id = "$doramaId/${it.seasonNumber}",
-                    number = it.seasonNumber,
-                    title = "Temporada ${it.seasonNumber}",
-                    poster = getPosterUrl(it.posterPath)
+            val serieId = extractRscString(source, "serie_id")
+                ?.takeIf { it.matches(Regex("[a-f0-9]{24}")) }
+                ?: extractRegexGroup(
+                    source,
+                    Regex("""\\?"serie_id\\?"\s*:\s*\\?"([a-f0-9]{24})\\?""" + "\""),
                 )
-            } ?: emptyList()
+
+            val name = ld?.get("name")?.asString
+                ?: extractRegexGroup(
+                    source,
+                    Regex("""<meta property="og:title" content="([^"]+)">"""),
+                )
+                    ?.substringBefore(" ⚜️")
+                    ?.substringBefore(" |")
+                    .orEmpty()
+            val nameEs = ld?.get("alternateName")?.asString
+            val overview = ld?.get("description")?.asString
+            val poster = ld?.get("image")?.asString
+                ?: document.selectFirst("meta[property=og:image]")?.attr("content")
+
+            val seasons = Regex(
+                """\\?"seasons\\?"\s*:\s*\[((?:\\?\{[^]]*?\},?\s*)+)\]"""
+            ).find(source)?.groupValues?.getOrNull(1)?.let { seasonsRaw ->
+                Regex("""\\?"season_number\\?"\s*:\s*(\d+)""")
+                    .findAll(seasonsRaw)
+                    .mapNotNull { it.groupValues.getOrNull(1)?.toIntOrNull() }
+                    .distinct()
+                    .sorted()
+                    .map { number ->
+                        Season(
+                            id = "${serieId ?: path}/$number",
+                            number = number,
+                            title = "Temporada $number",
+                        )
+                    }
+                    .toList()
+            }.orEmpty().ifEmpty {
+                listOf(
+                    Season(
+                        id = "${serieId ?: path}/1",
+                        number = 1,
+                        title = "Temporada 1",
+                    )
+                )
+            }
+
+            if (name.isBlank() && serieId == null && ld == null) {
+                throw Exception("No se pudo encontrar el script de datos.")
+            }
 
             TvShow(
-                id = doramaId,
-                title = "${doramaData.get("name").asString} (${doramaData.get("name_es")?.asString ?: ""})".trim(),
-                overview = doramaData.get("overview")?.asString,
-                poster = getPosterUrl(doramaData.get("poster_path")?.asString ?: doramaData.get("poster")?.asString),
-                seasons = seasons
+                id = serieId ?: path,
+                title = listOfNotNull(
+                    name,
+                    nameEs?.takeIf { it.isNotBlank() && it != name },
+                ).joinToString(" (").let { if (it.contains("(")) "$it)" else it },
+                overview = overview,
+                poster = poster,
+                seasons = seasons,
             )
         } catch (e: Exception) {
             throw Exception("No se pudieron cargar los detalles del dorama: ${e.message}")
@@ -311,123 +451,128 @@ object DoramasflixProvider : Provider {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val doramaId = seasonId.substringBefore("/")
-        val seasonNumber = seasonId.substringAfter("/").toInt()
+        val serieId = seasonId.substringBefore("/")
+        val seasonNumber = seasonId.substringAfter("/", "1").toIntOrNull() ?: 1
 
-        val episodeQuery = """
-            {"operationName":"listEpisodes","variables":{"serie_id":"$doramaId","season_number":$seasonNumber},"query":"query listEpisodes(${'$'}season_number: Float!, ${'$'}serie_id: MongoID!) {\n  listEpisodes(sort: NUMBER_ASC, filter: {type_serie: \"dorama\", serie_id: ${'$'}serie_id, season_number: ${'$'}season_number}) {\n    _id\n    name\n    slug\n    episode_number\n    season_number\n    still_path\n    __typename\n  }\n}\n"}
-        """.trimIndent()
-        val body = episodeQuery.toRequestBody("application/json".toMediaType())
+        // If season was keyed by path instead of mongo id, resolve via show page.
+        val resolvedSerieId = if (serieId.matches(Regex("[a-f0-9]{24}"))) {
+            serieId
+        } else {
+            val document = serviceHtml.getPage(absoluteUrl(serieId))
+            extractRegexGroup(
+                document.htmlSource(),
+                Regex("""\\?"serie_id\\?"\s*:\s*\\?"([a-f0-9]{24})\\?""" + "\""),
+            ) ?: return emptyList()
+        }
 
+        val refererPath = if (serieId.contains("/")) serieId else "doramas-online"
         return try {
-            val response = service.getApiResponse(body)
-            response.data?.listEpisodes?.map {
+            val payload = JsonObject().apply {
+                addProperty("serie_id", resolvedSerieId)
+                addProperty("season_number", seasonNumber)
+                addProperty("page", 1)
+                addProperty("limit", 100)
+                addProperty("sort", "NUMBER_ASC")
+                addProperty("brandHost", "doramasflix.in")
+            }
+            val element = callServerAction(refererPath, ACTION_GET_EPISODES_PAGINATION, payload)
+            val items = when {
+                element == null -> null
+                element.isJsonObject -> element.asJsonObject.getAsJsonArray("items")
+                element.isJsonArray -> element.asJsonArray
+                else -> null
+            } ?: return emptyList()
+
+            items.mapNotNull { itemElement ->
+                val item = itemElement.asJsonObject
+                val slug = item.get("slug")?.asString ?: return@mapNotNull null
+                val number = item.get("episode_number")?.asInt ?: 0
+                val title = item.get("name_es")?.asString ?: item.get("name")?.asString
                 Episode(
-                    id = it.slug,
-                    number = it.episodeNumber ?: 0,
-                    title = "Episodio ${it.episodeNumber ?: 0}: ${it.name ?: ""}".trim(),
-                    poster = getPosterUrl(it.stillPath)
+                    id = slug,
+                    number = number,
+                    title = "Episodio $number${title?.let { ": $it" } ?: ""}",
+                    poster = getPosterUrl(item.get("still_path")?.asString),
                 )
-            } ?: emptyList()
-        } catch (e: Exception) {
+            }
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
-        try {
-            val url = when (videoType) {
-                is Video.Type.Movie -> "$baseUrl/$id"
-                is Video.Type.Episode -> "$baseUrl/episodios/$id"
-            }
+        return try {
+            when (videoType) {
+                is Video.Type.Movie -> {
+                    val path = pagePath(id)
+                    val document = serviceHtml.getPage(absoluteUrl(path))
+                    val movieId = extractRscObjectId(document.htmlSource(), "movie")
+                        ?: return emptyList()
 
-            val document = serviceHtml.getPage(url)
-            val script = document.selectFirst("script#__NEXT_DATA__")?.data()
-                ?: return emptyList()
+                    val payload = JsonObject().apply { addProperty("movie_id", movieId) }
+                    val element = callServerAction(path, ACTION_GET_MOVIE_LINKS, payload)
+                    parseLinksOnline(element)
+                }
 
-            val jsonObject = JsonParser.parseString(script).asJsonObject
-            val apolloState = jsonObject.getAsJsonObject("props")
-                .getAsJsonObject("pageProps")
-                .getAsJsonObject("apolloState")
+                is Video.Type.Episode -> {
+                    val slug = pagePath(id).removePrefix("episodios/")
+                    val path = "episodios/$slug"
+                    val document = serviceHtml.getPage(absoluteUrl(path))
+                    val episodeId = extractRscObjectId(document.htmlSource(), "episode")
+                        ?: return emptyList()
 
-            val mediaData = apolloState.entrySet().firstOrNull { (key, _) ->
-                key.startsWith("Episode:") || key.startsWith("Movie:")
-            }?.value?.asJsonObject
-
-            val linksOnline = mediaData?.getAsJsonObject("links_online")?.getAsJsonArray("json")
-
-            if (linksOnline != null && linksOnline.size() > 0) {
-                return linksOnline.mapNotNull { serverElement ->
-                    val serverObject = serverElement.asJsonObject
-                    val serverUrl = serverObject.get("link")?.asString ?: return@mapNotNull null
-                    val lang = serverObject.get("lang")?.asString?.getLang() ?: ""
-                    val serverName = URL(serverUrl).host.split(".").first { it != "www" }.replaceFirstChar { it.titlecase(Locale.ROOT) }
-
-                    val finalUrl = getRealLink(serverUrl)
-                    Video.Server(id = finalUrl, name = "$serverName $lang".trim())
+                    val payload = JsonObject().apply { addProperty("episode_id", episodeId) }
+                    val element = callServerAction(path, ACTION_GET_EPISODE_LINKS, payload)
+                    parseLinksOnline(element)
                 }
             }
-
-            val problems = apolloState.entrySet()
-                .filter { (key, _) -> key.startsWith("ROOT_QUERY.listProblems") }
-                .map { it.value }
-
-            return problems.mapNotNull { problemElement ->
-                val serverData = problemElement.asJsonObject
-                    .getAsJsonObject("server")
-                    ?.getAsJsonObject("json")
-
-                val serverUrl = serverData?.get("link")?.asString ?: return@mapNotNull null
-                val lang = serverData.get("lang")?.asString?.getLang() ?: ""
-                val serverName = URL(serverUrl).host.split(".").first { it != "www" }.replaceFirstChar { it.titlecase(Locale.ROOT) }
-
-                val finalUrl = getRealLink(serverUrl)
-                Video.Server(id = finalUrl, name = "$serverName $lang".trim())
-            }.distinctBy { it.id }
-
-        } catch (e: Exception) {
-            return emptyList()
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 
-    private suspend fun getRealLink(link: String): String {
-        if (!link.contains("fkplayer.xyz")) return link
-
-        return try {
-            val document = serviceHtml.getPage(link)
-            val script = document.selectFirst("script#__NEXT_DATA__")?.data() ?: return link
-
-            val tokenData = Gson().fromJson(script, TokenModel::class.java)
-            val token = tokenData.props?.pageProps?.token ?: return link
-
-            val requestBody = "{\"token\":\"$token\"}".toRequestBody("application/json".toMediaType())
-
-            val videoResponse = service.postApi("https://fkplayer.xyz/api/decoding", requestBody)
-            String(Base64.decode(videoResponse.link, Base64.DEFAULT))
-        } catch (e: Exception) {
-            link
-        }
+    private fun parseLinksOnline(element: JsonElement?): List<Video.Server> {
+        if (element == null || !element.isJsonArray) return emptyList()
+        return element.asJsonArray.mapNotNull { itemElement ->
+            val item = itemElement.asJsonObject
+            val rawLink = item.get("link")?.asString ?: return@mapNotNull null
+            val finalUrl = unwrapEmbedShortener(rawLink)
+            val lang = item.get("lang")?.asString?.getLang().orEmpty()
+            val name = serverNameFromUrl(finalUrl)
+            Video.Server(
+                id = finalUrl,
+                name = "$name $lang".trim(),
+            )
+        }.distinctBy { it.id }
     }
 
     override suspend fun getVideo(server: Video.Server): Video = Extractor.extract(server.id, server)
-    override val logo: String = "https://doramasflix.in/img/logo.png"
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         val list: List<Show> = when (id) {
             "peliculas" -> getMovies(page)
             "variedades" -> {
-                val query = """
-                    {"operationName":"listDoramas","variables":{"page":$page,"sort":"CREATEDAT_DESC","perPage":32,"filter":{"isTVShow":true}},"query":"query listDoramas(${'$'}page: Int, ${'$'}perPage: Int, ${'$'}sort: SortFindManyDoramaInput, ${'$'}filter: FilterFindManyDoramaInput) {\n  paginationDorama(page: ${'$'}page, perPage: ${'$'}perPage, sort: ${'$'}sort, filter: ${'$'}filter) {\n    items {\n      _id\n      name\n      name_es\n      slug\n      poster_path\n      poster\n      __typename\n    }\n  }\n}\n"}
-                """.trimIndent()
-                val body = query.toRequestBody("application/json".toMediaType())
-                val response = service.getApiResponse(body)
-                response.data?.paginationDorama?.items?.map {
-                    TvShow(
-                        id = it.slug,
-                        title = "${it.name} (${it.nameEs ?: ""})".trim(),
-                        poster = getPosterUrl(it.posterPath ?: it.poster)
-                    )
-                } ?: emptyList()
+                try {
+                    val payload = JsonObject().apply {
+                        addProperty("page", page)
+                        addProperty("limit", 32)
+                        addProperty("sort", "CREATEDAT_DESC")
+                        add("filter", JsonObject().apply { addProperty("isTVShow", true) })
+                        addProperty("brandHost", "doramasflix.in")
+                    }
+                    val element = callServerAction("variedades-online", ACTION_GET_PAGINATION_DORAMAS, payload)
+                    val items = when {
+                        element == null -> null
+                        element.isJsonObject -> element.asJsonObject.getAsJsonArray("items")
+                        element.isJsonArray -> element.asJsonArray
+                        else -> null
+                    }
+                    items?.mapNotNull {
+                        runCatching { doramaFromActionItem(it.asJsonObject) }.getOrNull()
+                    } ?: emptyList()
+                } catch (_: Exception) {
+                    emptyList()
+                }
             }
             else -> getTvShows(page)
         }
@@ -435,4 +580,13 @@ object DoramasflixProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People = throw Exception("Not yet implemented")
+
+    private fun String.unescapeJson(): String {
+        return this
+            .replace("\\n", "\n")
+            .replace("\\r", "\r")
+            .replace("\\t", "\t")
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\")
+    }
 }
