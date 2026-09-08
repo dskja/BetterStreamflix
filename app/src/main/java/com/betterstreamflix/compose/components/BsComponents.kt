@@ -1043,11 +1043,11 @@ fun BsGlassFilterChip(
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clip(shape)
-            .background(
+            .then(
                 when {
-                    selected -> BsTheme.colors.PulseCta
-                    focused -> BsTheme.colors.InkSoft
-                    else -> BsTheme.colors.InkPanel.copy(alpha = 0.72f)
+                    selected -> Modifier.background(BsTheme.colors.PulseCta)
+                    focused -> Modifier.background(BsTheme.colors.InkSoft)
+                    else -> Modifier.background(BsTheme.colors.InkPanel.copy(alpha = 0.72f))
                 },
             )
             .border(
