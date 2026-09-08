@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Flutter rewrite (v3)
+
+### Flutter core (`bsflix/`)
+- New **Flutter / Dart** app with Pulse design (Space Grotesk + Manrope, amber→orange CTAs)
+- Peacock-style hero card, floating pill nav, glass provider chips
+- Core screens: Home, Search, Detail, Player, Providers
+- Demo catalog repository (live providers/extractors next)
+- CI workflow **Build Flutter APK** uploads installable debug + release artifacts
+
 ## v2.0.0 — Arc
 
 ### Arc interface

@@ -5,7 +5,10 @@
   <br />
   <strong>⚡ Better Version</strong> - Actively maintained fork of Streamflix with more updates and fixes
   <br />
-  An open-source Android TV and mobile app for educational streaming interface, made with Android Studio, in Kotlin
+  An open-source Android TV and mobile app for educational streaming interface.
+  <br />
+  <strong>Flutter rewrite (v3 core)</strong> lives in <code>bsflix/</code> — Dart + Pulse UI.
+  The legacy Kotlin/Compose app remains under <code>app/</code> during migration.
   <br />
   <a href="https://github.com/dskja/BetterStreamflix/releases/latest">
     <strong>Download app »</strong>

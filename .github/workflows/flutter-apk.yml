@@ -1,0 +1,75 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bsflix/**'
+      - '.github/workflows/flutter-apk.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'bsflix/**'
+      - '.github/workflows/flutter-apk.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: flutter-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Flutter APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bsflix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Package artifacts
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-debug.apk dist/BetterStreamflix-flutter-debug.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/BetterStreamflix-flutter-release.apk
+          sha256sum dist/*.apk > dist/checksums.sha256
+          ls -lh dist/
+
+      - name: Upload installable APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterStreamflix-flutter-apks
+          path: bsflix/dist/*
+          if-no-files-found: error
+          retention-days: 14

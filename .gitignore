@@ -16,3 +16,15 @@ errors*.txt
 app_log.txt
 startup_log.txt
 app/cacheDir/
+
+# Flutter rewrite
+bsflix/.dart_tool/
+bsflix/.flutter-plugins-dependencies
+bsflix/.packages
+bsflix/build/
+bsflix/.pub-cache/
+bsflix/android/.gradle/
+bsflix/android/local.properties
+bsflix/android/app/debug/
+bsflix/android/app/profile/
+bsflix/android/app/release/
