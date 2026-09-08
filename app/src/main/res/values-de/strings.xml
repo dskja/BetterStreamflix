@@ -523,5 +523,4 @@
     <string name="player_live_badge">LIVE</string>
     <string name="player_live_channel">Live-Kanal</string>
     <string name="settings_tmdb_api_key_missing">TMDb-API-Schlüssel fehlt. Trage ihn in den Einstellungen ein, um den TMDb-Provider zu nutzen.</string>
-    <string name="settings_tmdb_api_key_summary">Erforderlich für den TMDb-Provider. Schlüssel unter themoviedb.org/settings/api erstellen</string>
 </resources>
