@@ -20,7 +20,7 @@ dependencies {
 }
 
 android {
-    namespace 'com.streamflixreborn.streamflix'
+    namespace 'com.dskja.betterstreamflix'
     compileSdk 36
     ndkVersion "26.1.10909125"
 

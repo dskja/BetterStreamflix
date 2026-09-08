@@ -46,22 +46,22 @@ public:
 extern "C" {
 
 JNIEXPORT jstring JNICALL
-Java_com_streamflixreborn_streamflix_utils_Keys_nativeGetUprotApiBase(JNIEnv *env, jobject thiz) {
+Java_com_dskja_betterstreamflix_utils_Keys_nativeGetUprotApiBase(JNIEnv *env, jobject thiz) {
     return OBFUSCATE("{{UPROT_API_BASE}}").toJString(env);
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_streamflixreborn_streamflix_utils_Keys_nativeGetUprotSignKey(JNIEnv *env, jobject thiz) {
+Java_com_dskja_betterstreamflix_utils_Keys_nativeGetUprotSignKey(JNIEnv *env, jobject thiz) {
     return OBFUSCATE("{{UPROT_SIGN_KEY}}").toJString(env);
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_streamflixreborn_streamflix_utils_Keys_nativeGetUprotDirectApiBase(JNIEnv *env, jobject thiz) {
+Java_com_dskja_betterstreamflix_utils_Keys_nativeGetUprotDirectApiBase(JNIEnv *env, jobject thiz) {
     return OBFUSCATE("{{UPROT_DIRECT_API_BASE}}").toJString(env);
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_streamflixreborn_streamflix_utils_Keys_nativeGetUprotDirectKey(JNIEnv *env, jobject thiz) {
+Java_com_dskja_betterstreamflix_utils_Keys_nativeGetUprotDirectKey(JNIEnv *env, jobject thiz) {
     return OBFUSCATE("{{UPROT_DIRECT_KEY}}").toJString(env);
 }
 

@@ -38,10 +38,6 @@
 
 ## About the project
 
-<p align="center">
-  <img src="./.github/docs/screenshot.png" alt="BetterStreamflix Preview">
-</p>
-
 **BetterStreamflix** is maintained by **[dskja](https://github.com/dskja)**. It builds on the community Streamflix Reborn project and the original Streamflix app, with ongoing fixes and improvements.
 
 ### What is BetterStreamflix?
