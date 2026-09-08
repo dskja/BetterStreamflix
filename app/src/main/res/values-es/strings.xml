@@ -461,6 +461,12 @@
     <string name="settings_enable_tmdb_title">Activar TMDB</string>
     <string name="settings_enable_tmdb_enabled">TMDB activado</string>
     <string name="settings_enable_tmdb_disabled">TMDB desactivado</string>
+    <string name="settings_category_library">Biblioteca</string>
+    <string name="settings_library_scope_title">Favoritos y seguir viendo</string>
+    <string name="settings_library_scope_summary">Elige si las listas son por proveedor o muestran elementos de todos</string>
+    <string name="settings_library_scope_per_provider">Por proveedor</string>
+    <string name="settings_library_scope_cross_provider">En todos los proveedores</string>
+    <string name="settings_library_scope_updated">Alcance de la biblioteca actualizado</string>
     <string name="settings_category_parental_control">Control parental</string>
     <string name="settings_parental_pin_title">PIN parental</string>
     <string name="settings_parental_pin_summary">Configura un PIN para proteger los cambios del control parental</string>

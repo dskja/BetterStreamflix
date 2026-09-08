@@ -186,6 +186,27 @@ object UserPreferences {
             }
         }
 
+    enum class LibraryScope(val key: String) {
+        /** Favorites / continue watching only from the active provider DB. */
+        PER_PROVIDER("per_provider"),
+        /** Favorites / continue watching merged from every provider DB on disk. */
+        CROSS_PROVIDER("cross_provider");
+
+        companion object {
+            fun fromKey(key: String?): LibraryScope =
+                entries.firstOrNull { it.key == key } ?: PER_PROVIDER
+        }
+    }
+
+    var libraryScope: LibraryScope
+        get() = LibraryScope.fromKey(Key.LIBRARY_SCOPE.getString())
+        set(value) {
+            Key.LIBRARY_SCOPE.setString(value.key)
+        }
+
+    val isCrossProviderLibrary: Boolean
+        get() = libraryScope == LibraryScope.CROSS_PROVIDER
+
     var parentalControlPin: String
         get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
         set(value) {
@@ -556,6 +577,7 @@ object UserPreferences {
         AUTOPLAY_BUFFER,
         SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
+        LIBRARY_SCOPE,
         PARENTAL_CONTROL_PIN,
         PARENTAL_CONTROL_ADMIN_PIN,
         PARENTAL_CONTROL_MAX_AGE,

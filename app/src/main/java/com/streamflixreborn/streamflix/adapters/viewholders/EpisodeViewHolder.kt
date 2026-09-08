@@ -22,6 +22,7 @@ import com.streamflixreborn.streamflix.fragments.tv_show.TvShowMobileFragmentDir
 import com.streamflixreborn.streamflix.fragments.tv_show.TvShowTvFragmentDirections
 import com.streamflixreborn.streamflix.models.Episode
 import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.providers.Provider
 import com.streamflixreborn.streamflix.ui.ShowOptionsMobileDialog
 import com.streamflixreborn.streamflix.ui.ShowOptionsTvDialog
 import com.streamflixreborn.streamflix.utils.EpisodeManager
@@ -261,9 +262,20 @@ class EpisodeViewHolder(
         binding.tvEpisodeOverview.text = episode.overview ?: ""
     }
 
+    private fun checkProviderAndRun(action: () -> Unit) {
+        val providerName = episode.tvShow?.providerName
+        if (!providerName.isNullOrBlank() && providerName != UserPreferences.currentProvider?.name) {
+            Provider.findByName(providerName)?.let {
+                UserPreferences.currentProvider = it
+            }
+        }
+        action()
+    }
+
     private fun displayContinueWatchingMobileItem(binding: ItemEpisodeContinueWatchingMobileBinding) {
         binding.root.apply {
             setOnClickListener {
+                checkProviderAndRun {
                 findNavController().navigate(
                     HomeMobileFragmentDirections.actionHomeToTvShow(
                         id = episode.tvShow?.id ?: "",
@@ -314,6 +326,7 @@ class EpisodeViewHolder(
                         ),
                     )
                 )
+                }
             }
             setOnLongClickListener {
                 ShowOptionsMobileDialog(context, episode)
@@ -365,6 +378,7 @@ class EpisodeViewHolder(
     private fun displayContinueWatchingTvItem(binding: ItemEpisodeContinueWatchingTvBinding) {
         binding.root.apply {
             setOnClickListener {
+                checkProviderAndRun {
                 findNavController().navigate(
                     HomeTvFragmentDirections.actionHomeToTvShow(
                         id = episode.tvShow?.id ?: "",
@@ -415,6 +429,7 @@ class EpisodeViewHolder(
                         ),
                     )
                 )
+                }
             }
             setOnLongClickListener {
                 ShowOptionsTvDialog(context, episode)

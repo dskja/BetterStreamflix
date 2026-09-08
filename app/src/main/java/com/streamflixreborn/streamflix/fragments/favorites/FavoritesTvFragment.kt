@@ -131,16 +131,30 @@ class FavoritesTvFragment : Fragment() {
             appAdapter.onMovieClickListener = { }
             appAdapter.onTvShowClickListener = { }
             appAdapter.onMovieLongClickListener = { item ->
-                enterMoveSelection(FavoritesViewModel.Section.MOVIES, item.id)
+                enterMoveSelection(
+                    FavoritesViewModel.Section.MOVIES,
+                    libraryItemId(item.providerName, item.id),
+                )
             }
             appAdapter.onTvShowLongClickListener = { item ->
-                enterMoveSelection(FavoritesViewModel.Section.TV_SHOWS, item.id)
+                enterMoveSelection(
+                    FavoritesViewModel.Section.TV_SHOWS,
+                    libraryItemId(item.providerName, item.id),
+                )
             }
             appAdapter.onMovieKeyListener = { item, event ->
-                handleRearrangeKey(FavoritesViewModel.Section.MOVIES, item.id, event)
+                handleRearrangeKey(
+                    FavoritesViewModel.Section.MOVIES,
+                    libraryItemId(item.providerName, item.id),
+                    event,
+                )
             }
             appAdapter.onTvShowKeyListener = { item, event ->
-                handleRearrangeKey(FavoritesViewModel.Section.TV_SHOWS, item.id, event)
+                handleRearrangeKey(
+                    FavoritesViewModel.Section.TV_SHOWS,
+                    libraryItemId(item.providerName, item.id),
+                    event,
+                )
             }
         } else {
             appAdapter.onMovieClickListener = null
@@ -275,8 +289,8 @@ class FavoritesTvFragment : Fragment() {
     private fun persistSectionOrder(section: FavoritesViewModel.Section) {
         val ids = itemsInSection(section).mapNotNull {
             when (it) {
-                is Movie -> it.id
-                is TvShow -> it.id
+                is Movie -> libraryItemId(it.providerName, it.id)
+                is TvShow -> libraryItemId(it.providerName, it.id)
                 else -> null
             }
         }
@@ -284,10 +298,17 @@ class FavoritesTvFragment : Fragment() {
     }
 
     private fun itemKey(item: AppAdapter.Item): String? = when (item) {
-        is Movie -> selectionKey(FavoritesViewModel.Section.MOVIES, item.id)
-        is TvShow -> selectionKey(FavoritesViewModel.Section.TV_SHOWS, item.id)
+        is Movie -> selectionKey(FavoritesViewModel.Section.MOVIES, libraryItemId(item.providerName, item.id))
+        is TvShow -> selectionKey(FavoritesViewModel.Section.TV_SHOWS, libraryItemId(item.providerName, item.id))
         else -> null
     }
+
+    private fun libraryItemId(provider: String?, id: String): String =
+        if (UserPreferences.isCrossProviderLibrary) {
+            "${provider.orEmpty()}:$id"
+        } else {
+            id
+        }
 
     private fun selectionKey(section: FavoritesViewModel.Section, id: String) = "${section.key}:$id"
 

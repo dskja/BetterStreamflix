@@ -129,8 +129,12 @@ class FavoritesMobileFragment : Fragment() {
     private fun configureAdapterInteractions() {
         appAdapter.isItemSelectedListener = { itemKey(it) in selectedItems }
         if (rearrangeMode) {
-            appAdapter.onMovieClickListener = { toggleSelection(FavoritesViewModel.Section.MOVIES, it.id) }
-            appAdapter.onTvShowClickListener = { toggleSelection(FavoritesViewModel.Section.TV_SHOWS, it.id) }
+            appAdapter.onMovieClickListener = {
+                toggleSelection(FavoritesViewModel.Section.MOVIES, libraryItemId(it.providerName, it.id))
+            }
+            appAdapter.onTvShowClickListener = {
+                toggleSelection(FavoritesViewModel.Section.TV_SHOWS, libraryItemId(it.providerName, it.id))
+            }
             appAdapter.onMovieLongClickListener = { }
             appAdapter.onTvShowLongClickListener = { }
         } else {
@@ -186,8 +190,8 @@ class FavoritesMobileFragment : Fragment() {
         val ids = itemsInSection(section)
             .mapNotNull {
                 when (it) {
-                    is Movie -> it.id
-                    is TvShow -> it.id
+                    is Movie -> libraryItemId(it.providerName, it.id)
+                    is TvShow -> libraryItemId(it.providerName, it.id)
                     else -> null
                 }
             }
@@ -220,10 +224,17 @@ class FavoritesMobileFragment : Fragment() {
     }
 
     private fun itemKey(item: AppAdapter.Item): String? = when (item) {
-        is Movie -> selectionKey(FavoritesViewModel.Section.MOVIES, item.id)
-        is TvShow -> selectionKey(FavoritesViewModel.Section.TV_SHOWS, item.id)
+        is Movie -> selectionKey(FavoritesViewModel.Section.MOVIES, libraryItemId(item.providerName, item.id))
+        is TvShow -> selectionKey(FavoritesViewModel.Section.TV_SHOWS, libraryItemId(item.providerName, item.id))
         else -> null
     }
+
+    private fun libraryItemId(provider: String?, id: String): String =
+        if (UserPreferences.isCrossProviderLibrary) {
+            "${provider.orEmpty()}:$id"
+        } else {
+            id
+        }
 
     private fun selectionKey(section: FavoritesViewModel.Section, id: String) = "${section.key}:$id"
 

@@ -401,6 +401,12 @@
     <string name="settings_enable_tmdb_title">Activer TMDb</string>
     <string name="settings_enable_tmdb_enabled">TMDb activé</string>
     <string name="settings_enable_tmdb_disabled">TMDb désactivé</string>
+    <string name="settings_category_library">Bibliothèque</string>
+    <string name="settings_library_scope_title">Favoris et lecture en cours</string>
+    <string name="settings_library_scope_summary">Afficher les listes par fournisseur ou pour tous les fournisseurs</string>
+    <string name="settings_library_scope_per_provider">Par fournisseur</string>
+    <string name="settings_library_scope_cross_provider">Tous les fournisseurs</string>
+    <string name="settings_library_scope_updated">Portée de la bibliothèque mise à jour</string>
 
     <string name="settings_force_extra_buffer_title">Mise en cache</string>
     <string name="settings_force_extra_buffer_summary">Activer la mise en cache supplémentaire par défaut</string>

@@ -548,6 +548,12 @@
     <string name="settings_enable_tmdb_title">Enable TMDb</string>
     <string name="settings_enable_tmdb_enabled">TMDb enabled</string>
     <string name="settings_enable_tmdb_disabled">TMDb disabled</string>
+    <string name="settings_category_library">Library</string>
+    <string name="settings_library_scope_title">Favorites &amp; continue watching</string>
+    <string name="settings_library_scope_summary">Choose whether lists stay per provider or show items from every provider</string>
+    <string name="settings_library_scope_per_provider">Per provider</string>
+    <string name="settings_library_scope_cross_provider">Across all providers</string>
+    <string name="settings_library_scope_updated">Library scope updated</string>
     <string name="settings_category_parental_control">Parental Control</string>
     <string name="settings_parental_pin_title">Parental PIN</string>
     <string name="settings_parental_pin_summary">Set a PIN to protect parental-control changes</string>

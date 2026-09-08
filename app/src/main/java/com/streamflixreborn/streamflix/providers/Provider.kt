@@ -142,7 +142,17 @@ interface Provider {
         }
 
         fun findByName(name: String): Provider? {
+            if (name.startsWith("TMDb (") && name.endsWith(")")) {
+                val lang = name.substringAfter("TMDb (").substringBefore(")")
+                return TmdbProvider(lang)
+            }
             return providers.keys.find { it.name == name }
         }
+
+        /** Streaming providers plus TMDb language variants used for local DBs / backups. */
+        fun allKnown(): List<Provider> = (
+            providers.keys +
+                listOf("it", "en", "es", "de", "fr").map(::TmdbProvider)
+            ).distinctBy { it.name }
     }
 }

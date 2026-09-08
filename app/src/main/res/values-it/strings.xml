@@ -384,6 +384,12 @@
     <string name="settings_enable_tmdb_title">Abilita TMDB</string>
     <string name="settings_enable_tmdb_enabled">TMDB abilitato</string>
     <string name="settings_enable_tmdb_disabled">TMDB disabilitato</string>
+    <string name="settings_category_library">Libreria</string>
+    <string name="settings_library_scope_title">Preferiti e continua a guardare</string>
+    <string name="settings_library_scope_summary">Scegli se le liste restano per provider o mostrano elementi di tutti i provider</string>
+    <string name="settings_library_scope_per_provider">Per provider</string>
+    <string name="settings_library_scope_cross_provider">Tra tutti i provider</string>
+    <string name="settings_library_scope_updated">Ambito libreria aggiornato</string>
     <string name="player_settings_subdl_title">SubDL</string>
     <string name="player_settings_subdl_label">SubDL</string>
     <string name="settings_category_poseidon">Impostazioni Poseidonhd2</string>
