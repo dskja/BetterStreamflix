@@ -19,7 +19,7 @@ object BypassWebSocketEndpointHelper {
 
     fun getLocalIpv4Address(): String? {
         return runCatching {
-            NetworkInterface.getNetworkInterfaces()
+            val addresses = NetworkInterface.getNetworkInterfaces()
                 ?.toList()
                 .orEmpty()
                 .asSequence()
@@ -30,7 +30,18 @@ object BypassWebSocketEndpointHelper {
                         ?.takeIf { '.' in it && !it.startsWith("127.") }
                         ?.substringBefore('%')
                 }
-                .firstOrNull()
+                .toList()
+
+            // Prefer common LAN ranges so VPN/docker interfaces are less likely to win.
+            addresses.firstOrNull { it.startsWith("192.168.") }
+                ?: addresses.firstOrNull { it.startsWith("10.") }
+                ?: addresses.firstOrNull { ip ->
+                    ip.startsWith("172.") && ip.substringAfter("172.")
+                        .substringBefore('.')
+                        .toIntOrNull()
+                        ?.let { it in 16..31 } == true
+                }
+                ?: addresses.firstOrNull()
         }.getOrNull()
     }
 

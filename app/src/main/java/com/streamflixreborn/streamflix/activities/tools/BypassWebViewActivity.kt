@@ -25,6 +25,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.streamflixreborn.streamflix.R
+import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.ThemeManager
@@ -244,8 +245,6 @@ class BypassWebViewActivity : AppCompatActivity() {
     }
 
     private fun isAllowedBypassHost(url: String): Boolean {
-        val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
-        return host.equals("serienstream.to", ignoreCase = true) ||
-            host.equals("challenges.cloudflare.com", ignoreCase = true)
+        return SerienStreamProvider.isSerienStreamHost(url)
     }
 }
