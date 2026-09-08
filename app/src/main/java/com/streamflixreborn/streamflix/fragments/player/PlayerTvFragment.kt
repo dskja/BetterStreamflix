@@ -1692,6 +1692,8 @@ class PlayerTvFragment : Fragment() {
         private var currentSoftwareDecoder = false
 
         private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
+            SubtitleOffset.reset()
+
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
