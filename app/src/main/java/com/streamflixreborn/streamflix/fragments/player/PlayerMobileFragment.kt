@@ -90,6 +90,7 @@ import androidx.navigation.NavOptions
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.DeviceCapabilities
 import com.streamflixreborn.streamflix.utils.NetworkClient
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
@@ -1527,18 +1528,22 @@ class PlayerMobileFragment : Fragment() {
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
         player = buildPlayer(extraBuffering).also { player ->
+                // Same as TV: disable focus ducking and avoid CONTENT_TYPE_MOVIE so
+                // ambience/music do not get quietly suppressed mid-playback.
                 player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
                         .build(),
-                    true,
+                    /* handleAudioFocus= */ false,
                 )
 
-                val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                if (lang == "es") {
+                val preferredLanguages = DeviceCapabilities.preferredAudioLanguages(
+                    UserPreferences.currentProvider?.language
+                )
+                if (preferredLanguages.isNotEmpty()) {
                     player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                        .setPreferredAudioLanguage("spa")
+                        .setPreferredAudioLanguages(*preferredLanguages.toTypedArray())
                         .build()
                 }
 
