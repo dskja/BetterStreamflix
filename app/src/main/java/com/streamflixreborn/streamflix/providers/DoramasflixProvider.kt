@@ -580,13 +580,4 @@ object DoramasflixProvider : Provider {
     }
 
     override suspend fun getPeople(id: String, page: Int): People = throw Exception("Not yet implemented")
-
-    private fun String.unescapeJson(): String {
-        return this
-            .replace("\\n", "\n")
-            .replace("\\r", "\r")
-            .replace("\\t", "\t")
-            .replace("\\\"", "\"")
-            .replace("\\\\", "\\")
-    }
 }
