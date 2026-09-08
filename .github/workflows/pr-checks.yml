@@ -44,9 +44,9 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
           echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
-          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
-          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
-          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
+          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}" >> local.properties
+          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY }}" >> local.properties
+          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API }}" >> local.properties
 
       - name: Generate native-lib.cpp from template
         env:
@@ -75,19 +75,40 @@ jobs:
         id: build
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Check APK size
+      - name: Package installable APK
+        if: success()
+        id: package
         run: |
-          APK_SIZE=$(stat -c%s app/build/outputs/apk/debug/*.apk)
-          echo "Debug APK size (${{ matrix.app_layout }}): $APK_SIZE bytes ($(($APK_SIZE / 1024 / 1024)) MB)"
-          if [ $APK_SIZE -gt 104857600 ]; then
+          mkdir -p dist
+          SRC="$(ls app/build/outputs/apk/debug/*.apk | head -n1)"
+          OUT="dist/BetterStreamflix-${{ matrix.app_layout }}-debug.apk"
+          cp "$SRC" "$OUT"
+          sha256sum "$OUT" > "$OUT.sha256"
+          APK_SIZE=$(stat -c%s "$OUT")
+          echo "path=$OUT" >> "$GITHUB_OUTPUT"
+          echo "size_mb=$((APK_SIZE / 1024 / 1024))" >> "$GITHUB_OUTPUT"
+          echo "Debug APK (${{ matrix.app_layout }}): $APK_SIZE bytes ($(($APK_SIZE / 1024 / 1024)) MB)"
+          if [ "$APK_SIZE" -gt 104857600 ]; then
             echo "::warning::APK exceeds 100MB"
           fi
+
+      - name: Upload installable APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterStreamflix-${{ matrix.app_layout }}-debug
+          path: |
+            dist/BetterStreamflix-${{ matrix.app_layout }}-debug.apk
+            dist/BetterStreamflix-${{ matrix.app_layout }}-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Comment PR with results
         if: always() && matrix.app_layout == 'mobile'
         uses: actions/github-script@v7
         with:
           script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             let comment = '## PR Check Results\n';
             comment += '| Check | Status |\n|-------|--------|\n';
             const lintStatus = '${{ steps.lint.outcome }}' === 'success' ? '✅' : '❌';
@@ -96,6 +117,9 @@ jobs:
             comment += `| Lint (mobile+tv matrix) | ${lintStatus} |\n`;
             comment += `| Unit Tests | ${testStatus} |\n`;
             comment += `| Build (${{ matrix.app_layout }}) | ${buildStatus} |\n`;
+            if ('${{ steps.build.outcome }}' === 'success') {
+              comment += `\n**Installable APKs:** download the artifacts from the [workflow run](${runUrl}) — \`BetterStreamflix-mobile-debug\` / \`BetterStreamflix-tv-debug\`.\n`;
+            }
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
