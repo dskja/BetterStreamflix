@@ -42,6 +42,26 @@
                 android:entryValues="@array/library_scope_values"
                 android:defaultValue="per_provider"
                 app:iconSpaceReserved="false" />
+
+            <SwitchPreferenceCompat
+                android:key="SHOW_CONTINUE_WATCHING"
+                android:title="@string/settings_show_continue_watching_title"
+                android:summary="@string/settings_show_continue_watching_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
+
+            <SwitchPreferenceCompat
+                android:key="SHOW_RECENTLY_WATCHED"
+                android:title="@string/settings_show_recently_watched_title"
+                android:summary="@string/settings_show_recently_watched_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="CLEAR_RECENTLY_WATCHED"
+                android:title="@string/settings_clear_recently_watched_title"
+                android:summary="@string/settings_clear_recently_watched_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
 
         <PreferenceCategory

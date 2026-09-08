@@ -337,6 +337,16 @@
     <string name="player_settings_gestures_title">Gesten</string>
     <string name="player_settings_keep_screen_on_title">Bildschirm bei Pause anlassen</string>
 
+    <string name="settings_category_home_library">Startbildschirm-Bibliothek</string>
+    <string name="settings_show_continue_watching_title">Weiterschauen anzeigen</string>
+    <string name="settings_show_continue_watching_summary">Die Weiterschauen-Zeile auf dem Startbildschirm anzeigen</string>
+    <string name="settings_show_recently_watched_title">Zuletzt angesehen anzeigen</string>
+    <string name="settings_show_recently_watched_summary">Die Zuletzt-angesehen-Zeile auf dem Startbildschirm anzeigen</string>
+    <string name="settings_clear_recently_watched_title">Zuletzt angesehen leeren</string>
+    <string name="settings_clear_recently_watched_summary">Alle Einträge aus Zuletzt angesehen entfernen</string>
+    <string name="settings_clear_recently_watched_confirm_message">Alle Einträge aus Zuletzt angesehen löschen? Das kann nicht rückgängig gemacht werden.</string>
+    <string name="settings_clear_recently_watched_toast">Zuletzt angesehen geleert</string>
+
     <string name="settings_category_tmdb">TMDb-Einstellungen</string>
     <string name="settings_tmdb_api_key">Eigener TMDb API-Key</string>
     <string name="settings_tmdb_api_key_summary">Leer lassen für Standard-API-Key</string>

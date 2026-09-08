@@ -188,6 +188,19 @@ object UserPreferences {
             }
         }
 
+    /** When false, Home hides the Continue Watching row. */
+    var showContinueWatching: Boolean
+        get() = Key.SHOW_CONTINUE_WATCHING.getBoolean() ?: true
+        set(value) {
+            Key.SHOW_CONTINUE_WATCHING.setBoolean(value)
+        }
+
+    /** When false, Home hides the Recently Watched row. */
+    var showRecentlyWatched: Boolean
+        get() = Key.SHOW_RECENTLY_WATCHED.getBoolean() ?: true
+        set(value) {
+            Key.SHOW_RECENTLY_WATCHED.setBoolean(value)
+        }
     enum class LibraryScope(val key: String) {
         /** Favorites / continue watching only from the active provider DB. */
         PER_PROVIDER("per_provider"),
@@ -580,6 +593,8 @@ object UserPreferences {
         AUTOPLAY_BUFFER,
         SERVER_AUTO_SUBTITLES_DISABLED,
         ENABLE_TMDB,
+        SHOW_CONTINUE_WATCHING,
+        SHOW_RECENTLY_WATCHED,
         LIBRARY_SCOPE,
         PARENTAL_CONTROL_PIN,
         PARENTAL_CONTROL_ADMIN_PIN,

@@ -161,13 +161,33 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                     // CONTINUE WATCHING
                     Category(
                         name = Category.CONTINUE_WATCHING,
-                        list = history.continueWatching,
-                    ),
+                        list = history.continueWatching
+                            .sortedByDescending {
+                                when (it) {
+                                    is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                        ?: it.watchedDate?.timeInMillis
+                                        ?: 0L
+
+                                    is Movie -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                        ?: it.watchedDate?.timeInMillis
+                                        ?: 0L
+
+                                    else -> 0L
+                                }
+                            }
+                            .distinctBy {
+                                when (it) {
+                                    is Episode -> it.tvShow?.id
+                                    is Movie -> it.id
+                                    else -> null
+                                }
+                            },
+                    ).takeIf { UserPreferences.showContinueWatching },
 
                     Category(
                         name = Category.RECENTLY_WATCHED,
                         list = history.recentlyWatched,
-                    ),
+                    ).takeIf { UserPreferences.showRecentlyWatched },
 
                     // FAVORITES
                     Category(

@@ -50,6 +50,7 @@ import com.streamflixreborn.streamflix.ui.UserDataNotifier
 import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserDataCache
 import com.streamflixreborn.streamflix.utils.UserPreferences
+import com.streamflixreborn.streamflix.ui.UserDataNotifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -793,6 +794,49 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 ).show()
                 true
             }
+        }
+
+        findPreference<SwitchPreferenceCompat>("SHOW_CONTINUE_WATCHING")?.apply {
+            isChecked = UserPreferences.showContinueWatching
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.showContinueWatching = newValue as Boolean
+                ProviderChangeNotifier.notifyProviderChanged()
+                true
+            }
+        }
+
+        findPreference<SwitchPreferenceCompat>("SHOW_RECENTLY_WATCHED")?.apply {
+            isChecked = UserPreferences.showRecentlyWatched
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.showRecentlyWatched = newValue as Boolean
+                ProviderChangeNotifier.notifyProviderChanged()
+                true
+            }
+        }
+
+        findPreference<Preference>("CLEAR_RECENTLY_WATCHED")?.setOnPreferenceClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.settings_clear_recently_watched_title)
+                .setMessage(R.string.settings_clear_recently_watched_confirm_message)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        withContext(Dispatchers.IO) {
+                            val database = AppDatabase.getInstance(requireContext())
+                            database.movieDao().clearAllRecentlyWatched()
+                            database.tvShowDao().clearAllRecentlyWatched()
+                        }
+                        UserDataNotifier.notifyChanged()
+                        ProviderChangeNotifier.notifyProviderChanged()
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_clear_recently_watched_toast,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            true
         }
 
         setupParentalControlPreferences()
