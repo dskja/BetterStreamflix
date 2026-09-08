@@ -12,6 +12,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import java.net.Inet4Address
 import java.net.InetAddress
 
 object DnsResolver : Dns {
@@ -43,7 +44,7 @@ object DnsResolver : Dns {
         val providerName = if (_url.isEmpty()) "SYSTEM" else _url
         Log.d(TAG, "Resolving host: $hostname using provider: $providerName")
         return try {
-            val addresses = _internalDoh.lookup(hostname)
+            val addresses = preferIpv4(_internalDoh.lookup(hostname))
             Log.d(TAG, "Resolved $hostname to: ${addresses.joinToString { it.hostAddress ?: "" }}")
             addresses
         } catch (e: Exception) {
@@ -53,10 +54,22 @@ object DnsResolver : Dns {
             }
 
             Log.w(TAG, "Falling back to system DNS for host: $hostname")
-            val fallbackAddresses = Dns.SYSTEM.lookup(hostname)
+            val fallbackAddresses = preferIpv4(Dns.SYSTEM.lookup(hostname))
             Log.d(TAG, "System DNS resolved $hostname to: ${fallbackAddresses.joinToString { it.hostAddress ?: "" }}")
             fallbackAddresses
         }
+    }
+
+    /**
+     * Prefer IPv4 when available. Broken/hijacked IPv6 routes are a common cause of
+     * long connect timeouts on some ISP networks (including for api.themoviedb.org).
+     */
+    private fun preferIpv4(addresses: List<InetAddress>): List<InetAddress> {
+        if (addresses.size <= 1) return addresses
+        val ipv4 = addresses.filterIsInstance<Inet4Address>()
+        if (ipv4.isEmpty()) return addresses
+        val ipv6 = addresses.filterNot { it is Inet4Address }
+        return ipv4 + ipv6
     }
 
     val doh: Dns get() = this

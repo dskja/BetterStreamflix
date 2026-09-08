@@ -470,6 +470,7 @@ object UserPreferences {
         set(value) {
             Key.DOH_PROVIDER_URL.setString(value)
             DnsResolver.setDnsUrl(value)
+            TMDb3.rebuildService()
         }
 
     var paddingX: Int
