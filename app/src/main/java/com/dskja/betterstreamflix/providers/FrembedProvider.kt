@@ -46,7 +46,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://frembed.casa/"
+    override val defaultBaseUrl: String = "https://frembed.surf/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -441,7 +441,10 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
-        return FrembedExtractor(baseUrl).servers(videoType)
+        val resolvedBase = baseUrl.ifBlank { defaultBaseUrl }.let {
+            if (it.endsWith("/")) it else "$it/"
+        }
+        return FrembedExtractor(resolvedBase).servers(videoType)
     }
 
     /**

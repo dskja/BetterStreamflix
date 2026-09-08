@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -26,10 +31,17 @@ import java.io.File
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-object LaCartoonsProvider : Provider {
+object LaCartoonsProvider : Provider, ProviderConfigUrl {
 
     override val name = "La Cartoons"
-    override val baseUrl = "https://www.lacartoons.com"
+    override val defaultBaseUrl = "https://www.lacartoons.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo: String get() = "https://images2.imgbox.com/fc/26/S7f7dn42_o.png"
 
@@ -45,9 +57,23 @@ object LaCartoonsProvider : Provider {
         val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
         val builder = OkHttpClient.Builder()
             .cache(appCache)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(35, TimeUnit.SECONDS)
             .followRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    )
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "es-MX,es;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Referer", "$baseUrl/")
+                    .header("Origin", baseUrl.trimEnd('/'))
+                    .build()
+                chain.proceed(request)
+            }
         return builder.dns(DnsResolver.doh).build()
     }
 
@@ -233,26 +259,36 @@ object LaCartoonsProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val url = if (id.startsWith("http")) id else "$baseUrl$id"
         val doc = service.getPage(url)
-        val iframe = doc.selectFirst("iframe[src]")?.attr("src").orEmpty()
-        val finalUrl = if (iframe.startsWith("http")) iframe else "$iframe"
-        return listOfNotNull(
-            if (finalUrl.isNotBlank()) {
-                try {
-                    val serverName = finalUrl.toHttpUrl().host
-                        .replaceFirst("www.", "")
-                        .substringBefore(".")
-                        .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
-                    
-                    Video.Server(
-                        id = finalUrl,
-                        name = serverName,
-                        src = finalUrl
-                    )
-                } catch (e: Exception) {
-                    null
-                }
-            } else null
-        )
+        val servers = mutableListOf<Video.Server>()
+
+        fun addServer(raw: String?, label: String?) {
+            val finalUrl = raw?.trim().orEmpty()
+            if (finalUrl.isBlank()) return
+            val absolute = when {
+                finalUrl.startsWith("//") -> "https:$finalUrl"
+                finalUrl.startsWith("http") -> finalUrl
+                else -> "$baseUrl/${finalUrl.trimStart('/')}"
+            }
+            val serverName = label?.takeIf { it.isNotBlank() } ?: runCatching {
+                absolute.toHttpUrl().host
+                    .replaceFirst("www.", "")
+                    .substringBefore(".")
+                    .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
+            }.getOrDefault("Server")
+            servers += Video.Server(id = absolute, name = serverName, src = absolute)
+        }
+
+        doc.select("iframe[src], iframe[data-src], .embed iframe, #player iframe, .player iframe").forEach {
+            addServer(it.attr("src").ifBlank { it.attr("data-src") }, it.attr("title"))
+        }
+        doc.select("[data-src*=http], li[data-url], a[data-player]").forEach {
+            addServer(
+                it.attr("data-src").ifBlank { it.attr("data-url") }.ifBlank { it.attr("data-player") },
+                it.text()
+            )
+        }
+
+        return servers.distinctBy { it.src.ifBlank { it.id } }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

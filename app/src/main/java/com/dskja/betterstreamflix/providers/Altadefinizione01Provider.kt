@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Log
 import android.net.Uri
 
@@ -29,10 +34,18 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Header
 
-object Altadefinizione01Provider : Provider {
+object Altadefinizione01Provider : Provider, ProviderConfigUrl {
 
     override val name: String = "Altadefinizione01"
-    override val baseUrl: String = "https://altadefinizione-01.fun"
+    override val defaultBaseUrl = "https://altadefinizione-01.fun"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = Altadefinizione01Service.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val logo: String get() = "$baseUrl/templates/altadefinizione01/images/logo.png"
     override val language: String = "it"
 
@@ -116,7 +129,7 @@ object Altadefinizione01Provider : Provider {
         ): okhttp3.ResponseBody
     }
 
-    private val service = Altadefinizione01Service.build(baseUrl)
+    private var service = Altadefinizione01Service.build(defaultBaseUrl)
 
     
 

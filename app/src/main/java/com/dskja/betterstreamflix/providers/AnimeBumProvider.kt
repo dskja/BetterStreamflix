@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -19,10 +24,17 @@ import retrofit2.http.Url
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-object AnimeBumProvider : Provider {
+object AnimeBumProvider : Provider, ProviderConfigUrl {
 
     override val name = "AnimeBum"
-    override val baseUrl = "https://www.animebum.net"
+    override val defaultBaseUrl = "https://www.animebum.net"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo = "$baseUrl/images/logo.png"
 

@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.net.Uri
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -30,9 +35,16 @@ import java.text.Normalizer
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-object AnikotoProvider : Provider {
+object AnikotoProvider : Provider, ProviderConfigUrl {
 
-    override val baseUrl = "https://anikototv.to"
+    override val defaultBaseUrl = "https://anikototv.to"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val name = "Anikoto"
     override val logo = "$baseUrl/AnikotoTheme/assets/images/logo.png"
     override val language = "en"
@@ -274,6 +286,19 @@ object AnikotoProvider : Provider {
                         .joinToString(" - "),
                 )
             }
+        }.ifEmpty {
+            // Fallback when layout drops the .servers wrapper.
+            document.select("li[data-link-id]").mapNotNull {
+                val linkId = it.attr("data-link-id").ifBlank { return@mapNotNull null }
+                Video.Server(
+                    id = "$linkId|$referer",
+                    name = it.text().trim().ifBlank { "Server" },
+                )
+            }
+        }.also { servers ->
+            if (servers.isEmpty()) {
+                throw Exception("Anikoto returned no playable servers for this episode")
+            }
         }
     }
 
@@ -458,13 +483,17 @@ object AnikotoProvider : Provider {
                     .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
                             .header("User-Agent", USER_AGENT)
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .header("Accept-Language", "de,en-US;q=0.9,en;q=0.8")
+                            .header("Referer", "$baseUrl/")
+                            .header("Origin", baseUrl.trimEnd('/'))
                             .header("Cookie", COUNTRY_COOKIE)
                             .build()
                         chain.proceed(request)
                     }
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .callTimeout(35, TimeUnit.SECONDS)
                     .build()
 
                 return Retrofit.Builder()

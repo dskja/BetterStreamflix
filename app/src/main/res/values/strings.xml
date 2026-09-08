@@ -541,7 +541,10 @@
 
     <string name="settings_category_tmdb">TMDb Settings</string>
     <string name="settings_tmdb_api_key">Custom TMDb API Key</string>
-    <string name="settings_tmdb_api_key_summary">Leave empty to use the default API key provided with the app</string>
+    <string name="settings_tmdb_api_key_summary">Required for the TMDb provider. Create a key at themoviedb.org/settings/api</string>
+    <string name="settings_tmdb_api_key_missing">TMDb API key is missing. Add it in Settings to use the TMDb provider.</string>
+    <string name="player_live_badge">LIVE</string>
+    <string name="player_live_channel">Live channel</string>
     <string name="settings_tmdb_api_key_success">API Key updated successfully</string>
     <string name="settings_tmdb_api_key_reset">Using default TMDb API Key</string>
 

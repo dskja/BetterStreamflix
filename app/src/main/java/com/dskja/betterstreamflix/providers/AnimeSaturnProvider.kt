@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.Category
 import com.dskja.betterstreamflix.models.Episode
@@ -34,9 +39,17 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-object AnimeSaturnProvider : Provider {
+object AnimeSaturnProvider : Provider, ProviderConfigUrl {
     override val name = "AnimeSaturn"
-    override val baseUrl = "https://www.animesaturn.net"
+    override val defaultBaseUrl = "https://www.animesaturn.net"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = AnimeSaturnService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
 
     override val logo = "https://www.animesaturn.net/assets/img/saturn.png"
     override val language = "it"
@@ -114,7 +127,7 @@ object AnimeSaturnProvider : Provider {
         suspend fun getEpisodes(@Body body: okhttp3.RequestBody): okhttp3.ResponseBody
     }
 
-    private val service = AnimeSaturnService.build(baseUrl)
+    private var service = AnimeSaturnService.build(defaultBaseUrl)
 
     private val kitsuService by lazy {
         val client = OkHttpClient.Builder()

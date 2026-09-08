@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -26,10 +31,17 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.collections.filter
 
-object TvLibrefutbolProvider : IptvProvider {
+object TvLibrefutbolProvider : IptvProvider, ProviderConfigUrl {
 
     override val name = "Tv Libre Futbol"
-    override val baseUrl = "https://www.librefutbol2.com"
+    override val defaultBaseUrl = "https://www.librefutbol2.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "https://i.ibb.co/q3v6R9qQ/librefutbol.jpg"
     override val language = "es"
 
@@ -404,21 +416,31 @@ object TvLibrefutbolProvider : IptvProvider {
             val doc = fetchDocument(id) ?: throw Exception("No se pudo cargar")
             val servers = mutableListOf<Video.Server>()
 
-            doc.select("div.options-left a.option").forEach { element ->
-                val name = element.text().trim()
-                val url = element.attr("href")
-
+            doc.select(
+                "div.options-left a.option, .options a.option, a.option, .server-list a, " +
+                    "ul.Options li a, .player-options a, a[href*=player], iframe[src], iframe[data-src]"
+            ).forEach { element ->
+                val name = element.text().trim().ifBlank {
+                    element.attr("title").ifBlank { "Opción" }
+                }
+                val url = element.attr("href").ifBlank {
+                    element.attr("data-src").ifBlank { element.attr("src") }
+                }
                 if (url.isNotEmpty()) {
-                    val absoluteUrl = if (url.startsWith("http")) url else "${TvLibrefutbolProvider.baseUrl}/$url"
-                    servers.add(Video.Server(id = absoluteUrl, name = name))
+                    val absoluteUrl = when {
+                        url.startsWith("http") -> url
+                        url.startsWith("//") -> "https:$url"
+                        else -> "${TvLibrefutbolProvider.baseUrl}/${url.trimStart('/')}"
+                    }
+                    servers.add(Video.Server(id = absoluteUrl, name = name, src = absoluteUrl))
                 }
             }
 
             servers.distinctBy { it.id }.ifEmpty {
-                listOf(Video.Server(id = id, name = "Opción 1"))
+                listOf(Video.Server(id = id, name = "Opción 1", src = id))
             }
         } catch (e: Exception) {
-            listOf(Video.Server(id = id, name = "Opción 1"))
+            listOf(Video.Server(id = id, name = "Opción 1", src = id))
         }
     }
 

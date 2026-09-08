@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -7,10 +12,17 @@ import com.dskja.betterstreamflix.models.*
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
-object CineCityProvider : IptvProvider {
+object CineCityProvider : IptvProvider, ProviderConfigUrl {
 
     override val name = "MAGISTV"
-    override val baseUrl = "https://raw.githubusercontent.com"
+    override val defaultBaseUrl = "https://raw.githubusercontent.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "https://i.ibb.co/39Ld2wbt/MAGISTV.png"
     override val language = "es"
 

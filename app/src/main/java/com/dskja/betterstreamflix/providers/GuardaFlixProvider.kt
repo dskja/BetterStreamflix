@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.Category
@@ -29,10 +34,18 @@ import java.util.concurrent.TimeUnit
 import java.net.URLEncoder
 import java.util.Base64
 
-object GuardaFlixProvider : Provider {
+object GuardaFlixProvider : Provider, ProviderConfigUrl {
 
     override val name: String = "GuardaFlix"
-    override val baseUrl: String = "https://guardaplay.store"
+    override val defaultBaseUrl = "https://guardaflix.org"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = GuardaFlixService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val logo: String = "$baseUrl/wp-content/uploads/2021/05/cropped-Guarda-Flix-2.png"
     override val language: String = "it"
 
@@ -42,8 +55,22 @@ object GuardaFlixProvider : Provider {
         companion object {
             fun build(baseUrl: String): GuardaFlixService {
                 val clientBuilder = OkHttpClient.Builder()
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .callTimeout(35, TimeUnit.SECONDS)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                            )
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .header("Accept-Language", "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Referer", baseUrl)
+                            .header("Origin", baseUrl.trimEnd('/'))
+                            .build()
+                        chain.proceed(request)
+                    }
 
                 return Retrofit.Builder()
                     .baseUrl(baseUrl)
@@ -75,7 +102,7 @@ object GuardaFlixProvider : Provider {
         suspend fun movies(@Path("page") page: Int): Document
     }
 
-    private val service = GuardaFlixService.build(baseUrl)
+    private var service = GuardaFlixService.build(defaultBaseUrl)
 
     private fun normalizeUrl(url: String): String {
         return when {
@@ -287,34 +314,47 @@ object GuardaFlixProvider : Provider {
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val doc = service.getPage(id)
+        val servers = mutableListOf<Video.Server>()
 
-        return doc.select("#aa-options div[id^=options-]").mapIndexedNotNull { index, optionDiv ->
-            val rawIframe = optionDiv.selectFirst("iframe[data-src]")?.attr("data-src")
-                ?: optionDiv.selectFirst("iframe")?.attr("src")
-                ?: return@mapIndexedNotNull null
-
-            val firstUrl = rawIframe.trim()
+        fun addEmbed(raw: String?, index: Int, label: String? = null) {
+            val firstUrl = raw?.trim().orEmpty()
+            if (firstUrl.isBlank()) return
             try {
                 val embedDoc = service.getPage(firstUrl)
-                val finalIframe = embedDoc.selectFirst(".Video iframe[src]")?.attr("src")?.trim()
-                val finalUrl = finalIframe?.takeIf { it.isNotBlank() } ?: return@mapIndexedNotNull null
-
-                val hostName = finalUrl.toHttpUrl().host
-                    .replaceFirst("www.", "")
-                    .substringBefore(".")
-                    .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
-
-                val serverName = "Opzione ${index + 1} - $hostName"
-
-                Video.Server(
-                    id = finalUrl,
-                    name = serverName,
-                    src = finalUrl
+                val finalIframe = embedDoc.selectFirst(".Video iframe[src], iframe[src], iframe[data-src]")
+                    ?.let { it.attr("src").ifBlank { it.attr("data-src") } }
+                    ?.trim()
+                    ?: firstUrl
+                val hostName = runCatching {
+                    finalIframe.toHttpUrl().host
+                        .replaceFirst("www.", "")
+                        .substringBefore(".")
+                        .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
+                }.getOrDefault("Server")
+                servers += Video.Server(
+                    id = finalIframe,
+                    name = label ?: "Opzione ${index + 1} - $hostName",
+                    src = finalIframe
                 )
             } catch (_: Exception) {
-                null
+                servers += Video.Server(id = firstUrl, name = label ?: "Opzione ${index + 1}", src = firstUrl)
             }
         }
+
+        doc.select("#aa-options div[id^=options-]").forEachIndexed { index, optionDiv ->
+            val rawIframe = optionDiv.selectFirst("iframe[data-src]")?.attr("data-src")
+                ?: optionDiv.selectFirst("iframe")?.attr("src")
+            addEmbed(rawIframe, index)
+        }
+
+        if (servers.isEmpty()) {
+            doc.select("iframe[src], iframe[data-src], li[data-src], .player iframe").forEachIndexed { index, el ->
+                val src = el.attr("data-src").ifBlank { el.attr("src") }
+                addEmbed(src, index)
+            }
+        }
+
+        return servers.distinctBy { it.src.ifBlank { it.id } }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

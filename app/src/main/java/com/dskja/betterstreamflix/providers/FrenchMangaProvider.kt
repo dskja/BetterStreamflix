@@ -43,7 +43,8 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             val cachePortalURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_PORTAL_URL)
             return cachePortalURL.ifEmpty { field }
         }
-    override val baseUrl: String = FrenchMangaProvider.defaultBaseUrl
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
             return cacheURL.ifEmpty { field }

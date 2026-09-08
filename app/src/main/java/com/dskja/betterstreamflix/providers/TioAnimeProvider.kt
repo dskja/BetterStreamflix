@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.models.*
@@ -12,9 +17,16 @@ import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Url
 
-object TioAnimeProvider : Provider {
+object TioAnimeProvider : Provider, ProviderConfigUrl {
     override val name = "TioAnime"
-    override val baseUrl = "https://tioanime.com"
+    override val defaultBaseUrl = "https://tioanime.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "$baseUrl/assets/img/logo-dark.png"
     override val language = "es"
 

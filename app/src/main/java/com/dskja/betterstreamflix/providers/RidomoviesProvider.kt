@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -28,10 +33,17 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.util.concurrent.TimeUnit
 
-object RidomoviesProvider : Provider {
+object RidomoviesProvider : Provider, ProviderConfigUrl {
 
     const val URL = "https://ridomovies.su/"
-    override val baseUrl = URL
+    override val defaultBaseUrl = "https://ridomovies.su/"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val name = "Ridomovies"
     override val logo = "$URL/uploads/logos/hero_logo-1-1769040020-ab537326.png"
     override val language = "en"
@@ -386,12 +398,12 @@ object RidomoviesProvider : Provider {
 
         fun extractIframeSrc(rawHtml: String): String? {
             if (rawHtml.isBlank()) return null
-            val iframe = Jsoup.parse(rawHtml).selectFirst("iframe")
-            return iframe?.attr("src")
+            val iframe = org.jsoup.Jsoup.parse(rawHtml).selectFirst("iframe")
+            return iframe?.attr("src")?.ifBlank { iframe.attr("data-src") }
         }
 
         // #player-cover is always present (movies and episodes)
-        document.selectFirst("#player-cover[data-embed]")?.let { el ->
+        document.selectFirst("#player-cover[data-embed], [data-embed]")?.let { el ->
             val src = extractIframeSrc(el.attr("data-embed"))
             if (!src.isNullOrBlank()) {
                 servers.add(Video.Server(id = src, name = "Server 1", src = src))
@@ -399,15 +411,48 @@ object RidomoviesProvider : Provider {
         }
 
         // Dropdown buttons appear only on multi-server movies — add extras deduplicating against player-cover
-        document.select(".server-dropdown-item[data-server-embed]").forEachIndexed { idx, btn ->
-            val src = extractIframeSrc(btn.attr("data-server-embed"))
+        document.select(".server-dropdown-item[data-server-embed], [data-server-embed], .servers a[data-embed]").forEachIndexed { idx, btn ->
+            val src = extractIframeSrc(btn.attr("data-server-embed").ifBlank { btn.attr("data-embed") })
             val label = btn.text().ifBlank { "Server ${idx + 1}" }
             if (!src.isNullOrBlank() && servers.none { it.src == src }) {
                 servers.add(Video.Server(id = src, name = label, src = src))
             }
         }
 
-        return servers
+        if (servers.isEmpty()) {
+            document.select("iframe[src], iframe[data-src]").forEachIndexed { idx, iframe ->
+                val src = iframe.attr("src").ifBlank { iframe.attr("data-src") }
+                if (src.isNotBlank()) {
+                    servers.add(Video.Server(id = src, name = "Server ${idx + 1}", src = src))
+                }
+            }
+        }
+
+        // Some pages stash embeds in inline scripts / data attributes.
+        if (servers.isEmpty()) {
+            val html = document.html()
+            Regex(
+                """(?:data-(?:server-)?embed|src)\s*[:=]\s*["'](https?://[^"']+)["']""",
+                RegexOption.IGNORE_CASE,
+            ).findAll(html).forEachIndexed { idx, match ->
+                val src = match.groupValues.getOrNull(1).orEmpty()
+                if (src.isNotBlank() && servers.none { it.src == src }) {
+                    servers.add(Video.Server(id = src, name = "Embed ${idx + 1}", src = src))
+                }
+            }
+        }
+
+        if (servers.isEmpty()) {
+            val html = document.html()
+            if (html.contains("Just a moment", ignoreCase = true) ||
+                html.contains("cf-mitigated", ignoreCase = true) ||
+                html.contains("challenge-platform", ignoreCase = true)
+            ) {
+                throw Exception("Ridomovies blocked by Cloudflare; open the site on-device to clear challenge")
+            }
+        }
+
+        return servers.distinctBy { it.src.ifBlank { it.id } }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
@@ -440,12 +485,23 @@ object RidomoviesProvider : Provider {
                     .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
                             .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                            .addHeader("Accept-Language", "en-US,en;q=0.5")
-                            .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+                            .addHeader("Accept-Language", "en-US,en;q=0.9")
+                            .addHeader(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                            )
+                            .addHeader("Referer", URL)
+                            .addHeader("Origin", URL.trimEnd('/'))
+                            .addHeader("Sec-CH-UA", "\"Chromium\";v=\"131\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"131\"")
+                            .addHeader("Sec-CH-UA-Mobile", "?0")
+                            .addHeader("Sec-CH-UA-Platform", "\"Windows\"")
                             .addHeader("Platform", "android")
                             .build()
                         chain.proceed(request)
                     }
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .callTimeout(35, TimeUnit.SECONDS)
                     .build()
 
                 val retrofit = Retrofit.Builder()

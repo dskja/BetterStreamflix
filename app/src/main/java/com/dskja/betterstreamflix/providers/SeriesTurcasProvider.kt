@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.extractors.GenericPackedSourceExtractor
@@ -27,10 +32,17 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-object SeriesTurcasProvider : Provider {
+object SeriesTurcasProvider : Provider, ProviderConfigUrl {
 
     override val name = "Series Turcas"
-    override val baseUrl = "https://tbg.seriesturcastv.to"
+    override val defaultBaseUrl = "https://tbg.seriesturcastv.to"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = artworkUrl(
         "$baseUrl/wp-content/uploads/2021/04/favicon.png",
         "$baseUrl/home/"

@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.Category
@@ -32,10 +37,18 @@ import okhttp3.ResponseBody
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
 
-object CB01Provider : Provider {
+object CB01Provider : Provider, ProviderConfigUrl {
 
     override val name = "CB01"
-    override val baseUrl = "https://cb01official.uno"
+    override val defaultBaseUrl = "https://cb01official.uno"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = CB01Service.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val logo: String get() = "$baseUrl/apple-icon-180x180px.png"
     override val language = "it"
 
@@ -96,7 +109,7 @@ object CB01Provider : Provider {
         }
     }
 
-    private val service = CB01Service.build(baseUrl)
+    private var service = CB01Service.build(defaultBaseUrl)
 
     private interface StayService {
         @FormUrlEncoded

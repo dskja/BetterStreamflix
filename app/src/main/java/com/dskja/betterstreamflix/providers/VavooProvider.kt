@@ -253,7 +253,20 @@ class VavooProvider(override val language: String) : IptvProvider {
         if (cached != null && (now - (cacheTimestamps[group] ?: 0)) < CACHE_DURATION) {
             return cached
         }
-        val (channels, _) = fetchChannels("", group)
+
+        // Paginate the catalog so Poland/other large groups are not truncated to the first page.
+        val all = linkedMapOf<String, VavooChannel>()
+        var cursor: Int? = null
+        var pages = 0
+        while (pages < 20) {
+            val (pageChannels, nextCursor) = fetchChannels("", group, cursor)
+            if (pageChannels.isEmpty()) break
+            pageChannels.forEach { all[it.id] = it }
+            pages++
+            cursor = nextCursor ?: break
+        }
+
+        val channels = all.values.toList()
         if (channels.isNotEmpty()) {
             homeCache[group] = channels
             cacheTimestamps[group] = now

@@ -21,78 +21,118 @@ class NekostreamExtractor : Extractor() {
     private val client = OkHttpClient.Builder()
         .dns(DnsResolver.doh)
         .readTimeout(30, TimeUnit.SECONDS)
-        .connectTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .callTimeout(45, TimeUnit.SECONDS)
         .build()
 
     override suspend fun extract(link: String): Video {
-        val streamPageUrl = link.substringBefore("?") + link.substringAfter("?", "?autostart=true").let {
-            if (link.contains("?")) "?${link.substringAfter("?")}" else it
-        }
+        val streamPageUrl = normalizeStreamPageUrl(link)
         val pageUri = Uri.parse(streamPageUrl)
         val origin = "${pageUri.scheme}://${pageUri.host}"
         val pageBody = getText(
             url = streamPageUrl,
-            referer = "https://anikototv.to/",
+            referer = when {
+                streamPageUrl.contains("megaplay", ignoreCase = true) -> "https://anikototv.to/"
+                else -> "$origin/"
+            },
             origin = origin,
             accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         )
 
-        val fileId = Regex("""id=["']megaplay-player["'][^>]*data-id=["']([^"']+)""")
-            .find(pageBody)
-            ?.groupValues
-            ?.getOrNull(1)
-            ?: Regex("""data-id=["']([^"']+)["'][^>]*id=["']megaplay-player["']""")
-                .find(pageBody)
-                ?.groupValues
-                ?.getOrNull(1)
+        val fileId = extractPlayerFileId(pageBody)
             ?: throw Exception("Nekostream player file id not found")
 
-        val streamType = Regex("""type:\s*['"]([^'"]+)""")
+        val streamType = Regex("""type:\s*['"]([^'"]+)['"]""")
             .find(pageBody)
             ?.groupValues
             ?.getOrNull(1)
+            ?: Regex("""/stream/[^/]+/\d+/(sub|dub|raw)\b""", RegexOption.IGNORE_CASE)
+                .find(streamPageUrl)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.lowercase()
 
-        val sourcesUrl = if (pageBody.contains("getSourcesNew")) {
-            "$origin/stream/getSourcesNew?id=$fileId" + (streamType?.let { "&type=$it" } ?: "")
-        } else {
-            "$origin/stream/getSources?id=$fileId"
+        // megaplay.buzz currently serves the playable m3u8 only from getSourcesNew;
+        // legacy getSources returns tracks/enc without a plaintext sources.file.
+        val typeQuery = streamType?.let { "&type=$it" }.orEmpty()
+        val sourcesCandidates = listOf(
+            "$origin/stream/getSourcesNew?id=$fileId$typeQuery",
+            "$origin/stream/getSources?id=$fileId$typeQuery",
+        )
+
+        var lastError: Exception? = null
+        for (sourcesUrl in sourcesCandidates) {
+            try {
+                val sourcesBody = getText(
+                    url = sourcesUrl,
+                    referer = streamPageUrl,
+                    origin = origin,
+                    accept = "application/json, text/javascript, */*; q=0.01",
+                    requestedWith = true,
+                )
+                val sources = Gson().fromJson(sourcesBody, SourcesResponse::class.java)
+                val source = sources.sources?.file
+                    ?: sources.sources?.list?.firstOrNull { !it.file.isNullOrBlank() }?.file
+                    ?: continue
+
+                return Video(
+                    source = source,
+                    subtitles = sources.tracks.orEmpty()
+                        .filter { it.kind == null || it.kind == "captions" }
+                        .mapNotNull {
+                            Video.Subtitle(
+                                label = it.label?.ifBlank { null } ?: "Subtitle",
+                                file = it.file ?: return@mapNotNull null,
+                                default = it.default == true,
+                            )
+                        },
+                    headers = mapOf(
+                        "User-Agent" to USER_AGENT,
+                        "Referer" to "$origin/",
+                        "Origin" to origin,
+                        "Accept" to "*/*",
+                        "Accept-Language" to "en-US,en;q=0.9",
+                        "Connection" to "keep-alive",
+                        "Sec-Fetch-Dest" to "empty",
+                        "Sec-Fetch-Mode" to "cors",
+                        "Sec-Fetch-Site" to "cross-site",
+                        "Sec-GPC" to "1",
+                    ),
+                    type = MimeTypes.APPLICATION_M3U8,
+                )
+            } catch (e: Exception) {
+                lastError = e
+            }
         }
 
-        val sourcesBody = getText(
-            url = sourcesUrl,
-            referer = streamPageUrl,
-            origin = origin,
-            accept = "application/json, text/javascript, */*; q=0.01",
-            requestedWith = true,
-        )
-        val sources = Gson().fromJson(sourcesBody, SourcesResponse::class.java)
-        val source = sources.sources?.file ?: throw Exception("Nekostream source not found")
+        throw lastError ?: Exception("Nekostream source not found")
+    }
 
-        return Video(
-            source = source,
-            subtitles = sources.tracks.orEmpty()
-                .filter { it.kind == null || it.kind == "captions" }
-                .mapNotNull {
-                    Video.Subtitle(
-                        label = it.label?.ifBlank { null } ?: "Subtitle",
-                        file = it.file ?: return@mapNotNull null,
-                        default = it.default == true,
-                    )
-                },
-            headers = mapOf(
-                "User-Agent" to USER_AGENT,
-                "Referer" to "$origin/",
-                "Origin" to origin,
-                "Accept" to "*/*",
-                "Accept-Language" to "en-US,en;q=0.9",
-                "Connection" to "keep-alive",
-                "Sec-Fetch-Dest" to "empty",
-                "Sec-Fetch-Mode" to "cors",
-                "Sec-Fetch-Site" to "cross-site",
-                "Sec-GPC" to "1",
-            ),
-            type = MimeTypes.APPLICATION_M3U8,
-        )
+    private fun normalizeStreamPageUrl(link: String): String {
+        val base = link.substringBefore("?")
+        return if (link.contains("?")) {
+            link
+        } else {
+            "$base?autostart=true"
+        }
+    }
+
+    private fun extractPlayerFileId(pageBody: String): String? {
+        Regex(
+            """id=["']megaplay-player["'][\s\S]*?data-id=["']([^"']+)["']""",
+            RegexOption.IGNORE_CASE,
+        ).find(pageBody)?.groupValues?.getOrNull(1)?.let { return it }
+
+        Regex(
+            """data-id=["']([^"']+)["'][\s\S]*?id=["']megaplay-player["']""",
+            RegexOption.IGNORE_CASE,
+        ).find(pageBody)?.groupValues?.getOrNull(1)?.let { return it }
+
+        // Fallback: first data-id near the player container.
+        return Regex(
+            """class=["'][^"']*form-area[^"']*["'][^>]*data-id=["']([^"']+)["']""",
+            RegexOption.IGNORE_CASE,
+        ).find(pageBody)?.groupValues?.getOrNull(1)
     }
 
     private fun getText(
@@ -131,6 +171,12 @@ class NekostreamExtractor : Extractor() {
     ) {
         data class Sources(
             val file: String? = null,
+            val list: List<SourceItem>? = null,
+        )
+
+        data class SourceItem(
+            val file: String? = null,
+            val type: String? = null,
         )
 
         data class Track(

@@ -81,6 +81,7 @@ import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.EpisodeManager
 import com.dskja.betterstreamflix.utils.MediaServer
 import com.dskja.betterstreamflix.utils.PlayerGestureHelper
+import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.UserDataCache
 import com.dskja.betterstreamflix.utils.ProviderAudioLanguage
@@ -824,7 +825,11 @@ class PlayerTvFragment : Fragment() {
                     nextEpisodeOverlayDismissed = false
                     nextEpisodePrefetchTargetId = null
 
-                    if (EpisodeManager.listIsEmpty(type)) {
+                    if (isLiveTvPlayback()) {
+                        EpisodeManager.clearEpisodes()
+                        hideNextEpisodeOverlay()
+                        updatePlayerHeader(type)
+                    } else if (EpisodeManager.listIsEmpty(type)) {
                         EpisodeManager.clearEpisodes()
                         lifecycleScope.launch(Dispatchers.IO) {
                             EpisodeManager.addEpisodesFromDb(type, database)
@@ -1121,10 +1126,18 @@ class PlayerTvFragment : Fragment() {
                     "User-Agent" to userAgent,
                 ) + (video.headers ?: emptyMap())
             )
+            val mediaItemBuilder = MediaItem.Builder()
+                .setUri(video.source.toUri())
+                .setMimeType(video.type)
+            if (isLiveTvPlayback()) {
+                mediaItemBuilder.setLiveConfiguration(
+                    MediaItem.LiveConfiguration.Builder()
+                        .setMaxPlaybackSpeed(1.02f)
+                        .build()
+                )
+            }
             player.setMediaItem(
-                MediaItem.Builder()
-                    .setUri(video.source.toUri())
-                    .setMimeType(video.type)
+                mediaItemBuilder
                     .setSubtitleConfigurations(
                         subtitleConfigurationsForPlayback(
                             context = requireContext(),
@@ -1508,6 +1521,9 @@ class PlayerTvFragment : Fragment() {
             is Video.Type.Movie -> type
         }
 
+        private fun isLiveTvPlayback(): Boolean =
+            UserPreferences.currentProvider is IptvProvider
+
         private fun resolvePlayerTitle(videoType: Video.Type = currentVideoTypeForUi()): String {
             return when (videoType) {
                 is Video.Type.Movie -> videoType.title
@@ -1516,6 +1532,9 @@ class PlayerTvFragment : Fragment() {
         }
 
         private fun resolvePlayerSubtitle(videoType: Video.Type = currentVideoTypeForUi()): String {
+            if (isLiveTvPlayback()) {
+                return getString(R.string.player_live_badge)
+            }
             return when (videoType) {
                 is Video.Type.Movie -> args.subtitle
                 is Video.Type.Episode -> {

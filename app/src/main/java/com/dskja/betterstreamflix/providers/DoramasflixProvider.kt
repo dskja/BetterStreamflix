@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
@@ -33,10 +38,17 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 
-object DoramasflixProvider : Provider {
+object DoramasflixProvider : Provider, ProviderConfigUrl {
 
     override val name = "Doramasflix"
-    override val baseUrl = "https://doramasflix.in"
+    override val defaultBaseUrl = "https://doramasflix.in"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo: String =
         "https://assets.seriesapi.co/brands/doramasflix/websites/6a651fa138cbd16df74343be/logo/logo-1785013866419.png"

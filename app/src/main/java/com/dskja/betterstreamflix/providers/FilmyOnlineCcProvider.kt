@@ -1,5 +1,7 @@
 package com.dskja.betterstreamflix.providers
 
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.content.Context
 import android.util.Log
 import android.webkit.CookieManager
@@ -40,10 +42,17 @@ import java.text.Normalizer
 import java.util.concurrent.TimeUnit
 import okhttp3.Request
 
-object FilmyOnlineCcProvider : Provider {
+object FilmyOnlineCcProvider : Provider, ProviderConfigUrl {
 
     override val name = "FilmyOnline"
-    override val baseUrl = "https://filmyonline.cc"
+    override val defaultBaseUrl = "https://filmyonline.cc"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "$baseUrl/favicon/icon-144x144.png?v=1703232212"
     override val language = "pl"
 
@@ -78,9 +87,19 @@ object FilmyOnlineCcProvider : Provider {
                     return@withContext JSONObject(body)
                 }
 
-                if (response.code == 403 && clearanceRetries < MAX_API_CLEARANCE_RETRIES) {
-                    clearanceRetries++
-                    shouldRefreshClearance = true
+                if (response.code == 403 || response.code == 503) {
+                    val challenge = body.contains("Just a moment", ignoreCase = true) ||
+                        body.contains("cf-browser-verification", ignoreCase = true)
+                    if (challenge && clearanceRetries < MAX_API_CLEARANCE_RETRIES) {
+                        clearanceRetries++
+                        shouldRefreshClearance = true
+                    } else {
+                        throw Exception(
+                            "FilmyOnline API ${response.code}" +
+                                if (challenge) " (Cloudflare). Otwórz dostawcę ponownie, aby odświeżyć sesję."
+                                else ""
+                        )
+                    }
                 } else {
                     throw Exception("FilmyOnline API request failed: ${response.code}")
                 }
@@ -665,21 +684,32 @@ object FilmyOnlineCcProvider : Provider {
     private fun buildBrowserApiRequest(url: String, referer: String = "$baseUrl/"): Request {
         val cookieHeader = currentBrowserCookieHeader()
         val xsrfToken = resolveXsrfToken(cookieHeader)
+        val origin = baseUrl.trimEnd('/')
 
         return Request.Builder()
             .url(url)
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            )
+            .header("Accept", "application/json, text/plain, */*")
+            .header("Accept-Language", "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Origin", origin)
             .header("Referer", referer)
-            .header("Accept", "application/json")
-            .header("Accept-Language", "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("X-Requested-With", "XMLHttpRequest")
             .header("Sec-Fetch-Dest", "empty")
             .header("Sec-Fetch-Mode", "cors")
             .header("Sec-Fetch-Site", "same-origin")
+            .header("Sec-CH-UA", "\"Chromium\";v=\"124\", \"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"124\"")
+            .header("Sec-CH-UA-Mobile", "?0")
+            .header("Sec-CH-UA-Platform", "\"Windows\"")
             .apply {
                 if (!cookieHeader.isNullOrBlank()) {
                     header("Cookie", cookieHeader)
                 }
                 if (!xsrfToken.isNullOrBlank()) {
                     header("X-XSRF-TOKEN", xsrfToken)
+                    header("X-CSRF-TOKEN", xsrfToken)
                 }
             }
             .build()

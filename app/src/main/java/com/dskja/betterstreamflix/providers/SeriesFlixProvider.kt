@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -27,10 +32,17 @@ import java.net.URLDecoder
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-object SeriesFlixProvider : Provider {
+object SeriesFlixProvider : Provider, ProviderConfigUrl {
 
     override val name = "SeriesFlix"
-    override val baseUrl = "https://seriesflixhd.lol"
+    override val defaultBaseUrl = "https://seriesflixhd.lol"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "https://s.seriesflixhd.lol/series/imgs/favicon-192.png"
     override val language = "es"
 

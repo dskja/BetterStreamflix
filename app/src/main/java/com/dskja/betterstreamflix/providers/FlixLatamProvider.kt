@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -28,14 +33,22 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.Locale
 
-object FlixLatamProvider : Provider {
+object FlixLatamProvider : Provider, ProviderConfigUrl {
 
     override val name = "FlixLatam"
-    override val baseUrl = "https://flixlatam.com"
+    override val defaultBaseUrl = "https://flixlatam.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = FlixLatamService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val language = "es"
     override val logo = "https://images2.imgbox.com/94/59/1ClPdx5Z_o.jpg"
 
-    private val service = FlixLatamService.build(baseUrl)
+    private var service = FlixLatamService.build(defaultBaseUrl)
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun getHome(): List<Category> = coroutineScope {
@@ -417,13 +430,21 @@ object FlixLatamProvider : Provider {
                 val okHttpClient = OkHttpClient.Builder()
                     .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
-                            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+                            .header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                            )
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Referer", baseUrl)
+                            .header("Origin", baseUrl.trimEnd('/'))
                             .build()
                         chain.proceed(request)
                     }
                     .cache(Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024))
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .callTimeout(35, TimeUnit.SECONDS)
                     .dns(DnsResolver.doh)
                     .build()
 
