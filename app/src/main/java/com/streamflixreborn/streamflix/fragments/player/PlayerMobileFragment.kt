@@ -72,6 +72,7 @@ import com.streamflixreborn.streamflix.utils.plus
 import com.streamflixreborn.streamflix.utils.setMediaServerId
 import com.streamflixreborn.streamflix.utils.setMediaServers
 import com.streamflixreborn.streamflix.utils.toSubtitleMimeType
+import com.streamflixreborn.streamflix.utils.subtitleConfigurationsForPlayback
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -945,13 +946,13 @@ class PlayerMobileFragment : Fragment() {
             MediaItem.Builder()
                 .setUri(video.source.toUri())
                 .setMimeType(video.type)
-                .setSubtitleConfigurations(video.subtitles.map { subtitle ->
-                    MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
-                        .setMimeType(subtitle.file.toSubtitleMimeType())
-                        .setLabel(subtitle.label)
-                        .setSelectionFlags(if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0)
-                        .build()
-                })
+                .setSubtitleConfigurations(
+                    subtitleConfigurationsForPlayback(
+                        context = requireContext(),
+                        videoType = args.videoType,
+                        serverSubtitles = video.subtitles,
+                    )
+                )
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setMediaServerId(server.id)
