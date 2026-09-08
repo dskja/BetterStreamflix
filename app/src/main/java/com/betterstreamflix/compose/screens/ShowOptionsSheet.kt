@@ -100,7 +100,7 @@ fun ShowOptionsSheet(
     val shape = if (isTvLayout) {
         RoundedCornerShape(0.dp)
     } else {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     }
 
     Box(
@@ -139,7 +139,7 @@ fun ShowOptionsSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (isTvLayout) 220.dp else 150.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(24.dp))
                         .background(BsTheme.colors.InkSoft),
                 )
 
