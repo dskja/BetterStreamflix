@@ -180,7 +180,7 @@ class MovieViewHolder(
 
     private fun checkProviderAndRun(action: () -> Unit) {
         if (!movie.providerName.isNullOrBlank() && movie.providerName != UserPreferences.currentProvider?.name) {
-            Provider.providers.keys.find { it.name == movie.providerName }?.let {
+            Provider.findByName(movie.providerName!!)?.let {
                 UserPreferences.currentProvider = it
             }
         }

@@ -1,7 +1,7 @@
 package com.streamflixreborn.streamflix.utils
 
+import android.content.Context
 import android.net.Uri
-import androidx.core.net.toUri
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,7 +14,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
 import java.util.zip.ZipInputStream
-import com.streamflixreborn.streamflix.BuildConfig
 
 object SubDL {
 
@@ -24,10 +23,63 @@ object SubDL {
     private val service = Service.build()
 
     suspend fun download(
+        context: Context,
         subtitle: Subtitle,
+        contentKey: String,
     ): Uri = withContext(Dispatchers.IO) {
+        val fileId = cacheFileId(subtitle)
+        SubtitleFileCache.getUri(
+            context = context,
+            contentKey = contentKey,
+            provider = SubtitleFileCache.PROVIDER_SUBDL,
+            fileId = fileId,
+        )?.also { cachedUri ->
+            rememberCached(context, contentKey, fileId, subtitle, cachedUri)
+            return@withContext cachedUri
+        }
+
+        try {
+            downloadToCache(context, subtitle, contentKey, fileId)
+        } catch (e: Exception) {
+            SubtitleFileCache.getUri(
+                context = context,
+                contentKey = contentKey,
+                provider = SubtitleFileCache.PROVIDER_SUBDL,
+                fileId = fileId,
+            )?.let { return@withContext it }
+            throw e
+        }
+    }
+
+    private fun rememberCached(
+        context: Context,
+        contentKey: String,
+        fileId: String,
+        subtitle: Subtitle,
+        cachedUri: Uri,
+    ) {
+        val path = cachedUri.path ?: return
+        SubtitleFileCache.remember(
+            context = context,
+            contentKey = contentKey,
+            cached = SubtitleFileCache.CachedSubtitle(
+                provider = SubtitleFileCache.PROVIDER_SUBDL,
+                fileId = fileId,
+                label = subtitle.name ?: subtitle.releaseName ?: fileId,
+                language = subtitle.language ?: subtitle.lang,
+                fileName = File(path).name,
+            ),
+        )
+    }
+
+    private fun downloadToCache(
+        context: Context,
+        subtitle: Subtitle,
+        contentKey: String,
+        fileId: String,
+    ): Uri {
         val downloadUrl = "$DOWNLOAD_BASE_URL${subtitle.url}"
-        
+
         val zip = File.createTempFile(
             "subdl-${subtitle.releaseName ?: "subtitle"}-",
             ".zip"
@@ -45,7 +97,7 @@ object SubDL {
                 if (!entry.isDirectory) {
                     val name = File(entry.name).name
                     val file = File("${zip.parent}${File.separator}$name")
-                    
+
                     if (file.exists()) {
                         file.delete()
                     }
@@ -62,8 +114,25 @@ object SubDL {
 
         zip.delete()
 
-        subtitleFile?.toUri() ?: throw Exception("No subtitle found in zip")
+        val extracted = subtitleFile ?: throw Exception("No subtitle found in zip")
+        val uri = SubtitleFileCache.put(
+            context = context,
+            contentKey = contentKey,
+            provider = SubtitleFileCache.PROVIDER_SUBDL,
+            fileId = fileId,
+            label = subtitle.name ?: subtitle.releaseName ?: extracted.name,
+            language = subtitle.language ?: subtitle.lang,
+            sourceFile = extracted,
+        )
+        extracted.delete()
+        return uri
     }
+
+    private fun cacheFileId(subtitle: Subtitle): String =
+        subtitle.url?.takeIf { it.isNotBlank() }?.hashCode()?.toString()
+            ?: subtitle.name?.takeIf { it.isNotBlank() }
+            ?: subtitle.releaseName?.takeIf { it.isNotBlank() }
+            ?: "unknown"
 
     suspend fun search(
         filmName: String? = null,
@@ -72,12 +141,10 @@ object SubDL {
         type: String? = null,
         subsPerPage: Int = 30,
     ): List<Subtitle> {
-        
-        // If no API key is configured, do not search
         if (UserPreferences.subdlApiKey.isEmpty()) {
             return emptyList()
         }
-        
+
         return try {
             val response = service.search(
                 apiKey = UserPreferences.subdlApiKey,
@@ -87,8 +154,7 @@ object SubDL {
                 type = type,
                 subsPerPage = subsPerPage
             )
-            val subtitles = response.subtitles ?: emptyList()
-            subtitles
+            response.subtitles ?: emptyList()
         } catch (e: Exception) {
             emptyList()
         }

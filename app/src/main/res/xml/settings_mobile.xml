@@ -30,6 +30,21 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_library_settings"
+            android:title="@string/settings_category_library"
+            app:iconSpaceReserved="false">
+
+            <ListPreference
+                android:key="LIBRARY_SCOPE"
+                android:title="@string/settings_library_scope_title"
+                android:summary="@string/settings_library_scope_summary"
+                android:entries="@array/library_scope_entries"
+                android:entryValues="@array/library_scope_values"
+                android:defaultValue="per_provider"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_parental_control_settings"
             android:title="@string/settings_category_parental_control"
             app:iconSpaceReserved="false">

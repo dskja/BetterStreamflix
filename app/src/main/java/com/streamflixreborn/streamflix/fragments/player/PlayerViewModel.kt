@@ -5,10 +5,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.streamflixreborn.streamflix.StreamFlixApp
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.CustomTabHelper
 import com.streamflixreborn.streamflix.utils.EpisodeManager
 import com.streamflixreborn.streamflix.utils.OpenSubtitles
+import com.streamflixreborn.streamflix.utils.SubDL
+import com.streamflixreborn.streamflix.utils.SubtitleFileCache
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.format
 import kotlinx.coroutines.Dispatchers
@@ -17,10 +20,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
-import com.streamflixreborn.streamflix.utils.SubDL
 
 class PlayerViewModel(
-    videoType: Video.Type,
+    private val videoType: Video.Type,
     id: String,
 ) : ViewModel() {
 
@@ -206,7 +208,12 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio download sottotitolo OpenSubtitles: ${subtitle.subFileName}")
         _subtitleState.emit(SubtitleState.DownloadingOpenSubtitle)
         try {
-            val uri = OpenSubtitles.download(subtitle)
+            val contentKey = SubtitleFileCache.contentKey(videoType)
+            val uri = OpenSubtitles.download(
+                context = StreamFlixApp.instance,
+                subtitle = subtitle,
+                contentKey = contentKey,
+            )
             Log.d("PlayerViewModel", "Download OpenSubtitles completato: $uri")
             _subtitleState.emit(SubtitleState.SuccessDownloadingOpenSubtitle(subtitle, uri))
         } catch (e: Exception) {
@@ -219,7 +226,12 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio download sottotitolo SubDL: ${subtitle.name}")
         _subtitleState.emit(SubtitleState.DownloadingSubDLSubtitle)
         try {
-            val uri = SubDL.download(subtitle)
+            val contentKey = SubtitleFileCache.contentKey(videoType)
+            val uri = SubDL.download(
+                context = StreamFlixApp.instance,
+                subtitle = subtitle,
+                contentKey = contentKey,
+            )
             Log.d("PlayerViewModel", "Download SubDL completato: $uri")
             _subtitleState.emit(SubtitleState.SuccessDownloadingSubDLSubtitle(subtitle, uri))
         } catch (e: Exception) {

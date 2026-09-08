@@ -65,6 +65,7 @@ import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.SubtitleOffsetRenderersFactory
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.UserDataCache
+import com.streamflixreborn.streamflix.utils.ProviderAudioLanguage
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
@@ -72,6 +73,7 @@ import com.streamflixreborn.streamflix.utils.plus
 import com.streamflixreborn.streamflix.utils.setMediaServerId
 import com.streamflixreborn.streamflix.utils.setMediaServers
 import com.streamflixreborn.streamflix.utils.toSubtitleMimeType
+import com.streamflixreborn.streamflix.utils.subtitleConfigurationsForPlayback
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -945,13 +947,13 @@ class PlayerMobileFragment : Fragment() {
             MediaItem.Builder()
                 .setUri(video.source.toUri())
                 .setMimeType(video.type)
-                .setSubtitleConfigurations(video.subtitles.map { subtitle ->
-                    MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
-                        .setMimeType(subtitle.file.toSubtitleMimeType())
-                        .setLabel(subtitle.label)
-                        .setSelectionFlags(if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0)
-                        .build()
-                })
+                .setSubtitleConfigurations(
+                    subtitleConfigurationsForPlayback(
+                        context = requireContext(),
+                        videoType = args.videoType,
+                        serverSubtitles = video.subtitles,
+                    )
+                )
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setMediaServerId(server.id)
@@ -1467,6 +1469,8 @@ class PlayerMobileFragment : Fragment() {
     private var currentSoftwareDecoder = false
 
     private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
+        SubtitleOffset.reset()
+
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
@@ -1536,9 +1540,9 @@ class PlayerMobileFragment : Fragment() {
                 )
 
                 val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                if (lang == "es") {
+                ProviderAudioLanguage.preferredAudioLanguages(lang)?.let { codes ->
                     player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                        .setPreferredAudioLanguage("spa")
+                        .setPreferredAudioLanguages(*codes)
                         .build()
                 }
 
@@ -1568,9 +1572,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private fun isSerienStreamBypassUrl(url: String): Boolean {
-        return runCatching {
-            Uri.parse(url).host.equals("serienstream.to", ignoreCase = true)
-        }.getOrDefault(false)
+        return SerienStreamProvider.isSerienStreamHost(url)
     }
 
     private fun buildSerienStreamBypassUrl(): String? {

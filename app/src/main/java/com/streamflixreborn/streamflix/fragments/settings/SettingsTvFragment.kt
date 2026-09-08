@@ -63,6 +63,7 @@ import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
 import com.streamflixreborn.streamflix.utils.AppLanguageManager
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
+import com.streamflixreborn.streamflix.ui.UserDataNotifier
 import com.streamflixreborn.streamflix.utils.QrUtils
 import com.streamflixreborn.streamflix.utils.ThemeManager
 import com.streamflixreborn.streamflix.utils.UserDataCache
@@ -454,6 +455,25 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<ListPreference>("LIBRARY_SCOPE")?.apply {
+            value = UserPreferences.libraryScope.key
+            summary = entry
+            setOnPreferenceChangeListener { preference, newValue ->
+                val scope = UserPreferences.LibraryScope.fromKey(newValue as String)
+                UserPreferences.libraryScope = scope
+                (preference as ListPreference).value = scope.key
+                preference.summary = preference.entry
+                UserDataNotifier.notifyChanged()
+                ProviderChangeNotifier.notifyProviderChanged()
+                Toast.makeText(
+                    requireContext(),
+                    R.string.settings_library_scope_updated,
+                    Toast.LENGTH_SHORT
+                ).show()
+                true
+            }
+        }
+
         setupParentalControlPreferences()
 
         findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
@@ -726,7 +746,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 networkSettingsCategory.title = originalTitle
             }
 
-            if (BuildConfig.DEBUG && findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST") == null) {
+            // Available in release too: some TV sticks report a non-LAN IP (VPN/docker),
+            // so users need to set the phone-reachable address manually.
+            if (findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST") == null) {
                 val hostPreference = EditTextPreference(requireContext()).apply {
                     key = "BYPASS_WS_ADVERTISED_HOST"
                     title = "Bypass advertised host"

@@ -95,6 +95,30 @@ object SerienStreamProvider : Provider {
 
     private fun currentDomain(): String {
         return UserPreferences.serienstreamDomain.trim().ifBlank { DEFAULT_DOMAIN }
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .substringBefore("/")
+            .removePrefix("www.")
+            .ifBlank { DEFAULT_DOMAIN }
+    }
+
+    /** True when [hostOrUrl] is the configured SerienStream domain (or Cloudflare challenge). */
+    fun isSerienStreamHost(hostOrUrl: String?): Boolean {
+        if (hostOrUrl.isNullOrBlank()) return false
+        val host = runCatching {
+            if (hostOrUrl.contains("://")) {
+                android.net.Uri.parse(hostOrUrl).host
+            } else {
+                hostOrUrl
+            }
+        }.getOrNull()
+            ?.lowercase()
+            ?.removePrefix("www.")
+            .orEmpty()
+        if (host.isBlank()) return false
+        if (host == "challenges.cloudflare.com") return true
+        val configured = currentDomain().lowercase()
+        return host == configured || host.endsWith(".$configured")
     }
 
     private fun currentBaseUrl(): String {

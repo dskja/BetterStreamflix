@@ -1,16 +1,25 @@
 package com.streamflixreborn.streamflix.fragments.favorites
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.streamflixreborn.streamflix.StreamFlixApp
 import com.streamflixreborn.streamflix.adapters.AppAdapter
 import com.streamflixreborn.streamflix.database.AppDatabase
 import com.streamflixreborn.streamflix.models.Movie
 import com.streamflixreborn.streamflix.models.TvShow
+import com.streamflixreborn.streamflix.ui.UserDataNotifier
+import com.streamflixreborn.streamflix.utils.CrossProviderLibrary
+import com.streamflixreborn.streamflix.utils.ProviderChangeNotifier
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.launch
 
 class FavoritesViewModel(
     database: AppDatabase,
@@ -42,25 +51,52 @@ class FavoritesViewModel(
         val items: List<AppAdapter.Item>,
     )
 
+    private val prefsScope: String
+        get() = if (UserPreferences.isCrossProviderLibrary) "__all__" else providerName
+
     private val order = MutableStateFlow(readOrder())
-    private val sortMode = MutableStateFlow(SortMode.fromKey(UserPreferences.getFavoriteSortMode(providerName)))
+    private val sortMode = MutableStateFlow(SortMode.fromKey(UserPreferences.getFavoriteSortMode(prefsScope)))
     private val orderRevision = MutableStateFlow(0)
+    private val libraryRefresh = MutableStateFlow(0)
     @Volatile
     private var currentSections: List<FavoriteSection> = emptyList()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val favorites = combine(
+        database.movieDao().getFavorites().map { },
+        database.tvShowDao().getFavorites().map { },
+        libraryRefresh,
+    ) { _, _, tick -> tick }
+        .mapLatest {
+            CrossProviderLibrary.loadHomeHistory(StreamFlixApp.instance.applicationContext)
+        }
+        .flowOn(Dispatchers.IO)
+
     val sections: Flow<List<FavoriteSection>> = combine(
-        database.movieDao().getFavorites(),
-        database.tvShowDao().getFavorites(),
+        favorites,
         order,
         combine(sortMode, orderRevision) { mode, _ -> mode },
-    ) { movies, tvShows, sectionOrder, mode ->
+    ) { history, sectionOrder, mode ->
         sectionOrder.map { section ->
             when (section) {
-                Section.MOVIES -> FavoriteSection(section, sortItems(section, movies, mode))
-                Section.TV_SHOWS -> FavoriteSection(section, sortItems(section, tvShows, mode))
+                Section.MOVIES -> FavoriteSection(section, sortItems(section, history.favoriteMovies, mode))
+                Section.TV_SHOWS -> FavoriteSection(section, sortItems(section, history.favoriteTvShows, mode))
             }
         }.also { currentSections = it }
     }.flowOn(Dispatchers.IO)
+
+    init {
+        viewModelScope.launch {
+            UserDataNotifier.updates.collect { libraryRefresh.value += 1 }
+        }
+        viewModelScope.launch {
+            ProviderChangeNotifier.providerChangeFlow.collect {
+                order.value = readOrder()
+                sortMode.value = SortMode.fromKey(UserPreferences.getFavoriteSortMode(prefsScope))
+                libraryRefresh.value += 1
+            }
+        }
+    }
 
     fun reverseCategoryOrder() {
         setCategoryOrder(order.value.reversed())
@@ -69,12 +105,12 @@ class FavoritesViewModel(
     fun setCategoryOrder(newOrder: List<Section>) {
         val normalized = (newOrder + Section.entries).distinct()
         order.value = normalized
-        UserPreferences.setFavoriteCategoryOrder(providerName, normalized.map { it.key })
+        UserPreferences.setFavoriteCategoryOrder(prefsScope, normalized.map { it.key })
     }
 
     fun setSortMode(mode: SortMode) {
         sortMode.value = mode
-        UserPreferences.setFavoriteSortMode(providerName, mode.key)
+        UserPreferences.setFavoriteSortMode(prefsScope, mode.key)
     }
 
     fun moveItem(section: Section, itemId: String, delta: Int) {
@@ -89,15 +125,15 @@ class FavoritesViewModel(
         if (from == to) return
         val moved = ids.removeAt(from)
         ids.add(to, moved)
-        UserPreferences.setFavoriteItemOrder(providerName, section.key, ids)
-        UserPreferences.setFavoriteSortMode(providerName, SortMode.MANUAL.key)
+        UserPreferences.setFavoriteItemOrder(prefsScope, section.key, ids)
+        UserPreferences.setFavoriteSortMode(prefsScope, SortMode.MANUAL.key)
         sortMode.value = SortMode.MANUAL
         orderRevision.value += 1
     }
 
     fun setManualItemOrder(section: Section, itemIds: List<String>) {
-        UserPreferences.setFavoriteItemOrder(providerName, section.key, itemIds)
-        UserPreferences.setFavoriteSortMode(providerName, SortMode.MANUAL.key)
+        UserPreferences.setFavoriteItemOrder(prefsScope, section.key, itemIds)
+        UserPreferences.setFavoriteSortMode(prefsScope, SortMode.MANUAL.key)
         sortMode.value = SortMode.MANUAL
         orderRevision.value += 1
     }
@@ -110,7 +146,7 @@ class FavoritesViewModel(
         mode: SortMode,
     ): List<AppAdapter.Item> = when (mode) {
         SortMode.MANUAL -> {
-            val savedOrder = UserPreferences.getFavoriteItemOrder(providerName, section.key)
+            val savedOrder = UserPreferences.getFavoriteItemOrder(prefsScope, section.key)
             val currentIds = items.mapNotNull(::itemId)
             val currentIdSet = currentIds.toSet()
             val normalizedOrder = (
@@ -119,7 +155,7 @@ class FavoritesViewModel(
                 ).distinct()
 
             if (normalizedOrder != savedOrder) {
-                UserPreferences.setFavoriteItemOrder(providerName, section.key, normalizedOrder)
+                UserPreferences.setFavoriteItemOrder(prefsScope, section.key, normalizedOrder)
             }
 
             val positions = normalizedOrder.withIndex().associate { it.value to it.index }
@@ -131,10 +167,17 @@ class FavoritesViewModel(
     }
 
     private fun itemId(item: AppAdapter.Item): String? = when (item) {
-        is Movie -> item.id
-        is TvShow -> item.id
+        is Movie -> libraryItemId(item.providerName, item.id)
+        is TvShow -> libraryItemId(item.providerName, item.id)
         else -> null
     }
+
+    private fun libraryItemId(provider: String?, id: String): String =
+        if (UserPreferences.isCrossProviderLibrary) {
+            "${provider.orEmpty()}:$id"
+        } else {
+            id
+        }
 
     private fun favoriteTime(item: AppAdapter.Item): Long = when (item) {
         is Movie -> item.favoritedAtMillis ?: 0L
@@ -149,8 +192,7 @@ class FavoritesViewModel(
     }
 
     private fun readOrder(): List<Section> = UserPreferences
-        .getFavoriteCategoryOrder(providerName)
+        .getFavoriteCategoryOrder(prefsScope)
         .mapNotNull(Section::fromKey)
         .let { (it + Section.entries).distinct() }
 }
-

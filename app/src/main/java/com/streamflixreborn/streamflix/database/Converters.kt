@@ -38,6 +38,11 @@ class Converters {
 
     @TypeConverter
     fun toSeason(value: String?): Season? {
-        return value?.let { Season(it, 0) }
+        return value?.let { id ->
+            val number = id.substringAfterLast('-', missingDelimiterValue = "")
+                .toIntOrNull()
+                ?: 0
+            Season(id, number)
+        }
     }
 }

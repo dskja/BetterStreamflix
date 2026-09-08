@@ -17,7 +17,7 @@ class TwoEmbedExtractor : Extractor() {
             id = name,
             name = name,
             src = when (videoType) {
-                is Video.Type.Episode -> "$mainUrl/embedtv/${videoType.tvShow.id}&s=${videoType.season.number}&e=${videoType.number}"
+                is Video.Type.Episode -> "$mainUrl/embedtv/${videoType.tvShow.id}?s=${videoType.season.number}&e=${videoType.number}"
                 is Video.Type.Movie -> "$mainUrl/embed/${videoType.id}"
             },
         )
