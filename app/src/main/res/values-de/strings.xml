@@ -408,6 +408,12 @@
     <string name="percentage_format">%d%%</string>
     <string name="settings_category_appearance">Darstellung</string>
     <string name="settings_theme_title">App-Design</string>
+    <string name="settings_category_library">Mediathek</string>
+    <string name="settings_library_scope_title">Favoriten &amp; Weiterschauen</string>
+    <string name="settings_library_scope_summary">Listen nur vom aktuellen Anbieter oder von allen Anbietern anzeigen</string>
+    <string name="settings_library_scope_per_provider">Pro Anbieter</string>
+    <string name="settings_library_scope_cross_provider">Über alle Anbieter</string>
+    <string name="settings_library_scope_updated">Mediathek-Bereich aktualisiert</string>
     <string name="settings_category_parental_control">Kindersicherung</string>
     <string name="settings_parental_pin_title">Eltern-PIN</string>
     <string name="settings_parental_pin_summary">PIN festlegen, um Änderungen an der Kindersicherung zu schützen</string>

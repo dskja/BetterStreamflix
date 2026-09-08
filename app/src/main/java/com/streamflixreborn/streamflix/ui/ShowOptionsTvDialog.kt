@@ -49,7 +49,7 @@ class ShowOptionsTvDialog(
         }
 
         if (!providerName.isNullOrBlank() && providerName != UserPreferences.currentProvider?.name) {
-            Provider.providers.keys.find { it.name == providerName }?.let {
+            Provider.findByName(providerName)?.let {
                 UserPreferences.currentProvider = it
             }
         }
