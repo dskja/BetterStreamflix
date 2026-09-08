@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -7,10 +12,17 @@ import com.dskja.betterstreamflix.models.*
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
-object PelotaLibreTvHdProvider : IptvProvider {
+object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
 
     override val name = "Sports Events"
-    override val baseUrl = "https://raw.githubusercontent.com"
+    override val defaultBaseUrl = "https://raw.githubusercontent.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     // Logo genérico de deportes
     override val logo = "https://i.ibb.co/3s2mhm6/sports-logo.png"
     override val language = "es"

@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -25,10 +30,17 @@ import retrofit2.http.Query
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
-object SflixProvider : Provider {
+object SflixProvider : Provider, ProviderConfigUrl {
 
     private const val URL = "https://sflix.to/"
-    override val baseUrl = URL
+    override val defaultBaseUrl = "https://sflix.to/"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val name = "SFlix"
     override val logo = "https://img.sflix.to/xxrz/400x400/100/66/35/66356c25ce98cb12993249e21742b129/66356c25ce98cb12993249e21742b129.png"
     override val language = "en"
@@ -37,7 +49,11 @@ object SflixProvider : Provider {
 
 
     override suspend fun getHome(): List<Category> {
-        val document = service.getHome()
+        val document = try {
+            service.getHome()
+        } catch (e: Exception) {
+            throw Exception("SFlix home timed out or is unreachable (${e.message}). Try again or change the provider URL.")
+        }
 
         val categories = mutableListOf<Category>()
 
@@ -733,9 +749,23 @@ object SflixProvider : Provider {
         companion object {
             fun build(): SflixService {
                 val client = OkHttpClient.Builder()
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .connectTimeout(12, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .writeTimeout(15, TimeUnit.SECONDS)
+                    .callTimeout(25, TimeUnit.SECONDS)
                     .dns(DnsResolver.doh)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                            )
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .header("Accept-Language", "en-US,en;q=0.9")
+                            .header("Referer", URL)
+                            .build()
+                        chain.proceed(request)
+                    }
                     .build()
 
                 val retrofit = Retrofit.Builder()

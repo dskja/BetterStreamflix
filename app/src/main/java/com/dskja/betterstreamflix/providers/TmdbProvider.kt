@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.providers
 
+import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.AfterDarkExtractor
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -52,6 +53,7 @@ class TmdbProvider(override val language: String) : Provider {
 
     override suspend fun getHome(): List<Category> = coroutineScope {
         try {
+            requireTmdbApiKey()
             buildHomeCategories()
         } catch (e: Exception) {
             Log.e("TmdbProvider", "TMDB home failed: ${e.message}", e)
@@ -60,6 +62,17 @@ class TmdbProvider(override val language: String) : Provider {
                     "Check your connection or switch DNS over HTTPS in Settings. " +
                     "(${e.message})",
                 e
+            )
+        }
+    }
+
+    
+    private fun requireTmdbApiKey() {
+        val key = UserPreferences.tmdbApiKey.ifBlank { BuildConfig.TMDB_API_KEY }.trim()
+        if (key.isBlank() || key == "null") {
+            throw Exception(
+                "TMDb API key is missing. Open Settings → enter your TMDb API key " +
+                    "(https://www.themoviedb.org/settings/api), then try again."
             )
         }
     }

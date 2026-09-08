@@ -1,5 +1,7 @@
 package com.dskja.betterstreamflix.providers
 
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -33,10 +35,17 @@ import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Url
 
-object JKAnimeProvider : Provider {
+object JKAnimeProvider : Provider, ProviderConfigUrl {
 
     override val name = "JKAnime"
-    override val baseUrl = "https://jkanime.net"
+    override val defaultBaseUrl = "https://jkanime.net"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo = "https://cdn.jkdesa.com/assets3/css/img/jkanimenet.png"
 

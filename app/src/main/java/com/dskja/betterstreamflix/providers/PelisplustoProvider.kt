@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
@@ -27,10 +32,17 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
 
-object PelisplustoProvider : Provider {
+object PelisplustoProvider : Provider, ProviderConfigUrl {
 
     override val name = "Pelisplusto"
-    override val baseUrl = "https://pelisplus.to"
+    override val defaultBaseUrl = "https://pelisplushd.bz/"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo = "https://pelisplus.to/images/logo2.png"
     private const val TAG = "PelisplustoProvider"

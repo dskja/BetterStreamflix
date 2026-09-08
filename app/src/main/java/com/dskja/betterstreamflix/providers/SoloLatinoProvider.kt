@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -33,10 +38,17 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 
 
-object SoloLatinoProvider : Provider {
+object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     override val name = "SoloLatino"
-    override val baseUrl = "https://sololatino.net"
+    override val defaultBaseUrl = "https://sololatino.net"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
 
     private val client = getOkHttpClient()
@@ -55,14 +67,22 @@ object SoloLatinoProvider : Provider {
         val clientBuilder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
+                    .header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    )
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Referer", "$baseUrl/")
+                    .header("Origin", baseUrl.trimEnd('/'))
                     .build()
                 chain.proceed(request)
             }
             .cookieJar(MyCookieJar())
             .cache(appCache)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(35, TimeUnit.SECONDS)
 
         return clientBuilder.dns(DnsResolver.doh).build()
     }
@@ -75,18 +95,18 @@ object SoloLatinoProvider : Provider {
 
     override val logo = "$baseUrl/images/logo.png"
 
-    override suspend fun getHome(): List<Category> = coroutineScope {
+            override suspend fun getHome(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
 
         try {
             val mainDoc = service.getPage(baseUrl)
-            
+
             // 1. Featured
             val bannerShows = parseBannerShows(mainDoc).take(12)
             if (bannerShows.isNotEmpty()) {
                 categories.add(Category(Category.FEATURED, bannerShows))
             }
-            
+
             // 2. Sections from the home page
             val sections = mainDoc.select("section")
             for (section in sections) {
@@ -96,7 +116,13 @@ object SoloLatinoProvider : Provider {
                     categories.add(Category(title, shows.take(12)))
                 }
             }
-        } catch (e: Exception) { /* Ignore */ }
+
+            if (categories.isEmpty()) {
+                throw Exception("SoloLatino home vacío (posible Cloudflare 403)")
+            }
+        } catch (e: Exception) {
+            throw Exception("SoloLatino: ${e.message}")
+        }
 
         categories
     }

@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -7,10 +12,17 @@ import com.dskja.betterstreamflix.models.*
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
-object IptvSpainProvider : IptvProvider {
+object IptvSpainProvider : IptvProvider, ProviderConfigUrl {
 
     override val name = "IPTV Spain"
-    override val baseUrl = "https://iptv-org.github.io/iptv/languages/spa.m3u"
+    override val defaultBaseUrl = "https://iptv-org.github.io/iptv/languages/spa.m3u"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "https://i.ibb.co/SD7860Mv/IPTV-Spain-Canales.jpg"
     override val language = "es"
 

@@ -1,11 +1,14 @@
 package com.dskja.betterstreamflix.providers
 
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import com.dskja.betterstreamflix.models.Category
@@ -36,10 +39,18 @@ import retrofit2.http.Headers
 import retrofit2.http.Url
 import retrofit2.http.Path
 
-object HDFilmeProvider : Provider {
+object HDFilmeProvider : Provider, ProviderConfigUrl {
 
     override val name: String = "HDFilme"
-    override val baseUrl: String = "https://hdfilme.win"
+    override val defaultBaseUrl = "https://hdfilme.cafe/"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = HDFilmeService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val logo: String = "$baseUrl/templates/hdfilme/images/apple-touch-icon.png"
     override val language: String = "de"
 
@@ -126,7 +137,7 @@ object HDFilmeProvider : Provider {
 
     }
 
-    private val service = HDFilmeService.build(baseUrl)
+    private var service = HDFilmeService.build(defaultBaseUrl)
     private data class SitemapEntry(val url: String, val searchableSlug: String)
 
     @Volatile private var sitemapEntries: List<SitemapEntry>? = null
@@ -968,18 +979,22 @@ object HDFilmeProvider : Provider {
             return servers.distinctBy { it.src }
         }
 
-        val iframeSrc = doc.selectFirst("iframe[src*='meinecloud.click']")?.attr("src")
+        val iframeSrc = doc.selectFirst(
+            "iframe[src*='meinecloud.click'], iframe[src*='meinecloud'], iframe[data-src*='meinecloud'], " +
+                "iframe[src*='cloud'], iframe.player-iframe, #player iframe, .player iframe"
+        )?.let { it.attr("src").ifBlank { it.attr("data-src") } }
+            ?: doc.selectFirst("iframe[src], iframe[data-src]")?.let { it.attr("src").ifBlank { it.attr("data-src") } }
             ?: throw Exception("Embed iframe not found")
 
         val embedUrl = normalizeUrl(iframeSrc)
         val embedDoc = service.getPage(embedUrl)
 
-        return embedDoc.select("ul._player-mirrors li[data-link]")
+        val mirrors = embedDoc.select("ul._player-mirrors li[data-link], li[data-link], .mirror-list li[data-link], a[data-link]")
             .filterNot { li ->
                 li.hasClass("fullhd") || li.text().contains("4K Server", ignoreCase = true)
             }
             .mapNotNull { li ->
-                val dataLink = li.attr("data-link").trim()
+                val dataLink = li.attr("data-link").trim().ifBlank { li.attr("href").trim() }
                 if (dataLink.isBlank()) return@mapNotNull null
 
                 val normalized = when {
@@ -994,6 +1009,11 @@ object HDFilmeProvider : Provider {
                 Video.Server(id = normalized, name = name, src = normalized)
             }
             .filter { it.src.isNotBlank() }
+
+        return mirrors.ifEmpty {
+            // Last resort: treat the embed page itself as a playable host.
+            listOf(Video.Server(id = embedUrl, name = "Embed", src = embedUrl))
+        }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

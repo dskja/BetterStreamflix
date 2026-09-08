@@ -1,5 +1,7 @@
 package com.dskja.betterstreamflix.providers
 
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.content.Context
 import android.util.Log
 import android.webkit.CookieManager
@@ -38,10 +40,18 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-object GuardaSerieProvider : Provider {
+object GuardaSerieProvider : Provider, ProviderConfigUrl {
 
     override val name = "GuardaSerie"
-    override val baseUrl = "https://guardoserie.study"
+    override val defaultBaseUrl = "https://guardaserie.click/"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = GuardaSerieService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val logo: String = "$baseUrl/wp-content/uploads/2026/06/Guardoserie1.png"
     override val language = "it"
 
@@ -119,7 +129,7 @@ object GuardaSerieProvider : Provider {
         suspend fun search(@Path("page") page: Int, @Query(value = "s", encoded = true) query: String): Document
     }
 
-    private val service = GuardaSerieService.build(baseUrl)
+    private var service = GuardaSerieService.build(defaultBaseUrl)
 
     private class CloudflareChallengeException(val url: String) : Exception("Cloudflare challenge detected for $url")
 

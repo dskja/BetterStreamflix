@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.Category
 import com.dskja.betterstreamflix.models.Episode
@@ -33,9 +38,17 @@ import org.json.JSONObject
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import java.util.concurrent.TimeUnit
 
-object AnimeUnityProvider : Provider {
+object AnimeUnityProvider : Provider, ProviderConfigUrl {
     override val name = "AnimeUnity"
-    override val baseUrl = "https://www.animeunity.so"
+    override val defaultBaseUrl = "https://www.animeunity.so"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = AnimeUnityService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
+        baseUrl
+    }
     override val logo: String get() = "$baseUrl/images/scritta2.png"
     override val language = "it"
     
@@ -222,7 +235,7 @@ object AnimeUnityProvider : Provider {
         }
     }
 
-    private val service = AnimeUnityService.build(baseUrl)
+    private var service = AnimeUnityService.build(defaultBaseUrl)
 
 
     override suspend fun getHome(): List<Category> {

@@ -1,5 +1,7 @@
 package com.dskja.betterstreamflix.providers
 
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.content.Context
 import android.util.Base64
 import android.util.Log
@@ -20,10 +22,17 @@ import org.jsoup.nodes.Document
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-object Cine24hProvider : Provider {
+object Cine24hProvider : Provider, ProviderConfigUrl {
 
     override val name = "Cine24h"
-    override val baseUrl = "https://cine24h.online"
+    override val defaultBaseUrl = "https://cine24h.online"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo = "https://i.ibb.co/kgjcsFmj/Image-1.png"
 
@@ -43,32 +52,61 @@ object Cine24hProvider : Provider {
 
     private suspend fun getDocument(url: String): Document {
         try {
-            // Tentativo ultra-veloce (3s) per rilevare se serve la WebView
             val client = NetworkClient.default.newBuilder()
-                .connectTimeout(3, TimeUnit.SECONDS)
-                .readTimeout(3, TimeUnit.SECONDS)
-                .writeTimeout(3, TimeUnit.SECONDS)
+                .connectTimeout(8, TimeUnit.SECONDS)
+                .readTimeout(12, TimeUnit.SECONDS)
+                .writeTimeout(12, TimeUnit.SECONDS)
+                .callTimeout(20, TimeUnit.SECONDS)
                 .build()
 
             val request = Request.Builder()
                 .url(url)
+                .header(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                )
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
                 .header("Referer", baseUrl)
+                .header("Origin", baseUrl.trimEnd('/'))
                 .build()
-            
-            val response = client.newCall(request).execute()
-            
-            if (response.isSuccessful) {
-                val html = response.body?.string() ?: ""
-                // Se non c'è traccia di Cloudflare, procediamo con OkHttp (veloce)
-                if (!html.contains("cf-browser-verification") && !html.contains("Checking your browser") && !html.contains("Just a moment...")) {
-                    return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
+
+            client.newCall(request).execute().use { response ->
+                val html = response.body?.string().orEmpty()
+                when {
+                    response.code == 403 ||
+                        html.contains("captcha", ignoreCase = true) ||
+                        html.contains("cf-browser-verification", ignoreCase = true) ||
+                        html.contains("Just a moment", ignoreCase = true) ||
+                        html.contains("Checking your browser", ignoreCase = true) -> {
+                        Log.d(TAG, "[Provider] Cloudflare/captcha detected for $url (HTTP ${response.code})")
+                    }
+                    response.isSuccessful && html.isNotBlank() -> {
+                        return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
+                    }
+                    else -> {
+                        Log.w(TAG, "[Provider] Unexpected HTTP ${response.code} for $url")
+                    }
                 }
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            Log.w(TAG, "[Provider] OkHttp failed for $url: ${e.message}")
+        }
 
-        // Se OkHttp fallisce o rileva blocco, passiamo SUBITO alla WebView
         Log.d(TAG, "[Provider] Launching WebView Bypass for $url")
-        val html = getResolver().get(url)
+        val html = try {
+            getResolver().get(url)
+        } catch (e: Exception) {
+            throw Exception(
+                "Cine24h bloqueado (captcha/Cloudflare/forbidden). No se pudo cargar $url: ${e.message}"
+            )
+        }
+        if (html.isBlank() ||
+            html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("captcha", ignoreCase = true)
+        ) {
+            throw Exception("Cine24h sigue bloqueado por captcha o Cloudflare. Prueba más tarde o cambia la URL del proveedor.")
+        }
         return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
     }
 
@@ -76,28 +114,31 @@ object Cine24hProvider : Provider {
         val categories = mutableListOf<Category>()
         coroutineScope {
             try {
-                // Caricamento parallelo istantaneo delle sezioni
                 val bannerAsync = async { getDocument("$baseUrl/release/2025/") }
                 val moviesAsync = async { getDocument("$baseUrl/estrenos/?type=movies") }
                 val tvAsync = async { getDocument("$baseUrl/estrenos/?type=series") }
 
                 val bannerDoc = bannerAsync.await()
                 val bannerItems = parseShows(bannerDoc)
-                val featured = bannerItems.mapNotNull { 
-                    if (it is Movie) it.copy(poster = null, banner = it.poster) 
-                    else if (it is TvShow) it.copy(poster = null, banner = it.poster) 
-                    else null 
+                val featured = bannerItems.mapNotNull {
+                    if (it is Movie) it.copy(poster = null, banner = it.poster)
+                    else if (it is TvShow) it.copy(poster = null, banner = it.poster)
+                    else null
                 }.take(10)
                 if (featured.isNotEmpty()) categories.add(Category(Category.FEATURED, featured))
 
                 val movies = parseShows(moviesAsync.await()).filterIsInstance<Movie>()
-                if (movies.isNotEmpty()) categories.add(Category("Estrenos de Películas", movies)) 
-                
+                if (movies.isNotEmpty()) categories.add(Category("Estrenos de Películas", movies))
+
                 val tvShows = parseShows(tvAsync.await()).filterIsInstance<TvShow>()
-                if (tvShows.isNotEmpty()) categories.add(Category("Estrenos de Series", tvShows)) 
-                
+                if (tvShows.isNotEmpty()) categories.add(Category("Estrenos de Series", tvShows))
+
+                if (categories.isEmpty()) {
+                    throw Exception("Cine24h no devolvió contenido (posible captcha/forbidden)")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "[Provider] Error loading home", e)
+                throw e
             }
         }
         return@withLock categories

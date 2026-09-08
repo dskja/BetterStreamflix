@@ -23,6 +23,7 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withPermit
@@ -37,12 +38,19 @@ import java.net.URLEncoder
 import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
 
-object AnimeOnlineNinjaProvider : Provider {
+object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
 
     private const val SITE_BASE_URL = "https://ww3.animeonline.ninja"
 
     override val name = "Anime Online Ninja"
-    override val baseUrl = SITE_BASE_URL
+    override val defaultBaseUrl = "https://ww3.animeonline.ninja"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo: String
         get() = artworkUrl("$baseUrl/wp-content/uploads/2019/09/cropped-avatar2-1-300x300.jpg")
             ?: "$baseUrl/wp-content/uploads/2019/09/cropped-avatar2-1-300x300.jpg"
@@ -269,7 +277,11 @@ object AnimeOnlineNinjaProvider : Provider {
     }
 
     override suspend fun getHome(): List<Category> {
-        val document = getDocument("$baseUrl/inicio/")
+        val document = try {
+            getDocument("$baseUrl/inicio/")
+        } catch (e: Exception) {
+            throw Exception("Anime Online Ninja home failed (${e.message}). Cloudflare clearance may be required.")
+        }
         val categories = parseHomeCategories(document).takeIf { it.isNotEmpty() }
             ?: throw IllegalStateException("AnimeOnline Ninja home page contained no recognizable categories")
         return resolveHomeEpisodeCards(categories)
@@ -283,13 +295,15 @@ object AnimeOnlineNinjaProvider : Provider {
 
         if (episodeCards.isEmpty()) return@coroutineScope categories
 
-        val requestLimit = Semaphore(4)
+        val requestLimit = Semaphore(3)
         val resolvedByTitle = episodeCards
             .distinctBy { titleKey(it.title) }
             .map { episodeCard ->
                 async {
                     val tvShowResult = runCatching {
-                        requestLimit.withPermit { getTvShow(episodeCard.id) }
+                        kotlinx.coroutines.withTimeout(12_000L) {
+                            requestLimit.withPermit { getTvShow(episodeCard.id) }
+                        }
                     }
                     val movieResult = if (tvShowResult.isFailure) {
                         runCatching {

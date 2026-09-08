@@ -1,153 +1,223 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.models.*
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.NetworkClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import okhttp3.Cache
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Url
-import java.io.File
 import java.util.concurrent.TimeUnit
 import android.util.Log
 
-object AnimefenixProvider : Provider {
+object AnimefenixProvider : Provider, ProviderConfigUrl {
 
     override val name = "Animefenix"
-    override val baseUrl = "https://animefenix2.tv"
+    // animefenix2.tv is dead from many networks; animefenix.live is the current working mirror.
+    override val defaultBaseUrl = "https://animefenix.live"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
-    override val logo = "https://animefenix2.tv/themes/fenix-neo/images/AveFenix.png"
+    override val logo = "$defaultBaseUrl/images/animefenix-logo.png"
 
-    private val client = getOkHttpClient()
+    private const val TAG = "AnimefenixProvider"
 
-    private val service = Retrofit.Builder()
-        .baseUrl(baseUrl)
-        .addConverterFactory(JsoupConverterFactory.create())
-        .client(client)
-        .build()
-        .create(AnimefenixService::class.java)
+    private val service by lazy {
+        Retrofit.Builder()
+            .baseUrl(if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/")
+            .addConverterFactory(JsoupConverterFactory.create())
+            .client(buildClient())
+            .build()
+            .create(AnimefenixService::class.java)
+    }
 
-    private fun getOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
-            .cache(Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024))
-            .readTimeout(30, TimeUnit.SECONDS)
-            .connectTimeout(30, TimeUnit.SECONDS)
+    private fun buildClient(): OkHttpClient {
+        return NetworkClient.default.newBuilder()
+            .readTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(35, TimeUnit.SECONDS)
             .dns(DnsResolver.doh)
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val request = original.newBuilder()
+                    .header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    )
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Referer", "${baseUrl.trimEnd('/')}/")
+                    .header("Origin", baseUrl.trimEnd('/'))
+                    .build()
+                chain.proceed(request)
+            }
             .build()
     }
 
     private interface AnimefenixService {
         @GET
-        suspend fun getPage(@Url url: String): Document
+        suspend fun getPage(
+            @Url url: String,
+            @Header("Referer") referer: String = "",
+        ): Document
     }
 
-    private fun parseShows(elements: List<Element>): List<TvShow> {
-        return elements.mapNotNull {
-            val a = it.selectFirst("a") ?: it
-            val titleElement = it.selectFirst("h3, p:not(.gray)")
-            val imageElement = it.selectFirst("img")
+    private fun absoluteUrl(href: String): String {
+        return when {
+            href.startsWith("http") -> href
+            href.startsWith("/") -> "${baseUrl.trimEnd('/')}$href"
+            else -> "${baseUrl.trimEnd('/')}/$href"
+        }
+    }
 
+    private fun parseAnimeCards(elements: List<Element>): List<TvShow> {
+        return elements.mapNotNull { el ->
+            val a = when {
+                el.tagName().equals("a", ignoreCase = true) &&
+                    el.attr("href").contains("/anime/") -> el
+                else -> el.selectFirst("a[href*=/anime/]")
+                    ?: el.selectFirst("a[href]")
+                    ?: return@mapNotNull null
+            }
+            val href = a.attr("href").ifBlank { return@mapNotNull null }
+            val title = el.selectFirst("h3, .title, .anime-title, .media-body h3, .description h3, p:not(.gray)")
+                ?.text()
+                ?.trim()
+                ?.ifBlank { null }
+                ?: a.attr("title").ifBlank { a.text() }.trim()
+            if (title.isBlank()) return@mapNotNull null
+            val image = el.selectFirst("img")
             TvShow(
-                id = a.attr("href"),
-                title = titleElement?.text() ?: "",
-                poster = imageElement?.let { img ->
-                    img.attr("data-src").ifEmpty { img.attr("src") }
-                }
+                id = absoluteUrl(href),
+                title = title,
+                poster = image?.attr("data-src")?.ifBlank { null }
+                    ?: image?.attr("src")?.ifBlank { null }
             )
-        }
+        }.distinctBy { it.id }
     }
 
-    private fun parseMovies(elements: List<Element>): List<Movie> {
-        return elements.mapNotNull {
-            val a = it.selectFirst("a") ?: return@mapNotNull null
-            val posterElement = it.selectFirst(".main-img img")
-            Movie(
-                id = a.attr("href"),
-                title = it.selectFirst("p:not(.gray)")?.text() ?: "",
-                poster = posterElement?.attr("data-src")?.ifEmpty { posterElement.attr("src") }
+    private fun parseHomeEpisodes(document: Document): List<TvShow> {
+        return document.select("a[href*=/ver/]").mapNotNull { a ->
+            val href = a.attr("href").ifBlank { return@mapNotNull null }
+            val title = a.selectFirst(".title, .anime-title, h3, h4")?.text()?.trim()
+                ?: a.attr("title").ifBlank { a.text() }.trim()
+            if (title.isBlank()) return@mapNotNull null
+            val image = a.selectFirst("img")
+            TvShow(
+                id = absoluteUrl(href),
+                title = title,
+                poster = image?.attr("data-src")?.ifBlank { null }
+                    ?: image?.attr("src")?.ifBlank { null }
             )
-        }
+        }.distinctBy { it.id }
     }
 
     override suspend fun getHome(): List<Category> {
         return try {
             coroutineScope {
-                val premieres2025Deferred = async { service.getPage("$baseUrl/directorio/anime?estreno=2025") }
-                val premieres2024Deferred = async { service.getPage("$baseUrl/directorio/anime?estreno=2024") }
-                val premieres2023Deferred = async { service.getPage("$baseUrl/directorio/anime?estreno=2023") }
+                val homeDeferred = async { service.getPage(baseUrl) }
+                val directoryDeferred = async { service.getPage("$baseUrl/directorio") }
 
                 val categories = mutableListOf<Category>()
+                var sawCloudflare = false
 
-                try {
-                    val premieres2025Document = premieres2025Deferred.await()
-                    val bannerShows = parseShows(premieres2025Document.select(".grid-animes li article")).map {
-                        it.copy(banner = it.poster)
+                runCatching {
+                    val home = homeDeferred.await()
+                    if (looksLikeCloudflare(home)) {
+                        sawCloudflare = true
+                        return@runCatching
                     }
-                    if (bannerShows.isNotEmpty()) {
-                        categories.add(Category(Category.FEATURED, bannerShows.take(10)))
+                    val latest = parseHomeEpisodes(home).take(24)
+                    if (latest.isNotEmpty()) {
+                        categories.add(Category("Últimos episodios", latest))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                    val featured = parseAnimeCards(home.select(".anime, .animes .anime, .media.anime")).take(20)
+                    if (featured.isNotEmpty()) {
+                        categories.add(Category(Category.FEATURED, featured.map { it.copy(banner = it.poster) }))
+                    }
+                }.onFailure { Log.w(TAG, "Home parse failed: ${it.message}") }
 
-                try {
-                    val premieres2024Document = premieres2024Deferred.await()
-                    val premieres2024Shows = parseShows(premieres2024Document.select(".grid-animes li article"))
-                    if (premieres2024Shows.isNotEmpty()) {
-                        categories.add(Category("Estrenos 2024", premieres2024Shows))
+                runCatching {
+                    val directory = directoryDeferred.await()
+                    if (looksLikeCloudflare(directory)) {
+                        sawCloudflare = true
+                        return@runCatching
                     }
-                } catch (e: Exception) { /* No-op */ }
-
-                try {
-                    val premieres2023Document = premieres2023Deferred.await()
-                    val premieres2023Shows = parseShows(premieres2023Document.select(".grid-animes li article"))
-                    if (premieres2023Shows.isNotEmpty()) {
-                        categories.add(Category("Estrenos 2023", premieres2023Shows))
+                    val shows = parseAnimeCards(
+                        directory.select(
+                            ".anime, .animes .anime, .media.anime, li.anime, " +
+                                "article, .group, .card, a[href*=/anime/]"
+                        )
+                    )
+                    if (shows.isNotEmpty()) {
+                        categories.add(Category("Directorio", shows))
                     }
-                } catch (e: Exception) { /* No-op */ }
+                }.onFailure { Log.w(TAG, "Directory parse failed: ${it.message}") }
 
-                return@coroutineScope categories
+                if (categories.isEmpty() && sawCloudflare) {
+                    throw Exception(
+                        "Animefenix bloqueado por Cloudflare en $baseUrl. " +
+                            "Abre el sitio en el dispositivo o cambia la URL del proveedor."
+                    )
+                }
+                if (categories.isEmpty()) {
+                    throw Exception("Animefenix home vacío en $baseUrl (dominio o selectores desactualizados)")
+                }
+                categories
             }
         } catch (e: Exception) {
-            emptyList()
+            Log.e(TAG, "getHome failed: ${e.message}", e)
+            throw e
         }
+    }
+
+    private fun looksLikeCloudflare(document: Document): Boolean {
+        val html = document.html()
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("challenge-platform", ignoreCase = true)
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isBlank()) {
             return listOf(
-                Genre("1", "Acción"), Genre("23", "Aventuras"), Genre("20", "Ciencia Ficción"),
-                Genre("5", "Comedia"), Genre("8", "Deportes"), Genre("38", "Demonios"),
-                Genre("6", "Drama"), Genre("11", "Ecchi"), Genre("2", "Escolares"),
-                Genre("13", "Fantasía"), Genre("28", "Harem"), Genre("24", "Historico"),
-                Genre("47", "Horror"), Genre("25", "Infantil"), Genre("51", "Isekai"),
-                Genre("29", "Josei"), Genre("14", "Magia"), Genre("26", "Artes Marciales"),
-                Genre("21", "Mecha"), Genre("22", "Militar"), Genre("17", "Misterio"),
-                Genre("36", "Música"), Genre("30", "Parodia"), Genre("31", "Policía"),
-                Genre("18", "Psicológico"), Genre("10", "Recuentos de la vida"), Genre("3", "Romance"),
-                Genre("34", "Samurai"), Genre("7", "Seinen"), Genre("4", "Shoujo"),
-                Genre("9", "Shounen"), Genre("12", "Sobrenatural"), Genre("15", "Superpoderes"),
-                Genre("19", "Suspenso"), Genre("27", "Terror"), Genre("39", "Vampiros"),
-                Genre("40", "Yaoi"), Genre("37", "Yuri")
+                Genre("accion", "Acción"), Genre("aventura", "Aventura"), Genre("comedia", "Comedia"),
+                Genre("drama", "Drama"), Genre("fantasia", "Fantasía"), Genre("romance", "Romance"),
+                Genre("shounen", "Shounen"), Genre("seinen", "Seinen"), Genre("sobrenatural", "Sobrenatural")
             )
         }
         return try {
-            val document = service.getPage("$baseUrl/directorio/anime?q=$query&p=$page")
-            parseShows(document.select(".grid-animes li article")).distinctBy { it.id }
+            val document = service.getPage("$baseUrl/directorio?q=${java.net.URLEncoder.encode(query, "UTF-8")}&p=$page")
+            parseAnimeCards(document.select(".anime, .animes .anime, .media.anime, li.anime"))
         } catch (e: Exception) {
+            Log.w(TAG, "search failed: ${e.message}")
             emptyList()
         }
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
         return try {
-            val document = service.getPage("$baseUrl/directorio/anime?p=$page")
-            parseShows(document.select(".grid-animes li article"))
+            val document = service.getPage("$baseUrl/directorio?p=$page")
+            parseAnimeCards(document.select(".anime, .animes .anime, .media.anime, li.anime"))
         } catch (e: Exception) {
             emptyList()
         }
@@ -155,8 +225,10 @@ object AnimefenixProvider : Provider {
 
     override suspend fun getMovies(page: Int): List<Movie> {
         return try {
-            val document = service.getPage("$baseUrl/directorio/anime?tipo=2&p=$page")
-            parseMovies(document.select(".grid-animes li article"))
+            val document = service.getPage("$baseUrl/directorio?tipo=2&p=$page")
+            parseAnimeCards(document.select(".anime, .animes .anime, .media.anime, li.anime")).map {
+                Movie(id = it.id, title = it.title, poster = it.poster)
+            }
         } catch (e: Exception) {
             emptyList()
         }
@@ -164,114 +236,116 @@ object AnimefenixProvider : Provider {
 
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {
-            val document = service.getPage("$baseUrl/directorio/anime?genero=$id&p=$page")
-            val shows = parseShows(document.select(".grid-animes li article"))
-            val genreName = document.selectFirst("h1.text-4xl")?.ownText()?.trim() ?: "Género"
-            Genre(id = id, name = genreName, shows = shows)
+            val document = service.getPage("$baseUrl/directorio?genero=$id&p=$page")
+            val shows = parseAnimeCards(document.select(".anime, .animes .anime, .media.anime, li.anime"))
+            Genre(id = id, name = id.replaceFirstChar { it.uppercase() }, shows = shows)
         } catch (e: Exception) {
             Genre(id = id, name = "Error", shows = emptyList())
         }
     }
 
     override suspend fun getMovie(id: String): Movie {
-        return try {
-            val document = service.getPage(id)
-            val title = document.selectFirst("h1.text-4xl")?.ownText() ?: ""
-            val poster = document.selectFirst("#anime_image")?.let {
-                it.attr("data-src").ifEmpty { it.attr("src") }
-            }
-            val overview = document.selectFirst(".mb-6 p.text-gray-300")?.text()
-            val genres = document.select("a.bg-gray-800").map {
-                Genre(
-                    id = it.attr("href").substringAfterLast("/"),
-                    name = it.text()
-                )
-            }
-            Movie(id = id, title = title, poster = poster, overview = overview, genres = genres)
-        } catch (e: Exception) {
-            Movie(id = id, title = "Error al cargar")
-        }
+        val show = getTvShow(id)
+        return Movie(
+            id = show.id,
+            title = show.title,
+            overview = show.overview,
+            poster = show.poster,
+            banner = show.banner,
+            genres = show.genres,
+        )
     }
 
     override suspend fun getTvShow(id: String): TvShow {
         return try {
-            val document = service.getPage(id)
-            val title = document.selectFirst("h1.text-4xl")?.ownText() ?: ""
-            val poster = document.selectFirst("#anime_image")?.let {
+            val url = absoluteUrl(id)
+            val document = service.getPage(url)
+            val title = document.selectFirst("h1.anime-title, h1.text-4xl, h1")?.ownText()?.trim()
+                ?: document.selectFirst("h1")?.text()?.trim()
+                ?: ""
+            val poster = document.selectFirst("#anime_image, .thumb img, .anime-single img")?.let {
                 it.attr("data-src").ifEmpty { it.attr("src") }
             }
+            val overview = document.selectFirst("h2:contains(Sinopsis) + p, .mb-6 p.text-gray-300, .sinopsis p, .description")
+                ?.text()
+            val genres = document.select("a[href*=genero], a[href*=/directorio]").mapNotNull {
+                val name = it.text().trim()
+                if (name.isBlank() || name.equals("Animes", true)) return@mapNotNull null
+                Genre(id = it.attr("href").substringAfter("genero=").substringAfterLast("/"), name = name)
+            }.distinctBy { it.name }
 
-            // 1. Mejora en la sinopsis para el nuevo tema Neo
-            val overview = document.selectFirst("h2:contains(Sinopsis) + p")?.text()
-                ?: document.selectFirst(".mb-6 p.text-gray-300")?.text()
-
-            // 2. Mejora en los géneros
-            val genres = document.select("a[href*=/directorio/anime?genero=]").map {
-                Genre(id = it.attr("href").substringAfterLast("/"), name = it.text().trim())
-            }
-
-            // 3. Extracción de episodios AJAX usando la técnica de Corrutinas
             val episodes = mutableListOf<Episode>()
-            val slug = id.substringAfterLast("/")
+            val slug = url.trimEnd('/').substringAfterLast("/")
 
-            // Buscamos los botones de las páginas (Ej: "1 - 50", "51 - 100")
-            val episodeButtons = document.select(".episode-navigation button.episode-btn")
-            val startValues = if (episodeButtons.isNotEmpty()) {
-                episodeButtons.mapNotNull { btn ->
-                    Regex("""loadEpisodes\((\d+)""").find(btn.attr("onclick"))?.groupValues?.get(1)
-                }.distinct()
-            } else {
-                listOf("0") // Valor por defecto si solo hay una página
+            // Current mirror embeds episode numbers in page JS: var episodes = [8,7,6,...]
+            val scriptEpisodes = document.select("script").mapNotNull { script ->
+                Regex("""var\s+episodes\s*=\s*\[([^\]]+)\]""")
+                    .find(script.data())
+                    ?.groupValues
+                    ?.getOrNull(1)
+            }.firstOrNull()
+            if (!scriptEpisodes.isNullOrBlank()) {
+                scriptEpisodes.split(',')
+                    .mapNotNull { it.trim().toIntOrNull() }
+                    .sorted()
+                    .forEach { number ->
+                        episodes += Episode(
+                            id = absoluteUrl("/ver/$slug-$number"),
+                            number = number,
+                            title = "Episodio $number",
+                        )
+                    }
             }
 
-            // Descargamos las páginas en paralelo
-            coroutineScope {
-                val deferredEpisodes = startValues.map { start ->
-                    async {
-                        try {
-                            // Imita la llamada AJAX de la página web
-                            val ajaxUrl = "$id?id=$slug&load=episodes&start=$start"
-                            val epDoc = service.getPage(ajaxUrl)
-
-                            epDoc.select(".episode-card").mapNotNull { epEl ->
-                                val rawHref = epEl.attr("href")
-                                if (rawHref.isNullOrBlank()) return@mapNotNull null
-                                val epUrl = if (rawHref.startsWith("http")) rawHref else "$baseUrl$rawHref"
-
-                                val epTitle = epEl.selectFirst(".ep-title")?.text()?.trim() ?: "Episodio"
-                                val epImg = epEl.selectFirst("img")?.let { img ->
-                                    img.attr("data-src").ifEmpty { img.attr("src") }
-                                } ?: ""
-                                val epNum = Regex("""\d+""").find(epTitle)?.value?.toIntOrNull() ?: 0
-
-                                Episode(
-                                    id = epUrl,
-                                    number = epNum,
-                                    title = epTitle,
-                                    poster = epImg
-                                )
-                            }
-                        } catch (e: Exception) {
-                            emptyList<Episode>()
-                        }
-                    }
+            // Legacy Neo theme AJAX episode cards
+            if (episodes.isEmpty()) {
+                val episodeButtons = document.select(".episode-navigation button.episode-btn")
+                val startValues = if (episodeButtons.isNotEmpty()) {
+                    episodeButtons.mapNotNull { btn ->
+                        Regex("""loadEpisodes\((\d+)""").find(btn.attr("onclick"))?.groupValues?.get(1)
+                    }.distinct()
+                } else {
+                    listOf("0")
                 }
 
-                deferredEpisodes.map { it.await() }.forEach { episodes.addAll(it) }
+                coroutineScope {
+                    val deferredEpisodes = startValues.map { start ->
+                        async {
+                            try {
+                                val ajaxUrl = "$url?id=$slug&load=episodes&start=$start"
+                                val epDoc = service.getPage(ajaxUrl)
+                                epDoc.select(".episode-card, .episodes-list a[href*=/ver/], a[href*=/ver/]").mapNotNull { epEl ->
+                                    val rawHref = epEl.attr("href")
+                                    if (rawHref.isBlank()) return@mapNotNull null
+                                    val epUrl = absoluteUrl(rawHref)
+                                    val epTitle = epEl.selectFirst(".ep-title, .d-title, b")?.text()?.trim()
+                                        ?: epEl.text().trim().ifBlank { "Episodio" }
+                                    val epNum = Regex("""\d+""").find(epTitle)?.value?.toIntOrNull()
+                                        ?: Regex("""-(\d+)$""").find(epUrl)?.groupValues?.getOrNull(1)?.toIntOrNull()
+                                        ?: 0
+                                    Episode(id = epUrl, number = epNum, title = epTitle)
+                                }
+                            } catch (_: Exception) {
+                                emptyList()
+                            }
+                        }
+                    }
+                    deferredEpisodes.map { it.await() }.forEach { episodes.addAll(it) }
+                }
             }
 
-            // Aseguramos el orden correcto (menor a mayor)
             episodes.sortBy { it.number }
 
             TvShow(
-                id = id,
+                id = url,
                 title = title,
                 poster = poster,
                 overview = overview,
                 genres = genres,
-                seasons = listOf(Season(id = id, number = 1, title = "Episodios", episodes = episodes))
+                seasons = listOf(Season(id = url, number = 1, title = "Episodios", episodes = episodes))
             )
         } catch (e: Exception) {
+            Log.e(TAG, "getTvShow failed: ${e.message}", e)
             TvShow(id = id, title = "Error al cargar")
         }
     }
@@ -279,7 +353,7 @@ object AnimefenixProvider : Provider {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         return try {
             getTvShow(seasonId).seasons.firstOrNull()?.episodes ?: emptyList()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -287,39 +361,75 @@ object AnimefenixProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return try {
             val url = if (videoType is Video.Type.Movie) {
-                val moviePage = service.getPage(id)
-                moviePage.selectFirst(".divide-y li > a")?.attr("href") ?: id
+                val moviePage = service.getPage(absoluteUrl(id))
+                moviePage.selectFirst(".divide-y li > a, .episodes-list a[href*=/ver/], a[href*=/ver/]")
+                    ?.attr("href")
+                    ?.let(::absoluteUrl)
+                    ?: absoluteUrl(id)
             } else {
-                id
+                absoluteUrl(id)
             }
 
             val document = service.getPage(url)
-            val script = document.selectFirst("script:containsData(var tabsArray)") ?: return emptyList()
+            val servers = mutableListOf<Video.Server>()
 
-            val names = document.select(".episode-page__servers-list li a").map { a ->
-                a.select("span").last()?.text()?.trim().orEmpty()
+            // Legacy tabsArray iframe embeds
+            document.selectFirst("script:containsData(var tabsArray)")?.let { script ->
+                val names = document.select(".episode-page__servers-list li a, .servers li a, .nav-tabs a").map { a ->
+                    a.select("span").last()?.text()?.trim().orEmpty().ifBlank { a.text().trim() }
+                }
+                val urls = script.data()
+                    .substringAfter("<iframe").split("src='")
+                    .drop(1)
+                    .map { it.substringBefore("'").substringAfter("redirect.php?id=").trim() }
+                val count = minOf(urls.size, names.size.coerceAtLeast(urls.size))
+                for (i in 0 until count) {
+                    val src = urls.getOrNull(i)?.takeIf { it.isNotBlank() } ?: continue
+                    val name = names.getOrNull(i)?.ifBlank { null } ?: "Server ${i + 1}"
+                    servers += Video.Server(id = src, name = name, src = src)
+                }
             }
 
-            val urls = script.data()
-                .substringAfter("<iframe").split("src='")
-                .drop(1)
-                .map { it.substringBefore("'").substringAfter("redirect.php?id=").trim() }
-
-            val count = minOf(urls.size, names.size)
-            val servers = (0 until count).mapNotNull { i ->
-                val name = names[i].ifBlank { return@mapNotNull null }
-                val urlValue = urls[i]
-                Video.Server(id = urlValue, name = name)
+            // Direct iframes / data-src embeds on current mirror
+            if (servers.isEmpty()) {
+                document.select("iframe[src], iframe[data-src], [data-url]").forEachIndexed { index, el ->
+                    val src = el.attr("src").ifBlank { el.attr("data-src") }.ifBlank { el.attr("data-url") }
+                    if (src.isBlank() || src.startsWith("about:")) return@forEachIndexed
+                    val absolute = when {
+                        src.startsWith("//") -> "https:$src"
+                        src.startsWith("http") -> src
+                        src.contains("redirect.php?id=") -> absoluteUrl(src.substringAfter("redirect.php?id=").let { "/redirect.php?id=$it" })
+                        else -> absoluteUrl(src)
+                    }
+                    servers += Video.Server(
+                        id = absolute,
+                        name = "Server ${index + 1}",
+                        src = absolute,
+                    )
+                }
             }
 
-            servers
+            // redirect.php links in page scripts
+            if (servers.isEmpty()) {
+                Regex("""redirect\.php\?id=([^"'\s]+)""")
+                    .findAll(document.html())
+                    .map { it.groupValues[1] }
+                    .distinct()
+                    .forEachIndexed { index, encoded ->
+                        val src = if (encoded.startsWith("http")) encoded else absoluteUrl("/redirect.php?id=$encoded")
+                        servers += Video.Server(id = src, name = "Server ${index + 1}", src = src)
+                    }
+            }
+
+            servers.distinctBy { it.src.ifBlank { it.id } }
         } catch (e: Exception) {
+            Log.w(TAG, "getServers failed: ${e.message}")
             emptyList()
         }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return Extractor.extract(server.id, server)
+        return Extractor.extract(server.src.ifBlank { server.id }, server)
     }
 
     override suspend fun getPeople(id: String, page: Int): People {

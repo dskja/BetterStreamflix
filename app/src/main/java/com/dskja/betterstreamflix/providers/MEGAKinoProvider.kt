@@ -458,23 +458,28 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
 
         if (videoType is Video.Type.Movie) {
             val document = getService().getDocument(absoluteUrl(id))
-            
-            val tabNames = document.select("div.tabs-block__select span").map { it.text() }
-            val contents = document.select("div.tabs-block__content")
-            
+
+            val tabNames = document.select("div.tabs-block__select span, .tabs-block__select span, .player-tabs span, .nav-tabs a")
+                .map { it.text().trim() }
+            val contents = document.select("div.tabs-block__content, .tabs-block__content, .tab-content .tab-pane, .player iframe")
+
             contents.forEachIndexed { index, content ->
-                val iframe = content.selectFirst("iframe")
-                val serverSrc = iframe?.attr("data-src")?.takeIf { it.isNotEmpty() } 
+                val iframe = content.takeIf { it.tagName() == "iframe" } ?: content.selectFirst("iframe")
+                val serverSrc = iframe?.attr("data-src")?.takeIf { it.isNotEmpty() }
                     ?: iframe?.attr("src")
-                
+
                 if (!serverSrc.isNullOrEmpty()) {
                     val serverName = tabNames.getOrNull(index)?.takeIf { it.isNotBlank() } ?: "Server ${index + 1}"
-                    servers.add(
-                        Video.Server(
-                            id = serverSrc,
-                            name = serverName
-                        )
-                    )
+                    servers.add(Video.Server(id = serverSrc, name = serverName, src = serverSrc))
+                }
+            }
+
+            if (servers.isEmpty()) {
+                document.select("iframe[src], iframe[data-src], [data-src*=http]").forEachIndexed { index, iframe ->
+                    val serverSrc = iframe.attr("data-src").ifBlank { iframe.attr("src") }
+                    if (serverSrc.isNotBlank()) {
+                        servers.add(Video.Server(id = serverSrc, name = "Server ${index + 1}", src = serverSrc))
+                    }
                 }
             }
         } else if (videoType is Video.Type.Episode) {
@@ -483,24 +488,27 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
                 val pageUrl = parts[0]
                 val epId = parts[1]
                 val document = getService().getDocument(absoluteUrl(pageUrl))
-                
-                val select = document.select("select#$epId")
+
+                val select = document.select("select#$epId, select.episode-servers, select[name*=server]")
                 select.select("option").forEach { option ->
                     val serverUrl = option.attr("value")
                     val serverName = option.text()
-                    
                     if (serverUrl.isNotEmpty()) {
-                         servers.add(
-                            Video.Server(
-                                id = serverUrl,
-                                name = serverName
-                            )
-                        )
+                        servers.add(Video.Server(id = serverUrl, name = serverName, src = serverUrl))
+                    }
+                }
+
+                if (servers.isEmpty()) {
+                    document.select("iframe[src], iframe[data-src]").forEachIndexed { index, iframe ->
+                        val serverSrc = iframe.attr("data-src").ifBlank { iframe.attr("src") }
+                        if (serverSrc.isNotBlank()) {
+                            servers.add(Video.Server(id = serverSrc, name = "Server ${index + 1}", src = serverSrc))
+                        }
                     }
                 }
             }
         }
-        return servers
+        return servers.distinctBy { it.src.ifBlank { it.id } }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

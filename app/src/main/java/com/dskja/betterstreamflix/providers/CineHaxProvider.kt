@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.net.Uri
 import android.util.Log
 import androidx.media3.common.MimeTypes
@@ -21,10 +26,17 @@ import java.util.concurrent.TimeUnit
  * language -> server label -> real embed URL (remux.unlimplay.com is a first-party direct MP4
  * CDN; the rest are hosts already covered by the shared [Extractor] system).
  */
-object CineHaxProvider : Provider {
+object CineHaxProvider : Provider, ProviderConfigUrl {
 
     override val name = "CineHax"
-    override val baseUrl = "https://cinehax.com"
+    override val defaultBaseUrl = "https://cinehax.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val logo = "https://cinehax.com/wp-content/uploads/2026/06/cropped-favicon-192x192.jpg"
     override val language = "es"
 
@@ -78,11 +90,16 @@ object CineHaxProvider : Provider {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .addInterceptor { chain ->
-            val request = chain.request().newBuilder()
+            val original = chain.request()
+            val request = original.newBuilder()
                 .header(
                     "User-Agent",
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                 )
+                .header("Accept", "application/json,text/html,application/xhtml+xml,*/*;q=0.8")
+                .header("Accept-Language", "es-AR,es;q=0.9,en-US;q=0.8,en;q=0.7")
+                .header("Origin", baseUrl.trimEnd('/'))
+                .header("Referer", "${baseUrl.trimEnd('/')}/")
                 .build()
             chain.proceed(request)
         }
@@ -129,7 +146,8 @@ object CineHaxProvider : Provider {
     private fun humanizeKey(key: String) = key.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
     override suspend fun getHome(): List<Category> {
-        val json = JSONObject(get("$baseUrl/wp-json/primeshow/v1/home-data"))
+        // Site moved from primeshow/v1 to cinehax/v1; Referer/Origin are required (403 otherwise).
+        val json = JSONObject(get("$baseUrl/wp-json/cinehax/v1/home-data"))
         val categories = mutableListOf<Category>()
         json.keys().forEach { key ->
             val items = json.optJSONArray(key) ?: return@forEach
@@ -137,6 +155,13 @@ object CineHaxProvider : Provider {
             if (shows.isNotEmpty()) {
                 categories.add(Category(name = HOME_CATEGORY_LABELS[key] ?: humanizeKey(key), list = shows))
             }
+        }
+        if (categories.isEmpty()) {
+            // Fallback if the REST shape changes again: scrape explore ajax pages.
+            val movies = fetchExplorePage("movie", 1)
+            val series = fetchExplorePage("tv", 1)
+            if (movies.isNotEmpty()) categories.add(Category("Películas populares", movies))
+            if (series.isNotEmpty()) categories.add(Category("Series populares", series))
         }
         return categories
     }

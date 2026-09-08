@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.*
@@ -17,10 +22,17 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
 
-object TvporinternetHDProvider : IptvProvider {
+object TvporinternetHDProvider : IptvProvider, ProviderConfigUrl {
     override val name = "TvPorInternet2"
-    override val baseUrl = "https://www.tvporinternet2.com"
-    override val logo = "https://www.tvporinternet2.com/imge/favicon.png"
+    override val defaultBaseUrl = "https://www.tvporinternet.org"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
+    override val logo = "https://www.tvporinternet.org/imge/favicon.png"
     override val language = "es"
 
     private const val TAG = "TvPorInternet2Spy"
@@ -153,7 +165,7 @@ object TvporinternetHDProvider : IptvProvider {
             val data = script.data()
             if (data.contains("showChannels")) {
                 // Buscar todos los bloques HTML dentro del template string
-                val channelPattern = Regex("""<a href="(https://www\.tvporinternet2\.com/[^"]+\.php)"[^>]*>\s*<div class="live">.*?</div>\s*<img src="([^"]+)"[^>]*>\s*<p>([^<]+)</p>\s*</a>""", RegexOption.DOT_MATCHES_ALL)
+                val channelPattern = Regex("""<a href="(https://www\.tvporinternet(?:2)?\.(?:com|org)/[^"]+\.php)"[^>]*>\s*<div class="live">.*?</div>\s*<img src="([^"]+)"[^>]*>\s*<p>([^<]+)</p>\s*</a>""", RegexOption.DOT_MATCHES_ALL)
 
                 channelPattern.findAll(data).forEach { match ->
                     val link = match.groupValues[1]
@@ -394,21 +406,32 @@ object TvporinternetHDProvider : IptvProvider {
             val doc = fetchDocument(id) ?: throw Exception("No se pudo cargar")
             val servers = mutableListOf<Video.Server>()
 
-            doc.select("div.options-left a.option").forEach { element ->
-                val name = element.text().trim()
-                val url = element.attr("href")
-
+            doc.select(
+                "div.options-left a.option, .options a.option, a.option, .server-list a, " +
+                    "ul.Options li a, .player-options a, a[href*=player], iframe[src], iframe[data-src]"
+            ).forEach { element ->
+                val name = element.text().trim().ifBlank {
+                    element.attr("title").ifBlank { "Opción" }
+                }
+                val url = element.attr("href").ifBlank {
+                    element.attr("data-src").ifBlank { element.attr("src") }
+                }
                 if (url.isNotEmpty()) {
-                    val absoluteUrl = if (url.startsWith("http")) url else "$baseUrl/$url"
-                    servers.add(Video.Server(id = absoluteUrl, name = name))
+                    val absoluteUrl = when {
+                        url.startsWith("http") -> url
+                        url.startsWith("//") -> "https:$url"
+                        else -> "$baseUrl/${url.trimStart('/')}"
+                    }
+                    servers.add(Video.Server(id = absoluteUrl, name = name, src = absoluteUrl))
                 }
             }
 
             servers.distinctBy { it.id }.ifEmpty {
-                listOf(Video.Server(id = id, name = "Opción 1"))
+                listOf(Video.Server(id = id, name = "Opción 1", src = id))
             }
         } catch (e: Exception) {
-            listOf(Video.Server(id = id, name = "Opción 1"))
+            Log.e(TAG, "getServers failed: ${e.message}")
+            listOf(Video.Server(id = id, name = "Opción 1", src = id))
         }
     }
 
@@ -417,18 +440,29 @@ object TvporinternetHDProvider : IptvProvider {
             stopLocalServer()
 
             val coreDoc = fetchDocument(server.id) ?: return@withContext Video("")
-            val playerFrameUrl = coreDoc.selectFirst("iframe#player-frame")?.attr("src") ?: ""
+            val playerFrameUrl = coreDoc.selectFirst(
+                "iframe#player-frame, iframe.player-frame, #player iframe, .player iframe, iframe[src]"
+            )?.attr("src")
+                ?.ifBlank { coreDoc.selectFirst("iframe[data-src]")?.attr("data-src") }
+                .orEmpty()
 
             if (playerFrameUrl.isEmpty()) {
                 Log.e(TAG, "Servidor offline (sin iframe)")
                 return@withContext Video("")
             }
 
-            val iframeDoc = fetchDocument(playerFrameUrl, server.id) ?: return@withContext Video("")
+            val absoluteFrame = when {
+                playerFrameUrl.startsWith("http") -> playerFrameUrl
+                playerFrameUrl.startsWith("//") -> "https:$playerFrameUrl"
+                else -> "$baseUrl/${playerFrameUrl.trimStart('/')}"
+            }
+
+            val iframeDoc = fetchDocument(absoluteFrame, server.id) ?: return@withContext Video("")
             val iframeHtml = iframeDoc.html()
 
             val playlistRegex = """["'](https:[^"']+playlist\.php[^"']+)["']""".toRegex()
             val playlistMatch = playlistRegex.find(iframeHtml)
+                ?: """["'](https:[^"']+\.m3u8[^"']*)["']""".toRegex().find(iframeHtml)
 
             if (playlistMatch != null) {
                 val playlistUrl = playlistMatch.groupValues[1].replace("\\/", "/")

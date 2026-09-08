@@ -23,8 +23,24 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 class FrembedExtractor (var newUrl: String = "") : Extractor() {
 
     override val name = "Frembed"
-    val defaultUrl = "https://frembed.casa"
+    val defaultUrl = "https://frembed.surf"
     override var mainUrl = newUrl.ifBlank { defaultUrl }
+
+    data class StreamLinkItem(
+        val id: Int? = null,
+        val lang: String? = null,
+        val position: Int? = null,
+        val label: String? = null,
+        val quality: String? = null,
+        val url: String? = null,
+        val host: HostInfo? = null,
+    ) {
+        data class HostInfo(
+            val slug: String? = null,
+            val name: String? = null,
+            val icon: String? = null,
+        )
+    }
 
     data class listLinks (
         val link1: String?=null,
@@ -48,6 +64,10 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
         val link5vo: String?=null,
         val link6vo: String?=null,
         val link7vo: String?=null,
+        // Newer frembed.surf series payload also exposes a singular "link" field.
+        val link: String?=null,
+        val link_vostfr: String?=null,
+        val links: List<StreamLinkItem>? = null,
     )
 
     private fun getExtractorName(url: String): String {
@@ -67,26 +87,56 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
     }
 
     fun listLinks.toServers(): List<Video.Server> {
-        return listOf(link1, link2, link3, link4, link5, link6, link7,
-                                         link1vostfr, link2vostfr, link3vostfr, link4vostfr, link5vostfr, link6vostfr, link7vostfr,
-                                         link1vo, link2vo, link3vo, link4vo, link5vo, link6vo, link7vo)
+        val fromLinksArray = links.orEmpty().mapIndexedNotNull { index, item ->
+            val data = item.url?.takeIf { it.isNotBlank() } ?: return@mapIndexedNotNull null
+            val lang = when (item.lang?.lowercase()) {
+                "vf", "truefrench", "french" -> "French"
+                "vostfr" -> "VOSTFR"
+                "vo", "en", "vost" -> "VO"
+                else -> item.lang?.uppercase() ?: "French"
+            }
+            val hostName = item.host?.name
+                ?: item.label
+                ?: getExtractorName(if (data.startsWith("/")) mainUrl.removeSuffix("/") + data else data)
+            (if (data.startsWith("/")) mainUrl.removeSuffix("/") + data else data).let {
+                Video.Server(
+                    id = "links$index",
+                    name = "$hostName ($lang)",
+                    src = it,
+                )
+            }
+        }
+        if (fromLinksArray.isNotEmpty()) return fromLinksArray.distinctBy { it.src }
+
+        return listOf(
+            link1, link2, link3, link4, link5, link6, link7,
+            link1vostfr, link2vostfr, link3vostfr, link4vostfr, link5vostfr, link6vostfr, link7vostfr,
+            link1vo, link2vo, link3vo, link4vo, link5vo, link6vo, link7vo,
+            link, link_vostfr,
+        )
             .mapIndexedNotNull { index, data ->
                 if (data.isNullOrEmpty()) return@mapIndexedNotNull null
-                val lang = when { index < 7 -> "French"
-                                  index < 14 -> "VOSTFR"
-                                  else -> "VO" }
+                val lang = when {
+                    index < 7 -> "French"
+                    index < 14 -> "VOSTFR"
+                    index < 21 -> "VO"
+                    index == 21 -> "French"
+                    else -> "VOSTFR"
+                }
                 (if (data.startsWith("/")) mainUrl.removeSuffix("/") + data else data).let {
                     Video.Server(id = "link$index", name = "${getExtractorName(it)} ($lang)", src = it)
                 }
             }
+            .distinctBy { it.src }
     }
 
     private interface Service {
         companion object {
             private const val USER_AGENT =
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
             fun build(baseUrl: String): Service {
+                val normalizedBase = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
                 val clientBuilder = OkHttpClient.Builder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
@@ -97,13 +147,17 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                         val url = request.url
                         val referer = "${url.scheme}://${url.host}/"
                         val newRequest = request.newBuilder()
+                            .header("User-Agent", USER_AGENT)
+                            .header("Accept", "application/json,text/plain,*/*")
+                            .header("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Origin", referer.trimEnd('/'))
                             .header("Referer", referer)
                             .build()
                         chain.proceed(newRequest)
                     }
 
                 return Retrofit.Builder()
-                    .baseUrl(baseUrl)
+                    .baseUrl(normalizedBase)
                     .addConverterFactory( GsonConverterFactory.create())
                     .client(clientBuilder.dns(DnsResolver.doh).build())
                     .build()

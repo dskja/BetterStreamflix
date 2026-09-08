@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -24,10 +29,17 @@ import java.util.concurrent.TimeUnit
 import org.json.JSONObject
 import org.json.JSONArray
 
-object AnimeAv1Provider : Provider {
+object AnimeAv1Provider : Provider, ProviderConfigUrl {
 
     override val name = "AnimeAV1"
-    override val baseUrl = "https://animeav1.com"
+    override val defaultBaseUrl = "https://animeav1.com"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "es"
     override val logo = "https://animeav1.com/favicon.png"
 

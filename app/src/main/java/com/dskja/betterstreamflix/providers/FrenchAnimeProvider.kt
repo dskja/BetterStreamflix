@@ -33,7 +33,8 @@ import retrofit2.http.Path
 
 object FrenchAnimeProvider : Provider, ProviderConfigUrl {
     override val defaultBaseUrl: String = "https://french-anime.com/"
-    override val baseUrl: String = FrenchAnimeProvider.defaultBaseUrl
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
             return cacheURL.ifEmpty { field }

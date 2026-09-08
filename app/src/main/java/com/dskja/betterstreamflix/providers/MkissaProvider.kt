@@ -1,5 +1,10 @@
 package com.dskja.betterstreamflix.providers
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+import com.dskja.betterstreamflix.utils.UserPreferences
+
 import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -39,7 +44,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-object MkissaProvider : Provider {
+object MkissaProvider : Provider, ProviderConfigUrl {
 
     private const val TAG = "MkissaProvider"
     private const val API_URL = "https://api.allanime.day/"
@@ -218,7 +223,14 @@ object MkissaProvider : Provider {
     """.trimIndent()
 
     override val name = "MKissa"
-    override val baseUrl = "https://mkissa.to/anime"
+    override val defaultBaseUrl = "https://mkissa.to/anime"
+    override val baseUrl: String
+        get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
+    override val changeUrlMutex = Mutex()
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        baseUrl
+    }
     override val language = "en"
     override val logo = "https://mkissa.to/favicon-32x32.png"
 
@@ -228,9 +240,22 @@ object MkissaProvider : Provider {
         .client(
             OkHttpClient.Builder()
                 .cache(Cache(File("cacheDir", "mkissa_okhttpcache"), 10 * 1024 * 1024))
-                .readTimeout(30, TimeUnit.SECONDS)
-                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .callTimeout(35, TimeUnit.SECONDS)
                 .dns(DnsResolver.doh)
+                .addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .header(
+                            "User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                        )
+                        .header("Accept", "application/json, text/plain, */*")
+                        .header("Origin", "https://mkissa.to")
+                        .header("Referer", "https://mkissa.to/")
+                        .build()
+                    chain.proceed(request)
+                }
                 .build()
         )
         .build()
@@ -418,6 +443,12 @@ object MkissaProvider : Provider {
             hash = SOURCE_HASH,
             fallbackQuery = SOURCE_QUERY
         )
+        if (response.hasAaCryptoError()) {
+            throw Exception(
+                "MKissa episode sources require aa-crypto bootstrap (AA_CRYPTO_MISSING). " +
+                    "Catalog still works; playback needs an updated crypto client."
+            )
+        }
         var data = response.optJSONObject("data") ?: JSONObject()
         if (data.has("tobeparsed")) {
             data = decryptTobeParsed(data.optString("tobeparsed"))
@@ -431,7 +462,6 @@ object MkissaProvider : Provider {
             .flatMap { it.asSequence() }
             .mapNotNull { it as? JSONObject }
             .filter { it.sourceUrl().isNotBlank() }
-//            .filterNot { it.isKnownDeadEmbedSource() }
             .toList()
     }
 
@@ -700,11 +730,23 @@ object MkissaProvider : Provider {
         return errors.asSequence()
             .mapNotNull { it as? JSONObject }
             .any { error ->
-                error.optString("message").contains("PersistedQueryNotFound", ignoreCase = true) ||
-                    error.optString("message").contains("PersistedQueryNotSupported", ignoreCase = true) ||
-                    error.optJSONObject("extensions")
-                        ?.optString("code")
-                        ?.contains("PERSISTED_QUERY", ignoreCase = true) == true
+                val message = error.optString("message")
+                val code = error.optJSONObject("extensions")?.optString("code").orEmpty()
+                message.contains("PersistedQueryNotFound", ignoreCase = true) ||
+                    message.contains("PersistedQueryNotSupported", ignoreCase = true) ||
+                    code.contains("PERSISTED_QUERY", ignoreCase = true)
+            }
+    }
+
+    private fun JSONObject.hasAaCryptoError(): Boolean {
+        val errors = optJSONArray("errors") ?: return false
+        return errors.asSequence()
+            .mapNotNull { it as? JSONObject }
+            .any { error ->
+                val message = error.optString("message")
+                val code = error.optJSONObject("extensions")?.optString("code").orEmpty()
+                message.contains("AA_CRYPTO", ignoreCase = true) ||
+                    code.contains("AA_CRYPTO", ignoreCase = true)
             }
     }
 
