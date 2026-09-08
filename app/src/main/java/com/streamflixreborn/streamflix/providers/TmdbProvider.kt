@@ -29,6 +29,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.TMDb3
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
+import com.streamflixreborn.streamflix.utils.ProviderAudioLanguage
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.safeSubList
 import android.util.Base64
@@ -862,9 +863,9 @@ class TmdbProvider(override val language: String) : Provider {
             }
         }
 
-        // ORDINE PRIORITÀ FINALE: Portiamo i server con audio Spagnolo e Filemoon in cima
-        val finalServers = if (language.startsWith("es")) {
-            servers.sortedByDescending { server ->
+        // Prefer language-matched audio servers first (Spanish LAT/CAST, French VF)
+        val finalServers = when {
+            language.startsWith("es") -> servers.sortedByDescending { server ->
                 val n = server.name.uppercase()
                 when {
                     // Filemoon e tag audio spagnoli hanno la massima priorità
@@ -881,8 +882,10 @@ class TmdbProvider(override val language: String) : Provider {
                     else -> 0
                 }
             }
-        } else {
-            servers
+            language.startsWith("fr") -> servers.sortedByDescending { server ->
+                ProviderAudioLanguage.frenchServerPriority(server.name)
+            }
+            else -> servers
         }
 
         Log.i("StreamFlixES", "[SERVERS LIST] -> Found ${finalServers.size} servers: ${finalServers.joinToString { it.name }}")

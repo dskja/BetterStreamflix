@@ -66,7 +66,9 @@ object UserPreferences {
         get() {
             val providerName = Key.CURRENT_PROVIDER.getString()
             if (providerName?.startsWith("TMDb (") == true && providerName.endsWith(")")) {
-                val lang = providerName.substringAfter("TMDb (").substringBefore(")")
+                val lang = ProviderAudioLanguage.normalizeTmdbLanguage(
+                    providerName.substringAfter("TMDb (").substringBefore(")")
+                )
                 return TmdbProvider(lang)
             }
             return Provider.providers.keys.find { it.name == providerName }
