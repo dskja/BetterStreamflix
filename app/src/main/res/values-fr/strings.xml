@@ -60,6 +60,8 @@
     <string name="option_show_mark_all_previous_unwatched">Marquer comme non vu jusqu\'ici</string>
     <string name="option_show_unwatched">Marquer comme non vu</string>
     <string name="option_clear_program">Retirer de Continuer à regarder</string>
+    <string name="option_clear_recently_watched">Retirer de Vu récemment</string>
+    <string name="option_clear_all_recently_watched">Vider Vu récemment</string>
     <string name="option_cancel">Annuler</string>
 
     <string name="episode_item_info">S%d E%d • %s</string>
