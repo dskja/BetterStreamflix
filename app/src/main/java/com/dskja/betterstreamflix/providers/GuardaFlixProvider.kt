@@ -316,7 +316,7 @@ object GuardaFlixProvider : Provider, ProviderConfigUrl {
         val doc = service.getPage(id)
         val servers = mutableListOf<Video.Server>()
 
-        fun addEmbed(raw: String?, index: Int, label: String? = null) {
+        suspend fun addEmbed(raw: String?, index: Int, label: String? = null) {
             val firstUrl = raw?.trim().orEmpty()
             if (firstUrl.isBlank()) return
             try {
