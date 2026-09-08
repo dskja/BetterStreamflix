@@ -30,13 +30,22 @@ import java.util.concurrent.TimeUnit
 
 import MyCookieJar
 import com.streamflixreborn.streamflix.utils.TmdbUtils
+import com.streamflixreborn.streamflix.utils.UserPreferences
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-object MEGAKinoProvider : Provider {
+object MEGAKinoProvider : Provider, ProviderConfigUrl {
 
     override val name = "MEGAKino"
-    override val baseUrl = "https://megakino12.com"
+    override val defaultBaseUrl = "https://megakino.me/"
+    override val baseUrl: String = defaultBaseUrl
+        get() {
+            val cachedUrl = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            return cachedUrl.ifBlank { field }
+        }
     override val logo = "https://images2.imgbox.com/a2/83/OubSojBq_o.png"
     override val language = "de"
+    override val changeUrlMutex = Mutex()
 
     private const val DEFAULT_AGENT = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
 
@@ -95,14 +104,50 @@ object MEGAKinoProvider : Provider {
         }
     }
 
-    private val service = MEGAKinoService.build(baseUrl)
+    @Volatile
+    private var service = MEGAKinoService.build(defaultBaseUrl)
+    @Volatile
+    private var serviceBaseUrl: String = defaultBaseUrl
 
     private var lastTokenTime = 0L
+
+    private fun normalizedBaseUrl(): String =
+        baseUrl.trim().removeSuffix("/") + "/"
+
+    private fun absoluteUrl(path: String): String {
+        if (path.startsWith("http://") || path.startsWith("https://")) return path
+        val base = normalizedBaseUrl().removeSuffix("/")
+        return if (path.startsWith("/")) "$base$path" else "$base/$path"
+    }
+
+    private fun getService(): MEGAKinoService {
+        val currentBase = normalizedBaseUrl()
+        val cached = service
+        if (serviceBaseUrl == currentBase) return cached
+        synchronized(this) {
+            if (serviceBaseUrl == currentBase) return service
+            return MEGAKinoService.build(currentBase).also {
+                service = it
+                serviceBaseUrl = currentBase
+                lastTokenTime = 0L
+            }
+        }
+    }
+
+    override suspend fun onChangeUrl(forceRefresh: Boolean): String {
+        changeUrlMutex.withLock {
+            val currentBase = normalizedBaseUrl()
+            service = MEGAKinoService.build(currentBase)
+            serviceBaseUrl = currentBase
+            lastTokenTime = 0L
+        }
+        return normalizedBaseUrl()
+    }
 
     private suspend fun ensureToken() {
         if (System.currentTimeMillis() - lastTokenTime > 10 * 60 * 1000) {
             try {
-                service.getToken()
+                getService().getToken()
                 lastTokenTime = System.currentTimeMillis()
             } catch (e: Exception) {
             }
@@ -114,7 +159,7 @@ object MEGAKinoProvider : Provider {
             val href = el.attr("href")
             val title = el.select("h3.poster__title").text().trim()
             val posterPath = el.select("div.poster__img img").attr("data-src")
-            val posterUrl = "$baseUrl$posterPath"
+            val posterUrl = absoluteUrl(posterPath)
             
             if (href.contains("/serials/")) {
                 TvShow(
@@ -134,17 +179,22 @@ object MEGAKinoProvider : Provider {
 
     override suspend fun getHome(): List<Category> {
         ensureToken()
-        val document = service.getHome()
+        val document = getService().getHome()
         val categories = mutableListOf<Category>()
 
-        val section = document.select("section.sect").find {
+        val sections = document.select("section.sect")
+        val section = sections.find {
             it.select("h2.sect__title").text().contains("Topaktuelle Neuheiten", ignoreCase = true)
+        } ?: sections.find {
+            it.select("div#dle-content a.poster.grid-item").isNotEmpty()
         }
 
         if (section != null) {
             val items = parseContentItems(section)
             if (items.isNotEmpty()) {
-                categories.add(Category(name = "Topaktuelle Neuheiten", list = items))
+                val title = section.select("h2.sect__title").text().trim()
+                    .ifBlank { "Topaktuelle Neuheiten" }
+                categories.add(Category(name = title, list = items))
             }
         }
 
@@ -154,7 +204,7 @@ object MEGAKinoProvider : Provider {
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         ensureToken()
         if (query.isEmpty()) {
-            val document = service.getHome()
+            val document = getService().getHome()
             val genres = mutableListOf<AppAdapter.Item>()
 
             val genreBlock = document.select("div.side-block:has(div.side-block__title:contains(Genres))").firstOrNull() 
@@ -175,7 +225,7 @@ object MEGAKinoProvider : Provider {
         val resultFrom = (page - 1) * 20 + 1
         
         return try {
-            val document = service.search(
+            val document = getService().search(
                 searchStart = page,
                 resultFrom = resultFrom,
                 story = query
@@ -190,10 +240,10 @@ object MEGAKinoProvider : Provider {
     override suspend fun getGenre(id: String, page: Int): Genre {
         ensureToken()
         val document = if (page > 1) {
-            val path = id.removePrefix(baseUrl).removePrefix("/").removeSuffix("/") + "/"
-            service.getPage(path, page)
+            val path = id.removePrefix(normalizedBaseUrl()).removePrefix(baseUrl).removePrefix("/").removeSuffix("/") + "/"
+            getService().getPage(path, page)
         } else {
-            service.getDocument("$baseUrl$id")
+            getService().getDocument(absoluteUrl(id))
         }
 
         val genreName = document.select("h2.sect__title").text().trim().ifEmpty { id }
@@ -209,8 +259,7 @@ object MEGAKinoProvider : Provider {
 
     override suspend fun getPeople(id: String, page: Int): People {
         ensureToken()
-        val url = "$baseUrl$id"
-        val document = service.getDocument(url)
+        val document = getService().getDocument(absoluteUrl(id))
         
         val name = document.select("h1").text().trim()
         
@@ -230,9 +279,9 @@ object MEGAKinoProvider : Provider {
     override suspend fun getMovies(page: Int): List<Movie> {
         ensureToken()
         val document = if (page > 1) {
-            service.getPage("films/", page)
+            getService().getPage("films/", page)
         } else {
-            service.getFilms()
+            getService().getFilms()
         }
         
         return parseContentItems(document).filterIsInstance<Movie>()
@@ -241,9 +290,9 @@ object MEGAKinoProvider : Provider {
     override suspend fun getTvShows(page: Int): List<TvShow> {
         ensureToken()
         val document = if (page > 1) {
-            service.getPage("serials/", page)
+            getService().getPage("serials/", page)
         } else {
-            service.getSerials()
+            getService().getSerials()
         }
         
         return parseContentItems(document).filterIsInstance<TvShow>()
@@ -251,14 +300,13 @@ object MEGAKinoProvider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         ensureToken()
-        val url = "$baseUrl$id"
-        val document = service.getDocument(url)
+        val document = getService().getDocument(absoluteUrl(id))
 
         val title = document.select("h1[itemprop='name']").text().trim()
         val tmdbMovie = TmdbUtils.getMovie(title, language = language)
         
         val posterPath = document.select("div.pmovie__poster img[itemprop='image']").attr("data-src")
-        val posterUrl = "$baseUrl$posterPath"
+        val posterUrl = absoluteUrl(posterPath)
         val quality = document.select("div.pmovie__poster div.poster__label").text().trim()
         val overview = document.select("div.page__text[itemprop='description']").text().trim()
         
@@ -303,8 +351,7 @@ object MEGAKinoProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         ensureToken()
-        val url = "$baseUrl$id"
-        val document = service.getDocument(url)
+        val document = getService().getDocument(absoluteUrl(id))
 
         val titleRaw = document.select("h1[itemprop='name']").text().trim()
         
@@ -316,7 +363,7 @@ object MEGAKinoProvider : Provider {
         val tmdbTvShow = TmdbUtils.getTvShow(titleForTmdb, language = language)
         
         val posterPath = document.select("div.pmovie__poster img[itemprop='image']").attr("data-src")
-        val posterUrl = "$baseUrl$posterPath"
+        val posterUrl = absoluteUrl(posterPath)
         val overview = document.select("div.page__text[itemprop='description']").text().trim()
         val released = document.select("div.pmovie__year span[itemprop='dateCreated']").text().trim()
 
@@ -367,8 +414,7 @@ object MEGAKinoProvider : Provider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         ensureToken()
-        val url = "$baseUrl$seasonId"
-        val document = service.getDocument(url)
+        val document = getService().getDocument(absoluteUrl(seasonId))
         
         val titleRaw = document.select("h1[itemprop='name']").text().trim()
         val seasonMatch = Regex("""- (\d+) Staffel""").find(titleRaw)
@@ -411,8 +457,7 @@ object MEGAKinoProvider : Provider {
         val servers = mutableListOf<Video.Server>()
 
         if (videoType is Video.Type.Movie) {
-            val url = "$baseUrl$id"
-            val document = service.getDocument(url)
+            val document = getService().getDocument(absoluteUrl(id))
             
             val tabNames = document.select("div.tabs-block__select span").map { it.text() }
             val contents = document.select("div.tabs-block__content")
@@ -437,9 +482,7 @@ object MEGAKinoProvider : Provider {
             if (parts.size >= 2) {
                 val pageUrl = parts[0]
                 val epId = parts[1]
-                val url = "$baseUrl$pageUrl"
-                
-                val document = service.getDocument(url)
+                val document = getService().getDocument(absoluteUrl(pageUrl))
                 
                 val select = document.select("select#$epId")
                 select.select("option").forEach { option ->

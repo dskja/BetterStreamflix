@@ -108,7 +108,11 @@ object ParentalControlUtils {
     private fun resolveProvider(providerName: String?): Provider? {
         if (providerName.isNullOrBlank()) return UserPreferences.currentProvider
         if (providerName.startsWith("TMDb (") && providerName.endsWith(")")) {
-            return TmdbProvider(providerName.substringAfter("TMDb (").substringBefore(")"))
+            return TmdbProvider(
+                ProviderAudioLanguage.normalizeTmdbLanguage(
+                    providerName.substringAfter("TMDb (").substringBefore(")")
+                )
+            )
         }
         return Provider.findByName(providerName)
     }

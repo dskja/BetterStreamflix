@@ -17,6 +17,7 @@ import retrofit2.http.Query
 import retrofit2.http.QueryMap
 import java.lang.reflect.Type
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 object TMDb3 {
 
@@ -947,18 +948,25 @@ object TMDb3 {
             fun build(): ApiService {
                 val apiKey = UserPreferences.tmdbApiKey.ifEmpty { BuildConfig.TMDB_API_KEY }
 
-                val client = OkHttpClient.Builder().addInterceptor { chain ->
-                    val original = chain.request()
+                // Use app DoH DNS so ISP-poisoned/system DNS cannot blackhole api.themoviedb.org.
+                val client = OkHttpClient.Builder()
+                    .dns(DnsResolver.doh)
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
+                    .addInterceptor { chain ->
+                        val original = chain.request()
 
-                    val requestBuilder = original.newBuilder()
-                        .url(
-                            original.url.newBuilder()
-                                .addQueryParameter("api_key", apiKey)
-                                .build()
-                        )
+                        val requestBuilder = original.newBuilder()
+                            .url(
+                                original.url.newBuilder()
+                                    .addQueryParameter("api_key", apiKey)
+                                    .build()
+                            )
 
-                    chain.proceed(requestBuilder.build())
-                }.build()
+                        chain.proceed(requestBuilder.build())
+                    }.build()
 
                 val retrofit = Retrofit.Builder()
                     .baseUrl(URL)

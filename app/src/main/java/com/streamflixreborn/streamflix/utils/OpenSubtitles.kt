@@ -1,5 +1,6 @@
 package com.streamflixreborn.streamflix.utils
 
+import android.content.Context
 import android.net.Uri
 import androidx.core.net.toUri
 import com.google.gson.annotations.SerializedName
@@ -23,18 +24,73 @@ object OpenSubtitles {
     private val service = Service.build()
 
     suspend fun download(
+        context: Context,
         subtitle: Subtitle,
+        contentKey: String,
     ): Uri = withContext(Dispatchers.IO) {
+        val fileId = cacheFileId(subtitle)
+        SubtitleFileCache.getUri(
+            context = context,
+            contentKey = contentKey,
+            provider = SubtitleFileCache.PROVIDER_OPENSUBTITLES,
+            fileId = fileId,
+        )?.also { cachedUri ->
+            rememberCached(context, contentKey, fileId, subtitle, cachedUri)
+            return@withContext cachedUri
+        }
+
+        try {
+            downloadToCache(context, subtitle, contentKey, fileId)
+        } catch (e: Exception) {
+            SubtitleFileCache.getUri(
+                context = context,
+                contentKey = contentKey,
+                provider = SubtitleFileCache.PROVIDER_OPENSUBTITLES,
+                fileId = fileId,
+            )?.let { return@withContext it }
+            throw e
+        }
+    }
+
+    private fun rememberCached(
+        context: Context,
+        contentKey: String,
+        fileId: String,
+        subtitle: Subtitle,
+        cachedUri: Uri,
+    ) {
+        val path = cachedUri.path ?: return
+        SubtitleFileCache.remember(
+            context = context,
+            contentKey = contentKey,
+            cached = SubtitleFileCache.CachedSubtitle(
+                provider = SubtitleFileCache.PROVIDER_OPENSUBTITLES,
+                fileId = fileId,
+                label = subtitle.subFileName ?: subtitle.languageName ?: fileId,
+                language = subtitle.languageName,
+                fileName = File(path).name,
+            ),
+        )
+    }
+
+    private fun downloadToCache(
+        context: Context,
+        subtitle: Subtitle,
+        contentKey: String,
+        fileId: String,
+    ): Uri {
         val zip = File.createTempFile(
-            "${File(subtitle.subFileName).nameWithoutExtension}-",
-            ".${File(subtitle.subDownloadLink).extension}"
+            "${File(subtitle.subFileName ?: "subtitle").nameWithoutExtension}-",
+            ".${File(subtitle.subDownloadLink).extension.ifBlank { "gz" }}"
         )
 
         URL(subtitle.subDownloadLink).openStream().use { input ->
             FileOutputStream(zip).use { output -> input.copyTo(output) }
         }
 
-        val subtitleFile = File("${zip.parent}${File.separator}${subtitle.subFileName}")
+        val subtitleFile = File(
+            "${zip.parent}${File.separator}${subtitle.subFileName ?: "subtitle.$fileId.srt"}"
+        )
 
         if (subtitleFile.exists()) {
             subtitleFile.delete()
@@ -42,7 +98,6 @@ object OpenSubtitles {
 
         FileInputStream(zip).use { fileInputStream ->
             GZIPInputStream(fileInputStream).use { gzipInputStream ->
-                // Writing to file using source charset and UTF_8 output
                 val sourceCharset = getCharsetFromEncoding(subtitle.subEncoding)
                 val reader = gzipInputStream.bufferedReader(sourceCharset)
                 subtitleFile.writer(Charsets.UTF_8).use { writer ->
@@ -53,8 +108,24 @@ object OpenSubtitles {
 
         zip.delete()
 
-        subtitleFile.toUri()
+        val uri = SubtitleFileCache.put(
+            context = context,
+            contentKey = contentKey,
+            provider = SubtitleFileCache.PROVIDER_OPENSUBTITLES,
+            fileId = fileId,
+            label = subtitle.subFileName ?: subtitle.languageName ?: fileId,
+            language = subtitle.languageName,
+            sourceFile = subtitleFile,
+        )
+        subtitleFile.delete()
+        return uri
     }
+
+    private fun cacheFileId(subtitle: Subtitle): String =
+        subtitle.idSubtitleFile?.takeIf { it.isNotBlank() }
+            ?: subtitle.subHash?.takeIf { it.isNotBlank() }
+            ?: subtitle.subFileName?.takeIf { it.isNotBlank() }
+            ?: subtitle.subDownloadLink.hashCode().toString()
 
     suspend fun search(
         imdbId: String? = null,
@@ -78,22 +149,21 @@ object OpenSubtitles {
         )
     }
 
-    // Function to get charset from opensubtitles metadata
     private fun getCharsetFromEncoding(encoding: String?): java.nio.charset.Charset {
-        if (encoding.isNullOrBlank()) return Charsets.UTF_8 // Default fallback
+        if (encoding.isNullOrBlank()) return Charsets.UTF_8
 
         return try {
             when (encoding.uppercase()) {
-                "CP1256", "WINDOWS-1256" -> java.nio.charset.Charset.forName("Windows-1256") // Arabic
-                "CP1251", "WINDOWS-1251" -> java.nio.charset.Charset.forName("Windows-1251") // Cyrillic / Russian
-                "CP1252", "WINDOWS-1252", "ISO-8859-1" -> java.nio.charset.Charset.forName("Windows-1252") // Western European
-                "CP1254", "WINDOWS-1254" -> java.nio.charset.Charset.forName("Windows-1254") // Turkish
-                "CP1253", "WINDOWS-1253" -> java.nio.charset.Charset.forName("Windows-1253") // Greek
+                "CP1256", "WINDOWS-1256" -> java.nio.charset.Charset.forName("Windows-1256")
+                "CP1251", "WINDOWS-1251" -> java.nio.charset.Charset.forName("Windows-1251")
+                "CP1252", "WINDOWS-1252", "ISO-8859-1" -> java.nio.charset.Charset.forName("Windows-1252")
+                "CP1254", "WINDOWS-1254" -> java.nio.charset.Charset.forName("Windows-1254")
+                "CP1253", "WINDOWS-1253" -> java.nio.charset.Charset.forName("Windows-1253")
                 "UTF-8" -> Charsets.UTF_8
-                else -> java.nio.charset.Charset.forName(encoding) // Try loading dynamically
+                else -> java.nio.charset.Charset.forName(encoding)
             }
         } catch (e: Exception) {
-            Charsets.UTF_8 // Fallback to UTF-8 if the charset name is unresolvable
+            Charsets.UTF_8
         }
     }
 
@@ -107,7 +177,6 @@ object OpenSubtitles {
             const val SUB_LANGUAGE_ID = "sublanguageid"
         }
     }
-
 
     private interface Service {
 
@@ -131,7 +200,6 @@ object OpenSubtitles {
                 return retrofit.create(Service::class.java)
             }
         }
-
 
         @GET("search/{params}")
         suspend fun search(

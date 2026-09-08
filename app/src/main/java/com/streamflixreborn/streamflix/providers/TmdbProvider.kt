@@ -29,6 +29,7 @@ import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.TMDb3
 import com.streamflixreborn.streamflix.utils.TMDb3.original
 import com.streamflixreborn.streamflix.utils.TMDb3.w500
+import com.streamflixreborn.streamflix.utils.ProviderAudioLanguage
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.safeSubList
 import android.util.Base64
@@ -50,6 +51,20 @@ class TmdbProvider(override val language: String) : Provider {
         "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tmdb.new.logo.svg/1280px-Tmdb.new.logo.svg.png"
 
     override suspend fun getHome(): List<Category> = coroutineScope {
+        try {
+            buildHomeCategories()
+        } catch (e: Exception) {
+            Log.e("TmdbProvider", "TMDB home failed: ${e.message}", e)
+            throw Exception(
+                "TMDB is unreachable (api.themoviedb.org). " +
+                    "Check your connection or switch DNS over HTTPS in Settings. " +
+                    "(${e.message})",
+                e
+            )
+        }
+    }
+
+    private suspend fun buildHomeCategories(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
         val watchRegion = if (language == "en") "US" else language.uppercase()
 
@@ -587,7 +602,8 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val (tvShowId, seasonNumber) = seasonId.split("-")
+        val seasonNumber = seasonId.substringAfterLast('-')
+        val tvShowId = seasonId.substringBeforeLast('-')
 
         val episodes = TMDb3.TvSeasons.details(
             seriesId = tvShowId.toInt(),
@@ -847,9 +863,9 @@ class TmdbProvider(override val language: String) : Provider {
             }
         }
 
-        // ORDINE PRIORITÀ FINALE: Portiamo i server con audio Spagnolo e Filemoon in cima
-        val finalServers = if (language.startsWith("es")) {
-            servers.sortedByDescending { server ->
+        // Prefer language-matched audio servers first (Spanish LAT/CAST, French VF)
+        val finalServers = when {
+            language.startsWith("es") -> servers.sortedByDescending { server ->
                 val n = server.name.uppercase()
                 when {
                     // Filemoon e tag audio spagnoli hanno la massima priorità
@@ -866,8 +882,10 @@ class TmdbProvider(override val language: String) : Provider {
                     else -> 0
                 }
             }
-        } else {
-            servers
+            language.startsWith("fr") -> servers.sortedByDescending { server ->
+                ProviderAudioLanguage.frenchServerPriority(server.name)
+            }
+            else -> servers
         }
 
         Log.i("StreamFlixES", "[SERVERS LIST] -> Found ${finalServers.size} servers: ${finalServers.joinToString { it.name }}")

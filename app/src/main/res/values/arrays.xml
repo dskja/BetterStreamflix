@@ -77,4 +77,13 @@
         <item>LAT</item>
         <item>SUB</item>
     </string-array>
+
+    <string-array name="library_scope_entries">
+        <item>@string/settings_library_scope_per_provider</item>
+        <item>@string/settings_library_scope_cross_provider</item>
+    </string-array>
+    <string-array name="library_scope_values">
+        <item>per_provider</item>
+        <item>cross_provider</item>
+    </string-array>
 </resources>

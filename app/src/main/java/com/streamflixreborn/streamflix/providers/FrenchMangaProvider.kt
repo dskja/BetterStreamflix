@@ -473,10 +473,7 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 try {
                     val document = addressService.getHome()
 
-                    val fsUrl = document.select("div.container > div.url-card")
-                        .selectFirst("a")
-                        ?.attr("href")
-                        ?.trim()
+                    val fsUrl = FrenchStreamProvider.extractMirrorUrl(document)
                     if (!fsUrl.isNullOrEmpty()) {
                         val fsdoc = addressService.loadPage(fsUrl)
                         var newUrl = fsdoc
@@ -486,6 +483,9 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         val finalUrl = addressService.followPage(newUrl)
                         newUrl = finalUrl.raw().request.url.toString()
                         newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                        if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
+                            throw Exception("Invalid FrenchManga URL: $newUrl")
+                        }
                         UserPreferences.setProviderCache(this,UserPreferences.PROVIDER_URL, newUrl)
                         UserPreferences.setProviderCache(
                             this,

@@ -14,16 +14,16 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
 class SeasonViewModel(
-    seasonId: String,
+    private val seasonId: String,
     private val tvShowId: String,
     private val database: AppDatabase,
+    initialSeasonNumber: Int = 0,
 ) : ViewModel() {
-    var seasonNumber = 0
+    var seasonNumber: Int = resolveSeasonNumber(seasonId, initialSeasonNumber)
     var tvShowTitle = ""
     private val _state = MutableStateFlow<State>(State.LoadingEpisodes)
 
@@ -55,8 +55,8 @@ class SeasonViewModel(
                             ?.let { episode.copy().merge(it) }
                             ?: episode
                     }.sortedBy { it.number }.onEach {
-                        it.tvShow = tvShow
-                        it.season = season
+                        it.tvShow = tvShow ?: it.tvShow
+                        it.season = season ?: it.season
                     }
                 )
             }
@@ -73,7 +73,6 @@ class SeasonViewModel(
     init {
         getSeasonEpisodes(seasonId)
     }
-
 
     fun getSeasonEpisodes(seasonId: String) = viewModelScope.launch(Dispatchers.IO) {
         _state.emit(State.LoadingEpisodes)
@@ -93,16 +92,31 @@ class SeasonViewModel(
                     }
             }
 
-            val tvShow = TvShow(tvShowId)
-            val season = Season(seasonId)
+            val existingSeason = database.seasonDao().getById(seasonId)
+            seasonNumber = existingSeason?.number
+                ?: resolveSeasonNumber(seasonId, seasonNumber)
+
+            val tvShow = database.tvShowDao().getById(tvShowId)
+                ?: TvShow(id = tvShowId)
+            val season = Season(
+                id = seasonId,
+                number = seasonNumber,
+                title = existingSeason?.title,
+                poster = existingSeason?.poster,
+            ).apply {
+                this.tvShow = tvShow
+            }
             episodes.forEach { episode ->
                 episode.tvShow = tvShow
                 episode.season = season
             }
 
+            database.seasonDao().insert(season)
             database.episodeDao().insertAll(episodes)
 
-            EpisodeManager.addEpisodes(EpisodeManager.convertToVideoTypeEpisodes(episodes, database, seasonNumber))
+            EpisodeManager.addEpisodes(
+                EpisodeManager.convertToVideoTypeEpisodes(episodes, database, seasonNumber)
+            )
             _state.emit(State.SuccessLoadingEpisodes(episodes))
         } catch (e: Exception) {
             Log.e("SeasonViewModel", "getSeasonEpisodes: ", e)
@@ -110,4 +124,11 @@ class SeasonViewModel(
         }
     }
 
+    companion object {
+        fun resolveSeasonNumber(seasonId: String, fallback: Int): Int {
+            val parsed = seasonId.substringAfterLast('-', missingDelimiterValue = "")
+                .toIntOrNull()
+            return parsed ?: fallback
+        }
+    }
 }

@@ -527,8 +527,15 @@ object AnimeAv1Provider : Provider {
                     val result = resolveServer(objIndex) ?: continue
                     val (name, videoUrl) = result
 
-                    // Omitir servidores que no funcionan correctamente (Mega y MP4Upload)
-                    if (name.contains("Mega", ignoreCase = true)) {
+                    // Skip hosts that break playback on many TV boxes:
+                    // - Mega: no usable in-app extractor path
+                    // - MP4Upload: often serves AV1 → black video with audio only
+                    // - Byse: no extractor registered
+                    if (
+                        name.contains("Mega", ignoreCase = true) ||
+                        name.contains("MP4Upload", ignoreCase = true) ||
+                        name.contains("Byse", ignoreCase = true)
+                    ) {
                         continue
                     }
 
