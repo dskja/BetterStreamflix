@@ -1837,13 +1837,21 @@ class PlayerTvFragment : Fragment() {
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
             player = buildPlayer(extraBuffering).also { player ->
+<<<<<<< HEAD
                     // handleAudioFocus=false: Fire TV / cheap boxes often steal audio focus
                     // briefly (system sounds, Alexa, HDMI-CEC), and Media3 would pause/mute
                     // without auto-resume — matching silent playback then exit reports.
+=======
+                    // Avoid Media3 audio-focus ducking (AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK),
+                    // which makes music / ambience / distant voices suddenly go quiet on
+                    // Smart TVs. CONTENT_TYPE_UNKNOWN also avoids OEM "movie" dialogue
+                    // enhancement / night-mode style processing some firmwares apply.
+                    // Also prevents Fire TV focus-theft pauses (handleAudioFocus=false).
+>>>>>>> origin/main
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
-                            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                            .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
                             .build(),
                         /* handleAudioFocus= */ false,
                     )
@@ -2099,7 +2107,7 @@ class PlayerTvFragment : Fragment() {
                 player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
                         .build(),
                     /* handleAudioFocus= */ false,
                 )
