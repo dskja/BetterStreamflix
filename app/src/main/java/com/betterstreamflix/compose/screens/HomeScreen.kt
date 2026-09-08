@@ -2,6 +2,7 @@ package com.betterstreamflix.compose.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -100,6 +101,7 @@ fun HomeScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = if (isTvLayout) 32.dp else 110.dp),
                 ) {
                     item(key = "hero") {
                         val providerName = UserPreferences.currentProvider?.name

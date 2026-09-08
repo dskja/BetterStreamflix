@@ -48,7 +48,11 @@ data class BsColorScheme(
     val AmberGlass get() = Amber.copy(alpha = 0.18f)
 
     val AmberGlow: Brush
-        get() = Brush.horizontalGradient(listOf(AmberDeep, AmberMuted, Amber, AmberBright))
+        get() = Brush.horizontalGradient(listOf(AmberBright, Amber, AmberMuted))
+
+    /** Primary CTA fill — Peacock-style amber → orange. */
+    val PulseCta: Brush
+        get() = Brush.horizontalGradient(listOf(AmberBright, Amber, AmberMuted))
 
     val Atmosphere: Brush
         get() = Brush.verticalGradient(
@@ -171,22 +175,25 @@ object BsThemeCatalog {
         else -> arc
     }
 
-    /** Default Arc — near-black cinema surfaces + vivid vermilion. */
+    /**
+     * Default Pulse — charcoal surfaces + amber→orange energy (Peacock-inspired).
+     * Kept under the historical `arc` key so ThemeManager.DEFAULT stays wired.
+     */
     val arc = scheme(
-        ink = Color(0xFF08090B),
-        elevated = Color(0xFF0D0F12),
-        panel = Color(0xFF111317),
-        soft = Color(0xFF1A1D22),
-        deep = Color(0xFF050608),
-        accent = Color(0xFFFF5A36),
-        accentBright = Color(0xFFFF795C),
-        accentMuted = Color(0xFFB93B21),
-        accentDeep = Color(0xFF6F2415),
-        text = Color(0xFFF7F7F4),
-        textDim = Color(0xFF9B9DA2),
-        textFaint = Color(0xFF66696F),
-        secondary = Color(0xFF80D6A2),
-        secondarySoft = Color(0xFF285A3C),
+        ink = Color(0xFF0B0B0F),
+        elevated = Color(0xFF121218),
+        panel = Color(0xFF1A1A22),
+        soft = Color(0xFF262632),
+        deep = Color(0xFF07070A),
+        accent = Color(0xFFFF8A00),
+        accentBright = Color(0xFFFFD60A),
+        accentMuted = Color(0xFFFF6B00),
+        accentDeep = Color(0xFFB34A00),
+        text = Color(0xFFFFFFFF),
+        textDim = Color(0xFFA1A1AA),
+        textFaint = Color(0xFF71717A),
+        secondary = Color(0xFFFFD60A),
+        secondarySoft = Color(0xFF3D2E08),
     )
 
     /** Back-compat alias used by [BsColors]. */
@@ -198,15 +205,15 @@ object BsThemeCatalog {
         panel = Color(0xFF141414),
         soft = Color(0xFF1C1C1C),
         deep = Color(0xFF000000),
-        accent = Color(0xFFFF5A36),
-        accentBright = Color(0xFFFF795C),
-        accentMuted = Color(0xFF8A8A8A),
-        accentDeep = Color(0xFF6F2415),
+        accent = Color(0xFFFF8A00),
+        accentBright = Color(0xFFFFD60A),
+        accentMuted = Color(0xFFFF6B00),
+        accentDeep = Color(0xFFB34A00),
         text = Color(0xFFFFFFFF),
         textDim = Color(0xFFBDBDBD),
         textFaint = Color(0xFF7A7A7A),
-        secondary = Color(0xFF80D6A2),
-        secondarySoft = Color(0xFF444444),
+        secondary = Color(0xFFFFD60A),
+        secondarySoft = Color(0xFF3D2E08),
     )
 
     val sunset = scheme(

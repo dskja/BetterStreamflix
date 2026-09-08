@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import com.betterstreamflix.compose.components.BsErrorState
 import com.betterstreamflix.compose.components.BsGhostButton
 import com.betterstreamflix.compose.components.BsGlassFilterChip
 import com.betterstreamflix.compose.components.BsGlassSearchField
+import com.betterstreamflix.compose.components.BsPrimaryButton
 import com.betterstreamflix.compose.components.BsProviderChip
 import com.betterstreamflix.compose.components.BsShimmerRow
 import com.betterstreamflix.compose.components.BsTopBar
@@ -61,20 +63,21 @@ fun ProvidersScreen(
                     )
                 },
             )
+            Text(
+                text = stringResource(R.string.providers_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = BsTheme.colors.MistDim,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 2.dp),
+            )
             BsGlassSearchField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 placeholder = stringResource(R.string.providers_search_hint),
-                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 4.dp),
-            )
-            Text(
-                text = stringResource(R.string.providers_favorite_hint),
-                color = BsTheme.colors.MistFaint,
-                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 12.dp),
             )
             LazyRow(
-                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(languageChips, key = { it.code ?: "all" }) { chip ->
                     BsGlassFilterChip(
@@ -84,14 +87,29 @@ fun ProvidersScreen(
                     )
                 }
             }
+            Text(
+                text = stringResource(R.string.providers_favorite_hint),
+                style = MaterialTheme.typography.labelMedium,
+                color = BsTheme.colors.MistFaint,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
+            )
             when {
                 isLoading -> {
                     BsShimmerRow()
                 }
                 errorMessage != null -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = horizontalPadding),
+                    ) {
                         BsErrorState(message = errorMessage, modifier = Modifier.fillMaxWidth())
-                        BsGhostButton(text = stringResource(R.string.loading_error_retry), onClick = onRetry)
+                        BsPrimaryButton(
+                            text = stringResource(R.string.loading_error_retry),
+                            onClick = onRetry,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
                     }
                 }
                 providers.isEmpty() -> {
@@ -102,8 +120,12 @@ fun ProvidersScreen(
                 }
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = horizontalPadding,
+                            vertical = 8.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
                     ) {
                         itemsIndexed(
                             providers,
@@ -120,9 +142,19 @@ fun ProvidersScreen(
                                 onLongClick = { onProviderFavoriteToggle(provider) },
                             )
                         }
+                        item {
+                            SpacerBottomNav()
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun SpacerBottomNav() {
+    androidx.compose.foundation.layout.Spacer(
+        modifier = Modifier.padding(bottom = 96.dp),
+    )
 }

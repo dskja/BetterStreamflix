@@ -56,6 +56,7 @@ object BsColors {
     val HeroWash: Brush get() = t.HeroWash
     val HeroSideWash: Brush get() = t.HeroSideWash
     val AmberGlow: Brush get() = t.AmberGlow
+    val PulseCta: Brush get() = t.PulseCta
     val PanelGlow: Brush get() = t.PanelGlow
     val BannerStrip: Brush get() = t.BannerStrip
     val CinemaVignette: Brush get() = t.CinemaVignette

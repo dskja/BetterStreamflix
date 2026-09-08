@@ -680,9 +680,9 @@ class MainMobileActivity : FragmentActivity() {
             )
         )
 
-        binding.root.setBackgroundColor(palette.mobileNavBackground)
-        binding.bnvMain.setBackgroundColor(palette.mobileNavBackground)
-        binding.bnvMain.elevation = 0f
+        binding.root.setBackgroundColor(palette.systemBar)
+        binding.bnvMain.setBackgroundResource(R.drawable.bg_pulse_floating_nav)
+        binding.bnvMain.elevation = 12f
         binding.bnvMain.itemIconTintList = navColors
         binding.bnvMain.itemTextColor = navColors
         binding.bnvMain.itemActiveIndicatorColor = ColorStateList.valueOf(

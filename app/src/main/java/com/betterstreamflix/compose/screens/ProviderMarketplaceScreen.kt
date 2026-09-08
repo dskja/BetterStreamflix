@@ -79,8 +79,13 @@ fun ProviderMarketplaceScreen(
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(
+                        start = horizontalPadding,
+                        end = horizontalPadding,
+                        top = 12.dp,
+                        bottom = 110.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(providers, key = { it.name }) { provider ->
                         val healthy = ProviderHealthMonitor.isHealthy(provider.name)
