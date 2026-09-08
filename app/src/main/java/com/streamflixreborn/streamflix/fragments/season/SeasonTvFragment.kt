@@ -38,6 +38,7 @@ class SeasonTvFragment : Fragment() {
             args.seasonId,
             args.tvShowId,
             database,
+            args.seasonNumber,
         )
     }
 
