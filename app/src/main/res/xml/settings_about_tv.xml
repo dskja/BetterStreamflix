@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.preference.PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
     <Preference
@@ -8,5 +9,29 @@
         app:title="@string/settings_about_version"
         tools:summary="@string/settings_about_version_name" />
 
+    <Preference
+        app:iconSpaceReserved="false"
+        app:key="p_settings_about_maintainer"
+        app:title="@string/settings_about_maintainer"
+        android:selectable="false" />
+
+    <Preference
+        app:iconSpaceReserved="false"
+        app:key="p_settings_github"
+        app:title="@string/settings_github"
+        android:summary="github.com/dskja/BetterStreamflix" />
+
+    <Preference
+        app:iconSpaceReserved="false"
+        app:key="p_settings_upstream"
+        app:title="@string/settings_about_upstream"
+        android:summary="github.com/streamflix-reborn2/streamflix" />
+
+    <Preference
+        app:iconSpaceReserved="false"
+        app:key="p_settings_credits"
+        app:title="@string/settings_about_credits"
+        app:summary="@string/settings_about_credits_summary"
+        android:selectable="false" />
 
 </androidx.preference.PreferenceScreen>

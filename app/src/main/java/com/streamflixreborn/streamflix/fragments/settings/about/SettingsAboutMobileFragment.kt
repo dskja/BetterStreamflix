@@ -1,5 +1,7 @@
 package com.streamflixreborn.streamflix.fragments.settings.about
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -19,5 +21,18 @@ class SettingsAboutMobileFragment : PreferenceFragmentCompat() {
             summary = getString(R.string.settings_about_version_name, BuildConfig.VERSION_NAME)
         }
 
+        findPreference<Preference>("p_settings_github")?.setOnPreferenceClickListener {
+            openUrl("https://github.com/dskja/BetterStreamflix")
+            true
+        }
+
+        findPreference<Preference>("p_settings_upstream")?.setOnPreferenceClickListener {
+            openUrl("https://github.com/streamflix-reborn2/streamflix")
+            true
+        }
+    }
+
+    private fun openUrl(url: String) {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 }

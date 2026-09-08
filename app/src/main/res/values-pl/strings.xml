@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Streamflix</string>
+    <string name="app_name">BetterStreamflix</string>
 
     <string name="loading_error_title">Wystapil blad</string>
     <string name="loading_error_retry">Sprobuj ponownie</string>

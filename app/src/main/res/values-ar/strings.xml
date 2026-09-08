@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">ستريم فليكس</string>
+	<string name="app_name">BetterStreamflix</string>
 
 	<string name="loading_error_title">حدث خطأ</string>
 	<string name="loading_error_retry">إعادة المحاولة</string>
@@ -368,7 +368,7 @@
     <string name="settings_category_streamingcommunity_dnsOverHttps">استخدام DNS آمن</string>
     <string name="settings_scan_resolver_qr_title">مسح رمز تجاوز التلفاز</string>
     <string name="settings_scan_resolver_qr_summary">افتح الكاميرا وامسح رمز QR المعروض على التلفاز</string>
-    <string name="settings_scan_resolver_invalid_qr">رمز QR هذا ليس رابط تجاوز StreamFlix.</string>
+    <string name="settings_scan_resolver_invalid_qr">رمز QR هذا ليس رابط تجاوز BetterStreamflix.</string>
     <string name="settings_scan_resolver_failed">تعذر تشغيل ماسح QR على هذا الجهاز.</string>
     <string name="settings_category_provider_url_manual">إدخال يدوي</string>
     <string name="settings_autoplay_buffer_title">مهلة التشغيل التلقائي</string>

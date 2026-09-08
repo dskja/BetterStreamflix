@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="app_name">Streamflix</string>
+    <string name="app_name">BetterStreamflix</string>
 
     <string name="loading_error_title">Une erreur est survenue</string>
     <string name="loading_error_retry">Réessayer</string>
@@ -231,7 +231,7 @@
     <string name="settings_about_version">Version</string>
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Aide</string>
-    <string name="settings_telegram">Groupe Telegram</string>
+    <string name="settings_telegram">Canal Telegram</string>
     <string name="settings_category_streamingcommunity">Paramètres StreamingCommunity</string>
     <string name="settings_category_streamingcommunity_domain">Nom de domaine StreamingCommunity</string>
     <string name="settings_streamingcommunity_domain_reset">Réinitialiser le domaine</string>
@@ -425,8 +425,8 @@
     <string name="settings_category_poseidon">Paramètres Poseidonhd2</string>
     <string name="settings_category_poseidon_domain">Nom de domaine Poseidonhd2</string>
     <string name="settings_scan_resolver_qr_title">Scanner le QR de contournement TV</string>
-    <string name="settings_scan_resolver_qr_summary">Utilise le scanner StreamFlix pour le QR affiché sur la TV — l\'appareil photo système ouvre souvent Google au lieu de l\'app</string>
-    <string name="settings_scan_resolver_invalid_qr">Ce code QR n\'est pas un lien de contournement StreamFlix.</string>
+    <string name="settings_scan_resolver_qr_summary">Utilise le scanner BetterStreamflix pour le QR affiché sur la TV — l\'appareil photo système ouvre souvent Google au lieu de l\'app</string>
+    <string name="settings_scan_resolver_invalid_qr">Ce code QR n\'est pas un lien de contournement BetterStreamflix.</string>
     <string name="settings_scan_resolver_failed">Impossible de démarrer le scanner QR sur cet appareil.</string>
     <string name="settings_category_provider_url_manual">Saisir manuellement</string>
     <string name="player_skip_intro">Passer l\'intro</string>

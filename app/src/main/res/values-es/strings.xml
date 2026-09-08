@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Streamflix</string>
+    <string name="app_name">BetterStreamflix</string>
 
     <string name="loading_error_title">Ha ocurrido un error</string>
     <string name="loading_error_retry">Reintentar</string>
@@ -240,7 +240,7 @@
     <string name="settings_version_mobile">Versión para móviles</string>
     <string name="settings_about_version_name">Versión %s</string>
     <string name="settings_help">Ayuda</string>
-    <string name="settings_telegram">Grupo de Telegram</string>
+    <string name="settings_telegram">Canal de Telegram</string>
     <string name="settings_refresh_cache_title">Actualizar caché desde la base de datos</string>
     <string name="settings_refresh_cache_summary">Recargar el historial de visualización y los datos de la app desde la base de datos</string>
     <string name="settings_refresh_cache_confirm">¿Actualizar la caché?</string>
@@ -263,8 +263,8 @@
     <string name="settings_category_network_title">Conexión y servicios</string>
     <string name="settings_screen_network_summary">DNS, bypass para TV y claves de servicios de subtitulos</string>
     <string name="settings_scan_resolver_qr_title">Escanear QR de bypass TV</string>
-    <string name="settings_scan_resolver_qr_summary">Usa el escáner de StreamFlix para el QR de la TV — la cámara del sistema a menudo abre Google en lugar de la app</string>
-    <string name="settings_scan_resolver_invalid_qr">Este código QR no es un enlace de bypass de StreamFlix.</string>
+    <string name="settings_scan_resolver_qr_summary">Usa el escáner de BetterStreamflix para el QR de la TV — la cámara del sistema a menudo abre Google en lugar de la app</string>
+    <string name="settings_scan_resolver_invalid_qr">Este código QR no es un enlace de bypass de BetterStreamflix.</string>
     <string name="settings_scan_resolver_failed">No se pudo iniciar el escáner QR en este dispositivo.</string>
     <string name="settings_scan_resolver_camera_permission_denied">Se necesita permiso de la cámara para escanear el codigo QR.</string>
     <string name="settings_scan_resolver_camera_unavailable">No hay una cámara disponible en este dispositivo.</string>
