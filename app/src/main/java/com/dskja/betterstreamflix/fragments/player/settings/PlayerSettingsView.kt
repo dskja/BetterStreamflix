@@ -24,7 +24,6 @@ import com.dskja.betterstreamflix.utils.findClosest
 import com.dskja.betterstreamflix.utils.getAlpha
 import com.dskja.betterstreamflix.utils.getRgb
 import com.dskja.betterstreamflix.utils.mediaServerId
-import com.dskja.betterstreamflix.utils.mediaServers
 import com.dskja.betterstreamflix.utils.setAlpha
 import com.dskja.betterstreamflix.utils.setRgb
 import com.dskja.betterstreamflix.utils.supportedTrackFormats
