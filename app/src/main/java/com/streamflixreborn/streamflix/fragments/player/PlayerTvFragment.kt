@@ -74,6 +74,7 @@ import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.sync.CloudSyncHooks
 import com.streamflixreborn.streamflix.ui.PlayerTvView
+import com.streamflixreborn.streamflix.utils.SubtitleOffset
 import com.streamflixreborn.streamflix.utils.SubtitleOffsetRenderersFactory
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
@@ -106,6 +107,7 @@ import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
 import com.streamflixreborn.streamflix.utils.BypassHttpLandingServer
+import com.streamflixreborn.streamflix.utils.DeviceCapabilities
 import com.streamflixreborn.streamflix.utils.QrUtils
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
@@ -438,7 +440,8 @@ class PlayerTvFragment : Fragment() {
 
                         is PlayerViewModel.State.LoadingVideo -> {
                             // Avoid clearing a playing stream to an empty URI when switching
-                            // servers mid-playback (causes a brief glitch then stalled pause).
+                            // servers mid-playback (causes silence then a jump back to the menu
+                            // when subsequent servers also fail — especially on Fire TV Stick).
                             if (!::player.isInitialized || !player.isPlaying) {
                                 player.setMediaItem(
                                     MediaItem.Builder()
@@ -1369,8 +1372,8 @@ class PlayerTvFragment : Fragment() {
                     Log.e("PlayerTvFragment", "onPlayerError: ", error)
 
                     // Mid-playback fallback clears the media URI (LoadingVideo → "") which
-                    // looks like a glitch then pause. Only auto-try the next server before
-                    // playback has meaningfully started; otherwise surface the error.
+                    // looks like silence then a jump to the main menu when all servers fail.
+                    // Only auto-try the next server before playback has meaningfully started.
                     if (::player.isInitialized && player.hasStarted()) {
                         val message = error.message ?: error.errorCodeName
                         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
@@ -1764,17 +1767,28 @@ class PlayerTvFragment : Fragment() {
         private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
             SubtitleOffset.reset()
 
+            val constrained = DeviceCapabilities.shouldUseConstrainedPlayback(requireContext())
+            // Fire Stick / low-RAM: keep extra buffering helpful but avoid 300s which OOMs sticks.
+            val maxBufferMs = when {
+                extraBuffering && constrained -> 90_000
+                extraBuffering -> 300_000
+                else -> DefaultLoadControl.DEFAULT_MAX_BUFFER_MS
+            }
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                    if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                    maxBufferMs,
                     DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
                     DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
                 )
                 .build()
 
             val renderersFactory = SubtitleOffsetRenderersFactory(requireContext()).apply {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || currentSoftwareDecoder) {
+                if (
+                    Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 ||
+                    currentSoftwareDecoder ||
+                    constrained
+                ) {
                     setEnableDecoderFallback(true)
                     if (currentSoftwareDecoder) {
                         setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
@@ -1823,11 +1837,17 @@ class PlayerTvFragment : Fragment() {
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
             player = buildPlayer(extraBuffering).also { player ->
+<<<<<<< HEAD
+                    // handleAudioFocus=false: Fire TV / cheap boxes often steal audio focus
+                    // briefly (system sounds, Alexa, HDMI-CEC), and Media3 would pause/mute
+                    // without auto-resume — matching silent playback then exit reports.
+=======
                     // Avoid Media3 audio-focus ducking (AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK),
                     // which makes music / ambience / distant voices suddenly go quiet on
                     // Smart TVs. CONTENT_TYPE_UNKNOWN also avoids OEM "movie" dialogue
                     // enhancement / night-mode style processing some firmwares apply.
                     // Also prevents Fire TV focus-theft pauses (handleAudioFocus=false).
+>>>>>>> origin/main
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
@@ -1836,13 +1856,17 @@ class PlayerTvFragment : Fragment() {
                         /* handleAudioFocus= */ false,
                     )
 
+                    var params = player.trackSelectionParameters.buildUpon()
                     val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
                     ProviderAudioLanguage.preferredAudioLanguages(lang)?.let { codes ->
-                        player.trackSelectionParameters =
-                            player.trackSelectionParameters.buildUpon()
-                                .setPreferredAudioLanguages(*codes)
-                                .build()
+                        params = params.setPreferredAudioLanguages(*codes)
                     }
+                    if (DeviceCapabilities.shouldUseConstrainedPlayback(requireContext())) {
+                        // Prefer stereo AAC-friendly tracks; E-AC-3 5.1 often fails silently
+                        // on Fire Stick hardware decoders (no sound → error → main menu).
+                        params = params.setMaxAudioChannelCount(2)
+                    }
+                    player.trackSelectionParameters = params.build()
 
                     mediaSession = MediaSession.Builder(requireContext(), player)
                         .build()
