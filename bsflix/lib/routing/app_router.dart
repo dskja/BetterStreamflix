@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/pulse_theme.dart';
+import '../core/widgets/pulse_widgets.dart';
 import '../features/detail/detail_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/player/player_screen.dart';
@@ -70,48 +71,11 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: PulseColors.ink,
+      extendBody: true,
       body: navigationShell,
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xE61A1A22),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0x33FFD60A)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: NavigationBar(
-            height: 68,
-            backgroundColor: Colors.transparent,
-            indicatorColor: PulseColors.amber.withValues(alpha: 0.18),
-            selectedIndex: navigationShell.currentIndex,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            onDestinationSelected: navigationShell.goBranch,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded, color: PulseColors.amberBright),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.search),
-                selectedIcon: Icon(Icons.search, color: PulseColors.amberBright),
-                label: 'Search',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.dns_outlined),
-                selectedIcon: Icon(Icons.dns_rounded, color: PulseColors.amberBright),
-                label: 'Providers',
-              ),
-            ],
-          ),
-        ),
+      bottomNavigationBar: PulseFloatingNav(
+        index: navigationShell.currentIndex,
+        onSelect: navigationShell.goBranch,
       ),
     );
   }

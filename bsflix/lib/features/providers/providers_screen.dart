@@ -29,27 +29,21 @@ class _ProvidersScreenState extends ConsumerState<ProvidersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-              child: Text(
-                'BetterStreamflix',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: PulseColors.amberBright,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 6),
+              child: PulseBrandMark(),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Choose provider',
-                style: Theme.of(context).textTheme.headlineMedium,
+                'Providers',
+                style: Theme.of(context).textTheme.displayMedium,
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
               child: Text(
-                'Same Pulse chrome for every provider surface.',
+                'Pick a source. Long-press to favorite.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -58,15 +52,36 @@ class _ProvidersScreenState extends ConsumerState<ProvidersScreen> {
               child: TextField(
                 onChanged: (v) => setState(() => _query = v),
                 style: const TextStyle(color: PulseColors.mist),
-                decoration: const InputDecoration(
+                cursorColor: PulseColors.amberBright,
+                decoration: InputDecoration(
                   hintText: 'Search providers',
-                  prefixIcon: Icon(Icons.search, color: PulseColors.mistFaint),
+                  hintStyle: const TextStyle(color: PulseColors.mistFaint),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: PulseColors.mistFaint,
+                  ),
+                  filled: true,
+                  fillColor: PulseColors.inkPanel.withValues(alpha: 0.9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: const BorderSide(color: PulseColors.hairline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: const BorderSide(color: PulseColors.hairline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: BorderSide(
+                      color: PulseColors.amberBright.withValues(alpha: 0.6),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             SizedBox(
-              height: 42,
+              height: 44,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
@@ -74,36 +89,18 @@ class _ProvidersScreenState extends ConsumerState<ProvidersScreen> {
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final code = langs[index];
-                  final selected = _language == code;
-                  final label = code?.toUpperCase() ?? 'ALL';
-                  return ChoiceChip(
-                    label: Text(label),
-                    selected: selected,
-                    onSelected: (_) => setState(() => _language = code),
-                    selectedColor: PulseColors.amber,
-                    backgroundColor: PulseColors.inkPanel,
-                    labelStyle: TextStyle(
-                      color: selected
-                          ? const Color(0xFF1A1200)
-                          : PulseColors.mist,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                      side: BorderSide(
-                        color: selected
-                            ? Colors.transparent
-                            : PulseColors.hairline,
-                      ),
-                    ),
+                  return PulseChip(
+                    label: code?.toUpperCase() ?? 'ALL',
+                    selected: _language == code,
+                    onTap: () => setState(() => _language = code),
                   );
                 },
               ),
             ),
-            const PulseSectionHeader(title: 'Long-press to favorite'),
+            const SizedBox(height: 8),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
                 itemCount: providers.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
@@ -111,80 +108,77 @@ class _ProvidersScreenState extends ConsumerState<ProvidersScreen> {
                   final selected = p.id == active.id;
                   return PulseGlassPanel(
                     selected: selected,
+                    radius: 24,
                     onTap: () {
                       ref.read(catalogRepositoryProvider).selectProvider(p.id);
                       ref.read(providersRevisionProvider.notifier).state++;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Switched to ${p.name}'),
-                          backgroundColor: PulseColors.inkPanel,
-                        ),
-                      );
                     },
-                    child: GestureDetector(
-                      onLongPress: () {
-                        ref
-                            .read(catalogRepositoryProvider)
-                            .toggleFavorite(p.id);
-                        ref.read(providersRevisionProvider.notifier).state++;
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              gradient: PulseColors.ctaGradient,
-                              borderRadius: BorderRadius.circular(16),
+                    onLongPress: () {
+                      ref.read(catalogRepositoryProvider).toggleFavorite(p.id);
+                      ref.read(providersRevisionProvider.notifier).state++;
+                    },
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: PulseColors.ctaGradient,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            p.name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                              color: PulseColors.onCta,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 20,
                             ),
-                            child: Text(
-                              p.name.substring(0, 1).toUpperCase(),
-                              style: const TextStyle(
-                                color: Color(0xFF1A1200),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      p.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                  ),
+                                  if (p.favorite) ...[
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.star_rounded,
+                                      size: 18,
+                                      color: PulseColors.amberBright,
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          if (p.favorite)
-                            const Padding(
-                              padding: EdgeInsets.only(right: 8),
-                              child: Icon(
-                                Icons.star_rounded,
-                                color: PulseColors.amberBright,
-                                size: 20,
+                              Text(
+                                p.language.toUpperCase(),
+                                style: Theme.of(context).textTheme.bodySmall,
                               ),
-                            ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  p.name,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                Text(
-                                  p.language.toUpperCase(),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
-                          Text(
-                            p.healthy ? 'Online' : 'Offline',
-                            style: TextStyle(
-                              color: p.healthy
-                                  ? PulseColors.amberBright
-                                  : PulseColors.danger,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
+                        ),
+                        Text(
+                          p.healthy ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            color: p.healthy
+                                ? PulseColors.amberBright
+                                : PulseColors.danger,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   );
                 },

@@ -19,74 +19,91 @@ class SearchScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(
-                'BetterStreamflix',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: PulseColors.amberBright,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 6),
+              child: PulseBrandMark(),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('Search', style: Theme.of(context).textTheme.headlineMedium),
+              child: Text(
+                'Search',
+                style: Theme.of(context).textTheme.displayMedium,
+              ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: TextField(
                 onChanged: (v) =>
                     ref.read(searchQueryProvider.notifier).state = v,
                 style: const TextStyle(color: PulseColors.mist),
-                decoration: const InputDecoration(
-                  hintText: 'Movies, series, genres…',
-                  prefixIcon: Icon(Icons.search, color: PulseColors.mistFaint),
+                cursorColor: PulseColors.amberBright,
+                decoration: InputDecoration(
+                  hintText: 'Titles, genres…',
+                  hintStyle: const TextStyle(color: PulseColors.mistFaint),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: PulseColors.mistFaint,
+                  ),
+                  filled: true,
+                  fillColor: PulseColors.inkPanel.withValues(alpha: 0.9),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 16,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: const BorderSide(color: PulseColors.hairline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: const BorderSide(color: PulseColors.hairline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: BorderSide(
+                      color: PulseColors.amberBright.withValues(alpha: 0.6),
+                    ),
+                  ),
                 ),
               ),
             ),
             if (query.isEmpty)
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Text(
                     'Try “Dune”, “Fallout”, or “Drama”.',
-                    style: TextStyle(color: PulseColors.mistFaint),
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
               )
             else if (results.isEmpty)
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Text(
                     'No results',
-                    style: TextStyle(color: PulseColors.mistDim),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
               )
             else
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
                   itemCount: results.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = results[index];
                     return PulseGlassPanel(
+                      radius: 22,
                       onTap: () => context.push('/title/${item.id}'),
                       child: Row(
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(14),
-                            child: Image.network(
-                              item.posterUrl,
-                              width: 56,
-                              height: 80,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 56,
-                                height: 80,
-                                color: PulseColors.inkSoft,
-                              ),
+                            child: SizedBox(
+                              width: 58,
+                              height: 84,
+                              child: PulseNetworkImage(url: item.posterUrl),
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -96,15 +113,20 @@ class SearchScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   item.title,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${item.year} · ${item.kind.name}',
+                                  '${item.year} · ${item.genres.take(2).join(' · ')}',
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: PulseColors.mistFaint,
                           ),
                         ],
                       ),
