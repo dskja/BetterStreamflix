@@ -587,7 +587,8 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val (tvShowId, seasonNumber) = seasonId.split("-")
+        val seasonNumber = seasonId.substringAfterLast('-')
+        val tvShowId = seasonId.substringBeforeLast('-')
 
         val episodes = TMDb3.TvSeasons.details(
             seriesId = tvShowId.toInt(),

@@ -1,12 +1,15 @@
 package com.streamflixreborn.streamflix.extractors
 
-import com.streamflixreborn.streamflix.models.Video
 import androidx.media3.common.MimeTypes
+import com.streamflixreborn.streamflix.models.Video
+import com.streamflixreborn.streamflix.utils.DnsResolver
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 class VideasyExtractor : Extractor() {
     override val name = "Videasy"
@@ -26,27 +29,26 @@ class VideasyExtractor : Extractor() {
         ServerConfig("Vyse", "hdmovie")
     )
 
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .dns(DnsResolver.doh)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
+    }
+
     fun servers(videoType: Video.Type, language: String): List<Video.Server> {
         return when (language) {
             "en" -> {
                 englishServers.mapNotNull { config ->
                     if (config.movieOnly && videoType !is Video.Type.Movie) return@mapNotNull null
-                    
-                    val url = when (videoType) {
-                        is Video.Type.Movie -> {
-                            val year = videoType.releaseDate.split("-").firstOrNull() ?: ""
-                            "$mainUrl/${config.endpoint}/sources-with-title?title=${videoType.title}&mediaType=movie&year=$year&tmdbId=${videoType.id}&imdbId=${videoType.imdbId ?: ""}"
-                        }
-                        is Video.Type.Episode -> {
-                            val year = videoType.tvShow.releaseDate?.split("-")?.firstOrNull() ?: ""
-                            "$mainUrl/${config.endpoint}/sources-with-title?title=${videoType.tvShow.title}&mediaType=tv&year=$year&tmdbId=${videoType.tvShow.id}&imdbId=${videoType.tvShow.imdbId ?: ""}&episodeId=${videoType.number}&seasonId=${videoType.season.number}"
-                        }
-                    }
-                    
+
                     Video.Server(
                         id = "${config.name} (Videasy)",
                         name = "${config.name} (Videasy)",
-                        src = url
+                        src = buildSourcesUrl(config.endpoint, videoType)
                     )
                 }
             }
@@ -55,30 +57,23 @@ class VideasyExtractor : Extractor() {
                     "de" -> "Killjoy (Videasy)"
                     else -> return emptyList()
                 }
-                
+
                 val videasyLang = when (language) {
                     "de" -> "german"
                     else -> return emptyList()
                 }
 
-                val endpoint = "meine"
-
-                val url = when (videoType) {
-                    is Video.Type.Movie -> {
-                        val year = videoType.releaseDate.split("-").firstOrNull() ?: ""
-                        "$mainUrl/$endpoint/sources-with-title?title=${videoType.title}&mediaType=movie&year=$year&tmdbId=${videoType.id}&imdbId=${videoType.imdbId ?: ""}&language=$videasyLang"
-                    }
-                    is Video.Type.Episode -> {
-                        val year = videoType.tvShow.releaseDate?.split("-")?.firstOrNull() ?: ""
-                        "$mainUrl/$endpoint/sources-with-title?title=${videoType.tvShow.title}&mediaType=tv&year=$year&tmdbId=${videoType.tvShow.id}&imdbId=${videoType.tvShow.imdbId ?: ""}&episodeId=${videoType.number}&seasonId=${videoType.season.number}&language=$videasyLang"
-                    }
-                }
-
-                listOf(Video.Server(
-                    id = serverName,
-                    name = serverName,
-                    src = url
-                ))
+                listOf(
+                    Video.Server(
+                        id = serverName,
+                        name = serverName,
+                        src = buildSourcesUrl(
+                            endpoint = "meine",
+                            videoType = videoType,
+                            language = videasyLang,
+                        )
+                    )
+                )
             }
         }
     }
@@ -87,22 +82,59 @@ class VideasyExtractor : Extractor() {
         return servers(videoType, language).firstOrNull()
     }
 
-    override suspend fun extract(link: String): Video {
-        val client = OkHttpClient()
+    private fun buildSourcesUrl(
+        endpoint: String,
+        videoType: Video.Type,
+        language: String? = null,
+    ): String {
+        val builder = mainUrl.toHttpUrl().newBuilder()
+            .addPathSegment(endpoint)
+            .addPathSegment("sources-with-title")
 
-        // 1. Get encrypted data from api.speedracelight.com
+        when (videoType) {
+            is Video.Type.Movie -> {
+                val year = videoType.releaseDate.split("-").firstOrNull().orEmpty()
+                builder
+                    .addQueryParameter("title", videoType.title)
+                    .addQueryParameter("mediaType", "movie")
+                    .addQueryParameter("year", year)
+                    .addQueryParameter("tmdbId", videoType.id)
+                    .addQueryParameter("imdbId", videoType.imdbId.orEmpty())
+            }
+            is Video.Type.Episode -> {
+                val year = videoType.tvShow.releaseDate?.split("-")?.firstOrNull().orEmpty()
+                builder
+                    .addQueryParameter("title", videoType.tvShow.title)
+                    .addQueryParameter("mediaType", "tv")
+                    .addQueryParameter("year", year)
+                    .addQueryParameter("tmdbId", videoType.tvShow.id)
+                    .addQueryParameter("imdbId", videoType.tvShow.imdbId.orEmpty())
+                    .addQueryParameter("episodeId", videoType.number.toString())
+                    .addQueryParameter("seasonId", videoType.season.number.toString())
+            }
+        }
+
+        if (!language.isNullOrBlank()) {
+            builder.addQueryParameter("language", language)
+        }
+
+        return builder.build().toString()
+    }
+
+    override suspend fun extract(link: String): Video {
         val request = Request.Builder()
             .url(link)
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+            )
             .build()
-        
+
         val response = client.newCall(request).execute()
         val encData = response.body?.string() ?: throw Exception("Failed to get encrypted data")
 
-        // 2. Extract tmdbId from link to use it for decryption
-        val tmdbId = link.split("tmdbId=").getOrNull(1)?.split("&")?.getOrNull(0) ?: ""
+        val tmdbId = link.split("tmdbId=").getOrNull(1)?.split("&")?.getOrNull(0).orEmpty()
 
-        // 3. Post to decryption API
         val json = JSONObject()
         json.put("text", encData)
         json.put("id", tmdbId)
@@ -112,17 +144,16 @@ class VideasyExtractor : Extractor() {
             .url("https://enc-dec.app/api/dec-videasy")
             .post(body)
             .build()
-        
+
         val decResponse = client.newCall(decRequest).execute()
         val decBody = decResponse.body?.string() ?: "{}"
         val decJson = JSONObject(decBody)
         val result = decJson.optString("result")
 
-        // 4. Parse result (JSON string containing sources)
         val resultJson = JSONObject(result)
         val sources = resultJson.optJSONArray("sources")
         val subtitles = mutableListOf<Video.Subtitle>()
-        
+
         val tracks = resultJson.optJSONArray("subtitles")
         if (tracks != null) {
             for (i in 0 until tracks.length()) {
@@ -130,22 +161,22 @@ class VideasyExtractor : Extractor() {
                 val label = track.optString("lang", "Unknown")
                 val url = track.optString("url")
                 if (url.isNotEmpty()) {
-                    subtitles.add(Video.Subtitle(
-                        label = label,
-                        file = url
-                    ))
+                    subtitles.add(
+                        Video.Subtitle(
+                            label = label,
+                            file = url
+                        )
+                    )
                 }
             }
         }
 
         if (sources != null && sources.length() > 0) {
             val source = sources.getJSONObject(0)
-            
-            // Find ServerConfig based on endpoint in URL
-            val config = englishServers.find { link.contains(it.endpoint) }
-            
-            // Reyna and Cypher use MP4 instead of HLS
-            val isMp4Server = config?.name == "Reyna" || config?.name == "Cypher"
+
+            val config = englishServers.find { link.contains("/${it.endpoint}/") }
+            // Cypher returns MP4; other Videasy endpoints are HLS.
+            val isMp4Server = config?.name == "Cypher"
             val mimeType = if (isMp4Server) MimeTypes.VIDEO_MP4 else MimeTypes.APPLICATION_M3U8
 
             return Video(
