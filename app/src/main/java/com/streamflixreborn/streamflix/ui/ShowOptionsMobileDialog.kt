@@ -261,6 +261,8 @@ class ShowOptionsMobileDialog(
                 else -> View.GONE
             }
         }
+
+        binding.btnOptionRecentlyWatchedClear.visibility = View.GONE
     }
 
     private fun displayMovie(movie: Movie) {
@@ -276,6 +278,7 @@ class ShowOptionsMobileDialog(
         binding.btnOptionEpisodeOpenTvShow.visibility = View.GONE
 
         val freshMovie = database.movieDao().getById(movie.id) ?: movie
+        val recentlyWatchedAt = freshMovie.lastPlayedAtMillis ?: movie.lastPlayedAtMillis
 
         binding.btnOptionShowFavorite.apply {
             setOnClickListener {
@@ -358,6 +361,19 @@ class ShowOptionsMobileDialog(
                 else -> View.GONE
             }
         }
+
+        binding.btnOptionRecentlyWatchedClear.apply {
+            setOnClickListener {
+                checkProviderAndRun(freshMovie) {
+                    AppDatabase.getInstance(context).movieDao().clearRecentlyWatched(freshMovie.id)
+                    freshMovie.lastPlayedAtMillis = null
+                    movie.lastPlayedAtMillis = null
+                    UserDataNotifier.notifyChanged()
+                }
+                hide()
+            }
+            visibility = if (recentlyWatchedAt != null) View.VISIBLE else View.GONE
+        }
     }
 
     private fun displayTvShow(tvShow: TvShow) {
@@ -373,6 +389,7 @@ class ShowOptionsMobileDialog(
         binding.btnOptionEpisodeOpenTvShow.visibility = View.GONE
 
         val freshTvShow = database.tvShowDao().getById(tvShow.id) ?: tvShow
+        val recentlyWatchedAt = freshTvShow.lastPlayedAtMillis ?: tvShow.lastPlayedAtMillis
 
         binding.btnOptionShowFavorite.apply {
             setOnClickListener {
@@ -405,6 +422,24 @@ class ShowOptionsMobileDialog(
                 context.getString(R.string.option_show_favorite)
             }
             visibility = View.VISIBLE
+        }
+
+        binding.btnOptionShowWatched.visibility = View.GONE
+        binding.btnOptionProgramClear.visibility = View.GONE
+
+        binding.btnOptionRecentlyWatchedClear.apply {
+            setOnClickListener {
+                checkProviderAndRun(freshTvShow) {
+                    AppDatabase.getInstance(context).tvShowDao().clearRecentlyWatched(freshTvShow.id)
+                    freshTvShow.lastPlayedAtMillis = null
+                    freshTvShow.lastPlayedEpisodeId = null
+                    tvShow.lastPlayedAtMillis = null
+                    tvShow.lastPlayedEpisodeId = null
+                    UserDataNotifier.notifyChanged()
+                }
+                hide()
+            }
+            visibility = if (recentlyWatchedAt != null) View.VISIBLE else View.GONE
         }
     }
 }

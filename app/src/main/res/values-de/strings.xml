@@ -61,6 +61,8 @@
     <string name="option_show_mark_all_previous_unwatched">Bis hier als Ungesehen markieren</string>
     <string name="option_show_unwatched">Als Ungesehen markieren</string>
     <string name="option_clear_program">Aus Weiterschauen entfernen</string>
+    <string name="option_clear_recently_watched">Aus Zuletzt gesehen entfernen</string>
+    <string name="option_clear_all_recently_watched">Zuletzt gesehen leeren</string>
     <string name="option_cancel">Abbrechen</string>
 
     <string name="episode_item_info">S%d E%d • %s</string>
