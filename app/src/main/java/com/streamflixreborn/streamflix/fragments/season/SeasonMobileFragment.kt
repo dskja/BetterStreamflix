@@ -36,7 +36,8 @@ class SeasonMobileFragment : Fragment() {
         SeasonViewModel(
             args.seasonId,
             args.tvShowId,
-            database
+            database,
+            args.seasonNumber,
         )
     }
 

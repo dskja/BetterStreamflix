@@ -20,7 +20,9 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.media3.common.C
 import androidx.media3.common.Format
+import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Tracks
@@ -28,6 +30,8 @@ import androidx.navigation.fragment.NavHostFragment
 import com.streamflixreborn.streamflix.R
 import com.streamflixreborn.streamflix.activities.main.MainMobileActivity
 import com.streamflixreborn.streamflix.activities.main.MainTvActivity
+import com.streamflixreborn.streamflix.models.Video
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -304,6 +308,41 @@ fun String.toSubtitleMimeType(): String {
         endsWith("xml", true) || endsWith("ttml", true) -> MimeTypes.APPLICATION_TTML
         else -> MimeTypes.APPLICATION_SUBRIP
     }
+}
+
+/**
+ * Server-provided tracks plus the last locally cached OpenSubtitles/SubDL file for this title.
+ */
+fun subtitleConfigurationsForPlayback(
+    context: Context,
+    videoType: Video.Type,
+    serverSubtitles: List<Video.Subtitle>,
+): List<MediaItem.SubtitleConfiguration> {
+    val contentKey = SubtitleFileCache.contentKey(videoType)
+    val cached = SubtitleFileCache.lastSelection(context, contentKey)
+    val cachedFile = cached?.let { SubtitleFileCache.resolveFile(context, contentKey, it) }
+        ?.takeIf { it.exists() && it.length() > 0L }
+
+    val serverConfigs = serverSubtitles.map { subtitle ->
+        MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
+            .setMimeType(subtitle.file.toSubtitleMimeType())
+            .setLabel(subtitle.label)
+            .setSelectionFlags(
+                if (cachedFile != null) 0 else if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0
+            )
+            .build()
+    }
+
+    if (cached == null || cachedFile == null) {
+        return serverConfigs
+    }
+
+    return serverConfigs + MediaItem.SubtitleConfiguration.Builder(cachedFile.toUri())
+        .setMimeType(cached.fileName.toSubtitleMimeType())
+        .setLabel(cached.label)
+        .setLanguage(cached.language)
+        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+        .build()
 }
 
 inline fun <reified T : Enum<T>> T.next(): T {

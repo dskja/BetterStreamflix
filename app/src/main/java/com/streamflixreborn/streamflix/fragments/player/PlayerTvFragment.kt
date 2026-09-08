@@ -82,6 +82,7 @@ import com.streamflixreborn.streamflix.utils.MediaServer
 import com.streamflixreborn.streamflix.utils.PlayerGestureHelper
 import com.streamflixreborn.streamflix.utils.UserPreferences
 import com.streamflixreborn.streamflix.utils.UserDataCache
+import com.streamflixreborn.streamflix.utils.ProviderAudioLanguage
 import com.streamflixreborn.streamflix.utils.dp
 import com.streamflixreborn.streamflix.utils.getFileName
 import com.streamflixreborn.streamflix.utils.next
@@ -89,6 +90,7 @@ import com.streamflixreborn.streamflix.utils.plus
 import com.streamflixreborn.streamflix.utils.setMediaServerId
 import com.streamflixreborn.streamflix.utils.setMediaServers
 import com.streamflixreborn.streamflix.utils.toSubtitleMimeType
+import com.streamflixreborn.streamflix.utils.subtitleConfigurationsForPlayback
 import com.streamflixreborn.streamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -103,6 +105,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
+import com.streamflixreborn.streamflix.utils.BypassHttpLandingServer
 import com.streamflixreborn.streamflix.utils.QrUtils
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
@@ -158,6 +161,7 @@ class PlayerTvFragment : Fragment() {
     private var activeBypassSession: BypassSession? = null
     private var qrDialog: androidx.appcompat.app.AlertDialog? = null
     private var wsServer: BypassWebSocketServer? = null
+    private var httpLandingServer: BypassHttpLandingServer? = null
     private var nextEpisodePrefetchTargetId: String? = null
     private var nextEpisodePrefetchJob: Job? = null
     private var nextEpisodeOverlayDismissed = false
@@ -234,6 +238,16 @@ class PlayerTvFragment : Fragment() {
             isSetupDone = true
         }
 
+        // Resume after transient pause/focus glitches (common on Fire TV / TV boxes).
+        // Mobile already does this; TV previously paused in onPause and never resumed.
+        if (::player.isInitialized && !player.isPlaying && player.playbackState != Player.STATE_IDLE) {
+            try {
+                player.play()
+            } catch (e: Exception) {
+                Log.w("Player", "play() on resume ignored", e)
+            }
+        }
+
         try {
             val filter = IntentFilter("ACTION_PLAYER_CHOSEN_TV")
             ContextCompat.registerReceiver(
@@ -283,12 +297,21 @@ class PlayerTvFragment : Fragment() {
                         val sToServer = servers.firstOrNull {
                             isSerienStreamBypassUrl(it.id)
                         }
+                        if (sToServer != null && bypassDone) {
+                            // Cookies did not clear Cloudflare for this title — allow another QR pass.
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.player_bypass_retry_needed),
+                                Toast.LENGTH_LONG
+                            ).show()
+                            bypassDone = false
+                        }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
 
                             val bypassUrl = buildSerienStreamBypassUrl()
                             if (bypassUrl.isNullOrBlank()) {
-                                waitingForBypass = false
+                                clearBypassSession(resetBypassDone = true)
                                 Toast.makeText(
                                     requireContext(),
                                     "Unable to prepare TV bypass page.",
@@ -306,7 +329,7 @@ class PlayerTvFragment : Fragment() {
 
                             val actualPort = startWebSocketServer()
                             if (actualPort == -1) {
-                                clearBypassSession()
+                                clearBypassSession(resetBypassDone = true)
                                 Toast.makeText(
                                     requireContext(),
                                     "Unable to start TV bypass. Please try again.",
@@ -316,9 +339,35 @@ class PlayerTvFragment : Fragment() {
                             }
 
                             val wsUrl = BypassWebSocketEndpointHelper.getAdvertisedWsUrl(actualPort)
-                                ?: return@collect
+                            if (wsUrl.isNullOrBlank()) {
+                                clearBypassSession(resetBypassDone = true)
+                                Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.player_bypass_no_lan_ip),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                return@collect
+                            }
 
-                            val qrContent = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
+                            val deepLink =
+                                "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
+                            val httpPort = startHttpLandingServer(deepLink)
+                            val qrContent = if (httpPort != -1) {
+                                val host = BypassWebSocketEndpointHelper.getLocalIpv4Address()
+                                    ?: UserPreferences.bypassWsAdvertisedHost
+                                        .trim()
+                                        .removePrefix("ws://")
+                                        .removePrefix("wss://")
+                                        .substringBefore(':')
+                                        .ifBlank { null }
+                                if (host != null) {
+                                    "http://$host:$httpPort/resolve?token=${Uri.encode(session.token)}&ws=${Uri.encode(wsUrl)}"
+                                } else {
+                                    deepLink
+                                }
+                            } else {
+                                deepLink
+                            }
 
                             wsServer?.registerSession(
                                 session.token,
@@ -327,8 +376,8 @@ class PlayerTvFragment : Fragment() {
                                     .toString()
                             )
                             requireActivity().runOnUiThread {
-                                showQrDialog(qrContent)
-                                Log.d("Bypass", "Advertised WS URL: $wsUrl")
+                                showQrDialog(qrContent, deepLink, wsUrl)
+                                Log.d("Bypass", "Advertised WS URL: $wsUrl QR: $qrContent")
                             }
 
                             return@collect
@@ -388,16 +437,20 @@ class PlayerTvFragment : Fragment() {
                         }
 
                         is PlayerViewModel.State.LoadingVideo -> {
-                            player.setMediaItem(
-                                MediaItem.Builder()
-                                    .setUri("".toUri())
-                                    .setMediaMetadata(
-                                        MediaMetadata.Builder()
-                                            .setMediaServerId(state.server.id)
-                                            .build()
-                                    )
-                                    .build()
-                            )
+                            // Avoid clearing a playing stream to an empty URI when switching
+                            // servers mid-playback (causes a brief glitch then stalled pause).
+                            if (!::player.isInitialized || !player.isPlaying) {
+                                player.setMediaItem(
+                                    MediaItem.Builder()
+                                        .setUri("".toUri())
+                                        .setMediaMetadata(
+                                            MediaMetadata.Builder()
+                                                .setMediaServerId(state.server.id)
+                                                .build()
+                                        )
+                                        .build()
+                                )
+                            }
                         }
 
                         is PlayerViewModel.State.SuccessLoadingVideo -> {
@@ -602,7 +655,15 @@ class PlayerTvFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        // Do not pause ExoPlayer here. Brief onPause callbacks (overlays, WebView,
+        // system focus flashes) are common on Android TV / Fire TV and were pausing
+        // playback permanently because onResume never called play().
+        stopProgressHandler()
+        hideNextEpisodeOverlay()
+    }
 
+    override fun onStop() {
+        super.onStop()
         if (::player.isInitialized) {
             try {
                 player.pause()
@@ -610,9 +671,6 @@ class PlayerTvFragment : Fragment() {
                 Log.w("Player", "pause() ignored, player already released")
             }
         }
-
-        stopProgressHandler()
-        hideNextEpisodeOverlay()
     }
 
         override fun onDestroyView() {
@@ -1064,13 +1122,13 @@ class PlayerTvFragment : Fragment() {
                 MediaItem.Builder()
                     .setUri(video.source.toUri())
                     .setMimeType(video.type)
-                    .setSubtitleConfigurations(video.subtitles.map { subtitle ->
-                        MediaItem.SubtitleConfiguration.Builder(subtitle.file.toUri())
-                            .setMimeType(subtitle.file.toSubtitleMimeType())
-                            .setLabel(subtitle.label)
-                            .setSelectionFlags(if (subtitle.default) C.SELECTION_FLAG_DEFAULT else 0)
-                            .build()
-                    })
+                    .setSubtitleConfigurations(
+                        subtitleConfigurationsForPlayback(
+                            context = requireContext(),
+                            videoType = args.videoType,
+                            serverSubtitles = video.subtitles,
+                        )
+                    )
                     .setMediaMetadata(
                         MediaMetadata.Builder()
                             .setMediaServerId(server.id)
@@ -1310,10 +1368,22 @@ class PlayerTvFragment : Fragment() {
                     super.onPlayerError(error)
                     Log.e("PlayerTvFragment", "onPlayerError: ", error)
 
+                    // Mid-playback fallback clears the media URI (LoadingVideo → "") which
+                    // looks like a glitch then pause. Only auto-try the next server before
+                    // playback has meaningfully started; otherwise surface the error.
+                    if (::player.isInitialized && player.hasStarted()) {
+                        val message = error.message ?: error.errorCodeName
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                        return
+                    }
+
                     val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
                     if (nextServer != null) {
                         Log.i("PlayerTvFragment", "Playback failed, trying next server: ${nextServer.name}")
                         viewModel.getVideo(nextServer)
+                    } else {
+                        val message = error.message ?: error.errorCodeName
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                     }
                 }
             })
@@ -1692,6 +1762,8 @@ class PlayerTvFragment : Fragment() {
         private var currentSoftwareDecoder = false
 
         private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
+            SubtitleOffset.reset()
+
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
@@ -1751,19 +1823,22 @@ class PlayerTvFragment : Fragment() {
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
             player = buildPlayer(extraBuffering).also { player ->
+                    // handleAudioFocus=false: Fire TV / cheap boxes often steal audio focus
+                    // briefly (system sounds, Alexa, HDMI-CEC), and Media3 would pause without
+                    // auto-resume — matching the reported "automatic pause" after a glitch.
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
                             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                             .build(),
-                        true,
+                        /* handleAudioFocus= */ false,
                     )
 
                     val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                    if (lang == "es") {
+                    ProviderAudioLanguage.preferredAudioLanguages(lang)?.let { codes ->
                         player.trackSelectionParameters =
                             player.trackSelectionParameters.buildUpon()
-                                .setPreferredAudioLanguage("spa")
+                                .setPreferredAudioLanguages(*codes)
                                 .build()
                     }
 
@@ -1792,15 +1867,15 @@ class PlayerTvFragment : Fragment() {
             }
         }
 
-    private fun showQrDialog(content: String) {
+    private fun showQrDialog(qrContent: String, deepLink: String, wsUrl: String) {
         val displayMetrics: DisplayMetrics = resources.displayMetrics
         val density = displayMetrics.density
-        val dialogWidth = (displayMetrics.widthPixels * 0.72f).toInt()
+        val dialogWidth = (displayMetrics.widthPixels * 0.78f).toInt()
         val qrSize = minOf(
-            (dialogWidth - (density * 64).toInt()).coerceAtLeast((density * 240).toInt()),
-            (displayMetrics.heightPixels * 0.45f).toInt().coerceAtLeast((density * 240).toInt()),
+            (dialogWidth - (density * 64).toInt()).coerceAtLeast((density * 220).toInt()),
+            (displayMetrics.heightPixels * 0.38f).toInt().coerceAtLeast((density * 220).toInt()),
         )
-        val bitmap = QrUtils.generate(content, qrSize) ?: return
+        val bitmap = QrUtils.generate(qrContent, qrSize) ?: return
 
         val imageView = ImageView(requireContext()).apply {
             setImageBitmap(bitmap)
@@ -1814,13 +1889,24 @@ class PlayerTvFragment : Fragment() {
 
         val instructionsView = TextView(requireContext()).apply {
             text = buildString {
-                append("Solve captcha on phone")
+                append(getString(R.string.player_bypass_qr_instructions))
+                append("\n\n")
+                append(getString(R.string.player_bypass_qr_endpoint, wsUrl))
                 if (BypassWebSocketEndpointHelper.isProbablyEmulator()) {
-                    append("\n\nEmulator note: set 'Bypass advertised host' in TV settings to your PC LAN IP and forward TCP 8081 to the emulator.")
+                    append("\n\n")
+                    append(getString(R.string.player_bypass_qr_emulator_note))
                 }
             }
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(Color.WHITE)
+        }
+
+        val deepLinkView = TextView(requireContext()).apply {
+            text = deepLink
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            setTextColor(Color.parseColor("#BBBBBB"))
+            setPadding(0, (density * 8).toInt(), 0, 0)
+            setTextIsSelectable(true)
         }
 
         val container = LinearLayout(requireContext()).apply {
@@ -1844,6 +1930,13 @@ class PlayerTvFragment : Fragment() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             )
         )
+        container.addView(
+            deepLinkView,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        )
 
         val scrollView = ScrollView(requireContext()).apply {
             isFillViewport = true
@@ -1851,12 +1944,15 @@ class PlayerTvFragment : Fragment() {
         }
 
         qrDialog = androidx.appcompat.app.AlertDialog.Builder(requireActivity())
-            .setTitle("Scan with phone")
+            .setTitle(R.string.player_bypass_qr_title)
             .setView(scrollView)
             .setCancelable(true)
+            .setNegativeButton(R.string.bypass_action_cancel) { _, _ ->
+                clearBypassSession(dismissDialog = false, resetBypassDone = true)
+            }
             .setOnCancelListener {
                 Log.d("Bypass", "QR dialog cancelled")
-                clearBypassSession(dismissDialog = false)
+                clearBypassSession(dismissDialog = false, resetBypassDone = true)
             }
             .create()
 
@@ -1865,9 +1961,7 @@ class PlayerTvFragment : Fragment() {
     }
 
     private fun isSerienStreamBypassUrl(url: String): Boolean {
-        return runCatching {
-            Uri.parse(url).host.equals("serienstream.to", ignoreCase = true)
-        }.getOrDefault(false)
+        return SerienStreamProvider.isSerienStreamHost(url)
     }
 
     private fun buildSerienStreamBypassUrl(): String? {
@@ -1912,11 +2006,39 @@ class PlayerTvFragment : Fragment() {
         }
         return -1
     }
+
+    private fun startHttpLandingServer(deepLink: String): Int {
+        stopHttpLandingServer()
+        val ports = listOf(8085, 8086, 8090, 0)
+        for (port in ports) {
+            try {
+                val server = BypassHttpLandingServer(port)
+                server.setDeepLink(deepLink)
+                server.start()
+                httpLandingServer = server
+                val actualPort = server.listeningPort
+                Log.d("BypassHTTP", "Landing server started on port $actualPort")
+                return actualPort
+            } catch (e: Exception) {
+                Log.e("BypassHTTP", "Failed to start landing server on port $port", e)
+                stopHttpLandingServer()
+            }
+        }
+        return -1
+    }
+
     private fun stopWebSocketServer() {
         try {
             wsServer?.stop()
         } catch (_: Exception) {}
         wsServer = null
+    }
+
+    private fun stopHttpLandingServer() {
+        try {
+            httpLandingServer?.stop()
+        } catch (_: Exception) {}
+        httpLandingServer = null
     }
 
     private fun clearBypassSession(
@@ -1936,6 +2058,7 @@ class PlayerTvFragment : Fragment() {
         }
         qrDialog = null
         stopWebSocketServer()
+        stopHttpLandingServer()
     }
 
 
@@ -1960,7 +2083,7 @@ class PlayerTvFragment : Fragment() {
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                         .build(),
-                    true,
+                    /* handleAudioFocus= */ false,
                 )
             }
 

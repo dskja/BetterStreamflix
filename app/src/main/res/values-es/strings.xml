@@ -71,6 +71,8 @@
     <string name="option_show_unwatched">Marcar como no visto</string>
     <string name="option_clear_program">Quitar de continuar viendo</string>
     <string name="option_clear_recently_watched">Quitar de Vistos recientemente</string>
+    <string name="option_clear_recently_watched">Quitar de Vistos recientemente</string>
+    <string name="option_clear_all_recently_watched">Vaciar Vistos recientemente</string>
     <string name="option_cancel">Cancelar</string>
 
     <string name="episode_item_info">T%d E%d • %s</string>
@@ -261,7 +263,7 @@
     <string name="settings_category_network_title">Conexión y servicios</string>
     <string name="settings_screen_network_summary">DNS, bypass para TV y claves de servicios de subtitulos</string>
     <string name="settings_scan_resolver_qr_title">Escanear QR de bypass TV</string>
-    <string name="settings_scan_resolver_qr_summary">Abre la cámara y escanea el código QR mostrado en la TV</string>
+    <string name="settings_scan_resolver_qr_summary">Usa el escáner de StreamFlix para el QR de la TV — la cámara del sistema a menudo abre Google en lugar de la app</string>
     <string name="settings_scan_resolver_invalid_qr">Este código QR no es un enlace de bypass de StreamFlix.</string>
     <string name="settings_scan_resolver_failed">No se pudo iniciar el escáner QR en este dispositivo.</string>
     <string name="settings_scan_resolver_camera_permission_denied">Se necesita permiso de la cámara para escanear el codigo QR.</string>
@@ -472,6 +474,12 @@
     <string name="settings_enable_tmdb_title">Activar TMDB</string>
     <string name="settings_enable_tmdb_enabled">TMDB activado</string>
     <string name="settings_enable_tmdb_disabled">TMDB desactivado</string>
+    <string name="settings_category_library">Biblioteca</string>
+    <string name="settings_library_scope_title">Favoritos y seguir viendo</string>
+    <string name="settings_library_scope_summary">Elige si las listas son por proveedor o muestran elementos de todos</string>
+    <string name="settings_library_scope_per_provider">Por proveedor</string>
+    <string name="settings_library_scope_cross_provider">En todos los proveedores</string>
+    <string name="settings_library_scope_updated">Alcance de la biblioteca actualizado</string>
     <string name="settings_category_parental_control">Control parental</string>
     <string name="settings_parental_pin_title">PIN parental</string>
     <string name="settings_parental_pin_summary">Configura un PIN para proteger los cambios del control parental</string>

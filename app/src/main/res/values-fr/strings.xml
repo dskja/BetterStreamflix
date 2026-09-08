@@ -60,7 +60,8 @@
     <string name="option_show_mark_all_previous_unwatched">Marquer comme non vu jusqu\'ici</string>
     <string name="option_show_unwatched">Marquer comme non vu</string>
     <string name="option_clear_program">Retirer de Continuer à regarder</string>
-    <string name="option_clear_recently_watched">Retirer de Regardés récemment</string>
+    <string name="option_clear_recently_watched">Retirer de Vu récemment</string>
+    <string name="option_clear_all_recently_watched">Vider Vu récemment</string>
     <string name="option_cancel">Annuler</string>
 
     <string name="episode_item_info">S%d E%d • %s</string>
@@ -412,13 +413,19 @@
     <string name="settings_enable_tmdb_title">Activer TMDb</string>
     <string name="settings_enable_tmdb_enabled">TMDb activé</string>
     <string name="settings_enable_tmdb_disabled">TMDb désactivé</string>
+    <string name="settings_category_library">Bibliothèque</string>
+    <string name="settings_library_scope_title">Favoris et lecture en cours</string>
+    <string name="settings_library_scope_summary">Afficher les listes par fournisseur ou pour tous les fournisseurs</string>
+    <string name="settings_library_scope_per_provider">Par fournisseur</string>
+    <string name="settings_library_scope_cross_provider">Tous les fournisseurs</string>
+    <string name="settings_library_scope_updated">Portée de la bibliothèque mise à jour</string>
 
     <string name="settings_force_extra_buffer_title">Mise en cache</string>
     <string name="settings_force_extra_buffer_summary">Activer la mise en cache supplémentaire par défaut</string>
     <string name="settings_category_poseidon">Paramètres Poseidonhd2</string>
     <string name="settings_category_poseidon_domain">Nom de domaine Poseidonhd2</string>
     <string name="settings_scan_resolver_qr_title">Scanner le QR de contournement TV</string>
-    <string name="settings_scan_resolver_qr_summary">Ouvrir la caméra et scanner le QR affiché sur la TV</string>
+    <string name="settings_scan_resolver_qr_summary">Utilise le scanner StreamFlix pour le QR affiché sur la TV — l\'appareil photo système ouvre souvent Google au lieu de l\'app</string>
     <string name="settings_scan_resolver_invalid_qr">Ce code QR n\'est pas un lien de contournement StreamFlix.</string>
     <string name="settings_scan_resolver_failed">Impossible de démarrer le scanner QR sur cet appareil.</string>
     <string name="settings_category_provider_url_manual">Saisir manuellement</string>

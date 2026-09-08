@@ -45,14 +45,15 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override val portalUrl: String = defaultPortalUrl
         get() {
             val cachePortalURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_PORTAL_URL)
-            return cachePortalURL.ifEmpty { field }
+            return normalizeHttpUrl(cachePortalURL) ?: field
         }
 
-    override val defaultBaseUrl: String = "https://fs16.lol/"
+    // Ephemeral mirror; onChangeUrl refreshes this from the portal when possible.
+    override val defaultBaseUrl: String = "https://fs23.lol/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
-            return cacheURL.ifEmpty { field }
+            return normalizeHttpUrl(cacheURL) ?: field
         }
 
     override val logo: String
@@ -828,36 +829,81 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
      * Initializes the service with the current domain URL.
      * This function is necessary because the provider's domain frequently changes.
      * We fetch the latest URL from a dedicated website that tracks these changes.
+     *
+     * The portal has shipped layouts where the mirror link was `href="#"` / `href="#/"`
+     * and the real URL lived only in JS (`FS_MIRROR`). Caching that hash broke Retrofit
+     * with: Expected URL scheme 'http' or 'https' but no scheme was found for #/
      */
     override suspend fun onChangeUrl(forceRefresh: Boolean): String {
         changeUrlMutex.withLock {
-            if (forceRefresh || UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_AUTOUPDATE) != "false") {
+            if (forceRefresh || UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_AUTOUPDATE) != "false") {
                 val addressService = Service.buildAddressFetcher()
                 try {
                     val document = addressService.getHome()
-
-                    val newUrl = document.select("div.container > div.url-card")
-                        .selectFirst("a")
-                        ?.attr("href")
-                        ?.trim()
+                    val newUrl = extractMirrorUrl(document)
                     if (!newUrl.isNullOrEmpty()) {
-                        val newUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-                        UserPreferences.setProviderCache(this,UserPreferences.PROVIDER_URL, newUrl)
+                        val finalUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+                        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, finalUrl)
                         UserPreferences.setProviderCache(
                             this,
                             UserPreferences.PROVIDER_LOGO,
-                            newUrl + "favicon-96x96.png"
+                            finalUrl + "favicon-96x96.png"
                         )
                     }
-                } catch (e: Exception) {
-                    // In case of failure, we'll use the default URL
-                    // No need to throw as we already have a fallback URL
+                } catch (_: Exception) {
+                    // Keep last known good / default URL
                 }
             }
+
+            // Drop a previously cached hash / junk URL so Retrofit can start.
+            val cached = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
+            if (cached.isNotEmpty() && normalizeHttpUrl(cached) == null) {
+                UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, defaultBaseUrl)
+                UserPreferences.setProviderCache(
+                    this,
+                    UserPreferences.PROVIDER_LOGO,
+                    defaultBaseUrl + "favicon-96x96.png"
+                )
+            }
+
             service = Service.build(baseUrl)
             serviceInitialized = true
         }
         return baseUrl
+    }
+
+    /**
+     * Resolve the current FrenchStream mirror from the portal page.
+     * Supports the classic url-card layout and the JS `FS_MIRROR` / `#adr` layout.
+     */
+    internal fun extractMirrorUrl(document: Document): String? {
+        Regex("""FS_MIRROR\s*=\s*["']([^"']+)["']""")
+            .find(document.html())
+            ?.groupValues?.getOrNull(1)
+            ?.trim()
+            ?.let { normalizeHttpUrl(it) }
+            ?.let { return it }
+
+        document.select("div.container > div.url-card a[href], a#mainUrl[href], a.url-display[href]")
+            .mapNotNull { normalizeHttpUrl(it.attr("href").trim()) }
+            .firstOrNull()
+            ?.let { return it }
+
+        document.selectFirst("a#adr, .adr")
+            ?.text()
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it.contains('.') && !it.contains(' ') && !it.contains('/') }
+            ?.let { return normalizeHttpUrl("https://$it") }
+
+        return null
+    }
+
+    private fun normalizeHttpUrl(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        val trimmed = raw.trim()
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) return null
+        return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
     }
 
     private suspend fun initializeService() {
@@ -890,18 +936,21 @@ object FrenchStreamProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             fun buildAddressFetcher(): Service {
                 val addressRetrofit = Retrofit.Builder()
                     .baseUrl(portalUrl)
-
                     .addConverterFactory(JsoupConverterFactory.create())
                     .client(client)
-
                     .build()
 
                 return addressRetrofit.create(Service::class.java)
             }
 
             fun build(baseUrl: String): Service {
+                val safeBaseUrl = when {
+                    baseUrl.startsWith("http://") || baseUrl.startsWith("https://") ->
+                        if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+                    else -> defaultBaseUrl
+                }
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(baseUrl)
+                    .baseUrl(safeBaseUrl)
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)

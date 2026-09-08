@@ -156,7 +156,7 @@ class TvShowViewHolder(
 
     private fun checkProviderAndRun(action: () -> Unit) {
         if (!tvShow.providerName.isNullOrBlank() && tvShow.providerName != UserPreferences.currentProvider?.name) {
-            Provider.providers.keys.find { it.name == tvShow.providerName }?.let {
+            Provider.findByName(tvShow.providerName!!)?.let {
                 UserPreferences.currentProvider = it
             }
         }

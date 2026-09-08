@@ -3,21 +3,21 @@ package com.streamflixreborn.streamflix.extractors
 import android.util.Base64
 import android.util.Log
 import androidx.media3.common.MimeTypes
-import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.streamflixreborn.streamflix.models.Video
 import com.streamflixreborn.streamflix.utils.DnsResolver
+import com.streamflixreborn.streamflix.utils.ProviderAudioLanguage
+import com.streamflixreborn.streamflix.utils.UserPreferences
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.jsoup.nodes.Document
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Url
-import okhttp3.Request
-import com.streamflixreborn.streamflix.utils.UserPreferences
 import java.util.concurrent.TimeUnit
 
 class VixSrcExtractor : Extractor() {
@@ -38,7 +38,9 @@ class VixSrcExtractor : Extractor() {
 
     override suspend fun extract(link: String): Video {
         val service = VixSrcExtractorService.build(mainUrl)
-        val providerLang = UserPreferences.currentProvider?.language ?: "en"
+        val providerLang = ProviderAudioLanguage.normalizeTmdbLanguage(
+            UserPreferences.currentProvider?.language ?: "en"
+        )
         
         var apiPath = link.substringAfter(mainUrl).trimStart('/')
         if (!apiPath.startsWith("api/")) {
@@ -156,11 +158,7 @@ class VixSrcExtractor : Extractor() {
                             patchedLine = patchedLine.replace(Regex("DEFAULT=YES", RegexOption.IGNORE_CASE), "DEFAULT=NO")
                                                      .replace(Regex("AUTOSELECT=YES", RegexOption.IGNORE_CASE), "AUTOSELECT=NO")
                             
-                            val isTargetAudio = patchedLine.contains("LANGUAGE=\"$langCode\"", ignoreCase = true) || 
-                                                patchedLine.contains("NAME=\"$langCode\"", ignoreCase = true) ||
-                                                (langCode == "it" && (patchedLine.contains("Italian", true) || patchedLine.contains("ita", true))) ||
-                                                (langCode == "es" && (patchedLine.contains("Spanish", true) || patchedLine.contains("Español", true) || patchedLine.contains("Castellano", true) || patchedLine.contains("spa", true))) ||
-                                                (langCode == "en" && (patchedLine.contains("English", true) || patchedLine.contains("eng", true)))
+                            val isTargetAudio = isMatchingAudioTrack(patchedLine, langCode)
                             
                             if (isTargetAudio) {
                                 patchedLine = patchedLine.replace("DEFAULT=NO", "DEFAULT=YES")
@@ -178,11 +176,7 @@ class VixSrcExtractor : Extractor() {
                             
                             // LOGICA: Se il nome o la lingua contiene "forced" E la lingua è quella giusta, ATTIVA.
                             val isForced = trackName.contains("forced", ignoreCase = true) || trackLang.contains("forced", ignoreCase = true) || patchedLine.contains("FORCED=YES", ignoreCase = true)
-                            val isRightLanguage = trackLang.contains(langCode, ignoreCase = true) || 
-                                                  trackName.contains(langCode, ignoreCase = true) ||
-                                                  (langCode == "es" && (trackName.contains("Spanish", true) || trackName.contains("Español", true) || trackName.contains("Castellano", true) || trackLang.contains("spa", true))) ||
-                                                  (langCode == "it" && (trackName.contains("Italian", true) || trackLang.contains("ita", true))) ||
-                                                  (langCode == "en" && (trackName.contains("English", true) || trackLang.contains("eng", true)))
+                            val isRightLanguage = isMatchingSubtitleTrack(trackName, trackLang, langCode)
 
                             if (isForced && isRightLanguage) {
                                 patchedLine = patchedLine.replace("DEFAULT=NO", "DEFAULT=YES")
@@ -210,6 +204,72 @@ class VixSrcExtractor : Extractor() {
             type = MimeTypes.APPLICATION_M3U8,
             headers = finalHeaders
         )
+    }
+
+    private fun mediaAttribute(line: String, key: String): String {
+        return Regex("""$key="([^"]*)"""", RegexOption.IGNORE_CASE)
+            .find(line)
+            ?.groupValues
+            ?.get(1)
+            .orEmpty()
+    }
+
+    private fun isMatchingAudioTrack(line: String, langCode: String): Boolean {
+        val language = mediaAttribute(line, "LANGUAGE").substringBefore("-").lowercase()
+        val name = mediaAttribute(line, "NAME").lowercase()
+        val code = langCode.lowercase().substringBefore("-")
+
+        return when (code) {
+            "en" -> language in setOf("en", "eng") ||
+                name.contains("english") ||
+                name == "en" ||
+                name == "eng"
+            "fr" -> language in setOf("fr", "fra", "fre") ||
+                name.contains("french") ||
+                name.contains("français") ||
+                name.contains("francais") ||
+                name == "vf" ||
+                name.startsWith("vf ")
+            "es" -> language in setOf("es", "spa") ||
+                name.contains("spanish") ||
+                name.contains("español") ||
+                name.contains("espanol") ||
+                name.contains("castellano") ||
+                name.contains("latino")
+            "it" -> language in setOf("it", "ita") ||
+                name.contains("italian") ||
+                name.contains("italiano")
+            "de" -> language in setOf("de", "deu", "ger") ||
+                name.contains("german") ||
+                name.contains("deutsch")
+            else -> language == code || name.equals(code, ignoreCase = true)
+        }
+    }
+
+    private fun isMatchingSubtitleTrack(trackName: String, trackLang: String, langCode: String): Boolean {
+        val language = trackLang.substringBefore("-").lowercase()
+        val name = trackName.lowercase()
+        val code = langCode.lowercase().substringBefore("-")
+
+        return when (code) {
+            "en" -> language in setOf("en", "eng") || name.contains("english")
+            "fr" -> language in setOf("fr", "fra", "fre") ||
+                name.contains("french") ||
+                name.contains("français") ||
+                name.contains("francais")
+            "es" -> language in setOf("es", "spa") ||
+                name.contains("spanish") ||
+                name.contains("español") ||
+                name.contains("espanol") ||
+                name.contains("castellano")
+            "it" -> language in setOf("it", "ita") ||
+                name.contains("italian") ||
+                name.contains("italiano")
+            "de" -> language in setOf("de", "deu", "ger") ||
+                name.contains("german") ||
+                name.contains("deutsch")
+            else -> language.contains(code) || name.contains(code)
+        }
     }
 
     private interface VixSrcExtractorService {

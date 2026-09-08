@@ -25,8 +25,16 @@
         </PreferenceCategory>
 
         <PreferenceCategory
-            android:key="pc_home_library_settings"
-            android:title="@string/settings_category_home_library">
+            android:key="pc_library_settings"
+            android:title="@string/settings_category_library">
+
+            <ListPreference
+                android:key="LIBRARY_SCOPE"
+                android:title="@string/settings_library_scope_title"
+                android:summary="@string/settings_library_scope_summary"
+                android:entries="@array/library_scope_entries"
+                android:entryValues="@array/library_scope_values"
+                android:defaultValue="per_provider" />
 
             <SwitchPreferenceCompat
                 android:key="SHOW_CONTINUE_WATCHING"
