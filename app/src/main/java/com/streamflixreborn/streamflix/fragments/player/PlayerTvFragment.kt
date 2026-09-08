@@ -103,6 +103,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.streamflixreborn.streamflix.utils.BypassWebSocketServer
 import com.streamflixreborn.streamflix.utils.BypassWebSocketEndpointHelper
+import com.streamflixreborn.streamflix.utils.DeviceCapabilities
 import com.streamflixreborn.streamflix.utils.QrUtils
 import com.streamflixreborn.streamflix.utils.UserDataCache.toEpisode
 import com.streamflixreborn.streamflix.utils.UserDataCache.toMovie
@@ -232,6 +233,16 @@ class PlayerTvFragment : Fragment() {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
             isSetupDone = true
+        }
+
+        // Resume after transient pause/focus glitches (common on Fire TV / TV boxes).
+        // Mobile already does this; TV previously paused in onPause and never resumed.
+        if (::player.isInitialized && !player.isPlaying && player.playbackState != Player.STATE_IDLE) {
+            try {
+                player.play()
+            } catch (e: Exception) {
+                Log.w("Player", "play() on resume ignored", e)
+            }
         }
 
         try {
@@ -388,16 +399,21 @@ class PlayerTvFragment : Fragment() {
                         }
 
                         is PlayerViewModel.State.LoadingVideo -> {
-                            player.setMediaItem(
-                                MediaItem.Builder()
-                                    .setUri("".toUri())
-                                    .setMediaMetadata(
-                                        MediaMetadata.Builder()
-                                            .setMediaServerId(state.server.id)
-                                            .build()
-                                    )
-                                    .build()
-                            )
+                            // Avoid clearing a playing stream to an empty URI when switching
+                            // servers mid-playback (causes silence then a jump back to the menu
+                            // when subsequent servers also fail — especially on Fire TV Stick).
+                            if (!::player.isInitialized || !player.isPlaying) {
+                                player.setMediaItem(
+                                    MediaItem.Builder()
+                                        .setUri("".toUri())
+                                        .setMediaMetadata(
+                                            MediaMetadata.Builder()
+                                                .setMediaServerId(state.server.id)
+                                                .build()
+                                        )
+                                        .build()
+                                )
+                            }
                         }
 
                         is PlayerViewModel.State.SuccessLoadingVideo -> {
@@ -602,7 +618,15 @@ class PlayerTvFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        // Do not pause ExoPlayer here. Brief onPause callbacks (overlays, WebView,
+        // system focus flashes) are common on Android TV / Fire TV and were pausing
+        // playback permanently because onResume never called play().
+        stopProgressHandler()
+        hideNextEpisodeOverlay()
+    }
 
+    override fun onStop() {
+        super.onStop()
         if (::player.isInitialized) {
             try {
                 player.pause()
@@ -610,9 +634,6 @@ class PlayerTvFragment : Fragment() {
                 Log.w("Player", "pause() ignored, player already released")
             }
         }
-
-        stopProgressHandler()
-        hideNextEpisodeOverlay()
     }
 
         override fun onDestroyView() {
@@ -1310,10 +1331,22 @@ class PlayerTvFragment : Fragment() {
                     super.onPlayerError(error)
                     Log.e("PlayerTvFragment", "onPlayerError: ", error)
 
+                    // Mid-playback fallback clears the media URI (LoadingVideo → "") which
+                    // looks like silence then a jump to the main menu when all servers fail.
+                    // Only auto-try the next server before playback has meaningfully started.
+                    if (::player.isInitialized && player.hasStarted()) {
+                        val message = error.message ?: error.errorCodeName
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                        return
+                    }
+
                     val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
                     if (nextServer != null) {
                         Log.i("PlayerTvFragment", "Playback failed, trying next server: ${nextServer.name}")
                         viewModel.getVideo(nextServer)
+                    } else {
+                        val message = error.message ?: error.errorCodeName
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                     }
                 }
             })
@@ -1692,17 +1725,28 @@ class PlayerTvFragment : Fragment() {
         private var currentSoftwareDecoder = false
 
         private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
+            val constrained = DeviceCapabilities.shouldUseConstrainedPlayback(requireContext())
+            // Fire Stick / low-RAM: keep extra buffering helpful but avoid 300s which OOMs sticks.
+            val maxBufferMs = when {
+                extraBuffering && constrained -> 90_000
+                extraBuffering -> 300_000
+                else -> DefaultLoadControl.DEFAULT_MAX_BUFFER_MS
+            }
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                    if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                    maxBufferMs,
                     DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
                     DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
                 )
                 .build()
 
             val renderersFactory = SubtitleOffsetRenderersFactory(requireContext()).apply {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || currentSoftwareDecoder) {
+                if (
+                    Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 ||
+                    currentSoftwareDecoder ||
+                    constrained
+                ) {
                     setEnableDecoderFallback(true)
                     if (currentSoftwareDecoder) {
                         setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
@@ -1751,21 +1795,30 @@ class PlayerTvFragment : Fragment() {
             dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
             player = buildPlayer(extraBuffering).also { player ->
+                    // handleAudioFocus=false: Fire TV / cheap boxes often steal audio focus
+                    // briefly (system sounds, Alexa, HDMI-CEC), and Media3 would pause/mute
+                    // without auto-resume — matching silent playback then exit reports.
                     player.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(C.USAGE_MEDIA)
                             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                             .build(),
-                        true,
+                        /* handleAudioFocus= */ false,
                     )
 
-                    val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                    if (lang == "es") {
-                        player.trackSelectionParameters =
-                            player.trackSelectionParameters.buildUpon()
-                                .setPreferredAudioLanguage("spa")
-                                .build()
+                    var params = player.trackSelectionParameters.buildUpon()
+                    val preferredLanguages = DeviceCapabilities.preferredAudioLanguages(
+                        UserPreferences.currentProvider?.language
+                    )
+                    if (preferredLanguages.isNotEmpty()) {
+                        params = params.setPreferredAudioLanguages(*preferredLanguages.toTypedArray())
                     }
+                    if (DeviceCapabilities.shouldUseConstrainedPlayback(requireContext())) {
+                        // Prefer stereo AAC-friendly tracks; E-AC-3 5.1 often fails silently
+                        // on Fire Stick hardware decoders (no sound → error → main menu).
+                        params = params.setMaxAudioChannelCount(2)
+                    }
+                    player.trackSelectionParameters = params.build()
 
                     mediaSession = MediaSession.Builder(requireContext(), player)
                         .build()
@@ -1960,7 +2013,7 @@ class PlayerTvFragment : Fragment() {
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                         .build(),
-                    true,
+                    /* handleAudioFocus= */ false,
                 )
             }
 
