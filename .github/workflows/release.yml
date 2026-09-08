@@ -1,5 +1,6 @@
 name: Build & Release APK
 
+# Produces signed mobile + TV APKs and publishes them on version tags (v*).
 on:
   push:
     tags:
@@ -81,9 +82,9 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
           echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
-          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY || '' }}" >> local.properties
-          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY || '' }}" >> local.properties
-          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API || '' }}" >> local.properties
+          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}" >> local.properties
+          echo "SUBDL_API_KEY=${{ secrets.SUBDL_API_KEY }}" >> local.properties
+          echo "RABBITSTREAM_SOURCE_API=${{ secrets.RABBITSTREAM_SOURCE_API }}" >> local.properties
 
       - name: Generate native-lib.cpp from template
         env:
