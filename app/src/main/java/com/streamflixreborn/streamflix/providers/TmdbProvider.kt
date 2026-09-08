@@ -50,6 +50,20 @@ class TmdbProvider(override val language: String) : Provider {
         "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tmdb.new.logo.svg/1280px-Tmdb.new.logo.svg.png"
 
     override suspend fun getHome(): List<Category> = coroutineScope {
+        try {
+            buildHomeCategories()
+        } catch (e: Exception) {
+            Log.e("TmdbProvider", "TMDB home failed: ${e.message}", e)
+            throw Exception(
+                "TMDB is unreachable (api.themoviedb.org). " +
+                    "Check your connection or switch DNS over HTTPS in Settings. " +
+                    "(${e.message})",
+                e
+            )
+        }
+    }
+
+    private suspend fun buildHomeCategories(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
         val watchRegion = if (language == "en") "US" else language.uppercase()
 
