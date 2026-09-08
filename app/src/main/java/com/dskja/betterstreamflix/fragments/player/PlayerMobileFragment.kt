@@ -62,6 +62,7 @@ import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.sync.CloudSyncHooks
 import com.dskja.betterstreamflix.ui.PlayerMobileView
 import com.dskja.betterstreamflix.utils.MediaServer
+import com.dskja.betterstreamflix.utils.SubtitleOffset
 import com.dskja.betterstreamflix.utils.SubtitleOffsetRenderersFactory
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.UserDataCache

@@ -9,6 +9,7 @@ import com.dskja.betterstreamflix.models.Genre
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
+import com.dskja.betterstreamflix.models.Show
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.DnsResolver
@@ -134,7 +135,7 @@ object AnimeFlvProvider : Provider {
                         .select("div.ul.hm article.li")
                         .mapNotNull { element ->
                             val link = element.selectFirst("a[href*=/ver/]") ?: return@mapNotNull null
-                            val href = absoluteUrl(link.attr("href"))
+                            val href = absoluteUrl(link.attr("href")) ?: return@mapNotNull null
                             val slug = slugFromVerUrl(href) ?: return@mapNotNull null
                             val title = element.selectFirst("figure.i img")?.attr("alt")
                                 ?.substringBefore(" episodio")
@@ -324,7 +325,7 @@ object AnimeFlvProvider : Provider {
         return Extractor.extract(server.src.ifBlank { server.id }, server)
     }
 
-    private fun parseDirectoryShows(document: Document): List<AppAdapter.Item> {
+    private fun parseDirectoryShows(document: Document): List<Show> {
         return document.select("div.ul.x6 article.li, div.ul article.li").mapNotNull { element ->
             val link = element.selectFirst("a[href*=/anime/]") ?: return@mapNotNull null
             val href = absoluteUrl(link.attr("href")) ?: return@mapNotNull null
