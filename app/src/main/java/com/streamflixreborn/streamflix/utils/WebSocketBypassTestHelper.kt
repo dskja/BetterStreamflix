@@ -28,7 +28,7 @@ object WebSocketBypassTestHelper {
         val token = UUID.randomUUID().toString()
 
         activeServer.registerSession(token, url)
-        val deepLink = "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=$token"
+        val deepLink = "betterstreamflix://resolve?ws=${Uri.encode(wsUrl)}&token=$token"
 
         return Session(
             token = token,

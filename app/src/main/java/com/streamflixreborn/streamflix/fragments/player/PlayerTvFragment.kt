@@ -352,7 +352,7 @@ class PlayerTvFragment : Fragment() {
                             }
 
                             val deepLink =
-                                "streamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
+                                "betterstreamflix://resolve?ws=${Uri.encode(wsUrl)}&token=${Uri.encode(session.token)}"
                             val httpPort = startHttpLandingServer(deepLink)
                             val qrContent = if (httpPort != -1) {
                                 val host = BypassWebSocketEndpointHelper.getLocalIpv4Address()

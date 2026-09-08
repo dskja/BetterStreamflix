@@ -28,7 +28,7 @@ android {
     properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
     defaultConfig {
-        applicationId "com.streamflixreborn.streamflix"
+        applicationId "com.dskja.betterstreamflix"
         minSdk 21
         targetSdk 35
         versionCode 160

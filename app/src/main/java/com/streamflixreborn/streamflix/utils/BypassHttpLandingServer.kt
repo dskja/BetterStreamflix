@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets
  *
  * Phone cameras often cannot open `streamflix://` deep links (they search Google instead).
  * Encoding an `http://TV-IP:port/resolve?...` URL in the QR lets the camera open a page that
- * bridges into the StreamFlix app and explains the in-app scanner fallback.
+ * bridges into the BetterStreamflix app and explains the in-app scanner fallback.
  */
 class BypassHttpLandingServer(
     port: Int,
@@ -49,7 +49,7 @@ class BypassHttpLandingServer(
     private fun buildDeepLink(ws: String, token: String): String {
         val encodedWs = URLEncoder.encode(ws, StandardCharsets.UTF_8.name())
         val encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8.name())
-        return "streamflix://resolve?ws=$encodedWs&token=$encodedToken"
+        return "betterstreamflix://resolve?ws=$encodedWs&token=$encodedToken"
     }
 
     private fun htmlResponse(body: String): Response {
@@ -70,7 +70,7 @@ class BypassHttpLandingServer(
               <meta charset="utf-8"/>
               <meta name="viewport" content="width=device-width, initial-scale=1"/>
               <meta http-equiv="refresh" content="0;url=$safeDeepLink"/>
-              <title>StreamFlix TV Bypass</title>
+              <title>BetterStreamflix TV Bypass</title>
               <style>
                 body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;margin:0;padding:24px;background:#111;color:#f5f5f5;line-height:1.45}
                 .card{max-width:520px;margin:0 auto;background:#1c1c1c;border-radius:16px;padding:20px}
@@ -85,15 +85,15 @@ class BypassHttpLandingServer(
             </head>
             <body>
               <div class="card">
-                <h1>StreamFlix TV-Captcha</h1>
-                <p><strong>DE:</strong> Dies ist kein SerienStream-Link. Öffne die Captcha-Seite in der <strong>StreamFlix-App</strong>.</p>
+                <h1>BetterStreamflix TV-Captcha</h1>
+                <p><strong>DE:</strong> Dies ist kein SerienStream-Link. Öffne die Captcha-Seite in der <strong>BetterStreamflix-App</strong>.</p>
                 <ol>
-                  <li>Tippe unten auf „In StreamFlix öffnen“.</li>
+                  <li>Tippe unten auf „In BetterStreamflix öffnen“.</li>
                   <li>Oder in der App: Einstellungen → <strong>TV-Bypass-QR scannen</strong>.</li>
                   <li>Captcha lösen → <strong>Weiter</strong>. Der QR auf dem TV schließt sich automatisch.</li>
                 </ol>
-                <p class="muted"><strong>EN:</strong> Do not use a normal camera search. Open StreamFlix on this phone, then use Settings → Scan TV bypass QR if the button below does nothing.</p>
-                <p><a class="button" href="$safeDeepLink">In StreamFlix öffnen / Open in StreamFlix</a></p>
+                <p class="muted"><strong>EN:</strong> Do not use a normal camera search. Open BetterStreamflix on this phone, then use Settings → Scan TV bypass QR if the button below does nothing.</p>
+                <p><a class="button" href="$safeDeepLink">In BetterStreamflix öffnen / Open in BetterStreamflix</a></p>
                 <p class="muted">Deep link:<br/><code>$safeDeepLink</code></p>
               </div>
               <script>

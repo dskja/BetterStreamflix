@@ -55,6 +55,7 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="betterstreamflix" android:host="resolve"/>
                 <data android:scheme="streamflix" android:host="resolve"/>
             </intent-filter>
         </activity>

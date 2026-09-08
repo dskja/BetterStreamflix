@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="app_name">Streamflix</string>
+    <string name="app_name">BetterStreamflix</string>
 
     <string name="loading_error_title">An error occurred</string>
     <string name="loading_error_retry">Retry</string>
@@ -253,12 +253,19 @@
     <string name="player_settings_servers_label">Servers</string>
 
     <string name="settings_about">About</string>
+    <string name="settings_telegram_channel">Telegram channel</string>
+    <string name="settings_about_maintainer">Maintained by dskja</string>
+    <string name="settings_about_credits">Credits</string>
+    <string name="settings_about_credits_summary">Based on Streamflix Reborn (upstream) and the original Streamflix by Lory-Stan TANASI</string>
+    <string name="settings_about_upstream">Upstream project</string>
+    <string name="settings_github">GitHub</string>
+
     <string name="settings_about_version">Version</string>
     <string name="settings_version_tv">Version TV</string>
     <string name="settings_version_mobile">Version Mobile</string>
     <string name="settings_about_version_name">Version %s</string>
     <string name="settings_help">Help</string>
-    <string name="settings_telegram">Telegram group</string>
+    <string name="settings_telegram">Telegram channel</string>
     <string name="settings_refresh_cache_title">Refresh cache from database</string>
     <string name="settings_refresh_cache_summary">Reload watch history and app data from database</string>
     <string name="settings_refresh_cache_confirm">Refresh cache?</string>
@@ -291,14 +298,14 @@
     <string name="settings_category_network_title">Connection &amp; Services</string>
     <string name="settings_screen_network_summary">DNS, TV bypass tools and subtitle service keys</string>
     <string name="settings_scan_resolver_qr_title">Scan TV bypass QR</string>
-    <string name="settings_scan_resolver_qr_summary">Use this StreamFlix scanner for the QR on TV — a normal phone camera often opens Google instead of the app</string>
+    <string name="settings_scan_resolver_qr_summary">Use this BetterStreamflix scanner for the QR on TV — a normal phone camera often opens Google instead of the app</string>
     <string name="player_bypass_qr_title">Solve captcha on phone</string>
-    <string name="player_bypass_qr_instructions">1. Open StreamFlix on your phone (same Wi‑Fi as the TV).\n2. Go to Settings → Scan TV bypass QR (do not rely on the stock camera alone).\n3. Solve the captcha, then tap Continue. This dialog closes automatically.</string>
+    <string name="player_bypass_qr_instructions">1. Open BetterStreamflix on your phone (same Wi‑Fi as the TV).\n2. Go to Settings → Scan TV bypass QR (do not rely on the stock camera alone).\n3. Solve the captcha, then tap Continue. This dialog closes automatically.</string>
     <string name="player_bypass_qr_endpoint">TV endpoint: %1$s</string>
     <string name="player_bypass_qr_emulator_note">Emulator detected: set “Bypass advertised host” in TV settings to your PC LAN IP so the phone can reach this device.</string>
-    <string name="player_bypass_retry_needed">Captcha is still required for this title. Scan the QR again with StreamFlix.</string>
+    <string name="player_bypass_retry_needed">Captcha is still required for this title. Scan the QR again with BetterStreamflix.</string>
     <string name="player_bypass_no_lan_ip">No LAN IP found for the QR. Set “Bypass advertised host” in Settings (e.g. 192.168.x.x).</string>
-    <string name="settings_scan_resolver_invalid_qr">This QR code is not a StreamFlix bypass link.</string>
+    <string name="settings_scan_resolver_invalid_qr">This QR code is not a BetterStreamflix bypass link.</string>
     <string name="settings_scan_resolver_failed">Unable to start QR scanner on this device.</string>
     <string name="settings_scan_resolver_camera_permission_denied">Camera permission is required to scan the QR code.</string>
     <string name="settings_scan_resolver_camera_unavailable">No camera is available on this device.</string>
