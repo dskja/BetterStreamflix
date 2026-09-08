@@ -45,10 +45,6 @@ object FrenchMangaProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
         }
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
-        get() {
-            val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
-            return cacheURL.ifEmpty { field }
-        }
 
     override val logo: String
         get() = "$baseUrl/logo.png"
