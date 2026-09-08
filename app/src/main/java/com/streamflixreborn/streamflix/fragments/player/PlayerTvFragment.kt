@@ -74,6 +74,7 @@ import com.streamflixreborn.streamflix.models.WatchItem
 import com.streamflixreborn.streamflix.providers.SerienStreamProvider
 import com.streamflixreborn.streamflix.sync.CloudSyncHooks
 import com.streamflixreborn.streamflix.ui.PlayerTvView
+import com.streamflixreborn.streamflix.utils.SubtitleOffset
 import com.streamflixreborn.streamflix.utils.SubtitleOffsetRenderersFactory
 import com.streamflixreborn.streamflix.utils.DnsResolver
 import com.streamflixreborn.streamflix.utils.NetworkClient
