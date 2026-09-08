@@ -4,6 +4,7 @@
 
 ### CI
 - Restored **Build APK** GitHub Action: builds mobile + TV debug/release APKs on `main` and via manual dispatch, uploads artifacts with SHA-256
+- **PR Checks** now upload installable debug APK artifacts (mobile + TV) for download from the workflow run
 - Re-registered **Build & Release APK** workflow for version tags (`v*`)
 
 ## v2.0.0 — Arc
