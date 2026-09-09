@@ -13,6 +13,7 @@ import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.format
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -80,7 +81,7 @@ object DownloadController {
             val videoType = Video.Type.Movie(
                 id = movie.id,
                 title = movie.title,
-                releaseDate = movie.released ?: "",
+                releaseDate = movie.released?.format("yyyy-MM-dd") ?: "",
                 poster = movie.poster ?: "",
                 imdbId = movie.imdbId,
             )
@@ -137,7 +138,7 @@ object DownloadController {
                     title = tvShow.title,
                     poster = tvShow.poster,
                     banner = tvShow.banner,
-                    releaseDate = tvShow.released,
+                    releaseDate = tvShow.released?.format("yyyy-MM-dd"),
                     imdbId = null,
                 ),
                 season = Video.Type.Episode.Season(
@@ -496,7 +497,7 @@ object DownloadController {
     private suspend fun prepareHelper(helper: DownloadHelper) =
         suspendCancellableCoroutine { cont ->
             helper.prepare(object : DownloadHelper.Callback {
-                override fun onPrepared(helper: DownloadHelper) {
+                override fun onPrepared(helper: DownloadHelper, tracksInfoAvailable: Boolean) {
                     if (cont.isActive) cont.resume(Unit)
                 }
 

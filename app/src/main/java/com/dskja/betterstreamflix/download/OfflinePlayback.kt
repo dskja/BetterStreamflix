@@ -39,14 +39,20 @@ object OfflinePlayback {
         return when (videoType) {
             is Video.Type.Movie -> all.firstOrNull {
                 it.kind == DownloadKind.MOVIE.name &&
-                    (it.contentKey.endsWith("|movie|${videoType.id}") ||
-                        it.videoTypeJson.contains("\"id\":\"${videoType.id}\""))
+                    (it.contentKey == DownloadContentKey.movie(
+                        it.providerName,
+                        videoType.id,
+                    ) || it.videoTypeJson.contains("\"id\":\"${videoType.id}\""))
             }
             is Video.Type.Episode -> all.firstOrNull {
                 it.kind == DownloadKind.EPISODE.name &&
-                    (it.contentKey.contains("|episode|${videoType.tvShow.id}|") &&
-                        it.contentKey.contains("|${videoType.season.number}|${videoType.number}")) ||
-                    it.videoTypeJson.contains("\"id\":\"${videoType.id}\"")
+                    (it.contentKey == DownloadContentKey.episode(
+                        it.providerName,
+                        videoType.tvShow.id,
+                        videoType.season.number,
+                        videoType.number,
+                        videoType.id,
+                    ) || it.videoTypeJson.contains("\"id\":\"${videoType.id}\""))
             }
         }
     }

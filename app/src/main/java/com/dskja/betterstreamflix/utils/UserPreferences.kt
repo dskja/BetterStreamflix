@@ -8,6 +8,7 @@ import androidx.media3.ui.CaptionStyleCompat
 import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.download.DownloadQualityPreset
 import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.providers.Provider.Companion.providers
@@ -150,8 +151,8 @@ object UserPreferences {
             Key.DOWNLOAD_MAX_CONCURRENT.setInt(value.coerceIn(1, 4))
         }
 
-    var downloadQualityPreset: com.dskja.betterstreamflix.download.DownloadQualityPreset
-        get() = com.dskja.betterstreamflix.download.DownloadQualityPreset.fromKey(
+    var downloadQualityPreset: DownloadQualityPreset
+        get() = DownloadQualityPreset.fromKey(
             Key.DOWNLOAD_QUALITY_PRESET.getString(),
         )
         set(value) {

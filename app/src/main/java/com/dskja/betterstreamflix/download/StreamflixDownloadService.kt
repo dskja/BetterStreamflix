@@ -2,13 +2,11 @@ package com.dskja.betterstreamflix.download
 
 import android.app.Notification
 import android.content.Context
-import androidx.media3.common.util.NotificationUtil
 import androidx.media3.common.util.Util
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.scheduler.PlatformScheduler
-import androidx.media3.exoplayer.scheduler.Requirements
 import androidx.media3.exoplayer.scheduler.Scheduler
 import com.dskja.betterstreamflix.R
 
@@ -46,11 +44,7 @@ class StreamflixDownloadService : DownloadService(
 
         fun start(context: Context) {
             try {
-                startForeground(
-                    context,
-                    StreamflixDownloadService::class.java,
-                    FOREGROUND_NOTIFICATION_ID,
-                )
+                startForeground(context, StreamflixDownloadService::class.java)
             } catch (_: Exception) {
                 start(context, StreamflixDownloadService::class.java)
             }
