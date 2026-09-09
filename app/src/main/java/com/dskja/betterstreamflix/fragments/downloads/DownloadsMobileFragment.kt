@@ -251,4 +251,10 @@ object OfflineVideoCache {
     }
     fun take(key: String): Video? = map.remove(key)
     fun get(key: String): Video? = map[key]
+    fun remove(key: String) {
+        map.remove(key)
+    }
+    fun clear() {
+        map.clear()
+    }
 }

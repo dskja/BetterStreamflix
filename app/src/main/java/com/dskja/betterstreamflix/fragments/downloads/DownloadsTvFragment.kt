@@ -74,7 +74,18 @@ class DownloadsTvFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.rows.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { rows ->
                 adapter.submitList(rows.toList())
-                binding.tvDownloadsEmpty.isVisible = rows.isEmpty()
+                val empty = rows.isEmpty()
+                binding.tvDownloadsEmpty.isVisible = empty
+                binding.tvDownloadsEmpty.setText(
+                    if (viewModel.currentFilter() == DownloadsFilter.ALL) {
+                        R.string.downloads_empty
+                    } else {
+                        R.string.downloads_filter_empty
+                    },
+                )
+                if (empty && binding.rvDownloads.hasFocus()) {
+                    binding.chipFilterAll.requestFocus()
+                }
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
@@ -117,6 +128,7 @@ class DownloadsTvFragment : Fragment() {
     }
 
     private fun styleChip(chip: android.widget.TextView, selected: Boolean) {
+        chip.isSelected = selected
         chip.setBackgroundResource(
             if (selected) R.drawable.bg_download_filter_chip_selected
             else R.drawable.bg_download_filter_chip,

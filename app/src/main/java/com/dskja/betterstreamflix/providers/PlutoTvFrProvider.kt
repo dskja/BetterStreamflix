@@ -6,7 +6,6 @@ import kotlinx.coroutines.sync.withLock
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.M3uChannelIdCodec
 
-import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.*

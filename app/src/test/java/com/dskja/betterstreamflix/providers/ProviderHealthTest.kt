@@ -17,9 +17,11 @@ class ProviderHealthTest {
     @Test
     fun smokeListCoversCoreMarkets() {
         val names = ProviderHealth.topSmokeNames
+        assertTrue(names.contains("SFlix"))
         assertTrue(names.contains("SerienStream"))
         assertTrue(names.contains("GuardaFlix"))
         assertTrue(names.contains("HDFilme"))
         assertTrue(names.contains("Frembed"))
+        assertFalse(names.contains("Sflix"))
     }
 }

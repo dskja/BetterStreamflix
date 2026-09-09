@@ -598,7 +598,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=BetterStreamflix"))
                 startActivity(tgIntent)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Telegram not found.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.settings_telegram_not_found, Toast.LENGTH_SHORT).show()
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/BetterStreamflix"))
                 startActivity(intent)
             }
@@ -918,10 +918,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             if (findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST") == null) {
                 val hostPreference = EditTextPreference(requireContext()).apply {
                     key = "BYPASS_WS_ADVERTISED_HOST"
-                    title = "Bypass advertised host"
-                    dialogTitle = "Bypass advertised host"
+                    title = getString(R.string.settings_bypass_advertised_host)
+                    dialogTitle = getString(R.string.settings_bypass_advertised_host)
                     summary = if (UserPreferences.bypassWsAdvertisedHost.isBlank()) {
-                        "Auto (device IP)"
+                        getString(R.string.settings_bypass_advertised_host_auto)
                     } else {
                         UserPreferences.bypassWsAdvertisedHost
                     }
@@ -936,7 +936,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                         val value = (newValue as String).trim()
                         UserPreferences.bypassWsAdvertisedHost = value
                         preference.summary = if (value.isBlank()) {
-                            "Auto (device IP)"
+                            getString(R.string.settings_bypass_advertised_host_auto)
                         } else {
                             value
                         }
@@ -2248,7 +2248,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 append("\nTarget URL: ")
                 append(targetUrl)
                 if (BypassWebSocketEndpointHelper.isProbablyEmulator()) {
-                    append("\n\nEmulator note: set 'Bypass advertised host' to your PC LAN IP and forward TCP 8081 to the emulator.")
+                    append(
+                        "\n\nEmulator note: set '${getString(R.string.settings_bypass_advertised_host)}' " +
+                            "to your PC LAN IP and forward TCP 8081 to the emulator.",
+                    )
                 }
             }
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)

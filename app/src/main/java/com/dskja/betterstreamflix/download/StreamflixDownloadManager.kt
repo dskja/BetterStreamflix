@@ -9,12 +9,18 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import com.dskja.betterstreamflix.utils.UserPreferences
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 object StreamflixDownloadManager {
     @Volatile
@@ -37,6 +43,7 @@ object StreamflixDownloadManager {
 
     private val executor: Executor = Executors.newFixedThreadPool(2)
     private val connectivityScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val connectivityActionMutex = Mutex()
 
     fun get(context: Context): DownloadManager {
         downloadManager?.let { return it }
@@ -81,14 +88,21 @@ object StreamflixDownloadManager {
         if (connectivityWatcherStarted) return
         connectivityWatcherStarted = true
         connectivityScope.launch {
-            DownloadConnectivityMonitor.status.collect { status ->
-                val repo = DownloadRepository.get(app)
-                if (UserPreferences.downloadWifiOnly && status.type != DownloadNetworkType.WIFI) {
-                    repo.pauseAll()
-                } else if (status.type != DownloadNetworkType.NONE) {
-                    repo.resumeAll()
+            DownloadConnectivityMonitor.status
+                .map { it.type }
+                .distinctUntilChanged()
+                .collectLatest { type ->
+                    // Debounce flaky network flips so we don't thrash pause/resume.
+                    delay(750)
+                    connectivityActionMutex.withLock {
+                        val repo = DownloadRepository.get(app)
+                        if (UserPreferences.downloadWifiOnly && type != DownloadNetworkType.WIFI) {
+                            repo.pauseAll()
+                        } else if (type != DownloadNetworkType.NONE) {
+                            repo.resumeAll()
+                        }
+                    }
                 }
-            }
         }
     }
 

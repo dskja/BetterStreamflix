@@ -30,7 +30,7 @@ object ProviderHealth {
         "HDFilme",
         "Frembed",
         "AniWorld",
-        "Sflix",
+        "SFlix",
         "Cine24h",
         "SoloLatino",
         "MEGAKino",
