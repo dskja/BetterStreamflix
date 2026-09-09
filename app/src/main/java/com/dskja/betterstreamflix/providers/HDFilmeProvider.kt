@@ -52,7 +52,11 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         service = HDFilmeService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
         baseUrl
     }
-    override val logo: String = "$baseUrl/templates/hdfilme/images/apple-touch-icon.png"
+    override val logo: String
+        get() {
+            val root = baseUrl.let { if (it.endsWith("/")) it.dropLast(1) else it }
+            return "$root/templates/hdfilme/images/apple-touch-icon.png"
+        }
     override val language: String = "de"
 
     private const val USER_AGENT = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -991,51 +995,68 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
             return servers.distinctBy { it.src }
         }
 
-        val iframeSrc = doc.selectFirst(
+        val iframeCandidates = doc.select(
             "iframe[src*='meinecloud.click'], iframe[src*='meinecloud'], iframe[data-src*='meinecloud'], " +
-                "iframe[src*='cloud'], iframe.player-iframe, #player iframe, .player iframe"
-        )?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-            ?: doc.selectFirst("iframe[src], iframe[data-src]")?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-            ?: throw Exception("Embed iframe not found")
+                "iframe[src*='devideosrc'], iframe[data-src*='devideosrc'], " +
+                "iframe[src*='cloud'], iframe.player-iframe, #player iframe, .player iframe, " +
+                "iframe[src], iframe[data-src]"
+        ).mapNotNull { el ->
+            el.attr("src").ifBlank { el.attr("data-src") }.takeIf { it.isNotBlank() }
+        }.distinct()
 
-        val embedUrl = normalizeUrl(iframeSrc)
-        val embedDoc = service.getPage(embedUrl)
-
-        val mirrors = embedDoc.select(
-            "ul._player-mirrors li[data-link], ul._source_list li[data-link], " +
-                "li[data-link], .mirror-list li[data-link], a[data-link]"
-        )
-            .filterNot { li ->
-                li.hasClass("fullhd") || li.text().contains("4K Server", ignoreCase = true)
-            }
-            .mapNotNull { li ->
-                val rawLink = li.attr("data-link").trim().ifBlank { li.attr("href").trim() }
-                if (rawLink.isBlank()) return@mapNotNull null
-
-                // meinecloud / DEVIDEOSRC now store host URLs as base64 (e.g. Ly9teGRyb3AudG8v...).
-                val dataLink = decodeEmbedDataLink(rawLink) ?: return@mapNotNull null
-
-                val normalized = when {
-                    dataLink.startsWith("//") -> "https:$dataLink"
-                    dataLink.startsWith("http") -> dataLink
-                    else -> "https://$dataLink"
-                }
-
-                val nameText = li.ownText().ifBlank { li.text() }.trim()
-                val name = nameText.ifBlank {
-                    runCatching {
-                        normalized.toHttpUrl().host.substringBefore('.').replaceFirstChar { it.uppercase() }
-                    }.getOrDefault("Server")
-                }
-
-                Video.Server(id = normalized, name = name, src = normalized)
-            }
-            .filter { it.src.isNotBlank() }
-
-        return mirrors.ifEmpty {
-            // Last resort: treat the embed page itself as a playable host.
-            listOf(Video.Server(id = embedUrl, name = "Embed", src = embedUrl))
+        if (iframeCandidates.isEmpty()) {
+            throw Exception("Embed iframe not found")
         }
+
+        val mirrors = linkedMapOf<String, Video.Server>()
+        var lastEmbedUrl: String? = null
+        for (iframeSrc in iframeCandidates) {
+            // Skip youtube trailers — they are not playback sources.
+            if (iframeSrc.contains("youtube.com", ignoreCase = true) ||
+                iframeSrc.contains("youtu.be", ignoreCase = true)
+            ) {
+                continue
+            }
+            val embedUrl = normalizeUrl(iframeSrc)
+            lastEmbedUrl = embedUrl
+            val embedDoc = runCatching { service.getPage(embedUrl) }.getOrNull() ?: continue
+            embedDoc.select(
+                "ul._player-mirrors li[data-link], ul._source_list li[data-link], " +
+                    "li[data-link], .mirror-list li[data-link], a[data-link]"
+            )
+                .filterNot { li ->
+                    li.hasClass("fullhd") || li.text().contains("4K Server", ignoreCase = true)
+                }
+                .forEach { li ->
+                    val rawLink = li.attr("data-link").trim().ifBlank { li.attr("href").trim() }
+                    if (rawLink.isBlank()) return@forEach
+
+                    // meinecloud / DEVIDEOSRC now store host URLs as base64 (e.g. Ly9teGRyb3AudG8v...).
+                    val dataLink = decodeEmbedDataLink(rawLink) ?: return@forEach
+
+                    val normalized = when {
+                        dataLink.startsWith("//") -> "https:$dataLink"
+                        dataLink.startsWith("http") -> dataLink
+                        else -> "https://$dataLink"
+                    }
+
+                    val nameText = li.ownText().ifBlank { li.text() }.trim()
+                    val name = nameText.ifBlank {
+                        runCatching {
+                            normalized.toHttpUrl().host.substringBefore('.').replaceFirstChar { it.uppercase() }
+                        }.getOrDefault("Server")
+                    }
+
+                    if (normalized.isNotBlank()) {
+                        mirrors.putIfAbsent(normalized, Video.Server(id = normalized, name = name, src = normalized))
+                    }
+                }
+            if (mirrors.isNotEmpty()) break
+        }
+
+        if (mirrors.isNotEmpty()) return mirrors.values.toList()
+        val fallback = lastEmbedUrl ?: iframeCandidates.first()
+        return listOf(Video.Server(id = fallback, name = "Embed", src = normalizeUrl(fallback)))
     }
 
     /** Decode meinecloud-style base64 data-link values; pass through plain URLs. */

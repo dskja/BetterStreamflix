@@ -1161,9 +1161,9 @@ class PlayerTvFragment : Fragment() {
                         .setMaxPlaybackSpeed(1.02f)
                         .build()
                 )
-                binding.pvPlayer.controller.binding.exoProgress.isVisible = false
+                applyLiveControllerChrome(live = true)
             } else {
-                binding.pvPlayer.controller.binding.exoProgress.isVisible = true
+                applyLiveControllerChrome(live = false)
             }
             player.setMediaItem(
                 mediaItemBuilder
@@ -1583,6 +1583,22 @@ class PlayerTvFragment : Fragment() {
 
         private fun isLiveTvPlayback(): Boolean =
             UserPreferences.currentProvider is IptvProvider
+
+        /**
+         * Live/IPTV must not show VOD-style position/duration clocks.
+         * Media3 reports the HLS sliding window (~30s) as duration, which looks broken.
+         */
+        private fun applyLiveControllerChrome(live: Boolean) {
+            val controller = binding.pvPlayer.controller.binding
+            controller.exoProgress.isVisible = !live
+            controller.exoPosition.isVisible = !live
+            controller.tvTimeSeparator.isVisible = !live
+            controller.exoDuration.isVisible = !live
+            controller.tvLiveIndicator.isVisible = live
+            if (live) {
+                controller.tvLiveIndicator.text = getString(R.string.player_live_badge)
+            }
+        }
 
         private fun resolvePlayerTitle(videoType: Video.Type = currentVideoTypeForUi()): String {
             return when (videoType) {

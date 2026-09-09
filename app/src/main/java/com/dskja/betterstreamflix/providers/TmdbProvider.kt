@@ -27,6 +27,7 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.TMDb3
 import com.dskja.betterstreamflix.utils.TMDb3.original
 import com.dskja.betterstreamflix.utils.TMDb3.w500
@@ -436,7 +437,16 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        val movies = TMDb3.MovieLists.popular(page = page, language = language).results.map { movie ->
+        val pageResult = if (UserPreferences.catalogSortMode == CatalogSortMode.LAST_RELEASE) {
+            TMDb3.Discover.movie(
+                page = page,
+                language = language,
+                sortBy = TMDb3.Params.SortBy.Movie.PRIMARY_RELEASE_DATE_DESC,
+            )
+        } else {
+            TMDb3.MovieLists.popular(page = page, language = language)
+        }
+        val movies = pageResult.results.map { movie ->
             Movie(
                 id = movie.id.toString(),
                 title = movie.title,
@@ -452,7 +462,16 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val tvShows = TMDb3.TvSeriesLists.popular(page = page, language = language).results.map { tv ->
+        val pageResult = if (UserPreferences.catalogSortMode == CatalogSortMode.LAST_RELEASE) {
+            TMDb3.Discover.tv(
+                page = page,
+                language = language,
+                sortBy = TMDb3.Params.SortBy.Tv.FIRST_AIR_DATE_DESC,
+            )
+        } else {
+            TMDb3.TvSeriesLists.popular(page = page, language = language)
+        }
+        val tvShows = pageResult.results.map { tv ->
             TvShow(
                 id = tv.id.toString(),
                 title = tv.name,

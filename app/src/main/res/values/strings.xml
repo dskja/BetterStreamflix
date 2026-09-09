@@ -547,6 +547,23 @@
     <string name="error_dialog_no_cause">No cause</string>
 
     <string name="settings_category_appearance">Appearance</string>
+    <string name="settings_experimental_new_design_title">Experimental app design</string>
+    <string name="settings_experimental_new_design_summary">Completely redesigned mobile UI (experimental). Restarts the app. Off by default.</string>
+    <string name="settings_catalog_sort_title">Catalog sort</string>
+    <string name="catalog_sort_default">Provider default</string>
+    <string name="catalog_sort_last_release">Last release</string>
+    <string name="settings_cast_enabled_title">Chromecast</string>
+    <string name="settings_cast_enabled_summary">Show Cast controls in the mobile player when Google Cast is available</string>
+    <string name="player_cast_content_description">Cast</string>
+    <string name="settings_watchlist_import_title">Import watchlist (s.to / AniWorld)</string>
+    <string name="settings_watchlist_import_summary">Sign in on SerienStream or AniWorld and import your watchlist into Favorites</string>
+    <string name="settings_watchlist_import_serienstream">Import from SerienStream</string>
+    <string name="settings_watchlist_import_aniworld">Import from AniWorld</string>
+    <string name="watchlist_import_progress">Importing watchlist…</string>
+    <string name="watchlist_import_done">Imported %1$d titles into Favorites</string>
+    <string name="watchlist_import_failed">Watchlist import failed: %1$s</string>
+    <string name="watchlist_import_login_hint">Log in on the site, then tap Import. Cookies stay on this device.</string>
+
     <string name="settings_screen_appearance_summary">Theme, immersive mode and screen layout adjustments</string>
     <string name="settings_theme_title">App Theme</string>
     <string name="settings_app_language_title">App language</string>

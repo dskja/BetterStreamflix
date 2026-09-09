@@ -47,7 +47,8 @@ object EinschaltenProvider : Provider, ProviderConfigUrl {
         service = EinschaltenService.build(baseUrl.let { if (it.endsWith("/")) it else "$it/" })
         baseUrl
     }
-    override val logo = "https://images2.imgbox.com/74/12/NBWU0dNi_o.png"
+    override val logo: String
+        get() = "https://www.google.com/s2/favicons?domain=einschalten.in&sz=128"
     override val language = "de"
 
     private const val USER_AGENT = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
