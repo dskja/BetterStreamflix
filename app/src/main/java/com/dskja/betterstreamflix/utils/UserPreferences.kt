@@ -215,6 +215,19 @@ object UserPreferences {
         get() = Key.SELECTED_THEME.getString() ?: "default"
         set(value) = Key.SELECTED_THEME.setString(value)
 
+    /** Off-by-default complete mobile shell redesign. Requires activity restart. */
+    var experimentalNewAppDesign: Boolean
+        get() = Key.EXPERIMENTAL_NEW_APP_DESIGN.getBoolean() ?: false
+        set(value) = Key.EXPERIMENTAL_NEW_APP_DESIGN.setBoolean(value)
+
+    var catalogSortMode: CatalogSortMode
+        get() = CatalogSortMode.fromKey(Key.CATALOG_SORT_MODE.getString())
+        set(value) = Key.CATALOG_SORT_MODE.setString(value.name)
+
+    var castEnabled: Boolean
+        get() = Key.CAST_ENABLED.getBoolean() ?: true
+        set(value) = Key.CAST_ENABLED.setBoolean(value)
+
     var tmdbApiKey: String
         get() = Key.TMDB_API_KEY.getString() ?: ""
         set(value) {
@@ -680,6 +693,9 @@ object UserPreferences {
         PARENTAL_CONTROL_LOCKED_UNTIL,
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
+        EXPERIMENTAL_NEW_APP_DESIGN,
+        CATALOG_SORT_MODE,
+        CAST_ENABLED,
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,

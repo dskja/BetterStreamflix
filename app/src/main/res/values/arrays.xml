@@ -25,6 +25,15 @@
         <item>retro_neon</item>
     </string-array>
 
+    <string-array name="catalog_sort_names">
+        <item>@string/catalog_sort_default</item>
+        <item>@string/catalog_sort_last_release</item>
+    </string-array>
+    <string-array name="catalog_sort_values">
+        <item>DEFAULT</item>
+        <item>LAST_RELEASE</item>
+    </string-array>
+
     <string-array name="trailer_player_names">
         <item>@string/settings_trailer_player_ask</item>
         <item>@string/youtube</item>

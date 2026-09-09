@@ -21,7 +21,9 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
+import android.view.animation.AnimationUtils
 
 class TvShowsMobileFragment : Fragment() {
 
@@ -40,12 +42,22 @@ class TvShowsMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentTvShowsMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_tv_shows_mobile,
+            R.layout.fragment_tv_shows_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentTvShowsMobileBinding.bind(root)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (ExperimentalMobileDesign.enabled()) {
+            binding.rvTvShows.startAnimation(
+                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_in)
+            )
+        }
 
         initializeTvShows()
 

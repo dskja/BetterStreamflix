@@ -27,6 +27,7 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.TMDb3
 import com.dskja.betterstreamflix.utils.TMDb3.original
 import com.dskja.betterstreamflix.utils.TMDb3.w500
@@ -44,6 +45,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 class TmdbProvider(override val language: String) : Provider {
+    companion object {
+        private const val TMDB_DE_PREFIX = "tmdbde:"
+    }
+
     override val baseUrl: String
         get() = ""
 
@@ -436,7 +441,16 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        val movies = TMDb3.MovieLists.popular(page = page, language = language).results.map { movie ->
+        val pageResult = if (UserPreferences.catalogSortMode == CatalogSortMode.LAST_RELEASE) {
+            TMDb3.Discover.movie(
+                page = page,
+                language = language,
+                sortBy = TMDb3.Params.SortBy.Movie.PRIMARY_RELEASE_DATE_DESC,
+            )
+        } else {
+            TMDb3.MovieLists.popular(page = page, language = language)
+        }
+        val movies = pageResult.results.map { movie ->
             Movie(
                 id = movie.id.toString(),
                 title = movie.title,
@@ -452,7 +466,16 @@ class TmdbProvider(override val language: String) : Provider {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val tvShows = TMDb3.TvSeriesLists.popular(page = page, language = language).results.map { tv ->
+        val pageResult = if (UserPreferences.catalogSortMode == CatalogSortMode.LAST_RELEASE) {
+            TMDb3.Discover.tv(
+                page = page,
+                language = language,
+                sortBy = TMDb3.Params.SortBy.Tv.FIRST_AIR_DATE_DESC,
+            )
+        } else {
+            TMDb3.TvSeriesLists.popular(page = page, language = language)
+        }
+        val tvShows = pageResult.results.map { tv ->
             TvShow(
                 id = tv.id.toString(),
                 title = tv.name,
@@ -757,12 +780,33 @@ class TmdbProvider(override val language: String) : Provider {
                 servers.add(VixSrcExtractor().server(videoType))
             }
             "de" -> {
-                // Solo server tedeschi
+                // Existing direct extractors
                 servers.addAll(0, MoflixExtractor().servers(videoType))
                 if (videoType is Video.Type.Movie) {
                     servers.add(EinschaltenExtractor().server(videoType))
                 }
                 VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
+
+                // Native German providers searched in parallel and routed via tmdbde: markers.
+                val targetTitle = when (videoType) {
+                    is Video.Type.Movie -> videoType.title
+                    is Video.Type.Episode -> videoType.tvShow.title
+                }
+                val nativeProviders: List<Provider> = buildList {
+                    add(KinoGerProvider)
+                    add(HDFilmeProvider)
+                    add(MEGAKinoProvider)
+                    add(FilmPalastProvider)
+                    if (videoType is Video.Type.Movie) add(FilmoProvider)
+                    if (videoType is Video.Type.Episode) add(SerienStreamProvider)
+                }
+                servers.addAll(
+                    resolveGermanNativeServers(
+                        providers = nativeProviders,
+                        targetTitle = targetTitle,
+                        videoType = videoType,
+                    ),
+                )
             }
             "fr" -> {
                 // Solo server francesi
@@ -908,7 +952,12 @@ class TmdbProvider(override val language: String) : Provider {
     override suspend fun getVideo(server: Video.Server): Video {
         val url = server.src.ifEmpty { server.id }
         Log.i("BetterStreamflix", "[SERVER] -> Using: ${server.name} (URL: $url)")
-        
+
+        if (server.id.startsWith(TMDB_DE_PREFIX)) {
+            val routed = routeGermanNativeVideo(server)
+            if (routed != null) return routed
+        }
+
         val video = when {
             server.video != null -> server.video!!
             else -> Extractor.extract(url, server)
@@ -941,6 +990,144 @@ class TmdbProvider(override val language: String) : Provider {
         
         Log.i("BetterStreamflix", "[VIDEO] -> Final source: ${video.source}")
         return video
+    }
+
+    private suspend fun resolveGermanNativeServers(
+        providers: List<Provider>,
+        targetTitle: String,
+        videoType: Video.Type,
+    ): List<Video.Server> = coroutineScope {
+        providers.map { provider ->
+            async {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        kotlinx.coroutines.withTimeout(15_000L) {
+                            val results = provider.search(targetTitle, 1)
+                            val best = results
+                                .mapNotNull { item ->
+                                    when {
+                                        videoType is Video.Type.Movie && item is Movie ->
+                                            item to germanTitleScore(item.title, targetTitle)
+                                        videoType is Video.Type.Episode && item is TvShow ->
+                                            item to germanTitleScore(item.title, targetTitle)
+                                        else -> null
+                                    }
+                                }
+                                .filter { it.second >= 60 }
+                                .maxByOrNull { it.second }
+                                ?.first
+                                ?: return@withTimeout emptyList()
+
+                            when (videoType) {
+                                is Video.Type.Movie -> {
+                                    val movie = best as Movie
+                                    provider.getServers(movie.id, videoType).map { server ->
+                                        wrapGermanNativeServer(provider, server)
+                                    }
+                                }
+                                is Video.Type.Episode -> {
+                                    val show = best as TvShow
+                                    val detailed = runCatching { provider.getTvShow(show.id) }.getOrDefault(show)
+                                    val season = detailed.seasons.firstOrNull {
+                                        it.number == videoType.season.number
+                                    } ?: detailed.seasons.firstOrNull()
+                                    ?: return@withTimeout emptyList()
+                                    val episodes = provider.getEpisodesBySeason(season.id)
+                                    val episode = episodes.firstOrNull { it.number == videoType.number }
+                                        ?: return@withTimeout emptyList()
+                                    val episodeType = Video.Type.Episode(
+                                        id = episode.id,
+                                        number = episode.number,
+                                        title = episode.title,
+                                        poster = episode.poster,
+                                        overview = episode.overview,
+                                        tvShow = Video.Type.Episode.TvShow(
+                                            id = detailed.id,
+                                            title = detailed.title,
+                                            poster = detailed.poster,
+                                            banner = detailed.banner,
+                                            releaseDate = null,
+                                            imdbId = null,
+                                        ),
+                                        season = Video.Type.Episode.Season(
+                                            number = season.number,
+                                            title = season.title,
+                                        ),
+                                    )
+                                    provider.getServers(episode.id, episodeType).map { server ->
+                                        wrapGermanNativeServer(provider, server)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }.onFailure {
+                    Log.e("TmdbProvider", "DE native provider ${provider.name} failed: ${it.message}")
+                }.getOrDefault(emptyList())
+            }
+        }.awaitAll().flatten()
+    }
+
+    private fun wrapGermanNativeServer(provider: Provider, server: Video.Server): Video.Server {
+        val key = germanProviderKey(provider)
+        return Video.Server(
+            id = "$TMDB_DE_PREFIX$key:${server.id}",
+            name = "${provider.name} • ${server.name}",
+            src = server.src,
+        )
+    }
+
+    private suspend fun routeGermanNativeVideo(server: Video.Server): Video? {
+        val remainder = server.id.removePrefix(TMDB_DE_PREFIX)
+        val providerKey = remainder.substringBefore(':')
+        val originalId = remainder.substringAfter(':', missingDelimiterValue = "")
+        if (providerKey.isBlank() || originalId.isBlank()) return null
+        val provider = germanProviderByKey(providerKey) ?: return null
+        val original = Video.Server(
+            id = originalId,
+            name = server.name.substringAfter(" • ").ifBlank { server.name },
+            src = server.src.ifBlank { originalId },
+        )
+        return runCatching { provider.getVideo(original) }.getOrNull()
+    }
+
+    private fun germanProviderKey(provider: Provider): String = when (provider) {
+        KinoGerProvider -> "kinoger"
+        HDFilmeProvider -> "hdfilme"
+        MEGAKinoProvider -> "megakino"
+        FilmPalastProvider -> "filmpalast"
+        FilmoProvider -> "filmo"
+        SerienStreamProvider -> "serienstream"
+        else -> provider.name.lowercase().replace(Regex("[^a-z0-9]+"), "")
+    }
+
+    private fun germanProviderByKey(key: String): Provider? = when (key) {
+        "kinoger" -> KinoGerProvider
+        "hdfilme" -> HDFilmeProvider
+        "megakino" -> MEGAKinoProvider
+        "filmpalast" -> FilmPalastProvider
+        "filmo" -> FilmoProvider
+        "serienstream" -> SerienStreamProvider
+        else -> null
+    }
+
+    private fun germanTitleScore(candidate: String, target: String): Int {
+        fun normalize(value: String): String =
+            value.lowercase()
+                .replace("ä", "ae")
+                .replace("ö", "oe")
+                .replace("ü", "ue")
+                .replace("ß", "ss")
+                .replace(Regex("[^a-z0-9]"), "")
+        val a = normalize(candidate)
+        val b = normalize(target)
+        if (a.isEmpty() || b.isEmpty()) return 0
+        return when {
+            a == b -> 100
+            a.startsWith(b) || b.startsWith(a) -> 80
+            a.contains(b) || b.contains(a) -> 60
+            else -> 0
+        }
     }
 
     private fun getTranslation(key: String): String {

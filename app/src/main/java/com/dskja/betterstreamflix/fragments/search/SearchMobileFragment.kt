@@ -25,6 +25,7 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.UserPreferences // <-- IMPORT AÑADIDO
 import com.dskja.betterstreamflix.utils.VoiceRecognitionHelper
@@ -53,7 +54,16 @@ class SearchMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentSearchMobileBinding.inflate(inflater, container, false)
+        _binding = FragmentSearchMobileBinding.bind(
+            inflater.inflate(
+                ExperimentalMobileDesign.layout(
+                    R.layout.fragment_search_mobile,
+                    R.layout.fragment_search_mobile_exp,
+                ),
+                container,
+                false,
+            )
+        )
         return binding.root
     }
 

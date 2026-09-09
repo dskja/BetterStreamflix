@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/exp_charcoal"
+    tools:context=".fragments.providers.ProvidersMobileFragment">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:src="@drawable/ic_providers_language"
+        android:tint="@color/exp_steel_teal"
+        app:layout_constraintBottom_toBottomOf="@id/s_providers_language"
+        app:layout_constraintEnd_toStartOf="@id/s_providers_language"
+        app:layout_constraintTop_toTopOf="@id/s_providers_language"
+        tools:ignore="ContentDescription,UseAppTint" />
+
+    <Spinner
+        android:id="@+id/s_providers_language"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_providers_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="48dp"
+        android:fontFamily="@font/outfit"
+        android:gravity="center"
+        android:text="@string/providers_choose_title"
+        android:textColor="@color/exp_text_primary"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@id/rv_providers"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/s_providers_language"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <View
+        android:layout_width="56dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="8dp"
+        android:background="@color/exp_steel_teal"
+        app:layout_constraintEnd_toEndOf="@id/tv_providers_label"
+        app:layout_constraintStart_toStartOf="@id/tv_providers_label"
+        app:layout_constraintTop_toBottomOf="@id/tv_providers_label" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_providers"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="48dp"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingTop="16dp"
+        android:paddingBottom="32dp"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_providers_label"
+        app:spanCount="2"
+        tools:itemCount="3"
+        tools:listitem="@layout/item_provider_mobile" />
+
+    <include
+        android:id="@+id/is_loading"
+        layout="@layout/layout_is_loading_mobile"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

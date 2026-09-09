@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.models.TvShow
+import com.dskja.betterstreamflix.utils.CatalogSort
 import com.dskja.betterstreamflix.utils.ParentalControlUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -84,7 +85,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
         try {
             val tvShows = ParentalControlUtils.filterItems(
                 UserPreferences.currentProvider!!.getTvShows()
-            ).filterIsInstance<TvShow>()
+            ).filterIsInstance<TvShow>().let { CatalogSort.tvShows(it) }
 
             page = 1
 
@@ -103,7 +104,7 @@ class TvShowsViewModel(database: AppDatabase) : ViewModel() {
             try {
                 val tvShows = ParentalControlUtils.filterItems(
                     UserPreferences.currentProvider!!.getTvShows(page + 1)
-                ).filterIsInstance<TvShow>()
+                ).filterIsInstance<TvShow>().let { CatalogSort.tvShows(it) }
 
                 page += 1
 

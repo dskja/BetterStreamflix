@@ -23,6 +23,7 @@ import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
 
 class FavoritesMobileFragment : Fragment() {
@@ -42,7 +43,16 @@ class FavoritesMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentFavoritesMobileBinding.inflate(inflater, container, false)
+        _binding = FragmentFavoritesMobileBinding.bind(
+            inflater.inflate(
+                ExperimentalMobileDesign.layout(
+                    R.layout.fragment_favorites_mobile,
+                    R.layout.fragment_favorites_mobile_exp,
+                ),
+                container,
+                false,
+            )
+        )
         return binding.root
     }
 

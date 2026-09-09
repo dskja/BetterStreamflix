@@ -45,7 +45,8 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
             val cachedUrl = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
             return cachedUrl.ifBlank { field }
         }
-    override val logo = "https://images2.imgbox.com/a2/83/OubSojBq_o.png"
+    override val logo: String
+        get() = "https://www.google.com/s2/favicons?domain=megakino.me&sz=128"
     override val language = "de"
     override val changeUrlMutex = Mutex()
 

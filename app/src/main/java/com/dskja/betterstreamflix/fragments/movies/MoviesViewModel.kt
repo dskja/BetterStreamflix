@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.models.Movie
+import com.dskja.betterstreamflix.utils.CatalogSort
 import com.dskja.betterstreamflix.utils.ParentalControlUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -83,7 +84,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
         try {
             val movies = ParentalControlUtils.filterItems(
                 UserPreferences.currentProvider!!.getMovies()
-            ).filterIsInstance<Movie>()
+            ).filterIsInstance<Movie>().let { CatalogSort.movies(it) }
 
             page = 1
 
@@ -102,7 +103,7 @@ class MoviesViewModel(database: AppDatabase) : ViewModel() {
             try {
                 val movies = ParentalControlUtils.filterItems(
                     UserPreferences.currentProvider!!.getMovies(page + 1)
-                ).filterIsInstance<Movie>()
+                ).filterIsInstance<Movie>().let { CatalogSort.movies(it) }
 
                 page += 1
 

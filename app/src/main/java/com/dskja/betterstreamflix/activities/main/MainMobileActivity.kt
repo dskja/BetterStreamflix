@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -41,6 +42,7 @@ import com.dskja.betterstreamflix.providers.SoloLatinoProvider
 import com.dskja.betterstreamflix.providers.ZaluknijProvider
 import com.dskja.betterstreamflix.ui.UpdateAppMobileDialog
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -110,9 +112,24 @@ class MainMobileActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         applySystemBarColors()
 
-        _binding = ActivityMainMobileBinding.inflate(layoutInflater)
+        _binding = ActivityMainMobileBinding.bind(
+            layoutInflater.inflate(
+                ExperimentalMobileDesign.layout(
+                    R.layout.activity_main_mobile,
+                    R.layout.activity_main_mobile_exp,
+                ),
+                null,
+                false,
+            )
+        )
         setContentView(binding.root)
         applyThemeNavigationChrome()
+        if (ExperimentalMobileDesign.enabled()) {
+            binding.bnvMain.itemIconTintList =
+                ContextCompat.getColorStateList(this, R.color.nav_item_exp)
+            binding.bnvMain.itemTextColor =
+                ContextCompat.getColorStateList(this, R.color.nav_item_exp)
+        }
 
         // Defer provider native/WebView setup so splash/first frame can paint first.
         window.decorView.post {

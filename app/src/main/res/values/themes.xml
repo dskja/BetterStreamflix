@@ -14,6 +14,12 @@
         <item name="android:textSize">11sp</item>
     </style>
 
+    <style name="BottomNavLabelStyleExp" parent="Widget.Design.BottomNavigationView">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">@font/outfit_family</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+
     <!-- Tema Nero Amoled/Oled per Mobile -->
     <style name="AppTheme.Mobile.NeroAmoledOled" parent="AppTheme.Mobile">
         <item name="app_background_color">#000000</item>

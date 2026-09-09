@@ -104,6 +104,8 @@ interface Provider {
             EinschaltenProvider to ProviderSupport(movies = true, tvShows = false),
             HDFilmeProvider to ProviderSupport(movies = true, tvShows = true),
             MEGAKinoProvider to ProviderSupport(movies = true, tvShows = true),
+            KinoGerProvider to ProviderSupport(movies = true, tvShows = true),
+            FilmoProvider to ProviderSupport(movies = true, tvShows = false),
             FilmyOnlineCcProvider to ProviderSupport(movies = true, tvShows = true),
             ZaluknijProvider to ProviderSupport(movies = true, tvShows = true),
             TvporinternetHDProvider to ProviderSupport(movies = false, tvShows = true),
@@ -123,11 +125,6 @@ interface Provider {
             PlutoTvUsProvider to ProviderSupport(movies = false, tvShows = true),
             CineCityProvider to ProviderSupport(movies = false, tvShows = true),
             CineHaxProvider to ProviderSupport(movies = true, tvShows = true),
-            VavooProvider("de") to ProviderSupport(movies = false, tvShows = true),
-            VavooProvider("it") to ProviderSupport(movies = false, tvShows = true),
-            VavooProvider("fr") to ProviderSupport(movies = false, tvShows = true),
-            VavooProvider("es") to ProviderSupport(movies = false, tvShows = true),
-            VavooProvider("pl") to ProviderSupport(movies = false, tvShows = true)
         )
 
         // Helper functions to check support

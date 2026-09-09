@@ -323,6 +323,54 @@
                 android:summaryOff="@string/settings_immersive_mode_off"
                 android:defaultValue="false"
                 app:iconSpaceReserved="false" />
+
+            <SwitchPreference
+                android:key="EXPERIMENTAL_NEW_APP_DESIGN"
+                android:title="@string/settings_experimental_new_design_title"
+                android:summary="@string/settings_experimental_new_design_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+
+            <ListPreference
+                android:key="CATALOG_SORT_MODE"
+                android:title="@string/settings_catalog_sort_title"
+                android:summary="%s"
+                android:entries="@array/catalog_sort_names"
+                android:entryValues="@array/catalog_sort_values"
+                android:defaultValue="DEFAULT"
+                app:iconSpaceReserved="false" />
+
+            <SwitchPreference
+                android:key="CAST_ENABLED"
+                android:title="@string/settings_cast_enabled_title"
+                android:summary="@string/settings_cast_enabled_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:key="screen_watchlist_import"
+        android:title="@string/settings_watchlist_import_title"
+        android:summary="@string/settings_watchlist_import_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
+        app:iconSpaceReserved="false">
+
+        <PreferenceCategory
+            android:title="@string/settings_watchlist_import_title"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="WATCHLIST_IMPORT_SERIENSTREAM"
+                android:title="@string/settings_watchlist_import_serienstream"
+                android:summary="@string/settings_watchlist_import_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="WATCHLIST_IMPORT_ANIWORLD"
+                android:title="@string/settings_watchlist_import_aniworld"
+                android:summary="@string/settings_watchlist_import_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
 
