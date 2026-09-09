@@ -27,6 +27,24 @@
         <item name="android:textColor">#FFFFFF</item>
     </style>
 
+    <style name="AppTheme.Widget.Mobile.Button.Exp" parent="AppTheme.Mobile">
+        <item name="android:background">@drawable/bg_exp_button_primary</item>
+        <item name="android:fontFamily">@font/outfit</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">@color/exp_frost</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <style name="AppTheme.Widget.Mobile.Button.Exp.Secondary" parent="AppTheme.Widget.Mobile.Button.Exp">
+        <item name="android:background">@drawable/bg_exp_button_secondary</item>
+        <item name="android:textColor">@color/exp_frost</item>
+    </style>
+
     <!-- Stile per forzare il fondo nero nelle schermate di impostazione (Leanback) -->
     <!-- Usiamo direttamente android:background nella preferenceTheme per non romper il build -->
     <style name="PreferenceThemeOverlay.Leanback.Amoled" parent="PreferenceThemeOverlayLeanback">

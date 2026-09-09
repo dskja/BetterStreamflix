@@ -4,47 +4,89 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_charcoal"
+    android:background="@color/exp_ink"
     tools:context=".fragments.home.HomeMobileFragment">
 
     <ImageView
         android:id="@+id/iv_home_background"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:foreground="@drawable/bg_home_gradient_exp"
+        android:foreground="@drawable/bg_exp_home_hero"
         android:scaleType="centerCrop"
-        android:src="@drawable/bg_home_gradient_exp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.72"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0"
         tools:ignore="ContentDescription" />
+
+    <View
+        android:id="@+id/v_home_atmosphere"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_home_gradient_exp"
+        app:layout_constraintBottom_toBottomOf="@id/iv_home_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_home_brand"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="12dp"
         android:ellipsize="end"
         android:fontFamily="@font/outfit"
-        android:maxLines="1"
+        android:letterSpacing="-0.03"
+        android:maxLines="2"
         android:text="@string/app_name"
-        android:textColor="@color/exp_text_primary"
-        android:textSize="28sp"
+        android:textColor="@color/exp_frost"
+        android:textSize="34sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/iv_provider_logo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <View
-        android:layout_width="48dp"
-        android:layout_height="3dp"
+    <TextView
+        android:id="@+id/tv_home_tagline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:background="@color/exp_steel_teal"
+        android:fontFamily="@font/outfit"
+        android:letterSpacing="0.08"
+        android:text="@string/exp_home_tagline"
+        android:textAllCaps="true"
+        android:textColor="@color/exp_mist"
+        android:textSize="11sp"
+        app:layout_constraintEnd_toEndOf="@id/tv_home_brand"
         app:layout_constraintStart_toStartOf="@id/tv_home_brand"
         app:layout_constraintTop_toBottomOf="@id/tv_home_brand" />
+
+    <View
+        android:id="@+id/v_home_brand_rule"
+        android:layout_width="40dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="12dp"
+        android:background="@color/exp_signal"
+        app:layout_constraintStart_toStartOf="@id/tv_home_brand"
+        app:layout_constraintTop_toBottomOf="@id/tv_home_tagline" />
+
+    <ImageView
+        android:id="@+id/iv_provider_logo"
+        android:layout_width="52dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="20dp"
+        android:background="@drawable/bg_provider_logo_home_exp"
+        android:duplicateParentState="true"
+        android:importantForAccessibility="no"
+        android:padding="10dp"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_home"
@@ -52,14 +94,15 @@
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:orientation="vertical"
-        android:paddingTop="72dp"
+        android:paddingTop="108dp"
+        android:paddingBottom="24dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:itemCount="1"
-        tools:listitem="@layout/content_category_swiper_mobile" />
+        tools:listitem="@layout/content_category_swiper_mobile_exp" />
 
     <include
         android:id="@+id/is_loading"
@@ -69,20 +112,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <ImageView
-        android:id="@+id/iv_provider_logo"
-        android:layout_width="72dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/bg_provider_logo_home_exp"
-        android:duplicateParentState="true"
-        android:importantForAccessibility="no"
-        android:padding="10dp"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

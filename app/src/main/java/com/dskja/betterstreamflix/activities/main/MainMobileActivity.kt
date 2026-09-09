@@ -43,10 +43,12 @@ import com.dskja.betterstreamflix.providers.ZaluknijProvider
 import com.dskja.betterstreamflix.ui.UpdateAppMobileDialog
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
+import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.getCurrentFragment
+import com.google.android.gms.cast.framework.CastContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -123,12 +125,13 @@ class MainMobileActivity : FragmentActivity() {
             )
         )
         setContentView(binding.root)
-        applyThemeNavigationChrome()
         if (ExperimentalMobileDesign.enabled()) {
-            binding.bnvMain.itemIconTintList =
-                ContextCompat.getColorStateList(this, R.color.nav_item_exp)
-            binding.bnvMain.itemTextColor =
-                ContextCompat.getColorStateList(this, R.color.nav_item_exp)
+            applyExperimentalNavigationChrome()
+        } else {
+            applyThemeNavigationChrome()
+        }
+        if (UserPreferences.castEnabled) {
+            CastPlaybackHub.ensureCastContext(this)
         }
 
         // Defer provider native/WebView setup so splash/first frame can paint first.
@@ -321,6 +324,12 @@ class MainMobileActivity : FragmentActivity() {
             isTopLevelProviderDestination(destinationId) &&
             destinationId != R.id.search
         ) View.VISIBLE else View.GONE
+        runCatching {
+            val mini = binding.root.findViewById<View>(R.id.cast_mini_controller)
+            if (destinationId == R.id.player) {
+                mini?.visibility = View.GONE
+            }
+        }
     }
 
     private fun updateNavigationVisibility(currentDestinationId: Int? = null) {
@@ -609,6 +618,24 @@ class MainMobileActivity : FragmentActivity() {
             controller.hide(WindowInsetsCompat.Type.systemBars())
         } else {
             controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun applyExperimentalNavigationChrome() {
+        binding.bnvMain.setBackgroundResource(R.drawable.bg_exp_bottom_nav)
+        binding.bnvMain.itemIconTintList =
+            ContextCompat.getColorStateList(this, R.color.nav_item_exp)
+        binding.bnvMain.itemTextColor =
+            ContextCompat.getColorStateList(this, R.color.nav_item_exp)
+        val ink = ContextCompat.getColor(this, R.color.exp_ink)
+        @Suppress("DEPRECATION")
+        run {
+            window.statusBarColor = ink
+            window.navigationBarColor = ink
+        }
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
         }
     }
 

@@ -1,8 +1,8 @@
 package com.dskja.betterstreamflix.utils
 
 /**
- * Toggles the off-by-default experimental mobile shell redesign.
- * Layouts keep the same view IDs so existing ViewBindings can `.bind(view)`.
+ * Off-by-default Signal Cinema mobile shell.
+ * Experimental layouts keep the same view IDs so existing ViewBindings can `.bind(view)`.
  */
 object ExperimentalMobileDesign {
     fun enabled(): Boolean = UserPreferences.experimentalNewAppDesign
