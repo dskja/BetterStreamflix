@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_charcoal"
+    android:background="@color/exp_ink"
     tools:context=".fragments.search.SearchMobileFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -25,7 +25,7 @@
             android:layout_height="0dp"
             android:padding="12dp"
             android:src="@drawable/ic_search"
-            android:tint="@color/exp_steel_teal"
+            android:tint="@color/exp_signal"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintStart_toStartOf="parent"
@@ -45,7 +45,7 @@
             android:maxLines="1"
             android:paddingTop="14dp"
             android:paddingBottom="14dp"
-            android:textColor="@color/exp_text_primary"
+            android:textColor="@color/exp_frost"
             android:textColorHint="@color/exp_text_muted"
             android:textSize="16sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -73,7 +73,7 @@
             android:layout_height="0dp"
             android:padding="12dp"
             android:src="@drawable/ic_mic"
-            android:tint="@color/exp_steel_teal"
+            android:tint="@color/exp_signal"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toEndOf="parent"
@@ -89,12 +89,12 @@
         android:layout_marginTop="12dp"
         android:fontFamily="@font/outfit"
         android:text="@string/global_search"
-        android:textColor="@color/exp_text_primary"
+        android:textColor="@color/exp_frost"
         app:layout_constraintEnd_toEndOf="@id/cl_search"
         app:layout_constraintStart_toStartOf="@id/cl_search"
         app:layout_constraintTop_toBottomOf="@id/cl_search"
-        app:thumbTint="@color/exp_steel_teal"
-        app:trackTint="@color/exp_steel_teal_dim" />
+        app:thumbTint="@color/exp_signal"
+        app:trackTint="@color/exp_signal_dim" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_search"

@@ -72,7 +72,8 @@ import com.dskja.betterstreamflix.utils.SubtitleOffsetRenderersFactory
 import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.google.android.gms.cast.framework.CastButtonFactory
-import com.google.android.gms.cast.framework.CastContext
+import com.dskja.betterstreamflix.cast.CastMediaFactory
+import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.utils.UserDataCache
 import com.dskja.betterstreamflix.utils.ProviderAudioLanguage
 import com.dskja.betterstreamflix.utils.dp
@@ -137,6 +138,7 @@ class PlayerMobileFragment : Fragment() {
     private lateinit var player: ExoPlayer
     private var castPlayer: CastPlayer? = null
     private var isCasting = false
+    private var lastCastHeaders: Map<String, String> = emptyMap()
     private lateinit var httpDataSource: HttpDataSource.Factory
     private lateinit var dataSourceFactory: DataSource.Factory
     private lateinit var mediaSession: MediaSession
@@ -158,7 +160,8 @@ class PlayerMobileFragment : Fragment() {
 
     /** Active playback surface: Cast when a session is connected, otherwise ExoPlayer. */
     private fun activePlayer(): Player =
-        if (isCasting) castPlayer ?: player else player
+        if (isCasting || CastPlaybackHub.isCasting) castPlayer ?: CastPlaybackHub.playerOrNull() ?: player
+        else player
     private val bypassWebViewLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val cookies =
@@ -613,6 +616,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     fun onUserLeaveHint() {
+        if (isCasting || CastPlaybackHub.isCasting) return
         if (!isIgnoringPip && ::player.isInitialized && player.isPlaying) {
             enterPIPMode()
         }
@@ -620,7 +624,8 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        if (::player.isInitialized) {
+        // Keep local Exo paused only when we are not casting — otherwise Cast owns playback.
+        if (::player.isInitialized && !isCasting && !CastPlaybackHub.isCasting) {
             player.pause()
         }
     }
@@ -641,7 +646,9 @@ class PlayerMobileFragment : Fragment() {
         }
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         releasePlayer()
-        releaseCastPlayer()
+        // Detach Cast UI but keep an active Chromecast session alive for the mini controller.
+        CastPlaybackHub.detachUi(requireContext().applicationContext)
+        castPlayer = CastPlaybackHub.playerOrNull()
         try {
             requireContext().unregisterReceiver(chooserReceiver)
         } catch (ignored: Exception) {}
@@ -1030,10 +1037,17 @@ class PlayerMobileFragment : Fragment() {
 
         val currentPosition = player.currentPosition
 
-        httpDataSource.setDefaultRequestProperties(
-            mapOf(
-                "User-Agent" to userAgent,
-            ) + (video.headers ?: emptyMap())
+        lastCastHeaders = mapOf(
+            "User-Agent" to userAgent,
+        ) + (video.headers ?: emptyMap())
+
+        httpDataSource.setDefaultRequestProperties(lastCastHeaders)
+
+        val mediaMetadata = CastMediaFactory.buildMetadata(
+            title = resolvePlayerTitle(),
+            subtitle = resolvePlayerSubtitle(),
+            videoType = args.videoType,
+            serverId = server.id,
         )
 
         val mediaItemBuilder = MediaItem.Builder()
@@ -1049,22 +1063,21 @@ class PlayerMobileFragment : Fragment() {
         } else {
             applyLiveControllerChrome(live = false)
         }
-        player.setMediaItem(
-            mediaItemBuilder
-                .setSubtitleConfigurations(
-                    subtitleConfigurationsForPlayback(
-                        context = requireContext(),
-                        videoType = args.videoType,
-                        serverSubtitles = video.subtitles,
-                    )
+        val localMediaItem = mediaItemBuilder
+            .setSubtitleConfigurations(
+                subtitleConfigurationsForPlayback(
+                    context = requireContext(),
+                    videoType = args.videoType,
+                    serverSubtitles = video.subtitles,
                 )
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setMediaServerId(server.id)
-                        .build()
-                )
-                .build()
-        )
+            )
+            .setMediaMetadata(mediaMetadata)
+            .build()
+        player.setMediaItem(localMediaItem)
+
+        if (isCasting || CastPlaybackHub.isCasting) {
+            pushMediaToCast(video, server, mediaMetadata, startPosition = currentPosition)
+        }
 
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
             isIgnoringPip = true
@@ -1724,22 +1737,30 @@ class PlayerMobileFragment : Fragment() {
         }
 
         runCatching {
-            val castContext = CastContext.getSharedInstance(requireContext().applicationContext)
+            CastPlaybackHub.ensureCastContext(requireContext())
             CastButtonFactory.setUpMediaRouteButton(requireContext(), routeButton)
             routeButton.isVisible = true
 
-            if (castPlayer == null) {
-                castPlayer = CastPlayer(castContext).also { cp ->
-                    cp.setSessionAvailabilityListener(object : SessionAvailabilityListener {
-                        override fun onCastSessionAvailable() {
-                            switchPlaybackToCast()
-                        }
-
-                        override fun onCastSessionUnavailable() {
-                            switchPlaybackToLocal()
-                        }
-                    })
+            castPlayer = CastPlaybackHub.obtainPlayer(requireContext())
+            CastPlaybackHub.setSessionAvailabilityListener(object : SessionAvailabilityListener {
+                override fun onCastSessionAvailable() {
+                    if (view == null) return
+                    switchPlaybackToCast()
                 }
+
+                override fun onCastSessionUnavailable() {
+                    if (view == null) {
+                        CastPlaybackHub.markCasting(false)
+                        isCasting = false
+                        return
+                    }
+                    switchPlaybackToLocal()
+                }
+            })
+
+            // Re-attach if a session is already active (e.g. returning from browse).
+            if (CastPlaybackHub.isCasting || castPlayer?.isCastSessionAvailable == true) {
+                switchPlaybackToCast()
             }
         }.onFailure {
             Log.w("PlayerCast", "Cast unavailable: ${it.message}")
@@ -1748,25 +1769,99 @@ class PlayerMobileFragment : Fragment() {
         }
     }
 
+    private fun pushMediaToCast(
+        video: Video,
+        server: Video.Server,
+        metadata: MediaMetadata = CastMediaFactory.buildMetadata(
+            title = resolvePlayerTitle(),
+            subtitle = resolvePlayerSubtitle(),
+            videoType = args.videoType,
+            serverId = server.id,
+        ),
+        startPosition: Long = player.currentPosition,
+        playWhenReady: Boolean = true,
+    ) {
+        val cp = castPlayer ?: CastPlaybackHub.obtainPlayer(requireContext()) ?: return
+        castPlayer = cp
+
+        val extracted = if (video.source.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
+            decodeBase64Uri(video.source)?.let { extractUrlFromPlaylist(it) }
+        } else {
+            null
+        }
+
+        if (video.source.startsWith("data:", ignoreCase = true) && extracted.isNullOrBlank()) {
+            Toast.makeText(requireContext(), R.string.player_cast_unsupported_stream, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val castItem = CastMediaFactory.mediaItemForCast(
+            source = video.source,
+            mimeType = video.type,
+            headers = lastCastHeaders,
+            metadata = metadata,
+            subtitleConfigurations = subtitleConfigurationsForPlayback(
+                context = requireContext(),
+                videoType = args.videoType,
+                serverSubtitles = video.subtitles,
+            ),
+            extractedFallback = extracted,
+            live = isLiveTvPlayback(),
+        )
+        cp.setMediaItem(castItem, startPosition)
+        cp.prepare()
+        cp.playWhenReady = playWhenReady
+    }
+
     private fun switchPlaybackToCast() {
-        val cp = castPlayer ?: return
+        val cp = castPlayer ?: CastPlaybackHub.obtainPlayer(requireContext()) ?: return
+        castPlayer = cp
         if (!::player.isInitialized) return
-        val mediaItem = player.currentMediaItem
         val position = player.currentPosition
         val playWhenReady = player.playWhenReady
         player.playWhenReady = false
-        if (mediaItem != null) {
-            cp.setMediaItem(mediaItem, position)
-            cp.prepare()
-            cp.playWhenReady = playWhenReady
+
+        val video = currentVideo
+        val server = currentServer
+        if (video != null && server != null) {
+            pushMediaToCast(video, server, startPosition = position, playWhenReady = playWhenReady)
+        } else {
+            val mediaItem = player.currentMediaItem
+            if (mediaItem != null) {
+                val headers = lastCastHeaders
+                val uri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+                val castUri = CastPlaybackHub.wrapForCast(uri, headers)
+                val castItem = mediaItem.buildUpon()
+                    .setUri(castUri.toUri())
+                    .setMediaMetadata(
+                        CastMediaFactory.buildMetadata(
+                            title = resolvePlayerTitle(),
+                            subtitle = resolvePlayerSubtitle(),
+                            videoType = args.videoType,
+                            serverId = currentServer?.id,
+                        )
+                    )
+                    .build()
+                cp.setMediaItem(castItem, position)
+                cp.prepare()
+                cp.playWhenReady = playWhenReady
+            }
         }
-        binding.pvPlayer.player = cp
+
+        if (_binding != null) {
+            binding.pvPlayer.player = cp
+        }
         isCasting = true
+        CastPlaybackHub.markCasting(true)
     }
 
     private fun switchPlaybackToLocal() {
-        val cp = castPlayer
-        if (!::player.isInitialized) return
+        val cp = castPlayer ?: CastPlaybackHub.playerOrNull()
+        if (!::player.isInitialized) {
+            CastPlaybackHub.markCasting(false)
+            isCasting = false
+            return
+        }
         val position = cp?.currentPosition ?: player.currentPosition
         val playWhenReady = cp?.playWhenReady ?: true
         runCatching { cp?.stop() }
@@ -1774,9 +1869,12 @@ class PlayerMobileFragment : Fragment() {
             player.seekTo(position)
             player.playWhenReady = playWhenReady
         }
-        binding.pvPlayer.player = player
-        binding.settings.player = player
+        if (_binding != null) {
+            binding.pvPlayer.player = player
+            binding.settings.player = player
+        }
         isCasting = false
+        CastPlaybackHub.markCasting(false)
     }
 
     private fun releasePlayer() {
@@ -1793,8 +1891,7 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private fun releaseCastPlayer() {
-        castPlayer?.setSessionAvailabilityListener(null)
-        castPlayer?.release()
+        CastPlaybackHub.releaseFully()
         castPlayer = null
         isCasting = false
     }

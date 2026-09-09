@@ -15,9 +15,10 @@
     </style>
 
     <style name="BottomNavLabelStyleExp" parent="Widget.Design.BottomNavigationView">
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">10sp</item>
         <item name="android:fontFamily">@font/outfit_family</item>
-        <item name="android:letterSpacing">0.02</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textAllCaps">true</item>
     </style>
 
     <!-- Tema Nero Amoled/Oled per Mobile -->

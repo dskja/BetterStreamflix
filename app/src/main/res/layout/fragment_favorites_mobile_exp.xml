@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_charcoal">
+    android:background="@color/exp_ink">
 
     <ImageButton
         android:id="@+id/btn_favorites_reorder_mode"
@@ -15,7 +15,7 @@
         android:src="@drawable/ic_reorder_white"
         app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_steel_teal" />
+        app:tint="@color/exp_signal" />
 
     <ImageButton
         android:id="@+id/btn_favorites_reorder"
@@ -28,7 +28,7 @@
         android:src="@drawable/ic_sort"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_steel_teal" />
+        app:tint="@color/exp_signal" />
 
     <TextView
         android:layout_width="0dp"
@@ -37,8 +37,9 @@
         android:layout_marginTop="12dp"
         android:fontFamily="@font/outfit"
         android:text="@string/main_menu_favorites"
-        android:textColor="@color/exp_text_primary"
-        android:textSize="24sp"
+        android:textColor="@color/exp_frost"
+        android:letterSpacing="-0.02"
+        android:textSize="28sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder_mode"
         app:layout_constraintStart_toStartOf="parent"

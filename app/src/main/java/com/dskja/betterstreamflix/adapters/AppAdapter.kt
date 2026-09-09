@@ -182,10 +182,15 @@ class AppAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
         when (Type.entries[viewType]) {
             Type.CATEGORY_MOBILE_ITEM -> CategoryViewHolder(
-                ItemCategoryMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemCategoryMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_category_mobile,
+                            R.layout.item_category_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.CATEGORY_TV_ITEM -> CategoryViewHolder(
@@ -197,10 +202,15 @@ class AppAdapter(
             )
 
             Type.CATEGORY_MOBILE_SWIPER -> CategoryViewHolder(
-                ContentCategorySwiperMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ContentCategorySwiperMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.content_category_swiper_mobile,
+                            R.layout.content_category_swiper_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.CATEGORY_TV_SWIPER -> CategoryViewHolder(
@@ -280,10 +290,15 @@ class AppAdapter(
 
             Type.MOVIE_CONTINUE_WATCHING_MOBILE_ITEM,
             Type.MOVIE_MOBILE_ITEM -> MovieViewHolder(
-                ItemMovieMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemMovieMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_movie_mobile,
+                            R.layout.item_movie_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.MOVIE_CONTINUE_WATCHING_TV_ITEM,
@@ -314,18 +329,28 @@ class AppAdapter(
                 )
             )
             Type.MOVIE_SWIPER_MOBILE_ITEM -> MovieViewHolder(
-                ItemCategorySwiperMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemCategorySwiperMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_category_swiper_mobile,
+                            R.layout.item_category_swiper_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
 
             Type.MOVIE_MOBILE -> MovieViewHolder(
-                ContentMovieMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ContentMovieMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.content_movie_mobile,
+                            R.layout.content_movie_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.MOVIE_TV -> MovieViewHolder(
@@ -424,10 +449,15 @@ class AppAdapter(
             )
 
             Type.TV_SHOW_MOBILE_ITEM -> TvShowViewHolder(
-                ItemTvShowMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
+                ItemTvShowMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_tv_show_mobile,
+                            R.layout.item_tv_show_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.TV_SHOW_TV_ITEM -> TvShowViewHolder(
@@ -457,18 +487,28 @@ class AppAdapter(
                 )
             )
             Type.TV_SHOW_SWIPER_MOBILE_ITEM -> TvShowViewHolder(
-                ItemCategorySwiperMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemCategorySwiperMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_category_swiper_mobile,
+                            R.layout.item_category_swiper_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
 
             Type.TV_SHOW_MOBILE -> TvShowViewHolder(
-                ContentTvShowMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ContentTvShowMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.content_tv_show_mobile,
+                            R.layout.content_tv_show_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.TV_SHOW_TV -> TvShowViewHolder(

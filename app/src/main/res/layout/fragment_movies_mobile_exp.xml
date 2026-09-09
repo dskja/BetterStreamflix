@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_charcoal"
+    android:background="@color/exp_ink"
     tools:context=".fragments.movies.MoviesMobileFragment">
 
     <TextView
@@ -15,8 +15,9 @@
         android:layout_marginEnd="16dp"
         android:fontFamily="@font/outfit"
         android:text="@string/main_menu_movies"
-        android:textColor="@color/exp_text_primary"
-        android:textSize="24sp"
+        android:textColor="@color/exp_frost"
+        android:letterSpacing="-0.02"
+        android:textSize="28sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

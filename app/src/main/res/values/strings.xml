@@ -551,12 +551,15 @@
 
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_experimental_new_design_title">Experimental app design</string>
-    <string name="settings_experimental_new_design_summary">Completely redesigned mobile UI (experimental). Restarts the app. Off by default.</string>
+    <string name="settings_experimental_new_design_summary">Signal Cinema mobile shell — brand-first home, full-bleed detail, distinct from the classic UI. Restarts the app. Off by default.</string>
+    <string name="exp_home_tagline">Signal Cinema</string>
+    <string name="player_cast_unsupported_stream">This stream cannot be cast (inline playlist). Try another server.</string>
+    <string name="player_cast_proxy_unavailable">Cast proxy unavailable on this network. Streaming may fail without headers.</string>
     <string name="settings_catalog_sort_title">Catalog sort</string>
     <string name="catalog_sort_default">Provider default</string>
     <string name="catalog_sort_last_release">Last release</string>
     <string name="settings_cast_enabled_title">Chromecast</string>
-    <string name="settings_cast_enabled_summary">Show Cast controls in the mobile player when Google Cast is available</string>
+    <string name="settings_cast_enabled_summary">Cast with header proxy, title/artwork metadata, mini controller, and session that survives leaving the player</string>
     <string name="player_cast_content_description">Cast</string>
     <string name="settings_watchlist_import_title">Import watchlist (s.to / AniWorld)</string>
     <string name="settings_watchlist_import_summary">Sign in on SerienStream or AniWorld and import your watchlist into Favorites</string>

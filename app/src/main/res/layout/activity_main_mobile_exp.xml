@@ -5,7 +5,7 @@
     android:id="@+id/main_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_charcoal"
+    android:background="@color/exp_ink"
     tools:context=".activities.main.MainMobileActivity">
 
     <androidx.fragment.app.FragmentContainerView
@@ -14,7 +14,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:defaultNavHost="true"
-        app:layout_constraintBottom_toTopOf="@+id/bnv_main"
+        app:layout_constraintBottom_toTopOf="@+id/cast_mini_controller"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -24,9 +24,9 @@
         android:id="@+id/btn_main_search"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginEnd="8dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="12dp"
+        android:background="@drawable/bg_exp_icon_chip"
         android:contentDescription="@string/main_menu_search"
         android:elevation="8dp"
         android:padding="12dp"
@@ -34,20 +34,32 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_steel_teal" />
+        app:tint="@color/exp_frost" />
+
+    <fragment
+        android:id="@+id/cast_mini_controller"
+        class="com.google.android.gms.cast.framework.media.widget.MiniControllerFragment"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/bnv_main"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:ignore="FragmentTagUsage" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bnv_main"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/exp_charcoal_nav"
+        android:background="@drawable/bg_exp_bottom_nav"
+        android:elevation="12dp"
         android:theme="@style/Theme.AppCompat"
         app:itemIconTint="@color/nav_item_exp"
-        app:itemRippleColor="@color/exp_steel_teal_dim"
+        app:itemRippleColor="@color/exp_signal_dim"
         app:itemTextAppearanceActive="@style/BottomNavLabelStyleExp"
         app:itemTextAppearanceInactive="@style/BottomNavLabelStyleExp"
         app:itemTextColor="@color/nav_item_exp"
-        app:labelVisibilityMode="labeled"
+        app:labelVisibilityMode="unlabeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

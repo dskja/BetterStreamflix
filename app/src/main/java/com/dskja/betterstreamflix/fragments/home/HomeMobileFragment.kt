@@ -11,6 +11,7 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
@@ -161,6 +162,10 @@ class HomeMobileFragment : Fragment() {
     }
 
     private fun displayHome(categories: List<Category>) {
+        if (ExperimentalMobileDesign.enabled()) {
+            updateExperimentalHero(categories)
+        }
+
         categories
             .find { it.name == Category.FEATURED }
             ?.also {
@@ -223,6 +228,30 @@ class HomeMobileFragment : Fragment() {
             binding.rvHome.startAnimation(
                 AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_up)
             )
+            binding.root.findViewById<View>(R.id.tv_home_brand)?.startAnimation(
+                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_brand_reveal)
+            )
+        }
+    }
+
+    private fun updateExperimentalHero(categories: List<Category>) {
+        val featured = categories.find { it.name == Category.FEATURED }?.list?.firstOrNull()
+        val art = when (featured) {
+            is Movie -> featured.banner ?: featured.poster
+            is TvShow -> featured.banner ?: featured.poster
+            else -> null
+        }
+        if (!art.isNullOrBlank()) {
+            Glide.with(binding.ivHomeBackground)
+                .load(art)
+                .transition(DrawableTransitionOptions.withCrossFade(450))
+                .centerCrop()
+                .into(binding.ivHomeBackground)
+            binding.ivHomeBackground.startAnimation(
+                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_hero_kenburns)
+            )
+        } else {
+            binding.ivHomeBackground.setImageResource(R.drawable.bg_home_gradient_exp)
         }
     }
 }
