@@ -53,6 +53,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
 
     override var onSubtitlesClicked: (() -> Unit)? = null
     var onManualZoomClicked: (() -> Unit)? = null
+    var onDownloadClicked: (() -> Unit)? = null
+    fun setOnDownloadClickedListener(listener: () -> Unit) {
+        onDownloadClicked = listener
+    }
 
     init {
         binding.btnSettingsClose.setOnClickListener {
@@ -238,6 +242,10 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                                 Settings.KeepScreenOn -> settingsView.displaySettings(Setting.KEEP_SCREEN_ON)
                                 Settings.ManualZoom -> {
                                     settingsView.onManualZoomClicked?.invoke()
+                                    settingsView.hide()
+                                }
+                                Settings.Download -> {
+                                    settingsView.onDownloadClicked?.invoke()
                                     settingsView.hide()
                                 }
                             }
@@ -452,6 +460,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Gestures -> R.drawable.ic_player_settings_gestures
                         Settings.KeepScreenOn -> R.drawable.ic_brightness
                         Settings.ManualZoom -> R.drawable.exo_styled_controls_aspect_ratio
+                        Settings.Download -> R.drawable.ic_player_settings_download
                     })
                 )
             }
@@ -469,6 +478,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.Gestures -> context.getString(R.string.player_settings_gestures_title)
                         Settings.KeepScreenOn -> context.getString(R.string.player_settings_keep_screen_on_title)
                         Settings.ManualZoom -> context.getString(R.string.player_settings_manual_zoom_label)
+                        Settings.Download -> context.getString(R.string.player_settings_download)
                     }
 
                     is Settings.Audio -> when (item) {
@@ -585,6 +595,7 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
                         Settings.KeepScreenOn -> context.getString(Settings.KeepScreenOn.selected.stringId)
                         Settings.Server -> Settings.Server.selected?.name ?: ""
                         Settings.ManualZoom -> ""
+                        Settings.Download -> ""
                         else -> ""
                     }
 

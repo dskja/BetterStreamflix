@@ -344,6 +344,7 @@ class MainMobileActivity : FragmentActivity() {
             R.id.movies,
             R.id.tv_shows,
             R.id.favorites,
+            R.id.downloads,
             R.id.settings,
         )
     }
@@ -507,6 +508,16 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     private fun handleIntent(intent: Intent): Boolean {
+        if (intent.getBooleanExtra("open_downloads", false)) {
+            val navHost =
+                supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+            val navController = navHost?.navController
+            if (navController != null && navController.currentDestination?.id != R.id.downloads) {
+                navController.navigate(R.id.downloads)
+            }
+            return true
+        }
+
         val data = intent.data ?: return false
 
         if (data.scheme == "streamflix" && data.host == "resolve") {

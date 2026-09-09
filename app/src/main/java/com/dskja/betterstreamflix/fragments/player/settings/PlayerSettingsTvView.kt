@@ -54,6 +54,10 @@ class PlayerSettingsTvView @JvmOverloads constructor(
 
     override var onSubtitlesClicked: (() -> Unit)? = null
     var onManualZoomClicked: (() -> Unit)? = null
+    var onDownloadClicked: (() -> Unit)? = null
+    fun setOnDownloadClickedListener(listener: () -> Unit) {
+        onDownloadClicked = listener
+    }
 
     init {
         binding.rvSettings.addItemDecoration(SpacingItemDecoration(6.dp(context)))
@@ -246,6 +250,10 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                 Settings.Server -> settingsView.displaySettings(Setting.SERVERS)
                                 Settings.ManualZoom -> {
                                     settingsView.onManualZoomClicked?.invoke()
+                                    settingsView.hide()
+                                }
+                                Settings.Download -> {
+                                    settingsView.onDownloadClicked?.invoke()
                                     settingsView.hide()
                                 }
                                 else -> {}
@@ -468,6 +476,12 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                                     R.drawable.exo_styled_controls_aspect_ratio
                                 )
                             )
+                            Settings.Download -> setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.ic_player_settings_download
+                                )
+                            )
                             else -> {}
                         }
                         visibility = View.VISIBLE
@@ -513,6 +527,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.SoftwareDecoder -> context.getString(R.string.player_settings_software_decoder_label)
                         Settings.Server -> context.getString(R.string.player_settings_servers_label)
                         Settings.ManualZoom -> context.getString(R.string.player_settings_manual_zoom_label)
+                        Settings.Download -> context.getString(R.string.player_settings_download)
                         else -> ""
                     }
 
@@ -624,6 +639,7 @@ class PlayerSettingsTvView @JvmOverloads constructor(
                         Settings.ExtraBuffering -> context.getString(Settings.ExtraBuffering.selected.stringId)
                         Settings.Server -> Settings.Server.selected?.name ?: ""
                         Settings.ManualZoom -> ""
+                        Settings.Download -> ""
                         else -> ""
                     }
 

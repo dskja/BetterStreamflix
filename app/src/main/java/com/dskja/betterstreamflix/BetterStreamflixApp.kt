@@ -91,11 +91,19 @@ class BetterStreamflixApp : Application() {
         // Rebuild after DoH is applied so the first TMDB call never uses system DNS.
         runCatching { TMDb3.rebuildService() }
 
+        runCatching {
+            com.dskja.betterstreamflix.download.DownloadConnectivityMonitor.start(this)
+            com.dskja.betterstreamflix.download.DownloadNotifier.ensureChannel(this)
+        }
+
         val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L
 
         applicationScope.launch(Dispatchers.IO) {
+            runCatching {
+                com.dskja.betterstreamflix.download.StreamflixDownloadManager.get(appContext)
+            }
             runCatching { AppDatabase.setup(appContext) }
             runCatching { SupabaseProvider.initialize(appContext) }
             runCatching { CloudSyncManager.initialize(appContext) }

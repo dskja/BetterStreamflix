@@ -29,7 +29,20 @@
         tools:ignore="ContentDescription"
         tools:visibility="visible" />
 
-    <ImageView
+        <ImageView
+        android:id="@+id/iv_movie_download_ribbon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_margin="6dp"
+        android:elevation="2dp"
+        android:src="@drawable/ic_offline_badge"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/iv_movie_poster"
+        app:layout_constraintTop_toTopOf="@id/iv_movie_poster"
+        tools:ignore="ContentDescription"
+        tools:visibility="visible" />
+
+<ImageView
         android:id="@+id/iv_movie_watched_ribbon"
         android:layout_width="24dp"
         android:layout_height="24dp"
@@ -61,7 +74,8 @@
         android:textColor="#FFFFFF"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_movie_poster"
-        app:layout_constraintTop_toTopOf="@id/iv_movie_poster"
+        app:layout_constraintTop_toBottomOf="@id/iv_movie_download_ribbon"
+        app:layout_goneMarginTop="6dp"
         tools:text="HD"
         tools:visibility="visible" />
 

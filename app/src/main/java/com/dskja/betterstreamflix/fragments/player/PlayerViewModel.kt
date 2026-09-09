@@ -104,6 +104,16 @@ class PlayerViewModel(
         lastId = id
         _state.emit(State.LoadingServers)
         try {
+            val offline = resolveOffline(videoType)
+            if (offline != null) {
+                val server = Video.Server(
+                    id = OFFLINE_SERVER_ID,
+                    name = OFFLINE_SERVER_NAME,
+                ).also { it.video = offline }
+                _state.emit(State.SuccessLoadingServers(listOf(server)))
+                return@launch
+            }
+
             val servers = UserPreferences.currentProvider!!.getServers(id, videoType)
             if (servers.isEmpty()) throw Exception("No servers found")
             
@@ -123,6 +133,13 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio estrazione video dal server: ${server.name}")
         _state.emit(State.LoadingVideo(server))
         try {
+            if (server.id == OFFLINE_SERVER_ID || server.name == OFFLINE_SERVER_NAME) {
+                val cached = server.video
+                    ?: lastVideoType?.let { resolveOffline(it) }
+                    ?: throw Exception("Offline file missing")
+                _state.emit(State.SuccessLoadingVideo(cached, server))
+                return@launch
+            }
             val video = ProviderSmoke.withProviderTimeout(
                 timeoutMs = ProviderSmoke.SERVERS_TIMEOUT_MS,
                 label = "getVideo(${server.name})",
@@ -153,6 +170,24 @@ class PlayerViewModel(
             CrashReporter.logNonFatal("PlayerViewModel", "getVideo failed: ${server.name}", e)
             _state.emit(State.FailedLoadingVideo(e, server))
         }
+    }
+
+    private suspend fun resolveOffline(videoType: Video.Type): Video? {
+        val context = BetterStreamflixApp.instance
+        val providerName = UserPreferences.currentProvider?.name
+        if (providerName != null) {
+            val key = com.dskja.betterstreamflix.download.OfflinePlayback.contentKeyFor(videoType, providerName)
+            com.dskja.betterstreamflix.fragments.downloads.OfflineVideoCache.get(key)?.let { return it }
+        }
+        val item = com.dskja.betterstreamflix.download.OfflinePlayback.findCompleted(context, videoType)
+            ?: com.dskja.betterstreamflix.download.OfflinePlayback.findCompletedAnyProvider(context, videoType)
+            ?: return null
+        return com.dskja.betterstreamflix.download.OfflinePlayback.buildLocalVideo(context, item)
+    }
+
+    companion object {
+        const val OFFLINE_SERVER_ID = "__offline__"
+        const val OFFLINE_SERVER_NAME = "__offline__"
     }
 
     fun getSubtitles(videoType: Video.Type) = viewModelScope.launch(Dispatchers.IO) {

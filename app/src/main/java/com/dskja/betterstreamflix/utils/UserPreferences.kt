@@ -8,6 +8,7 @@ import androidx.media3.ui.CaptionStyleCompat
 import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.download.DownloadQualityPreset
 import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.providers.Provider.Companion.providers
@@ -136,6 +137,42 @@ object UserPreferences {
         get() = Key.AUTOPLAY.getBoolean() ?: true
         set(value) {
             Key.AUTOPLAY.setBoolean(value)
+        }
+
+    var downloadWifiOnly: Boolean
+        get() = Key.DOWNLOAD_WIFI_ONLY.getBoolean() ?: true
+        set(value) {
+            Key.DOWNLOAD_WIFI_ONLY.setBoolean(value)
+        }
+
+    var downloadMaxConcurrent: Int
+        get() = Key.DOWNLOAD_MAX_CONCURRENT.getInt() ?: 2
+        set(value) {
+            Key.DOWNLOAD_MAX_CONCURRENT.setInt(value.coerceIn(1, 4))
+        }
+
+    var downloadQualityPreset: DownloadQualityPreset
+        get() = DownloadQualityPreset.fromKey(Key.DOWNLOAD_QUALITY_PRESET.getString())
+        set(value) {
+            Key.DOWNLOAD_QUALITY_PRESET.setString(value.name)
+        }
+
+    var downloadNotifyComplete: Boolean
+        get() = Key.DOWNLOAD_NOTIFY_COMPLETE.getBoolean() ?: true
+        set(value) {
+            Key.DOWNLOAD_NOTIFY_COMPLETE.setBoolean(value)
+        }
+
+    var downloadFilterCurrentProvider: Boolean
+        get() = Key.DOWNLOAD_FILTER_CURRENT_PROVIDER.getBoolean() ?: false
+        set(value) {
+            Key.DOWNLOAD_FILTER_CURRENT_PROVIDER.setBoolean(value)
+        }
+
+    var downloadSoftLimitGb: Int
+        get() = Key.DOWNLOAD_SOFT_LIMIT_GB.getInt() ?: 20
+        set(value) {
+            Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
         }
 
     var keepScreenOnWhenPaused: Boolean
@@ -646,7 +683,13 @@ object UserPreferences {
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
-        FAVORITE_PROVIDERS;
+        FAVORITE_PROVIDERS,
+        DOWNLOAD_WIFI_ONLY,
+        DOWNLOAD_MAX_CONCURRENT,
+        DOWNLOAD_QUALITY_PRESET,
+        DOWNLOAD_NOTIFY_COMPLETE,
+        DOWNLOAD_FILTER_CURRENT_PROVIDER,
+        DOWNLOAD_SOFT_LIMIT_GB;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

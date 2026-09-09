@@ -64,6 +64,7 @@ import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerTvBinding
 import com.dskja.betterstreamflix.databinding.FragmentPlayerTvBinding
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.Season
@@ -78,6 +79,7 @@ import com.dskja.betterstreamflix.utils.EpisodeManager
 import com.dskja.betterstreamflix.utils.MediaServer
 import com.dskja.betterstreamflix.utils.PlayerGestureHelper
 import com.dskja.betterstreamflix.providers.IptvProvider
+import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.UserDataCache
 import com.dskja.betterstreamflix.utils.dp
@@ -292,16 +294,7 @@ class PlayerTvFragment : Fragment() {
                         servers = state.servers
 
                         val sToServer = servers.firstOrNull {
-                            isSerienStreamBypassUrl(it.id)
-                        }
-                        if (sToServer != null && bypassDone) {
-                            // Cookies did not clear Cloudflare for this title — allow another QR pass.
-                            Toast.makeText(
-                                requireContext(),
-                                getString(R.string.player_bypass_retry_needed),
-                                Toast.LENGTH_LONG
-                            ).show()
-                            bypassDone = false
+                            isSerienStreamBypassUrl(it.id) || isSerienStreamBypassUrl(it.src)
                         }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
@@ -504,6 +497,8 @@ class PlayerTvFragment : Fragment() {
                                             langDisplayName
                                         )
                                         else getString(R.string.player_retry_later_message)
+                                    } else if (UserPreferences.currentProvider is SerienStreamProvider) {
+                                        getString(R.string.player_bypass_retry_needed)
                                     } else {
                                         getString(R.string.player_all_servers_failed)
                                     }
@@ -985,6 +980,16 @@ class PlayerTvFragment : Fragment() {
                 binding.pvPlayer.hideController()
                 (binding.pvPlayer as? PlayerTvView)?.enterManualZoomMode()
                 binding.pvPlayer.requestFocus()
+            }
+            binding.settings.setOnDownloadClickedListener {
+                val video = currentVideo ?: return@setOnDownloadClickedListener
+                val server = currentServer ?: return@setOnDownloadClickedListener
+                DownloadOptionsController.enqueueFromPlayer(
+                    this@PlayerTvFragment,
+                    currentVideoTypeForUi(),
+                    server,
+                    video,
+                )
             }
         }
 
