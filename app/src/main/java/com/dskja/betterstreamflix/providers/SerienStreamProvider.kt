@@ -430,6 +430,7 @@ object SerienStreamProvider : Provider {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val servers = mutableListOf<Video.Server>()
         val linkWithSplitData = id.split("/")
+        if (linkWithSplitData.size < 3) return emptyList()
         val showName = linkWithSplitData[0]
         val seasonNumber = linkWithSplitData[1]
         val episodeNumber = linkWithSplitData[2]
@@ -437,41 +438,58 @@ object SerienStreamProvider : Provider {
 
         val elements = document.select("button.link-box")
         for (element in elements) {
-            val serverName = element.attr("data-provider-name")
+            val serverName = element.attr("data-provider-name").ifBlank { "Host" }
             val language = element.attr("data-language-label")
             val href = element.attr("data-play-url")
-            
             if (href.isEmpty()) continue
 
-            try {
-                val redirectUrl = currentBaseUrl() + href.removePrefix("/")
-
-                val serverAfterRedirect = try {
-                    getService().getRedirectLink(redirectUrl)
-                } catch (exception: Exception) {
-                    val unsafeOkHttpClient = SerienStreamService.buildUnsafe(currentBaseUrl())
-                    unsafeOkHttpClient.getRedirectLink(redirectUrl)
-                }
-                val videoUrl = (serverAfterRedirect.raw() as okhttp3.Response).request.url
-                val videoUrlString = videoUrl.toString()
-                
-                servers.add(
-                    Video.Server(
-                        id = videoUrlString,
-                        name = "$serverName ($language)"
-                    )
-                )
-            } catch (e: Exception) {
-                Log.e("SerienStreamProvider", "Failed to process server '$serverName' with URL '$href'")
+            // Keep /r play URLs as src. Following redirects here fails because SerienStream
+            // serves an iframe+Turnstile/ALTCHA gate instead of an HTTP redirect.
+            val playUrl = if (href.startsWith("http")) {
+                href
+            } else {
+                currentBaseUrl() + href.removePrefix("/")
             }
+            servers.add(
+                Video.Server(
+                    id = playUrl,
+                    name = "$serverName ($language)".trim(),
+                    src = playUrl,
+                ),
+            )
         }
         return servers
-
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val link = server.id
-        return Extractor.extract(link)
+        val playUrl = server.src.ifBlank { server.id }
+        val resolved = resolvePlayUrl(playUrl)
+        if (isSerienStreamHost(resolved) || resolved.contains("/r?", ignoreCase = true)) {
+            throw Exception(
+                "SerienStream stream gate is still active. Complete verification, tap Weiter, then Continue.",
+            )
+        }
+        return Extractor.extract(resolved)
+    }
+
+    private suspend fun resolvePlayUrl(playUrl: String): String {
+        if (playUrl.isBlank()) return playUrl
+        // Already a hoster URL.
+        if (!isSerienStreamHost(playUrl) && !playUrl.contains("/r?", ignoreCase = true)) {
+            return playUrl
+        }
+        return try {
+            val response = try {
+                getService().getRedirectLink(playUrl)
+            } catch (_: Exception) {
+                SerienStreamService.buildUnsafe(currentBaseUrl()).getRedirectLink(playUrl)
+            }
+            val finalUrl = (response.raw() as okhttp3.Response).request.url.toString()
+            finalUrl
+        } catch (e: Exception) {
+            Log.w("SerienStreamProvider", "resolvePlayUrl failed for $playUrl: ${e.message}")
+            playUrl
+        }
     }
 
     interface SerienStreamService {

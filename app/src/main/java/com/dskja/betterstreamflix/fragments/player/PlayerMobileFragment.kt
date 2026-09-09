@@ -151,21 +151,53 @@ class PlayerMobileFragment : Fragment() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val cookies =
                 result.data?.getStringExtra(BypassWebViewActivity.EXTRA_COOKIE_HEADER)?.trim()
+            val resolvedStream =
+                result.data?.getStringExtra(BypassWebViewActivity.EXTRA_RESOLVED_STREAM_URL)?.trim()
 
-            if (result.resultCode != android.app.Activity.RESULT_OK || cookies.isNullOrBlank()) {
+            if (result.resultCode != android.app.Activity.RESULT_OK) {
                 waitingForBypass = false
+                bypassDone = false
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.player_bypass_cancelled),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                findNavController().navigateUp()
                 return@registerForActivityResult
             }
 
-            val bypassUrl = servers.firstOrNull { isSerienStreamBypassUrl(it.id) }?.id
-            if (bypassUrl.isNullOrBlank()) {
+            if (cookies.isNullOrBlank() && resolvedStream.isNullOrBlank()) {
                 waitingForBypass = false
+                bypassDone = false
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.bypass_status_complete_bypass_first),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                findNavController().navigateUp()
                 return@registerForActivityResult
             }
 
-            applyBypassCookies(bypassUrl, cookies)
+            val bypassUrl = servers.firstOrNull { isSerienStreamBypassUrl(it.id) || isSerienStreamBypassUrl(it.src) }?.id
+                ?: buildSerienStreamBypassUrl()
+            if (!bypassUrl.isNullOrBlank() && !cookies.isNullOrBlank()) {
+                applyBypassCookies(bypassUrl, cookies)
+            }
             waitingForBypass = false
             bypassDone = true
+
+            if (!resolvedStream.isNullOrBlank() &&
+                !SerienStreamProvider.isSerienStreamHost(resolvedStream)
+            ) {
+                // Hoster URL captured from WebView — play it directly.
+                val synthetic = Video.Server(
+                    id = resolvedStream,
+                    name = getString(R.string.player_bypass_resolved_server),
+                    src = resolvedStream,
+                )
+                viewModel.getVideo(synthetic)
+                return@registerForActivityResult
+            }
 
             lifecycleScope.launch {
                 delay(300)
@@ -296,7 +328,7 @@ class PlayerMobileFragment : Fragment() {
                     is PlayerViewModel.State.SuccessLoadingServers -> {
                         servers = state.servers
                         val sToServer = servers.firstOrNull {
-                            isSerienStreamBypassUrl(it.id)
+                            isSerienStreamBypassUrl(it.id) || isSerienStreamBypassUrl(it.src)
                         }
 
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
@@ -398,8 +430,10 @@ class PlayerMobileFragment : Fragment() {
                                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                                 if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
                                 else getString(R.string.player_retry_later_message)
+                            } else if (UserPreferences.currentProvider is SerienStreamProvider) {
+                                getString(R.string.player_bypass_retry_needed_mobile)
                             } else {
-                                "All servers failed to load the video."
+                                getString(R.string.player_all_servers_failed)
                             }
                             
                             Toast.makeText(

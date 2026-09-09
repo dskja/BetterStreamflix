@@ -91,7 +91,6 @@ class BetterStreamflixApp : Application() {
         runCatching {
             com.dskja.betterstreamflix.download.DownloadConnectivityMonitor.start(this)
             com.dskja.betterstreamflix.download.DownloadNotifier.ensureChannel(this)
-            com.dskja.betterstreamflix.download.StreamflixDownloadManager.get(this)
         }
 
         val appContext = applicationContext
@@ -99,6 +98,9 @@ class BetterStreamflixApp : Application() {
         val threshold = if (isTv) 10L else 50L
 
         applicationScope.launch(Dispatchers.IO) {
+            runCatching {
+                com.dskja.betterstreamflix.download.StreamflixDownloadManager.get(appContext)
+            }
             runCatching { AppDatabase.setup(appContext) }
             runCatching { SupabaseProvider.initialize(appContext) }
             runCatching { CloudSyncManager.initialize(appContext) }

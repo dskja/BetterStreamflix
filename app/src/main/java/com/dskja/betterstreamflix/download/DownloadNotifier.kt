@@ -16,7 +16,8 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 
 object DownloadNotifier {
     const val CHANNEL_ID = "downloads"
-    const val NOTIFICATION_ID_ACTIVE = 42001
+    /** Must not collide with StreamflixDownloadService FOREGROUND_NOTIFICATION_ID (42001). */
+    const val NOTIFICATION_ID_ACTIVE = 42003
     const val NOTIFICATION_ID_COMPLETE = 42002
 
     fun ensureChannel(context: Context) {

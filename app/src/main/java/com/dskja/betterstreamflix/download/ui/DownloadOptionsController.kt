@@ -25,11 +25,11 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.UserPreferences
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
+// MaterialAlertDialogBuilder crashes on AppCompat/Leanback themes — use AppCompat AlertDialog.
 
 object DownloadOptionsController {
     fun enqueueMovie(fragment: Fragment, movie: Movie) {
@@ -190,7 +190,7 @@ object DownloadOptionsController {
             }
         }
 
-        MaterialAlertDialogBuilder(activity)
+        AlertDialog.Builder(activity)
             .setTitle(R.string.download_options_title)
             .setMessage("${prepared.title}\n${prepared.subtitle}\n\n$message")
             .setSingleChoiceItems(qualities.ifEmpty { arrayOf("Auto") }, qualityIndex) { _, which ->
@@ -198,9 +198,6 @@ object DownloadOptionsController {
             }
             .setPositiveButton(R.string.download_options_start) { _, _ ->
                 activity.lifecycleScopeOrMain().launch {
-                    if (servers.size > 1) {
-                        // optional server pick: use selected or first
-                    }
                     val result = withContext(Dispatchers.IO) {
                         DownloadController.confirmEnqueue(
                             activity,
@@ -220,7 +217,7 @@ object DownloadOptionsController {
     private suspend fun confirmCellular(activity: Activity): Boolean {
         return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
             activity.runOnUiThread {
-                MaterialAlertDialogBuilder(activity)
+                AlertDialog.Builder(activity)
                     .setTitle(R.string.download_options_cellular_confirm_title)
                     .setMessage(R.string.download_options_cellular_confirm_message)
                     .setPositiveButton(android.R.string.ok) { _, _ ->

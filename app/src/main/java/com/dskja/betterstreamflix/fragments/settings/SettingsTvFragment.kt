@@ -298,7 +298,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         findPreference<EditTextPreference>("provider_serienstream_domain")?.apply {
             val currentValue = UserPreferences.serienstreamDomain
-            summary = currentValue
+            summary = getString(R.string.settings_serienstream_domain_current, currentValue)
             if (currentValue == DEFAULT_SERIENSTREAM_DOMAIN_VALUE || currentValue == PREFS_ERROR_VALUE) {
                 text = null
             } else {
@@ -308,7 +308,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 val typed = (newValue as String).trim()
                 val effectiveDomain = typed.ifBlank { DEFAULT_SERIENSTREAM_DOMAIN_VALUE }
                 UserPreferences.serienstreamDomain = effectiveDomain
-                preference.summary = effectiveDomain
+                preference.summary = getString(R.string.settings_serienstream_domain_current, effectiveDomain)
                 if (UserPreferences.currentProvider is SerienStreamProvider) {
                     viewLifecycleOwner.lifecycleScope.launch {
                         SerienStreamProvider.reloadService()
@@ -325,7 +325,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<Preference>("provider_serienstream_domain_reset")?.setOnPreferenceClickListener {
             UserPreferences.serienstreamDomain = DEFAULT_SERIENSTREAM_DOMAIN_VALUE
             findPreference<EditTextPreference>("provider_serienstream_domain")?.apply {
-                summary = DEFAULT_SERIENSTREAM_DOMAIN_VALUE
+                summary = getString(R.string.settings_serienstream_domain_current, DEFAULT_SERIENSTREAM_DOMAIN_VALUE)
                 text = null
             }
             Toast.makeText(requireContext(), getString(R.string.settings_serienstream_domain_reset_done), Toast.LENGTH_SHORT).show()

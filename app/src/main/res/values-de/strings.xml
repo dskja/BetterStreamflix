@@ -379,7 +379,7 @@
     <string name="bypass_status_submitted_wait">Verifizierung gesendet. Warte, bis die Weiterleitung abgeschlossen ist.</string>
     <string name="bypass_status_complete_captcha_modal">Schließe die Captchas im Popup ab, tippe dort auf Weiter und danach unten auf die Schaltfläche.</string>
     <string name="bypass_status_loading_captcha">Captcha-Abfragen werden geladen.</string>
-    <string name="settings_serienstream_domain_summary">Standard serienstream.to (s.to ist tot). Alternative: serienstream.cx — siehe serien.domains</string>
+    <string name="settings_serienstream_domain_summary">Aktuelle Domain (Standard serienstream.to ist korrekt). Alternativen: serienstream.cx — siehe serien.domains</string>
     <string name="bypass_status_waiting_modal">Warte, bis der SerienStream-Verifizierungsdialog fertig geladen ist.</string>
     <string name="bypass_action_cancel">Abbrechen</string>
     <string name="bypass_action_continue">Weiter</string>
@@ -623,4 +623,10 @@
     <string name="settings_download_clear_completed">Fertige Downloads löschen</string>
     <string name="settings_download_clear_all">Alle Downloads löschen</string>
     <string name="settings_download_clear_all_confirm">Alle Offline-Downloads löschen?</string>
+    <string name="season_switch_content_description">Staffel wechseln</string>
+    <string name="player_bypass_cancelled">Verifizierung abgebrochen.</string>
+    <string name="player_bypass_resolved_server">Verifizierter Stream</string>
+    <string name="player_bypass_retry_needed_mobile">SerienStream braucht noch eine Verifizierung. Erneut abspielen, Captcha lösen, im Popup auf Weiter tippen und danach Continue.</string>
+    <string name="player_all_servers_failed">Alle Server konnten das Video nicht laden.</string>
+    <string name="settings_serienstream_domain_current">Aktuell: %1$s</string>
 </resources>

@@ -299,16 +299,7 @@ class PlayerTvFragment : Fragment() {
                         servers = state.servers
 
                         val sToServer = servers.firstOrNull {
-                            isSerienStreamBypassUrl(it.id)
-                        }
-                        if (sToServer != null && bypassDone) {
-                            // Cookies did not clear Cloudflare for this title — allow another QR pass.
-                            Toast.makeText(
-                                requireContext(),
-                                getString(R.string.player_bypass_retry_needed),
-                                Toast.LENGTH_LONG
-                            ).show()
-                            bypassDone = false
+                            isSerienStreamBypassUrl(it.id) || isSerienStreamBypassUrl(it.src)
                         }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             waitingForBypass = true
@@ -490,8 +481,10 @@ class PlayerTvFragment : Fragment() {
                                         langDisplayName
                                     )
                                     else getString(R.string.player_retry_later_message)
+                                } else if (UserPreferences.currentProvider is SerienStreamProvider) {
+                                    getString(R.string.player_bypass_retry_needed)
                                 } else {
-                                    "All servers failed to load the video."
+                                    getString(R.string.player_all_servers_failed)
                                 }
 
                                 Toast.makeText(

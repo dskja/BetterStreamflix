@@ -152,9 +152,7 @@ object UserPreferences {
         }
 
     var downloadQualityPreset: DownloadQualityPreset
-        get() = DownloadQualityPreset.fromKey(
-            Key.DOWNLOAD_QUALITY_PRESET.getString(),
-        )
+        get() = DownloadQualityPreset.fromKey(Key.DOWNLOAD_QUALITY_PRESET.getString())
         set(value) {
             Key.DOWNLOAD_QUALITY_PRESET.setString(value.name)
         }

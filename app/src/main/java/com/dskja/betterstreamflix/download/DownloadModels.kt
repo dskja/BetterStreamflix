@@ -8,7 +8,7 @@ enum class DownloadQualityPreset {
 
     companion object {
         fun fromKey(key: String?): DownloadQualityPreset =
-            entries.find { it.name.equals(key, ignoreCase = true) } ?: ASK
+            entries.find { it.name.equals(key, ignoreCase = true) } ?: BEST
     }
 }
 

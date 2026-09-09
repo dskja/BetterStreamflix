@@ -22,6 +22,17 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Season #" />
 
+    <Spinner
+        android:id="@+id/sp_season_picker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minWidth="160dp"
+        android:contentDescription="@string/season_switch_content_description"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+
     <TextView
         android:id="@+id/btn_season_download"
         style="@style/AppTheme.Widget.Mobile.Button.Secondary"
@@ -31,7 +42,7 @@
         android:text="@string/season_download"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+        app:layout_constraintTop_toBottomOf="@id/sp_season_picker" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_episodes"

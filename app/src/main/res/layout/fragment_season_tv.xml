@@ -19,6 +19,19 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Season #" />
 
+    <Spinner
+        android:id="@+id/sp_season_picker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:minWidth="200dp"
+        android:contentDescription="@string/season_switch_content_description"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+
     <TextView
         android:id="@+id/btn_season_download"
         style="@style/AppTheme.Widget.Tv.Button"
@@ -30,7 +43,7 @@
         android:text="@string/season_download"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+        app:layout_constraintTop_toBottomOf="@id/sp_season_picker" />
 
     <androidx.leanback.widget.HorizontalGridView
         android:id="@+id/hgv_episodes"

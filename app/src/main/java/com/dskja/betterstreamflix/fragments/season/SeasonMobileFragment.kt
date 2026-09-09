@@ -119,6 +119,19 @@ class SeasonMobileFragment : Fragment() {
     private fun initializeSeason() {
         binding.tvSeasonTitle.text = args.seasonTitle
 
+        SeasonSwitcher.bind(
+            fragment = this,
+            spinner = binding.spSeasonPicker,
+            database = database,
+            tvShowId = args.tvShowId,
+            tvShowTitle = args.tvShowTitle,
+            tvShowPoster = args.tvShowPoster,
+            tvShowBanner = args.tvShowBanner,
+            currentSeasonId = args.seasonId,
+            currentSeasonNumber = args.seasonNumber,
+            currentSeasonTitle = args.seasonTitle,
+        )
+
         binding.btnSeasonDownload.setOnClickListener {
             val episodes = loadedEpisodes
             if (episodes.isEmpty()) return@setOnClickListener
