@@ -39,15 +39,16 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.SubtitleView
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.player.PlaybackFailover
+import com.dskja.betterstreamflix.player.PlayerBuilderFactory
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
+import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.activities.tools.BypassWebViewActivity
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerMobileBinding
@@ -377,15 +378,36 @@ class PlayerMobileFragment : Fragment() {
 
                     is PlayerViewModel.State.SuccessLoadingVideo -> {
                         PlayerSettingsView.Settings.ExtraBuffering.init(state.video.extraBuffering)
-                        PlayerSettingsView.Settings.SoftwareDecoder.init(false)
+                        if (!currentSoftwareDecoder) {
+                            PlayerSettingsView.Settings.SoftwareDecoder.init(false)
+                        }
                         displayVideo(state.video, state.server)
                     }
 
                     is PlayerViewModel.State.FailedLoadingVideo -> {
-                        val nextServer = servers.getOrNull(servers.indexOf(state.server) + 1)
-                        if (nextServer != null) {
-                            viewModel.getVideo(nextServer)
-                        } else {
+                        when (
+                            val action = PlaybackFailover.decide(
+                                currentServerIndex = servers.indexOf(state.server),
+                                serverCount = servers.size,
+                                playbackAlreadyStarted = false,
+                                softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
+                                allowMidPlaybackFailover = true,
+                            )
+                        ) {
+                            is PlaybackFailover.Action.TryNextServer -> {
+                                servers.getOrNull(action.nextIndex)?.let { viewModel.getVideo(it) }
+                            }
+                            PlaybackFailover.Action.RetrySoftwareDecoder -> {
+                                currentSoftwareDecoder = true
+                                PlayerSettingsView.Settings.SoftwareDecoder.init(true)
+                                Toast.makeText(
+                                    requireContext(),
+                                    R.string.player_retry_software_decoder,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                viewModel.getVideo(state.server)
+                            }
+                            PlaybackFailover.Action.GiveUp -> {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
                             val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                             val isAD = providerName.contains("AfterDark", ignoreCase = true)
@@ -398,15 +420,21 @@ class PlayerMobileFragment : Fragment() {
                                 if (isTmdb) getString(R.string.player_not_available_lang_message, langDisplayName)
                                 else getString(R.string.player_retry_later_message)
                             } else {
-                                "All servers failed to load the video."
+                                getString(R.string.player_all_servers_failed)
                             }
-                            
+
+                            CrashReporter.logNonFatal(
+                                "PlayerMobileFragment",
+                                "All servers failed",
+                                state.error,
+                            )
                             Toast.makeText(
                                 requireContext(),
                                 message,
                                 Toast.LENGTH_LONG
                             ).show()
                             findNavController().navigateUp()
+                            }
                         }
                     }
                 }
@@ -1163,11 +1191,44 @@ class PlayerMobileFragment : Fragment() {
             override fun onPlayerError(error: PlaybackException) {
                 super.onPlayerError(error)
                 Log.e("PlayerMobileFragment", "onPlayerError: ", error)
-                
-                val nextServer = servers.getOrNull(servers.indexOf(currentServer) + 1)
-                if (nextServer != null) {
-                    Log.i("PlayerMobileFragment", "Playback failed, trying next server: ${nextServer.name}")
-                    viewModel.getVideo(nextServer)
+                CrashReporter.logNonFatal("PlayerMobileFragment", "onPlayerError", error)
+
+                when (
+                    val action = PlaybackFailover.decide(
+                        currentServerIndex = servers.indexOf(currentServer),
+                        serverCount = servers.size,
+                        playbackAlreadyStarted = ::player.isInitialized && player.hasStarted(),
+                        softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
+                        allowMidPlaybackFailover = true,
+                    )
+                ) {
+                    is PlaybackFailover.Action.TryNextServer -> {
+                        servers.getOrNull(action.nextIndex)?.let {
+                            Log.i("PlayerMobileFragment", "Playback failed, trying next server: ${it.name}")
+                            viewModel.getVideo(it)
+                        }
+                    }
+                    PlaybackFailover.Action.RetrySoftwareDecoder -> {
+                        currentSoftwareDecoder = true
+                        PlayerSettingsView.Settings.SoftwareDecoder.init(true)
+                        val video = currentVideo
+                        val server = currentServer
+                        if (video != null && server != null) {
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.player_retry_software_decoder,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            displayVideo(video, server)
+                        }
+                    }
+                    PlaybackFailover.Action.GiveUp -> {
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: error.errorCodeName,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
                 }
             }
         })
@@ -1514,33 +1575,16 @@ class PlayerMobileFragment : Fragment() {
     private var currentSoftwareDecoder = false
 
     private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
-        SubtitleOffset.reset()
-
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                if (extraBuffering) 300_000 else DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
-            )
-            .build()
-
-        val renderersFactory = SubtitleOffsetRenderersFactory(requireContext()).apply {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 || currentSoftwareDecoder) {
-                setEnableDecoderFallback(true)
-                if (currentSoftwareDecoder) {
-                    setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-                }
-            }
-        }
-        val baseBuilder = ExoPlayer.Builder(requireContext(), renderersFactory)
-
-        return baseBuilder
-            .setSeekBackIncrementMs(10_000)
-            .setSeekForwardIncrementMs(10_000)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .setLoadControl(loadControl)
-            .build()
+        return PlayerBuilderFactory.build(
+            context = requireContext(),
+            dataSourceFactory = dataSourceFactory,
+            options = PlayerBuilderFactory.Options(
+                extraBuffering = extraBuffering,
+                softwareDecoder = currentSoftwareDecoder,
+                seekIncrementsMs = 10_000L,
+                preferStereoAudio = false,
+            ),
+        )
     }
 
     private fun initializePlayer(extraBuffering: Boolean, softwareDecoder: Boolean = currentSoftwareDecoder) {
@@ -1575,25 +1619,8 @@ class PlayerMobileFragment : Fragment() {
 
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
-        player = buildPlayer(extraBuffering).also { player ->
-                // Same as TV: disable focus ducking and avoid CONTENT_TYPE_MOVIE so
-                // ambience/music do not get quietly suppressed mid-playback.
-                player.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
-                        .build(),
-                    /* handleAudioFocus= */ false,
-                )
-
-                val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
-                ProviderAudioLanguage.preferredAudioLanguages(lang)?.let { codes ->
-                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                        .setPreferredAudioLanguages(*codes)
-                        .build()
-                }
-
-                mediaSession = MediaSession.Builder(requireContext(), player)
+        player = buildPlayer(extraBuffering).also { built ->
+                mediaSession = MediaSession.Builder(requireContext(), built)
                     .build()
             }
 
@@ -1619,40 +1646,14 @@ class PlayerMobileFragment : Fragment() {
     }
 
     private fun isSerienStreamBypassUrl(url: String): Boolean {
-        return SerienStreamProvider.isSerienStreamHost(url)
+        return SerienStreamBypassHelper.isSerienStreamHost(url)
     }
 
     private fun buildSerienStreamBypassUrl(): String? {
-        val provider = UserPreferences.currentProvider ?: return null
-        if (provider != SerienStreamProvider) return null
-
-        val episodeId = when (val type = args.videoType) {
-            is Video.Type.Episode -> type.id
-            is Video.Type.Movie -> return null
-        }
-
-        return "${SerienStreamProvider.baseUrl}serie/$episodeId"
+        return SerienStreamBypassHelper.buildEpisodeBypassUrl(args.videoType)
     }
 
     private fun applyBypassCookies(url: String, cookieHeader: String) {
-        val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
-        val targets = linkedSetOf<String>().apply {
-            add(url)
-            if (host.isNotBlank()) {
-                add("https://$host/")
-                add("http://$host/")
-            }
-        }
-
-        val cookieManager = CookieManager.getInstance()
-        cookieHeader.split(";")
-            .map { it.trim() }
-            .filter { it.contains("=") }
-            .forEach { cookie ->
-                targets.forEach { target ->
-                    cookieManager.setCookie(target, cookie)
-                }
-            }
-        cookieManager.flush()
+        SerienStreamBypassHelper.applyCookies(url, cookieHeader)
     }
 }

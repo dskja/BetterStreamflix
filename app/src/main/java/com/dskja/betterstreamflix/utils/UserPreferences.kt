@@ -209,6 +209,14 @@ object UserPreferences {
         set(value) {
             Key.SHOW_RECENTLY_WATCHED.setBoolean(value)
         }
+
+    /** When true, chronically brittle providers appear in the provider picker. */
+    var showQuarantinedProviders: Boolean
+        get() = Key.SHOW_QUARANTINED_PROVIDERS.getBoolean() ?: false
+        set(value) {
+            Key.SHOW_QUARANTINED_PROVIDERS.setBoolean(value)
+        }
+
     enum class LibraryScope(val key: String) {
         /** Favorites / continue watching only from the active provider DB. */
         PER_PROVIDER("per_provider"),
@@ -626,6 +634,7 @@ object UserPreferences {
         ENABLE_TMDB,
         SHOW_CONTINUE_WATCHING,
         SHOW_RECENTLY_WATCHED,
+        SHOW_QUARANTINED_PROVIDERS,
         LIBRARY_SCOPE,
         PARENTAL_CONTROL_PIN,
         PARENTAL_CONTROL_ADMIN_PIN,

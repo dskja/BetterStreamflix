@@ -133,6 +133,14 @@
     <string name="player_external_player_error_video">Video not load yet</string>
     <string name="player_not_available_it_message">Not available on Italian servers, search for it on TMDB in other languages</string>
     <string name="player_not_available_lang_message">Not available in %s, search for it on TMDB in other languages</string>
+    <string name="player_retry_software_decoder">Retrying with software decoder…</string>
+    <string name="player_all_servers_failed">All servers failed to load the video.</string>
+    <string name="settings_show_quarantined_providers_title">Show quarantined providers</string>
+    <string name="settings_show_quarantined_providers_summary">Include brittle/unstable providers in the picker</string>
+    <string name="settings_view_crash_log_title">View last crash log</string>
+    <string name="settings_view_crash_log_summary">Show the most recent local crash report</string>
+    <string name="settings_view_crash_log_empty">No crash logs found</string>
+    <string name="bypass_status_challenge_pending">Complete the challenge in the page (session cookies alone are not enough)</string>
     <string name="player_retry_later_message">Video currently unavailable on this provider. Please try again later</string>
     <string name="player_next_episode_up_next">Up next</string>
     <string name="player_next_episode_action">Play now</string>

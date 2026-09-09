@@ -17,6 +17,18 @@
                 android:summary="@string/settings_enable_tmdb_summary"
                 android:defaultValue="true" />
 
+            <SwitchPreferenceCompat
+                android:key="SHOW_QUARANTINED_PROVIDERS"
+                android:title="@string/settings_show_quarantined_providers_title"
+                android:summary="@string/settings_show_quarantined_providers_summary"
+                android:defaultValue="false" />
+
+            <Preference
+                android:key="VIEW_CRASH_LOG"
+                android:title="@string/settings_view_crash_log_title"
+                android:summary="@string/settings_view_crash_log_summary" />
+
+
             <EditTextPreference
                 android:key="TMDB_API_KEY"
                 android:title="@string/settings_tmdb_api_key"

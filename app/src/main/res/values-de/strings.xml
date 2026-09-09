@@ -546,4 +546,12 @@
     <string name="player_live_badge">LIVE</string>
     <string name="player_live_channel">Live-Kanal</string>
     <string name="settings_tmdb_api_key_missing">TMDb-API-Schlüssel fehlt. Trage ihn in den Einstellungen ein, um den TMDb-Provider zu nutzen.</string>
+    <string name="player_retry_software_decoder">Erneuter Versuch mit Software-Decoder…</string>
+    <string name="player_all_servers_failed">Alle Server konnten das Video nicht laden.</string>
+    <string name="settings_show_quarantined_providers_title">Quarantäne-Provider anzeigen</string>
+    <string name="settings_show_quarantined_providers_summary">Instabile Provider im Auswahlmenü einblenden</string>
+    <string name="settings_view_crash_log_title">Letztes Crash-Log anzeigen</string>
+    <string name="settings_view_crash_log_summary">Zeigt den letzten lokalen Crash-Bericht</string>
+    <string name="settings_view_crash_log_empty">Keine Crash-Logs gefunden</string>
+    <string name="bypass_status_challenge_pending">Challenge in der Seite abschließen (Session-Cookies allein reichen nicht)</string>
 </resources>

@@ -12,7 +12,9 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.dskja.betterstreamflix.providers.Provider
+import com.dskja.betterstreamflix.providers.ProviderSmoke
 import com.dskja.betterstreamflix.ui.UserDataNotifier
+import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.CrossProviderLibrary
 import com.dskja.betterstreamflix.utils.HomeCacheStore
 import com.dskja.betterstreamflix.utils.ParentalControlUtils
@@ -331,6 +333,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         val deferCachedHomeForClearance =
                 provider === AnimeOnlineNinjaProvider &&
                         !AnimeOnlineNinjaProvider.hasCurrentClearanceCookie()
+        // Stale-while-revalidate: show cache immediately even if old, then refresh.
         if (!cachedCategories.isNullOrEmpty() && !deferCachedHomeForClearance) {
             _state.emit(State.SuccessLoading(cachedCategories))
         } else {
@@ -341,14 +344,22 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
         libraryRefresh.value += 1
 
         try {
-            val categories = provider.getHome()
+            val categories = ProviderSmoke.withProviderTimeout(
+                timeoutMs = ProviderSmoke.HOME_TIMEOUT_MS,
+                label = "getHome(${provider.name})",
+            ) {
+                provider.getHome()
+            }
             HomeCacheStore.write(appContext, provider, categories)
             _state.emit(State.SuccessLoading(categories))
         } catch (e: Exception) {
             Log.e("HomeViewModel", "getHome: ", e)
+            ProviderSmoke.noteHomeFailure(provider.name)
+            CrashReporter.logNonFatal("HomeViewModel", "getHome failed for ${provider.name}", e)
             if (cachedCategories.isNullOrEmpty()) {
                 _state.emit(State.FailedLoading(e))
-            } else if (deferCachedHomeForClearance) {
+            } else {
+                // Keep serving cache on failure / timeout (including deferred clearance case).
                 _state.emit(State.SuccessLoading(cachedCategories))
             }
         }

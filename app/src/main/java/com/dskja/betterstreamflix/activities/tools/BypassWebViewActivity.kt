@@ -25,6 +25,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.NetworkClient
@@ -87,10 +88,10 @@ class BypassWebViewActivity : AppCompatActivity() {
 
         continueButton.setOnClickListener {
             val cookies = collectCookieHeader()
-            if (cookies.isBlank()) {
+            if (!SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
                 Toast.makeText(
                     this,
-                    getString(R.string.bypass_status_complete_bypass_first),
+                    getString(R.string.bypass_status_challenge_pending),
                     Toast.LENGTH_SHORT
                 ).show()
                 return@setOnClickListener
@@ -205,11 +206,11 @@ class BypassWebViewActivity : AppCompatActivity() {
     private fun updateBypassState(currentUrl: String?) {
         if (isCleaningUp) return
         val cookies = collectCookieHeader()
-        val hasClearance = cookies.contains("cf_clearance")
-        continueButton.isEnabled = cookies.isNotBlank()
+        val solved = SerienStreamBypassHelper.looksLikeBypassSolved(cookies)
+        continueButton.isEnabled = solved
         statusView.text = when {
-            hasClearance -> getString(R.string.bypass_status_completed_continue)
-            cookies.isNotBlank() -> getString(R.string.bypass_status_cookies_detected)
+            solved -> getString(R.string.bypass_status_completed_continue)
+            cookies.isNotBlank() -> getString(R.string.bypass_status_challenge_pending)
             else -> getString(R.string.bypass_status_complete_in_page)
         }
 

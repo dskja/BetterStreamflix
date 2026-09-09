@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.providers.ProviderSmoke
+import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.CustomTabHelper
 import com.dskja.betterstreamflix.utils.EpisodeManager
 import com.dskja.betterstreamflix.utils.OpenSubtitles
@@ -121,7 +123,12 @@ class PlayerViewModel(
         Log.d("PlayerViewModel", "Inizio estrazione video dal server: ${server.name}")
         _state.emit(State.LoadingVideo(server))
         try {
-            val video = UserPreferences.currentProvider!!.getVideo(server)
+            val video = ProviderSmoke.withProviderTimeout(
+                timeoutMs = ProviderSmoke.SERVERS_TIMEOUT_MS,
+                label = "getVideo(${server.name})",
+            ) {
+                UserPreferences.currentProvider!!.getVideo(server)
+            }
             if (video.source.isEmpty()) throw Exception("No source found")
 
             // LOGICA SOTTOTITOLI GLOBALE: 
@@ -143,6 +150,7 @@ class PlayerViewModel(
             _state.emit(State.SuccessLoadingVideo(video, server))
         } catch (e: Exception) {
             Log.e("PlayerViewModel", "Errore estrazione video: ", e)
+            CrashReporter.logNonFatal("PlayerViewModel", "getVideo failed: ${server.name}", e)
             _state.emit(State.FailedLoadingVideo(e, server))
         }
     }

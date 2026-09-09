@@ -15,9 +15,11 @@ import com.dskja.betterstreamflix.sync.SupabaseProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ArtworkRepairScheduler
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DeviceCapabilities
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.IsrgRootTrustProvider
+import com.dskja.betterstreamflix.providers.ProviderSmoke
 import com.dskja.betterstreamflix.utils.TMDb3
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
@@ -84,6 +86,7 @@ class BetterStreamflixApp : Application() {
 
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
+        CrashReporter.install(this)
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         // Rebuild after DoH is applied so the first TMDB call never uses system DNS.
         runCatching { TMDb3.rebuildService() }
@@ -99,6 +102,15 @@ class BetterStreamflixApp : Application() {
             runCatching { SerienStreamProvider.initialize(appContext) }
             runCatching { AniWorldProvider.initialize(appContext) }
             runCatching { ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider) }
+            runCatching {
+                val report = ProviderSmoke.validateRegistry()
+                if (!report.ok) {
+                    android.util.Log.w(
+                        "BetterStreamflixApp",
+                        "Provider registry issues: duplicates=${report.duplicateNames}",
+                    )
+                }
+            }
             // Skip automatic cache wipe on constrained Fire TV sticks: creating a WebView
             // during cold start can kill the process right after the splash screen.
             if (!DeviceCapabilities.shouldUseConstrainedPlayback(appContext)) {

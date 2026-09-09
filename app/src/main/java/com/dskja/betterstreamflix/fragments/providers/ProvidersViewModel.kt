@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.models.Provider as ModelProvider
 import com.dskja.betterstreamflix.providers.Provider
+import com.dskja.betterstreamflix.providers.ProviderHealth
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
@@ -36,11 +37,16 @@ class ProvidersViewModel : ViewModel() {
             val favorites = UserPreferences.favoriteProviders
 
             val providers = Provider.providers.keys
-                .filter { 
+                .filter {
+                    if (!UserPreferences.showQuarantinedProviders &&
+                        ProviderHealth.isQuarantined(it)
+                    ) {
+                        return@filter false
+                    }
                     if (isFavoritesFilter) {
                         favorites.contains(it.name)
                     } else {
-                        language == null || it.language == language 
+                        language == null || it.language == language
                     }
                 }
                 .sortedBy { it.name }
