@@ -45,21 +45,20 @@ object MkissaProvider : Provider, ProviderConfigUrl {
 
     private const val TAG = "MkissaProvider"
     // api.allanime.day is Cloudflare-gated (403) without the right site lane.
-    // acapi.allanime.day works with allowlisted Referers for catalog GraphQL.
-    // api.mkissa.net is the site proxy (often 403 from datacenters; may need aa-crypto on-device).
-    private const val API_URL = "https://acapi.allanime.day/"
-    private const val API_URL_FALLBACK = "https://api.mkissa.net/"
+    // api.mkissa.net is Mkissa's GraphQL + /client-crypto/v1/bootstrap proxy (mkissa.to Origin).
+    // acapi.allanime.day is a public alternate with the same crypto bootstrap path.
+    private const val API_URL = "https://api.mkissa.net/"
     private const val CLOCK_URL = "https://allanime.day"
-    // api.allanime.day / acapi require an allowlisted frontend Origin/Referer.
     private const val API_ORIGIN = "https://mkissa.to"
     private const val API_REFERER = "https://mkissa.to/"
     private const val BROWSER_UA =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     private const val SEARCH_HASH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
     private const val POPULAR_DAILY_HASH = "a0aca6827cc9a3ad7bc711da4d200a04adea8f1a7545dc418d5e92e74c3aad15"
     private const val POPULAR_HASH = "ac2c75884a11fca5707ce4ad10f2e3e2aae31e42af5e4d9c511a4a5e708e4c6d"
     private const val DETAIL_HASH = "043448386c7a686bc2aabfbb6b80f6074e795d350df48015023b079527b0848a"
-    private const val SOURCE_HASH = "1c836a5028e04275c6bc618aa4d1f0ea2290a73bc056ba6a8b93fe72ef42fd04"
+    // Persisted episode query hash used by AllAnime/Mkissa (aaReq qh). Live-verified Sept 2026.
+    private const val SOURCE_HASH = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
     private const val GENRE_HASH = "ff61a63ff776f334f80c1e6ad1aa49ef71eab831e235e5d6ec679eae5b83450f"
     private const val IMAGE_URL = "https://aln.youtube-anime.com"
     private const val HOME_ROW_LIMIT = 20
@@ -256,7 +255,11 @@ object MkissaProvider : Provider, ProviderConfigUrl {
                         .header("Accept", "application/json, text/plain, */*")
                         .header("Origin", API_ORIGIN)
                         .header("Referer", API_REFERER)
-                        .header("x-build-id", MkissaAaCrypto.DEFAULT_BUILD.buildId)
+                        // Episode GraphQL requires x-build-id or the API returns AA_CRYPTO_MISSING_BUILD.
+                        .header(
+                            "x-build-id",
+                            cryptoMaterial?.buildId ?: cryptoBuild.buildId,
+                        )
                         .build()
                     chain.proceed(request)
                 }
@@ -1122,11 +1125,13 @@ object MkissaProvider : Provider, ProviderConfigUrl {
 
     private fun discoverCryptoBuild(): MkissaAaCrypto.BuildInfo? {
         return runCatching {
+            // Prefer the Mkissa anime SPA (cdn.mkissa.net) which ships the aa-crypto chunk.
             val html = sourceResolverClient.newCall(
                 Request.Builder()
-                    .url("$API_ORIGIN/")
+                    .url("https://mkissa.to/anime")
                     .header("User-Agent", BROWSER_UA)
                     .header("Accept", "text/html")
+                    .header("Referer", API_REFERER)
                     .build()
             ).execute().use { response ->
                 if (!response.isSuccessful) return@runCatching null
@@ -1144,7 +1149,7 @@ object MkissaProvider : Provider, ProviderConfigUrl {
                 .findAll(appJs)
                 .map { it.groupValues[1] }
                 .distinct()
-                .take(40)
+                .take(80)
                 .toList()
 
             val base = entry.toHttpUrlOrNull() ?: return@runCatching null
@@ -1155,7 +1160,7 @@ object MkissaProvider : Provider, ProviderConfigUrl {
                 ).execute().use { response ->
                     if (!response.isSuccessful) null else response.body?.string()
                 } ?: continue
-                if (!chunk.contains("aaReq")) continue
+                if (!chunk.contains("aaReq") && !chunk.contains("function Xc")) continue
                 MkissaAaCrypto.discoverBuildFromJs(chunk)?.let { return@runCatching it }
             }
             null

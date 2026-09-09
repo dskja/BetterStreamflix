@@ -14,6 +14,7 @@ import com.dskja.betterstreamflix.utils.NetworkClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import okhttp3.OkHttpClient
+import org.json.JSONArray
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -115,7 +116,10 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
     }
 
     private fun parseHomeEpisodes(document: Document): List<TvShow> {
-        return document.select("a[href*=/ver/]").mapNotNull { a ->
+        val links = document.select(
+            "article.episode a[href*=/ver/], .list-episodes a[href*=/ver/], a[href*=/ver/]"
+        )
+        return links.mapNotNull { a ->
             val href = a.attr("href").ifBlank { return@mapNotNull null }
             val title = a.selectFirst(".title, .anime-title, h3, h4")?.text()?.trim()
                 ?: a.attr("title").ifBlank { a.text() }.trim()
@@ -389,20 +393,25 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
             val document = service.getPage(url)
             val servers = mutableListOf<Video.Server>()
 
+            // Current animefenix.live embeds: var videos = [["Mega","https://...",0,0], ...]
+            parseVideosArray(document).forEach { servers += it }
+
             // Legacy tabsArray iframe embeds
-            document.selectFirst("script:containsData(var tabsArray)")?.let { script ->
-                val names = document.select(".episode-page__servers-list li a, .servers li a, .nav-tabs a").map { a ->
-                    a.select("span").last()?.text()?.trim().orEmpty().ifBlank { a.text().trim() }
-                }
-                val urls = script.data()
-                    .substringAfter("<iframe").split("src='")
-                    .drop(1)
-                    .map { it.substringBefore("'").substringAfter("redirect.php?id=").trim() }
-                val count = minOf(urls.size, names.size.coerceAtLeast(urls.size))
-                for (i in 0 until count) {
-                    val src = urls.getOrNull(i)?.takeIf { it.isNotBlank() } ?: continue
-                    val name = names.getOrNull(i)?.ifBlank { null } ?: "Server ${i + 1}"
-                    servers += Video.Server(id = src, name = name, src = src)
+            if (servers.isEmpty()) {
+                document.selectFirst("script:containsData(var tabsArray)")?.let { script ->
+                    val names = document.select(".episode-page__servers-list li a, .servers li a, .nav-tabs a").map { a ->
+                        a.select("span").last()?.text()?.trim().orEmpty().ifBlank { a.text().trim() }
+                    }
+                    val urls = script.data()
+                        .substringAfter("<iframe").split("src='")
+                        .drop(1)
+                        .map { it.substringBefore("'").substringAfter("redirect.php?id=").trim() }
+                    val count = minOf(urls.size, names.size.coerceAtLeast(urls.size))
+                    for (i in 0 until count) {
+                        val src = urls.getOrNull(i)?.takeIf { it.isNotBlank() } ?: continue
+                        val name = names.getOrNull(i)?.ifBlank { null } ?: "Server ${i + 1}"
+                        servers += Video.Server(id = src, name = name, src = src)
+                    }
                 }
             }
 
@@ -446,6 +455,47 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getVideo(server: Video.Server): Video {
         return Extractor.extract(server.src.ifBlank { server.id }, server)
+    }
+
+    private fun parseVideosArray(document: Document): List<Video.Server> {
+        val scriptSource = document.select("script").asSequence()
+            .map { it.data().ifBlank { it.html() } }
+            .firstOrNull { it.contains("var videos") }
+            ?: return emptyList()
+        val arrayLiteral = extractJsArray(scriptSource, "var videos") ?: return emptyList()
+        val videos = runCatching { JSONArray(arrayLiteral) }.getOrNull() ?: return emptyList()
+        return buildList {
+            for (i in 0 until videos.length()) {
+                val entry = videos.optJSONArray(i) ?: continue
+                val label = entry.optString(0).trim().ifBlank { "Server ${i + 1}" }
+                val url = entry.optString(1).trim()
+                    .replace("\\/", "/")
+                if (url.isBlank() || !url.startsWith("http")) continue
+                add(Video.Server(id = url, name = label, src = url))
+            }
+        }
+    }
+
+    private fun extractJsArray(source: String, marker: String): String? {
+        val markerIndex = source.indexOf(marker).takeIf { it >= 0 } ?: return null
+        val start = source.indexOf('[', markerIndex).takeIf { it >= 0 } ?: return null
+        var depth = 0
+        var quoted = false
+        var escaped = false
+        for (i in start until source.length) {
+            val c = source[i]
+            when {
+                escaped -> escaped = false
+                c == '\\' && quoted -> escaped = true
+                c == '"' || c == '\'' -> quoted = !quoted
+                !quoted && c == '[' -> depth++
+                !quoted && c == ']' -> {
+                    depth--
+                    if (depth == 0) return source.substring(start, i + 1)
+                }
+            }
+        }
+        return null
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
