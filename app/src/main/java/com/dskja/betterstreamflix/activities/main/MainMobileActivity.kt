@@ -319,10 +319,14 @@ class MainMobileActivity : FragmentActivity() {
         val showBottomNav =
             UserPreferences.currentProvider != null && isTopLevelProviderDestination(destinationId)
         binding.bnvMain.visibility = if (showBottomNav) View.VISIBLE else View.GONE
+        // Hide on search (already there), downloads, and settings so local header
+        // actions (e.g. downloads gear) are not covered by the floating search FAB.
         binding.btnMainSearch.visibility = if (
             UserPreferences.currentProvider != null &&
             isTopLevelProviderDestination(destinationId) &&
-            destinationId != R.id.search
+            destinationId != R.id.search &&
+            destinationId != R.id.downloads &&
+            destinationId != R.id.settings
         ) View.VISIBLE else View.GONE
         runCatching {
             val mini = binding.root.findViewById<View>(R.id.cast_mini_controller)
