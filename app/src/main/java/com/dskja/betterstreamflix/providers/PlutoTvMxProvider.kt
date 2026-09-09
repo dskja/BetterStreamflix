@@ -6,7 +6,6 @@ import kotlinx.coroutines.sync.withLock
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.M3uChannelIdCodec
 
-import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.*
@@ -34,6 +33,7 @@ object PlutoTvMxProvider : IptvProvider, ProviderConfigUrl {
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
         .cookieJar(object : CookieJar {
             private val cookieStore = mutableMapOf<String, List<Cookie>>()
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
@@ -189,7 +189,12 @@ object PlutoTvMxProvider : IptvProvider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        TODO("Not yet implemented")
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "This provider does not expose people/cast metadata.",
+            filmography = emptyList(),
+        )
     }
 
     override suspend fun getTvShow(id: String): TvShow {

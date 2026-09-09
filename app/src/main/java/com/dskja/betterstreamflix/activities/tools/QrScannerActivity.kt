@@ -13,6 +13,8 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.Image
 import android.media.ImageReader
@@ -23,6 +25,7 @@ import android.util.Size
 import android.view.Surface
 import android.view.TextureView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -39,6 +42,7 @@ import com.dskja.betterstreamflix.databinding.ActivityQrScannerBinding
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
 
 class QrScannerActivity : AppCompatActivity() {
@@ -222,25 +226,58 @@ class QrScannerActivity : AppCompatActivity() {
             set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
         }
 
-        device.createCaptureSession(
-            listOf(previewSurface, analysisSurface),
-            object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(session: CameraCaptureSession) {
-                    captureSession = session
-                    session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
-                }
+        val stateCallback = object : CameraCaptureSession.StateCallback() {
+            override fun onConfigured(session: CameraCaptureSession) {
+                captureSession = session
+                session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+            }
 
-                override fun onConfigureFailed(session: CameraCaptureSession) {
-                    Toast.makeText(
-                        this@QrScannerActivity,
-                        getString(R.string.settings_scan_resolver_failed),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    finish()
-                }
-            },
-            backgroundHandler
+            override fun onConfigureFailed(session: CameraCaptureSession) {
+                Toast.makeText(
+                    this@QrScannerActivity,
+                    getString(R.string.settings_scan_resolver_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
+            }
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            createCaptureSessionApi28(
+                device = device,
+                previewSurface = previewSurface,
+                analysisSurface = analysisSurface,
+                stateCallback = stateCallback,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            device.createCaptureSession(
+                listOf(previewSurface, analysisSurface),
+                stateCallback,
+                backgroundHandler
+            )
+        }
+    }
+
+    @RequiresApi(android.os.Build.VERSION_CODES.P)
+    private fun createCaptureSessionApi28(
+        device: CameraDevice,
+        previewSurface: Surface,
+        analysisSurface: Surface,
+        stateCallback: CameraCaptureSession.StateCallback,
+    ) {
+        val handler = backgroundHandler ?: return
+        val executor = Executor { runnable -> handler.post(runnable) }
+        val config = SessionConfiguration(
+            SessionConfiguration.SESSION_REGULAR,
+            listOf(
+                OutputConfiguration(previewSurface),
+                OutputConfiguration(analysisSurface),
+            ),
+            executor,
+            stateCallback,
         )
+        device.createCaptureSession(config)
     }
 
     private fun closeCamera() {
@@ -306,9 +343,14 @@ class QrScannerActivity : AppCompatActivity() {
     }
 
     private fun applyThemeWindowChrome() {
-        val palette = ThemeManager.palette(UserPreferences.selectedTheme)
-        window.statusBarColor = palette.systemBar
-        window.navigationBarColor = palette.systemBar
+        applySystemBarColors()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun applySystemBarColors() {
+        val systemBar = ThemeManager.palette(UserPreferences.selectedTheme).systemBar
+        window.statusBarColor = systemBar
+        window.navigationBarColor = systemBar
     }
 
     private class QrCodeAnalyzer(

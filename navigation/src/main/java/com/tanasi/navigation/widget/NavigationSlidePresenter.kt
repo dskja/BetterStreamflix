@@ -1,6 +1,7 @@
 package com.tanasi.navigation.widget
 
 import android.content.Context
+import android.os.Bundle
 import android.os.Parcelable
 import android.view.ViewGroup
 import androidx.appcompat.view.menu.MenuBuilder
@@ -46,11 +47,12 @@ class NavigationSlidePresenter : MenuPresenter {
     override fun getId(): Int = MENU_PRESENTER_ID
 
     override fun onSaveInstanceState(): Parcelable {
-        TODO("Not yet implemented")
+        // No transient state to persist; return an empty state object instead of crashing.
+        return Bundle()
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
-        TODO("Not yet implemented")
+        // Nothing to restore currently.
     }
 
 

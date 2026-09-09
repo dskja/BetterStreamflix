@@ -35,6 +35,8 @@ import kotlin.collections.map
 import kotlin.collections.mapNotNull
 
 object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
+    private const val TAG = "AfterDarkProvider"
+
     override val name = "AfterDark"
 
     override val defaultPortalUrl: String = "https://topsitestreaming.club/site/afterdark/"
@@ -695,7 +697,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                 tvUrls = getRealUrlsFor("series")
                 serviceInitialized = true
             } catch (e: Exception) {
-                Log.e("ERROR", "CANNOT INITIALIZE")
+                Log.e(TAG, "Cannot initialize service URLs", e)
             }
         }
         return baseUrl

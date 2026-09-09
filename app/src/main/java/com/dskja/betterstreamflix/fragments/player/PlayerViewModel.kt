@@ -175,14 +175,24 @@ class PlayerViewModel(
     private suspend fun resolveOffline(videoType: Video.Type): Video? {
         val context = BetterStreamflixApp.instance
         val providerName = UserPreferences.currentProvider?.name
-        if (providerName != null) {
-            val key = com.dskja.betterstreamflix.download.OfflinePlayback.contentKeyFor(videoType, providerName)
-            com.dskja.betterstreamflix.fragments.downloads.OfflineVideoCache.get(key)?.let { return it }
-        }
         val item = com.dskja.betterstreamflix.download.OfflinePlayback.findCompleted(context, videoType)
             ?: com.dskja.betterstreamflix.download.OfflinePlayback.findCompletedAnyProvider(context, videoType)
             ?: return null
-        return com.dskja.betterstreamflix.download.OfflinePlayback.buildLocalVideo(context, item)
+        // Prefer a freshly built local video for a still-completed Room row. Cache is only a
+        // secondary shortcut and must never override a deleted download.
+        val built = com.dskja.betterstreamflix.download.OfflinePlayback.buildLocalVideo(context, item)
+        if (built != null) {
+            if (providerName != null) {
+                val key = com.dskja.betterstreamflix.download.OfflinePlayback.contentKeyFor(videoType, providerName)
+                com.dskja.betterstreamflix.fragments.downloads.OfflineVideoCache.put(key, built)
+            }
+            return built
+        }
+        if (providerName != null) {
+            val key = com.dskja.betterstreamflix.download.OfflinePlayback.contentKeyFor(videoType, providerName)
+            com.dskja.betterstreamflix.fragments.downloads.OfflineVideoCache.remove(key)
+        }
+        return null
     }
 
     companion object {

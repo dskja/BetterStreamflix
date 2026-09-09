@@ -122,6 +122,7 @@ class DownloadsMobileFragment : Fragment() {
     }
 
     private fun styleChip(chip: android.widget.TextView, selected: Boolean) {
+        chip.isSelected = selected
         chip.setBackgroundResource(
             if (selected) R.drawable.bg_download_filter_chip_selected
             else R.drawable.bg_download_filter_chip,
@@ -251,4 +252,10 @@ object OfflineVideoCache {
     }
     fun take(key: String): Video? = map.remove(key)
     fun get(key: String): Video? = map[key]
+    fun remove(key: String) {
+        map.remove(key)
+    }
+    fun clear() {
+        map.clear()
+    }
 }

@@ -108,9 +108,7 @@ class MainMobileActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        val palette = ThemeManager.palette(UserPreferences.selectedTheme)
-        window.statusBarColor = palette.systemBar
-        window.navigationBarColor = palette.systemBar
+        applySystemBarColors()
 
         _binding = ActivityMainMobileBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -614,12 +612,18 @@ class MainMobileActivity : FragmentActivity() {
         binding.bnvMain.itemIconTintList = navColors
         binding.bnvMain.itemTextColor = navColors
 
-        window.statusBarColor = palette.systemBar
-        window.navigationBarColor = palette.systemBar
+        applySystemBarColors()
 
         WindowInsetsControllerCompat(window, window.decorView).apply {
             isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = false
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun applySystemBarColors() {
+        val systemBar = ThemeManager.palette(UserPreferences.selectedTheme).systemBar
+        window.statusBarColor = systemBar
+        window.navigationBarColor = systemBar
     }
 }
