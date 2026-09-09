@@ -65,6 +65,7 @@ import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerTvBinding
 import com.dskja.betterstreamflix.databinding.FragmentPlayerTvBinding
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.Season
@@ -964,6 +965,16 @@ class PlayerTvFragment : Fragment() {
                 binding.pvPlayer.hideController()
                 (binding.pvPlayer as? PlayerTvView)?.enterManualZoomMode()
                 binding.pvPlayer.requestFocus()
+            }
+            binding.settings.setOnDownloadClickedListener {
+                val video = currentVideo ?: return@setOnDownloadClickedListener
+                val server = currentServer ?: return@setOnDownloadClickedListener
+                DownloadOptionsController.enqueueFromPlayer(
+                    this@PlayerTvFragment,
+                    currentVideoTypeForUi(),
+                    server,
+                    video,
+                )
             }
         }
 

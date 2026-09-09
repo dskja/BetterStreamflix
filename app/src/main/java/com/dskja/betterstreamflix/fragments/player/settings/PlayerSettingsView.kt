@@ -400,6 +400,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Subtitle,
                 Speed,
                 Server,
+                Download,
                 ExtraBuffering,
                 SoftwareDecoder,
                 Gestures,
@@ -412,6 +413,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
                 Subtitle,
                 Speed,
                 Server,
+                Download,
                 ExtraBuffering,
                 SoftwareDecoder,
                 ManualZoom,
@@ -419,6 +421,8 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         }
 
         data object ManualZoom : Settings()
+
+        data object Download : Settings()
 
         sealed class Gestures : Item {
             companion object : Settings() {

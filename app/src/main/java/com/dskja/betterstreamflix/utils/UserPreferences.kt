@@ -138,6 +138,44 @@ object UserPreferences {
             Key.AUTOPLAY.setBoolean(value)
         }
 
+    var downloadWifiOnly: Boolean
+        get() = Key.DOWNLOAD_WIFI_ONLY.getBoolean() ?: true
+        set(value) {
+            Key.DOWNLOAD_WIFI_ONLY.setBoolean(value)
+        }
+
+    var downloadMaxConcurrent: Int
+        get() = Key.DOWNLOAD_MAX_CONCURRENT.getInt() ?: 2
+        set(value) {
+            Key.DOWNLOAD_MAX_CONCURRENT.setInt(value.coerceIn(1, 4))
+        }
+
+    var downloadQualityPreset: com.dskja.betterstreamflix.download.DownloadQualityPreset
+        get() = com.dskja.betterstreamflix.download.DownloadQualityPreset.fromKey(
+            Key.DOWNLOAD_QUALITY_PRESET.getString(),
+        )
+        set(value) {
+            Key.DOWNLOAD_QUALITY_PRESET.setString(value.name)
+        }
+
+    var downloadNotifyComplete: Boolean
+        get() = Key.DOWNLOAD_NOTIFY_COMPLETE.getBoolean() ?: true
+        set(value) {
+            Key.DOWNLOAD_NOTIFY_COMPLETE.setBoolean(value)
+        }
+
+    var downloadFilterCurrentProvider: Boolean
+        get() = Key.DOWNLOAD_FILTER_CURRENT_PROVIDER.getBoolean() ?: false
+        set(value) {
+            Key.DOWNLOAD_FILTER_CURRENT_PROVIDER.setBoolean(value)
+        }
+
+    var downloadSoftLimitGb: Int
+        get() = Key.DOWNLOAD_SOFT_LIMIT_GB.getInt() ?: 20
+        set(value) {
+            Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
+        }
+
     var keepScreenOnWhenPaused: Boolean
         get() = Key.KEEP_SCREEN_ON_WHEN_PAUSED.getBoolean() ?: false
         set(value) {
@@ -637,7 +675,13 @@ object UserPreferences {
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
-        FAVORITE_PROVIDERS;
+        FAVORITE_PROVIDERS,
+        DOWNLOAD_WIFI_ONLY,
+        DOWNLOAD_MAX_CONCURRENT,
+        DOWNLOAD_QUALITY_PRESET,
+        DOWNLOAD_NOTIFY_COMPLETE,
+        DOWNLOAD_FILTER_CURRENT_PROVIDER,
+        DOWNLOAD_SOFT_LIMIT_GB;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

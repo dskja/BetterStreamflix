@@ -52,6 +52,7 @@ import com.dskja.betterstreamflix.activities.tools.BypassWebViewActivity
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerMobileBinding
 import com.dskja.betterstreamflix.databinding.FragmentPlayerMobileBinding
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.Season
@@ -758,6 +759,16 @@ class PlayerMobileFragment : Fragment() {
             binding.settings.hide()
             binding.pvPlayer.hideController()
             binding.pvPlayer.enterManualZoomMode()
+        }
+        binding.settings.setOnDownloadClickedListener {
+            val video = currentVideo ?: return@setOnDownloadClickedListener
+            val server = currentServer ?: return@setOnDownloadClickedListener
+            DownloadOptionsController.enqueueFromPlayer(
+                this,
+                currentVideoTypeForUi(),
+                server,
+                video,
+            )
         }
     }
 
