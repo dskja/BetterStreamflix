@@ -276,7 +276,14 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         val document = try {
-            getDocument("$baseUrl/inicio/")
+            withTimeout(45_000L) {
+                getDocument("$baseUrl/inicio/")
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            throw Exception(
+                "Anime Online Ninja home timed out after Cloudflare challenge. " +
+                    "Open the site once in the app browser to refresh clearance, then retry."
+            )
         } catch (e: Exception) {
             throw Exception("Anime Online Ninja home failed (${e.message}). Cloudflare clearance may be required.")
         }

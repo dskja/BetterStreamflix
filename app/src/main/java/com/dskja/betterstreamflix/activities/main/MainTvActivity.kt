@@ -188,6 +188,8 @@ class MainTvActivity : FragmentActivity() {
             runCatching { FilmyOnlineCcProvider.init(this) }
             runCatching { ZaluknijProvider.init(this) }
             runCatching { GuardaSerieProvider.init(this) }
+            runCatching { SoloLatinoProvider.init(this) }
+            runCatching { RidomoviesProvider.init(this) }
         }
     }
 

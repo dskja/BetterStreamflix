@@ -158,12 +158,26 @@ object FilmyOnlineCcProvider : Provider, ProviderConfigUrl {
             val root = getBootstrapRoot(getDocument(baseUrl))
             cacheBootstrapCsrfToken(root)
             extractHomeCategories(root)
-        }.getOrDefault(emptyList())
+        }.getOrElse { error ->
+            Log.w(TAG, "Bootstrap home failed: ${error.message}")
+            if (error.message.orEmpty().contains("Cloudflare", ignoreCase = true) ||
+                error.message.orEmpty().contains("clearance", ignoreCase = true)
+            ) {
+                throw Exception(
+                    "FilmyOnline Cloudflare blocks $baseUrl. " +
+                        "Open the provider once to refresh clearance, then retry. (${error.message})"
+                )
+            }
+            emptyList()
+        }
 
         if (bootstrapCategories.isNotEmpty()) return bootstrapCategories
 
         Log.d(TAG, "Bootstrap home categories were empty")
-        return emptyList()
+        throw Exception(
+            "FilmyOnline home empty at $baseUrl (API/bootstrap blocked or Cloudflare). " +
+                "Refresh clearance in-app or change the provider URL."
+        )
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {

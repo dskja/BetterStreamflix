@@ -119,6 +119,8 @@ class MainMobileActivity : FragmentActivity() {
             runCatching { Cine24hProvider.init(this) }
             runCatching { FilmyOnlineCcProvider.init(this) }
             runCatching { GuardaSerieProvider.init(this) }
+            runCatching { SoloLatinoProvider.init(this) }
+            runCatching { RidomoviesProvider.init(this) }
             runCatching { ZaluknijProvider.init(this) }
         }
 

@@ -23,7 +23,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -220,13 +219,14 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val servers = mutableListOf<Video.Server>()
         try {
-            val url = "$baseUrl/$id/"
+            val cleanId = id.trim().removePrefix("/").removeSuffix("/")
+            val url = if (cleanId.startsWith("http")) cleanId else "$baseUrl/$cleanId/"
             val page = service.getPage(url, baseUrl)
 
-            page.select("div.pframe iframe").forEach { iframe ->
-                var src = iframe.attr("src")
+            page.select("div.pframe iframe, .dooplay_player iframe, #playerOptions ~ * iframe, iframe[src*=/vidurl/]")
+                .forEach { iframe ->
+                var src = iframe.attr("src").ifBlank { iframe.attr("data-src") }
                 if (src.isNotEmpty()) {
-                    // Resolve relative main iframe URLs
                     if (src.startsWith("//")) {
                         src = "https:$src"
                     } else if (src.startsWith("/")) {
@@ -240,7 +240,7 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
         } catch (e: Exception) {
             Log.e("FlixLatamProvider", "Error en getServers: ${e.message}", e)
         }
-        return servers.distinctBy { it.id }
+        return servers.distinctBy { it.id.ifBlank { it.src } }
     }
 
     private fun solvePoW(challenge: String, difficulty: Int, salt: String): ByteArray {
@@ -261,7 +261,11 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
 
     private fun decryptAES(encrypted: String, aesKey: ByteArray): String? {
         return try {
-            val decoded = Base64.decode(encrypted, Base64.DEFAULT)
+            val decoded = try {
+                Base64.decode(encrypted, Base64.DEFAULT)
+            } catch (_: Exception) {
+                Base64.decode(encrypted, Base64.URL_SAFE or Base64.NO_WRAP)
+            }
             val iv = decoded.copyOfRange(0, 16)
             val cipherText = decoded.copyOfRange(16, decoded.size)
             val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
@@ -274,47 +278,69 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
 
     private suspend fun processIframe(embedUrl: String): List<Video.Server> {
         val servers = mutableListOf<Video.Server>()
-        val embedDocument = try { 
-            service.getEmbedPage(embedUrl, mapOf("Referer" to baseUrl)) 
-        } catch (e: Exception) { return emptyList() }
-        
+        val embedDocument = try {
+            service.getEmbedPage(
+                embedUrl,
+                mapOf(
+                    "Referer" to baseUrl,
+                    "Origin" to baseUrl.trimEnd('/'),
+                    "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language" to "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7",
+                )
+            )
+        } catch (e: Exception) {
+            Log.e("FlixLatamProvider", "getEmbedPage failed for $embedUrl: ${e.message}")
+            return emptyList()
+        }
+
         val embedHtml = embedDocument.html()
 
         // Try to resolve PoW parameters
         var aesKey: ByteArray? = null
         try {
-            val challenge = Regex("""const\s+POW_CHALLENGE\s*=\s*'([^']+)';""").find(embedHtml)?.groupValues?.get(1)
-            val difficulty = Regex("""const\s+POW_DIFFICULTY\s*=\s*(\d+);""").find(embedHtml)?.groupValues?.get(1)?.toIntOrNull()
-            val salt = Regex("""const\s+POW_SALT\s*=\s*'([^']+)';""").find(embedHtml)?.groupValues?.get(1)
-            
+            val challenge = Regex("""(?:const|let|var)\s+POW_CHALLENGE\s*=\s*['"]([^'"]+)['"]""")
+                .find(embedHtml)?.groupValues?.get(1)
+            val difficulty = Regex("""(?:const|let|var)\s+POW_DIFFICULTY\s*=\s*(\d+)""")
+                .find(embedHtml)?.groupValues?.get(1)?.toIntOrNull()
+            val salt = Regex("""(?:const|let|var)\s+POW_SALT\s*=\s*['"]([^'"]+)['"]""")
+                .find(embedHtml)?.groupValues?.get(1)
+
             if (challenge != null && difficulty != null && salt != null) {
                 aesKey = solvePoW(challenge, difficulty, salt)
             }
         } catch (e: Exception) {
-            // PoW solving error
+            Log.w("FlixLatamProvider", "PoW solve failed: ${e.message}")
         }
 
-        // 1. DataLink case
+        // 1. DataLink case — parse from full HTML (script:containsData can miss `let dataLink`)
         try {
-            val scriptData = embedDocument.selectFirst("script:containsData(dataLink)")?.data() ?: ""
-            val dataLinkJsonString = Regex("""dataLink\s*=\s*(\[.+?\]);""").find(scriptData)?.groupValues?.get(1)
+            val dataLinkJsonString = Regex(
+                """dataLink\s*=\s*(\[[\s\S]+?\]);""",
+                setOf(RegexOption.IGNORE_CASE)
+            ).find(embedHtml)?.groupValues?.get(1)
+                ?: embedDocument.selectFirst("script:containsData(dataLink)")?.data()?.let { scriptData ->
+                    Regex("""dataLink\s*=\s*(\[[\s\S]+?\]);""").find(scriptData)?.groupValues?.get(1)
+                }
             if (dataLinkJsonString != null) {
                 servers.addAll(json.decodeFromString<List<DataLinkItem>>(dataLinkJsonString).flatMap { item ->
                     item.sortedEmbeds.mapNotNull { embed ->
                         if (embed.servername.equals("download", ignoreCase = true)) return@mapNotNull null
-                        
-                        val decryptedLink = if (embed.link.contains(".") && embed.link.split(".").size == 3) {
+
+                        val looksLikeJwt = embed.link.count { it == '.' } == 2 &&
+                            embed.link.split(".").all { part -> part.isNotBlank() && !part.contains("/") }
+                        val decryptedLink = if (looksLikeJwt) {
                             decodeBase64Link(embed.link)
                         } else if (aesKey != null) {
                             decryptAES(embed.link, aesKey)
                         } else {
-                            null
+                            decodeBase64Link(embed.link)
                         }
-                        
-                        if (decryptedLink != null) {
+
+                        if (decryptedLink != null && decryptedLink.startsWith("http")) {
                             Video.Server(
                                 id = decryptedLink,
-                                name = "${embed.servername.replaceFirstChar { it.titlecase(Locale.ROOT) }} [${item.video_language}]"
+                                name = "${embed.servername.replaceFirstChar { it.titlecase(Locale.ROOT) }} [${item.video_language}]",
+                                src = decryptedLink,
                             )
                         } else {
                             null
@@ -322,18 +348,19 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
                     }
                 })
             }
-        } catch (e: Exception) { /* JSON error - continue to other methods */ }
-        
+        } catch (e: Exception) {
+            Log.w("FlixLatamProvider", "dataLink parse failed: ${e.message}")
+        }
+
         // 2. go_to_playerVast Case
         try {
-            val domItems = embedDocument.select(".ODDIV .OD_1 li[onclick]")
+            val domItems = embedDocument.select(".ODDIV .OD_1 li[onclick], li[onclick*=go_to_player]")
             servers.addAll(
                 domItems.mapNotNull { dom ->
                     val onclick = dom.attr("onclick")
-                    val m = Regex("""go_to_playerVast\(\s*'([^']+)'""").find(onclick)
+                    val m = Regex("""go_to_player(?:Vast)?\(\s*'([^']+)'""").find(onclick)
                     val finalUrl = m?.groupValues?.getOrNull(1)?.trim() ?: return@mapNotNull null
-                    
-                    // Resolve relative child player URLs
+
                     var resolvedUrl = finalUrl
                     if (finalUrl.startsWith("//")) {
                         resolvedUrl = "https:$finalUrl"
@@ -342,31 +369,34 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
                     } else if (!finalUrl.startsWith("http")) {
                         resolvedUrl = "$baseUrl/$finalUrl"
                     }
-                    
+
                     val serverName = dom.selectFirst("span")?.text()?.trim() ?: "Opción"
                     if (serverName.contains("download", ignoreCase = true) || serverName.contains("1fichier", ignoreCase = true)) return@mapNotNull null
+                    if (resolvedUrl.endsWith(".xml", ignoreCase = true)) return@mapNotNull null
                     if (servers.any { it.id == resolvedUrl }) return@mapNotNull null
-                    Video.Server(id = resolvedUrl, name = serverName)
+                    Video.Server(id = resolvedUrl, name = serverName, src = resolvedUrl)
                 }
             )
         } catch (e: Exception) { /* DOM error - continue */ }
 
         // 3. Direct Iframe Case
         try {
-            embedDocument.selectFirst("iframe")?.attr("src")?.takeIf { it.isNotEmpty() }?.let { src ->
-                // Resolve relative direct iframe URLs
-                var resolvedSrc = src
-                if (src.startsWith("//")) {
-                    resolvedSrc = "https:$src"
-                } else if (src.startsWith("/")) {
-                    resolvedSrc = "$baseUrl$src"
-                } else if (!src.startsWith("http")) {
-                    resolvedSrc = "$baseUrl/$src"
-                }
-                
-                val name = resolvedSrc.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
-                if (servers.none { it.id == resolvedSrc }) {
-                    servers.add(Video.Server(id = resolvedSrc, name = name))
+            embedDocument.selectFirst("iframe[src], iframe[data-src]")?.let { iframe ->
+                val src = iframe.attr("src").ifBlank { iframe.attr("data-src") }.takeIf { it.isNotEmpty() }
+                if (src != null) {
+                    var resolvedSrc = src
+                    if (src.startsWith("//")) {
+                        resolvedSrc = "https:$src"
+                    } else if (src.startsWith("/")) {
+                        resolvedSrc = "$baseUrl$src"
+                    } else if (!src.startsWith("http")) {
+                        resolvedSrc = "$baseUrl/$src"
+                    }
+
+                    val name = resolvedSrc.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
+                    if (servers.none { it.id == resolvedSrc }) {
+                        servers.add(Video.Server(id = resolvedSrc, name = name, src = resolvedSrc))
+                    }
                 }
             }
         } catch (e: Exception) { /* Fallback error */ }
@@ -374,7 +404,7 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
         return servers
     }
 
-    override suspend fun getVideo(server: Video.Server): Video = Extractor.extract(server.id)
+    override suspend fun getVideo(server: Video.Server): Video = Extractor.extract(server.src.ifBlank { server.id }, server)
 
     override suspend fun getPeople(id: String, page: Int): People {
         throw Exception("Esta función no está disponible en FlixLatam")
@@ -432,7 +462,7 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
                         val request = chain.request().newBuilder()
                             .header(
                                 "User-Agent",
-                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
                             )
                             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -442,9 +472,9 @@ object FlixLatamProvider : Provider, ProviderConfigUrl {
                         chain.proceed(request)
                     }
                     .cache(Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024))
-                    .readTimeout(20, TimeUnit.SECONDS)
-                    .connectTimeout(15, TimeUnit.SECONDS)
-                    .callTimeout(35, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .callTimeout(45, TimeUnit.SECONDS)
                     .dns(DnsResolver.doh)
                     .build()
 

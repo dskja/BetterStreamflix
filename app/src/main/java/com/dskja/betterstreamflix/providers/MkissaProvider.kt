@@ -49,6 +49,11 @@ object MkissaProvider : Provider, ProviderConfigUrl {
     private const val TAG = "MkissaProvider"
     private const val API_URL = "https://api.allanime.day/"
     private const val CLOCK_URL = "https://allanime.day"
+    // api.allanime.day returns 403 unless Origin/Referer match an allowlisted frontend (allmanga.to).
+    private const val API_ORIGIN = "https://allmanga.to"
+    private const val API_REFERER = "https://allmanga.to/"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     private const val SEARCH_HASH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
     private const val POPULAR_DAILY_HASH = "a0aca6827cc9a3ad7bc711da4d200a04adea8f1a7545dc418d5e92e74c3aad15"
     private const val POPULAR_HASH = "ac2c75884a11fca5707ce4ad10f2e3e2aae31e42af5e4d9c511a4a5e708e4c6d"
@@ -246,13 +251,10 @@ object MkissaProvider : Provider, ProviderConfigUrl {
                 .dns(DnsResolver.doh)
                 .addInterceptor { chain ->
                     val request = chain.request().newBuilder()
-                        .header(
-                            "User-Agent",
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                        )
+                        .header("User-Agent", BROWSER_UA)
                         .header("Accept", "application/json, text/plain, */*")
-                        .header("Origin", "https://mkissa.to")
-                        .header("Referer", "https://mkissa.to/")
+                        .header("Origin", API_ORIGIN)
+                        .header("Referer", API_REFERER)
                         .build()
                     chain.proceed(request)
                 }
@@ -270,9 +272,9 @@ object MkissaProvider : Provider, ProviderConfigUrl {
     private interface MkissaService {
         @Headers(
             "Accept: application/json",
-            "Origin: https://mkissa.to",
-            "Referer: https://mkissa.to/",
-            "User-Agent: Mozilla/5.0"
+            "Origin: https://allmanga.to",
+            "Referer: https://allmanga.to/",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         )
         @GET("api")
         suspend fun api(
@@ -283,9 +285,9 @@ object MkissaProvider : Provider, ProviderConfigUrl {
         @Headers(
             "Accept: application/json",
             "Content-Type: application/json",
-            "Origin: https://mkissa.to",
-            "Referer: https://mkissa.to/",
-            "User-Agent: Mozilla/5.0"
+            "Origin: https://allmanga.to",
+            "Referer: https://allmanga.to/",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         )
         @POST("api")
         suspend fun apiPost(@Body body: okhttp3.RequestBody): String

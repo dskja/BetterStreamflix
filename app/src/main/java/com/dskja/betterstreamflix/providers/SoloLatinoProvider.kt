@@ -5,18 +5,25 @@ import kotlinx.coroutines.sync.withLock
 
 import com.dskja.betterstreamflix.utils.UserPreferences
 
+import android.content.Context
 import android.util.Base64
+import android.util.Log
+import android.webkit.CookieManager
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
+import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.models.*
 import com.dskja.betterstreamflix.models.sololatino.Item
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.NetworkClient
+import com.dskja.betterstreamflix.utils.WebViewResolver
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.OkHttpClient
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -28,7 +35,6 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import java.security.MessageDigest
-import MyCookieJar
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -51,6 +57,13 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
     }
     override val language = "es"
 
+    private const val TAG = "SoloLatinoBypass"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+    private var webViewResolver: WebViewResolver? = null
+    private val providerMutex = Mutex()
+
     private val client = getOkHttpClient()
 
     private val retrofit = Retrofit.Builder()
@@ -61,28 +74,38 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     private val service = retrofit.create(SoloLatinoService::class.java)
 
+    fun init(context: Context) {
+        webViewResolver = WebViewResolver(context)
+    }
+
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(BetterStreamflixApp.instance).also {
+            webViewResolver = it
+        }
+    }
+
     private fun getOkHttpClient(): OkHttpClient {
         val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
 
         val clientBuilder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header(
-                        "User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                    )
-                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("User-Agent", BROWSER_UA)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
                     .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
                     .header("Referer", "$baseUrl/")
                     .header("Origin", baseUrl.trimEnd('/'))
+                    .header("Sec-Fetch-Dest", "document")
+                    .header("Sec-Fetch-Mode", "navigate")
+                    .header("Sec-Fetch-Site", "same-origin")
                     .build()
                 chain.proceed(request)
             }
-            .cookieJar(MyCookieJar())
+            .cookieJar(NetworkClient.cookieJar)
             .cache(appCache)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .callTimeout(35, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
 
         return clientBuilder.dns(DnsResolver.doh).build()
     }
@@ -93,13 +116,62 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     }
 
+    private fun requiresClearance(html: String): Boolean {
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("challenge-platform", ignoreCase = true)
+    }
+
+    private suspend fun getDocument(url: String): Document {
+        try {
+            val document = service.getPage(url)
+            if (requiresClearance(document.outerHtml())) {
+                throw Exception("SoloLatino Cloudflare challenge detected")
+            }
+            return document
+        } catch (e: Exception) {
+            val httpCode = (e as? retrofit2.HttpException)?.code()
+            val challengeBody = (e as? retrofit2.HttpException)?.response()?.errorBody()?.string().orEmpty()
+            val needsWebView = requiresClearance(e.message.orEmpty()) ||
+                requiresClearance(challengeBody) ||
+                httpCode == 403 ||
+                httpCode == 503
+
+            if (!needsWebView && e.message?.contains("Cloudflare") != true) {
+                throw e
+            }
+
+            Log.d(TAG, "Using WebView bypass for $url")
+            val result = providerMutex.withLock {
+                getResolver().getResult(
+                    url = url,
+                    headers = mapOf(
+                        "User-Agent" to BROWSER_UA,
+                        "Accept-Language" to "es-ES,es;q=0.9,en;q=0.8",
+                    ),
+                    completion = { _, htmlText, _ ->
+                        !requiresClearance(htmlText) &&
+                            (htmlText.contains("server-btn") ||
+                                htmlText.contains("hero__slide") ||
+                                htmlText.contains("card__poster") ||
+                                htmlText.contains("card__title") ||
+                                htmlText.contains("data-player"))
+                    }
+                )
+            }
+            CookieManager.getInstance().flush()
+            return Jsoup.parse(result.html, url).apply { setBaseUri(baseUrl) }
+        }
+    }
+
     override val logo = "$baseUrl/images/logo.png"
 
-            override suspend fun getHome(): List<Category> = coroutineScope {
+    override suspend fun getHome(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
 
         try {
-            val mainDoc = service.getPage(baseUrl)
+            val mainDoc = getDocument(baseUrl)
 
             // 1. Featured
             val bannerShows = parseBannerShows(mainDoc).take(12)
@@ -243,7 +315,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
         return try {
             val url = if (page > 1) "$baseUrl/buscar?q=$query&page=$page" else "$baseUrl/buscar?q=$query"
-            val document = service.getPage(url)
+            val document = getDocument(url)
             parseMixed(document)
         } catch (e: Exception) {
             emptyList()
@@ -253,7 +325,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
     override suspend fun getMovies(page: Int): List<Movie> {
         return try {
             val url = if (page > 1) "$baseUrl/peliculas/page/$page" else "$baseUrl/peliculas"
-            val document = service.getPage(url)
+            val document = getDocument(url)
             parseMovies(document)
         } catch (e: Exception) {
             emptyList()
@@ -263,7 +335,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
     override suspend fun getTvShows(page: Int): List<TvShow> {
         return try {
             val url = if (page > 1) "$baseUrl/series/page/$page" else "$baseUrl/series"
-            val document = service.getPage(url)
+            val document = getDocument(url)
             parseTvShows(document)
         } catch (e: Exception) {
             emptyList()
@@ -273,7 +345,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {
             val url = if (page > 1) "$baseUrl/genero/$id/page/$page" else "$baseUrl/genero/$id"
-            val document = service.getPage(url)
+            val document = getDocument(url)
             val shows = parseMixed(document)
             Genre(
                 id = id,
@@ -287,7 +359,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getMovie(id: String): Movie {
         return try {
-            val document = service.getPage(id)
+            val document = getDocument(id)
             val title = document.selectFirst("h1")?.text() 
                 ?: document.select("nav[aria-label=breadcrumb] span:last-child").text()
             
@@ -366,7 +438,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getTvShow(id: String): TvShow {
         return try {
-            val document = service.getPage(id)
+            val document = getDocument(id)
             val title = document.selectFirst("h1")?.text()
                 ?: document.select("nav[aria-label=breadcrumb] span:last-child").text()
             
@@ -448,7 +520,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
         return try {
             val showId = seasonId.substringBefore("@")
             val seasonNumber = seasonId.substringAfter("@")
-            val document = service.getPage(showId)
+            val document = getDocument(showId)
             val seasonElement = document.select("div[data-season-panel=$seasonNumber]").firstOrNull() ?: return emptyList()
             seasonElement.select("a.ep-item").map { episodeElement ->
                 val epNumText = episodeElement.selectFirst("p.ep-num")?.text() ?: "E0"
@@ -475,7 +547,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return try {
-            val doc = service.getPage(id)
+            val doc = getDocument(id)
             val allServers = mutableListOf<Video.Server>()
             
             val serverBtns = doc.select("button.server-btn")
@@ -607,17 +679,20 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     private suspend fun processIframe(iframeUrl: String, referer: String): List<Video.Server> {
         return try {
-            val iframeDoc = service.getPage(iframeUrl)
+            val iframeDoc = getDocument(iframeUrl)
             val iframeHtml = iframeDoc.html()
             val servers = mutableListOf<Video.Server>()
 
             // Try to resolve PoW parameters
             var aesKey: ByteArray? = null
             try {
-                val challenge = Regex("""const\s+POW_CHALLENGE\s*=\s*'([^']+)';""").find(iframeHtml)?.groupValues?.get(1)
-                val difficulty = Regex("""const\s+POW_DIFFICULTY\s*=\s*(\d+);""").find(iframeHtml)?.groupValues?.get(1)?.toIntOrNull()
-                val salt = Regex("""const\s+POW_SALT\s*=\s*'([^']+)';""").find(iframeHtml)?.groupValues?.get(1)
-                
+                val challenge = Regex("""(?:const|let|var)\s+POW_CHALLENGE\s*=\s*['"]([^'"]+)['"]""")
+                    .find(iframeHtml)?.groupValues?.get(1)
+                val difficulty = Regex("""(?:const|let|var)\s+POW_DIFFICULTY\s*=\s*(\d+)""")
+                    .find(iframeHtml)?.groupValues?.get(1)?.toIntOrNull()
+                val salt = Regex("""(?:const|let|var)\s+POW_SALT\s*=\s*['"]([^'"]+)['"]""")
+                    .find(iframeHtml)?.groupValues?.get(1)
+
                 if (challenge != null && difficulty != null && salt != null) {
                     aesKey = solvePoW(challenge, difficulty, salt)
                 }
@@ -627,7 +702,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
             // 1. DataLink case
             try {
-                val dataLinkMatch = Regex("""dataLink = (\[.+?\]);""").find(iframeHtml)
+                val dataLinkMatch = Regex("""dataLink\s*=\s*(\[[\s\S]+?\]);""").find(iframeHtml)
                 if (dataLinkMatch != null) {
                     val items = json.decodeFromString<List<Item>>(dataLinkMatch.groupValues[1])
                     for (item in items) {
@@ -640,17 +715,25 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
                         }
                         for (embed in item.sortedEmbeds) {
                             if (embed.servername.equals("download", ignoreCase = true)) continue
-                            
-                            val decryptedLink = if (embed.link.contains(".") && embed.link.split(".").size == 3) {
+
+                            val looksLikeJwt = embed.link.count { it == '.' } == 2 &&
+                                embed.link.split(".").all { part -> part.isNotBlank() && !part.contains("/") }
+                            val decryptedLink = if (looksLikeJwt) {
                                 decodeBase64Link(embed.link)
                             } else if (aesKey != null) {
                                 decryptAES(embed.link, aesKey)
                             } else {
-                                null
+                                decodeBase64Link(embed.link)
                             }
-                            
-                            if (decryptedLink != null) {
-                                servers.add(Video.Server(id = decryptedLink, name = "${embed.servername} $lang".trim()))
+
+                            if (decryptedLink != null && decryptedLink.startsWith("http")) {
+                                servers.add(
+                                    Video.Server(
+                                        id = decryptedLink,
+                                        name = "${embed.servername} $lang".trim(),
+                                        src = decryptedLink,
+                                    )
+                                )
                             }
                         }
                     }
@@ -668,16 +751,19 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
                     val serverName = dom.selectFirst("span")?.text()?.trim().orEmpty()
                     if (serverName.equals("1fichier", ignoreCase = true) || serverName.equals("download", ignoreCase = true)) continue
                     if (servers.none { it.id == finalUrl }) {
-                        servers.add(Video.Server(id = finalUrl, name = serverName))
+                        servers.add(Video.Server(id = finalUrl, name = serverName, src = finalUrl))
                     }
                 }
             } catch (e: Exception) { /* DOM error - continue */ }
 
             // 3. Direct Iframe
-            iframeDoc.selectFirst("iframe")?.attr("src")?.takeIf { it.isNotEmpty() }?.let { src ->
-                val name = src.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { it.uppercase() }
-                if (servers.none { it.id == src }) {
-                    servers.add(Video.Server(id = src, name = name))
+            iframeDoc.selectFirst("iframe[src], iframe[data-src]")?.let { iframe ->
+                val src = iframe.attr("src").ifBlank { iframe.attr("data-src") }.takeIf { it.isNotEmpty() }
+                src?.let {
+                    val name = it.substringAfter("//").substringBefore("/").replace("www.", "").substringBefore(".").replaceFirstChar { c -> c.uppercase() }
+                    if (servers.none { s -> s.id == it }) {
+                        servers.add(Video.Server(id = it, name = name, src = it))
+                    }
                 }
             }
 
@@ -718,7 +804,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return Extractor.extract(server.id, server)
+        return Extractor.extract(server.src.ifBlank { server.id }, server)
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
@@ -726,7 +812,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
             return People(id = id, name = "")
         }
         return try {
-            val document = service.getPage(id)
+            val document = getDocument(id)
             val name = document.selectFirst(".data h1")?.text() ?: ""
             val poster = document.selectFirst(".poster img")?.attr("src")
             val filmography = parseMixed(document)

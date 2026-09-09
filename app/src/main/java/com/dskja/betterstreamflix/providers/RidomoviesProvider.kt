@@ -5,7 +5,11 @@ import kotlinx.coroutines.sync.withLock
 
 import com.dskja.betterstreamflix.utils.UserPreferences
 
+import android.content.Context
+import android.util.Log
+import android.webkit.CookieManager
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
+import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.models.Category
@@ -18,6 +22,8 @@ import com.dskja.betterstreamflix.models.Show
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.NetworkClient
+import com.dskja.betterstreamflix.utils.WebViewResolver
 import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
@@ -42,14 +48,84 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
     override val changeUrlMutex = Mutex()
 
     override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = Service.build()
         baseUrl
     }
     override val name = "Ridomovies"
     override val logo = "$URL/uploads/logos/hero_logo-1-1769040020-ab537326.png"
     override val language = "en"
 
-    private val service = Service.build()
+    private const val TAG = "RidomoviesBypass"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+    private var service = Service.build()
     private var currentSlug: String? = null
+    private var webViewResolver: WebViewResolver? = null
+    private val providerMutex = Mutex()
+
+    fun init(context: Context) {
+        webViewResolver = WebViewResolver(context)
+    }
+
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(BetterStreamflixApp.instance).also {
+            webViewResolver = it
+        }
+    }
+
+    private fun requiresClearance(html: String): Boolean {
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("cf-mitigated", ignoreCase = true) ||
+            html.contains("challenge-platform", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true)
+    }
+
+    private suspend fun getHtmlDocument(url: String): Document {
+        val absolute = when {
+            url.startsWith("http") -> url
+            else -> "${URL.trimEnd('/')}/${url.trimStart('/')}"
+        }
+        try {
+            val document = service.getPage(url)
+            if (requiresClearance(document.outerHtml())) {
+                throw Exception("Ridomovies Cloudflare challenge detected")
+            }
+            return document
+        } catch (e: Exception) {
+            val httpCode = (e as? retrofit2.HttpException)?.code()
+            val challengeBody = (e as? retrofit2.HttpException)?.response()?.errorBody()?.string().orEmpty()
+            val needsWebView = requiresClearance(e.message.orEmpty()) ||
+                requiresClearance(challengeBody) ||
+                httpCode == 403 ||
+                httpCode == 503 ||
+                e.message?.contains("Cloudflare", ignoreCase = true) == true
+
+            if (!needsWebView) throw e
+
+            Log.d(TAG, "Using WebView bypass for $absolute")
+            val result = providerMutex.withLock {
+                getResolver().getResult(
+                    url = absolute,
+                    headers = mapOf(
+                        "User-Agent" to BROWSER_UA,
+                        "Accept-Language" to "en-US,en;q=0.9",
+                    ),
+                    completion = { _, htmlText, _ ->
+                        !requiresClearance(htmlText) &&
+                            (htmlText.contains("player-cover") ||
+                                htmlText.contains("data-embed") ||
+                                htmlText.contains("movie-card") ||
+                                htmlText.contains("highlight-card") ||
+                                htmlText.contains("server-dropdown"))
+                    }
+                )
+            }
+            CookieManager.getInstance().flush()
+            return Jsoup.parse(result.html, absolute).apply { setBaseUri(URL) }
+        }
+    }
 
     private fun fixUrl(path: String?): String? {
         if (path.isNullOrBlank()) return null
@@ -58,7 +134,7 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getHome(): List<Category> {
-        val document = service.getHome()
+        val document = getHtmlDocument("home-rd1")
         val tvResponse = service.getLatestSeries(1)
 
         val categories = mutableListOf<Category>()
@@ -133,7 +209,7 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
-            val document = service.getHome()
+            val document = getHtmlDocument("home-rd1")
             val genres = document.select(".dropdown-grid.genres-grid a, .mobile-accordion-content a.mobile-accordion-link").mapNotNull { a ->
                 val href = a.attr("href")
                 if (!href.contains("/genre/")) return@mapNotNull null
@@ -205,7 +281,7 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getMovie(id: String): Movie {
-        val document = service.getMovie(id)
+        val document = getHtmlDocument("movie/$id")
         val finalId = currentSlug ?: id
 
         val h1Text = document.selectFirst("h1")?.text() ?: ""
@@ -250,7 +326,7 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val document = service.getTv(id)
+        val document = getHtmlDocument("tv/$id")
         val finalId = currentSlug ?: id
 
         val h1Text = document.selectFirst("h1")?.text() ?: ""
@@ -310,7 +386,7 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
         val tvShowSlug = parts.getOrElse(0) { seasonId }
         val seasonNum = parts.getOrNull(1)?.toIntOrNull() ?: 1
 
-        val document = service.getEpisodePage(tvShowSlug, seasonNum, 1)
+        val document = getHtmlDocument("tv/$tvShowSlug/season-$seasonNum/episode-1")
 
         val episodes = document.select(".episodes-grid .episode-link").mapNotNull { ep ->
             val href = ep.attr("href")
@@ -393,13 +469,23 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
             is Video.Type.Movie -> "movie/$id"
         }
 
-        val document = service.getPage(pageUrl)
+        val document = getHtmlDocument(pageUrl)
         val servers = mutableListOf<Video.Server>()
 
         fun extractIframeSrc(rawHtml: String): String? {
             if (rawHtml.isBlank()) return null
-            val iframe = org.jsoup.Jsoup.parse(rawHtml).selectFirst("iframe")
-            return iframe?.attr("src")?.ifBlank { iframe.attr("data-src") }
+            // data-embed may contain a full iframe HTML snippet or a bare URL
+            val trimmed = rawHtml.trim()
+            if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("//")) {
+                return if (trimmed.startsWith("//")) "https:$trimmed" else trimmed
+            }
+            val iframe = Jsoup.parse(rawHtml).selectFirst("iframe")
+            val src = iframe?.attr("src")?.ifBlank { iframe.attr("data-src") }
+            return when {
+                src.isNullOrBlank() -> null
+                src.startsWith("//") -> "https:$src"
+                else -> src
+            }
         }
 
         // #player-cover is always present (movies and episodes)
@@ -422,8 +508,12 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
         if (servers.isEmpty()) {
             document.select("iframe[src], iframe[data-src]").forEachIndexed { idx, iframe ->
                 val src = iframe.attr("src").ifBlank { iframe.attr("data-src") }
-                if (src.isNotBlank()) {
-                    servers.add(Video.Server(id = src, name = "Server ${idx + 1}", src = src))
+                val absolute = when {
+                    src.startsWith("//") -> "https:$src"
+                    else -> src
+                }
+                if (absolute.isNotBlank()) {
+                    servers.add(Video.Server(id = absolute, name = "Server ${idx + 1}", src = absolute))
                 }
             }
         }
@@ -442,21 +532,15 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
             }
         }
 
-        if (servers.isEmpty()) {
-            val html = document.html()
-            if (html.contains("Just a moment", ignoreCase = true) ||
-                html.contains("cf-mitigated", ignoreCase = true) ||
-                html.contains("challenge-platform", ignoreCase = true)
-            ) {
-                throw Exception("Ridomovies blocked by Cloudflare; open the site on-device to clear challenge")
-            }
+        if (servers.isEmpty() && requiresClearance(document.html())) {
+            throw Exception("Ridomovies blocked by Cloudflare; open the site on-device to clear challenge")
         }
 
         return servers.distinctBy { it.src.ifBlank { it.id } }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return Extractor.extract(server.src)
+        return Extractor.extract(server.src.ifBlank { server.id }, server)
     }
 
 
@@ -465,9 +549,10 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
         companion object {
             fun build(): Service {
                 val client = OkHttpClient.Builder()
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
                     .dns(DnsResolver.doh)
+                    .cookieJar(NetworkClient.cookieJar)
+                    .followRedirects(true)
+                    .followSslRedirects(true)
                     .addInterceptor { chain ->
                         val request = chain.request()
                         val response = chain.proceed(request)
@@ -484,24 +569,24 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
                     }
                     .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
-                            .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                            .addHeader("Accept-Language", "en-US,en;q=0.9")
-                            .addHeader(
-                                "User-Agent",
-                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                            )
-                            .addHeader("Referer", URL)
-                            .addHeader("Origin", URL.trimEnd('/'))
-                            .addHeader("Sec-CH-UA", "\"Chromium\";v=\"131\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"131\"")
-                            .addHeader("Sec-CH-UA-Mobile", "?0")
-                            .addHeader("Sec-CH-UA-Platform", "\"Windows\"")
-                            .addHeader("Platform", "android")
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+                            .header("Accept-Language", "en-US,en;q=0.9")
+                            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                            .header("Referer", URL)
+                            .header("Origin", URL.trimEnd('/'))
+                            .header("Sec-CH-UA", "\"Chromium\";v=\"131\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"131\"")
+                            .header("Sec-CH-UA-Mobile", "?0")
+                            .header("Sec-CH-UA-Platform", "\"Windows\"")
+                            .header("Sec-Fetch-Dest", "document")
+                            .header("Sec-Fetch-Mode", "navigate")
+                            .header("Sec-Fetch-Site", "same-origin")
+                            .header("Upgrade-Insecure-Requests", "1")
                             .build()
                         chain.proceed(request)
                     }
-                    .connectTimeout(15, TimeUnit.SECONDS)
-                    .readTimeout(20, TimeUnit.SECONDS)
-                    .callTimeout(35, TimeUnit.SECONDS)
+                    .connectTimeout(25, TimeUnit.SECONDS)
+                    .readTimeout(35, TimeUnit.SECONDS)
+                    .callTimeout(50, TimeUnit.SECONDS)
                     .build()
 
                 val retrofit = Retrofit.Builder()

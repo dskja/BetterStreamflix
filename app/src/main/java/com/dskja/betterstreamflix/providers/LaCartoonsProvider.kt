@@ -21,7 +21,6 @@ import kotlinx.coroutines.coroutineScope
 import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -96,7 +95,7 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
             val links = container.select("a[href^=/serie/], a[href*=/serie/]")
             for (a in links) {
             val href = a.attr("href").ifBlank { continue }
-            val card = a.selectFirst("div.serie") ?: continue
+            val card = a.selectFirst("div.serie, div[class*=serie]") ?: continue
             val img = card.selectFirst("img")?.attr("src").orEmpty()
             val title = card.selectFirst("p.nombre-serie")?.text().orElse("")
             val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
@@ -264,6 +263,7 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
         fun addServer(raw: String?, label: String?) {
             val finalUrl = raw?.trim().orEmpty()
             if (finalUrl.isBlank()) return
+            if (finalUrl.startsWith("javascript:", ignoreCase = true)) return
             val absolute = when {
                 finalUrl.startsWith("//") -> "https:$finalUrl"
                 finalUrl.startsWith("http") -> finalUrl
@@ -278,8 +278,13 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
             servers += Video.Server(id = absolute, name = serverName, src = absolute)
         }
 
-        doc.select("iframe[src], iframe[data-src], .embed iframe, #player iframe, .player iframe").forEach {
-            addServer(it.attr("src").ifBlank { it.attr("data-src") }, it.attr("title"))
+        doc.select(
+            "section.contenedor-video-recomendaciones iframe, " +
+                "div.serie-video-informacion iframe, " +
+                ".contenedor-video iframe, " +
+                "iframe[src], iframe[data-src], .embed iframe, #player iframe, .player iframe"
+        ).forEach {
+            addServer(it.attr("src").ifBlank { it.attr("data-src") }, it.attr("title").takeIf { t -> t.isNotBlank() })
         }
         doc.select("[data-src*=http], li[data-url], a[data-player]").forEach {
             addServer(
@@ -288,11 +293,21 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
             )
         }
 
+        // Inline ok.ru / mail.ru / embed URLs in scripts
+        if (servers.isEmpty()) {
+            Regex(
+                """(?:src|data-src)\s*=\s*["'](https?://(?:ok\.ru|www\.ok\.ru|videoapi\.my\.mail\.ru)[^"']+)["']""",
+                RegexOption.IGNORE_CASE,
+            ).findAll(doc.html()).forEachIndexed { idx, match ->
+                addServer(match.groupValues[1], "Embed ${idx + 1}")
+            }
+        }
+
         return servers.distinctBy { it.src.ifBlank { it.id } }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return Extractor.extract(server.src, server)
+        return Extractor.extract(server.src.ifBlank { server.id }, server)
     }
 
     private fun String?.orElse(fallback: String): String = this ?: fallback

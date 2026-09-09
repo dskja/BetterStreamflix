@@ -87,8 +87,9 @@ object CineHaxProvider : Provider, ProviderConfigUrl {
     // region HTTP
 
     private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        .callTimeout(25, TimeUnit.SECONDS)
         .addInterceptor { chain ->
             val original = chain.request()
             val request = original.newBuilder()
@@ -147,7 +148,21 @@ object CineHaxProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         // Site moved from primeshow/v1 to cinehax/v1; Referer/Origin are required (403 otherwise).
-        val json = JSONObject(get("$baseUrl/wp-json/cinehax/v1/home-data"))
+        val json = try {
+            JSONObject(get("$baseUrl/wp-json/cinehax/v1/home-data"))
+        } catch (e: Exception) {
+            Log.w(TAG, "home-data failed: ${e.message}")
+            // Fallback if the REST shape/path changes again: scrape explore ajax pages.
+            val movies = fetchExplorePage("movie", 1)
+            val series = fetchExplorePage("tv", 1)
+            val categories = mutableListOf<Category>()
+            if (movies.isNotEmpty()) categories.add(Category("Películas populares", movies))
+            if (series.isNotEmpty()) categories.add(Category("Series populares", series))
+            if (categories.isEmpty()) {
+                throw Exception("CineHax home-data failed at $baseUrl/wp-json/cinehax/v1/home-data (${e.message})")
+            }
+            return categories
+        }
         val categories = mutableListOf<Category>()
         json.keys().forEach { key ->
             val items = json.optJSONArray(key) ?: return@forEach
@@ -157,11 +172,13 @@ object CineHaxProvider : Provider, ProviderConfigUrl {
             }
         }
         if (categories.isEmpty()) {
-            // Fallback if the REST shape changes again: scrape explore ajax pages.
             val movies = fetchExplorePage("movie", 1)
             val series = fetchExplorePage("tv", 1)
             if (movies.isNotEmpty()) categories.add(Category("Películas populares", movies))
             if (series.isNotEmpty()) categories.add(Category("Series populares", series))
+        }
+        if (categories.isEmpty()) {
+            throw Exception("CineHax home-data returned no categories")
         }
         return categories
     }

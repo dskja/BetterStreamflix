@@ -134,10 +134,11 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
         return try {
             coroutineScope {
                 val homeDeferred = async { service.getPage(baseUrl) }
-                val directoryDeferred = async { service.getPage("$baseUrl/directorio") }
+                val directoryDeferred = async { service.getPage("$baseUrl/directorio?p=1") }
 
                 val categories = mutableListOf<Category>()
                 var sawCloudflare = false
+                var sawTinyPage = false
 
                 runCatching {
                     val home = homeDeferred.await()
@@ -145,11 +146,17 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
                         sawCloudflare = true
                         return@runCatching
                     }
+                    if (home.html().length < 4000) {
+                        sawTinyPage = true
+                        return@runCatching
+                    }
                     val latest = parseHomeEpisodes(home).take(24)
                     if (latest.isNotEmpty()) {
                         categories.add(Category("Últimos episodios", latest))
                     }
-                    val featured = parseAnimeCards(home.select(".anime, .animes .anime, .media.anime")).take(20)
+                    val featured = parseAnimeCards(
+                        home.select("article.anime, .anime, .animes .anime, .media.anime, li.anime")
+                    ).take(20)
                     if (featured.isNotEmpty()) {
                         categories.add(Category(Category.FEATURED, featured.map { it.copy(banner = it.poster) }))
                     }
@@ -161,9 +168,13 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
                         sawCloudflare = true
                         return@runCatching
                     }
+                    if (directory.html().length < 4000) {
+                        sawTinyPage = true
+                        return@runCatching
+                    }
                     val shows = parseAnimeCards(
                         directory.select(
-                            ".anime, .animes .anime, .media.anime, li.anime, " +
+                            "article.anime, .anime, .animes .anime, .media.anime, li.anime, " +
                                 "article, .group, .card, a[href*=/anime/]"
                         )
                     )
@@ -176,6 +187,11 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
                     throw Exception(
                         "Animefenix bloqueado por Cloudflare en $baseUrl. " +
                             "Abre el sitio en el dispositivo o cambia la URL del proveedor."
+                    )
+                }
+                if (categories.isEmpty() && sawTinyPage) {
+                    throw Exception(
+                        "Animefenix devolvió una página incompleta en $baseUrl (posible antibot). Intenta de nuevo."
                     )
                 }
                 if (categories.isEmpty()) {

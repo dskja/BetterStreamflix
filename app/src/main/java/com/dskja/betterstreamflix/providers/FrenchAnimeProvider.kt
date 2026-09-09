@@ -51,7 +51,20 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
     private val URL_DOMAIN_REGEX = Regex("""(?:https?:)?//(?:www\.)?([^.]+)\.""")
 
     override suspend fun getHome(): List<Category> {
-        val document = service.getHome()
+        val document = try {
+            service.getHome()
+        } catch (e: Exception) {
+            throw Exception(
+                "FrenchAnime unreachable at $baseUrl (${e.message}). " +
+                    "Cloudflare often blocks non-browser clients (HTTP 403)."
+            )
+        }
+        if (looksLikeCloudflare(document)) {
+            throw Exception(
+                "FrenchAnime bloqueado por Cloudflare en $baseUrl. " +
+                    "Abre el sitio en el navegador del dispositivo o cambia la URL del proveedor."
+            )
+        }
         val categories = mutableListOf<Category>()
 
         document.select(".owl-carousel .item").map { item ->
@@ -531,6 +544,14 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
         else -> null
     }
 
+    private fun looksLikeCloudflare(document: Document): Boolean {
+        val html = document.html()
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("challenge-platform", ignoreCase = true)
+    }
+
     override suspend fun onChangeUrl(forceRefresh: Boolean): String {
         changeUrlMutex.withLock {
             service = FrenchAnimeService.build()
@@ -543,8 +564,21 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
             fun build(): FrenchAnimeService {
                 val client = OkHttpClient.Builder()
                     .dns(DnsResolver.doh)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .callTimeout(25, TimeUnit.SECONDS)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                            )
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .header("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8")
+                            .header("Referer", baseUrl)
+                            .build()
+                        chain.proceed(request)
+                    }
                     .build()
 
                 val retrofit = Retrofit.Builder()

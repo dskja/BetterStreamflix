@@ -44,7 +44,7 @@ object PelisplustoProvider : Provider, ProviderConfigUrl {
         baseUrl
     }
     override val language = "es"
-    override val logo = "https://pelisplus.to/images/logo2.png"
+    override val logo = "https://pelisplushd.bz/images/logo2.png"
     private const val TAG = "PelisplustoProvider"
 
     private val client = OkHttpClient.Builder()
@@ -54,8 +54,9 @@ object PelisplustoProvider : Provider, ProviderConfigUrl {
                 .build()
             chain.proceed(request)
         }
-        .readTimeout(30, TimeUnit.SECONDS)
-        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .connectTimeout(12, TimeUnit.SECONDS)
+        .callTimeout(35, TimeUnit.SECONDS)
         .dns(DnsResolver.doh)
         .build()
 
@@ -66,6 +67,23 @@ object PelisplustoProvider : Provider, ProviderConfigUrl {
         .build()
         .create(PelisplustoService::class.java)
 
+    private suspend fun getPageOrThrow(url: String): Document {
+        return try {
+            service.getPage(url)
+        } catch (e: Exception) {
+            val hostError = e.message.orEmpty()
+            if (hostError.contains("Unable to resolve host", ignoreCase = true) ||
+                hostError.contains("UnknownHost", ignoreCase = true) ||
+                hostError.contains("No address associated", ignoreCase = true)
+            ) {
+                throw Exception(
+                    "Pelisplusto DNS failed for $baseUrl. Try setting the provider URL to pelisplushd.bz. (${e.message})"
+                )
+            }
+            throw e
+        }
+    }
+
     private interface PelisplustoService {
         @GET
         suspend fun getPage(@Url url: String): Document
@@ -74,10 +92,10 @@ object PelisplustoProvider : Provider, ProviderConfigUrl {
     override suspend fun getHome(): List<Category> = coroutineScope {
         val categories = mutableListOf<Category>()
 
-        val mainPageDeferred = async { service.getPage(baseUrl) }
-        val moviesDeferred = async { service.getPage("$baseUrl/peliculas") }
-        val seriesDeferred = async { service.getPage("$baseUrl/series") }
-        val animesDeferred = async { service.getPage("$baseUrl/animes") }
+        val mainPageDeferred = async { getPageOrThrow(baseUrl) }
+        val moviesDeferred = async { getPageOrThrow("$baseUrl/peliculas") }
+        val seriesDeferred = async { getPageOrThrow("$baseUrl/series") }
+        val animesDeferred = async { getPageOrThrow("$baseUrl/animes") }
 
         try {
             val mainDocument = mainPageDeferred.await()

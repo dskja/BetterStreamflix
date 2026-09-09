@@ -105,6 +105,14 @@ object ZaluknijProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         val document = getDocument(baseUrl)
+        if (requiresClearance(document.outerHtml()) ||
+            document.title().contains("One moment", ignoreCase = true)
+        ) {
+            throw Exception(
+                "Zaluknij antibot/Cloudflare bloquea $baseUrl. " +
+                    "Otwórz dostawcę w przeglądarce aplikacji, aby odświeżyć sesję."
+            )
+        }
         val categories = mutableListOf<Category>()
 
         document.select("div.module").forEach { module ->
@@ -119,6 +127,13 @@ object ZaluknijProvider : Provider, ProviderConfigUrl {
         if (categories.isEmpty()) {
             val movies = parseTiles(document).filterIsInstance<Movie>().take(20)
             if (movies.isNotEmpty()) categories.add(Category("FILMY ONLINE", movies))
+        }
+
+        if (categories.isEmpty()) {
+            throw Exception(
+                "Zaluknij home puste na $baseUrl (antibot lub nieaktualne selektory). " +
+                    "Spróbuj zmienić URL dostawcy."
+            )
         }
 
         return categories

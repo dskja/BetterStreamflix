@@ -37,19 +37,21 @@ import java.util.concurrent.TimeUnit
 
 object AnikotoProvider : Provider, ProviderConfigUrl {
 
-    override val defaultBaseUrl = "https://anikototv.to"
+    // anikoto.tv / anikototv.to DNS/mirrors rotate; anikoto.net is the live Sept 2026 host.
+    override val defaultBaseUrl = "https://anikoto.net"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
 
+    private var service = Service.build()
+
     override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = Service.build()
         baseUrl
     }
     override val name = "Anikoto"
     override val logo = "$baseUrl/AnikotoTheme/assets/images/logo.png"
     override val language = "en"
-
-    private val service = Service.build()
 
     override suspend fun getHome(): List<Category> {
         val document = service.getPage("$baseUrl/home")

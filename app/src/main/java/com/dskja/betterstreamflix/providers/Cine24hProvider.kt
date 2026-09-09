@@ -78,8 +78,13 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
                         html.contains("captcha", ignoreCase = true) ||
                         html.contains("cf-browser-verification", ignoreCase = true) ||
                         html.contains("Just a moment", ignoreCase = true) ||
-                        html.contains("Checking your browser", ignoreCase = true) -> {
+                        html.contains("Checking your browser", ignoreCase = true) ||
+                        html.contains("403 Forbidden", ignoreCase = true) -> {
                         Log.d(TAG, "[Provider] Cloudflare/captcha detected for $url (HTTP ${response.code})")
+                        // Soft-fail quickly: WebView rarely clears this host's 403/captcha.
+                        throw Exception(
+                            "Cine24h bloqueado (HTTP ${response.code} captcha/Cloudflare/forbidden) en $url"
+                        )
                     }
                     response.isSuccessful && html.isNotBlank() -> {
                         return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
@@ -90,6 +95,9 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
                 }
             }
         } catch (e: Exception) {
+            if (e.message.orEmpty().contains("Cine24h bloqueado", ignoreCase = true)) {
+                throw e
+            }
             Log.w(TAG, "[Provider] OkHttp failed for $url: ${e.message}")
         }
 
@@ -103,7 +111,9 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
         }
         if (html.isBlank() ||
             html.contains("Just a moment", ignoreCase = true) ||
-            html.contains("captcha", ignoreCase = true)
+            html.contains("captcha", ignoreCase = true) ||
+            html.contains("<body>Timeout</body>", ignoreCase = true) ||
+            html.contains("403 Forbidden", ignoreCase = true)
         ) {
             throw Exception("Cine24h sigue bloqueado por captcha o Cloudflare. Prueba más tarde o cambia la URL del proveedor.")
         }
