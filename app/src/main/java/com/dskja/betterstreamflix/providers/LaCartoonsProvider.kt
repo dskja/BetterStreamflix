@@ -64,7 +64,7 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
                 val request = chain.request().newBuilder()
                     .header(
                         "User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
                     )
                     .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                     .header("Accept-Language", "es-MX,es;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -94,20 +94,37 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
         for (container in containers) {
             val links = container.select("a[href^=/serie/], a[href*=/serie/]")
             for (a in links) {
-            val href = a.attr("href").ifBlank { continue }
-            val card = a.selectFirst("div.serie, div[class*=serie]") ?: continue
-            val img = card.selectFirst("img")?.attr("src").orEmpty()
-            val title = card.selectFirst("p.nombre-serie")?.text().orElse("")
-            val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
-            val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
-            list.add(
-                TvShow(
-                    id = absoluteId,
-                    title = title,
-                    poster = absolutePoster,
-                    banner = absolutePoster,
+                val href = a.attr("href")
+                if (href.isBlank() || href.contains("/capitulo", ignoreCase = true)) continue
+                val card = a.selectFirst("div.serie, div[class*=serie]") ?: continue
+                val img = card.selectFirst("img")?.attr("src").orEmpty()
+                val title = card.selectFirst("p.nombre-serie")?.text().orEmpty()
+                    .ifBlank { card.selectFirst("img")?.attr("alt").orEmpty() }
+                if (title.isBlank()) continue
+                val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
+                val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
+                list.add(
+                    TvShow(
+                        id = absoluteId,
+                        title = title,
+                        poster = absolutePoster,
+                        banner = absolutePoster,
+                    )
                 )
-            )
+            }
+        }
+        if (list.isEmpty()) {
+            doc.select("a[href^=/serie/]").forEach { a ->
+                val href = a.attr("href")
+                if (href.isBlank() || href.contains("/capitulo", ignoreCase = true)) return@forEach
+                val title = a.selectFirst("p.nombre-serie")?.text()
+                    ?: a.selectFirst("img")?.attr("alt")
+                    ?: return@forEach
+                if (title.isBlank()) return@forEach
+                val img = a.selectFirst("img")?.attr("src").orEmpty()
+                val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
+                val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
+                list.add(TvShow(id = absoluteId, title = title, poster = absolutePoster, banner = absolutePoster))
             }
         }
         return list
@@ -159,10 +176,11 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
         val url = if (id.startsWith("http")) id else "$baseUrl$id"
         val doc = service.getPage(url)
 
-        val posterUrl = doc.selectFirst("div.contenedor-informacion-serie img")?.attr("src").orEmpty()
-        val title = doc.selectFirst("h2.subtitulo-serie-seccion")?.ownText()?.trim()
+        val posterUrl = doc.selectFirst("div.contenedor-informacion-serie img, div.imagen-serie img")?.attr("src").orEmpty()
+        val title = doc.selectFirst("h2.subtitulo-serie-seccion")?.ownText()?.trim()?.takeIf { it.isNotBlank() }
+            ?: doc.selectFirst("h2.subtitulo-serie-seccion")?.text()?.substringBefore("Cartoon")?.trim()
             ?: doc.selectFirst("p.nombre-serie")?.text()?.trim()
-            ?: doc.selectFirst("h1,h2,h3")?.text()?.trim().orEmpty()
+            ?: doc.selectFirst("h1,h2,h3")?.ownText()?.trim().orEmpty()
         val infoSection = doc.selectFirst("div.informacion-serie-seccion")
         val overview = infoSection?.select("p")?.firstOrNull { it.text().startsWith("Reseña") }
             ?.selectFirst("span")?.text()
@@ -170,28 +188,33 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
         val rating = ratingText?.toDoubleOrNull()
 
         val seasons = mutableListOf<Season>()
-        val temporadaHeaders = doc.select("section.contenedor-episodio-temporada h4.accordion")
+        val temporadaHeaders = doc.select(
+            "section.contenedor-episodio-temporada h4.accordion, " +
+                "h4.accordion[data-temporada-id], h4.estilo-temporada"
+        )
         var seasonCounter = 0
         for (h4 in temporadaHeaders) {
             val text = h4.text().trim()
-            val seasonNumber = Regex("Temporada\\s+(\\d+)").find(text)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            val seasonNumber = h4.attr("data-temporada-id").toIntOrNull()
+                ?: Regex("Temporada\\s+(\\d+)").find(text)?.groupValues?.getOrNull(1)?.toIntOrNull()
                 ?: (++seasonCounter)
-            val seasonId = buildSeasonId(url, seasonNumber)
-            seasons.add(Season(id = seasonId, number = seasonNumber, title = "Temporada $seasonNumber"))
+            val seasonId = buildSeasonId(url.substringBefore("?"), seasonNumber)
+            if (seasons.none { it.number == seasonNumber }) {
+                seasons.add(Season(id = seasonId, number = seasonNumber, title = "Temporada $seasonNumber"))
+            }
         }
         if (seasons.isEmpty()) {
-            // Fallback: at least one season
-            val seasonId = buildSeasonId(url, 1)
+            val seasonId = buildSeasonId(url.substringBefore("?"), 1)
             seasons.add(Season(id = seasonId, number = 1, title = "Temporada 1"))
         }
 
         return TvShow(
-            id = url,
+            id = url.substringBefore("?"),
             title = title,
             poster = if (posterUrl.startsWith("http")) posterUrl else "$baseUrl$posterUrl",
             overview = overview,
             rating = rating,
-            seasons = seasons
+            seasons = seasons.sortedBy { it.number }
         )
     }
 
@@ -200,17 +223,35 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        val doc = service.getPage(seasonId)
-        val seasonNumber = seasonId.substringAfterLast("?t=").toIntOrNull()
+        val seriesUrl = seasonId.substringBefore("?t=").substringBefore("&t=")
+        val seasonNumber = seasonId.substringAfterLast("?t=").substringAfterLast("&t=").toIntOrNull()
+        val doc = service.getPage(seriesUrl.ifBlank { seasonId })
         val episodes = mutableListOf<Episode>()
-        val panels = doc.select("section.contenedor-episodio-temporada div.episodio-panel")
-        val episodeLinks = if (seasonNumber != null && panels.size >= seasonNumber) {
-            panels.get(seasonNumber - 1).select("ul.listas-de-episodion li a")
-        } else if (seasonNumber != null) {
-            doc.select("ul.listas-de-episodion li a[href*=?t=$seasonNumber]")
-        } else {
-            doc.select("ul.listas-de-episodion li a")
+
+        val episodeLinks = when {
+            seasonNumber != null -> {
+                val accordion = doc.selectFirst("h4.accordion[data-temporada-id=$seasonNumber]")
+                    ?: doc.select("h4.accordion, h4.estilo-temporada").firstOrNull { h4 ->
+                        h4.attr("data-temporada-id") == seasonNumber.toString() ||
+                            h4.text().contains("Temporada $seasonNumber")
+                    }
+                val fromAccordion = accordion?.nextElementSibling()
+                    ?.select("ul.listas-de-episodion li a")
+                    .orEmpty()
+                if (fromAccordion.isNotEmpty()) {
+                    fromAccordion
+                } else {
+                    val panels = doc.select("section.contenedor-episodio-temporada div.episodio-panel, div.episodio-panel")
+                    if (panels.size >= seasonNumber) {
+                        panels[seasonNumber - 1].select("ul.listas-de-episodion li a")
+                    } else {
+                        doc.select("ul.listas-de-episodion li a[href*=?t=$seasonNumber]")
+                    }
+                }
+            }
+            else -> doc.select("ul.listas-de-episodion li a")
         }
+
         for (a in episodeLinks) {
             val href = a.attr("href").ifBlank { continue }
             val text = a.text().trim()
@@ -224,7 +265,7 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
                 )
             )
         }
-        return episodes
+        return episodes.distinctBy { it.id }
     }
 
     private fun extractEpisodeNumber(text: String): Int {
@@ -293,13 +334,19 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
             )
         }
 
-        // Inline ok.ru / mail.ru / embed URLs in scripts
+        // Inline ok.ru / mail.ru / rpmvid embed URLs in scripts or markup
         if (servers.isEmpty()) {
             Regex(
-                """(?:src|data-src)\s*=\s*["'](https?://(?:ok\.ru|www\.ok\.ru|videoapi\.my\.mail\.ru)[^"']+)["']""",
+                """(?:src|data-src)\s*=\s*["'](https?://(?:ok\.ru|www\.ok\.ru|videoapi\.my\.mail\.ru|cubeembed\.rpmvid\.com|[^"']*rpmvid[^"']*)[^"']*)["']""",
                 RegexOption.IGNORE_CASE,
             ).findAll(doc.html()).forEachIndexed { idx, match ->
                 addServer(match.groupValues[1], "Embed ${idx + 1}")
+            }
+            Regex(
+                """https?://(?:ok\.ru|www\.ok\.ru)/videoembed/[0-9]+|https?://cubeembed\.rpmvid\.com/#[A-Za-z0-9_-]+""",
+                RegexOption.IGNORE_CASE,
+            ).findAll(doc.html()).forEachIndexed { idx, match ->
+                addServer(match.value, "Embed ${idx + 1}")
             }
         }
 

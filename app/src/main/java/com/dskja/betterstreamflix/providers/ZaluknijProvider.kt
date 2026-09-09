@@ -38,7 +38,7 @@ object ZaluknijProvider : Provider, ProviderConfigUrl {
 
     override val name = "Zaluknij"
     // zaluknij.cc is Cloudflare-blocked (error 1005) from many networks; zaluknij.pl is the live dooplay mirror.
-    override val defaultBaseUrl = "https://zaluknij.pl"
+    override val defaultBaseUrl = "https://zaluknij.pl/"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
@@ -269,11 +269,23 @@ object ZaluknijProvider : Provider, ProviderConfigUrl {
             val post = parts.getOrNull(1).orEmpty()
             val type = parts.getOrNull(2).orEmpty()
             val nume = parts.getOrNull(3).orEmpty()
-            val ajaxUrl = "$baseUrl/wp-admin/admin-ajax.php?action=doo_player_ajax&post=$post&nume=$nume&type=$type"
+            val root = baseUrl.trimEnd('/')
+            val ajaxUrl =
+                "$root/wp-admin/admin-ajax.php?action=doo_player_ajax&post=$post&nume=$nume&type=$type"
             val document = getDocument(ajaxUrl)
+            val html = document.html().trim()
             val embed = document.selectFirst("iframe[src], iframe[data-src]")
                 ?.let { it.attr("abs:src").ifBlank { it.attr("src") }.ifBlank { it.attr("data-src") } }
-                ?: Regex("""src=["']([^"']+)["']""").find(document.html())?.groupValues?.getOrNull(1)
+                ?: runCatching {
+                    JSONObject(html).let { json ->
+                        json.optString("embed_url")
+                            .ifBlank { json.optString("embed") }
+                            .ifBlank { json.optString("url") }
+                    }
+                }.getOrNull()?.takeIf { it.isNotBlank() }
+                ?: Regex("""(?:embed_url|src)\s*[:=]\s*["']([^"']+)["']""")
+                    .find(html)?.groupValues?.getOrNull(1)
+                ?: Regex("""src=["']([^"']+)["']""").find(html)?.groupValues?.getOrNull(1)
                 ?: throw Exception("Zaluknij player option returned no embed")
             val absolute = when {
                 embed.startsWith("//") -> "https:$embed"

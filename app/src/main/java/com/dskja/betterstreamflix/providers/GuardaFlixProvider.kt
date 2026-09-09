@@ -19,7 +19,9 @@ import com.dskja.betterstreamflix.utils.TmdbUtils
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.utils.DnsResolver
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.json.JSONObject
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit

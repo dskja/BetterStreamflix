@@ -230,21 +230,22 @@ object PelisflixHdProvider : Provider, ProviderConfigUrl {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val document = service.getPage(normalizeUrl(id))
 
-        return document.select("#player li[data-server]").mapIndexedNotNull { index, item ->
-            val encoded = item.attr("data-server")
-            if (encoded.isBlank()) {
-                return@mapIndexedNotNull null
-            }
+        return document.select("#player li[data-server], li[role=presentation][data-server], li[data-server]")
+            .mapIndexedNotNull { index, item ->
+                val encoded = item.attr("data-server")
+                if (encoded.isBlank()) {
+                    return@mapIndexedNotNull null
+                }
 
-            val decoded = runCatching { String(Base64.decode(encoded, Base64.DEFAULT)).trim() }.getOrNull()
-                ?: return@mapIndexedNotNull null
+                val decoded = runCatching { String(Base64.decode(encoded, Base64.DEFAULT)).trim() }.getOrNull()
+                    ?: return@mapIndexedNotNull null
 
-            Video.Server(
-                id = decoded,
-                name = item.selectFirst("span")?.text()?.trim().orEmpty().ifBlank { "Opción ${index + 1}" },
-                src = decoded
-            )
-        }.distinctBy { it.src }
+                Video.Server(
+                    id = decoded,
+                    name = item.selectFirst("span")?.text()?.trim().orEmpty().ifBlank { "Opción ${index + 1}" },
+                    src = decoded
+                )
+            }.distinctBy { it.src }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

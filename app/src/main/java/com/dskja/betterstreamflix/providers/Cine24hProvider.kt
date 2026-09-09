@@ -15,6 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.jsoup.Jsoup
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit
 object Cine24hProvider : Provider, ProviderConfigUrl {
 
     override val name = "Cine24h"
+    // Root `/` 301s to `/?`. OkHttp can strip the empty query and loop; fetch homepage via encodedQuery("").
     override val defaultBaseUrl = "https://cine24h.online"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
@@ -39,6 +41,8 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
     private var webViewResolver: WebViewResolver? = null
     private val providerMutex = Mutex()
     private const val TAG = "Cine24hBypass"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
     private fun getResolver(): WebViewResolver {
         return webViewResolver ?: WebViewResolver(BetterStreamflixApp.instance).also {
@@ -50,48 +54,98 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
         webViewResolver = WebViewResolver(context)
     }
 
+    /** `https://host/?` — empty query must stay non-null or OkHttp collapses it back to `/`. */
+    private fun homepageHttpUrl(): HttpUrl {
+        val root = baseUrl.trimEnd('/').toHttpUrl()
+        return root.newBuilder().encodedQuery("").build()
+    }
+
+    private fun resolveRequestUrl(url: String): HttpUrl {
+        val trimmed = url.trim()
+        val root = baseUrl.trimEnd('/')
+        if (trimmed == root || trimmed == "$root/" || trimmed == "$root/?" || trimmed == baseUrl) {
+            return homepageHttpUrl()
+        }
+        return trimmed.toHttpUrl()
+    }
+
+    private fun blockedMessage(url: String, code: Int? = null, detail: String? = null): String {
+        val codePart = code?.let { "HTTP $it " }.orEmpty()
+        val detailPart = detail?.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+        return "Cine24h bloqueado (${codePart}captcha/Cloudflare/forbidden/redirect) en $url$detailPart. " +
+            "No working mirror found; detail paths often return 403 from datacenter IPs."
+    }
+
+    private fun looksBlocked(html: String): Boolean {
+        return html.contains("captcha", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("403 Forbidden", ignoreCase = true) ||
+            html.contains("406 Not Acceptable", ignoreCase = true)
+    }
+
+    private fun fetchOnce(target: HttpUrl): Pair<Int, String> {
+        val client = NetworkClient.noRedirects.newBuilder()
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .writeTimeout(12, TimeUnit.SECONDS)
+            .callTimeout(20, TimeUnit.SECONDS)
+            .build()
+
+        val request = Request.Builder()
+            .url(target)
+            .header("User-Agent", BROWSER_UA)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Referer", "${baseUrl.trimEnd('/')}/")
+            .header("Origin", baseUrl.trimEnd('/'))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val html = response.body?.string().orEmpty()
+            val location = response.header("Location")
+            // One safe hop: `/` → `/?` (empty query). Never follow `/?` → `/?` self-loops.
+            if (response.isRedirect && !location.isNullOrBlank()) {
+                val next = when {
+                    location.startsWith("http") -> location.toHttpUrl()
+                    else -> target.newBuilder(location)?.build() ?: homepageHttpUrl()
+                }
+                val sameEmptyQueryLoop =
+                    next.host == target.host &&
+                        next.encodedPath == target.encodedPath &&
+                        next.encodedQuery.orEmpty().isEmpty() &&
+                        target.encodedQuery.orEmpty().isEmpty()
+                if (sameEmptyQueryLoop) {
+                    throw Exception(blockedMessage(target.toString(), response.code, "redirect loop on /?"))
+                }
+                if (next.host == target.host && next.encodedQuery == "") {
+                    return fetchOnce(next.newBuilder().encodedQuery("").build())
+                }
+                // Other redirects (or non-empty query) still tend to 403 — soft-fail clearly.
+                throw Exception(blockedMessage(target.toString(), response.code, "redirect to $next"))
+            }
+            return response.code to html
+        }
+    }
+
     private suspend fun getDocument(url: String): Document {
         try {
-            val client = NetworkClient.default.newBuilder()
-                .connectTimeout(8, TimeUnit.SECONDS)
-                .readTimeout(12, TimeUnit.SECONDS)
-                .writeTimeout(12, TimeUnit.SECONDS)
-                .callTimeout(20, TimeUnit.SECONDS)
-                .build()
-
-            val request = Request.Builder()
-                .url(url)
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                )
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
-                .header("Referer", baseUrl)
-                .header("Origin", baseUrl.trimEnd('/'))
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                val html = response.body?.string().orEmpty()
-                when {
-                    response.code == 403 ||
-                        html.contains("captcha", ignoreCase = true) ||
-                        html.contains("cf-browser-verification", ignoreCase = true) ||
-                        html.contains("Just a moment", ignoreCase = true) ||
-                        html.contains("Checking your browser", ignoreCase = true) ||
-                        html.contains("403 Forbidden", ignoreCase = true) -> {
-                        Log.d(TAG, "[Provider] Cloudflare/captcha detected for $url (HTTP ${response.code})")
-                        // Soft-fail quickly: WebView rarely clears this host's 403/captcha.
-                        throw Exception(
-                            "Cine24h bloqueado (HTTP ${response.code} captcha/Cloudflare/forbidden) en $url"
-                        )
-                    }
-                    response.isSuccessful && html.isNotBlank() -> {
-                        return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
-                    }
-                    else -> {
-                        Log.w(TAG, "[Provider] Unexpected HTTP ${response.code} for $url")
-                    }
+            val (code, html) = fetchOnce(resolveRequestUrl(url))
+            when {
+                code == 403 || code == 406 || looksBlocked(html) -> {
+                    Log.d(TAG, "[Provider] Cloudflare/captcha detected for $url (HTTP $code)")
+                    throw Exception(blockedMessage(url, code))
+                }
+                code in 200..299 && html.isNotBlank() && html.contains("TPost", ignoreCase = true) -> {
+                    return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
+                }
+                code in 200..299 && html.isNotBlank() -> {
+                    return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
+                }
+                else -> {
+                    Log.w(TAG, "[Provider] Unexpected HTTP $code for $url")
+                    throw Exception(blockedMessage(url, code, "unexpected response"))
                 }
             }
         } catch (e: Exception) {
@@ -105,51 +159,47 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
         val html = try {
             getResolver().get(url)
         } catch (e: Exception) {
-            throw Exception(
-                "Cine24h bloqueado (captcha/Cloudflare/forbidden). No se pudo cargar $url: ${e.message}"
-            )
+            throw Exception(blockedMessage(url, detail = e.message))
         }
-        if (html.isBlank() ||
-            html.contains("Just a moment", ignoreCase = true) ||
-            html.contains("captcha", ignoreCase = true) ||
-            html.contains("<body>Timeout</body>", ignoreCase = true) ||
-            html.contains("403 Forbidden", ignoreCase = true)
-        ) {
-            throw Exception("Cine24h sigue bloqueado por captcha o Cloudflare. Prueba más tarde o cambia la URL del proveedor.")
+        if (html.isBlank() || looksBlocked(html) || html.contains("<body>Timeout</body>", ignoreCase = true)) {
+            throw Exception(
+                "Cine24h sigue bloqueado por captcha/Cloudflare. " +
+                    "No mirror available; try again on-device or change the provider URL."
+            )
         }
         return Jsoup.parse(html).apply { setBaseUri(baseUrl) }
     }
 
     override suspend fun getHome(): List<Category> = providerMutex.withLock {
         val categories = mutableListOf<Category>()
-        coroutineScope {
-            try {
-                val bannerAsync = async { getDocument("$baseUrl/release/2025/") }
-                val moviesAsync = async { getDocument("$baseUrl/estrenos/?type=movies") }
-                val tvAsync = async { getDocument("$baseUrl/estrenos/?type=series") }
-
-                val bannerDoc = bannerAsync.await()
-                val bannerItems = parseShows(bannerDoc)
-                val featured = bannerItems.mapNotNull {
-                    if (it is Movie) it.copy(poster = null, banner = it.poster)
-                    else if (it is TvShow) it.copy(poster = null, banner = it.poster)
-                    else null
-                }.take(10)
-                if (featured.isNotEmpty()) categories.add(Category(Category.FEATURED, featured))
-
-                val movies = parseShows(moviesAsync.await()).filterIsInstance<Movie>()
-                if (movies.isNotEmpty()) categories.add(Category("Estrenos de Películas", movies))
-
-                val tvShows = parseShows(tvAsync.await()).filterIsInstance<TvShow>()
-                if (tvShows.isNotEmpty()) categories.add(Category("Estrenos de Series", tvShows))
-
-                if (categories.isEmpty()) {
-                    throw Exception("Cine24h no devolvió contenido (posible captcha/forbidden)")
+        try {
+            // Catalog paths (/estrenos, /peliculas, /release) often 403; homepage `/?` still serves TPost grids.
+            val homeDoc = getDocument(homepageHttpUrl().toString())
+            val all = parseShows(homeDoc)
+            val featured = all.mapNotNull {
+                when (it) {
+                    is Movie -> it.copy(poster = null, banner = it.poster)
+                    is TvShow -> it.copy(poster = null, banner = it.poster)
+                    else -> null
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "[Provider] Error loading home", e)
-                throw e
+            }.take(10)
+            if (featured.isNotEmpty()) categories.add(Category(Category.FEATURED, featured))
+
+            val movies = all.filterIsInstance<Movie>()
+            if (movies.isNotEmpty()) categories.add(Category("Películas", movies))
+
+            val tvShows = all.filterIsInstance<TvShow>()
+            if (tvShows.isNotEmpty()) categories.add(Category("Series", tvShows))
+
+            if (categories.isEmpty()) {
+                throw Exception(
+                    "Cine24h no devolvió contenido en $baseUrl (captcha/forbidden/redirect). " +
+                        "No working mirror found from this network."
+                )
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "[Provider] Error loading home", e)
+            throw e
         }
         return@withLock categories
     }
