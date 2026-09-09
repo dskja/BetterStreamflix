@@ -297,9 +297,19 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
 
     private suspend fun getSerialDocument(doc: Document): Document? {
         val imdbId = extractImdbId(doc) ?: return null
+        val numeric = imdbId.removePrefix("tt")
         return runCatching {
-            service.getPage("https://meinecloud.click/serial/${imdbId.removePrefix("tt")}")
-        }.getOrNull()
+            service.getPage("https://meinecloud.click/serial/$numeric")
+        }.getOrElse {
+            runCatching {
+                val check = service.getRawPage("https://meinecloud.click/serials.php?task=check&id_imdb=$imdbId")
+                    .string()
+                val playerUrl = Regex("\"player_url\"\\s*:\\s*\"([^\"]+)\"")
+                    .find(check)?.groupValues?.get(1)
+                    ?.replace("\\/", "/")
+                if (!playerUrl.isNullOrBlank()) service.getPage(playerUrl) else null
+            }.getOrNull()
+        }
     }
 
     private fun serialSeasonNumber(season: Element, serialDoc: Document): Int? {
@@ -924,6 +934,7 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
                     element.selectFirst("._ep-n")?.text()?.trim()?.toIntOrNull() == epNum
                 }
                 val streamUrl = episode?.attr("data-link")?.trim().orEmpty()
+                    .let { raw -> decodeEmbedDataLink(raw) ?: raw }
                 if (streamUrl.isNotBlank()) {
                     val normalized = normalizeExternalUrl(streamUrl)
                     val serverName = runCatching {

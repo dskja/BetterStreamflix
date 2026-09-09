@@ -214,8 +214,8 @@ object GuardaSerieProvider : Provider, ProviderConfigUrl {
         }
     }
 
-    private fun parseSliderItems(doc: Document): List<Show> {
-        return doc.select(".slider-item a[href*=/detail/]").mapNotNull { a ->
+    private fun parseSliderItems(root: Element): List<Show> {
+        return root.select(".slider-item a[href*=/detail/]").mapNotNull { a ->
             val href = a.attr("href")
             val img = a.selectFirst("img")
             val title = img?.attr("alt")?.ifBlank { null }
@@ -223,11 +223,16 @@ object GuardaSerieProvider : Provider, ProviderConfigUrl {
             if (title.isBlank()) return@mapNotNull null
             val poster = img?.attr("src")?.let { absUrl(it) }.orEmpty()
             parseDetailItem(href, title.trim(), poster)
-        }.distinctBy { it.id }
+        }.distinctBy { show ->
+            when (show) {
+                is Movie -> show.id
+                is TvShow -> show.id
+            }
+        }
     }
 
-    private fun parseListItems(doc: Document): List<Show> {
-        val fromMlnew = doc.select("div.mlnew").mapNotNull { row ->
+    private fun parseListItems(root: Element): List<Show> {
+        val fromMlnew = root.select("div.mlnew").mapNotNull { row ->
             val a = row.selectFirst("a[href*=/detail/]") ?: return@mapNotNull null
             val href = a.attr("href")
             val title = row.selectFirst("h2 a, a[title]")?.attr("title")?.ifBlank { null }
@@ -240,16 +245,28 @@ object GuardaSerieProvider : Provider, ProviderConfigUrl {
                 ?.replace("★", "")?.trim()?.toDoubleOrNull()
             parseDetailItem(href, title.trim(), poster, rating)
         }
-        if (fromMlnew.isNotEmpty()) return fromMlnew.distinctBy { it.id }
+        if (fromMlnew.isNotEmpty()) {
+            return fromMlnew.distinctBy { show ->
+                when (show) {
+                    is Movie -> show.id
+                    is TvShow -> show.id
+                }
+            }
+        }
 
-        return doc.select("a[href*=/detail/]").mapNotNull { a ->
+        return root.select("a[href*=/detail/]").mapNotNull { a ->
             val href = a.attr("href")
             val title = a.attr("title").ifBlank { a.selectFirst("img")?.attr("alt") }.orEmpty()
                 .ifBlank { a.text() }
             if (title.isBlank() || title.equals("Guarda ora", ignoreCase = true)) return@mapNotNull null
             val poster = a.selectFirst("img")?.attr("src")?.let { absUrl(it) }.orEmpty()
             parseDetailItem(href, title.trim(), poster)
-        }.distinctBy { it.id }
+        }.distinctBy { show ->
+            when (show) {
+                is Movie -> show.id
+                is TvShow -> show.id
+            }
+        }
     }
 
     // Legacy WP grid (guardoserie.yachts after CF clearance)

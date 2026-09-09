@@ -1,11 +1,7 @@
 package com.dskja.betterstreamflix.providers
 
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-
 import com.dskja.betterstreamflix.utils.UserPreferences
 
-import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -55,15 +51,15 @@ object MkissaProvider : Provider, ProviderConfigUrl {
     private const val API_URL_FALLBACK = "https://api.mkissa.net/"
     private const val CLOCK_URL = "https://allanime.day"
     // api.allanime.day / acapi require an allowlisted frontend Origin/Referer.
-    private const val API_ORIGIN = "https://allmanga.to"
-    private const val API_REFERER = "https://allmanga.to/"
+    private const val API_ORIGIN = "https://mkissa.to"
+    private const val API_REFERER = "https://mkissa.to/"
     private const val BROWSER_UA =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     private const val SEARCH_HASH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
     private const val POPULAR_DAILY_HASH = "a0aca6827cc9a3ad7bc711da4d200a04adea8f1a7545dc418d5e92e74c3aad15"
     private const val POPULAR_HASH = "ac2c75884a11fca5707ce4ad10f2e3e2aae31e42af5e4d9c511a4a5e708e4c6d"
     private const val DETAIL_HASH = "043448386c7a686bc2aabfbb6b80f6074e795d350df48015023b079527b0848a"
-    private const val SOURCE_HASH = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
+    private const val SOURCE_HASH = "1c836a5028e04275c6bc618aa4d1f0ea2290a73bc056ba6a8b93fe72ef42fd04"
     private const val GENRE_HASH = "ff61a63ff776f334f80c1e6ad1aa49ef71eab831e235e5d6ec679eae5b83450f"
     private const val IMAGE_URL = "https://aln.youtube-anime.com"
     private const val HOME_ROW_LIMIT = 20
@@ -260,6 +256,7 @@ object MkissaProvider : Provider, ProviderConfigUrl {
                         .header("Accept", "application/json, text/plain, */*")
                         .header("Origin", API_ORIGIN)
                         .header("Referer", API_REFERER)
+                        .header("x-build-id", MkissaAaCrypto.DEFAULT_BUILD.buildId)
                         .build()
                     chain.proceed(request)
                 }
@@ -272,14 +269,20 @@ object MkissaProvider : Provider, ProviderConfigUrl {
         .dns(DnsResolver.doh)
         .followRedirects(true)
         .followSslRedirects(true)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
         .build()
+
+    private val cryptoMutex = Mutex()
+    @Volatile private var cryptoMaterial: MkissaAaCrypto.Material? = null
+    @Volatile private var cryptoBuild: MkissaAaCrypto.BuildInfo = MkissaAaCrypto.DEFAULT_BUILD
 
     private interface MkissaService {
         @Headers(
             "Accept: application/json",
-            "Origin: https://allmanga.to",
-            "Referer: https://allmanga.to/",
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            "Origin: https://mkissa.to",
+            "Referer: https://mkissa.to/",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         @GET("api")
         suspend fun api(
@@ -290,9 +293,9 @@ object MkissaProvider : Provider, ProviderConfigUrl {
         @Headers(
             "Accept: application/json",
             "Content-Type: application/json",
-            "Origin: https://allmanga.to",
-            "Referer: https://allmanga.to/",
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            "Origin: https://mkissa.to",
+            "Referer: https://mkissa.to/",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         @POST("api")
         suspend fun apiPost(@Body body: okhttp3.RequestBody): String
@@ -442,23 +445,42 @@ object MkissaProvider : Provider, ProviderConfigUrl {
     }
 
     private suspend fun getSourceEntries(showId: String, episode: String, translation: String): List<JSONObject> {
-        val response = api(
-            variables = JSONObject()
-                .put("showId", showId)
-                .put("translationType", translation)
-                .put("episodeString", episode),
+        val variables = JSONObject()
+            .put("showId", showId)
+            .put("translationType", translation)
+            .put("episodeString", episode)
+
+        var material = obtainCryptoMaterial()
+        var response = api(
+            variables = variables,
             hash = SOURCE_HASH,
-            fallbackQuery = SOURCE_QUERY
+            fallbackQuery = SOURCE_QUERY,
+            protectedQuery = true,
+            material = material,
         )
+
+        if (response.hasAaCryptoError()) {
+            cryptoMaterial = null
+            material = obtainCryptoMaterial(forceRefresh = true)
+            response = api(
+                variables = variables,
+                hash = SOURCE_HASH,
+                fallbackQuery = SOURCE_QUERY,
+                protectedQuery = true,
+                material = material,
+            )
+        }
+
         if (response.hasAaCryptoError()) {
             throw Exception(
                 "MKissa episode sources require aa-crypto bootstrap (AA_CRYPTO_MISSING). " +
                     "Catalog still works; playback needs an updated crypto client."
             )
         }
+
         var data = response.optJSONObject("data") ?: JSONObject()
         if (data.has("tobeparsed")) {
-            data = decryptTobeParsed(data.optString("tobeparsed"))
+            data = MkissaAaCrypto.decryptTobeParsed(data.optString("tobeparsed"), material.key)
         }
 
         return sequenceOf(
@@ -655,9 +677,28 @@ object MkissaProvider : Provider, ProviderConfigUrl {
         return show
     }
 
-    private suspend fun api(variables: JSONObject, hash: String, fallbackQuery: String? = null): JSONObject {
+    private suspend fun api(
+        variables: JSONObject,
+        hash: String,
+        fallbackQuery: String? = null,
+        protectedQuery: Boolean = false,
+        material: MkissaAaCrypto.Material? = null,
+    ): JSONObject {
         val extensions = JSONObject()
             .put("persistedQuery", JSONObject().put("version", 1).put("sha256Hash", hash))
+        if (protectedQuery) {
+            val crypto = material ?: obtainCryptoMaterial()
+            extensions.put("k", MkissaAaCrypto.ANIME_LANE)
+            extensions.put(
+                "aaReq",
+                MkissaAaCrypto.buildAaReq(
+                    key = crypto.key,
+                    epoch = crypto.epoch,
+                    buildId = crypto.buildId,
+                    queryHash = hash,
+                )
+            )
+        }
         val response = try {
             JSONObject(service.api(variables.toString(), extensions.toString()))
         } catch (error: HttpException) {
@@ -666,11 +707,11 @@ object MkissaProvider : Provider, ProviderConfigUrl {
         }
         if (response != null && !response.shouldRetryWithQueryBody()) return response
         if (fallbackQuery == null) return response ?: JSONObject()
-        val body = JSONObject()
+        val bodyJson = JSONObject()
             .put("query", fallbackQuery)
             .put("variables", variables)
-            .toString()
-            .toRequestBody(JSON_MEDIA_TYPE)
+            .put("extensions", extensions)
+        val body = bodyJson.toString().toRequestBody(JSON_MEDIA_TYPE)
         return JSONObject(service.apiPost(body))
     }
 
@@ -1043,19 +1084,120 @@ object MkissaProvider : Provider, ProviderConfigUrl {
             }
     }
 
-    private fun decryptTobeParsed(value: String): JSONObject {
-        val bytes = Base64.decode(value, Base64.DEFAULT)
-        if (bytes.isEmpty()) throw Exception("Empty MKissa encrypted payload")
-        val version = bytes[0].toInt()
-        if (version != 1) throw Exception("Unsupported MKissa encryption version: $version")
+    private suspend fun obtainCryptoMaterial(forceRefresh: Boolean = false): MkissaAaCrypto.Material {
+        cryptoMutex.withLock {
+            val cached = cryptoMaterial
+            val now = System.currentTimeMillis()
+            if (!forceRefresh && cached != null && now < cached.switchAt - 60_000L) {
+                return cached
+            }
 
-        val iv = bytes.copyOfRange(1, 13)
-        val cipherText = bytes.copyOfRange(13, bytes.size)
-        val key = MessageDigest.getInstance("SHA-256")
-            .digest("Xot36i3lK3:v$version".toByteArray(Charsets.UTF_8))
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, iv))
-        return JSONObject(String(cipher.doFinal(cipherText), Charsets.UTF_8))
+            var build = cryptoBuild
+            val discovered = discoverCryptoBuild()
+            if (discovered != null) {
+                build = discovered
+                cryptoBuild = discovered
+            }
+
+            val mask = MkissaAaCrypto.deriveMask(build.buildId, build.seeds)
+                ?: throw Exception("MKissa crypto mask could not be derived")
+
+            val bootstrap = fetchCryptoBootstrap(build.buildId, mask)
+                ?: throw Exception("MKissa crypto bootstrap failed")
+
+            val partB = android.util.Base64.decode(bootstrap.optString("partB"), android.util.Base64.DEFAULT)
+            if (partB.size < 32) throw Exception("MKissa crypto partB is invalid")
+
+            val material = MkissaAaCrypto.Material(
+                buildId = build.buildId,
+                epoch = bootstrap.optLong("epoch"),
+                key = MkissaAaCrypto.deriveKey(mask, partB),
+                mask = mask,
+                switchAt = bootstrap.optLong("switchAt", now + MkissaAaCrypto.EPOCH_MS),
+            )
+            cryptoMaterial = material
+            return material
+        }
+    }
+
+    private fun discoverCryptoBuild(): MkissaAaCrypto.BuildInfo? {
+        return runCatching {
+            val html = sourceResolverClient.newCall(
+                Request.Builder()
+                    .url("$API_ORIGIN/")
+                    .header("User-Agent", BROWSER_UA)
+                    .header("Accept", "text/html")
+                    .build()
+            ).execute().use { response ->
+                if (!response.isSuccessful) return@runCatching null
+                response.body?.string()
+            } ?: return@runCatching null
+
+            val entry = Regex("""https?://[^"'\s]+/entry/app\.[^"'\s]+\.js""")
+                .find(html)?.value
+                ?: return@runCatching null
+            val appJs = sourceResolverClient.newCall(
+                Request.Builder().url(entry).header("User-Agent", BROWSER_UA).build()
+            ).execute().use { it.body?.string() } ?: return@runCatching null
+
+            val chunkRefs = Regex("""["'](\.\.?/[^"']+\.js)["']""")
+                .findAll(appJs)
+                .map { it.groupValues[1] }
+                .distinct()
+                .take(40)
+                .toList()
+
+            val base = entry.toHttpUrlOrNull() ?: return@runCatching null
+            for (ref in chunkRefs) {
+                val url = base.resolve(ref)?.toString() ?: continue
+                val chunk = sourceResolverClient.newCall(
+                    Request.Builder().url(url).header("User-Agent", BROWSER_UA).build()
+                ).execute().use { response ->
+                    if (!response.isSuccessful) null else response.body?.string()
+                } ?: continue
+                if (!chunk.contains("aaReq")) continue
+                MkissaAaCrypto.discoverBuildFromJs(chunk)?.let { return@runCatching it }
+            }
+            null
+        }.getOrNull()
+    }
+
+    private fun fetchCryptoBootstrap(buildId: String, mask: ByteArray): JSONObject? {
+        val endpoint = API_URL.toHttpUrlOrNull()
+            ?.newBuilder()
+            ?.encodedPath("/client-crypto/v1/bootstrap")
+            ?.query(null)
+            ?.addQueryParameter("buildId", buildId)
+            ?.addQueryParameter("k", MkissaAaCrypto.ANIME_LANE)
+            ?.build()
+            ?: return null
+
+        for (epoch in MkissaAaCrypto.epochCandidates()) {
+            val token = MkissaAaCrypto.bootToken(mask, buildId, epoch)
+            val json = runCatching {
+                sourceResolverClient.newCall(
+                    Request.Builder()
+                        .url(endpoint)
+                        .header("Accept", "application/json")
+                        .header("User-Agent", BROWSER_UA)
+                        .header("Origin", API_ORIGIN)
+                        .header("Referer", API_REFERER)
+                        .header("x-build-id", buildId)
+                        .header("x-aa-boot", token)
+                        .build()
+                ).execute().use { response ->
+                    if (!response.isSuccessful) return@use null
+                    response.body?.string()?.let(::JSONObject)
+                }
+            }.getOrNull() ?: continue
+
+            if (json.optString("partB").isNotBlank() &&
+                json.optString("k", MkissaAaCrypto.ANIME_LANE) == MkissaAaCrypto.ANIME_LANE
+            ) {
+                return json
+            }
+        }
+        return null
     }
 
     private fun JSONArray.asSequence(): Sequence<Any?> = sequence {
