@@ -482,6 +482,16 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://buymeacoffee.com/betterstreamflix"),
+                ),
+            )
+            true
+        }
+
         findPreference<Preference>("p_scan_resolver_qr")?.setOnPreferenceClickListener {
             scanResolverQrLauncher.launch(Intent(requireContext(), QrScannerActivity::class.java))
             true

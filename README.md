@@ -14,6 +14,8 @@
   <br />
   <a href="https://t.me/BetterStreamflix">Telegram channel</a>
   ·
+  <a href="https://buymeacoffee.com/betterstreamflix">Buy me a coffee</a>
+  ·
   <a href="https://github.com/dskja/BetterStreamflix/issues">Report Bug</a>
   ·
   <a href="https://github.com/dskja/BetterStreamflix/issues">Request Feature</a>

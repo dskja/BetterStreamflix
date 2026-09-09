@@ -491,6 +491,12 @@
             android:title="@string/settings_telegram" />
 
         <Preference
+            android:icon="@drawable/ic_buy_me_a_coffee"
+            android:key="p_settings_buy_me_a_coffee"
+            android:title="@string/settings_buy_me_a_coffee"
+            android:summary="@string/settings_buy_me_a_coffee_summary" />
+
+        <Preference
             android:icon="@drawable/ic_settings_about"
             android:key="p_settings_about"
             android:title="@string/settings_about" />
