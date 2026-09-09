@@ -441,8 +441,15 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
-        val resolvedBase = baseUrl.ifBlank { defaultBaseUrl }.let {
+        initializeService()
+        val cached = baseUrl.ifBlank { defaultBaseUrl }.let {
             if (it.endsWith("/")) it else "$it/"
+        }
+        val resolvedBase = if (isValidFrembedBaseUrl(cached)) cached else defaultBaseUrl.let {
+            if (it.endsWith("/")) it else "$it/"
+        }
+        if (resolvedBase != cached) {
+            Log.w("FrembedProvider", "Cached provider URL looks invalid ($cached); using $resolvedBase")
         }
         return FrembedExtractor(resolvedBase).servers(videoType)
     }
@@ -469,17 +476,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                         if (raw.isSuccessful) {
                             val resolvedUrl = raw.raw().request.url.toString()
                             Log.d("FrembedProvider", "Portal resolved to: $resolvedUrl")
-
-                            UserPreferences.setProviderCache(
-                                this,
-                                UserPreferences.PROVIDER_URL,
-                                resolvedUrl
-                            )
-                            UserPreferences.setProviderCache(
-                                this,
-                                UserPreferences.PROVIDER_LOGO,
-                                resolvedUrl + "/favicon-32x32.png"
-                            )
+                            cacheProviderUrl(resolvedUrl)
                         }
                     }
                 } catch (e: Exception) {
@@ -493,8 +490,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                             Log.d("FrembedProvider", "Fallback resolved to finalUrl: $finalUrl")
                             if (finalUrl != baseUrl) {
                                 Log.i("FrembedProvider", "Updating cached URL from $baseUrl to $finalUrl")
-                                UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, finalUrl)
-                                UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_LOGO, finalUrl.removeSuffix("/") + "/favicon-32x32.png")
+                                cacheProviderUrl(finalUrl)
                             }
                         }
                     } catch (ex: Exception) {
@@ -506,8 +502,7 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                                 if (raw.isSuccessful) {
                                     val finalUrl = raw.raw().request.url.toString()
                                     Log.i("FrembedProvider", "Resolved defaultBaseUrl redirect to finalUrl: $finalUrl. Saving to cache.")
-                                    UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, finalUrl)
-                                    UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_LOGO, finalUrl.removeSuffix("/") + "/favicon-32x32.png")
+                                    cacheProviderUrl(finalUrl)
                                 }
                             }
                         } catch (ex2: Exception) {
@@ -532,6 +527,34 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     fun rebuildService() {
         serviceInitialized = false
+    }
+
+    /** Reject portal redirects that land on ad/survey domains instead of Frembed. */
+    private fun isValidFrembedBaseUrl(url: String): Boolean {
+        val normalized = url.trim().lowercase()
+        if (!normalized.startsWith("http")) return false
+        val host = runCatching { java.net.URI(normalized).host.orEmpty() }.getOrDefault("")
+        if (host.isBlank()) return false
+        if (host.contains("audin") || host.contains("survey") || host.contains("parked")) return false
+        return host.contains("frembed") ||
+            normalized.contains("/api/") ||
+            host.endsWith(".surf") ||
+            host.endsWith(".lol") ||
+            host.endsWith(".store")
+    }
+
+    private fun cacheProviderUrl(resolvedUrl: String) {
+        val withSlash = if (resolvedUrl.endsWith("/")) resolvedUrl else "$resolvedUrl/"
+        if (!isValidFrembedBaseUrl(withSlash)) {
+            Log.w("FrembedProvider", "Ignoring non-Frembed URL from portal: $withSlash")
+            return
+        }
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_URL, withSlash)
+        UserPreferences.setProviderCache(
+            this,
+            UserPreferences.PROVIDER_LOGO,
+            withSlash.removeSuffix("/") + "/favicon-32x32.png"
+        )
     }
 
     private interface Service {

@@ -470,7 +470,12 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
                 val serverSrc = iframe?.attr("data-src")?.takeIf { it.isNotEmpty() }
                     ?: iframe?.attr("src")
 
-                if (!serverSrc.isNullOrEmpty() && !serverSrc.contains("youtube", ignoreCase = true)) {
+                if (!serverSrc.isNullOrEmpty() &&
+                    !serverSrc.contains("youtube", ignoreCase = true) &&
+                    !serverSrc.contains("stream-start", ignoreCase = true) &&
+                    !serverSrc.endsWith(".png") &&
+                    !serverSrc.endsWith(".jpg")
+                ) {
                     val serverName = tabNames.getOrNull(index)?.takeIf { it.isNotBlank() } ?: "Server ${index + 1}"
                     servers.add(Video.Server(id = serverSrc, name = serverName, src = absoluteUrl(serverSrc)))
                 }
@@ -525,12 +530,16 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
                 val epId = parts[1]
                 val document = getService().getDocument(absoluteUrl(pageUrl))
 
-                val select = document.select("select#$epId, select.episode-servers, select[name*=server]")
+                val select = document.select("select#$epId, select.mr-select#$epId, select.episode-servers, select[name*=server]")
                 select.select("option").forEach { option ->
-                    val serverUrl = option.attr("value")
-                    val serverName = option.text()
-                    if (serverUrl.isNotEmpty()) {
-                        servers.add(Video.Server(id = serverUrl, name = serverName, src = serverUrl))
+                    val serverUrl = option.attr("value").trim()
+                    val serverName = option.text().trim()
+                    if (serverUrl.isNotEmpty() &&
+                        (serverUrl.startsWith("http") || serverUrl.startsWith("//")) &&
+                        !serverUrl.contains("youtube", ignoreCase = true)
+                    ) {
+                        val normalized = if (serverUrl.startsWith("//")) "https:$serverUrl" else serverUrl
+                        servers.add(Video.Server(id = normalized, name = serverName.ifBlank { "Server" }, src = normalized))
                     }
                 }
 
