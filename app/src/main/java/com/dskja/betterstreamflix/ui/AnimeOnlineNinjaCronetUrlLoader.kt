@@ -41,7 +41,8 @@ class AnimeOnlineNinjaCronetUrlLoader(
         height: Int,
         options: Options,
     ): ModelLoader.LoadData<InputStream> {
-        return if (isAnimeOnlineNinja(model)) {
+        val useCronet = isAnimeOnlineNinja(model) && AnimeOnlineNinjaCronetClient.isAvailable(context)
+        return if (useCronet) {
             ModelLoader.LoadData(ObjectKey(model), Fetcher(context, model))
         } else {
             requireNotNull(fallback.buildLoadData(model, width, height, options))

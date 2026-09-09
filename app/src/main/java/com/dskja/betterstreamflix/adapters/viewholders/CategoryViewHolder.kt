@@ -47,11 +47,11 @@ class CategoryViewHolder(
         get() = when (_binding) {
             is ItemCategoryMobileBinding -> _binding.rvCategory
             is ItemCategoryTvBinding -> _binding.hgvCategory
-            is ContentCategorySwiperMobileBinding -> _binding.vpCategorySwiper.javaClass
-                .getDeclaredField("mRecyclerView").let {
-                    it.isAccessible = true
-                    it.get(_binding.vpCategorySwiper) as RecyclerView
-                }
+            is ContentCategorySwiperMobileBinding -> {
+                // Avoid ViewPager2 private-field reflection (NoSuchFieldException: mRecyclerView
+                // after R8/ProGuard or AndroidX updates) — caused release crashes on home.
+                (_binding.vpCategorySwiper.getChildAt(0) as? RecyclerView)
+            }
             else -> null
         }
 
