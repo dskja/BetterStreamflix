@@ -69,6 +69,8 @@ import com.dskja.betterstreamflix.models.Provider
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.fragments.favorites.FavoriteSectionHeader
+import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 
 class AppAdapter(
     val items: MutableList<Item> = mutableListOf()
@@ -293,10 +295,15 @@ class AppAdapter(
                 )
             )
             Type.MOVIE_GRID_MOBILE_ITEM -> MovieViewHolder(
-                ItemMovieGridMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemMovieGridMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_movie_grid_mobile,
+                            R.layout.item_movie_grid_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.MOVIE_GRID_TV_ITEM -> MovieViewHolder(
@@ -431,10 +438,15 @@ class AppAdapter(
                 )
             )
             Type.TV_SHOW_GRID_MOBILE_ITEM -> TvShowViewHolder(
-                ItemTvShowGridMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
+                ItemTvShowGridMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_tv_show_grid_mobile,
+                            R.layout.item_tv_show_grid_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.TV_SHOW_GRID_TV_ITEM -> TvShowViewHolder(

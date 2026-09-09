@@ -12,12 +12,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.FragmentMovieMobileBinding
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.loadMovieBanner
@@ -40,7 +42,16 @@ class MovieMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentMovieMobileBinding.inflate(inflater, container, false)
+        _binding = FragmentMovieMobileBinding.bind(
+            inflater.inflate(
+                ExperimentalMobileDesign.layout(
+                    R.layout.fragment_movie_mobile,
+                    R.layout.fragment_movie_mobile_exp,
+                ),
+                container,
+                false,
+            )
+        )
         return binding.root
     }
 

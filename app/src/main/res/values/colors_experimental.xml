@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="exp_cinema_bg">#0B0D10</color>
+    <color name="exp_cinema_surface">#14181F</color>
+    <color name="exp_cinema_elevated">#1A2028</color>
+    <color name="exp_teal_accent">#2EC4B6</color>
+    <color name="exp_teal_dim">#1A7A72</color>
+    <color name="exp_text_primary">#F4F7FA</color>
+    <color name="exp_text_secondary">#9AA4B2</color>
+    <color name="exp_nav_inactive">#6B7380</color>
+
+    <!-- Aliases used by parallel experimental layouts -->
+    <color name="exp_charcoal">#0B0D10</color>
+    <color name="exp_charcoal_elevated">#14181F</color>
+    <color name="exp_charcoal_nav">#07080A</color>
+    <color name="exp_steel_teal">#2EC4B6</color>
+    <color name="exp_steel_teal_dim">#1A7A72</color>
+    <color name="exp_text_muted">#9AA4B2</color>
+</resources>

@@ -21,7 +21,9 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
+import android.view.animation.AnimationUtils
 
 class MoviesMobileFragment : Fragment() {
 
@@ -40,12 +42,22 @@ class MoviesMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentMoviesMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_movies_mobile,
+            R.layout.fragment_movies_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentMoviesMobileBinding.bind(root)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (ExperimentalMobileDesign.enabled()) {
+            binding.rvMovies.startAnimation(
+                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_in)
+            )
+        }
 
         initializeMovies()
 

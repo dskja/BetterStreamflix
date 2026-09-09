@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/exp_charcoal"
+    tools:context=".activities.main.MainMobileActivity">
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_main_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:defaultNavHost="true"
+        app:layout_constraintBottom_toTopOf="@+id/bnv_main"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:navGraph="@navigation/nav_main_graph_mobile" />
+
+    <ImageButton
+        android:id="@+id/btn_main_search"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/main_menu_search"
+        android:elevation="8dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_search_white"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/exp_steel_teal" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bnv_main"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/exp_charcoal_nav"
+        android:theme="@style/Theme.AppCompat"
+        app:itemIconTint="@color/nav_item_exp"
+        app:itemRippleColor="@color/exp_steel_teal_dim"
+        app:itemTextAppearanceActive="@style/BottomNavLabelStyleExp"
+        app:itemTextAppearanceInactive="@style/BottomNavLabelStyleExp"
+        app:itemTextColor="@color/nav_item_exp"
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/menu_main_activity_mobile" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

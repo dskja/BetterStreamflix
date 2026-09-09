@@ -350,6 +350,31 @@
     </PreferenceScreen>
 
     <PreferenceScreen
+        android:key="screen_watchlist_import"
+        android:title="@string/settings_watchlist_import_title"
+        android:summary="@string/settings_watchlist_import_summary"
+        android:widgetLayout="@layout/preference_widget_chevron"
+        app:iconSpaceReserved="false">
+
+        <PreferenceCategory
+            android:title="@string/settings_watchlist_import_title"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="WATCHLIST_IMPORT_SERIENSTREAM"
+                android:title="@string/settings_watchlist_import_serienstream"
+                android:summary="@string/settings_watchlist_import_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="WATCHLIST_IMPORT_ANIWORLD"
+                android:title="@string/settings_watchlist_import_aniworld"
+                android:summary="@string/settings_watchlist_import_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
         android:key="screen_network"
         android:title="@string/settings_category_network_title"
         android:summary="@string/settings_screen_network_summary"

@@ -23,12 +23,14 @@ import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
+import android.view.animation.AnimationUtils
 
 class HomeMobileFragment : Fragment() {
 
@@ -55,7 +57,12 @@ class HomeMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentHomeMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_home_mobile,
+            R.layout.fragment_home_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentHomeMobileBinding.bind(root)
         return binding.root
     }
 
@@ -148,8 +155,9 @@ class HomeMobileFragment : Fragment() {
             }
         }
         
-        // Ensure background image is hidden on mobile to show theme color
-        binding.ivHomeBackground.visibility = View.GONE
+        // Default shell hides the background; experimental keeps a full-bleed hero plane.
+        binding.ivHomeBackground.visibility =
+            if (ExperimentalMobileDesign.enabled()) View.VISIBLE else View.GONE
     }
 
     private fun displayHome(categories: List<Category>) {
@@ -210,5 +218,11 @@ class HomeMobileFragment : Fragment() {
                     }
                 }
         )
+
+        if (ExperimentalMobileDesign.enabled()) {
+            binding.rvHome.startAnimation(
+                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_up)
+            )
+        }
     }
 }

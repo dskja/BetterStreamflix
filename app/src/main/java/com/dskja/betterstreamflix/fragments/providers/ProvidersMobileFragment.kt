@@ -21,6 +21,7 @@ import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -38,7 +39,16 @@ class ProvidersMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentProvidersMobileBinding.inflate(inflater, container, false)
+        _binding = FragmentProvidersMobileBinding.bind(
+            inflater.inflate(
+                ExperimentalMobileDesign.layout(
+                    R.layout.fragment_providers_mobile,
+                    R.layout.fragment_providers_mobile_exp,
+                ),
+                container,
+                false,
+            )
+        )
         return binding.root
     }
 

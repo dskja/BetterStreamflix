@@ -35,6 +35,9 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.cast.CastPlayer
+import androidx.media3.cast.SessionAvailabilityListener
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
@@ -68,6 +71,8 @@ import com.dskja.betterstreamflix.utils.SubtitleOffset
 import com.dskja.betterstreamflix.utils.SubtitleOffsetRenderersFactory
 import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.google.android.gms.cast.framework.CastButtonFactory
+import com.google.android.gms.cast.framework.CastContext
 import com.dskja.betterstreamflix.utils.UserDataCache
 import com.dskja.betterstreamflix.utils.ProviderAudioLanguage
 import com.dskja.betterstreamflix.utils.dp
@@ -111,6 +116,7 @@ import okhttp3.internal.userAgent
 import java.util.Locale
 import com.dskja.betterstreamflix.extractors.TokenManager
 
+@OptIn(UnstableApi::class)
 class PlayerMobileFragment : Fragment() {
     companion object {
         private const val NEXT_EPISODE_PREFETCH_THRESHOLD_MS = 60_000L
@@ -129,6 +135,8 @@ class PlayerMobileFragment : Fragment() {
     private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
 
     private lateinit var player: ExoPlayer
+    private var castPlayer: CastPlayer? = null
+    private var isCasting = false
     private lateinit var httpDataSource: HttpDataSource.Factory
     private lateinit var dataSourceFactory: DataSource.Factory
     private lateinit var mediaSession: MediaSession
@@ -148,6 +156,9 @@ class PlayerMobileFragment : Fragment() {
     private var nextEpisodePrefetchJob: Job? = null
     private var nextEpisodeOverlayDismissed = false
 
+    /** Active playback surface: Cast when a session is connected, otherwise ExoPlayer. */
+    private fun activePlayer(): Player =
+        if (isCasting) castPlayer ?: player else player
     private val bypassWebViewLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val cookies =
@@ -309,6 +320,7 @@ class PlayerMobileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initializePlayer(false)
+        setupCastControls()
         initializeVideo()
         gestureHelper = PlayerGestureHelper(
             requireContext(), 
@@ -629,6 +641,7 @@ class PlayerMobileFragment : Fragment() {
         }
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         releasePlayer()
+        releaseCastPlayer()
         try {
             requireContext().unregisterReceiver(chooserReceiver)
         } catch (ignored: Exception) {}
@@ -730,7 +743,7 @@ class PlayerMobileFragment : Fragment() {
         }
 
         binding.pvPlayer.controller.binding.exoReplay.setOnClickListener {
-            player.seekTo(0)
+            activePlayer().seekTo(0)
         }
 
         binding.pvPlayer.controller.binding.btnExoLock.setOnClickListener {
@@ -804,7 +817,7 @@ class PlayerMobileFragment : Fragment() {
         }
 
         binding.pvPlayer.controller.binding.btnSkipIntro.setOnClickListener {
-            player.seekTo(player.currentPosition + 85000)
+            activePlayer().seekTo(activePlayer().currentPosition + 85000)
             it.isGone = true
         }
 
@@ -1421,6 +1434,9 @@ class PlayerMobileFragment : Fragment() {
         controller.tvTimeSeparator.isVisible = !live
         controller.exoDuration.isVisible = !live
         controller.tvLiveIndicator.isVisible = live
+        runCatching {
+            controller.mediaRouteButton.isVisible = !live && UserPreferences.castEnabled
+        }
         if (live) {
             controller.tvLiveIndicator.text = getString(R.string.player_live_badge)
         }
@@ -1683,12 +1699,84 @@ class PlayerMobileFragment : Fragment() {
                     .build()
             }
 
-        binding.pvPlayer.player = player
-        binding.settings.player = player
+        if (isCasting) {
+            binding.pvPlayer.player = castPlayer
+            // Settings stay bound to the local ExoPlayer (track selection APIs).
+            binding.settings.player = player
+        } else {
+            binding.pvPlayer.player = player
+            binding.settings.player = player
+        }
         binding.settings.subtitleView = binding.pvPlayer.subtitleView
         binding.settings.onSubtitlesClicked = {
             viewModel.getSubtitles(args.videoType)
         }
+    }
+
+    private fun setupCastControls() {
+        val routeButton = runCatching {
+            binding.pvPlayer.controller.binding.mediaRouteButton
+        }.getOrNull() ?: return
+
+        if (!UserPreferences.castEnabled || isLiveTvPlayback()) {
+            routeButton.isGone = true
+            return
+        }
+
+        runCatching {
+            val castContext = CastContext.getSharedInstance(requireContext().applicationContext)
+            CastButtonFactory.setUpMediaRouteButton(requireContext(), routeButton)
+            routeButton.isVisible = true
+
+            if (castPlayer == null) {
+                castPlayer = CastPlayer(castContext).also { cp ->
+                    cp.setSessionAvailabilityListener(object : SessionAvailabilityListener {
+                        override fun onCastSessionAvailable() {
+                            switchPlaybackToCast()
+                        }
+
+                        override fun onCastSessionUnavailable() {
+                            switchPlaybackToLocal()
+                        }
+                    })
+                }
+            }
+        }.onFailure {
+            Log.w("PlayerCast", "Cast unavailable: ${it.message}")
+            routeButton.isGone = true
+            castPlayer = null
+        }
+    }
+
+    private fun switchPlaybackToCast() {
+        val cp = castPlayer ?: return
+        if (!::player.isInitialized) return
+        val mediaItem = player.currentMediaItem
+        val position = player.currentPosition
+        val playWhenReady = player.playWhenReady
+        player.playWhenReady = false
+        if (mediaItem != null) {
+            cp.setMediaItem(mediaItem, position)
+            cp.prepare()
+            cp.playWhenReady = playWhenReady
+        }
+        binding.pvPlayer.player = cp
+        isCasting = true
+    }
+
+    private fun switchPlaybackToLocal() {
+        val cp = castPlayer
+        if (!::player.isInitialized) return
+        val position = cp?.currentPosition ?: player.currentPosition
+        val playWhenReady = cp?.playWhenReady ?: true
+        runCatching { cp?.stop() }
+        if (player.currentMediaItem != null) {
+            player.seekTo(position)
+            player.playWhenReady = playWhenReady
+        }
+        binding.pvPlayer.player = player
+        binding.settings.player = player
+        isCasting = false
     }
 
     private fun releasePlayer() {
@@ -1702,6 +1790,13 @@ class PlayerMobileFragment : Fragment() {
         if (::mediaSession.isInitialized) {
             mediaSession.release()
         }
+    }
+
+    private fun releaseCastPlayer() {
+        castPlayer?.setSessionAvailabilityListener(null)
+        castPlayer?.release()
+        castPlayer = null
+        isCasting = false
     }
 
     private fun isSerienStreamBypassUrl(url: String): Boolean {

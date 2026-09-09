@@ -31,6 +31,7 @@ import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.activities.main.MainMobileActivity
 import com.dskja.betterstreamflix.activities.tools.QrScannerActivity
+import com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity
 import com.dskja.betterstreamflix.backup.BackupRestoreManager
 import com.dskja.betterstreamflix.backup.ProviderBackupContext
 import com.dskja.betterstreamflix.database.AppDatabase
@@ -48,6 +49,7 @@ import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.providers.StreamingCommunityProvider
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -849,6 +851,60 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 (activity as? MainMobileActivity)?.updateImmersiveMode()
                 true
             }
+        }
+
+        findPreference<SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
+            isChecked = UserPreferences.experimentalNewAppDesign
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.experimentalNewAppDesign = newValue as Boolean
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainMobileActivity::class.java))
+                }
+                true
+            }
+        }
+
+        findPreference<ListPreference>("CATALOG_SORT_MODE")?.apply {
+            value = UserPreferences.catalogSortMode.name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { preference, newValue ->
+                val mode = CatalogSortMode.fromKey(newValue as String)
+                UserPreferences.catalogSortMode = mode
+                if (preference is ListPreference) {
+                    preference.value = mode.name
+                }
+                ProviderChangeNotifier.notifyProviderChanged()
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("CAST_ENABLED")?.apply {
+            isChecked = UserPreferences.castEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castEnabled = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<Preference>("WATCHLIST_IMPORT_SERIENSTREAM")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(requireContext(), WatchlistImportActivity::class.java).putExtra(
+                    WatchlistImportActivity.EXTRA_SOURCE,
+                    WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                )
+            )
+            true
+        }
+
+        findPreference<Preference>("WATCHLIST_IMPORT_ANIWORLD")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(requireContext(), WatchlistImportActivity::class.java).putExtra(
+                    WatchlistImportActivity.EXTRA_SOURCE,
+                    WatchlistImportActivity.SOURCE_ANIWORLD,
+                )
+            )
+            true
         }
 
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {
