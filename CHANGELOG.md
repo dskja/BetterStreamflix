@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-09-09
 
 ### Added
+- Buy Me a Coffee support link in Settings / About (`https://buymeacoffee.com/betterstreamflix`)
 - PR CI workflow (duplicate-strings check, unit tests, `assembleDebug`)
 - Shared player core (`PlayerBuilderFactory`, `PlaybackFailover`, `SerienStreamBypassHelper`)
 - Local `CrashReporter` with Settings entry to view the last crash log
