@@ -204,8 +204,7 @@ class MainTvActivity : FragmentActivity() {
 
     private fun applyThemeNavigationChrome() {
         val palette = ThemeManager.palette(UserPreferences.selectedTheme)
-        window.statusBarColor = palette.systemBar
-        window.navigationBarColor = palette.systemBar
+        applySystemBarColors()
         binding.navMain.setBackgroundColor(palette.tvNavBackground)
         binding.navMain.headerView?.let { headerView ->
             headerView.setBackgroundColor(palette.tvNavBackground)
@@ -213,6 +212,13 @@ class MainTvActivity : FragmentActivity() {
             header.tvNavigationHeaderTitle.setTextColor(palette.tvHeaderPrimary)
             header.tvNavigationHeaderSubtitle.setTextColor(palette.tvHeaderSecondary)
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun applySystemBarColors() {
+        val systemBar = ThemeManager.palette(UserPreferences.selectedTheme).systemBar
+        window.statusBarColor = systemBar
+        window.navigationBarColor = systemBar
     }
     
     private fun updateNavigationVisibility() {

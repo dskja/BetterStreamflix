@@ -34,6 +34,7 @@ object PlutoTvItProvider : IptvProvider, ProviderConfigUrl {
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
         .cookieJar(object : CookieJar {
             private val cookieStore = mutableMapOf<String, List<Cookie>>()
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {

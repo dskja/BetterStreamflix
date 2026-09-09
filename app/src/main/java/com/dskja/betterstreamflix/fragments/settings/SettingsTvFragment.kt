@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.fragments.settings
 
+import android.app.ActivityOptions
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.ContentValues
@@ -1010,13 +1011,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 UserPreferences.selectedTheme = newTheme
 
                 // Apply the theme and restart the activity
-                requireActivity().apply {
-                    finish()
-                    startActivity(Intent(this, MainTvActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                    overridePendingTransition(0, 0) // Disable transition animation
-                }
+                restartMainTvWithoutAnimation()
                 true
             }
         }
@@ -1031,13 +1026,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             setOnPreferenceChangeListener { _, newValue ->
                 val newLanguage = newValue as String
                 AppLanguageManager.setSelectedLanguage(newLanguage)
-                requireActivity().apply {
-                    finish()
-                    startActivity(Intent(this, MainTvActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                    overridePendingTransition(0, 0)
-                }
+                restartMainTvWithoutAnimation()
                 true
             }
         }
@@ -2293,5 +2282,15 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             .show()
 
         dialog.window?.setLayout(dialogWidth, LinearLayout.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun restartMainTvWithoutAnimation() {
+        val activity = requireActivity()
+        val intent = Intent(activity, MainTvActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val options = ActivityOptions.makeCustomAnimation(activity, 0, 0)
+        activity.finish()
+        activity.startActivity(intent, options.toBundle())
     }
 }
