@@ -6,49 +6,49 @@
     android:layout_height="wrap_content"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingTop="8dp"
-    android:paddingBottom="4dp">
-
-    <View
-        android:id="@+id/v_category_rule"
-        android:layout_width="18dp"
-        android:layout_height="3dp"
-        android:layout_marginStart="20dp"
-        android:background="@color/exp_signal"
-        app:layout_constraintBottom_toBottomOf="@id/tv_category_title"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/tv_category_title" />
+    android:paddingTop="18dp"
+    android:paddingBottom="6dp">
 
     <TextView
         android:id="@+id/tv_category_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="20dp"
-        android:fontFamily="@font/outfit"
-        android:letterSpacing="0.04"
-        android:textColor="@color/exp_frost"
-        android:textSize="16sp"
+        android:layout_marginStart="22dp"
+        android:layout_marginEnd="22dp"
+        android:fontFamily="@font/manrope"
+        android:letterSpacing="0.08"
+        android:textAllCaps="true"
+        android:textColor="@color/exp_ink"
+        android:textSize="12sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/v_category_rule"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Title" />
+
+    <View
+        android:id="@+id/v_category_rule"
+        android:layout_width="28dp"
+        android:layout_height="2dp"
+        android:layout_marginTop="8dp"
+        android:background="@color/exp_accent"
+        app:layout_constraintStart_toStartOf="@id/tv_category_title"
+        app:layout_constraintTop_toBottomOf="@id/tv_category_title" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_category"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="16dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_category_title"
+        app:layout_constraintTop_toBottomOf="@id/v_category_rule"
         tools:listitem="@layout/item_movie_mobile_exp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
