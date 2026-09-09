@@ -79,6 +79,7 @@ object CableVisionHDProvider : IptvProvider, ProviderConfigUrl {
                 .header("X-Requested-With", "XMLHttpRequest")
 
             if (originalUrl.contains("ksdjugfssddeports.com") ||
+                originalUrl.contains("saohgdassregions.com") ||
                 originalUrl.contains("playlist.php") ||
                 originalUrl.contains(".ts") ||
                 originalUrl.contains(":9092")) {
@@ -415,14 +416,18 @@ object CableVisionHDProvider : IptvProvider, ProviderConfigUrl {
             val servers = mutableListOf<Video.Server>()
 
             doc.select(
-                "div.options-left a.option, .options a.option, a.option, .server-list a, " +
-                    "ul.Options li a, .player-options a, a[href*=player], iframe[src], iframe[data-src]"
+                "div.options-left a.option, .options a.option, a.option, button.option, " +
+                    ".option[data-src], .server-list a, ul.Options li a, .player-options a, " +
+                    "a[href*=player], a[href*='core.php'], button[data-src*='core.php'], " +
+                    "iframe[src], iframe[data-src]"
             ).forEach { element ->
                 val name = element.text().trim().ifBlank {
-                    element.attr("title").ifBlank { "Opción" }
+                    element.attr("title").ifBlank { element.attr("aria-label").ifBlank { "Opción" } }
                 }
-                val url = element.attr("href").ifBlank {
-                    element.attr("data-src").ifBlank { element.attr("src") }
+                val url = element.attr("data-src").ifBlank {
+                    element.attr("href").ifBlank {
+                        element.attr("src")
+                    }
                 }
                 if (url.isNotEmpty()) {
                     val absoluteUrl = when {
@@ -430,7 +435,15 @@ object CableVisionHDProvider : IptvProvider, ProviderConfigUrl {
                         url.startsWith("//") -> "https:$url"
                         else -> "$baseUrl/${url.trimStart('/')}"
                     }
-                    servers.add(Video.Server(id = absoluteUrl, name = name, src = absoluteUrl))
+                    servers.add(Video.Server(id = absoluteUrl, name = name.ifBlank { "Opción" }, src = absoluteUrl))
+                }
+            }
+
+            if (servers.isEmpty()) {
+                val coreRegex = Regex("""https?://[^"'\\\s]+live\d*/core\.php[^"'\\\s]*""")
+                coreRegex.findAll(doc.html()).forEachIndexed { index, match ->
+                    val url = match.value.replace("\\/", "/")
+                    servers.add(Video.Server(id = url, name = "Opción ${index + 1}", src = url))
                 }
             }
 

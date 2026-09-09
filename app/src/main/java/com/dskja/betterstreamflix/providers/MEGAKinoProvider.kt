@@ -29,10 +29,12 @@ import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
 
 import MyCookieJar
+import android.util.Base64
 import com.dskja.betterstreamflix.utils.TmdbUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.text.Charsets
 
 object MEGAKinoProvider : Provider, ProviderConfigUrl {
 
@@ -468,18 +470,52 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
                 val serverSrc = iframe?.attr("data-src")?.takeIf { it.isNotEmpty() }
                     ?: iframe?.attr("src")
 
-                if (!serverSrc.isNullOrEmpty()) {
+                if (!serverSrc.isNullOrEmpty() && !serverSrc.contains("youtube", ignoreCase = true)) {
                     val serverName = tabNames.getOrNull(index)?.takeIf { it.isNotBlank() } ?: "Server ${index + 1}"
-                    servers.add(Video.Server(id = serverSrc, name = serverName, src = serverSrc))
+                    servers.add(Video.Server(id = serverSrc, name = serverName, src = absoluteUrl(serverSrc)))
+                }
+
+                // Current layout: tab panels link to /dl/<id> instead of iframes.
+                content.select("a[href*='/dl/']").forEach { link ->
+                    val href = link.attr("href").trim()
+                    if (href.isBlank()) return@forEach
+                    val resolved = resolveDlStream(href)
+                    val name = tabNames.getOrNull(index)?.takeIf { it.isNotBlank() }
+                        ?: link.text().trim().ifBlank { "Server ${servers.size + 1}" }
+                    if (!resolved.isNullOrBlank()) {
+                        servers.add(Video.Server(id = resolved, name = name, src = resolved))
+                    } else {
+                        // Keep the /dl/ URL so getVideo can retry / surface a clear VPN error.
+                        servers.add(Video.Server(id = absoluteUrl(href), name = name, src = absoluteUrl(href)))
+                    }
                 }
             }
 
             if (servers.isEmpty()) {
                 document.select("iframe[src], iframe[data-src], [data-src*=http]").forEachIndexed { index, iframe ->
                     val serverSrc = iframe.attr("data-src").ifBlank { iframe.attr("src") }
-                    if (serverSrc.isNotBlank()) {
+                    if (serverSrc.isNotBlank() && !serverSrc.contains("youtube", ignoreCase = true)) {
                         servers.add(Video.Server(id = serverSrc, name = "Server ${index + 1}", src = serverSrc))
                     }
+                }
+            }
+
+            if (servers.isEmpty()) {
+                document.select("a[href*='/dl/']").forEachIndexed { index, link ->
+                    val href = link.attr("href").trim()
+                    if (href.isBlank()) return@forEachIndexed
+                    val resolved = resolveDlStream(href)
+                    val src = resolved ?: absoluteUrl(href)
+                    servers.add(Video.Server(id = src, name = "Server ${index + 1}", src = src))
+                }
+            }
+
+            // Fallback: meinecloud embed via IMDb id when present on the page.
+            if (servers.isEmpty()) {
+                val imdb = Regex("""tt\d{7,8}""").find(document.html())?.value
+                if (!imdb.isNullOrBlank()) {
+                    val embed = "https://meinecloud.click/movie/$imdb"
+                    servers.addAll(parseMeinecloudMirrors(embed))
                 }
             }
         } else if (videoType is Video.Type.Episode) {
@@ -499,19 +535,88 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
                 }
 
                 if (servers.isEmpty()) {
-                    document.select("iframe[src], iframe[data-src]").forEachIndexed { index, iframe ->
-                        val serverSrc = iframe.attr("data-src").ifBlank { iframe.attr("src") }
+                    document.select("iframe[src], iframe[data-src], a[href*='/dl/']").forEachIndexed { index, el ->
+                        val serverSrc = when {
+                            el.tagName() == "a" -> el.attr("href")
+                            else -> el.attr("data-src").ifBlank { el.attr("src") }
+                        }
                         if (serverSrc.isNotBlank()) {
-                            servers.add(Video.Server(id = serverSrc, name = "Server ${index + 1}", src = serverSrc))
+                            val resolved = if (serverSrc.contains("/dl/")) resolveDlStream(serverSrc) else serverSrc
+                            servers.add(
+                                Video.Server(
+                                    id = resolved ?: absoluteUrl(serverSrc),
+                                    name = "Server ${index + 1}",
+                                    src = resolved ?: absoluteUrl(serverSrc),
+                                )
+                            )
                         }
                     }
                 }
             }
         }
-        return servers.distinctBy { it.src.ifBlank { it.id } }
+
+        val distinct = servers.distinctBy { it.src.ifBlank { it.id } }
+        if (distinct.isEmpty()) {
+            throw Exception(
+                "Keine Stream-Server gefunden. MEGAKino verlangt oft eine VPN-Verbindung " +
+                    "(/dl/ Seiten zeigen nur den VPN-Hinweis)."
+            )
+        }
+        return distinct
+    }
+
+    /** Follow /dl/<id> softgate pages and extract an external embed if present. */
+    private suspend fun resolveDlStream(href: String): String? {
+        val url = absoluteUrl(href)
+        return runCatching {
+            val doc = getService().getDocument(url)
+            val text = doc.text()
+            if (text.contains("VPN", ignoreCase = true) &&
+                (text.contains("Verschlüsselung", ignoreCase = true) || text.contains("einrichten", ignoreCase = true))
+            ) {
+                return@runCatching null
+            }
+            val iframe = doc.selectFirst("iframe[src], iframe[data-src]")
+            val src = iframe?.attr("data-src")?.ifBlank { null } ?: iframe?.attr("src")
+            src?.takeIf { it.isNotBlank() && !it.contains("youtube", ignoreCase = true) }
+                ?: doc.selectFirst("a[href^=http]")?.attr("href")
+                    ?.takeIf { link ->
+                        listOf("voe", "mixdrop", "streamtape", "vidoza", "dood", "filemoon", "meinecloud")
+                            .any { host -> link.contains(host, ignoreCase = true) }
+                    }
+        }.getOrNull()
+    }
+
+    private suspend fun parseMeinecloudMirrors(embedUrl: String): List<Video.Server> {
+        return runCatching {
+            val embedDoc = getService().getDocument(embedUrl)
+            embedDoc.select("ul._source_list li[data-link], li[data-link]").mapNotNull { li ->
+                val raw = li.attr("data-link").trim()
+                if (raw.isBlank()) return@mapNotNull null
+                val decoded = runCatching {
+                    String(Base64.decode(raw, Base64.DEFAULT), Charsets.UTF_8).trim()
+                }.getOrDefault(raw)
+                val normalized = when {
+                    decoded.startsWith("//") -> "https:$decoded"
+                    decoded.startsWith("http") -> decoded
+                    else -> return@mapNotNull null
+                }
+                val name = li.ownText().ifBlank { li.text() }.trim().ifBlank { "Server" }
+                Video.Server(id = normalized, name = name, src = normalized)
+            }
+        }.getOrDefault(emptyList())
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        return Extractor.extract(server.id)
+        val src = server.src.ifBlank { server.id }
+        if (src.contains("/dl/")) {
+            val resolved = resolveDlStream(src)
+                ?: throw Exception(
+                    "MEGAKino Stream gesperrt (VPN erforderlich). " +
+                        "Bitte VPN aktivieren oder die Provider-URL in den Einstellungen ändern."
+                )
+            return Extractor.extract(resolved)
+        }
+        return Extractor.extract(src)
     }
 }

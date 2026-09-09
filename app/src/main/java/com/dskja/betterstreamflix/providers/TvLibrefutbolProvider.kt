@@ -87,12 +87,13 @@ object TvLibrefutbolProvider : IptvProvider, ProviderConfigUrl {
                 .header("X-Requested-With", "XMLHttpRequest")
 
             if (originalUrl.contains("ksdjugfssddeports.com") ||
+                originalUrl.contains("saohgdassregions.com") ||
                 originalUrl.contains("playlist.php") ||
                 originalUrl.contains(".ts") ||
                 originalUrl.contains(":9092")) {
                 requestBuilder
-                    .header("Origin", "https://embed.ksdjugfssddeports.com")
-                    .header("Referer", "https://embed.ksdjugfssddeports.com/")
+                    .header("Origin", "https://regionales.saohgdassregions.com")
+                    .header("Referer", "https://regionales.saohgdassregions.com/")
             }
 
             chain.proceed(requestBuilder.build())
@@ -417,14 +418,18 @@ object TvLibrefutbolProvider : IptvProvider, ProviderConfigUrl {
             val servers = mutableListOf<Video.Server>()
 
             doc.select(
-                "div.options-left a.option, .options a.option, a.option, .server-list a, " +
-                    "ul.Options li a, .player-options a, a[href*=player], iframe[src], iframe[data-src]"
+                "div.options-left a.option, .options a.option, a.option, button.option, " +
+                    ".option[data-src], .server-list a, ul.Options li a, .player-options a, " +
+                    "a[href*=player], a[href*='core.php'], button[data-src*='core.php'], " +
+                    "iframe[src], iframe[data-src]"
             ).forEach { element ->
                 val name = element.text().trim().ifBlank {
-                    element.attr("title").ifBlank { "Opción" }
+                    element.attr("title").ifBlank { element.attr("aria-label").ifBlank { "Opción" } }
                 }
-                val url = element.attr("href").ifBlank {
-                    element.attr("data-src").ifBlank { element.attr("src") }
+                val url = element.attr("data-src").ifBlank {
+                    element.attr("href").ifBlank {
+                        element.attr("src")
+                    }
                 }
                 if (url.isNotEmpty()) {
                     val absoluteUrl = when {
@@ -432,7 +437,15 @@ object TvLibrefutbolProvider : IptvProvider, ProviderConfigUrl {
                         url.startsWith("//") -> "https:$url"
                         else -> "${TvLibrefutbolProvider.baseUrl}/${url.trimStart('/')}"
                     }
-                    servers.add(Video.Server(id = absoluteUrl, name = name, src = absoluteUrl))
+                    servers.add(Video.Server(id = absoluteUrl, name = name.ifBlank { "Opción" }, src = absoluteUrl))
+                }
+            }
+
+            if (servers.isEmpty()) {
+                val coreRegex = Regex("""https?://[^"'\\\s]+live\d*/core\.php[^"'\\\s]*""")
+                coreRegex.findAll(doc.html()).forEachIndexed { index, match ->
+                    val url = match.value.replace("\\/", "/")
+                    servers.add(Video.Server(id = url, name = "Opción ${index + 1}", src = url))
                 }
             }
 
@@ -567,8 +580,8 @@ object TvLibrefutbolProvider : IptvProvider, ProviderConfigUrl {
                             .url(segmentUrl)
                             .header("User-Agent", USER_AGENT)
                             .header("Accept", "*/*")
-                            .header("Origin", "https://embed.ksdjugfssddeports.com")
-                            .header("Referer", "https://embed.ksdjugfssddeports.com/")
+                            .header("Origin", "https://regionales.saohgdassregions.com")
+                            .header("Referer", "https://regionales.saohgdassregions.com/")
                             .build()
 
                         val segmentRes = client.newCall(segmentReq).execute()
@@ -602,8 +615,8 @@ object TvLibrefutbolProvider : IptvProvider, ProviderConfigUrl {
                 .url(playlistUrl)
                 .header("User-Agent", USER_AGENT)
                 .header("Accept", "*/*")
-                .header("Origin", "https://embed.ksdjugfssddeports.com")
-                .header("Referer", "https://embed.ksdjugfssddeports.com/")
+                .header("Origin", "https://regionales.saohgdassregions.com")
+                .header("Referer", "https://regionales.saohgdassregions.com/")
                 .build()
 
             val response = client.newCall(request).execute()
