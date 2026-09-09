@@ -23,6 +23,12 @@
 
     <Preference
         app:iconSpaceReserved="false"
+        app:key="p_settings_buy_me_a_coffee"
+        app:title="@string/settings_buy_me_a_coffee"
+        app:summary="@string/settings_buy_me_a_coffee_summary" />
+
+    <Preference
+        app:iconSpaceReserved="false"
         app:key="p_settings_upstream"
         app:title="@string/settings_about_upstream"
         android:summary="github.com/streamflix-reborn2/streamflix" />

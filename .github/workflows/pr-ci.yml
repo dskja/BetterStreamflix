@@ -1,0 +1,66 @@
+name: PR CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'dskja/**']
+
+jobs:
+  checks:
+    name: Strings + Assemble Debug
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Check duplicate strings
+        run: |
+          chmod +x ./scripts/check_duplicate_strings.sh
+          ./scripts/check_duplicate_strings.sh
+
+      - name: Access optional secrets
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          RABBITSTREAM_SOURCE_API: ${{ secrets.RABBITSTREAM_SOURCE_API }}
+        run: |
+          touch local.properties
+          if [ -n "$TMDB_API_KEY" ]; then
+            echo "TMDB_API_KEY=$TMDB_API_KEY" >> local.properties
+          fi
+          if [ -n "$RABBITSTREAM_SOURCE_API" ]; then
+            echo "RABBITSTREAM_SOURCE_API=$RABBITSTREAM_SOURCE_API" >> local.properties
+          fi
+
+      - name: Generate native-lib.cpp from template
+        env:
+          UPROT_API_BASE: ${{ secrets.UPROT_API_BASE }}
+          UPROT_SIGN_KEY: ${{ secrets.UPROT_SIGN_KEY }}
+          UPROT_DIRECT_API_BASE: ${{ secrets.UPROT_DIRECT_API_BASE }}
+          UPROT_DIRECT_KEY: ${{ secrets.UPROT_DIRECT_KEY }}
+        run: |
+          if [ -n "$UPROT_DIRECT_KEY" ] || [ -n "$UPROT_API_BASE" ]; then
+            sed -e "s|{{UPROT_API_BASE}}|$UPROT_API_BASE|g" \
+                -e "s|{{UPROT_SIGN_KEY}}|$UPROT_SIGN_KEY|g" \
+                -e "s|{{UPROT_DIRECT_API_BASE}}|$UPROT_DIRECT_API_BASE|g" \
+                -e "s|{{UPROT_DIRECT_KEY}}|$UPROT_DIRECT_KEY|g" \
+                app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
+          elif [ -f app/src/main/cpp/native-lib.cpp.template ] && [ ! -f app/src/main/cpp/native-lib.cpp ]; then
+            # Local/CI without secrets: use template placeholders so CMake still configures.
+            cp app/src/main/cpp/native-lib.cpp.template app/src/main/cpp/native-lib.cpp
+          fi
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Assemble debug
+        run: ./gradlew :app:assembleDebug --stacktrace

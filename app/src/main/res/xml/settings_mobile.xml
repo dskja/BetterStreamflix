@@ -21,6 +21,20 @@
                 android:defaultValue="true"
                 app:iconSpaceReserved="false" />
 
+            <SwitchPreferenceCompat
+                android:key="SHOW_QUARANTINED_PROVIDERS"
+                android:title="@string/settings_show_quarantined_providers_title"
+                android:summary="@string/settings_show_quarantined_providers_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="VIEW_CRASH_LOG"
+                android:title="@string/settings_view_crash_log_title"
+                android:summary="@string/settings_view_crash_log_summary"
+                app:iconSpaceReserved="false" />
+
+
             <EditTextPreference
                 android:key="TMDB_API_KEY"
                 android:title="@string/settings_tmdb_api_key"
@@ -666,6 +680,13 @@
             android:icon="@drawable/ic_telegram"
             android:key="p_settings_telegram"
             android:title="@string/settings_telegram"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:icon="@drawable/ic_buy_me_a_coffee"
+            android:key="p_settings_buy_me_a_coffee"
+            android:title="@string/settings_buy_me_a_coffee"
+            android:summary="@string/settings_buy_me_a_coffee_summary"
             app:iconSpaceReserved="false" />
 
         <Preference

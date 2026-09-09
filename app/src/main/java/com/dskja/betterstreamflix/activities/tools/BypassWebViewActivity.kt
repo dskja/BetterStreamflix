@@ -25,6 +25,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ThemeManager
@@ -84,8 +85,7 @@ class BypassWebViewActivity : AppCompatActivity() {
         continueButton = findViewById(R.id.bypass_continue)
         cancelButton = findViewById(R.id.bypass_cancel)
 
-        // Continue is always available; user decides when the page looks solved.
-        continueButton.isEnabled = true
+        continueButton.isEnabled = false
         statusView.setText(R.string.bypass_status_complete_in_page)
 
         cancelButton.setOnClickListener {
@@ -94,6 +94,16 @@ class BypassWebViewActivity : AppCompatActivity() {
         }
 
         continueButton.setOnClickListener {
+            val cookies = collectCookieHeader()
+            val hasHoster = !resolvedStreamUrl.isNullOrBlank()
+            if (!hasHoster && !SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
+                Toast.makeText(
+                    this,
+                    getString(R.string.bypass_status_challenge_pending),
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
             finishWithResult()
         }
 
@@ -261,23 +271,18 @@ class BypassWebViewActivity : AppCompatActivity() {
     private fun updateBypassState(currentUrl: String?) {
         if (isCleaningUp) return
         val cookies = collectCookieHeader()
-        val hasClearance = hasChallengeClearance(cookies)
+        val solved = SerienStreamBypassHelper.looksLikeBypassSolved(cookies)
         val hasHoster = !resolvedStreamUrl.isNullOrBlank()
+        continueButton.isEnabled = solved || hasHoster
         statusView.text = when {
-            hasHoster || hasClearance -> getString(R.string.bypass_status_completed_continue)
+            hasHoster || solved -> getString(R.string.bypass_status_completed_continue)
+            cookies.isNotBlank() -> getString(R.string.bypass_status_challenge_pending)
             else -> getString(R.string.bypass_status_complete_in_page)
         }
 
         if (!currentUrl.isNullOrBlank()) {
             title = Uri.parse(currentUrl).host ?: getString(R.string.app_name)
         }
-    }
-
-    private fun hasChallengeClearance(cookies: String): Boolean {
-        if (cookies.isBlank()) return false
-        return cookies.contains("cf_clearance") ||
-            cookies.contains("__ddg9_") ||
-            cookies.contains("ddos_token")
     }
 
     private fun collectCookieHeader(): String {

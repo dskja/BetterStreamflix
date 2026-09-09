@@ -1,9 +1,9 @@
 <h1 align="center">BetterStreamflix</h1>
 
 <p align="center">
-  <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" height="100px" />
+  <img src="./branding/ic_launcher-512.png" height="120px" alt="BetterStreamflix" />
   <br />
-  <strong>Maintained by <a href="https://github.com/dskja">dskja</a></strong>
+  <strong>v1.2.0</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
   <br />
   An actively maintained fork of Streamflix with extra fixes, providers and UX improvements for Android TV and mobile.
   <br />
@@ -13,6 +13,8 @@
   <br />
   <br />
   <a href="https://t.me/BetterStreamflix">Telegram channel</a>
+  ·
+  <a href="https://buymeacoffee.com/betterstreamflix">Buy me a coffee</a>
   ·
   <a href="https://github.com/dskja/BetterStreamflix/issues">Report Bug</a>
   ·

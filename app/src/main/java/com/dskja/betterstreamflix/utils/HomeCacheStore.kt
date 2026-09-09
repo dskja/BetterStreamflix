@@ -18,6 +18,10 @@ import java.util.concurrent.ConcurrentHashMap
 object HomeCacheStore {
     private val gson = Gson()
     private val memoryCache = ConcurrentHashMap<String, List<CachedCategory>>()
+    private val writtenAtMs = ConcurrentHashMap<String, Long>()
+
+    /** Soft TTL for stale-while-revalidate (show cache immediately, refresh in background). */
+    const val STALE_AFTER_MS = 30L * 60L * 1000L
 
     fun read(context: Context, provider: Provider): List<Category>? {
         val cacheKey = cacheKey(provider)
@@ -32,14 +36,31 @@ object HomeCacheStore {
             val type = object : TypeToken<List<CachedCategory>>() {}.type
             val payload: List<CachedCategory> = gson.fromJson(file.readText(), type)
             memoryCache[cacheKey] = payload
+            if (!writtenAtMs.containsKey(cacheKey)) {
+                writtenAtMs[cacheKey] = file.lastModified()
+            }
             payload.toCategories()
         }.recoverCatching {
             if (it is JsonSyntaxException) {
                 memoryCache.remove(cacheKey)
+                writtenAtMs.remove(cacheKey)
                 file.delete()
             }
             null
         }.getOrNull()
+    }
+
+    fun ageMs(context: Context, provider: Provider): Long? {
+        val cacheKey = cacheKey(provider)
+        val at = writtenAtMs[cacheKey]
+            ?: cacheFile(context, cacheKey).takeIf { it.exists() }?.lastModified()
+            ?: return null
+        return (System.currentTimeMillis() - at).coerceAtLeast(0L)
+    }
+
+    fun isStale(context: Context, provider: Provider, maxAgeMs: Long = STALE_AFTER_MS): Boolean {
+        val age = ageMs(context, provider) ?: return true
+        return age > maxAgeMs
     }
 
     fun write(context: Context, provider: Provider, categories: List<Category>) {
@@ -47,6 +68,7 @@ object HomeCacheStore {
             val payload = categories.map { CachedCategory.from(it) }
             val cacheKey = cacheKey(provider)
             memoryCache[cacheKey] = payload
+            writtenAtMs[cacheKey] = System.currentTimeMillis()
             cacheFile(context, cacheKey).apply {
                 parentFile?.mkdirs()
                 writeText(gson.toJson(payload))
@@ -57,6 +79,7 @@ object HomeCacheStore {
     fun clear(context: Context, provider: Provider) {
         val cacheKey = cacheKey(provider)
         memoryCache.remove(cacheKey)
+        writtenAtMs.remove(cacheKey)
         cacheFile(context, cacheKey).delete()
     }
 

@@ -65,6 +65,7 @@ import com.dskja.betterstreamflix.providers.StreamingCommunityProvider
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import com.dskja.betterstreamflix.utils.BypassWebSocketEndpointHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.ui.UserDataNotifier
@@ -462,6 +463,28 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<SwitchPreferenceCompat>("SHOW_QUARANTINED_PROVIDERS")?.apply {
+            isChecked = UserPreferences.showQuarantinedProviders
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.showQuarantinedProviders = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<Preference>("VIEW_CRASH_LOG")?.setOnPreferenceClickListener {
+            val text = CrashReporter.latestCrashText(requireContext())
+            if (text.isNullOrBlank()) {
+                Toast.makeText(requireContext(), R.string.settings_view_crash_log_empty, Toast.LENGTH_SHORT).show()
+            } else {
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.settings_view_crash_log_title)
+                    .setMessage(text.take(8000))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+            true
+        }
+
         findPreference<ListPreference>("LIBRARY_SCOPE")?.apply {
             value = UserPreferences.libraryScope.key
             summary = entry
@@ -578,6 +601,16 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/BetterStreamflix"))
                 startActivity(intent)
             }
+            true
+        }
+
+        findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://buymeacoffee.com/betterstreamflix"),
+                ),
+            )
             true
         }
 
