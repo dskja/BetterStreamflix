@@ -18,6 +18,7 @@ import com.dskja.betterstreamflix.models.Show
 import com.dskja.betterstreamflix.utils.TmdbUtils
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.utils.DnsResolver
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -109,6 +110,144 @@ object GuardaFlixProvider : Provider, ProviderConfigUrl {
     }
 
     private var service = GuardaFlixService.build(defaultBaseUrl)
+
+    private const val AUTH_COOKIE = "ark_user_token"
+
+    data class AuthResult(val ok: Boolean, val error: String? = null)
+
+    fun isLoggedIn(): Boolean = authToken().isNotBlank()
+
+    fun authUsername(): String =
+        UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_AUTH_USERNAME)
+
+    fun logout() {
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_AUTH_TOKEN, "")
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_AUTH_USERNAME, "")
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_AUTH_PASSWORD, "")
+    }
+
+    fun login(username: String, password: String): AuthResult {
+        return authenticate(
+            path = "/api/auth/login",
+            username = username.trim(),
+            password = password,
+            confirmPassword = null,
+        )
+    }
+
+    fun register(username: String, password: String): AuthResult {
+        val trimmed = username.trim()
+        val registered = authenticate(
+            path = "/api/auth/register",
+            username = trimmed,
+            password = password,
+            confirmPassword = password,
+        )
+        if (!registered.ok) return registered
+        return login(trimmed, password)
+    }
+
+    private fun authToken(): String =
+        UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_AUTH_TOKEN)
+
+    private fun authPassword(): String =
+        UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_AUTH_PASSWORD)
+
+    private fun saveSession(username: String, password: String, token: String) {
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_AUTH_TOKEN, token)
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_AUTH_USERNAME, username)
+        UserPreferences.setProviderCache(this, UserPreferences.PROVIDER_AUTH_PASSWORD, password)
+    }
+
+    private fun authenticate(
+        path: String,
+        username: String,
+        password: String,
+        confirmPassword: String?,
+    ): AuthResult {
+        if (username.length < 3 || password.length < 6) {
+            return AuthResult(ok = false, error = "Invalid username or password")
+        }
+        return try {
+            val origin = baseUrl.trimEnd('/')
+            val form = FormBody.Builder()
+                .add("username", username)
+                .add("password", password)
+                .apply {
+                    if (confirmPassword != null) {
+                        add("confirm_password", confirmPassword)
+                    }
+                }
+                .build()
+            val client = OkHttpClient.Builder()
+                .dns(DnsResolver.doh)
+                .followRedirects(true)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .build()
+            val request = Request.Builder()
+                .url("$origin$path")
+                .post(form)
+                .header("User-Agent", BROWSER_UA)
+                .header("Accept", "application/json")
+                .header("Origin", origin)
+                .header("Referer", "$origin/")
+                .build()
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                val json = runCatching { JSONObject(body) }.getOrNull()
+                val ok = json?.optBoolean("ok") == true
+                if (!ok) {
+                    return AuthResult(
+                        ok = false,
+                        error = json?.optString("error")?.takeIf { it.isNotBlank() }
+                            ?: "Authentication failed",
+                    )
+                }
+                val token = response.headers("Set-Cookie")
+                    .asSequence()
+                    .mapNotNull { header ->
+                        header.split(';')
+                            .firstOrNull()
+                            ?.trim()
+                            ?.takeIf { it.startsWith("$AUTH_COOKIE=") }
+                            ?.substringAfter('=')
+                    }
+                    .firstOrNull()
+                    .orEmpty()
+                if (token.isBlank() && path.endsWith("/login")) {
+                    return AuthResult(ok = false, error = "Missing session cookie")
+                }
+                if (token.isNotBlank()) {
+                    saveSession(username, password, token)
+                }
+                AuthResult(ok = true)
+            }
+        } catch (e: Exception) {
+            AuthResult(ok = false, error = e.message ?: "Authentication failed")
+        }
+    }
+
+    private fun ensureAuthCookieHeader(): String? {
+        var token = authToken()
+        if (token.isBlank()) {
+            val username = authUsername()
+            val password = authPassword()
+            if (username.isNotBlank() && password.isNotBlank()) {
+                login(username, password)
+                token = authToken()
+            }
+        }
+        return token.takeIf { it.isNotBlank() }?.let { "$AUTH_COOKIE=$it" }
+    }
+
+    private fun refreshAuthCookieHeader(): String? {
+        val username = authUsername()
+        val password = authPassword()
+        if (username.isBlank() || password.isBlank()) return ensureAuthCookieHeader()
+        login(username, password)
+        return authToken().takeIf { it.isNotBlank() }?.let { "$AUTH_COOKIE=$it" }
+    }
 
     private fun normalizeUrl(url: String): String {
         return when {
@@ -485,26 +624,41 @@ object GuardaFlixProvider : Provider, ProviderConfigUrl {
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(20, TimeUnit.SECONDS)
                 .build()
-            val grantUrl = "$origin/api/play/grant?$grantQuery&_=${System.currentTimeMillis()}"
-            val request = Request.Builder()
-                .url(grantUrl)
-                .header("User-Agent", BROWSER_UA)
-                .header("Accept", "application/json")
-                .header("Referer", "$origin/")
-                .header("Origin", origin)
-                .build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return if (link.startsWith("http")) link else normalizeUrl(link)
+            fun requestGrant(cookieHeader: String?): Pair<String, String> {
+                val grantUrl = "$origin/api/play/grant?$grantQuery&_=${System.currentTimeMillis()}"
+                val builder = Request.Builder()
+                    .url(grantUrl)
+                    .header("User-Agent", BROWSER_UA)
+                    .header("Accept", "application/json")
+                    .header("Referer", "$origin/")
+                    .header("Origin", origin)
+                if (!cookieHeader.isNullOrBlank()) {
+                    builder.header("Cookie", cookieHeader)
                 }
-                val body = response.body?.string().orEmpty()
-                val signedPath = JSONObject(body).optString("url").orEmpty()
-                when {
-                    signedPath.startsWith("http") -> signedPath
-                    signedPath.startsWith("/") -> "$origin$signedPath"
-                    signedPath.isNotBlank() -> normalizeUrl(signedPath)
-                    else -> if (link.startsWith("http")) link else normalizeUrl(link)
+                client.newCall(builder.build()).execute().use { response ->
+                    if (!response.isSuccessful) return "" to ""
+                    val body = response.body?.string().orEmpty()
+                    val json = runCatching { JSONObject(body) }.getOrNull() ?: return "" to ""
+                    return json.optString("mode").orEmpty() to json.optString("url").orEmpty()
                 }
+            }
+
+            var cookie = ensureAuthCookieHeader()
+            var grant = requestGrant(cookie)
+            // Session may have expired: re-login once with stored credentials.
+            if (grant.first == "preview" && authUsername().isNotBlank() && authPassword().isNotBlank()) {
+                cookie = refreshAuthCookieHeader()
+                if (!cookie.isNullOrBlank()) {
+                    grant = requestGrant(cookie)
+                }
+            }
+            val signedPath = grant.second
+
+            when {
+                signedPath.startsWith("http") -> signedPath
+                signedPath.startsWith("/") -> "$origin$signedPath"
+                signedPath.isNotBlank() -> normalizeUrl(signedPath)
+                else -> if (link.startsWith("http")) link else normalizeUrl(link)
             }
         } catch (_: Exception) {
             if (link.startsWith("http")) link else normalizeUrl(link)

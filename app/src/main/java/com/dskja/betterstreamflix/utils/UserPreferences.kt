@@ -38,6 +38,9 @@ object UserPreferences {
     const val PROVIDER_AUTOUPDATE = "AUTOUPDATE_URL"
     const val PROVIDER_NEW_INTERFACE = "NEW_INTERFACE"
     const val PROVIDER_PREFERRED_SERVER = "PREFERRED_SERVER"
+    const val PROVIDER_AUTH_TOKEN = "AUTH_TOKEN"
+    const val PROVIDER_AUTH_USERNAME = "AUTH_USERNAME"
+    const val PROVIDER_AUTH_PASSWORD = "AUTH_PASSWORD"
 
     lateinit var providerCache: JSONObject
 

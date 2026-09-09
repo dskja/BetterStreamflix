@@ -423,6 +423,36 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_guardaflix_settings"
+            android:title="@string/settings_category_guardaflix"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="provider_guardaflix_auth_status"
+                android:title="@string/guardaflix_account_status"
+                android:summary="@string/guardaflix_signed_out"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="provider_guardaflix_sign_in"
+                android:title="@string/guardaflix_sign_in"
+                android:summary="@string/guardaflix_sign_in_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="provider_guardaflix_sign_up"
+                android:title="@string/guardaflix_sign_up"
+                android:summary="@string/guardaflix_sign_up_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="provider_guardaflix_sign_out"
+                android:title="@string/guardaflix_sign_out"
+                android:summary="@string/guardaflix_sign_out_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_provider_empty_state"
             android:title="@string/settings_provider_connection_title"
             app:iconSpaceReserved="false">

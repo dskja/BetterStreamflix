@@ -52,6 +52,7 @@ import com.dskja.betterstreamflix.database.dao.TvShowDao
 import com.dskja.betterstreamflix.database.dao.SeasonDao
 import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.dskja.betterstreamflix.providers.FrenchStreamProvider
+import com.dskja.betterstreamflix.providers.GuardaFlixProvider
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.providers.ProviderConfigUrl
 import com.dskja.betterstreamflix.providers.ProviderPortalUrl
@@ -409,6 +410,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         bindAnimeOnlineNinjaPreferredServer()
+        GuardaFlixAuthSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
+        }
 
         findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
             summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
@@ -1545,8 +1549,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         val isCuevana = UserPreferences.currentProvider?.name == "Cuevana 3"
         val isPoseidon = UserPreferences.currentProvider?.name == "Poseidonhd2"
         val isAnimeOnlineNinja = UserPreferences.currentProvider is AnimeOnlineNinjaProvider
+        val isGuardaFlix = UserPreferences.currentProvider is GuardaFlixProvider
         val hasConfigProvider = UserPreferences.currentProvider is ProviderConfigUrl
-        val hasSpecificOptions = isStreamingCommunity || isSerienStream || isMoflix || isCuevana || isPoseidon || isAnimeOnlineNinja
+        val hasSpecificOptions = isStreamingCommunity || isSerienStream || isMoflix || isCuevana || isPoseidon || isAnimeOnlineNinja || isGuardaFlix
 
         findPreference<PreferenceCategory>("pc_streamingcommunity_settings")?.isVisible = isStreamingCommunity
         findPreference<PreferenceCategory>("pc_serienstream_settings")?.isVisible = isSerienStream
@@ -1554,6 +1559,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<PreferenceCategory>("pc_cuevana_settings")?.isVisible = isCuevana
         findPreference<PreferenceCategory>("pc_poseidon_settings")?.isVisible = isPoseidon
         findPreference<PreferenceCategory>("pc_animeonlineninja_settings")?.isVisible = isAnimeOnlineNinja
+        findPreference<PreferenceCategory>("pc_guardaflix_settings")?.isVisible = isGuardaFlix
         findPreference<PreferenceCategory>("pc_provider_empty_state")?.isVisible = !hasConfigProvider && !hasSpecificOptions
     }
 
