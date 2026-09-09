@@ -123,7 +123,14 @@ object RidomoviesProvider : Provider, ProviderConfigUrl {
                 )
             }
             CookieManager.getInstance().flush()
-            return Jsoup.parse(result.html, absolute).apply { setBaseUri(URL) }
+            val parsed = Jsoup.parse(result.html, absolute).apply { setBaseUri(URL) }
+            if (requiresClearance(parsed.outerHtml())) {
+                throw Exception(
+                    "Ridomovies blocked by Cloudflare at $absolute after WebView clearance. " +
+                        "Open the site on-device or change the provider URL."
+                )
+            }
+            return parsed
         }
     }
 

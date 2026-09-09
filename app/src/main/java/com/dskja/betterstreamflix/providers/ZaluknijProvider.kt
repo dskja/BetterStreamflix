@@ -64,7 +64,7 @@ object ZaluknijProvider : Provider, ProviderConfigUrl {
     }
 
     private val service = Retrofit.Builder()
-        .baseUrl("$defaultBaseUrl/")
+        .baseUrl(if (defaultBaseUrl.endsWith("/")) defaultBaseUrl else "$defaultBaseUrl/")
         .client(
             NetworkClient.default.newBuilder()
                 .connectTimeout(20, TimeUnit.SECONDS)
@@ -576,10 +576,11 @@ object ZaluknijProvider : Provider, ProviderConfigUrl {
     private fun encodeQuery(query: String): String = URLEncoder.encode(query, Charsets.UTF_8.name())
 
     private fun toAbsoluteUrl(url: String): String {
+        val root = baseUrl.trimEnd('/')
         return when {
             url.startsWith("http") -> url
-            url.startsWith("/") -> "$baseUrl$url"
-            else -> "$baseUrl/$url"
+            url.startsWith("/") -> "$root$url"
+            else -> "$root/$url"
         }
     }
 }

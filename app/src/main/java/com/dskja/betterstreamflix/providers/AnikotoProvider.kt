@@ -60,8 +60,9 @@ object AnikotoProvider : Provider, ProviderConfigUrl {
                 ?.text()
                 ?.trim()
                 .orEmpty()
-            val items = parseCards(section.select(".item, .flw-item, .swiper-slide"))
-                .distinctBy { it.itemId() }
+            val items = parseCards(
+                section.select(".ani.items .item, .item, .flw-item, .swiper-slide.item, .swiper-slide")
+            ).distinctBy { it.itemId() }
 
             if (title.isBlank() || items.isEmpty()) null else Category(title, items)
         }.toMutableList()
@@ -103,13 +104,15 @@ object AnikotoProvider : Provider, ProviderConfigUrl {
             if (page > 1 && e.code() == 404) return emptyList()
             throw e
         }
-        return parseCards(document.select(".item, .flw-item"))
+        return parseCards(document.select(".ani.items .item, .item, .flw-item"))
             .filter { it.matchesSearchQuery(query) }
             .distinctBy { it.itemId() }
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        return parseCards(service.getPage("$baseUrl/type/movie?page=$page").select(".item, .flw-item"))
+        return parseCards(
+            service.getPage("$baseUrl/type/movie?page=$page").select(".ani.items .item, .item, .flw-item")
+        )
             .map {
                 when (it) {
                     is Movie -> it
@@ -132,7 +135,9 @@ object AnikotoProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        return parseCards(service.getPage("$baseUrl/type/tv?page=$page").select(".item, .flw-item"))
+        return parseCards(
+            service.getPage("$baseUrl/type/tv?page=$page").select(".ani.items .item, .item, .flw-item")
+        )
             .map {
                 when (it) {
                     is TvShow -> it
@@ -254,7 +259,7 @@ object AnikotoProvider : Provider, ProviderConfigUrl {
         return Genre(
             id = id,
             name = name,
-            shows = parseCards(document.select(".item, .flw-item")).mapNotNull { it as? Show },
+            shows = parseCards(document.select(".ani.items .item, .item, .flw-item")).mapNotNull { it as? Show },
         )
     }
 
@@ -359,19 +364,29 @@ object AnikotoProvider : Provider, ProviderConfigUrl {
 
     private fun parseCards(elements: List<Element>): List<AppAdapter.Item> {
         return elements.mapNotNull { element ->
-            val link = element.selectFirst("a[href*=/watch/]")
+            // Prefer the title/name link; featured slides put Play in .actions.
+            val link = element.selectFirst("a.name[href*=/watch/], a.d-title[href*=/watch/], .info a[href*=/watch/]")
+                ?: element.selectFirst("a[href*=/watch/]")
                 ?: return@mapNotNull null
-            val id = link.absUrl("href").ifBlank { link.attr("href").toAbsoluteUrl() }
-            val title = element.selectFirst(".name, .film-name, .d-title")
+            val href = link.absUrl("href").ifBlank { link.attr("href").toAbsoluteUrl() }
+            // Strip /ep-N suffixes so detail/episode ajax uses the anime watch page id.
+            val id = href.substringBefore("/ep-").trimEnd('/')
+            val title = element.selectFirst(".name, .film-name, .d-title, h2.title")
                 ?.text()
                 ?.trim()
                 ?.ifBlank { null }
                 ?: link.attr("title").ifBlank { null }
                 ?: element.selectFirst("img[alt]")?.attr("alt")?.trim()
                 ?: return@mapNotNull null
-            val poster = element.selectFirst(".poster img, img")
-                ?.let { image -> image.absUrl("src").ifBlank { image.attr("data-src") } }
-                ?.ifBlank { null }
+            val poster = element.selectFirst(".poster img, .ani.poster img, img")
+                ?.let { image ->
+                    image.absUrl("src").ifBlank { null }
+                        ?: image.attr("data-src").takeIf { it.isNotBlank() }?.toAbsoluteUrl()
+                }
+                ?: Regex("""background-image:\s*url\(['"]?([^'")]+)""")
+                    .find(element.selectFirst(".image [style], [style*=background-image]")?.attr("style").orEmpty())
+                    ?.groupValues
+                    ?.getOrNull(1)
             val metaText = element.select(".meta, .fd-infor").text()
             val rating = element.selectFirst(".score")?.text()
                 ?.replace(Regex("""[^\d.]"""), "")
@@ -386,6 +401,7 @@ object AnikotoProvider : Provider, ProviderConfigUrl {
                 ?.groupValues
                 ?.getOrNull(1)
                 ?.toIntOrNull()
+                ?: element.selectFirst(".ep-status.total span")?.text()?.trim()?.toIntOrNull()
 
             if (metaText.contains("Movie", ignoreCase = true)) {
                 Movie(

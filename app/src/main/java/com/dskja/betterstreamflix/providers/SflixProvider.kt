@@ -54,14 +54,15 @@ object SflixProvider : Provider, ProviderConfigUrl {
         } catch (e: Exception) {
             throw Exception(
                 "SFlix home timed out or is unreachable at $baseUrl (${e.message}). " +
-                    "The site often returns Cloudflare 522 from datacenter IPs — try again later or change the provider URL."
+                    "The site often returns Cloudflare 522 from datacenter IPs — try again later or change the provider URL. " +
+                    "Note: moviesflix.to is a parked domain, not an SFlix mirror."
             )
         }
 
         if (looksLikeCloudflare(document) || document.select("div.flw-item, div.swiper-slide").isEmpty()) {
             throw Exception(
-                "SFlix returned no catalog at $baseUrl (Cloudflare/empty). " +
-                    "Change the provider URL if you have a working mirror."
+                "SFlix returned no catalog at $baseUrl (Cloudflare/empty/522). " +
+                    "No working mirror found (moviesflix.to is parked). Change the provider URL if you have one."
             )
         }
 
@@ -776,11 +777,15 @@ object SflixProvider : Provider, ProviderConfigUrl {
                         val request = chain.request().newBuilder()
                             .header(
                                 "User-Agent",
-                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
                             )
                             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .header("Accept-Language", "en-US,en;q=0.9")
                             .header("Referer", baseUrl)
+                            .header("Origin", baseUrl.trimEnd('/'))
+                            .header("Sec-CH-UA", "\"Chromium\";v=\"131\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"131\"")
+                            .header("Sec-CH-UA-Mobile", "?0")
+                            .header("Sec-CH-UA-Platform", "\"Windows\"")
                             .build()
                         chain.proceed(request)
                     }

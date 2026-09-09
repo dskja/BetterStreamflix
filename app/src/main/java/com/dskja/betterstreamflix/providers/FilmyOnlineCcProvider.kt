@@ -96,8 +96,11 @@ object FilmyOnlineCcProvider : Provider, ProviderConfigUrl {
                     } else {
                         throw Exception(
                             "FilmyOnline API ${response.code}" +
-                                if (challenge) " (Cloudflare). Otwórz dostawcę ponownie, aby odświeżyć sesję."
-                                else ""
+                                if (challenge) {
+                                    " (Cloudflare). No working mirror found — open the provider on-device to refresh clearance, then retry."
+                                } else {
+                                    " (forbidden). Site may be blocking this network."
+                                }
                         )
                     }
                 } else {
@@ -890,15 +893,19 @@ object FilmyOnlineCcProvider : Provider, ProviderConfigUrl {
                         .addInterceptor { chain ->
                             val request = chain.request()
                             val cookieHeader = FilmyOnlineCfClearanceStore.cookieHeader()
-                            if (cookieHeader.isNullOrBlank() || request.header("Cookie") != null) {
-                                chain.proceed(request)
-                            } else {
-                                chain.proceed(
-                                    request.newBuilder()
-                                        .header("Cookie", cookieHeader)
-                                        .build()
+                            val builder = request.newBuilder()
+                                .header(
+                                    "User-Agent",
+                                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                                 )
+                                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                                .header("Accept-Language", "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7")
+                                .header("Referer", "$baseUrl/")
+                                .header("Origin", baseUrl.trimEnd('/'))
+                            if (!cookieHeader.isNullOrBlank() && request.header("Cookie") == null) {
+                                builder.header("Cookie", cookieHeader)
                             }
+                            chain.proceed(builder.build())
                         }
                         .build())
                     .addConverterFactory(JsoupConverterFactory.create())

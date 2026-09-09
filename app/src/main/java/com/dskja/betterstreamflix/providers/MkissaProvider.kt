@@ -19,9 +19,13 @@ import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.ArtworkRequestHeaders
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.MkissaAaCrypto
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Cache
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -34,22 +38,23 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.HttpException
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Query
 import java.io.File
-import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
-import javax.crypto.Cipher
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 object MkissaProvider : Provider, ProviderConfigUrl {
 
     private const val TAG = "MkissaProvider"
-    private const val API_URL = "https://api.allanime.day/"
+    // api.allanime.day is Cloudflare-gated (403) without the right site lane.
+    // acapi.allanime.day works with allowlisted Referers for catalog GraphQL.
+    // api.mkissa.net is the site proxy (often 403 from datacenters; may need aa-crypto on-device).
+    private const val API_URL = "https://acapi.allanime.day/"
+    private const val API_URL_FALLBACK = "https://api.mkissa.net/"
     private const val CLOCK_URL = "https://allanime.day"
-    // api.allanime.day returns 403 unless Origin/Referer match an allowlisted frontend (allmanga.to).
+    // api.allanime.day / acapi require an allowlisted frontend Origin/Referer.
     private const val API_ORIGIN = "https://allmanga.to"
     private const val API_REFERER = "https://allmanga.to/"
     private const val BROWSER_UA =

@@ -776,18 +776,6 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
     private suspend fun processIframe(iframeUrl: String, referer: String): List<Video.Server> {
         return try {
             val resolvedEmbed = absUrl(iframeUrl)
-            // Already a third-party stream host — return as a server directly.
-            if (!isProviderUrl(resolvedEmbed) &&
-                !resolvedEmbed.contains("/vidurl/", ignoreCase = true) &&
-                !resolvedEmbed.contains("dataLink", ignoreCase = true) &&
-                Regex("""\.(m3u8|mp4)(\?|$)|/(e|embed|v)/""", RegexOption.IGNORE_CASE).containsMatchIn(resolvedEmbed)
-            ) {
-                val hostName = resolvedEmbed.substringAfter("//").substringBefore("/")
-                    .replace("www.", "").substringBefore(".")
-                    .replaceFirstChar { it.uppercase() }
-                return listOf(Video.Server(id = resolvedEmbed, name = hostName, src = resolvedEmbed))
-            }
-
             val iframeDoc = fetchEmbedDocument(resolvedEmbed)
             val iframeHtml = iframeDoc.html()
             val servers = mutableListOf<Video.Server>()
@@ -876,7 +864,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
                 }
             }
 
-            // If nothing nested was found but the URL itself looks playable, keep it.
+            // Keep direct third-party embed URLs when nested parsing found nothing
             if (servers.isEmpty() && resolvedEmbed.startsWith("http") && !isProviderUrl(resolvedEmbed)) {
                 val name = resolvedEmbed.substringAfter("//").substringBefore("/").replace("www.", "")
                     .substringBefore(".").replaceFirstChar { it.uppercase() }
