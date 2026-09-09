@@ -151,19 +151,30 @@ jobs:
             BetterStreamflix-only-TV.apk
           if-no-files-found: error
 
+      - name: Extract changelog for this version
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { p=1; print; next }
+            p && /^## \[/ { exit }
+            p { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q . release-notes.md; then
+            echo "No CHANGELOG section found for $VERSION" >&2
+            exit 1
+          fi
+          echo "Extracted release notes for $VERSION:"
+          cat release-notes.md
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: BetterStreamflix ${{ github.ref_name }}
-          body: |
-            See [CHANGELOG.md](https://github.com/dskja/BetterStreamflix/blob/${{ github.ref_name }}/CHANGELOG.md) for full release notes.
-
-            ### APKs
-            - `BetterStreamflix.apk` — universal (mobile + TV)
-            - `BetterStreamflix-only-Mobile.apk` — mobile-only layout
-            - `BetterStreamflix-only-TV.apk` — TV-only layout
+          body_path: release-notes.md
           files: |
             BetterStreamflix.apk
             BetterStreamflix-only-Mobile.apk
