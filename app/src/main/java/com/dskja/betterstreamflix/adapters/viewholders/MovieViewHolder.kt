@@ -21,9 +21,13 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import androidx.fragment.app.Fragment
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
+import com.dskja.betterstreamflix.download.DownloadContentKey
+import com.dskja.betterstreamflix.download.OfflineBadgeStore
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.databinding.ContentMovieCastMobileBinding
 import com.dskja.betterstreamflix.databinding.ContentMovieCastTvBinding
 import com.dskja.betterstreamflix.databinding.ContentMovieMobileBinding
@@ -368,7 +372,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
-        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon, binding.ivMovieDownloadRibbon)
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -476,7 +480,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
-        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon, binding.ivMovieDownloadRibbon)
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -535,7 +539,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
-        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon, binding.ivMovieDownloadRibbon)
 
         binding.tvMovieQuality.apply {
             text = movie.quality ?: ""
@@ -609,7 +613,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
-        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon)
+        bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon, binding.ivMovieDownloadRibbon)
         binding.pbMovieProgress.apply {
             val watchHistory = movie.watchHistory
             progress = when {
@@ -646,9 +650,20 @@ class MovieViewHolder(
             view.setPadding(0, 0, 0, 0)
         }
     }
-    private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
+    private fun movieDownloadContentKey(): String? {
+        val providerName = movie.providerName
+            ?: UserPreferences.currentProvider?.name
+            ?: return null
+        return DownloadContentKey.movie(providerName, movie.id)
+    }
+
+    private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View, downloadRibbon: View? = null) {
         favoriteRibbon.visibility = if (movie.isFavorite) View.VISIBLE else View.GONE
         watchedRibbon.visibility = if (movie.isWatched) View.VISIBLE else View.GONE
+        val contentKey = movieDownloadContentKey()
+        downloadRibbon?.visibility = if (
+            contentKey != null && OfflineBadgeStore.isCompleted(context, contentKey)
+        ) View.VISIBLE else View.GONE
 
         ribbonStateJob?.cancel()
         val boundMovieId = movie.id
@@ -657,10 +672,22 @@ class MovieViewHolder(
             ?: return
 
         ribbonStateJob = lifecycleOwner.lifecycleScope.launch {
-            database.movieDao().getByIdAsFlow(boundMovieId).collect { persistedMovie ->
-                if (movie.id != boundMovieId || persistedMovie == null) return@collect
-                favoriteRibbon.visibility = if (persistedMovie.isFavorite) View.VISIBLE else View.GONE
-                watchedRibbon.visibility = if (persistedMovie.isWatched) View.VISIBLE else View.GONE
+            launch {
+                database.movieDao().getByIdAsFlow(boundMovieId).collect { persistedMovie ->
+                    if (movie.id != boundMovieId || persistedMovie == null) return@collect
+                    favoriteRibbon.visibility = if (persistedMovie.isFavorite) View.VISIBLE else View.GONE
+                    watchedRibbon.visibility = if (persistedMovie.isWatched) View.VISIBLE else View.GONE
+                }
+            }
+            if (downloadRibbon != null) {
+                launch {
+                    OfflineBadgeStore.completedKeys(context).collect { keys ->
+                        if (movie.id != boundMovieId) return@collect
+                        val key = movieDownloadContentKey()
+                        downloadRibbon.visibility =
+                            if (key != null && keys.contains(key)) View.VISIBLE else View.GONE
+                    }
+                }
             }
         }
     }
@@ -798,6 +825,12 @@ class MovieViewHolder(
         binding.tvMovieOverview.text = movie.overview
 
         binding.btnMovieWatchNow.apply {
+            val contentKey = movieDownloadContentKey()
+            text = if (contentKey != null && OfflineBadgeStore.isCompleted(context, contentKey)) {
+                context.getString(R.string.downloads_play_offline)
+            } else {
+                context.getString(R.string.movie_watch_now)
+            }
             setOnClickListener {
                 // Este botón ya navega al reproductor, no a otra página de detalles.
                 // Generalmente non necesita el cambio de proveedor, pero lo añadimos por seguridad.
@@ -831,6 +864,15 @@ class MovieViewHolder(
                 if (trailer != null) handleTrailerClick(trailer, "MovieMobile")
             }
             visibility = if (trailer != null) View.VISIBLE else View.GONE
+        }
+
+        binding.btnMovieDownload.apply {
+            setOnClickListener {
+                checkProviderAndRun {
+                    val fragment = context.toActivity()?.getCurrentFragment() as? Fragment ?: return@checkProviderAndRun
+                    DownloadOptionsController.enqueueMovie(fragment, movie)
+                }
+            }
         }
 
         binding.btnMovieFavorite.apply {
@@ -929,6 +971,12 @@ class MovieViewHolder(
         binding.tvMovieOverview.text = movie.overview
 
         binding.btnMovieWatchNow.apply {
+            val contentKey = movieDownloadContentKey()
+            text = if (contentKey != null && OfflineBadgeStore.isCompleted(context, contentKey)) {
+                context.getString(R.string.downloads_play_offline)
+            } else {
+                context.getString(R.string.movie_watch_now)
+            }
             setOnClickListener {
                 checkProviderAndRun {
                     findNavController().navigate(MovieTvFragmentDirections.actionMovieToPlayer(
@@ -960,6 +1008,15 @@ class MovieViewHolder(
                 if (trailer != null) handleTrailerClick(trailer, "MovieTv")
             }
             visibility = if (trailer != null) View.VISIBLE else View.GONE
+        }
+
+        binding.btnMovieDownload.apply {
+            setOnClickListener {
+                checkProviderAndRun {
+                    val fragment = context.toActivity()?.getCurrentFragment() as? Fragment ?: return@checkProviderAndRun
+                    DownloadOptionsController.enqueueMovie(fragment, movie)
+                }
+            }
         }
 
         binding.btnMovieFavorite.apply {

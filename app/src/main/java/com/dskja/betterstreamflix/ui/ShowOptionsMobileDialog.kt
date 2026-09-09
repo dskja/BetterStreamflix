@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.ui
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.DialogShowOptionsMobileBinding
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.fragments.home.HomeMobileFragment
 import com.dskja.betterstreamflix.fragments.home.HomeMobileFragmentDirections
 import com.dskja.betterstreamflix.models.Episode
@@ -167,6 +169,18 @@ class ShowOptionsMobileDialog(
             }
             visibility = View.VISIBLE
         }
+
+        binding.btnOptionShowDownload.apply {
+            setOnClickListener {
+                val activity = context.toActivity() as? Activity
+                if (activity != null) {
+                    DownloadOptionsController.enqueueEpisode(context, activity, episode)
+                }
+                hide()
+            }
+            visibility = View.VISIBLE
+        }
+
         binding.btnOptionEpisodeMarkAllPreviousWatched.apply {
             setOnClickListener {
                 checkProviderAndRun(episode) {
@@ -340,6 +354,19 @@ class ShowOptionsMobileDialog(
             visibility = View.VISIBLE
         }
 
+        binding.btnOptionShowDownload.apply {
+            setOnClickListener {
+                val activity = context.toActivity() as? Activity
+                if (activity != null) {
+                    DownloadOptionsController.enqueueMovie(context, activity, freshMovie)
+                }
+                hide()
+            }
+            visibility = View.VISIBLE
+        }
+
+        binding.btnOptionEpisodeMarkAllPreviousWatched.visibility = View.GONE
+
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
                 checkProviderAndRun(freshMovie) {
@@ -425,6 +452,8 @@ class ShowOptionsMobileDialog(
         }
 
         binding.btnOptionShowWatched.visibility = View.GONE
+        binding.btnOptionShowDownload.visibility = View.GONE
+        binding.btnOptionEpisodeMarkAllPreviousWatched.visibility = View.GONE
         binding.btnOptionProgramClear.visibility = View.GONE
 
         binding.btnOptionRecentlyWatchedClear.apply {

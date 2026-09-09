@@ -6,23 +6,26 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.FragmentSeasonTvBinding
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
+import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.utils.CacheUtils
 import com.dskja.betterstreamflix.utils.LoggingUtils
-import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SeasonTvFragment : Fragment() {
 
@@ -43,6 +46,7 @@ class SeasonTvFragment : Fragment() {
     }
 
     private val appAdapter = AppAdapter()
+    private var loadedEpisodes: List<Episode> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -116,6 +120,46 @@ class SeasonTvFragment : Fragment() {
     private fun initializeSeason() {
         binding.tvSeasonTitle.text = args.seasonTitle
 
+        SeasonSwitcher.bind(
+            fragment = this,
+            spinner = binding.spSeasonPicker,
+            database = database,
+            tvShowId = args.tvShowId,
+            tvShowTitle = args.tvShowTitle,
+            tvShowPoster = args.tvShowPoster,
+            tvShowBanner = args.tvShowBanner,
+            currentSeasonId = args.seasonId,
+            currentSeasonNumber = args.seasonNumber,
+            currentSeasonTitle = args.seasonTitle,
+        )
+
+        binding.btnSeasonDownload.setOnClickListener {
+            val episodes = loadedEpisodes
+            if (episodes.isEmpty()) return@setOnClickListener
+            AlertDialog.Builder(requireContext())
+                .setMessage(getString(R.string.season_download_confirm, episodes.size))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val tvShow = withContext(Dispatchers.IO) {
+                            database.tvShowDao().getById(args.tvShowId)
+                        } ?: TvShow(
+                            id = args.tvShowId,
+                            title = viewModel.tvShowTitle.ifBlank {
+                                episodes.firstOrNull()?.tvShow?.title.orEmpty()
+                            },
+                        )
+                        DownloadOptionsController.enqueueSeason(
+                            this@SeasonTvFragment,
+                            tvShow,
+                            viewModel.seasonNumber,
+                            episodes,
+                        )
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
         binding.hgvEpisodes.apply {
             adapter = appAdapter.apply {
                 stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
@@ -127,6 +171,7 @@ class SeasonTvFragment : Fragment() {
     private var focusedEpisodeIndex: Int? = null
 
     private fun displaySeason(episodes: List<Episode>) {
+        loadedEpisodes = episodes
         val preparedEpisodes = episodes.onEach { episode ->
             episode.itemType = AppAdapter.Type.EPISODE_TV_ITEM
         }

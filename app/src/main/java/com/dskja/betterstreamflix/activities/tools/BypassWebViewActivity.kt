@@ -27,7 +27,6 @@ import androidx.core.view.WindowInsetsCompat
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
-import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 
@@ -36,7 +35,11 @@ class BypassWebViewActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_URL = "extra_url"
         const val EXTRA_COOKIE_HEADER = "extra_cookie_header"
+        const val EXTRA_RESOLVED_STREAM_URL = "extra_resolved_stream_url"
         private const val COOKIE_POLL_INTERVAL_MS = 1000L
+        private const val MODERN_UA =
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
     }
 
     private lateinit var webView: WebView
@@ -46,6 +49,7 @@ class BypassWebViewActivity : AppCompatActivity() {
     private lateinit var cancelButton: Button
     private var isCleaningUp = false
     private var currentPageUrl: String? = null
+    private var resolvedStreamUrl: String? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private val cookiePollRunnable = object : Runnable {
         override fun run() {
@@ -80,27 +84,17 @@ class BypassWebViewActivity : AppCompatActivity() {
         continueButton = findViewById(R.id.bypass_continue)
         cancelButton = findViewById(R.id.bypass_cancel)
 
+        // Continue is always available; user decides when the page looks solved.
+        continueButton.isEnabled = true
+        statusView.setText(R.string.bypass_status_complete_in_page)
+
         cancelButton.setOnClickListener {
             setResult(Activity.RESULT_CANCELED)
             finish()
         }
 
         continueButton.setOnClickListener {
-            val cookies = collectCookieHeader()
-            if (cookies.isBlank()) {
-                Toast.makeText(
-                    this,
-                    getString(R.string.bypass_status_complete_bypass_first),
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@setOnClickListener
-            }
-
-            setResult(
-                Activity.RESULT_OK,
-                Intent().putExtra(EXTRA_COOKIE_HEADER, cookies)
-            )
-            finish()
+            finishWithResult()
         }
 
         setupWebView()
@@ -130,6 +124,24 @@ class BypassWebViewActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    private fun finishWithResult() {
+        val cookies = collectCookieHeader()
+        if (cookies.isBlank() && resolvedStreamUrl.isNullOrBlank()) {
+            Toast.makeText(
+                this,
+                getString(R.string.bypass_status_complete_bypass_first),
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+        val data = Intent().putExtra(EXTRA_COOKIE_HEADER, cookies)
+        resolvedStreamUrl?.takeIf { it.isNotBlank() }?.let {
+            data.putExtra(EXTRA_RESOLVED_STREAM_URL, it)
+        }
+        setResult(Activity.RESULT_OK, data)
+        finish()
+    }
+
     private fun setupWebView() {
         webView.settings.apply {
             javaScriptEnabled = true
@@ -138,10 +150,11 @@ class BypassWebViewActivity : AppCompatActivity() {
             loadWithOverviewMode = true
             useWideViewPort = true
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-            userAgentString = NetworkClient.USER_AGENT
+            userAgentString = MODERN_UA
             allowFileAccess = false
             allowContentAccess = false
-            javaScriptCanOpenWindowsAutomatically = false
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(false)
             mediaPlaybackRequiresUserGesture = true
         }
 
@@ -161,20 +174,21 @@ class BypassWebViewActivity : AppCompatActivity() {
 
                 val url = request?.url?.toString().orEmpty()
                 val isMainFrame = request?.isForMainFrame ?: true
-                if (!isMainFrame || url.isBlank()) return false
+                if (url.isBlank()) return false
+
+                if (!isMainFrame) {
+                    maybeCaptureHoster(url)
+                    return false
+                }
 
                 if (isAllowedBypassHost(url)) {
                     currentPageUrl = url
                     return false
                 }
 
-                val cookies = collectCookieHeader()
-                if (cookies.isNotBlank()) {
-                    continueButton.isEnabled = true
-                    statusView.text = getString(R.string.bypass_status_completed_continue)
-                } else {
-                    statusView.text = getString(R.string.bypass_status_external_redirect_blocked)
-                }
+                // Top-level navigation to an external hoster after the gate.
+                maybeCaptureHoster(url)
+                statusView.setText(R.string.bypass_status_completed_continue)
                 return true
             }
 
@@ -189,6 +203,15 @@ class BypassWebViewActivity : AppCompatActivity() {
                 if (isCleaningUp) return
                 currentPageUrl = url
                 updateBypassState(url)
+                injectPlayerGateAssist()
+            }
+
+            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                super.doUpdateVisitedHistory(view, url, isReload)
+                if (!url.isNullOrBlank()) {
+                    maybeCaptureHoster(url)
+                    updateBypassState(url)
+                }
             }
 
             override fun onReceivedError(
@@ -202,20 +225,59 @@ class BypassWebViewActivity : AppCompatActivity() {
         }
     }
 
+    private fun injectPlayerGateAssist() {
+        // SerienStream shows Turnstile/ALTCHA inside #playerPrepareModal (often dark).
+        val js = """
+            (function(){
+              try {
+                var modal = document.querySelector('#playerPrepareModal');
+                if (modal) {
+                  modal.classList.add('show');
+                  modal.style.display = 'block';
+                  modal.removeAttribute('aria-hidden');
+                  document.body.classList.add('modal-open');
+                }
+                var triggers = document.querySelectorAll('[data-bs-target="#playerPrepareModal"], button.link-box, a.link-box');
+                if (triggers && triggers.length) {
+                  try { triggers[0].click(); } catch (e) {}
+                }
+              } catch (e) {}
+            })();
+        """.trimIndent()
+        runCatching { webView.evaluateJavascript(js, null) }
+    }
+
+    private fun maybeCaptureHoster(url: String) {
+        if (url.isBlank() || isAllowedBypassHost(url)) return
+        if (url.startsWith("about:") || url.startsWith("data:")) return
+        val host = runCatching { Uri.parse(url).host.orEmpty().lowercase() }.getOrDefault("")
+        if (host.isBlank()) return
+        // Ignore pure asset CDNs / tracking
+        if (host.contains("google") || host.contains("gstatic") || host.contains("facebook")) return
+        resolvedStreamUrl = url
+        statusView.setText(R.string.bypass_status_completed_continue)
+    }
+
     private fun updateBypassState(currentUrl: String?) {
         if (isCleaningUp) return
         val cookies = collectCookieHeader()
-        val hasClearance = cookies.contains("cf_clearance")
-        continueButton.isEnabled = cookies.isNotBlank()
+        val hasClearance = hasChallengeClearance(cookies)
+        val hasHoster = !resolvedStreamUrl.isNullOrBlank()
         statusView.text = when {
-            hasClearance -> getString(R.string.bypass_status_completed_continue)
-            cookies.isNotBlank() -> getString(R.string.bypass_status_cookies_detected)
+            hasHoster || hasClearance -> getString(R.string.bypass_status_completed_continue)
             else -> getString(R.string.bypass_status_complete_in_page)
         }
 
         if (!currentUrl.isNullOrBlank()) {
             title = Uri.parse(currentUrl).host ?: getString(R.string.app_name)
         }
+    }
+
+    private fun hasChallengeClearance(cookies: String): Boolean {
+        if (cookies.isBlank()) return false
+        return cookies.contains("cf_clearance") ||
+            cookies.contains("__ddg9_") ||
+            cookies.contains("ddos_token")
     }
 
     private fun collectCookieHeader(): String {
@@ -245,6 +307,11 @@ class BypassWebViewActivity : AppCompatActivity() {
     }
 
     private fun isAllowedBypassHost(url: String): Boolean {
-        return SerienStreamProvider.isSerienStreamHost(url)
+        if (SerienStreamProvider.isSerienStreamHost(url)) return true
+        val host = runCatching { Uri.parse(url).host.orEmpty().lowercase() }.getOrDefault("")
+        return host == "challenges.cloudflare.com" ||
+            host.endsWith(".cloudflare.com") ||
+            host.contains("ddos-guard") ||
+            host.endsWith("ddostest.com")
     }
 }

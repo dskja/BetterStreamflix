@@ -3,6 +3,8 @@ package com.dskja.betterstreamflix.adapters.viewholders
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.ImageView
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
@@ -13,6 +15,8 @@ import com.dskja.betterstreamflix.databinding.ItemEpisodeContinueWatchingMobileB
 import com.dskja.betterstreamflix.databinding.ItemEpisodeContinueWatchingTvBinding
 import com.dskja.betterstreamflix.databinding.ItemEpisodeMobileBinding
 import com.dskja.betterstreamflix.databinding.ItemEpisodeTvBinding
+import com.dskja.betterstreamflix.download.DownloadContentKey
+import com.dskja.betterstreamflix.download.OfflineBadgeStore
 import com.dskja.betterstreamflix.fragments.home.HomeMobileFragmentDirections
 import com.dskja.betterstreamflix.fragments.home.HomeTvFragment
 import com.dskja.betterstreamflix.fragments.home.HomeTvFragmentDirections
@@ -31,6 +35,8 @@ import com.dskja.betterstreamflix.utils.format
 import com.dskja.betterstreamflix.utils.getCurrentFragment
 import com.dskja.betterstreamflix.utils.loadTvShowCardArtwork
 import com.dskja.betterstreamflix.utils.toActivity
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 class EpisodeViewHolder(
     private val _binding: ViewBinding
@@ -40,6 +46,7 @@ class EpisodeViewHolder(
 
     private val context = itemView.context
     private lateinit var episode: Episode
+    private var downloadRibbonJob: Job? = null
 
     fun bind(episode: Episode) {
         this.episode = episode
@@ -117,6 +124,7 @@ class EpisodeViewHolder(
                 .into(this)
         }
         binding.ivEpisodeWatchedRibbon.visibility = if (episode.isWatched) View.VISIBLE else View.GONE
+        bindDownloadRibbon(binding.ivEpisodeDownloadRibbon)
 
         binding.pbEpisodeProgress.apply {
             val watchHistory = episode.watchHistory
@@ -226,6 +234,7 @@ class EpisodeViewHolder(
                 .into(this)
         }
         binding.ivEpisodeWatchedRibbon.visibility = if (episode.isWatched) View.VISIBLE else View.GONE
+        bindDownloadRibbon(binding.ivEpisodeDownloadRibbon)
 
         binding.pbEpisodeProgress.apply {
             val watchHistory = episode.watchHistory
@@ -496,6 +505,43 @@ class EpisodeViewHolder(
                 episode.number
             )
         )
+    }
+
+    private fun episodeDownloadContentKey(): String? {
+        val providerName = UserPreferences.currentProvider?.name ?: return null
+        val tvShowId = episode.tvShow?.id ?: return null
+        val seasonNumber = episode.season?.number ?: return null
+        return DownloadContentKey.episode(
+            providerName = providerName,
+            tvShowId = tvShowId,
+            seasonNumber = seasonNumber,
+            episodeNumber = episode.number,
+            episodeId = episode.id,
+        )
+    }
+
+    private fun bindDownloadRibbon(downloadRibbon: View) {
+        val boundEpisodeId = episode.id
+        val contentKey = episodeDownloadContentKey()
+        downloadRibbon.visibility =
+            if (contentKey != null && OfflineBadgeStore.isCompleted(context, contentKey)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+
+        downloadRibbonJob?.cancel()
+        val lifecycleOwner = itemView.findViewTreeLifecycleOwner()
+            ?: context.toActivity()
+            ?: return
+        downloadRibbonJob = lifecycleOwner.lifecycleScope.launch {
+            OfflineBadgeStore.completedKeys(context).collect { keys ->
+                if (episode.id != boundEpisodeId) return@collect
+                val key = episodeDownloadContentKey()
+                downloadRibbon.visibility =
+                    if (key != null && keys.contains(key)) View.VISIBLE else View.GONE
+            }
+        }
     }
 
     private fun ImageView.loadContinueWatchingArtwork(withFallback: Boolean = false) {
