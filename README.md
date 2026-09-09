@@ -3,7 +3,7 @@
 <p align="center">
   <img src="./branding/ic_launcher-512.png" height="120px" alt="BetterStreamflix" />
   <br />
-  <strong>v1.2.0</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
+  <strong>v1.1.0</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
   <br />
   An actively maintained fork of Streamflix with extra fixes, providers and UX improvements for Android TV and mobile.
   <br />

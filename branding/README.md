@@ -1,10 +1,10 @@
 # BetterStreamflix branding
 
-Official brand assets for **BetterStreamflix v1.2.0**.
+Official brand assets for **BetterStreamflix v1.1.0**.
 
 | File | Use |
 |------|-----|
-| `betterstreamflix-brand-source.jpg` | Original brand artwork provided for v1.2.0 |
+| `betterstreamflix-brand-source.jpg` | Original brand artwork provided for v1.1.0 |
 | `betterstreamflix-brand.jpg` | Full square brand / store listing source |
 | `betterstreamflix-icon-full.png` | Full icon with wordmark + tagline |
 | `betterstreamflix-mark.png` | Logo mark only (B + play + speed lines), transparent |
@@ -17,4 +17,4 @@ Background for adaptive icons is `#000000`.
 
 ## Versioning
 - Display version: see root `VERSION` / `app/build.gradle` `versionName`
-- `versionCode` encoding: `major * 10000 + minor * 100 + patch` (e.g. 1.2.0 → 10200)
+- `versionCode` encoding: `major * 10000 + minor * 100 + patch` (e.g. 1.1.0 → 10100)

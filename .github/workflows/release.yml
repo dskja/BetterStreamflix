@@ -1,5 +1,13 @@
 name: Build & Release APK
 
+# Builds three signed APKs (same layout split as upstream Streamflix Reborn):
+#   BetterStreamflix.apk            — universal (mobile + TV)
+#   BetterStreamflix-only-Mobile.apk
+#   BetterStreamflix-only-TV.apk
+#
+# Trigger: push tag v* → GitHub Release with all three assets
+#          workflow_dispatch → upload all three as artifacts
+
 on:
   workflow_dispatch:
   push:
@@ -8,8 +16,10 @@ on:
 
 jobs:
   build-and-release:
-    name: Build & Release APK
+    name: Build & Release APKs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,10 +61,12 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
-      - name: Build APK
-        run: ./gradlew assembleRelease --stacktrace
+      # ── Universal (no APP_LAYOUT) ──────────────────────────────────────────
+      - name: Build universal APK
+        run: |
+          ./gradlew clean assembleRelease --stacktrace
 
-      - name: Sign APK
+      - name: Sign universal APK
         id: sign_apk
         uses: r0adkll/sign-android-release@v1
         with:
@@ -66,23 +78,77 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Rename signed APK
-        id: apk
+      - name: Rename universal APK
         run: |
-          SRC="${{ steps.sign_apk.outputs.signedReleaseFile }}"
-          DEST="BetterStreamflix-${{ github.ref_name }}.apk"
-          if [[ "${{ github.ref }}" != refs/tags/* ]]; then
-            DEST="BetterStreamflix-build.apk"
-          fi
-          cp "$SRC" "$DEST"
-          echo "path=$DEST" >> "$GITHUB_OUTPUT"
+          cp "${{ steps.sign_apk.outputs.signedReleaseFile }}" BetterStreamflix.apk
+          rm -rf app/build/outputs/apk/release
 
-      - name: Upload build artifact
+      # ── Mobile-only ───────────────────────────────────────────────────────
+      - name: Set Mobile layout
+        run: |
+          # Drop any previous APP_LAYOUT line, then set mobile
+          grep -v '^APP_LAYOUT=' local.properties > local.properties.tmp || true
+          mv local.properties.tmp local.properties
+          echo "APP_LAYOUT=mobile" >> local.properties
+
+      - name: Build mobile APK
+        run: |
+          ./gradlew clean assembleRelease --stacktrace
+
+      - name: Sign mobile APK
+        id: sign_apk_mobile
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Rename mobile APK
+        run: |
+          cp "${{ steps.sign_apk_mobile.outputs.signedReleaseFile }}" BetterStreamflix-only-Mobile.apk
+          rm -rf app/build/outputs/apk/release
+
+      # ── TV-only ───────────────────────────────────────────────────────────
+      - name: Set TV layout
+        run: |
+          grep -v '^APP_LAYOUT=' local.properties > local.properties.tmp || true
+          mv local.properties.tmp local.properties
+          echo "APP_LAYOUT=tv" >> local.properties
+
+      - name: Build TV APK
+        run: |
+          ./gradlew clean assembleRelease --stacktrace
+
+      - name: Sign TV APK
+        id: sign_apk_tv
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Rename TV APK
+        run: |
+          cp "${{ steps.sign_apk_tv.outputs.signedReleaseFile }}" BetterStreamflix-only-TV.apk
+          rm -rf app/build/outputs/apk/release
+
+      - name: Upload build artifacts
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: BetterStreamflix-release-apk
-          path: ${{ steps.apk.outputs.path }}
+          name: BetterStreamflix-release-apks
+          path: |
+            BetterStreamflix.apk
+            BetterStreamflix-only-Mobile.apk
+            BetterStreamflix-only-TV.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -91,7 +157,17 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: BetterStreamflix ${{ github.ref_name }}
-          files: ${{ steps.apk.outputs.path }}
+          body: |
+            See [CHANGELOG.md](https://github.com/dskja/BetterStreamflix/blob/${{ github.ref_name }}/CHANGELOG.md) for full release notes.
+
+            ### APKs
+            - `BetterStreamflix.apk` — universal (mobile + TV)
+            - `BetterStreamflix-only-Mobile.apk` — mobile-only layout
+            - `BetterStreamflix-only-TV.apk` — TV-only layout
+          files: |
+            BetterStreamflix.apk
+            BetterStreamflix-only-Mobile.apk
+            BetterStreamflix-only-TV.apk
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -32,8 +32,8 @@ android {
         minSdk 21
         targetSdk 35
         // SemVer display + monotonic Play/update code: major*10000 + minor*100 + patch
-        versionCode 10200
-        versionName "1.2.0"
+        versionCode 10100
+        versionName "1.1.0"
 
         buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT")}\""
         buildConfigField "String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\""
