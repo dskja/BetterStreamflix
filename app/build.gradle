@@ -94,6 +94,14 @@ android {
         viewBinding true
         buildConfig true
     }
+
+    packaging {
+        jniLibs {
+            // Fire OS 6 / older sticks fail to load compressed in-APK native libs
+            // (Conscrypt, Cronet) → splash then instant exit.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {

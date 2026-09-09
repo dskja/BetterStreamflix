@@ -15,6 +15,7 @@ import com.dskja.betterstreamflix.sync.SupabaseProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ArtworkRepairScheduler
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.DeviceCapabilities
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.IsrgRootTrustProvider
 import com.dskja.betterstreamflix.utils.TMDb3
@@ -69,31 +70,40 @@ class BetterStreamflixApp : Application() {
             }
         })
 
-        // 0. Initialize Conscrypt for modern SSL on old Android
-        Security.insertProviderAt(Conscrypt.newProvider(), 1)
+        // 0. Initialize Conscrypt for modern SSL on old Android.
+        // Fire OS / low-RAM sticks can fail loading native Conscrypt — never abort startup.
+        runCatching {
+            Security.insertProviderAt(Conscrypt.newProvider(), 1)
+        }.onFailure {
+            android.util.Log.e("BetterStreamflixApp", "Conscrypt init failed: ${it.message}")
+        }
 
         // 1. Install ISRG Root X1 globally for Let's Encrypt. On Android < 7 (API 24)
         // network_security_config.xml is not supported so the certificate must be injected manually.
-        IsrgRootTrustProvider.install()
+        runCatching { IsrgRootTrustProvider.install() }
 
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         // Rebuild after DoH is applied so the first TMDB call never uses system DNS.
-        TMDb3.rebuildService()
+        runCatching { TMDb3.rebuildService() }
 
         val appContext = applicationContext
         val isTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         val threshold = if (isTv) 10L else 50L
 
         applicationScope.launch(Dispatchers.IO) {
-            AppDatabase.setup(appContext)
-            SupabaseProvider.initialize(appContext)
+            runCatching { AppDatabase.setup(appContext) }
+            runCatching { SupabaseProvider.initialize(appContext) }
             runCatching { CloudSyncManager.initialize(appContext) }
-            SerienStreamProvider.initialize(appContext)
-            AniWorldProvider.initialize(appContext)
-            ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider)
-            CacheUtils.autoClearIfNeeded(appContext, thresholdMb = threshold)
+            runCatching { SerienStreamProvider.initialize(appContext) }
+            runCatching { AniWorldProvider.initialize(appContext) }
+            runCatching { ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider) }
+            // Skip automatic cache wipe on constrained Fire TV sticks: creating a WebView
+            // during cold start can kill the process right after the splash screen.
+            if (!DeviceCapabilities.shouldUseConstrainedPlayback(appContext)) {
+                runCatching { CacheUtils.autoClearIfNeeded(appContext, thresholdMb = threshold) }
+            }
         }
     }
 

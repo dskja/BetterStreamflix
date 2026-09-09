@@ -55,23 +55,17 @@ class MainTvActivity : FragmentActivity() {
         
         super.onCreate(savedInstanceState)
         
-        // Inizializza il provider con il context dell'attività per gestire eventuali bypass visibili
-        AnimeOnlineNinjaProvider.init(this)
-        Cine24hProvider.init(this)
-        FilmyOnlineCcProvider.init(this)
-        ZaluknijProvider.init(this)
-        GuardaSerieProvider.init(this)
-
-        _binding = ActivityMainTvBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        applyThemeNavigationChrome()
+        // Defer heavy provider native/WebView setup — eager Cronet/WebView on Fire Stick
+        // 4K (1st gen / Fire OS 6) was killing the process right after the splash overlay.
+        bindingRootAndChrome()
+        deferProviderInits()
 
         binding.ivSplashOverlay.animate()
             .alpha(0f)
             .setDuration(800)
             .setStartDelay(400)
             .withEndAction {
-                binding.ivSplashOverlay.visibility = View.GONE
+                _binding?.ivSplashOverlay?.visibility = View.GONE
             }
 
         val navHostFragment = this.supportFragmentManager
@@ -178,6 +172,23 @@ class MainTvActivity : FragmentActivity() {
                 }
             }
         })
+    }
+
+    private fun bindingRootAndChrome() {
+        _binding = ActivityMainTvBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        applyThemeNavigationChrome()
+    }
+
+    private fun deferProviderInits() {
+        // Post so the splash/first frame can paint before native libs load.
+        window.decorView.post {
+            runCatching { AnimeOnlineNinjaProvider.init(this) }
+            runCatching { Cine24hProvider.init(this) }
+            runCatching { FilmyOnlineCcProvider.init(this) }
+            runCatching { ZaluknijProvider.init(this) }
+            runCatching { GuardaSerieProvider.init(this) }
+        }
     }
 
     override fun onResume() {

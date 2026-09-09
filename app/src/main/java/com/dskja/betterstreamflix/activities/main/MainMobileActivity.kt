@@ -104,12 +104,6 @@ class MainMobileActivity : FragmentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        AnimeOnlineNinjaProvider.init(this)
-        Cine24hProvider.init(this)
-        FilmyOnlineCcProvider.init(this)
-        GuardaSerieProvider.init(this)
-        ZaluknijProvider.init(this)
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val palette = ThemeManager.palette(UserPreferences.selectedTheme)
         window.statusBarColor = palette.systemBar
@@ -118,6 +112,15 @@ class MainMobileActivity : FragmentActivity() {
         _binding = ActivityMainMobileBinding.inflate(layoutInflater)
         setContentView(binding.root)
         applyThemeNavigationChrome()
+
+        // Defer provider native/WebView setup so splash/first frame can paint first.
+        window.decorView.post {
+            runCatching { AnimeOnlineNinjaProvider.init(this) }
+            runCatching { Cine24hProvider.init(this) }
+            runCatching { FilmyOnlineCcProvider.init(this) }
+            runCatching { GuardaSerieProvider.init(this) }
+            runCatching { ZaluknijProvider.init(this) }
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainContent) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())

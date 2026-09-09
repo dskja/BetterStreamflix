@@ -20,14 +20,17 @@ import com.dskja.betterstreamflix.utils.ArtworkRequestHeaders
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.WebViewResolver
 import com.dskja.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
+import okhttp3.Request
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -247,13 +250,8 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
 
     private suspend fun fetchJsonDirect(url: String, referer: String): String? {
         val headers = pageHeaders(referer) + ("Accept" to "application/json,text/plain,*/*")
-        val response = AnimeOnlineNinjaCronetClient.get(
-            context = BetterStreamflixApp.instance,
-            url = url,
-            headers = headers,
-            useCache = false,
-        )
-        val body = response.bodyAsString()
+        val response = fetchHttp(url, headers)
+        val body = response.body
         val trimmed = body.trim()
 
         if (response.isSuccessful &&
@@ -263,14 +261,14 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
         }
 
         if (requiresClearance(body) || response.finalUrl.contains("/cdn-cgi/", ignoreCase = true)) {
-            Log.w(TAG, "Cronet JSON received a challenge -> url=$url")
+            Log.w(TAG, "JSON received a challenge -> url=$url")
             throw ChallengeRequiredException(
                 message = "AnimeOnline Ninja Cloudflare challenge detected for $url",
                 rejectedClearance = clearanceToken(headers["Cookie"]),
             )
         }
         if (!response.isSuccessful || body.isBlank()) {
-            Log.w(TAG, "Cronet JSON rejected -> code=${response.statusCode} url=$url")
+            Log.w(TAG, "JSON rejected -> code=${response.statusCode} url=$url")
             return null
         }
         return null
@@ -1104,21 +1102,19 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
     }
 
     private suspend fun resolveServers(embedUrl: String, source: Int, pageUrl: String): List<Video.Server> {
-        val response = AnimeOnlineNinjaCronetClient.get(
-            context = BetterStreamflixApp.instance,
-            url = embedUrl,
-            headers = mapOf(
+        val response = fetchHttp(
+            embedUrl,
+            mapOf(
                 "Referer" to pageUrl,
                 "User-Agent" to NetworkClient.USER_AGENT,
                 "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language" to "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7",
             ),
-            useCache = false,
         )
         if (!response.isSuccessful) {
-            throw IllegalStateException("Cronet embed HTTP ${response.statusCode}: $embedUrl")
+            throw IllegalStateException("Embed HTTP ${response.statusCode}: $embedUrl")
         }
-        val document = Jsoup.parse(response.bodyAsString(), response.finalUrl)
+        val document = Jsoup.parse(response.body, response.finalUrl)
         val servers = linkedMapOf<String, Video.Server>()
 
         document.select("li[onclick*='go_to_player']").forEachIndexed { index, element ->
@@ -1271,15 +1267,47 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
 
     fun clearanceCookieForCronet(): String? = currentClearanceCookie()
 
+    private data class HttpPage(
+        val statusCode: Int,
+        val finalUrl: String,
+        val body: String,
+    ) {
+        val isSuccessful: Boolean get() = statusCode in 200..299
+    }
+
+    /** Prefer Cronet when available; fall back to OkHttp on Fire Stick / legacy devices. */
+    private suspend fun fetchHttp(url: String, headers: Map<String, String>): HttpPage {
+        val context = BetterStreamflixApp.instance
+        if (AnimeOnlineNinjaCronetClient.isAvailable(context)) {
+            val response = AnimeOnlineNinjaCronetClient.get(
+                context = context,
+                url = url,
+                headers = headers,
+                useCache = false,
+            )
+            return HttpPage(response.statusCode, response.finalUrl, response.bodyAsString())
+        }
+
+        return withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(url)
+                .apply { headers.forEach { (name, value) -> header(name, value) } }
+                .get()
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                HttpPage(
+                    statusCode = response.code,
+                    finalUrl = response.request.url.toString(),
+                    body = response.body?.string().orEmpty(),
+                )
+            }
+        }
+    }
+
     private suspend fun fetchDocumentDirect(url: String): Document? {
         val headers = pageHeaders(baseUrl)
-        val response = AnimeOnlineNinjaCronetClient.get(
-            context = BetterStreamflixApp.instance,
-            url = url,
-            headers = headers,
-            useCache = false,
-        )
-        val body = response.bodyAsString()
+        val response = fetchHttp(url, headers)
+        val body = response.body
 
         // Cloudflare may append challenge-related scripts or tokenized links to a
         // normal WordPress page. Accept a successful, recognizable provider page
@@ -1292,18 +1320,18 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
         }
 
         if (requiresClearance(body) || response.finalUrl.contains("/cdn-cgi/", ignoreCase = true)) {
-            Log.w(TAG, "Cronet page received a challenge -> url=${response.finalUrl}")
+            Log.w(TAG, "Page received a challenge -> url=${response.finalUrl}")
             throw ChallengeRequiredException(
                 message = "AnimeOnline Ninja Cloudflare challenge detected for $url",
                 rejectedClearance = clearanceToken(headers["Cookie"]),
             )
         }
         if (!response.isSuccessful || body.isBlank()) {
-            Log.w(TAG, "Cronet page rejected -> code=${response.statusCode} url=$url")
+            Log.w(TAG, "Page rejected -> code=${response.statusCode} url=$url")
             return null
         }
 
-        Log.w(TAG, "Cronet page was incomplete -> url=${response.finalUrl} size=${body.length}")
+        Log.w(TAG, "Page was incomplete -> url=${response.finalUrl} size=${body.length}")
         return null
     }
 
