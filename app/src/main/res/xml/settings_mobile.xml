@@ -355,6 +355,7 @@
             <EditTextPreference
                 android:key="provider_serienstream_domain"
                 android:title="@string/settings_category_serienstream_domain"
+                android:summary="@string/settings_serienstream_domain_summary"
                 android:inputType="text"
                 app:iconSpaceReserved="false" />
 

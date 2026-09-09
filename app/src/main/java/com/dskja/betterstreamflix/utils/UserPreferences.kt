@@ -27,6 +27,11 @@ object UserPreferences {
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
     private const val DEFAULT_SERIENSTREAM_DOMAIN = "serienstream.to"
+    private val DEPRECATED_SERIENSTREAM_DOMAINS = setOf(
+        "s.to",
+        "www.s.to",
+        "serien.stream",
+    )
     private const val DEFAULT_MOFLIX_DOMAIN = "moflix-stream.xyz"
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.cc"
     private const val DEFAULT_CUEVANA_DOMAIN = "cuevana.gs"
@@ -417,22 +422,45 @@ object UserPreferences {
         get() {
             if (!::prefs.isInitialized) return DEFAULT_SERIENSTREAM_DOMAIN
             val storedValue = prefs.getString(Key.SERIENSTREAM_DOMAIN.name, null)
-            return if (storedValue.isNullOrEmpty()) DEFAULT_SERIENSTREAM_DOMAIN else storedValue
+                ?.trim()
+                ?.removePrefix("https://")
+                ?.removePrefix("http://")
+                ?.trimEnd('/')
+            if (storedValue.isNullOrEmpty()) return DEFAULT_SERIENSTREAM_DOMAIN
+            // s.to is dead (serien.domains, July 2026); migrate to the current main domain.
+            if (storedValue.lowercase() in DEPRECATED_SERIENSTREAM_DOMAINS) {
+                with(prefs.edit()) {
+                    putString(Key.SERIENSTREAM_DOMAIN.name, DEFAULT_SERIENSTREAM_DOMAIN)
+                    apply()
+                }
+                clearProviderCache("SerienStream")
+                return DEFAULT_SERIENSTREAM_DOMAIN
+            }
+            return storedValue
         }
         set(value) {
             val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.SERIENSTREAM_DOMAIN.name, null) else null
             if (!::prefs.isInitialized) return
 
-            if (value != oldDomain && !value.isNullOrEmpty() && !oldDomain.isNullOrEmpty()) {
+            val normalized = value
+                ?.trim()
+                ?.removePrefix("https://")
+                ?.removePrefix("http://")
+                ?.trimEnd('/')
+                ?.ifBlank { DEFAULT_SERIENSTREAM_DOMAIN }
+                ?: DEFAULT_SERIENSTREAM_DOMAIN
+            val effective = if (normalized.lowercase() in DEPRECATED_SERIENSTREAM_DOMAINS) {
+                DEFAULT_SERIENSTREAM_DOMAIN
+            } else {
+                normalized
+            }
+
+            if (effective != oldDomain && !oldDomain.isNullOrEmpty()) {
                 clearProviderCache("SerienStream")
             }
 
             with(prefs.edit()) {
-                if (value.isNullOrEmpty()) {
-                    remove(Key.SERIENSTREAM_DOMAIN.name)
-                } else {
-                    putString(Key.SERIENSTREAM_DOMAIN.name, value)
-                }
+                putString(Key.SERIENSTREAM_DOMAIN.name, effective)
                 apply()
             }
         }

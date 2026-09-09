@@ -302,7 +302,7 @@ class PlayerMobileFragment : Fragment() {
                             val bypassUrl = buildSerienStreamBypassUrl()
                             if (bypassUrl.isNullOrBlank()) {
                                 waitingForBypass = false
-                                Toast.makeText(requireContext(), "Unable to open s.to bypass page.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireContext(), "Unable to open SerienStream bypass page.", Toast.LENGTH_SHORT).show()
                                 return@collect
                             }
 
@@ -959,6 +959,13 @@ class PlayerMobileFragment : Fragment() {
                     .setMaxPlaybackSpeed(1.02f)
                     .build()
             )
+            binding.pvPlayer.controller.binding.exoProgress.isVisible = false
+            binding.pvPlayer.controller.binding.exoRew.isVisible = false
+            binding.pvPlayer.controller.binding.exoFfwd.isVisible = false
+        } else {
+            binding.pvPlayer.controller.binding.exoProgress.isVisible = true
+            binding.pvPlayer.controller.binding.exoRew.isVisible = true
+            binding.pvPlayer.controller.binding.exoFfwd.isVisible = true
         }
         player.setMediaItem(
             mediaItemBuilder
@@ -980,9 +987,12 @@ class PlayerMobileFragment : Fragment() {
         binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
             isIgnoringPip = true
             
-            val videoTitle = when (val type = args.videoType) {
-                is Video.Type.Movie -> type.title
-                is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
+            val videoTitle = when {
+                isLiveTvPlayback() -> resolvePlayerTitle()
+                else -> when (val type = args.videoType) {
+                    is Video.Type.Movie -> type.title
+                    is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
+                }
             }
             
             var sourceUri: Uri
@@ -1071,6 +1081,9 @@ class PlayerMobileFragment : Fragment() {
                     ?: false
 
                 if (!isPlaying && hasUri) {
+                    if (isLiveTvPlayback()) {
+                        return
+                    }
                     val videoType = args.videoType
                     val watchItem: WatchItem? = when (videoType) {
                         is Video.Type.Movie -> database.movieDao().getById(videoType.id)
@@ -1160,6 +1173,10 @@ class PlayerMobileFragment : Fragment() {
         })
 
         if (currentPosition == 0L) {
+            if (isLiveTvPlayback()) {
+                // Live streams should start at the live edge, not a saved VOD position.
+                player.seekToDefaultPosition()
+            } else {
             val videoType = args.videoType
             val provider = UserPreferences.currentProvider
             
@@ -1186,6 +1203,7 @@ class PlayerMobileFragment : Fragment() {
                 ?.let { it.lastPlaybackPositionMillis - 10.seconds.inWholeMilliseconds }
 
             player.seekTo(lastPlaybackPositionMillis ?: 0)
+            }
         } else {
             player.seekTo(currentPosition)
         }
@@ -1357,9 +1375,14 @@ class PlayerMobileFragment : Fragment() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
         progressRunnable = Runnable {
             if (player.isPlaying) {
-                val show = player.currentPosition in 3000..120000
-                showSkipIntroButton(show)
-                updateNextEpisodeOverlay()
+                if (!isLiveTvPlayback()) {
+                    val show = player.currentPosition in 3000..120000
+                    showSkipIntroButton(show)
+                    updateNextEpisodeOverlay()
+                } else {
+                    showSkipIntroButton(false)
+                    hideNextEpisodeOverlay()
+                }
             }
             progressHandler.postDelayed(progressRunnable, 1000)
         }

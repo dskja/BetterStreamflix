@@ -166,6 +166,7 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
                     }
                 }.onFailure { Log.w(TAG, "Home parse failed: ${it.message}") }
 
+                // Directory is often Cloudflare-blocked from some IPs; home alone is enough.
                 runCatching {
                     val directory = directoryDeferred.await()
                     if (looksLikeCloudflare(directory)) {
@@ -187,6 +188,7 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
                     }
                 }.onFailure { Log.w(TAG, "Directory parse failed: ${it.message}") }
 
+                // If home worked, never fail the whole provider just because /directorio is CF.
                 if (categories.isEmpty() && sawCloudflare) {
                     throw Exception(
                         "Animefenix bloqueado por Cloudflare en $baseUrl. " +
@@ -204,6 +206,8 @@ object AnimefenixProvider : Provider, ProviderConfigUrl {
                 categories
             }
         } catch (e: Exception) {
+            // If parallel directory call threw CF but home already filled categories, surface home.
+            if (e.message?.contains("Animefenix", ignoreCase = true) == true) throw e
             Log.e(TAG, "getHome failed: ${e.message}", e)
             throw e
         }

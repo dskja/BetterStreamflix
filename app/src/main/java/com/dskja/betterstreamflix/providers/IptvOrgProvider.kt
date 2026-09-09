@@ -4,6 +4,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.M3uChannelIdCodec
 
 import android.util.Base64
 import android.util.Log
@@ -65,32 +66,28 @@ object IptvOrgProvider : IptvProvider, ProviderConfigUrl {
         val url: String,
         val logo: String?,
         val group: String?,
-        val userAgent: String? = null
+        val userAgent: String? = null,
+        val referrer: String? = null,
+        val origin: String? = null,
     )
 
     private fun createId(channel: M3UChannel): String {
-        val rawId = "${channel.url}|${channel.name}|${channel.logo ?: ""}|${channel.userAgent ?: ""}"
-        return Base64.encodeToString(rawId.toByteArray(), Base64.NO_WRAP)
+        return M3uChannelIdCodec.encode(
+            url = channel.url,
+            name = channel.name,
+            logo = channel.logo,
+            userAgent = channel.userAgent,
+            referrer = channel.referrer,
+            origin = channel.origin,
+        )
     }
 
     private fun decodeId(id: String): Triple<String, String, String> {
-        if (id == "creador-info" || id == "apoyo-nando") return Triple(id, "", "")
-
-        return try {
-            val decoded = String(Base64.decode(id, Base64.DEFAULT))
-            val parts = decoded.split("|")
-            Triple(parts[0], parts[1], parts.getOrNull(2) ?: "")
-        } catch (e: Exception) {
-            Triple(id, "Canal Desconocido", "")
+        if (id == "creador-info" || id == "apoyo-nando") {
+            return Triple(id, "", "")
         }
-    }
-
-    private fun getUAFromId(id: String): String? {
-        return try {
-            val decoded = String(Base64.decode(id, Base64.DEFAULT))
-            val parts = decoded.split("|")
-            if (parts.size >= 4 && parts[3].isNotEmpty()) parts[3] else null
-        } catch (e: Exception) { null }
+        val payload = M3uChannelIdCodec.decode(id)
+        return Triple(payload.url, payload.name, payload.logo)
     }
 
     private fun getAllChannels(): List<M3UChannel> {
@@ -213,10 +210,14 @@ object IptvOrgProvider : IptvProvider, ProviderConfigUrl {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val (url, _, _) = decodeId(server.id)
-        val customUA = getUAFromId(server.id)
-        Log.d(TAG, "🎬 Play: $url | UA: $customUA")
-        return Video(source = url, subtitles = emptyList())
+        val payload = M3uChannelIdCodec.decode(server.id)
+        val headers = M3uChannelIdCodec.playbackHeaders(server.id)
+        Log.d(TAG, "Play: ${payload.url} headers=${headers.keys}")
+        return Video(
+            source = payload.url,
+            subtitles = emptyList(),
+            headers = headers.takeIf { it.isNotEmpty() },
+        )
     }
 
     private fun getInfoItem(id: String): TvShow {
@@ -238,7 +239,12 @@ object IptvOrgProvider : IptvProvider, ProviderConfigUrl {
     private fun parseM3U(m3uRaw: String): List<M3UChannel> {
         val channels = mutableListOf<M3UChannel>()
         val lines = m3uRaw.lines()
-        var curName = ""; var curLogo = ""; var curGroup = ""; var curUA: String? = null
+        var curName = ""
+        var curLogo = ""
+        var curGroup = ""
+        var curUA: String? = null
+        var curRef: String? = null
+        var curOrigin: String? = null
 
         for (line in lines) {
             val t = line.trim()
@@ -247,12 +253,19 @@ object IptvOrgProvider : IptvProvider, ProviderConfigUrl {
                 curLogo = Regex("""tvg-logo="([^"]+)"""").find(t)?.groupValues?.get(1) ?: ""
                 curGroup = Regex("""group-title="([^"]+)"""").find(t)?.groupValues?.get(1) ?: ""
                 curUA = Regex("""http-user-agent="([^"]+)"""").find(t)?.groupValues?.get(1)
-            } else if (t.startsWith("#EXTVLCOPT:http-user-agent=")) {
-                curUA = t.substringAfter("http-user-agent=").trim()
+                curRef = Regex("""http-referrer="([^"]+)"""").find(t)?.groupValues?.get(1)
+                curOrigin = Regex("""http-origin="([^"]+)"""").find(t)?.groupValues?.get(1)
+            } else if (t.startsWith("#EXTVLCOPT:")) {
+                when {
+                    t.contains("http-user-agent=") -> curUA = t.substringAfter("http-user-agent=").trim()
+                    t.contains("http-referrer=") -> curRef = t.substringAfter("http-referrer=").trim()
+                    t.contains("http-origin=") -> curOrigin = t.substringAfter("http-origin=").trim()
+                }
             } else if (t.startsWith("http")) {
                 if (curName.isNotEmpty()) {
-                    channels.add(M3UChannel(curName, t, curLogo, curGroup, curUA))
-                    curName = ""; curLogo = ""; curGroup = ""; curUA = null
+                    channels.add(M3UChannel(curName, t, curLogo, curGroup, curUA, curRef, curOrigin))
+                    curName = ""; curLogo = ""; curGroup = ""
+                    curUA = null; curRef = null; curOrigin = null
                 }
             }
         }

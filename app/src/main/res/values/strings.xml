@@ -278,6 +278,7 @@
     <string name="settings_streamingcommunity_domain_blocked">Blocked domain detected, restored to default</string>
     <string name="settings_category_serienstream">SerienStream settings</string>
     <string name="settings_category_serienstream_domain">SerienStream domain name</string>
+    <string name="settings_serienstream_domain_summary">Default serienstream.to (s.to is dead). Alternative: serienstream.cx — see serien.domains</string>
     <string name="settings_serienstream_domain_reset">Reset domain</string>
     <string name="settings_serienstream_domain_reset_summary">Restore the default domain name</string>
     <string name="settings_serienstream_domain_reset_done">Domain restored to default</string>
@@ -590,7 +591,7 @@
     <string name="bypass_status_submitted_wait">Verification submitted. Wait for the redirect to complete.</string>
     <string name="bypass_status_complete_captcha_modal">Complete the captchas in the popup, tap Weiter there, then tap the button at the bottom.</string>
     <string name="bypass_status_loading_captcha">Loading captcha requests.</string>
-    <string name="bypass_status_waiting_modal">Waiting for the s.to verification modal to finish loading.</string>
+    <string name="bypass_status_waiting_modal">Waiting for the SerienStream verification modal to finish loading.</string>
     <string name="bypass_action_cancel">Cancel</string>
     <string name="bypass_action_continue">Continue</string>
 

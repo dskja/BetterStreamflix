@@ -1135,6 +1135,9 @@ class PlayerTvFragment : Fragment() {
                         .setMaxPlaybackSpeed(1.02f)
                         .build()
                 )
+                binding.pvPlayer.controller.binding.exoProgress.isVisible = false
+            } else {
+                binding.pvPlayer.controller.binding.exoProgress.isVisible = true
             }
             player.setMediaItem(
                 mediaItemBuilder
@@ -1154,9 +1157,12 @@ class PlayerTvFragment : Fragment() {
             )
 
             binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
-                val videoTitle = when (val type = args.videoType) {
-                    is Video.Type.Movie -> type.title
-                    is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
+                val videoTitle = when {
+                    isLiveTvPlayback() -> resolvePlayerTitle()
+                    else -> when (val type = args.videoType) {
+                        is Video.Type.Movie -> type.title
+                        is Video.Type.Episode -> "${type.tvShow.title} • S${type.season.number} E${type.number}"
+                    }
                 }
 
                 var sourceUri: Uri
@@ -1300,6 +1306,9 @@ class PlayerTvFragment : Fragment() {
                         ?: false
 
                     if (!isPlaying && hasUri) {
+                        if (isLiveTvPlayback()) {
+                            return
+                        }
                         val videoType = args.videoType
                         val watchItem: WatchItem? = when (videoType) {
                             is Video.Type.Movie -> database.movieDao().getById(videoType.id)
@@ -1407,6 +1416,9 @@ class PlayerTvFragment : Fragment() {
             if (startPositionMs != null) {
                 player.seekTo(startPositionMs)
             } else if (currentPosition == 0L) {
+                if (isLiveTvPlayback()) {
+                    player.seekToDefaultPosition()
+                } else {
                 val videoType = args.videoType
                 val provider = UserPreferences.currentProvider
                 
@@ -1433,6 +1445,7 @@ class PlayerTvFragment : Fragment() {
                     ?.let { it.lastPlaybackPositionMillis - 10.seconds.inWholeMilliseconds }
 
                 player.seekTo(lastPlaybackPositionMillis ?: 0)
+                }
             } else {
                 player.seekTo(currentPosition)
             }
@@ -1594,9 +1607,14 @@ class PlayerTvFragment : Fragment() {
             progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
             progressRunnable = Runnable {
                 if (player.isPlaying) {
-                    val show = player.currentPosition in 3000..120000
-                    showSkipIntroButton(show)
-                    updateNextEpisodeOverlay()
+                    if (!isLiveTvPlayback()) {
+                        val show = player.currentPosition in 3000..120000
+                        showSkipIntroButton(show)
+                        updateNextEpisodeOverlay()
+                    } else {
+                        showSkipIntroButton(false)
+                        hideNextEpisodeOverlay()
+                    }
                 }
                 progressHandler.postDelayed(progressRunnable, 1000)
             }
