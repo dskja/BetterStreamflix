@@ -27,7 +27,7 @@ object PlutoTvEsProvider : IptvProvider, ProviderConfigUrl {
     override val logo = "https://i.ibb.co/TBjWz2Zw/Pluto-TV-es.jpg"
     override val language = "es"
 
-    private const val TAG = "PlutoTvMxProvider"
+    private const val TAG = "PlutoTvEsProvider"
     private const val PLAYLIST_URL = "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_es.m3u"
 
     // 🛡️ La Vacuna Anti-Bots (Edición IPTV con CookieJar integrado) 🛡️
@@ -189,7 +189,12 @@ object PlutoTvEsProvider : IptvProvider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        TODO("Not yet implemented")
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "This provider does not expose people/cast metadata.",
+            filmography = emptyList(),
+        )
     }
 
     override suspend fun getTvShow(id: String): TvShow {

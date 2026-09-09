@@ -189,7 +189,12 @@ object PlutoTvMxProvider : IptvProvider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        TODO("Not yet implemented")
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "This provider does not expose people/cast metadata.",
+            filmography = emptyList(),
+        )
     }
 
     override suspend fun getTvShow(id: String): TvShow {
