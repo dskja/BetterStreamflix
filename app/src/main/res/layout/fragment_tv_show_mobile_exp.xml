@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_ink"
+    android:background="@color/exp_canvas"
     tools:context=".fragments.tv_show.TvShowMobileFragment">
 
     <ImageView
@@ -23,8 +23,6 @@
         android:id="@+id/rv_tv_show"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"
         android:orientation="vertical"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -32,7 +30,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:itemCount="1"
-        tools:listitem="@layout/content_tv_show_mobile" />
+        tools:listitem="@layout/content_tv_show_mobile_exp" />
 
     <include
         android:id="@+id/is_loading"

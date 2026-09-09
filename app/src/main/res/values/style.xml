@@ -29,20 +29,31 @@
 
     <style name="AppTheme.Widget.Mobile.Button.Exp" parent="AppTheme.Mobile">
         <item name="android:background">@drawable/bg_exp_button_primary</item>
-        <item name="android:fontFamily">@font/outfit</item>
-        <item name="android:paddingTop">10dp</item>
-        <item name="android:paddingBottom">10dp</item>
-        <item name="android:paddingStart">20dp</item>
-        <item name="android:paddingEnd">20dp</item>
-        <item name="android:textAllCaps">true</item>
-        <item name="android:textColor">@color/exp_frost</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">22dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/exp_on_media</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:letterSpacing">0.04</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="AppTheme.Widget.Mobile.Button.Exp.Secondary" parent="AppTheme.Widget.Mobile.Button.Exp">
         <item name="android:background">@drawable/bg_exp_button_secondary</item>
-        <item name="android:textColor">@color/exp_frost</item>
+        <item name="android:textColor">@color/exp_ink</item>
+    </style>
+
+    <style name="AppTheme.Widget.Mobile.Button.Exp.OnMedia" parent="AppTheme.Widget.Mobile.Button.Exp">
+        <item name="android:background">@drawable/bg_exp_button_primary</item>
+        <item name="android:textColor">@color/exp_on_media</item>
+    </style>
+
+    <style name="AppTheme.Widget.Mobile.Button.Exp.OnMedia.Secondary" parent="AppTheme.Widget.Mobile.Button.Exp.Secondary">
+        <item name="android:background">@drawable/bg_exp_button_on_media_secondary</item>
+        <item name="android:textColor">@color/exp_on_media</item>
     </style>
 
     <!-- Stile per forzare il fondo nero nelle schermate di impostazione (Leanback) -->

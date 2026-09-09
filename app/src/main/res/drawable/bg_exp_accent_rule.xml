@@ -2,7 +2,7 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <size
-        android:width="28dp"
-        android:height="3dp" />
-    <solid android:color="@color/exp_signal" />
+        android:width="36dp"
+        android:height="2dp" />
+    <solid android:color="@color/exp_accent" />
 </shape>

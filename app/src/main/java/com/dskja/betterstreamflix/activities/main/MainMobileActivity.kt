@@ -627,15 +627,15 @@ class MainMobileActivity : FragmentActivity() {
             ContextCompat.getColorStateList(this, R.color.nav_item_exp)
         binding.bnvMain.itemTextColor =
             ContextCompat.getColorStateList(this, R.color.nav_item_exp)
-        val ink = ContextCompat.getColor(this, R.color.exp_ink)
+        val canvas = ContextCompat.getColor(this, R.color.exp_canvas)
         @Suppress("DEPRECATION")
         run {
-            window.statusBarColor = ink
-            window.navigationBarColor = ink
+            window.statusBarColor = canvas
+            window.navigationBarColor = ContextCompat.getColor(this, R.color.exp_nav_bg)
         }
         WindowInsetsControllerCompat(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
         }
     }
 
