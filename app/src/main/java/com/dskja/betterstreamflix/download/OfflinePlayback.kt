@@ -39,34 +39,47 @@ object OfflinePlayback {
         return when (videoType) {
             is Video.Type.Movie -> all.firstOrNull {
                 it.kind == DownloadKind.MOVIE.name &&
-                    (it.contentKey == DownloadContentKey.movie(
-                        it.providerName,
-                        videoType.id,
-                    ) || it.videoTypeJson.contains("\"id\":\"${videoType.id}\""))
+                    (
+                        it.contentKey == DownloadContentKey.movie(it.providerName, videoType.id) ||
+                            videoTypeIdEquals(it.videoTypeJson, videoType.id)
+                        )
             }
             is Video.Type.Episode -> all.firstOrNull {
                 it.kind == DownloadKind.EPISODE.name &&
-                    (it.contentKey == DownloadContentKey.episode(
-                        it.providerName,
-                        videoType.tvShow.id,
-                        videoType.season.number,
-                        videoType.number,
-                        videoType.id,
-                    ) || it.videoTypeJson.contains("\"id\":\"${videoType.id}\""))
+                    (
+                        it.contentKey == DownloadContentKey.episode(
+                            it.providerName,
+                            videoType.tvShow.id,
+                            videoType.season.number,
+                            videoType.number,
+                            videoType.id,
+                        ) || videoTypeIdEquals(it.videoTypeJson, videoType.id)
+                        )
             }
         }
     }
 
+    private fun videoTypeIdEquals(videoTypeJson: String, id: String): Boolean {
+        if (videoTypeJson.isBlank() || id.isBlank()) return false
+        return runCatching {
+            org.json.JSONObject(videoTypeJson).optString("id") == id
+        }.getOrDefault(false)
+    }
+
     fun buildLocalVideo(context: Context, item: DownloadItemEntity): Video? {
+        if (item.state != DownloadItemState.COMPLETED.name) return null
         val media3Id = item.media3Id
         val download = runCatching {
             StreamflixDownloadManager.get(context).downloadIndex.getDownload(media3Id)
         }.getOrNull()
+        // Only treat Media3-completed downloads as offline playable. Never fall back to the
+        // original remote stream URL (that would silently re-stream online content).
         val source = when {
             download != null && download.state == Download.STATE_COMPLETED ->
                 download.request.uri.toString()
-            item.localUri.isNotBlank() -> item.localUri
-            item.streamUrl.isNotBlank() -> item.streamUrl
+            item.localUri.isNotBlank() &&
+                !item.localUri.startsWith("http://", ignoreCase = true) &&
+                !item.localUri.startsWith("https://", ignoreCase = true) -> item.localUri
             else -> return null
         }
         val headers = runCatching {

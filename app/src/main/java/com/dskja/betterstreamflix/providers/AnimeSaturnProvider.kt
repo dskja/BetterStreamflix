@@ -721,7 +721,12 @@ object AnimeSaturnProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        return People(id = id, name = "Person $id") // TODO: Implement people functionality
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "AnimeSaturn does not expose cast/crew metadata.",
+            filmography = emptyList(),
+        )
     }
 
     /** Server links point at a saturncdn `/embed/<id>` page — see resolveSaturnEmbed. */

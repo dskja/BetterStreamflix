@@ -386,8 +386,13 @@ object CineHaxProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getPeople(id: String, page: Int): People {
         // cinehax.com's /watch/ pages don't list cast/crew anywhere (verified: no actor names,
-        // profile images, or "Reparto" section in the markup), so there's no source to scrape.
-        TODO("Not yet implemented")
+        // profile images, or "Reparto" section in the markup), so return a safe placeholder.
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "CineHax does not expose cast/crew metadata on watch pages.",
+            filmography = emptyList(),
+        )
     }
 
     // endregion
@@ -404,7 +409,6 @@ object CineHaxProvider : Provider, ProviderConfigUrl {
                 val episode = parts.getOrNull(2) ?: "1"
                 "$baseUrl/watch/?type=tv&id=$tvId&season=$season&episode=$episode"
             }
-            else -> return emptyList()
         }
 
         val doc = Jsoup.parse(get(watchUrl))

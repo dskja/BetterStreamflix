@@ -307,5 +307,13 @@ object Cine24hProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getVideo(server: Video.Server): Video = Extractor.extract(server.src, server)
-    override suspend fun getPeople(id: String, page: Int): People = throw Exception("Not yet implemented")
+
+    override suspend fun getPeople(id: String, page: Int): People {
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "Cine24h does not expose cast/crew metadata.",
+            filmography = emptyList(),
+        )
+    }
 }

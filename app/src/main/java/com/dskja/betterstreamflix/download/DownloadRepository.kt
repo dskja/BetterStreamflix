@@ -7,6 +7,7 @@ import androidx.media3.common.StreamKey
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
+import com.dskja.betterstreamflix.fragments.downloads.OfflineVideoCache
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -190,7 +191,15 @@ class DownloadRepository private constructor(
     suspend fun resume(id: String) {
         val item = dao.getById(id) ?: return
         if (UserPreferences.downloadWifiOnly && DownloadConnectivityMonitor.isMetered(context)) {
-            markFailed(id, DownloadErrorCode.WIFI_REQUIRED, "Wi-Fi required")
+            // Soft-gate only: keep the item paused instead of marking a terminal failure.
+            dao.upsert(
+                item.copy(
+                    state = DownloadItemState.PAUSED.name,
+                    errorCode = DownloadErrorCode.WIFI_REQUIRED.name,
+                    errorMessage = "Wi-Fi required",
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
             return
         }
         DownloadService.sendSetStopReason(
@@ -221,6 +230,7 @@ class DownloadRepository private constructor(
         DownloadHeaderStore.remove(context, item.media3Id)
         DownloadStorage.deleteQuietly(DownloadStorage.subsDir(context, item.contentKey))
         dao.deleteById(id)
+        OfflineVideoCache.remove(item.contentKey)
         item.seasonPackId?.let { refreshSeasonPack(it) }
     }
 
@@ -235,8 +245,15 @@ class DownloadRepository private constructor(
             StreamflixDownloadService::class.java,
             false,
         )
+        // Only resume paused rows. Hard failures (DRM/network/etc.) stay failed until manual retry.
         getAllOnce()
-            .filter { it.state == DownloadItemState.PAUSED.name || it.state == DownloadItemState.FAILED.name }
+            .filter {
+                it.state == DownloadItemState.PAUSED.name ||
+                    (
+                        it.state == DownloadItemState.FAILED.name &&
+                            it.errorCode == DownloadErrorCode.WIFI_REQUIRED.name
+                        )
+            }
             .forEach { resume(it.id) }
     }
 
@@ -256,6 +273,7 @@ class DownloadRepository private constructor(
         getAllOnce().forEach { remove(it.id) }
         dao.deleteAll()
         DownloadHeaderStore.clear(context)
+        OfflineVideoCache.clear()
     }
 
     suspend fun upsertSeasonPack(pack: DownloadSeasonPackEntity) = dao.upsertSeasonPack(pack)

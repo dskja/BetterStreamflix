@@ -6,7 +6,6 @@ import kotlinx.coroutines.sync.withLock
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.M3uChannelIdCodec
 
-import android.util.Base64
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.*
@@ -27,13 +26,14 @@ object PlutoTvItProvider : IptvProvider, ProviderConfigUrl {
     override val logo = "https://i.ibb.co/qz7jJF1/plutotv.png"
     override val language = "it"
 
-    private const val TAG = "PlutoTvMxProvider"
+    private const val TAG = "PlutoTvItProvider"
     private const val PLAYLIST_URL = "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_it.m3u"
 
     // 🛡️ La Vacuna Anti-Bots (Edición IPTV con CookieJar integrado) 🛡️
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
         .cookieJar(object : CookieJar {
             private val cookieStore = mutableMapOf<String, List<Cookie>>()
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
@@ -189,7 +189,12 @@ object PlutoTvItProvider : IptvProvider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        TODO("Not yet implemented")
+        return People(
+            id = id,
+            name = "N/A",
+            biography = "This provider does not expose people/cast metadata.",
+            filmography = emptyList(),
+        )
     }
 
     override suspend fun getTvShow(id: String): TvShow {
