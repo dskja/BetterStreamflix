@@ -555,9 +555,14 @@
     <string name="downloads_filter_downloading">Laden</string>
     <string name="downloads_filter_completed">Fertig</string>
     <string name="downloads_filter_failed">Fehler</string>
+    <string name="downloads_section_active">Aktiv</string>
+    <string name="downloads_section_seasons">Staffeln</string>
+    <string name="downloads_section_completed">Fertig</string>
+    <string name="downloads_section_failed">Fehler</string>
     <string name="downloads_storage_chip">%1$s belegt · %2$s frei</string>
     <string name="downloads_low_space">Wenig Speicher. Lösche ältere Downloads.</string>
     <string name="downloads_wifi_paused">Pausiert · WLAN erforderlich</string>
+    <string name="download_options_loading_tracks">Qualitäten werden geladen…</string>
     <string name="downloads_action_pause">Pause</string>
     <string name="downloads_action_resume">Fortsetzen</string>
     <string name="downloads_action_retry">Erneut</string>

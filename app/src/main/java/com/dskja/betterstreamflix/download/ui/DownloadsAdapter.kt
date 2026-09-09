@@ -52,9 +52,10 @@ class DownloadsAdapter(
         position: Int,
         payloads: MutableList<Any>,
     ) {
-        if (payloads.contains(Payload.PROGRESS) && holder is ItemVH) {
+        if (payloads.isNotEmpty() && holder is ItemVH && payloadsContainProgress(payloads)) {
             val item = getItem(position) as? DownloadRowUiModel.Item ?: return
             holder.bindProgress(item)
+            holder.bindPrimaryAction(item)
             return
         }
         super.onBindViewHolder(holder, position, payloads)
@@ -98,10 +99,12 @@ class DownloadsAdapter(
             subtitle.text = listOfNotNull(
                 item.entity.subtitle.takeIf { it.isNotBlank() },
                 item.entity.providerName,
+                item.entity.serverName.takeIf { it.isNotBlank() },
                 item.entity.qualityLabel.takeIf { it.isNotBlank() },
             ).joinToString(" · ")
             Glide.with(poster).load(item.entity.posterUrl).centerCrop().into(poster)
             bindProgress(item)
+            bindPrimaryAction(item)
             actionDelete.setOnClickListener { onDelete(item) }
             actionPrimary.setOnClickListener {
                 when (item.state) {
@@ -115,6 +118,9 @@ class DownloadsAdapter(
                     DownloadItemState.REMOVING -> Unit
                 }
             }
+        }
+
+        fun bindPrimaryAction(item: DownloadRowUiModel.Item) {
             actionPrimary.text = when (item.state) {
                 DownloadItemState.COMPLETED -> itemView.context.getString(R.string.downloads_action_play)
                 DownloadItemState.FAILED -> itemView.context.getString(R.string.downloads_action_retry)
@@ -124,11 +130,16 @@ class DownloadsAdapter(
         }
 
         fun bindProgress(item: DownloadRowUiModel.Item) {
-            progress.progress = item.entity.progressPct.coerceIn(0, 100)
+            val pct = item.entity.progressPct.coerceIn(0, 100)
+            progress.isIndeterminate = item.state == DownloadItemState.PREPARING ||
+                (item.state.isActive && pct <= 0 && item.entity.bytesDownloaded <= 0L)
+            if (!progress.isIndeterminate) {
+                progress.progress = pct
+            }
             progressLine.text = item.progressText
             progressLine.contentDescription = itemView.context.getString(
                 R.string.downloads_progress_a11y,
-                item.entity.progressPct,
+                pct,
             )
             progress.visibility = if (item.state == DownloadItemState.COMPLETED) {
                 View.GONE
@@ -147,9 +158,12 @@ class DownloadsAdapter(
 
         override fun getChangePayload(oldItem: DownloadRowUiModel, newItem: DownloadRowUiModel): Any? {
             if (oldItem is DownloadRowUiModel.Item && newItem is DownloadRowUiModel.Item) {
+                if (oldItem.entity.state != newItem.entity.state) return null
                 if (oldItem.entity.progressPct != newItem.entity.progressPct ||
                     oldItem.entity.bytesDownloaded != newItem.entity.bytesDownloaded ||
-                    oldItem.entity.speedBytesPerSec != newItem.entity.speedBytesPerSec
+                    oldItem.entity.contentLength != newItem.entity.contentLength ||
+                    oldItem.entity.speedBytesPerSec != newItem.entity.speedBytesPerSec ||
+                    oldItem.entity.etaSeconds != newItem.entity.etaSeconds
                 ) {
                     return Payload.PROGRESS
                 }
@@ -162,5 +176,17 @@ class DownloadsAdapter(
         private const val TYPE_HEADER = 1
         private const val TYPE_ITEM = 2
         private const val TYPE_PACK = 3
+
+        private fun payloadsContainProgress(payloads: List<Any>): Boolean {
+            for (payload in payloads) {
+                when (payload) {
+                    Payload.PROGRESS -> return true
+                    is Collection<*> -> {
+                        if (payload.any { it == Payload.PROGRESS }) return true
+                    }
+                }
+            }
+            return false
+        }
     }
 }

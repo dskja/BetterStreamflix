@@ -59,6 +59,7 @@ sealed class DownloadEnqueueOutcome {
 
 object DownloadController {
     private const val TAG = "DownloadController"
+    private const val MAX_OPTION_SERVERS = 8
     private val helperExecutor = Executors.newSingleThreadExecutor()
 
     suspend fun prepareMovie(context: Context, movie: Movie): DownloadEnqueueOutcome =
@@ -212,7 +213,7 @@ object DownloadController {
             return@withContext DownloadEnqueueOutcome.Failed(DownloadErrorCode.DRM, "Protected stream")
         }
 
-        val preparedTracks = prepareTracks(context, video)
+        val preparedTracks = prepareTrackOptions(context, video)
         DownloadEnqueueOutcome.NeedsOptions(
             DownloadPrepareResult(
                 contentKey = contentKey,
@@ -363,26 +364,17 @@ object DownloadController {
 
         val resolved = mutableListOf<ResolvedServerCandidate>()
         var lastError: Exception? = null
-        for (server in servers) {
+        // Resolve several servers so the options dialog can switch hosters.
+        for (server in servers.take(MAX_OPTION_SERVERS)) {
             try {
                 val video = provider.getVideo(server)
                 if (video.source.isBlank()) continue
                 if (isUnsupportedSource(video.source)) continue
                 if (looksLikeDrm(video.source)) continue
                 resolved += ResolvedServerCandidate(server, video)
-                break // first success is enough for options; keep one strong candidate
             } catch (e: Exception) {
                 lastError = e
                 Log.w(TAG, "getVideo failed for ${server.name}: ${e.message}")
-            }
-        }
-        // Also try remaining servers for options diversity (up to 3)
-        for (server in servers.dropWhile { resolved.any { r -> r.server.id == it.id } }.take(2)) {
-            try {
-                val video = provider.getVideo(server)
-                if (video.source.isBlank() || isUnsupportedSource(video.source) || looksLikeDrm(video.source)) continue
-                resolved += ResolvedServerCandidate(server, video)
-            } catch (_: Exception) {
             }
         }
 
@@ -391,7 +383,7 @@ object DownloadController {
                 ?: DownloadEnqueueOutcome.Failed(DownloadErrorCode.NO_SERVERS, "All servers failed")
         }
 
-        val tracks = prepareTracks(context, resolved.first().video)
+        val tracks = prepareTrackOptions(context, resolved.first().video)
         val prepared = DownloadPrepareResult(
             contentKey = contentKey,
             providerName = provider.name,
@@ -406,26 +398,11 @@ object DownloadController {
             trackOptions = tracks,
         )
 
-        val preset = UserPreferences.downloadQualityPreset
-        val singleFastPath = resolved.size == 1 &&
-            (tracks.size <= 1) &&
-            preset != DownloadQualityPreset.ASK
-        if (singleFastPath) {
-            val trackIndex = when (preset) {
-                DownloadQualityPreset.DATA_SAVER -> tracks.lastIndex.coerceAtLeast(0)
-                else -> 0
-            }
-            val label = when (preset) {
-                DownloadQualityPreset.DATA_SAVER -> tracks.getOrNull(trackIndex)?.label ?: "Data saver"
-                DownloadQualityPreset.BEST -> tracks.getOrNull(0)?.label ?: "Best"
-                DownloadQualityPreset.ASK -> "Auto"
-            }
-            return confirmEnqueue(context, prepared, 0, trackIndex, label)
-        }
+        // Always show options so users can pick server + quality before starting.
         return DownloadEnqueueOutcome.NeedsOptions(prepared)
     }
 
-    private suspend fun prepareTracks(context: Context, video: Video): List<DownloadTrackOption> {
+    suspend fun prepareTrackOptions(context: Context, video: Video): List<DownloadTrackOption> {
         return try {
             val helper = createHelper(context, video)
             prepareHelper(helper)

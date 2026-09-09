@@ -3,8 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_download_item"
     android:focusable="true"
-    android:padding="8dp">
+    android:padding="12dp"
+    android:layout_marginBottom="8dp">
 
     <ImageView
         android:id="@+id/iv_download_poster"
@@ -20,9 +22,11 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:maxLines="1"
+        android:maxLines="2"
         android:paddingStart="12dp"
-        android:textAppearance="?attr/textAppearanceSubtitle1"
+        android:textColor="#FFFFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
         app:layout_constraintTop_toTopOf="@id/iv_download_poster" />
@@ -34,7 +38,9 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:paddingStart="12dp"
-        android:textAppearance="?attr/textAppearanceCaption"
+        android:paddingTop="2dp"
+        android:textColor="#B3FFFFFF"
+        android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
         app:layout_constraintTop_toBottomOf="@id/tv_download_title" />
@@ -43,9 +49,12 @@
         android:id="@+id/pb_download"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="8dp"
         android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
         android:max="100"
+        android:progressTint="#7DB3E8"
+        android:progressBackgroundTint="#33FFFFFF"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
         app:layout_constraintTop_toBottomOf="@id/tv_download_subtitle" />
@@ -55,7 +64,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingStart="12dp"
-        android:textAppearance="?attr/textAppearanceCaption"
+        android:paddingTop="6dp"
+        android:textColor="#E6FFFFFF"
+        android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
         app:layout_constraintTop_toBottomOf="@id/pb_download" />
@@ -66,7 +77,7 @@
         android:layout_height="wrap_content"
         android:gravity="end"
         android:orientation="horizontal"
-        android:paddingTop="4dp"
+        android:paddingTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
         app:layout_constraintTop_toBottomOf="@id/tv_download_progress">
@@ -75,19 +86,34 @@
             android:id="@+id/btn_download_primary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
+            android:background="@drawable/bg_download_action"
             android:focusable="true"
-            android:padding="10dp"
-            android:text="@string/downloads_action_pause" />
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/downloads_action_pause"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/btn_download_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_download_action"
             android:focusable="true"
-            android:padding="10dp"
-            android:text="@string/downloads_action_delete" />
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/downloads_action_delete"
+            android:textAllCaps="false"
+            android:textColor="#FFFF8A80"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

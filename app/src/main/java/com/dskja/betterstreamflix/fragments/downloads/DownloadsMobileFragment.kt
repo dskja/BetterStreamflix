@@ -59,6 +59,7 @@ class DownloadsMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvDownloads.itemAnimator = null
         binding.rvDownloads.adapter = adapter
         binding.btnDownloadsMenu.setOnClickListener { showMenu(it) }
         binding.chipFilterAll.setOnClickListener { viewModel.setFilter(DownloadsFilter.ALL) }
@@ -68,7 +69,7 @@ class DownloadsMobileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.rows.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { rows ->
-                adapter.submitList(rows)
+                adapter.submitList(rows.toList())
                 binding.tvDownloadsEmpty.isVisible = rows.isEmpty()
                 binding.tvDownloadsEmpty.setText(
                     if (viewModel.currentFilter() == DownloadsFilter.ALL) {
@@ -77,6 +78,11 @@ class DownloadsMobileFragment : Fragment() {
                         R.string.downloads_filter_empty
                     },
                 )
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.selectedFilter.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect {
+                styleFilters(it)
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
@@ -95,6 +101,34 @@ class DownloadsMobileFragment : Fragment() {
             }
         }
         viewModel.refreshStorage()
+        styleFilters(viewModel.currentFilter())
+    }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.startLiveProgress()
+    }
+
+    override fun onStop() {
+        viewModel.stopLiveProgress()
+        super.onStop()
+    }
+
+    private fun styleFilters(selected: DownloadsFilter) {
+        styleChip(binding.chipFilterAll, selected == DownloadsFilter.ALL)
+        styleChip(binding.chipFilterDownloading, selected == DownloadsFilter.DOWNLOADING)
+        styleChip(binding.chipFilterCompleted, selected == DownloadsFilter.COMPLETED)
+        styleChip(binding.chipFilterFailed, selected == DownloadsFilter.FAILED)
+    }
+
+    private fun styleChip(chip: android.widget.TextView, selected: Boolean) {
+        chip.setBackgroundResource(
+            if (selected) R.drawable.bg_download_filter_chip_selected
+            else R.drawable.bg_download_filter_chip,
+        )
+        chip.setTextColor(
+            if (selected) 0xFF111111.toInt() else 0xFFFFFFFF.toInt(),
+        )
     }
 
     private fun updateBanner(lowSpace: Boolean, wifiPaused: Boolean) {

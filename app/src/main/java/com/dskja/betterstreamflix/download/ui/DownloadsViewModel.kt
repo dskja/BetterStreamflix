@@ -5,15 +5,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.download.DownloadConnectivityMonitor
 import com.dskja.betterstreamflix.download.DownloadController
+import com.dskja.betterstreamflix.download.DownloadEventBridge
 import com.dskja.betterstreamflix.download.DownloadItemState
 import com.dskja.betterstreamflix.download.DownloadRepository
 import com.dskja.betterstreamflix.download.DownloadStorage
+import com.dskja.betterstreamflix.download.StreamflixDownloadManager
 import com.dskja.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class DownloadsViewModel(
@@ -21,6 +27,9 @@ class DownloadsViewModel(
 ) : ViewModel() {
     private val repo = DownloadRepository.get(appContext)
     private val filter = MutableStateFlow(DownloadsFilter.ALL)
+    private var progressJob: Job? = null
+
+    val selectedFilter: StateFlow<DownloadsFilter> = filter.asStateFlow()
 
     val storageLabel: StateFlow<String> = MutableStateFlow(
         appContext.getString(
@@ -71,19 +80,19 @@ class DownloadsViewModel(
                     selectedFilter == DownloadsFilter.ALL
             }
             if (active.isNotEmpty()) {
-                add(DownloadRowUiModel.Header("Active"))
+                add(DownloadRowUiModel.Header(appContext.getString(com.dskja.betterstreamflix.R.string.downloads_section_active)))
                 active.forEach { add(DownloadRowUiModel.Item(it)) }
             }
             if (relevantPacks.isNotEmpty() && selectedFilter != DownloadsFilter.FAILED) {
-                add(DownloadRowUiModel.Header("Seasons"))
+                add(DownloadRowUiModel.Header(appContext.getString(com.dskja.betterstreamflix.R.string.downloads_section_seasons)))
                 relevantPacks.forEach { add(DownloadRowUiModel.SeasonPack(it)) }
             }
             if (completed.isNotEmpty()) {
-                add(DownloadRowUiModel.Header("Completed"))
+                add(DownloadRowUiModel.Header(appContext.getString(com.dskja.betterstreamflix.R.string.downloads_section_completed)))
                 completed.forEach { add(DownloadRowUiModel.Item(it)) }
             }
             if (failed.isNotEmpty()) {
-                add(DownloadRowUiModel.Header("Failed"))
+                add(DownloadRowUiModel.Header(appContext.getString(com.dskja.betterstreamflix.R.string.downloads_section_failed)))
                 failed.forEach { add(DownloadRowUiModel.Item(it)) }
             }
         }
@@ -94,6 +103,25 @@ class DownloadsViewModel(
     }
 
     fun currentFilter(): DownloadsFilter = filter.value
+
+    /** Poll Media3 while the Downloads screen is visible so progress stays live. */
+    fun startLiveProgress() {
+        if (progressJob?.isActive == true) return
+        // Warm the download manager / listener in this process.
+        StreamflixDownloadManager.get(appContext)
+        progressJob = viewModelScope.launch {
+            while (isActive) {
+                runCatching { DownloadEventBridge.syncAllActive(appContext) }
+                refreshStorage()
+                delay(PROGRESS_POLL_MS)
+            }
+        }
+    }
+
+    fun stopLiveProgress() {
+        progressJob?.cancel()
+        progressJob = null
+    }
 
     fun refreshStorage() {
         (storageLabel as MutableStateFlow).value = appContext.getString(
@@ -123,9 +151,16 @@ class DownloadsViewModel(
 
     fun retry(id: String) = viewModelScope.launch {
         val item = repo.getById(id) ?: return@launch
-        val videoType = DownloadController.deserializeVideoType(item.videoTypeJson) ?: return@launch
-        // Remove failed entry then re-prepare via UI layer; here just resume if paused, else remove+signal
+        DownloadController.deserializeVideoType(item.videoTypeJson) ?: return@launch
         repo.remove(id)
-        // Caller should re-open options; for failed retry we resume Media3 if request still exists
+    }
+
+    override fun onCleared() {
+        stopLiveProgress()
+        super.onCleared()
+    }
+
+    companion object {
+        private const val PROGRESS_POLL_MS = 400L
     }
 }

@@ -658,9 +658,14 @@
     <string name="downloads_filter_downloading">Downloading</string>
     <string name="downloads_filter_completed">Completed</string>
     <string name="downloads_filter_failed">Failed</string>
+    <string name="downloads_section_active">Active</string>
+    <string name="downloads_section_seasons">Seasons</string>
+    <string name="downloads_section_completed">Completed</string>
+    <string name="downloads_section_failed">Failed</string>
     <string name="downloads_storage_chip">%1$s used · %2$s free</string>
     <string name="downloads_low_space">Low storage. Free space or delete older downloads.</string>
     <string name="downloads_wifi_paused">Paused · Wi‑Fi required</string>
+    <string name="download_options_loading_tracks">Loading qualities…</string>
     <string name="downloads_action_pause">Pause</string>
     <string name="downloads_action_resume">Resume</string>
     <string name="downloads_action_retry">Retry</string>

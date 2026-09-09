@@ -5,7 +5,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.ProgressBar
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -18,18 +23,19 @@ import com.dskja.betterstreamflix.download.DownloadController
 import com.dskja.betterstreamflix.download.DownloadEnqueueOutcome
 import com.dskja.betterstreamflix.download.DownloadErrorCode
 import com.dskja.betterstreamflix.download.DownloadPrepareResult
+import com.dskja.betterstreamflix.download.DownloadQualityPreset
 import com.dskja.betterstreamflix.download.DownloadStorage
-import com.dskja.betterstreamflix.download.OfflinePlayback
+import com.dskja.betterstreamflix.download.DownloadTrackOption
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
-// MaterialAlertDialogBuilder crashes on AppCompat/Leanback themes — use AppCompat AlertDialog.
 
 object DownloadOptionsController {
     fun enqueueMovie(fragment: Fragment, movie: Movie) {
@@ -49,7 +55,6 @@ object DownloadOptionsController {
     }
 
     fun enqueueEpisode(context: Context, activity: Activity, episode: Episode, onNavigateDownloads: () -> Unit = {}) {
-        // For dialogs without fragment lifecycle — use activity scope via coroutine on Main
         activity.lifecycleScopeOrMain().launch {
             val outcome = withContext(Dispatchers.IO) {
                 DownloadController.prepareEpisode(context, episode)
@@ -100,9 +105,8 @@ object DownloadOptionsController {
                     seasonNumber = seasonNumber,
                     episodes = episodes,
                 ) { prepared ->
-                    // Auto-pick best or data saver based on preset
                     val trackIdx = when (UserPreferences.downloadQualityPreset) {
-                        com.dskja.betterstreamflix.download.DownloadQualityPreset.DATA_SAVER ->
+                        DownloadQualityPreset.DATA_SAVER ->
                             prepared.trackOptions.lastIndex.coerceAtLeast(0)
                         else -> 0
                     }
@@ -160,58 +164,108 @@ object DownloadOptionsController {
     }
 
     private fun showOptionsDialog(activity: Activity, prepared: DownloadPrepareResult) {
-        val servers = prepared.servers.map { it.server.name }.toTypedArray()
-        val qualities = prepared.trackOptions.map { it.label }.toTypedArray()
-        var serverIndex = prepared.selectedServerIndex.coerceIn(0, servers.lastIndex.coerceAtLeast(0))
-        var qualityIndex = 0
-        when (UserPreferences.downloadQualityPreset) {
-            com.dskja.betterstreamflix.download.DownloadQualityPreset.DATA_SAVER ->
-                qualityIndex = qualities.lastIndex.coerceAtLeast(0)
-            com.dskja.betterstreamflix.download.DownloadQualityPreset.BEST -> qualityIndex = 0
-            com.dskja.betterstreamflix.download.DownloadQualityPreset.ASK -> qualityIndex = 0
+        val view = LayoutInflater.from(activity).inflate(R.layout.dialog_download_options, null)
+        val titleView = view.findViewById<TextView>(R.id.tv_download_options_title)
+        val subtitleView = view.findViewById<TextView>(R.id.tv_download_options_subtitle)
+        val storageView = view.findViewById<TextView>(R.id.tv_download_options_storage)
+        val serverSpinner = view.findViewById<Spinner>(R.id.sp_download_server)
+        val qualitySpinner = view.findViewById<Spinner>(R.id.sp_download_quality)
+        val loading = view.findViewById<ProgressBar>(R.id.pb_download_options_loading)
+
+        titleView.text = prepared.title
+        subtitleView.text = prepared.subtitle
+        storageView.text = activity.getString(
+            R.string.download_options_storage,
+            DownloadStorage.formatBytes(DownloadStorage.freeBytes(activity)),
+        )
+
+        var currentPrepared = prepared
+        var trackOptions = prepared.trackOptions.toMutableList()
+        var serverIndex = prepared.selectedServerIndex.coerceIn(0, prepared.servers.lastIndex.coerceAtLeast(0))
+        var qualityIndex = defaultQualityIndex(trackOptions)
+        var tracksJob: Job? = null
+
+        val serverNames = prepared.servers.map { it.server.name }.ifEmpty { listOf("Auto") }
+        serverSpinner.adapter = ArrayAdapter(
+            activity,
+            android.R.layout.simple_spinner_dropdown_item,
+            serverNames,
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        serverSpinner.setSelection(serverIndex)
+
+        fun bindQualitySpinner(options: List<DownloadTrackOption>, preferredIndex: Int) {
+            val labels = options.map { it.label }.ifEmpty { listOf("Auto") }
+            qualitySpinner.adapter = ArrayAdapter(
+                activity,
+                android.R.layout.simple_spinner_dropdown_item,
+                labels,
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            qualityIndex = preferredIndex.coerceIn(0, labels.lastIndex.coerceAtLeast(0))
+            qualitySpinner.setSelection(qualityIndex)
+        }
+        bindQualitySpinner(trackOptions, qualityIndex)
+
+        qualitySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                qualityIndex = position
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
-        val free = DownloadStorage.formatBytes(DownloadStorage.freeBytes(activity))
-        val message = buildString {
-            append(activity.getString(R.string.download_options_storage, free))
-            append('\n')
-            append(activity.getString(R.string.download_options_wifi_hint))
-            if (servers.isNotEmpty()) {
-                append("\n\n")
-                append(activity.getString(R.string.download_options_server))
-                append(": ")
-                append(servers.joinToString())
+        serverSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (position == serverIndex) return
+                serverIndex = position
+                val candidate = currentPrepared.servers.getOrNull(position) ?: return
+                tracksJob?.cancel()
+                tracksJob = activity.lifecycleScopeOrMain().launch {
+                    loading.visibility = View.VISIBLE
+                    qualitySpinner.isEnabled = false
+                    val options = withContext(Dispatchers.IO) {
+                        DownloadController.prepareTrackOptions(activity, candidate.video)
+                    }
+                    trackOptions.clear()
+                    trackOptions.addAll(options)
+                    currentPrepared = currentPrepared.copy(trackOptions = options, selectedServerIndex = position)
+                    bindQualitySpinner(options, defaultQualityIndex(options))
+                    qualitySpinner.isEnabled = true
+                    loading.visibility = View.GONE
+                }
             }
-            if (qualities.isNotEmpty()) {
-                append('\n')
-                append(activity.getString(R.string.download_options_quality))
-                append(": ")
-                append(qualities.joinToString())
-            }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
         AlertDialog.Builder(activity)
             .setTitle(R.string.download_options_title)
-            .setMessage("${prepared.title}\n${prepared.subtitle}\n\n$message")
-            .setSingleChoiceItems(qualities.ifEmpty { arrayOf("Auto") }, qualityIndex) { _, which ->
-                qualityIndex = which
-            }
+            .setView(view)
             .setPositiveButton(R.string.download_options_start) { _, _ ->
+                tracksJob?.cancel()
                 activity.lifecycleScopeOrMain().launch {
                     val result = withContext(Dispatchers.IO) {
                         DownloadController.confirmEnqueue(
                             activity,
-                            prepared,
+                            currentPrepared,
                             serverIndex,
                             qualityIndex,
-                            qualities.getOrNull(qualityIndex) ?: "Auto",
+                            trackOptions.getOrNull(qualityIndex)?.label ?: "Auto",
                         )
                     }
                     handleOutcomeActivity(activity, result) {}
                 }
             }
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> tracksJob?.cancel() }
+            .setOnCancelListener { tracksJob?.cancel() }
             .show()
+    }
+
+    private fun defaultQualityIndex(options: List<DownloadTrackOption>): Int {
+        if (options.isEmpty()) return 0
+        return when (UserPreferences.downloadQualityPreset) {
+            DownloadQualityPreset.DATA_SAVER -> options.lastIndex
+            DownloadQualityPreset.BEST,
+            DownloadQualityPreset.ASK,
+            -> 0
+        }
     }
 
     private suspend fun confirmCellular(activity: Activity): Boolean {
