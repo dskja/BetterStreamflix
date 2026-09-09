@@ -122,6 +122,7 @@ class DownloadsMobileFragment : Fragment() {
     }
 
     private fun styleChip(chip: android.widget.TextView, selected: Boolean) {
+        chip.isSelected = selected
         chip.setBackgroundResource(
             if (selected) R.drawable.bg_download_filter_chip_selected
             else R.drawable.bg_download_filter_chip,
