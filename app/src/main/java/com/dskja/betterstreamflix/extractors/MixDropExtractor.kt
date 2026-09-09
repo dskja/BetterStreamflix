@@ -20,6 +20,8 @@ class MixDropExtractor : Extractor() {
         "https://mixdrop.to",
         "https://mixdrop.cv",
         "https://mxdrop.to",
+        "https://dr0pstream.com",
+        "https://dropstream.com",
         "https://mixdrop.club",
         "https://m1xdrop.net",
         "https://miiixdrop.net",

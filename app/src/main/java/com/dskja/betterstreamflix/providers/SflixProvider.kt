@@ -32,27 +32,38 @@ import java.util.concurrent.TimeUnit
 
 object SflixProvider : Provider, ProviderConfigUrl {
 
-    private const val URL = "https://sflix.to/"
     override val defaultBaseUrl = "https://sflix.to/"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
 
     override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
+        service = SflixService.build()
         baseUrl
     }
     override val name = "SFlix"
     override val logo = "https://img.sflix.to/xxrz/400x400/100/66/35/66356c25ce98cb12993249e21742b129/66356c25ce98cb12993249e21742b129.png"
     override val language = "en"
 
-    private val service = SflixService.build()
+    private var service = SflixService.build()
 
 
     override suspend fun getHome(): List<Category> {
         val document = try {
             service.getHome()
         } catch (e: Exception) {
-            throw Exception("SFlix home timed out or is unreachable (${e.message}). Try again or change the provider URL.")
+            throw Exception(
+                "SFlix home timed out or is unreachable at $baseUrl (${e.message}). " +
+                    "The site often returns Cloudflare 522 from datacenter IPs — try again later or change the provider URL. " +
+                    "Note: moviesflix.to is a parked domain, not an SFlix mirror."
+            )
+        }
+
+        if (looksLikeCloudflare(document) || document.select("div.flw-item, div.swiper-slide").isEmpty()) {
+            throw Exception(
+                "SFlix returned no catalog at $baseUrl (Cloudflare/empty/522). " +
+                    "No working mirror found (moviesflix.to is parked). Change the provider URL if you have one."
+            )
         }
 
         val categories = mutableListOf<Category>()
@@ -743,33 +754,45 @@ object SflixProvider : Provider, ProviderConfigUrl {
 
     private fun String.toNumericalId(): String = this.substringAfterLast("-")
 
+    private fun looksLikeCloudflare(document: Document): Boolean {
+        val html = document.html()
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Error code 522", ignoreCase = true) ||
+            html.contains("Connection timed out", ignoreCase = true)
+    }
+
 
     private interface SflixService {
 
         companion object {
             fun build(): SflixService {
                 val client = OkHttpClient.Builder()
-                    .connectTimeout(12, TimeUnit.SECONDS)
-                    .readTimeout(15, TimeUnit.SECONDS)
-                    .writeTimeout(15, TimeUnit.SECONDS)
-                    .callTimeout(25, TimeUnit.SECONDS)
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(12, TimeUnit.SECONDS)
+                    .writeTimeout(12, TimeUnit.SECONDS)
+                    .callTimeout(20, TimeUnit.SECONDS)
                     .dns(DnsResolver.doh)
                     .addInterceptor { chain ->
                         val request = chain.request().newBuilder()
                             .header(
                                 "User-Agent",
-                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
                             )
                             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .header("Accept-Language", "en-US,en;q=0.9")
-                            .header("Referer", URL)
+                            .header("Referer", baseUrl)
+                            .header("Origin", baseUrl.trimEnd('/'))
+                            .header("Sec-CH-UA", "\"Chromium\";v=\"131\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"131\"")
+                            .header("Sec-CH-UA-Mobile", "?0")
+                            .header("Sec-CH-UA-Platform", "\"Windows\"")
                             .build()
                         chain.proceed(request)
                     }
                     .build()
 
                 val retrofit = Retrofit.Builder()
-                    .baseUrl(URL)
+                    .baseUrl(if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/")
                     .addConverterFactory(JsoupConverterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)

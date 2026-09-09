@@ -278,6 +278,7 @@
     <string name="settings_streamingcommunity_domain_blocked">Blocked domain detected, restored to default</string>
     <string name="settings_category_serienstream">SerienStream settings</string>
     <string name="settings_category_serienstream_domain">SerienStream domain name</string>
+    <string name="settings_serienstream_domain_summary">Default serienstream.to (s.to is dead). Alternative: serienstream.cx — see serien.domains</string>
     <string name="settings_serienstream_domain_reset">Reset domain</string>
     <string name="settings_serienstream_domain_reset_summary">Restore the default domain name</string>
     <string name="settings_serienstream_domain_reset_done">Domain restored to default</string>
@@ -469,6 +470,28 @@
     <string name="settings_server_voe_title">Disable server auto subtitles</string>
     <string name="settings_server_voe_summary">If enabled, subtitles from VOE, Vidnest and Vidzy servers will not be active by default even if they are available and have a default true value</string>
     <string name="settings_category_animeonlineninja">Anime Online Ninja settings</string>
+    <string name="settings_category_guardaflix">GuardaFlix account</string>
+    <string name="guardaflix_account_status">Account status</string>
+    <string name="guardaflix_signed_out">Not signed in — guests only get a short preview</string>
+    <string name="guardaflix_signed_in">Signed in</string>
+    <string name="guardaflix_signed_in_as">Signed in as %1$s</string>
+    <string name="guardaflix_sign_in">Sign in</string>
+    <string name="guardaflix_sign_in_summary">Unlock full GuardaFlix streams with your site account</string>
+    <string name="guardaflix_sign_up">Create account</string>
+    <string name="guardaflix_sign_up_summary">Register a GuardaFlix account in the app</string>
+    <string name="guardaflix_sign_out">Sign out</string>
+    <string name="guardaflix_sign_out_summary">Remove the saved GuardaFlix session</string>
+    <string name="guardaflix_sign_out_success">Signed out of GuardaFlix</string>
+    <string name="guardaflix_username_hint">Username</string>
+    <string name="guardaflix_password_hint">Password</string>
+    <string name="guardaflix_confirm_password_hint">Confirm password</string>
+    <string name="guardaflix_invalid_username">Username must be at least 3 characters</string>
+    <string name="guardaflix_invalid_password">Password must be at least 6 characters</string>
+    <string name="guardaflix_password_mismatch">Passwords do not match</string>
+    <string name="guardaflix_auth_progress_title">GuardaFlix</string>
+    <string name="guardaflix_auth_progress_message">Authenticating…</string>
+    <string name="guardaflix_auth_success">GuardaFlix login successful</string>
+    <string name="guardaflix_auth_failed">GuardaFlix login failed</string>
     <string name="settings_provider_animeonlineninja_preferred_server">Preferred server</string>
     <string name="settings_provider_animeonlineninja_preferred_server_summary">Prefer a specific server label when Anime Online Ninja exposes it, and fall back to the default order if it is not available.</string>
     <string name="settings_provider_animeonlineninja_preferred_server_default">Default</string>
@@ -568,7 +591,7 @@
     <string name="bypass_status_submitted_wait">Verification submitted. Wait for the redirect to complete.</string>
     <string name="bypass_status_complete_captcha_modal">Complete the captchas in the popup, tap Weiter there, then tap the button at the bottom.</string>
     <string name="bypass_status_loading_captcha">Loading captcha requests.</string>
-    <string name="bypass_status_waiting_modal">Waiting for the s.to verification modal to finish loading.</string>
+    <string name="bypass_status_waiting_modal">Waiting for the SerienStream verification modal to finish loading.</string>
     <string name="bypass_action_cancel">Cancel</string>
     <string name="bypass_action_continue">Continue</string>
 

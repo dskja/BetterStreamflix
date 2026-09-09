@@ -1,6 +1,9 @@
 package com.dskja.betterstreamflix.providers
 
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
+import android.content.Context
+import android.util.Log
+import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.models.Category
@@ -13,6 +16,7 @@ import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.WebViewResolver
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -20,6 +24,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.HttpException
@@ -32,6 +37,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 object FrenchAnimeProvider : Provider, ProviderConfigUrl {
+    // french-anime.com is Cloudflare-gated (403). french-anime.fr is a different WP site — not a drop-in mirror.
     override val defaultBaseUrl: String = "https://french-anime.com/"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
@@ -42,7 +48,23 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
     override val language = "fr"
     override val changeUrlMutex = Mutex()
 
+    private const val TAG = "FrenchAnimeProvider"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
     private var service = FrenchAnimeService.build()
+    private var webViewResolver: WebViewResolver? = null
+    private val providerMutex = Mutex()
+
+    fun init(context: Context) {
+        webViewResolver = WebViewResolver(context)
+    }
+
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(BetterStreamflixApp.instance).also {
+            webViewResolver = it
+        }
+    }
 
     // Flag to track if more search results are available. Set to false when API returns fewer items than requested.
     // This prevents querying non-existent pages that could return random/incorrect results.
@@ -51,7 +73,7 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
     private val URL_DOMAIN_REGEX = Regex("""(?:https?:)?//(?:www\.)?([^.]+)\.""")
 
     override suspend fun getHome(): List<Category> {
-        val document = service.getHome()
+        val document = loadHomeDocument()
         val categories = mutableListOf<Category>()
 
         document.select(".owl-carousel .item").map { item ->
@@ -531,6 +553,62 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
         else -> null
     }
 
+    private fun looksLikeCloudflare(document: Document): Boolean {
+        val html = document.html()
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("challenge-platform", ignoreCase = true)
+    }
+
+    private fun cloudflareBlockedMessage(cause: String? = null): String {
+        return "FrenchAnime bloqueado por Cloudflare en $baseUrl" +
+            (cause?.let { " ($it)" } ?: "") +
+            ". No compatible mirror found (french-anime.fr is a different site). " +
+            "Open the site on-device to clear the challenge or change the provider URL."
+    }
+
+    private suspend fun loadHomeDocument(): Document {
+        try {
+            val document = service.getHome()
+            if (!looksLikeCloudflare(document)) return document
+        } catch (e: HttpException) {
+            if (e.code() != 403 && e.code() != 503) {
+                throw Exception(
+                    "FrenchAnime unreachable at $baseUrl (${e.message}). " +
+                        "Cloudflare often blocks non-browser clients (HTTP 403)."
+                )
+            }
+            Log.d(TAG, "HTTP ${e.code()} on home — trying WebView clearance")
+        } catch (e: Exception) {
+            throw Exception(
+                "FrenchAnime unreachable at $baseUrl (${e.message}). " +
+                    "Cloudflare often blocks non-browser clients (HTTP 403)."
+            )
+        }
+
+        return try {
+            val html = providerMutex.withLock {
+                getResolver().get(
+                    baseUrl,
+                    headers = mapOf("User-Agent" to BROWSER_UA),
+                    completion = { _, pageHtml, _ ->
+                        !looksLikeCloudflare(Jsoup.parse(pageHtml)) &&
+                            (pageHtml.contains("block-main") || pageHtml.contains("owl-carousel"))
+                    }
+                )
+            }
+            val document = Jsoup.parse(html).apply { setBaseUri(baseUrl) }
+            if (looksLikeCloudflare(document)) {
+                throw Exception(cloudflareBlockedMessage("WebView still challenged"))
+            }
+            document
+        } catch (e: Exception) {
+            if (e.message.orEmpty().contains("bloqueado por Cloudflare")) throw e
+            throw Exception(cloudflareBlockedMessage(e.message))
+        }
+    }
+
     override suspend fun onChangeUrl(forceRefresh: Boolean): String {
         changeUrlMutex.withLock {
             service = FrenchAnimeService.build()
@@ -543,8 +621,21 @@ object FrenchAnimeProvider : Provider, ProviderConfigUrl {
             fun build(): FrenchAnimeService {
                 val client = OkHttpClient.Builder()
                     .dns(DnsResolver.doh)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .callTimeout(25, TimeUnit.SECONDS)
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                            )
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .header("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8")
+                            .header("Referer", baseUrl)
+                            .build()
+                        chain.proceed(request)
+                    }
                     .build()
 
                 val retrofit = Retrofit.Builder()

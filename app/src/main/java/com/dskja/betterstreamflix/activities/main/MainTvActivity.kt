@@ -25,15 +25,18 @@ import com.dskja.betterstreamflix.fragments.player.PlayerTvFragment
 import com.dskja.betterstreamflix.ui.UpdateAppTvDialog
 import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.providers.Provider
+import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.dskja.betterstreamflix.providers.Cine24hProvider
 import com.dskja.betterstreamflix.providers.FilmyOnlineCcProvider
-import com.dskja.betterstreamflix.providers.ZaluknijProvider
+import com.dskja.betterstreamflix.providers.FrenchAnimeProvider
 import com.dskja.betterstreamflix.providers.GuardaSerieProvider
+import com.dskja.betterstreamflix.providers.RidomoviesProvider
+import com.dskja.betterstreamflix.providers.SoloLatinoProvider
+import com.dskja.betterstreamflix.providers.ZaluknijProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.getCurrentFragment
-import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import kotlinx.coroutines.launch
 
 class MainTvActivity : FragmentActivity() {
@@ -186,8 +189,11 @@ class MainTvActivity : FragmentActivity() {
             runCatching { AnimeOnlineNinjaProvider.init(this) }
             runCatching { Cine24hProvider.init(this) }
             runCatching { FilmyOnlineCcProvider.init(this) }
+            runCatching { FrenchAnimeProvider.init(this) }
             runCatching { ZaluknijProvider.init(this) }
             runCatching { GuardaSerieProvider.init(this) }
+            runCatching { SoloLatinoProvider.init(this) }
+            runCatching { RidomoviesProvider.init(this) }
         }
     }
 

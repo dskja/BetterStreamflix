@@ -32,7 +32,8 @@ import java.util.concurrent.TimeUnit
 object PelisflixHdProvider : Provider, ProviderConfigUrl {
 
     override val name = "PelisflixHD"
-    override val defaultBaseUrl = "https://pelisflixhd.win"
+    // pelisflixhd.win 301s to pelisflixhd1.top (content host as of 2026-09).
+    override val defaultBaseUrl = "https://pelisflixhd1.top"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
@@ -41,7 +42,8 @@ object PelisflixHdProvider : Provider, ProviderConfigUrl {
         baseUrl
     }
     override val language = "es"
-    override val logo = "https://s.pelisflixhd.win/cat/logo-mini.png"
+    override val logo: String
+        get() = "$baseUrl/cat/logo-mini.png"
 
     private const val USER_AGENT =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
@@ -228,21 +230,22 @@ object PelisflixHdProvider : Provider, ProviderConfigUrl {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val document = service.getPage(normalizeUrl(id))
 
-        return document.select("#player li[data-server]").mapIndexedNotNull { index, item ->
-            val encoded = item.attr("data-server")
-            if (encoded.isBlank()) {
-                return@mapIndexedNotNull null
-            }
+        return document.select("#player li[data-server], li[role=presentation][data-server], li[data-server]")
+            .mapIndexedNotNull { index, item ->
+                val encoded = item.attr("data-server")
+                if (encoded.isBlank()) {
+                    return@mapIndexedNotNull null
+                }
 
-            val decoded = runCatching { String(Base64.decode(encoded, Base64.DEFAULT)).trim() }.getOrNull()
-                ?: return@mapIndexedNotNull null
+                val decoded = runCatching { String(Base64.decode(encoded, Base64.DEFAULT)).trim() }.getOrNull()
+                    ?: return@mapIndexedNotNull null
 
-            Video.Server(
-                id = decoded,
-                name = item.selectFirst("span")?.text()?.trim().orEmpty().ifBlank { "Opción ${index + 1}" },
-                src = decoded
-            )
-        }.distinctBy { it.src }
+                Video.Server(
+                    id = decoded,
+                    name = item.selectFirst("span")?.text()?.trim().orEmpty().ifBlank { "Opción ${index + 1}" },
+                    src = decoded
+                )
+            }.distinctBy { it.src }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

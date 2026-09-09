@@ -16,6 +16,8 @@ class NekostreamExtractor : Extractor() {
     override val aliasUrls = listOf(
         "https://megaplay.buzz",
         "https://vidwish.live",
+        "https://megaplay.live",
+        "https://aniplaynow.live",
     )
 
     private val client = OkHttpClient.Builder()
@@ -32,7 +34,7 @@ class NekostreamExtractor : Extractor() {
         val pageBody = getText(
             url = streamPageUrl,
             referer = when {
-                streamPageUrl.contains("megaplay", ignoreCase = true) -> "https://anikototv.to/"
+                streamPageUrl.contains("megaplay", ignoreCase = true) -> "https://anikoto.net/"
                 else -> "$origin/"
             },
             origin = origin,
@@ -52,10 +54,18 @@ class NekostreamExtractor : Extractor() {
                 ?.getOrNull(1)
                 ?.lowercase()
 
+        // HD-1 mirrors pass ?s=tcdn (CDN selector). megaplay's page JS appends this to
+        // getSources XHRs; OkHttp must do the same or some servers return empty files.
+        val sourceHint = Uri.parse(streamPageUrl).getQueryParameter("s")
+            ?.takeIf { it.isNotBlank() }
+
         // megaplay.buzz currently serves the playable m3u8 only from getSourcesNew;
         // legacy getSources returns tracks/enc without a plaintext sources.file.
         val typeQuery = streamType?.let { "&type=$it" }.orEmpty()
+        val sourceQuery = sourceHint?.let { "&s=$it" }.orEmpty()
         val sourcesCandidates = listOf(
+            "$origin/stream/getSourcesNew?id=$fileId$typeQuery$sourceQuery",
+            "$origin/stream/getSources?id=$fileId$typeQuery$sourceQuery",
             "$origin/stream/getSourcesNew?id=$fileId$typeQuery",
             "$origin/stream/getSources?id=$fileId$typeQuery",
         )

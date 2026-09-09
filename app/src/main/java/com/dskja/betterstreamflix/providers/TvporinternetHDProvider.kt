@@ -8,6 +8,7 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import android.util.Log
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.models.*
+import com.dskja.betterstreamflix.utils.SportsIptvStreamResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -77,12 +78,13 @@ object TvporinternetHDProvider : IptvProvider, ProviderConfigUrl {
                 .header("X-Requested-With", "XMLHttpRequest")
 
             if (originalUrl.contains("ksdjugfssddeports.com") ||
+                originalUrl.contains("saohgdassregions.com") ||
                 originalUrl.contains("playlist.php") ||
                 originalUrl.contains(".ts") ||
                 originalUrl.contains(":9092")) {
                 requestBuilder
-                    .header("Origin", "https://embed.ksdjugfssddeports.com")
-                    .header("Referer", "https://embed.ksdjugfssddeports.com/")
+                    .header("Origin", "https://regionales.saohgdassregions.com")
+                    .header("Referer", "https://regionales.saohgdassregions.com/")
             }
 
             chain.proceed(requestBuilder.build())
@@ -404,25 +406,15 @@ object TvporinternetHDProvider : IptvProvider, ProviderConfigUrl {
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> = withContext(Dispatchers.IO) {
         try {
             val doc = fetchDocument(id) ?: throw Exception("No se pudo cargar")
-            val servers = mutableListOf<Video.Server>()
+            val servers = SportsIptvStreamResolver.collectServerUrls(doc, baseUrl)
+                .map { (name, url) -> Video.Server(id = url, name = name, src = url) }
+                .toMutableList()
 
-            doc.select(
-                "div.options-left a.option, .options a.option, a.option, .server-list a, " +
-                    "ul.Options li a, .player-options a, a[href*=player], iframe[src], iframe[data-src]"
-            ).forEach { element ->
-                val name = element.text().trim().ifBlank {
-                    element.attr("title").ifBlank { "Opción" }
-                }
-                val url = element.attr("href").ifBlank {
-                    element.attr("data-src").ifBlank { element.attr("src") }
-                }
-                if (url.isNotEmpty()) {
-                    val absoluteUrl = when {
-                        url.startsWith("http") -> url
-                        url.startsWith("//") -> "https:$url"
-                        else -> "$baseUrl/${url.trimStart('/')}"
-                    }
-                    servers.add(Video.Server(id = absoluteUrl, name = name, src = absoluteUrl))
+            if (servers.isEmpty()) {
+                val coreRegex = Regex("""https?://[^"'\\\s]+(?:live\d*/|stream\d*/)?core\.php[^"'\\\s]*""")
+                coreRegex.findAll(doc.html()).forEachIndexed { index, match ->
+                    val url = match.value.replace("\\/", "/")
+                    servers.add(Video.Server(id = url, name = "Opción ${index + 1}", src = url))
                 }
             }
 
@@ -439,49 +431,30 @@ object TvporinternetHDProvider : IptvProvider, ProviderConfigUrl {
         try {
             stopLocalServer()
 
-            val coreDoc = fetchDocument(server.id) ?: return@withContext Video("")
-            val playerFrameUrl = coreDoc.selectFirst(
-                "iframe#player-frame, iframe.player-frame, #player iframe, .player iframe, iframe[src]"
-            )?.attr("src")
-                ?.ifBlank { coreDoc.selectFirst("iframe[data-src]")?.attr("data-src") }
-                .orEmpty()
-
-            if (playerFrameUrl.isEmpty()) {
-                Log.e(TAG, "Servidor offline (sin iframe)")
+            val playlistUrl = SportsIptvStreamResolver.resolvePlaylistUrl(
+                client = client,
+                serverUrl = server.src.ifBlank { server.id },
+                pageReferer = baseUrl,
+                userAgent = USER_AGENT,
+            )
+            if (playlistUrl.isNullOrBlank()) {
+                Log.e(TAG, "Servidor offline (sin playlist)")
                 return@withContext Video("")
             }
 
-            val absoluteFrame = when {
-                playerFrameUrl.startsWith("http") -> playerFrameUrl
-                playerFrameUrl.startsWith("//") -> "https:$playerFrameUrl"
-                else -> "$baseUrl/${playerFrameUrl.trimStart('/')}"
+            currentPlaylistUrl = playlistUrl
+            val localServerUrl = startLocalServer(playlistUrl)
+            if (localServerUrl.isEmpty()) {
+                return@withContext Video("")
             }
 
-            val iframeDoc = fetchDocument(absoluteFrame, server.id) ?: return@withContext Video("")
-            val iframeHtml = iframeDoc.html()
-
-            val playlistRegex = """["'](https:[^"']+playlist\.php[^"']+)["']""".toRegex()
-            val playlistMatch = playlistRegex.find(iframeHtml)
-                ?: """["'](https:[^"']+\.m3u8[^"']*)["']""".toRegex().find(iframeHtml)
-
-            if (playlistMatch != null) {
-                val playlistUrl = playlistMatch.groupValues[1].replace("\\/", "/")
-                currentPlaylistUrl = playlistUrl
-
-                val localServerUrl = startLocalServer(playlistUrl)
-
-                if (localServerUrl.isNotEmpty()) {
-                    return@withContext Video(
-                        source = "$localServerUrl/manifest.m3u8",
-                        headers = emptyMap()
-                    )
-                }
-            }
-
-            return@withContext Video("")
+            Video(
+                source = "$localServerUrl/manifest.m3u8",
+                headers = emptyMap(),
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error: ${e.message}")
-            return@withContext Video("")
+            Video("")
         }
     }
 
@@ -569,8 +542,8 @@ object TvporinternetHDProvider : IptvProvider, ProviderConfigUrl {
                             .url(segmentUrl)
                             .header("User-Agent", USER_AGENT)
                             .header("Accept", "*/*")
-                            .header("Origin", "https://embed.ksdjugfssddeports.com")
-                            .header("Referer", "https://embed.ksdjugfssddeports.com/")
+                            .header("Origin", "https://regionales.saohgdassregions.com")
+                            .header("Referer", "https://regionales.saohgdassregions.com/")
                             .build()
 
                         val segmentRes = client.newCall(segmentReq).execute()
@@ -604,8 +577,8 @@ object TvporinternetHDProvider : IptvProvider, ProviderConfigUrl {
                 .url(playlistUrl)
                 .header("User-Agent", USER_AGENT)
                 .header("Accept", "*/*")
-                .header("Origin", "https://embed.ksdjugfssddeports.com")
-                .header("Referer", "https://embed.ksdjugfssddeports.com/")
+                .header("Origin", "https://regionales.saohgdassregions.com")
+                .header("Referer", "https://regionales.saohgdassregions.com/")
                 .build()
 
             val response = client.newCall(request).execute()

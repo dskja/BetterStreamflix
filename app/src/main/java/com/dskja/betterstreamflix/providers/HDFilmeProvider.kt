@@ -22,6 +22,7 @@ import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.TmdbUtils
+import android.util.Base64
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.Jsoup
@@ -296,9 +297,19 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
 
     private suspend fun getSerialDocument(doc: Document): Document? {
         val imdbId = extractImdbId(doc) ?: return null
+        val numeric = imdbId.removePrefix("tt")
         return runCatching {
-            service.getPage("https://meinecloud.click/serial/${imdbId.removePrefix("tt")}")
-        }.getOrNull()
+            service.getPage("https://meinecloud.click/serial/$numeric")
+        }.getOrElse {
+            runCatching {
+                val check = service.getRawPage("https://meinecloud.click/serials.php?task=check&id_imdb=$imdbId")
+                    .string()
+                val playerUrl = Regex("\"player_url\"\\s*:\\s*\"([^\"]+)\"")
+                    .find(check)?.groupValues?.get(1)
+                    ?.replace("\\/", "/")
+                if (!playerUrl.isNullOrBlank()) service.getPage(playerUrl) else null
+            }.getOrNull()
+        }
     }
 
     private fun serialSeasonNumber(season: Element, serialDoc: Document): Int? {
@@ -923,6 +934,7 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
                     element.selectFirst("._ep-n")?.text()?.trim()?.toIntOrNull() == epNum
                 }
                 val streamUrl = episode?.attr("data-link")?.trim().orEmpty()
+                    .let { raw -> decodeEmbedDataLink(raw) ?: raw }
                 if (streamUrl.isNotBlank()) {
                     val normalized = normalizeExternalUrl(streamUrl)
                     val serverName = runCatching {
@@ -989,13 +1001,19 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         val embedUrl = normalizeUrl(iframeSrc)
         val embedDoc = service.getPage(embedUrl)
 
-        val mirrors = embedDoc.select("ul._player-mirrors li[data-link], li[data-link], .mirror-list li[data-link], a[data-link]")
+        val mirrors = embedDoc.select(
+            "ul._player-mirrors li[data-link], ul._source_list li[data-link], " +
+                "li[data-link], .mirror-list li[data-link], a[data-link]"
+        )
             .filterNot { li ->
                 li.hasClass("fullhd") || li.text().contains("4K Server", ignoreCase = true)
             }
             .mapNotNull { li ->
-                val dataLink = li.attr("data-link").trim().ifBlank { li.attr("href").trim() }
-                if (dataLink.isBlank()) return@mapNotNull null
+                val rawLink = li.attr("data-link").trim().ifBlank { li.attr("href").trim() }
+                if (rawLink.isBlank()) return@mapNotNull null
+
+                // meinecloud / DEVIDEOSRC now store host URLs as base64 (e.g. Ly9teGRyb3AudG8v...).
+                val dataLink = decodeEmbedDataLink(rawLink) ?: return@mapNotNull null
 
                 val normalized = when {
                     dataLink.startsWith("//") -> "https:$dataLink"
@@ -1004,7 +1022,11 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
                 }
 
                 val nameText = li.ownText().ifBlank { li.text() }.trim()
-                val name = nameText.ifBlank { "Server" }
+                val name = nameText.ifBlank {
+                    runCatching {
+                        normalized.toHttpUrl().host.substringBefore('.').replaceFirstChar { it.uppercase() }
+                    }.getOrDefault("Server")
+                }
 
                 Video.Server(id = normalized, name = name, src = normalized)
             }
@@ -1014,6 +1036,18 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
             // Last resort: treat the embed page itself as a playable host.
             listOf(Video.Server(id = embedUrl, name = "Embed", src = embedUrl))
         }
+    }
+
+    /** Decode meinecloud-style base64 data-link values; pass through plain URLs. */
+    private fun decodeEmbedDataLink(raw: String): String? {
+        val trimmed = raw.trim()
+        if (trimmed.startsWith("http", ignoreCase = true) || trimmed.startsWith("//")) {
+            return trimmed
+        }
+        return runCatching {
+            val decoded = String(Base64.decode(trimmed, Base64.DEFAULT), Charsets.UTF_8).trim()
+            decoded.takeIf { it.startsWith("http", ignoreCase = true) || it.startsWith("//") }
+        }.getOrNull() ?: trimmed.takeIf { it.contains('.') }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {

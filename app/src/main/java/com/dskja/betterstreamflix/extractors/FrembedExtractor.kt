@@ -199,21 +199,50 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
     suspend fun servers(videoType: Video.Type): List<Video.Server> {
         Log.d("FrembedExtractor", "Fetching servers for videoType: $videoType using mainUrl: $mainUrl")
         return try {
-            val ret = when(videoType) { is Video.Type.Movie -> service.getMovieLinks( videoType.id)
-                                        is Video.Type.Episode -> service.getTvShowLinks(videoType.tvShow.id, videoType.season.number, videoType.number) }
+            val ret = when (videoType) {
+                is Video.Type.Movie -> {
+                    val primary = runCatching { service.getMovieLinks(videoType.id, "tmdb") }.getOrNull()
+                    if (primary != null && primary.toServers().isNotEmpty()) {
+                        primary
+                    } else {
+                        val imdb = videoType.imdbId?.takeIf { it.isNotBlank() }?.let { id ->
+                            if (id.startsWith("tt")) id else "tt$id"
+                        }
+                        if (imdb != null) {
+                            service.getMovieLinks(imdb, "imdb")
+                        } else {
+                            primary ?: service.getMovieLinks(videoType.id, "tmdb")
+                        }
+                    }
+                }
+                is Video.Type.Episode -> service.getTvShowLinks(
+                    videoType.tvShow.id,
+                    videoType.season.number,
+                    videoType.number,
+                )
+            }
             val initialServers = ret.toServers()
             Log.d("FrembedExtractor", "Initial servers found: ${initialServers.size}")
+            if (initialServers.isEmpty()) {
+                throw Exception("Frembed returned no stream links for this title")
+            }
 
-            coroutineScope {
+            val resolved = coroutineScope {
                 initialServers.map { server ->
                     async(Dispatchers.IO) {
                         try {
                             Log.d("FrembedExtractor", "Resolving redirect for server: ${server.name} - src: ${server.src}")
                             val response = service.getStreamLinks(server.src)
                             val redirect = response.headers()["Location"]
+                                ?: response.raw().header("Location")
                             if (!redirect.isNullOrEmpty()) {
-                                val fullRedirect = if (redirect.startsWith("//")) "https:$redirect" else redirect
-                                val lang = server.name.substringAfter(" (").substringBefore(")")
+                                val fullRedirect = when {
+                                    redirect.startsWith("//") -> "https:$redirect"
+                                    redirect.startsWith("/") -> mainUrl.trimEnd('/') + redirect
+                                    else -> redirect
+                                }
+                                val lang = server.name.substringAfter(" (", "").substringBefore(")")
+                                    .ifBlank { "French" }
                                 val resolvedName = "${getExtractorName(fullRedirect)} ($lang)"
                                 Log.d("FrembedExtractor", "Resolved server ${server.name} to: $resolvedName - redirect: $fullRedirect")
                                 server.copy(
@@ -231,6 +260,8 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                     }
                 }.awaitAll()
             }
+            resolved.filter { it.src.isNotBlank() && !it.src.contains("/api/stream", ignoreCase = true) }
+                .ifEmpty { initialServers }
         } catch (e: Exception) {
             if (e is retrofit2.HttpException) {
                 val redirect = e.response()?.headers()?.get("Location")
@@ -240,12 +271,15 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                         try {
                             val uri = java.net.URI(fullRedirect)
                             val newBaseUrl = "${uri.scheme}://${uri.host}/"
-                            Log.i("FrembedExtractor", "API redirected to a new domain. Updating cache to: $newBaseUrl")
-                            UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL, newBaseUrl)
-                            UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_LOGO, newBaseUrl + "favicon-32x32.png")
-                            FrembedProvider.rebuildService()
-                            
-                            return FrembedExtractor(newBaseUrl).servers(videoType)
+                            if (uri.host?.contains("frembed", ignoreCase = true) == true) {
+                                Log.i("FrembedExtractor", "API redirected to a new domain. Updating cache to: $newBaseUrl")
+                                UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL, newBaseUrl)
+                                UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_LOGO, newBaseUrl + "favicon-32x32.png")
+                                FrembedProvider.rebuildService()
+                                return FrembedExtractor(newBaseUrl).servers(videoType)
+                            } else {
+                                Log.w("FrembedExtractor", "Ignoring non-Frembed redirect host: ${uri.host}")
+                            }
                         } catch (ex: Exception) {
                             Log.e("FrembedExtractor", "Failed to parse URI from redirect Location: $fullRedirect", ex)
                         }
@@ -253,7 +287,7 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                 }
             }
             Log.e("FrembedExtractor", "Error fetching servers: ${e.message}", e)
-            emptyList()
+            throw e
         }
     }
 

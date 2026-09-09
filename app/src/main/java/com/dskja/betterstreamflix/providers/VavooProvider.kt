@@ -545,8 +545,15 @@ class VavooProvider(override val language: String) : IptvProvider {
                     )
                 }
                 Log.d(TAG, "[$language] Playing: ${resolved.url}")
+                // Vavoo CDN hosts frequently present expired TLS certs; ExoPlayer's
+                // default OkHttp client rejects them. Prefer plaintext HTTP for playback.
+                val playUrl = if (resolved.url.startsWith("https://", ignoreCase = true)) {
+                    "http://" + resolved.url.removePrefix("https://").removePrefix("HTTPS://")
+                } else {
+                    resolved.url
+                }
                 return Video(
-                    source = resolved.url,
+                    source = playUrl,
                     subtitles = emptyList(),
                     headers = mapOf(
                         "User-Agent" to "VAVOO/2.6",

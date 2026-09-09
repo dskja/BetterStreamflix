@@ -4,6 +4,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.M3uChannelIdCodec
 
 import android.util.Base64
 import android.util.Log
@@ -23,7 +24,6 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
     override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
         baseUrl
     }
-    // Logo genérico de deportes
     override val logo = "https://i.ibb.co/3s2mhm6/sports-logo.png"
     override val language = "es"
 
@@ -33,7 +33,6 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
 
     private const val FALLBACK_VIDEO_URL = "https://raw.githubusercontent.com/NANDOFS/ModoPrueba/main/VIDEO/SIN-SE%C3%91AL.mp4"
 
-    // Vacuna de Cuarta Dosis aplicada
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
@@ -56,7 +55,7 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
 
     private var cachedChannels: List<M3UChannel>? = null
     private var lastFetchTime: Long = 0
-    private const val CACHE_DURATION = 30 * 60 * 1000 // 30 minutos de caché
+    private const val CACHE_DURATION = 30 * 60 * 1000
 
     data class M3UChannel(
         val name: String,
@@ -64,33 +63,24 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
         val logo: String?,
         val group: String?,
         val userAgent: String? = null,
-        val referrer: String? = null
+        val referrer: String? = null,
+        val origin: String? = null,
     )
 
     private fun createId(channel: M3UChannel): String {
-        val rawId = "${channel.url}|${channel.name}|${channel.logo ?: ""}|${channel.userAgent ?: ""}|${channel.referrer ?: ""}"
-        return Base64.encodeToString(rawId.toByteArray(), Base64.NO_WRAP)
+        return M3uChannelIdCodec.encode(
+            url = channel.url,
+            name = channel.name,
+            logo = channel.logo,
+            userAgent = channel.userAgent,
+            referrer = channel.referrer,
+            origin = channel.origin,
+        )
     }
 
     private fun decodeId(id: String): Triple<String, String, String> {
-        return try {
-            val decoded = String(Base64.decode(id, Base64.DEFAULT))
-            val parts = decoded.split("|")
-            Triple(parts[0], parts[1], parts.getOrNull(2) ?: "")
-        } catch (e: Exception) {
-            Triple(id, "Canal Desconocido", "")
-        }
-    }
-
-    private fun getMetadataFromId(id: String): Map<String, String?> {
-        return try {
-            val decoded = String(Base64.decode(id, Base64.DEFAULT))
-            val parts = decoded.split("|")
-            mapOf(
-                "ua" to parts.getOrNull(3).takeIf { it?.isNotEmpty() == true },
-                "referer" to parts.getOrNull(4).takeIf { it?.isNotEmpty() == true }
-            )
-        } catch (e: Exception) { emptyMap() }
+        val payload = M3uChannelIdCodec.decode(id)
+        return Triple(payload.url, payload.name, payload.logo)
     }
 
     private fun getAllChannels(): List<M3UChannel> {
@@ -99,8 +89,7 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
 
         return try {
             val decodedUrl = String(Base64.decode(OBFUSCATED_PLAYLIST, Base64.DEFAULT))
-            Log.d(TAG, "🗺️ Obteniendo lista desde origen seguro: $decodedUrl")
-
+            Log.d(TAG, "Obteniendo lista: $decodedUrl")
             val request = Request.Builder().url(decodedUrl).build()
             val body = client.newCall(request).execute().body?.string() ?: return emptyList()
             val channels = parseM3U(body)
@@ -108,7 +97,7 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
             lastFetchTime = now
             channels
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error obteniendo M3U de Sports Events: ${e.message}")
+            Log.e(TAG, "Error obteniendo M3U de Sports Events: ${e.message}")
             cachedChannels ?: emptyList()
         }
     }
@@ -124,8 +113,13 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
                 Category(
                     name = groupName,
                     list = channelList.distinctBy { it.name }.take(30).map { channel ->
-                        TvShow(id = createId(channel), title = channel.name, poster = channel.logo ?: "", banner = channel.logo ?: "")
-                    }
+                        TvShow(
+                            id = createId(channel),
+                            title = channel.name,
+                            poster = channel.logo ?: "",
+                            banner = channel.logo ?: "",
+                        )
+                    },
                 )
             }.sortedBy { it.name }
 
@@ -137,8 +131,13 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
                 Category(
                     name = "General / Sin Categoría",
                     list = ungrouped.distinctBy { it.name }.take(30).map { channel ->
-                        TvShow(id = createId(channel), title = channel.name, poster = channel.logo ?: "", banner = channel.logo ?: "")
-                    }
+                        TvShow(
+                            id = createId(channel),
+                            title = channel.name,
+                            poster = channel.logo ?: "",
+                            banner = channel.logo ?: "",
+                        )
+                    },
                 )
             )
         }
@@ -150,7 +149,8 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
         if (page > 1) return emptyList()
         val allChannels = getAllChannels()
         return allChannels.filter {
-            it.name.contains(query, ignoreCase = true) || (it.group?.contains(query, ignoreCase = true) == true)
+            it.name.contains(query, ignoreCase = true) ||
+                (it.group?.contains(query, ignoreCase = true) == true)
         }.distinctBy { it.name }.take(80).map { channel ->
             TvShow(id = createId(channel), title = channel.name, poster = channel.logo ?: "")
         }
@@ -167,35 +167,41 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        return People(id = id, name = "Sports Events", image = logo, biography = "", birthday = "", deathday = "", placeOfBirth = "")
+        return People(
+            id = id,
+            name = "Sports Events",
+            image = logo,
+            biography = "",
+            birthday = "",
+            deathday = "",
+            placeOfBirth = "",
+        )
     }
 
     override suspend fun getTvShow(id: String): TvShow {
         val (_, name, logo) = decodeId(id)
         return TvShow(
-            id = id, title = name, poster = logo, banner = logo,
-            overview = "Transmisión: $name\nFuente: M3U Sports Events.",
-            seasons = listOf(Season(id = id, number = 1, title = "Reproducir"))
+            id = id,
+            title = name,
+            poster = logo,
+            banner = logo,
+            overview = "Live sports channel: $name",
+            seasons = emptyList(),
         )
     }
 
-    override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
-        return listOf(Episode(id = seasonId, number = 1, title = "Ver Ahora", season = null))
-    }
+    override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> = emptyList()
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return listOf(Video.Server(id = id, name = "Sports Stream"))
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val (url, _, _) = decodeId(server.id)
-        val meta = getMetadataFromId(server.id)
+        val payload = M3uChannelIdCodec.decode(server.id)
+        val url = payload.url
+        val videoHeaders = M3uChannelIdCodec.playbackHeaders(server.id).toMutableMap()
 
-        Log.d(TAG, "🎬 Solicitando Reproducción: $url")
-
-        val videoHeaders = mutableMapOf<String, String>()
-        meta["ua"]?.let { videoHeaders["User-Agent"] = it }
-        meta["referer"]?.let { videoHeaders["Referer"] = it }
+        Log.d(TAG, "Solicitando: $url headers=${videoHeaders.keys}")
 
         return try {
             val checkRequest = Request.Builder()
@@ -210,48 +216,59 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
                 val contentType = response.header("Content-Type") ?: ""
                 if (contentType.contains("text/html", ignoreCase = true)) {
                     isAlive = false
-                    Log.e(TAG, "🔴 Falso Positivo: El servidor devolvió una página web (HTML), no un video.")
+                    Log.e(TAG, "Servidor devolvió HTML en lugar de video")
                 } else if (url.contains(".mpd") || url.contains(".m3u8")) {
                     val peekBody = response.peekBody(15360).string()
-
                     if (url.contains(".mpd")) {
                         if (!peekBody.contains("<MPD", ignoreCase = true)) {
                             isAlive = false
-                            Log.e(TAG, "🔴 MPD Falso: No contiene etiqueta XML.")
-                        } else if (peekBody.contains("ContentProtection", ignoreCase = true) || peekBody.contains("cenc:pssh", ignoreCase = true)) {
-                            // ☠️ AQUÍ ATRAPAMOS AL CULPABLE DE LOS CRASHES
+                        } else if (
+                            peekBody.contains("ContentProtection", ignoreCase = true) ||
+                            peekBody.contains("cenc:pssh", ignoreCase = true)
+                        ) {
                             isAlive = false
-                            Log.e(TAG, "🔴 ALERTA DRM: MPD Encriptado detectado. ExoPlayer crashearía sin llaves. ¡Activando Salvavidas!")
+                            Log.e(TAG, "MPD DRM detectado")
                         }
                     } else if (url.contains(".m3u8") && !peekBody.contains("#EXTM3U", ignoreCase = true)) {
                         isAlive = false
-                        Log.e(TAG, "🔴 M3U8 Falso: No contiene la cabecera válida.")
                     }
                 }
             }
             response.close()
 
             if (isAlive) {
-                Log.d(TAG, "🟢 Explorador OK. Limpio de DRM. Enviando al reproductor.")
                 Video(
                     source = url,
                     subtitles = emptyList(),
-                    headers = if (videoHeaders.isNotEmpty()) videoHeaders else null
+                    headers = videoHeaders.takeIf { it.isNotEmpty() },
+                )
+            } else if (url.contains(".m3u8", ignoreCase = true) && videoHeaders.isNotEmpty()) {
+                // Live HLS probes race with rotating segments / geo. Prefer real
+                // playback with Referer/Origin over the fake "no signal" clip.
+                Log.w(TAG, "Probe failed; attempting live HLS with headers anyway")
+                Video(
+                    source = url,
+                    subtitles = emptyList(),
+                    headers = videoHeaders,
                 )
             } else {
-                Log.e(TAG, "🔴 Canal Muerto o Encriptado. ¡Activando Video Salvavidas!")
+                Log.e(TAG, "Canal muerto — fallback")
                 Video(source = FALLBACK_VIDEO_URL, subtitles = emptyList())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "🔴 Timeout de Red o Error Grave. ¡Activando Video Salvavidas! Detalle: ${e.message}")
+            Log.e(TAG, "Error red: ${e.message}")
             Video(source = FALLBACK_VIDEO_URL, subtitles = emptyList())
         }
     }
 
     private fun parseM3U(m3uRaw: String): List<M3UChannel> {
         val channels = mutableListOf<M3UChannel>()
-        var curName = ""; var curLogo = ""; var curGroup = ""
-        var curUA: String? = null; var curRef: String? = null
+        var curName = ""
+        var curLogo = ""
+        var curGroup = ""
+        var curUA: String? = null
+        var curRef: String? = null
+        var curOrigin: String? = null
 
         for (line in m3uRaw.lines()) {
             val t = line.trim()
@@ -261,13 +278,27 @@ object PelotaLibreTvHdProvider : IptvProvider, ProviderConfigUrl {
                 curGroup = Regex("""group-title="([^"]+)"""").find(t)?.groupValues?.get(1) ?: ""
                 curUA = Regex("""http-user-agent="([^"]+)"""").find(t)?.groupValues?.get(1)
                 curRef = Regex("""http-referrer="([^"]+)"""").find(t)?.groupValues?.get(1)
+                curOrigin = Regex("""http-origin="([^"]+)"""").find(t)?.groupValues?.get(1)
             } else if (t.startsWith("#EXTVLCOPT:")) {
-                if (t.contains("http-user-agent=")) curUA = t.substringAfter("http-user-agent=").trim()
-                if (t.contains("http-referrer=")) curRef = t.substringAfter("http-referrer=").trim()
+                when {
+                    t.contains("http-user-agent=") ->
+                        curUA = t.substringAfter("http-user-agent=").trim()
+                    t.contains("http-referrer=") ->
+                        curRef = t.substringAfter("http-referrer=").trim()
+                    t.contains("http-origin=") ->
+                        curOrigin = t.substringAfter("http-origin=").trim()
+                }
             } else if (t.startsWith("http")) {
                 if (curName.isNotEmpty()) {
-                    channels.add(M3UChannel(curName, t, curLogo, curGroup, curUA, curRef))
-                    curName = ""; curLogo = ""; curGroup = ""; curUA = null; curRef = null
+                    channels.add(
+                        M3UChannel(curName, t, curLogo, curGroup, curUA, curRef, curOrigin),
+                    )
+                    curName = ""
+                    curLogo = ""
+                    curGroup = ""
+                    curUA = null
+                    curRef = null
+                    curOrigin = null
                 }
             }
         }
