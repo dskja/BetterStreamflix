@@ -271,12 +271,15 @@ class FrembedExtractor (var newUrl: String = "") : Extractor() {
                         try {
                             val uri = java.net.URI(fullRedirect)
                             val newBaseUrl = "${uri.scheme}://${uri.host}/"
-                            Log.i("FrembedExtractor", "API redirected to a new domain. Updating cache to: $newBaseUrl")
-                            UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL, newBaseUrl)
-                            UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_LOGO, newBaseUrl + "favicon-32x32.png")
-                            FrembedProvider.rebuildService()
-
-                            return FrembedExtractor(newBaseUrl).servers(videoType)
+                            if (uri.host?.contains("frembed", ignoreCase = true) == true) {
+                                Log.i("FrembedExtractor", "API redirected to a new domain. Updating cache to: $newBaseUrl")
+                                UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_URL, newBaseUrl)
+                                UserPreferences.setProviderCache(FrembedProvider, UserPreferences.PROVIDER_LOGO, newBaseUrl + "favicon-32x32.png")
+                                FrembedProvider.rebuildService()
+                                return FrembedExtractor(newBaseUrl).servers(videoType)
+                            } else {
+                                Log.w("FrembedExtractor", "Ignoring non-Frembed redirect host: ${uri.host}")
+                            }
                         } catch (ex: Exception) {
                             Log.e("FrembedExtractor", "Failed to parse URI from redirect Location: $fullRedirect", ex)
                         }
