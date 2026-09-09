@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.ui
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.view.Gravity
@@ -12,6 +13,7 @@ import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.DialogShowOptionsTvBinding
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.fragments.home.HomeTvFragment
 import com.dskja.betterstreamflix.fragments.home.HomeTvFragmentDirections
 import com.dskja.betterstreamflix.models.Episode
@@ -183,6 +185,18 @@ class ShowOptionsTvDialog(
             }
             visibility = View.VISIBLE
         }
+
+        binding.btnOptionShowDownload.apply {
+            setOnClickListener {
+                val activity = context.toActivity() as? Activity
+                if (activity != null) {
+                    DownloadOptionsController.enqueueEpisode(context, activity, episode)
+                }
+                hide()
+            }
+            visibility = View.VISIBLE
+        }
+
         binding.btnOptionEpisodeMarkAllPreviousWatched.apply {
             setOnClickListener {
                 checkProviderAndRun(episode) {
@@ -358,6 +372,19 @@ class ShowOptionsTvDialog(
             visibility = View.VISIBLE
         }
 
+        binding.btnOptionShowDownload.apply {
+            setOnClickListener {
+                val activity = context.toActivity() as? Activity
+                if (activity != null) {
+                    DownloadOptionsController.enqueueMovie(context, activity, freshMovie)
+                }
+                hide()
+            }
+            visibility = View.VISIBLE
+        }
+
+        binding.btnOptionEpisodeMarkAllPreviousWatched.visibility = View.GONE
+
         binding.btnOptionProgramClear.apply {
             setOnClickListener {
                 checkProviderAndRun(freshMovie) {
@@ -445,6 +472,8 @@ class ShowOptionsTvDialog(
         }
 
         binding.btnOptionShowWatched.visibility = View.GONE
+        binding.btnOptionShowDownload.visibility = View.GONE
+        binding.btnOptionEpisodeMarkAllPreviousWatched.visibility = View.GONE
 
         binding.btnOptionProgramClear.visibility = View.GONE
 

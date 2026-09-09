@@ -157,6 +157,66 @@
     </PreferenceScreen>
 
     <PreferenceScreen
+        android:key="screen_downloads"
+        android:title="@string/settings_screen_downloads"
+        android:summary="@string/settings_screen_downloads_summary"
+        android:widgetLayout="@layout/preference_widget_chevron">
+
+        <PreferenceCategory android:title="@string/settings_screen_downloads">
+
+            <SwitchPreference
+                android:key="DOWNLOAD_WIFI_ONLY"
+                android:title="@string/settings_download_wifi_only"
+                android:defaultValue="true"
+                android:summaryOn="@string/settings_download_wifi_only_summary_on"
+                android:summaryOff="@string/settings_download_wifi_only_summary_off" />
+
+            <ListPreference
+                android:key="DOWNLOAD_QUALITY_PRESET"
+                android:title="@string/settings_download_quality_preset"
+                android:entries="@array/download_quality_preset_entries"
+                android:entryValues="@array/download_quality_preset_values"
+                android:defaultValue="ASK" />
+
+            <ListPreference
+                android:key="DOWNLOAD_MAX_CONCURRENT"
+                android:title="@string/settings_download_max_concurrent"
+                android:entries="@array/download_max_concurrent_entries"
+                android:entryValues="@array/download_max_concurrent_values"
+                android:defaultValue="2" />
+
+            <SwitchPreference
+                android:key="DOWNLOAD_NOTIFY_COMPLETE"
+                android:title="@string/settings_download_notify_complete"
+                android:defaultValue="true" />
+
+            <SwitchPreference
+                android:key="DOWNLOAD_FILTER_CURRENT_PROVIDER"
+                android:title="@string/settings_download_filter_provider"
+                android:defaultValue="false" />
+
+            <EditTextPreference
+                android:key="DOWNLOAD_SOFT_LIMIT_GB"
+                android:title="@string/settings_download_soft_limit"
+                android:defaultValue="20"
+                android:inputType="number" />
+
+            <Preference
+                android:key="DOWNLOAD_STORAGE_USED"
+                android:title="@string/settings_download_storage_used"
+                android:selectable="false" />
+
+            <Preference
+                android:key="DOWNLOAD_CLEAR_COMPLETED"
+                android:title="@string/settings_download_clear_completed" />
+
+            <Preference
+                android:key="DOWNLOAD_CLEAR_ALL"
+                android:title="@string/settings_download_clear_all" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
         android:key="screen_appearance"
         android:title="@string/settings_category_appearance"
         android:summary="@string/settings_screen_appearance_summary"

@@ -86,4 +86,28 @@
         <item>per_provider</item>
         <item>cross_provider</item>
     </string-array>
+
+    <string-array name="download_quality_preset_entries">
+        <item>@string/download_preset_best</item>
+        <item>@string/download_preset_data_saver</item>
+        <item>@string/download_preset_ask</item>
+    </string-array>
+    <string-array name="download_quality_preset_values">
+        <item>BEST</item>
+        <item>DATA_SAVER</item>
+        <item>ASK</item>
+    </string-array>
+
+    <string-array name="download_max_concurrent_entries">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
+    <string-array name="download_max_concurrent_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
 </resources>

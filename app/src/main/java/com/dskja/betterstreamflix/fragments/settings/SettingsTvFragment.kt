@@ -50,6 +50,9 @@ import com.dskja.betterstreamflix.database.dao.EpisodeDao
 import com.dskja.betterstreamflix.database.dao.MovieDao
 import com.dskja.betterstreamflix.database.dao.TvShowDao
 import com.dskja.betterstreamflix.database.dao.SeasonDao
+import com.dskja.betterstreamflix.download.DownloadQualityPreset
+import com.dskja.betterstreamflix.download.DownloadRepository
+import com.dskja.betterstreamflix.download.DownloadStorage
 import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.dskja.betterstreamflix.providers.FrenchStreamProvider
 import com.dskja.betterstreamflix.providers.GuardaFlixProvider
@@ -581,6 +584,89 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("AUTOPLAY")?.setOnPreferenceChangeListener { _, newValue ->
             UserPreferences.autoplay = newValue as Boolean
+            true
+        }
+
+        findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.apply {
+            isChecked = UserPreferences.downloadWifiOnly
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadWifiOnly = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<ListPreference>("DOWNLOAD_QUALITY_PRESET")?.apply {
+            value = UserPreferences.downloadQualityPreset.name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadQualityPreset =
+                    DownloadQualityPreset.fromKey(newValue as String)
+                true
+            }
+        }
+
+        findPreference<ListPreference>("DOWNLOAD_MAX_CONCURRENT")?.apply {
+            value = UserPreferences.downloadMaxConcurrent.toString()
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadMaxConcurrent =
+                    (newValue as String).toIntOrNull() ?: 2
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("DOWNLOAD_NOTIFY_COMPLETE")?.apply {
+            isChecked = UserPreferences.downloadNotifyComplete
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadNotifyComplete = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("DOWNLOAD_FILTER_CURRENT_PROVIDER")?.apply {
+            isChecked = UserPreferences.downloadFilterCurrentProvider
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadFilterCurrentProvider = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<EditTextPreference>("DOWNLOAD_SOFT_LIMIT_GB")?.apply {
+            text = UserPreferences.downloadSoftLimitGb.toString()
+            summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
+                "${pref.text ?: UserPreferences.downloadSoftLimitGb} GB"
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadSoftLimitGb =
+                    (newValue as String).toIntOrNull() ?: 20
+                true
+            }
+        }
+
+        findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+            DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+
+        findPreference<Preference>("DOWNLOAD_CLEAR_COMPLETED")?.setOnPreferenceClickListener {
+            lifecycleScope.launch {
+                DownloadRepository.get(requireContext()).clearCompleted()
+                findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+                    DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+            }
+            true
+        }
+
+        findPreference<Preference>("DOWNLOAD_CLEAR_ALL")?.setOnPreferenceClickListener {
+            android.app.AlertDialog.Builder(requireContext())
+                .setMessage(R.string.settings_download_clear_all_confirm)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    lifecycleScope.launch {
+                        DownloadRepository.get(requireContext()).clearAll()
+                        findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+                            DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
             true
         }
 
@@ -2044,6 +2130,18 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
         findPreference<SwitchPreference>("SERVER_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverAutoSubtitlesDisabled
+        findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.isChecked = UserPreferences.downloadWifiOnly
+        findPreference<SwitchPreference>("DOWNLOAD_NOTIFY_COMPLETE")?.isChecked = UserPreferences.downloadNotifyComplete
+        findPreference<SwitchPreference>("DOWNLOAD_FILTER_CURRENT_PROVIDER")?.isChecked =
+            UserPreferences.downloadFilterCurrentProvider
+        findPreference<ListPreference>("DOWNLOAD_QUALITY_PRESET")?.value =
+            UserPreferences.downloadQualityPreset.name
+        findPreference<ListPreference>("DOWNLOAD_MAX_CONCURRENT")?.value =
+            UserPreferences.downloadMaxConcurrent.toString()
+        findPreference<EditTextPreference>("DOWNLOAD_SOFT_LIMIT_GB")?.text =
+            UserPreferences.downloadSoftLimitGb.toString()
+        findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+            DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
         
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
