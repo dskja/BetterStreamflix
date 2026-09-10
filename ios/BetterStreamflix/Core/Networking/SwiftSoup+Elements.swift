@@ -5,3 +5,9 @@ extension Elements {
         Array(self)
     }
 }
+
+extension Element {
+    func selectFirst(_ cssQuery: String) throws -> Element? {
+        try select(cssQuery).first()
+    }
+}

@@ -145,12 +145,13 @@ struct AniWorldProvider: CatalogProvider {
         for el in elements {
             let href = try el.attr("href")
             guard let id = extractAnimeId(from: href), seen.insert(id).inserted else { continue }
-            let rawTitle = try el.selectFirst("h3")?.text()
-                ?? el.attr("title")
-                .ifBlank(try el.text())
+            let fromHeading = try el.selectFirst("h3")?.text()
+            let fromAttr = try el.attr("title")
+            let fromText = try el.text()
+            let rawTitle = (fromHeading?.ifBlank(fromAttr) ?? fromAttr).ifBlank(fromText)
             let title = rawTitle
-                .replacingOccurrences(of: #"\s*stream online.*$"#, with: "", options: .regularExpression)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: #"\s*stream online.*$"#, with: "", options: [.regularExpression])
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
             let img = try el.selectFirst("img")
             let poster = HTTPClient.absoluteURL(
                 try img?.attr("data-src").ifBlank(try img?.attr("src")),
