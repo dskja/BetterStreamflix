@@ -101,3 +101,5 @@ jobs:
           path: dist/${{ matrix.apk_name }}.apk
           if-no-files-found: error
           retention-days: 14
+
+# Maintainer: dskja
