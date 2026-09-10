@@ -7,11 +7,10 @@ struct AniWorldProvider: CatalogProvider {
     let language = "de"
     let baseURL = URL(string: "https://aniworld.to/")!
 
-    private static let alphabetLock = NSLock()
-    private static var alphabetCache: [MediaItem] = []
+    private static let cache = AlphabetCache()
 
     func home() async throws -> [CategoryRow] {
-        Task { try? await Self.ensureAlphabetCache(baseURL: baseURL) }
+        Task { try? await Self.cache.ensure(baseURL: baseURL) }
 
         var rows: [CategoryRow] = []
 
@@ -52,9 +51,9 @@ struct AniWorldProvider: CatalogProvider {
     func search(query: String) async throws -> [MediaItem] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
-        try await Self.ensureAlphabetCache(baseURL: baseURL)
+        try await Self.cache.ensure(baseURL: baseURL)
         let needle = trimmed.lowercased()
-        let cached = Self.alphabetLock.withLock { Self.alphabetCache }
+        let cached = await Self.cache.items
         let filtered = cached.filter { $0.title.lowercased().contains(needle) }
         if !filtered.isEmpty { return Array(filtered.prefix(60)) }
 
@@ -208,30 +207,35 @@ struct AniWorldProvider: CatalogProvider {
 
     // MARK: - Alphabet cache (Android Room equivalent)
 
-    private static func ensureAlphabetCache(baseURL: URL) async throws {
-        let existing = alphabetLock.withLock { alphabetCache }
-        if !existing.isEmpty { return }
-        let url = URL(string: "animes-alphabet", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
-        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
-        var items: [MediaItem] = []
-        var seen = Set<String>()
-        for link in try doc.select(".genre > ul > li a, a[href*=/anime/stream/]").array() {
-            let href = try link.attr("href")
-            guard let id = extractAnimeId(from: href), seen.insert(id).inserted else { continue }
-            let title = try link.attr("data-alternative-title").ifBlank(try link.text())
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            items.append(
-                MediaItem(
-                    id: id,
-                    title: title.ifBlank(id.replacingOccurrences(of: "-", with: " ").capitalized),
-                    posterURL: nil,
-                    kind: .tvShow,
-                    providerHint: "aniworld"
+    private actor AlphabetCache {
+        private var stored: [MediaItem] = []
+
+        var items: [MediaItem] { stored }
+
+        func ensure(baseURL: URL) async throws {
+            if !stored.isEmpty { return }
+            let url = URL(string: "animes-alphabet", relativeTo: baseURL)!.absoluteURL
+            let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+            let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
+            var items: [MediaItem] = []
+            var seen = Set<String>()
+            for link in try doc.select(".genre > ul > li a, a[href*=/anime/stream/]").array() {
+                let href = try link.attr("href")
+                guard let id = AniWorldProvider.extractAnimeId(from: href), seen.insert(id).inserted else { continue }
+                let title = try link.attr("data-alternative-title").ifBlank(try link.text())
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                items.append(
+                    MediaItem(
+                        id: id,
+                        title: title.ifBlank(id.replacingOccurrences(of: "-", with: " ").capitalized),
+                        posterURL: nil,
+                        kind: .tvShow,
+                        providerHint: "aniworld"
+                    )
                 )
-            )
+            }
+            stored = items
         }
-        alphabetLock.withLock { alphabetCache = items }
     }
 
     private func parseCoverList(_ doc: Document) throws -> [MediaItem] {
@@ -245,7 +249,7 @@ struct AniWorldProvider: CatalogProvider {
         for el in elements {
             let link = try el.selectFirst("a") ?? el
             let href = try link.attr("href")
-            guard let id = Self.extractAnimeId(from: href), seen.insert(id).inserted else { continue }
+            guard let id = AniWorldProvider.extractAnimeId(from: href), seen.insert(id).inserted else { continue }
             let title = try el.selectFirst("a h3, h3")?.text()
                 ?? link.attr("title").ifBlank(try link.text())
             let img = try el.selectFirst("img")
@@ -270,18 +274,10 @@ struct AniWorldProvider: CatalogProvider {
         try parseCoverItems(elements)
     }
 
-    private static func extractAnimeId(from href: String) -> String? {
+    fileprivate static func extractAnimeId(from href: String) -> String? {
         guard let range = href.range(of: "/anime/stream/") else { return nil }
         let slug = href[range.upperBound...].split(separator: "/").first.map(String.init) ?? ""
         return (slug.isEmpty || slug == "stream") ? nil : slug
-    }
-}
-
-private extension NSLock {
-    func withLock<T>(_ body: () -> T) -> T {
-        lock()
-        defer { unlock() }
-        return body()
     }
 }
 

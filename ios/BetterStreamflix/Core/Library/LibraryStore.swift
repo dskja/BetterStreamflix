@@ -69,8 +69,8 @@ final class LibraryStore {
             favorites = decoded.map(\.asMediaItem)
         }
         if let data = UserDefaults.standard.data(forKey: continueKey),
-           let decoded = try? decoder.decode([ContinueWatchEntry].self, from: data) {
-            continueWatching = decoded.sorted { $0.updatedAt > $1.updatedAt }
+           let decoded = try? decoder.decode([ContinueWatchDTO].self, from: data) {
+            continueWatching = decoded.map(\.asEntry).sorted { $0.updatedAt > $1.updatedAt }
         }
     }
 
@@ -84,7 +84,8 @@ final class LibraryStore {
 
     private func persistContinue() {
         let encoder = JSONEncoder()
-        if let data = try? encoder.encode(continueWatching) {
+        let dtos = continueWatching.map(ContinueWatchDTO.init)
+        if let data = try? encoder.encode(dtos) {
             UserDefaults.standard.set(data, forKey: continueKey)
         }
     }

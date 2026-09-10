@@ -123,8 +123,8 @@ struct SerienStreamProvider: CatalogProvider {
             rating: nil,
             seasons: seasons,
             kind: .tvShow,
-            genres: try doc.select(".series-group:contains(Genre) a").array().compactMap { try? $0.text() },
-            cast: try doc.select(".series-group:contains(Besetzung) a").array().prefix(12).compactMap { try? $0.text() }
+            genres: try doc.select(".series-group a").array().prefix(8).compactMap { try? $0.text() },
+            cast: try doc.select(".series-group a").array().prefix(12).compactMap { try? $0.text() }
         )
     }
 

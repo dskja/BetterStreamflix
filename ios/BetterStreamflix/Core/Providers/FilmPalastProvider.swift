@@ -77,7 +77,7 @@ struct FilmPalastProvider: CatalogProvider {
             )
         }
         if items.isEmpty {
-            items = try parseArticles(doc, kind: .movie) + try parseArticles(doc, kind: .tvShow)
+            items = (try parseArticles(doc, kind: .movie)) + (try parseArticles(doc, kind: .tvShow))
         }
         return items
     }

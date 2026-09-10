@@ -1,11 +1,12 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class AppModel {
     var selectedProviderID: String
     var selectedTab: AppTab = .home
-    let library = LibraryStore.shared
+    let library: LibraryStore
 
     let providers: [any CatalogProvider] = [
         TMDbProvider(),
@@ -15,6 +16,7 @@ final class AppModel {
     ]
 
     init() {
+        library = LibraryStore.shared
         let saved = UserDefaults.standard.string(forKey: "activeProviderID")
         if let saved, providers.contains(where: { $0.id == saved }) {
             selectedProviderID = saved
