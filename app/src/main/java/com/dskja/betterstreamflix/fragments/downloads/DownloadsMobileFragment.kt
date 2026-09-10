@@ -26,6 +26,7 @@ import com.dskja.betterstreamflix.download.ui.DownloadsFilter
 import com.dskja.betterstreamflix.download.ui.DownloadsViewModel
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.viewModelsFactory
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,7 +54,12 @@ class DownloadsMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentDownloadsMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_downloads_mobile,
+            R.layout.fragment_downloads_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentDownloadsMobileBinding.bind(root)
         return binding.root
     }
 
@@ -123,13 +129,27 @@ class DownloadsMobileFragment : Fragment() {
 
     private fun styleChip(chip: android.widget.TextView, selected: Boolean) {
         chip.isSelected = selected
-        chip.setBackgroundResource(
-            if (selected) R.drawable.bg_download_filter_chip_selected
-            else R.drawable.bg_download_filter_chip,
-        )
-        chip.setTextColor(
-            if (selected) 0xFF111111.toInt() else 0xFFFFFFFF.toInt(),
-        )
+        if (ExperimentalMobileDesign.enabled()) {
+            chip.setBackgroundResource(
+                if (selected) R.drawable.bg_exp_chip_selected
+                else R.drawable.bg_exp_filter_chip,
+            )
+            chip.setTextColor(
+                if (selected) {
+                    requireContext().getColor(R.color.exp_accent)
+                } else {
+                    requireContext().getColor(R.color.exp_ink)
+                },
+            )
+        } else {
+            chip.setBackgroundResource(
+                if (selected) R.drawable.bg_download_filter_chip_selected
+                else R.drawable.bg_download_filter_chip,
+            )
+            chip.setTextColor(
+                if (selected) 0xFF111111.toInt() else 0xFFFFFFFF.toInt(),
+            )
+        }
     }
 
     private fun updateBanner(lowSpace: Boolean, wifiPaused: Boolean) {

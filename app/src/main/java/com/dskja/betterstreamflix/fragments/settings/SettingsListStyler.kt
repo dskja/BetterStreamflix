@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 
@@ -38,7 +39,11 @@ internal object SettingsListStyler {
         val recyclerView = findRecyclerView(root) ?: return
         if (recyclerView.getTag(R.id.settings_list_styler_tag) == true) return
 
-        val backgroundColor = resolveThemeColor(root, R.attr.app_background_color, 0xFF181818.toInt())
+        val backgroundColor = if (!isTv && ExperimentalMobileDesign.enabled()) {
+            root.context.getColor(R.color.exp_canvas)
+        } else {
+            resolveThemeColor(root, R.attr.app_background_color, 0xFF181818.toInt())
+        }
         root.setBackgroundColor(backgroundColor)
         recyclerView.setTag(R.id.settings_list_styler_tag, true)
         recyclerView.clipToPadding = false
@@ -142,14 +147,35 @@ internal object SettingsListStyler {
         }
 
         val palette = ThemeManager.palette(UserPreferences.selectedTheme)
-        val surfaceColor = resolveThemeColor(view, R.attr.app_background_color, 0xFF181818.toInt())
-        val titleColor = palette.tvHeaderPrimary
-        val summaryColor = palette.tvHeaderSecondary
-        val accentColor = palette.mobileNavActive
-        val rowBackgroundColor = ColorUtils.blendARGB(surfaceColor, titleColor, if (isTv) 0.09f else 0.07f)
-        val rowBorderColor = ColorUtils.blendARGB(surfaceColor, summaryColor, 0.42f)
-        val rowHighlightColor = ColorUtils.blendARGB(surfaceColor, accentColor, if (isTv) 0.22f else 0.18f)
-        val rowHighlightBorderColor = ColorUtils.blendARGB(surfaceColor, accentColor, 0.62f)
+        val useExp = !isTv && ExperimentalMobileDesign.enabled()
+        val surfaceColor = if (useExp) {
+            context.getColor(R.color.exp_canvas)
+        } else {
+            resolveThemeColor(view, R.attr.app_background_color, 0xFF181818.toInt())
+        }
+        val titleColor = if (useExp) context.getColor(R.color.exp_ink) else palette.tvHeaderPrimary
+        val summaryColor = if (useExp) context.getColor(R.color.exp_ink_soft) else palette.tvHeaderSecondary
+        val accentColor = if (useExp) context.getColor(R.color.exp_accent) else palette.mobileNavActive
+        val rowBackgroundColor = if (useExp) {
+            context.getColor(R.color.exp_surface)
+        } else {
+            ColorUtils.blendARGB(surfaceColor, titleColor, if (isTv) 0.09f else 0.07f)
+        }
+        val rowBorderColor = if (useExp) {
+            context.getColor(R.color.exp_line)
+        } else {
+            ColorUtils.blendARGB(surfaceColor, summaryColor, 0.42f)
+        }
+        val rowHighlightColor = if (useExp) {
+            context.getColor(R.color.exp_surface_elevated)
+        } else {
+            ColorUtils.blendARGB(surfaceColor, accentColor, if (isTv) 0.22f else 0.18f)
+        }
+        val rowHighlightBorderColor = if (useExp) {
+            context.getColor(R.color.exp_accent)
+        } else {
+            ColorUtils.blendARGB(surfaceColor, accentColor, 0.62f)
+        }
 
         layoutParams?.setMargins(
             context.dp(if (isTv) 28 else 16),

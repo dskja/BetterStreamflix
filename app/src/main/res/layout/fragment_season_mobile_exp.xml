@@ -5,51 +5,72 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_exp_canvas_atmosphere"
-    tools:context=".fragments.movies.MoviesMobileFragment">
+    tools:context=".fragments.season.SeasonMobileFragment">
 
     <TextView
-        android:id="@+id/tv_movies_brand"
+        android:id="@+id/tv_season_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
         android:layout_marginTop="28dp"
         android:layout_marginEnd="22dp"
         android:fontFamily="@font/syne"
-        android:letterSpacing="-0.03"
-        android:text="@string/main_menu_movies"
+        android:gravity="center"
+        android:letterSpacing="-0.02"
         android:textColor="@color/exp_ink"
-        android:textSize="34sp"
+        android:textSize="28sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Season #" />
 
     <View
         android:layout_width="36dp"
         android:layout_height="3dp"
         android:layout_marginTop="10dp"
         android:background="@drawable/bg_exp_accent_rule"
-        app:layout_constraintStart_toStartOf="@id/tv_movies_brand"
-        app:layout_constraintTop_toBottomOf="@id/tv_movies_brand" />
+        app:layout_constraintEnd_toEndOf="@id/tv_season_title"
+        app:layout_constraintStart_toStartOf="@id/tv_season_title"
+        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+
+    <Spinner
+        android:id="@+id/sp_season_picker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:contentDescription="@string/season_switch_content_description"
+        android:minWidth="160dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_season_title" />
+
+    <TextView
+        android:id="@+id/btn_season_download"
+        style="@style/AppTheme.Widget.Mobile.Button.Exp.Secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/season_download"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sp_season_picker" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_movies"
+        android:id="@+id/rv_episodes"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="16dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="vertical"
-        android:paddingStart="14dp"
-        android:paddingTop="72dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="18dp"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        android:padding="10dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:spanCount="3"
-        tools:listitem="@layout/item_movie_grid_mobile_exp" />
+        app:layout_constraintTop_toBottomOf="@id/btn_season_download"
+        tools:listitem="@layout/item_episode_mobile_exp" />
 
     <include
         android:id="@+id/is_loading"

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_exp_canvas_atmosphere"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/tv_downloads_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="22dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="8dp"
+        android:fontFamily="@font/syne"
+        android:text="@string/downloads_title"
+        android:textColor="@color/exp_ink"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/btn_downloads_menu"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:layout_width="36dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_exp_accent_rule"
+        app:layout_constraintStart_toStartOf="@id/tv_downloads_title"
+        app:layout_constraintTop_toBottomOf="@id/tv_downloads_title" />
+
+    <ImageButton
+        android:id="@+id/btn_downloads_menu"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_exp_icon_chip"
+        android:contentDescription="@string/downloads_action_settings"
+        android:padding="12dp"
+        android:src="@drawable/ic_menu_settings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/exp_ink" />
+
+    <TextView
+        android:id="@+id/tv_downloads_storage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/manrope"
+        android:paddingStart="22dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/exp_ink_soft"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_downloads_title" />
+
+    <TextView
+        android:id="@+id/tv_downloads_banner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/manrope"
+        android:paddingStart="22dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/exp_accent_light"
+        android:textSize="13sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_downloads_storage" />
+
+    <HorizontalScrollView
+        android:id="@+id/hsv_downloads_filters"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:scrollbars="none"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_downloads_banner">
+
+        <LinearLayout
+            android:id="@+id/ll_downloads_filters"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/chip_filter_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_exp_filter_chip"
+                android:fontFamily="@font/manrope"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/downloads_filter_all"
+                android:textColor="@color/exp_ink"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/chip_filter_downloading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_exp_filter_chip"
+                android:fontFamily="@font/manrope"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/downloads_filter_downloading"
+                android:textColor="@color/exp_ink"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/chip_filter_completed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_exp_filter_chip"
+                android:fontFamily="@font/manrope"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/downloads_filter_completed"
+                android:textColor="@color/exp_ink"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/chip_filter_failed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_exp_filter_chip"
+                android:fontFamily="@font/manrope"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/downloads_filter_failed"
+                android:textColor="@color/exp_ink"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_downloads"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/hsv_downloads_filters" />
+
+    <TextView
+        android:id="@+id/tv_downloads_empty"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"
+        android:padding="28dp"
+        android:text="@string/downloads_empty"
+        android:textColor="@color/exp_mist"
+        android:textSize="15sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -222,10 +222,15 @@ class AppAdapter(
             )
 
             Type.EPISODE_MOBILE_ITEM -> EpisodeViewHolder(
-                ItemEpisodeMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemEpisodeMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_episode_mobile,
+                            R.layout.item_episode_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.EPISODE_TV_ITEM -> EpisodeViewHolder(
@@ -236,10 +241,15 @@ class AppAdapter(
                 )
             )
             Type.EPISODE_CONTINUE_WATCHING_MOBILE_ITEM -> EpisodeViewHolder(
-                ItemEpisodeContinueWatchingMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemEpisodeContinueWatchingMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_episode_continue_watching_mobile,
+                            R.layout.item_episode_continue_watching_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.EPISODE_CONTINUE_WATCHING_TV_ITEM -> EpisodeViewHolder(
@@ -254,18 +264,28 @@ class AppAdapter(
                 footer!!.binding(parent)
             )
             Type.FAVORITE_SECTION_HEADER -> FavoriteSectionHeaderViewHolder(
-                ItemFavoriteSectionHeaderBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemFavoriteSectionHeaderBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_favorite_section_header,
+                            R.layout.item_favorite_section_header_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
 
             Type.GENRE_GRID_MOBILE_ITEM -> GenreViewHolder(
-                ItemGenreGridMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemGenreGridMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_genre_grid_mobile,
+                            R.layout.item_genre_grid_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.GENRE_GRID_TV_ITEM -> GenreViewHolder(
@@ -404,10 +424,15 @@ class AppAdapter(
             )
 
             Type.PEOPLE_MOBILE_ITEM -> PeopleViewHolder(
-                ItemPeopleMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemPeopleMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_people_mobile,
+                            R.layout.item_people_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.PEOPLE_TV_ITEM -> PeopleViewHolder(
@@ -419,10 +444,15 @@ class AppAdapter(
             )
 
             Type.PROVIDER_MOBILE_ITEM -> ProviderViewHolder(
-                ItemProviderMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemProviderMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_provider_mobile,
+                            R.layout.item_provider_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.PROVIDER_TV_ITEM -> ProviderViewHolder(
@@ -434,10 +464,15 @@ class AppAdapter(
             )
 
             Type.SEASON_MOBILE_ITEM -> SeasonViewHolder(
-                ItemSeasonMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                ItemSeasonMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_season_mobile,
+                            R.layout.item_season_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
             Type.SEASON_TV_ITEM -> SeasonViewHolder(

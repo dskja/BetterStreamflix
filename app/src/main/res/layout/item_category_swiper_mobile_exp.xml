@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_ink">
+    android:background="@color/exp_canvas">
 
     <ImageView
         android:id="@+id/iv_swiper_background"
@@ -25,11 +25,12 @@
         android:layout_marginStart="22dp"
         android:layout_marginEnd="56dp"
         android:layout_marginBottom="12dp"
-        android:fontFamily="@font/fraunces"
+        android:fontFamily="@font/syne"
         android:gravity="start"
-        android:letterSpacing="-0.02"
+        android:letterSpacing="-0.03"
         android:textColor="@color/exp_on_media"
-        android:textSize="36sp"
+        android:textSize="34sp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/barrier1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -96,7 +97,7 @@
         android:layout_height="0dp"
         android:layout_marginStart="14dp"
         android:src="@drawable/ic_star"
-        android:tint="@color/exp_on_media"
+        android:tint="@color/exp_gold"
         app:layout_constraintBottom_toBottomOf="@id/tv_swiper_rating"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toStartOf="@id/tv_swiper_rating"
@@ -154,7 +155,7 @@
         android:layout_height="2dp"
         android:layout_marginTop="10dp"
         android:backgroundTint="#55FFFFFF"
-        android:progressTint="@color/exp_on_media"
+        android:progressTint="@color/exp_accent"
         app:layout_constraintEnd_toEndOf="@id/btn_swiper_watch_now"
         app:layout_constraintStart_toStartOf="@id/btn_swiper_watch_now"
         app:layout_constraintTop_toBottomOf="@id/btn_swiper_watch_now"
