@@ -59,6 +59,7 @@ import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.dskja.betterstreamflix.ui.ShowOptionsTvDialog
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.format
 import com.dskja.betterstreamflix.utils.toActivity
 import com.dskja.betterstreamflix.utils.getCurrentFragment
@@ -225,6 +226,7 @@ class TvShowViewHolder(
             fallback(R.drawable.glide_fallback_cover)
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        ExperimentalMobileDesign.stylePoster(imageView)
     }
 
     private fun displayMobileItem(binding: ItemTvShowMobileBinding) {

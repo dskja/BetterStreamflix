@@ -9,13 +9,13 @@
         android:id="@+id/tv_favorites_brand"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="22dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="28dp"
         android:fontFamily="@font/syne"
-        android:letterSpacing="-0.03"
+        android:letterSpacing="-0.04"
         android:text="@string/main_menu_favorites"
         android:textColor="@color/exp_ink"
-        android:textSize="34sp"
+        android:textSize="36sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder_mode"
         app:layout_constraintStart_toStartOf="parent"
@@ -49,10 +49,10 @@
         app:tint="@color/exp_accent" />
 
     <View
-        android:layout_width="36dp"
-        android:layout_height="2dp"
+        android:layout_width="40dp"
+        android:layout_height="3dp"
         android:layout_marginTop="10dp"
-        android:background="@color/exp_accent"
+        android:background="@drawable/bg_exp_accent_rule"
         app:layout_constraintStart_toStartOf="@id/tv_favorites_brand"
         app:layout_constraintTop_toBottomOf="@id/tv_favorites_brand" />
 

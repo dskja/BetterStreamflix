@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -25,6 +26,7 @@ import com.dskja.betterstreamflix.download.ui.DownloadsAdapter
 import com.dskja.betterstreamflix.download.ui.DownloadsFilter
 import com.dskja.betterstreamflix.download.ui.DownloadsViewModel
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,7 +55,15 @@ class DownloadsMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentDownloadsMobileBinding.inflate(inflater, container, false)
+        val root = inflater.inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.fragment_downloads_mobile,
+                R.layout.fragment_downloads_mobile_exp,
+            ),
+            container,
+            false,
+        )
+        _binding = FragmentDownloadsMobileBinding.bind(root)
         return binding.root
     }
 
@@ -123,12 +133,22 @@ class DownloadsMobileFragment : Fragment() {
 
     private fun styleChip(chip: android.widget.TextView, selected: Boolean) {
         chip.isSelected = selected
+        val exp = ExperimentalMobileDesign.enabled()
         chip.setBackgroundResource(
-            if (selected) R.drawable.bg_download_filter_chip_selected
-            else R.drawable.bg_download_filter_chip,
+            when {
+                exp && selected -> R.drawable.bg_exp_download_filter_chip_active
+                exp -> R.drawable.bg_exp_download_filter_chip
+                selected -> R.drawable.bg_download_filter_chip_selected
+                else -> R.drawable.bg_download_filter_chip
+            },
         )
         chip.setTextColor(
-            if (selected) 0xFF111111.toInt() else 0xFFFFFFFF.toInt(),
+            when {
+                exp && selected -> ContextCompat.getColor(requireContext(), R.color.exp_on_accent)
+                exp -> ContextCompat.getColor(requireContext(), R.color.exp_ink)
+                selected -> 0xFF111111.toInt()
+                else -> 0xFFFFFFFF.toInt()
+            },
         )
     }
 

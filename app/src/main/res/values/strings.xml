@@ -551,8 +551,8 @@
 
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_experimental_new_design_title">Experimental app design</string>
-    <string name="settings_experimental_new_design_summary">Atelier — a premium light editorial mobile shell. Restarts the app. Off by default.</string>
-    <string name="exp_home_tagline">Curated cinema, beautifully arranged</string>
+    <string name="settings_experimental_new_design_summary">Ember — full nocturnal cinema shell (home, detail, cast, seasons, episodes, downloads, search…). Restarts the app. Off by default.</string>
+    <string name="exp_home_tagline">Night screen. Warm light. Your next watch.</string>
     <string name="player_cast_unsupported_stream">This stream cannot be cast (inline playlist). Try another server.</string>
     <string name="player_cast_proxy_unavailable">Cast proxy unavailable on this network. Streaming may fail without headers.</string>
     <string name="settings_catalog_sort_title">Catalog sort</string>

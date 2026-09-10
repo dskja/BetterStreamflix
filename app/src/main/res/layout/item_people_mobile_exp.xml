@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingEnd="6dp">
+
+    <ImageView
+        android:id="@+id/iv_people_image"
+        android:layout_width="104dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_exp_people_avatar"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:clipToOutline="true"
+        tools:ignore="ContentDescription"
+        tools:src="@drawable/ic_person_placeholder" />
+
+    <TextView
+        android:id="@+id/tv_people_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/outfit"
+        android:gravity="center_horizontal"
+        android:lines="2"
+        android:textColor="@color/exp_ink"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/iv_people_image"
+        tools:text="People name" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
