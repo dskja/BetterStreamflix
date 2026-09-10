@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.download.DownloadItemState
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 
 class DownloadsAdapter(
     private val onPlay: (DownloadRowUiModel.Item) -> Unit,

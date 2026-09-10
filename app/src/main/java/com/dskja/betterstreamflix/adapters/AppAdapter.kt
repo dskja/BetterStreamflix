@@ -636,6 +636,7 @@ class AppAdapter(
                         false,
                     )
                 )
+            )
             Type.TV_SHOW_RECOMMENDATIONS_TV -> TvShowViewHolder(
                 ContentTvShowRecommendationsTvBinding.inflate(
                     LayoutInflater.from(parent.context),
