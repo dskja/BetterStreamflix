@@ -1,32 +1,37 @@
-# BetterStreamflix iOS (Liquid Glass beta)
+# BetterStreamflix iOS — Liquid Glass Beta v2
 
-Unsigned SwiftUI client for German catalogs (SerienStream, AniWorld).
+Unsigned SwiftUI client (iOS 26+) with TMDb catalog + German scrape providers.
 
-## Scope (beta v1)
+## Beta v2 scope
 
-- Shell + Liquid Glass UI (iOS 26+)
-- Home / Search / Detail / Player
-- Provider framework with SerienStream + AniWorld
+- **TMDb (DE)** primary catalog (trending, popular, discover shelves) using the same `TMDB_API_KEY` as Android
+- Playback via **Videasy (Killjoy DE)** plus title-matched SerienStream / Filmpalast hosts
+- **SerienStream** fixed to current site selectors (`term` search, `#season-nav`, `tr.episode-row`, `button.link-box` / challenge WebView)
+- **AniWorld** hardened (beliebte + cover lists + alphabet search cache, hoster list)
+- **Filmpalast** movies/series
+- Library: continue watching + bookmarks
+- Settings: TMDb key override
+- Multi-source picker + header-aware AVPlayer
 
 ## Requirements
 
-- Xcode 26+ (Liquid Glass APIs)
+- Xcode 26+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+- Optional: `TMDB_API_KEY` in repo-root `local.properties` (same as Android)
 
 ```bash
 brew install xcodegen
-cd ios
-xcodegen generate
+./ios/ci/generate-secrets.sh
+cd ios && xcodegen generate
 open BetterStreamflix.xcodeproj
 ```
 
 ## Unsigned CI IPA
 
-GitHub Actions workflow `.github/workflows/ios-build.yml` archives with
-`CODE_SIGNING_ALLOWED=NO` and uploads:
+`.github/workflows/ios-build.yml` injects `secrets.TMDB_API_KEY`, archives with
+`CODE_SIGNING_ALLOWED=NO`, and uploads:
 
 - `BetterStreamflix-unsigned.ipa`
 - `BetterStreamflix.xcarchive`
 
-Re-sign / sideload locally with your own tooling (Sideloadly, TrollStore, etc.).
-No Apple signing secrets are stored in this repo.
+Re-sign / sideload locally. No Apple signing secrets are stored in this repo.

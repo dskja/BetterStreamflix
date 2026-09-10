@@ -1,8 +1,10 @@
 import SwiftUI
+import WebKit
 
 struct DetailView: View {
     @Environment(AppModel.self) private var app
     let item: MediaItem
+    var forcedProviderID: String? = nil
 
     @State private var detail: ShowDetail?
     @State private var episodes: [EpisodeInfo] = []
@@ -13,6 +15,22 @@ struct DetailView: View {
     @State private var isResolving = false
     @State private var resolveError: String?
     @State private var playerItem: PlayerLaunch?
+    @State private var pendingSources: [StreamSource] = []
+    @State private var showSourcePicker = false
+    @State private var challengeURL: IdentifiedURL?
+    @State private var pendingTitle = ""
+    @State private var pendingSeasonID: String?
+    @State private var pendingEpisodeID: String?
+
+    private var provider: any CatalogProvider {
+        if let forcedProviderID, let match = app.providers.first(where: { $0.id == forcedProviderID }) {
+            return match
+        }
+        if let hint = item.providerHint, let match = app.providers.first(where: { $0.id == hint }) {
+            return match
+        }
+        return app.activeProvider
+    }
 
     var body: some View {
         ScrollView {
@@ -25,6 +43,7 @@ struct DetailView: View {
                     Text(errorMessage).foregroundStyle(.red)
                     Button("Retry") { Task { await load() } }
                 } else if let detail {
+                    meta(detail)
                     detailBody(detail)
                 }
             }
@@ -34,9 +53,32 @@ struct DetailView: View {
         .emberBackground()
         .navigationTitle(item.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    app.library.toggleFavorite(item, providerID: provider.id)
+                } label: {
+                    Image(systemName: app.library.isFavorite(item, providerID: provider.id) ? "bookmark.fill" : "bookmark")
+                        .foregroundStyle(EmberTheme.accent)
+                }
+            }
+        }
         .task { await load() }
         .fullScreenCover(item: $playerItem) { launch in
-            PlayerView(url: launch.url, title: launch.title)
+            PlayerView(url: launch.url, title: launch.title, headers: launch.headers)
+        }
+        .sheet(isPresented: $showSourcePicker) {
+            SourcePickerSheet(sources: pendingSources) { source in
+                showSourcePicker = false
+                Task { await resolveAndPlay(source, title: pendingTitle) }
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $challengeURL) { identified in
+            ChallengeGateView(url: identified.url) { finalURL in
+                challengeURL = nil
+                Task { await finishChallenge(finalURL: finalURL, title: pendingTitle) }
+            }
         }
         .alert("Playback", isPresented: Binding(
             get: { resolveError != nil },
@@ -50,7 +92,7 @@ struct DetailView: View {
 
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: item.bannerURL ?? item.posterURL) { phase in
+            AsyncImage(url: item.bannerURL ?? item.posterURL ?? detail?.bannerURL ?? detail?.posterURL) { phase in
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFill()
@@ -69,12 +111,18 @@ struct DetailView: View {
             )
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(item.title)
+                Text(detail?.title ?? item.title)
                     .font(.system(.largeTitle, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
-                Text(item.kind == .tvShow ? "Series" : "Movie")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.75))
+                HStack(spacing: 10) {
+                    Text(item.kind == .tvShow ? "Series" : "Movie")
+                    if let year = detail?.year ?? item.year { Text("· \(year)") }
+                    if let rating = detail?.rating ?? item.rating {
+                        Text("· ★ \(String(format: "%.1f", rating))")
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.75))
             }
             .padding(EmberTheme.spaceMD)
         }
@@ -83,15 +131,28 @@ struct DetailView: View {
     }
 
     @ViewBuilder
-    private func detailBody(_ detail: ShowDetail) -> some View {
+    private func meta(_ detail: ShowDetail) -> some View {
+        if !detail.genres.isEmpty {
+            Text(detail.genres.joined(separator: " · "))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(EmberTheme.gold)
+        }
         if let overview = detail.overview, !overview.isEmpty {
             Text(overview)
                 .font(.body)
                 .foregroundStyle(.white.opacity(0.88))
         }
+        if !detail.cast.isEmpty {
+            Text("Cast: \(detail.cast.joined(separator: ", "))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
 
-        if detail.kind == .movie {
-            playButton(title: "Play movie") {
+    @ViewBuilder
+    private func detailBody(_ detail: ShowDetail) -> some View {
+        if detail.kind == .movie || detail.seasons.isEmpty {
+            playButton(title: isResolving ? "Resolving…" : "Play") {
                 await play(showId: detail.id, seasonId: nil, episodeId: nil, title: detail.title)
             }
         } else {
@@ -122,8 +183,7 @@ struct DetailView: View {
                 .foregroundStyle(.white)
 
             if isLoadingEpisodes {
-                ProgressView()
-                    .frame(maxWidth: .infinity, minHeight: 80)
+                ProgressView().frame(maxWidth: .infinity, minHeight: 80)
             } else {
                 ForEach(episodes) { episode in
                     Button {
@@ -136,15 +196,33 @@ struct DetailView: View {
                             )
                         }
                     } label: {
-                        HStack {
+                        HStack(alignment: .top, spacing: 12) {
+                            if let thumb = episode.thumbnailURL {
+                                AsyncImage(url: thumb) { phase in
+                                    if case .success(let image) = phase {
+                                        image.resizable().scaledToFill()
+                                    } else {
+                                        EmberTheme.surfaceElevated
+                                    }
+                                }
+                                .frame(width: 96, height: 54)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("E\(episode.number) · \(episode.title)")
                                     .font(.headline)
                                     .foregroundStyle(.white)
                                     .multilineTextAlignment(.leading)
-                                Text("Tap to play")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                if let overview = episode.overview, !overview.isEmpty {
+                                    Text(overview)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                } else {
+                                    Text("Tap to choose source")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                             Spacer()
                             Image(systemName: "play.circle.fill")
@@ -166,11 +244,8 @@ struct DetailView: View {
             Task { await action() }
         } label: {
             HStack {
-                if isResolving {
-                    ProgressView().tint(.white)
-                } else {
-                    Image(systemName: "play.fill")
-                }
+                if isResolving { ProgressView().tint(.white) }
+                else { Image(systemName: "play.fill") }
                 Text(title).fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
@@ -186,7 +261,7 @@ struct DetailView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let loaded = try await app.activeProvider.detail(id: item.id, kind: item.kind)
+            let loaded = try await provider.detail(id: item.id, kind: item.kind)
             detail = loaded
             isLoading = false
             if let first = loaded.seasons.first {
@@ -204,7 +279,7 @@ struct DetailView: View {
         isLoadingEpisodes = true
         defer { isLoadingEpisodes = false }
         do {
-            episodes = try await app.activeProvider.episodes(showId: detail.id, seasonId: season.id)
+            episodes = try await provider.episodes(showId: detail.id, seasonId: season.id)
         } catch {
             episodes = []
             resolveError = error.localizedDescription
@@ -215,21 +290,75 @@ struct DetailView: View {
     private func play(showId: String, seasonId: String?, episodeId: String?, title: String) async {
         isResolving = true
         defer { isResolving = false }
+        pendingTitle = title
+        pendingSeasonID = seasonId
+        pendingEpisodeID = episodeId
         do {
-            let streams = try await app.activeProvider.streams(
+            let streams = try await provider.streams(
                 showId: showId,
                 seasonId: seasonId,
-                episodeId: episodeId
+                episodeId: episodeId,
+                detail: detail
             )
-            guard let first = streams.first else {
+            guard !streams.isEmpty else {
                 resolveError = "No playable streams found."
                 return
             }
-            let url = try await StreamResolver.resolve(first)
-            playerItem = PlayerLaunch(url: url, title: title)
+            if streams.count == 1 {
+                await resolveAndPlay(streams[0], title: title)
+            } else {
+                pendingSources = streams
+                showSourcePicker = true
+            }
         } catch {
             resolveError = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func resolveAndPlay(_ source: StreamSource, title: String) async {
+        isResolving = true
+        defer { isResolving = false }
+        do {
+            if source.resolveKind == .serienstreamGate {
+                challengeURL = IdentifiedURL(url: source.url)
+                return
+            }
+            let url = try await StreamResolver.resolve(source)
+            openPlayer(url: url, title: title, headers: source.headers)
+        } catch let error as ProviderError {
+            if case .streamGate = error {
+                challengeURL = IdentifiedURL(url: source.url)
+            } else {
+                resolveError = error.localizedDescription
+            }
+        } catch {
+            resolveError = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func finishChallenge(finalURL: URL, title: String) async {
+        if StreamResolver.isSerienStreamHost(finalURL) || finalURL.absoluteString.contains("/r?") {
+            resolveError = "Challenge incomplete — stream gate still active."
+            return
+        }
+        openPlayer(url: finalURL, title: title, headers: [
+            "User-Agent": HTTPClient.desktopUserAgent,
+            "Referer": SerienStreamProvider().baseURL.absoluteString,
+        ])
+    }
+
+    @MainActor
+    private func openPlayer(url: URL, title: String, headers: [String: String]) {
+        app.library.recordProgress(
+            item: item,
+            providerID: provider.id,
+            seasonID: pendingSeasonID,
+            episodeID: pendingEpisodeID,
+            progress: 0.05
+        )
+        playerItem = PlayerLaunch(url: url, title: title, headers: headers)
     }
 }
 
@@ -237,4 +366,110 @@ struct PlayerLaunch: Identifiable {
     let id = UUID()
     let url: URL
     let title: String
+    var headers: [String: String] = [:]
+}
+
+struct IdentifiedURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct SourcePickerSheet: View {
+    let sources: [StreamSource]
+    let onPick: (StreamSource) -> Void
+
+    var body: some View {
+        NavigationStack {
+            List(sources) { source in
+                Button {
+                    onPick(source)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(source.name)
+                            .foregroundStyle(.primary)
+                        Text(source.resolveKind.rawValue)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Choose source")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+struct ChallengeGateView: View {
+    let url: URL
+    var onResolved: (URL) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ChallengeWebView(url: url) { finalURL in
+                onResolved(finalURL)
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .navigationTitle("Verify stream")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Text("Complete the SerienStream check, then wait for redirect to the hoster.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+            }
+        }
+    }
+}
+
+struct ChallengeWebView: UIViewRepresentable {
+    let url: URL
+    var onResolved: (URL) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onResolved: onResolved)
+    }
+
+    func makeUIView(context: Context) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
+        webView.customUserAgent = HTTPClient.desktopUserAgent
+        webView.load(URLRequest(url: url))
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
+
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        let onResolved: (URL) -> Void
+        init(onResolved: @escaping (URL) -> Void) {
+            self.onResolved = onResolved
+        }
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
+            if let navURL = navigationAction.request.url,
+               !StreamResolver.isSerienStreamHost(navURL),
+               !navURL.absoluteString.contains("/r?") {
+                onResolved(navURL)
+                return .cancel
+            }
+            return .allow
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            if let navURL = webView.url,
+               !StreamResolver.isSerienStreamHost(navURL),
+               !navURL.absoluteString.contains("/r?") {
+                onResolved(navURL)
+            }
+        }
+    }
 }

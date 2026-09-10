@@ -7,40 +7,70 @@ struct AniWorldProvider: CatalogProvider {
     let language = "de"
     let baseURL = URL(string: "https://aniworld.to/")!
 
+    private static let alphabetLock = NSLock()
+    private static var alphabetCache: [MediaItem] = []
+
     func home() async throws -> [CategoryRow] {
-        let html = try await HTTPClient.getHTML(url: baseURL)
-        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
+        Task { try? await Self.ensureAlphabetCache(baseURL: baseURL) }
+
         var rows: [CategoryRow] = []
 
-        let popularURL = URL(string: "beliebte-animes", relativeTo: baseURL)!.absoluteURL
-        if let popularHTML = try? await HTTPClient.getHTML(url: popularURL, referer: baseURL),
+        if let popularHTML = try? await HTTPClient.getHTML(
+            url: URL(string: "beliebte-animes", relativeTo: baseURL)!.absoluteURL,
+            referer: baseURL,
+            desktopUA: true
+        ),
            let popularDoc = try? SwiftSoup.parse(popularHTML, baseURL.absoluteString) {
-            let items = try parseCards(popularDoc.select("a[href*=/anime/stream/]").array())
+            let items = try parseCoverList(popularDoc)
             if !items.isEmpty {
                 rows.append(CategoryRow(id: "popular", title: "Beliebte Animes", items: items))
             }
         }
 
-        let featured = try parseCards(doc.select("a[href*=/anime/stream/]").array().prefix(24).map { $0 })
-        if !featured.isEmpty {
-            rows.append(CategoryRow(id: "home", title: "Neu & Entdecken", items: featured))
+        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true)
+        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
+
+        let sectionSelectors = [
+            ("hot", "Beliebt bei AniWorld", "div.container > div:nth-child(7) > div.previews div.coverListItem"),
+            ("new", "Neue Animes", "div.container > div:nth-child(11) > div.previews div.coverListItem"),
+            ("now", "Derzeit beliebte Animes", "div.container > div:nth-child(16) > div.previews div.coverListItem"),
+        ]
+        for (id, title, selector) in sectionSelectors {
+            let items = try parseCoverItems(doc.select(selector).array())
+            if !items.isEmpty {
+                rows.append(CategoryRow(id: id, title: title, items: items))
+            }
         }
-        return rows
+
+        if rows.isEmpty {
+            let fallback = try parseCards(doc.select("a[href*=/anime/stream/]").array().prefix(40).map { $0 })
+            rows.append(CategoryRow(id: "home", title: "Animes", items: fallback))
+        }
+        return rows.filter { !$0.items.isEmpty }
     }
 
     func search(query: String) async throws -> [MediaItem] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
+        try await Self.ensureAlphabetCache(baseURL: baseURL)
+        let needle = trimmed.lowercased()
+        let cached = Self.alphabetLock.withLock { Self.alphabetCache }
+        let filtered = cached.filter { $0.title.lowercased().contains(needle) }
+        if !filtered.isEmpty { return Array(filtered.prefix(60)) }
+
+        // Fallback: site search page if alphabet cache is empty
         let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
-        let url = URL(string: "search?q=\(encoded)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL)
-        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
-        return try parseCards(doc.select("a[href*=/anime/stream/]").array())
+        if let url = URL(string: "search?q=\(encoded)", relativeTo: baseURL)?.absoluteURL,
+           let html = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true),
+           let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
+            return try parseCards(doc.select("a[href*=/anime/stream/]").array())
+        }
+        return []
     }
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         let url = URL(string: "anime/stream/\(id)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let title = try doc.selectFirst("h1 > span, h1")?.text()
             ?? id.replacingOccurrences(of: "-", with: " ").capitalized
@@ -52,8 +82,7 @@ struct AniWorldProvider: CatalogProvider {
             base: baseURL
         )
         var seasons: [SeasonInfo] = []
-        let seasonLinks = try doc.select("#stream > ul:nth-child(1) > li a").array()
-        for (idx, link) in seasonLinks.enumerated() {
+        for (idx, link) in try doc.select("#stream > ul:nth-child(1) > li a").array().enumerated() {
             let text = try link.text()
             let href = try link.attr("href")
             let number: Int = {
@@ -62,17 +91,18 @@ struct AniWorldProvider: CatalogProvider {
                 }
                 return Int(text.filter(\.isNumber)) ?? (idx + 1)
             }()
-            let seasonPath = href.replacingOccurrences(of: "/anime/stream/", with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let seasonPath = href.replacingOccurrences(of: "/anime/stream/", with: "")
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             seasons.append(
                 SeasonInfo(
                     id: seasonPath.isEmpty ? "\(id)/staffel-\(max(number, 1))" : seasonPath,
                     number: number,
-                    title: text.isEmpty ? "Season \(number)" : text
+                    title: text.isEmpty ? "Staffel \(number)" : text
                 )
             )
         }
         if seasons.isEmpty {
-            seasons = [SeasonInfo(id: "\(id)/staffel-1", number: 1, title: "Season 1")]
+            seasons = [SeasonInfo(id: "\(id)/staffel-1", number: 1, title: "Staffel 1")]
         }
         return ShowDetail(
             id: id,
@@ -83,75 +113,141 @@ struct AniWorldProvider: CatalogProvider {
             year: try doc.selectFirst("div.series-title small span")?.text(),
             rating: nil,
             seasons: seasons,
-            kind: .tvShow
+            kind: .tvShow,
+            genres: try doc.select(".genres li a").array().compactMap { try? $0.text() },
+            cast: try doc.select(".cast li[itemprop=actor] span").array().prefix(12).compactMap { try? $0.text() }
         )
     }
 
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         let path = seasonId.contains("/") ? seasonId : "\(showId)/\(seasonId)"
         let url = URL(string: "anime/stream/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
-        let links = try doc.select("table.episodes tr a, a[href*=/episode-]").array()
-        for (idx, link) in links.enumerated() {
-            let href = try link.attr("href")
-            let title = try link.text().trimmingCharacters(in: .whitespacesAndNewlines)
-            let epPath = href.replacingOccurrences(of: "/anime/stream/", with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+
+        for row in try doc.select("tbody tr").array() {
+            let epNumber = Int(try row.selectFirst("meta")?.attr("content") ?? "") ?? (episodes.count + 1)
+            let href = try row.selectFirst("a")?.attr("href") ?? ""
+            let epPath = href.replacingOccurrences(of: "/anime/stream/", with: "")
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             guard !epPath.isEmpty else { continue }
             if episodes.contains(where: { $0.id == epPath }) { continue }
-            episodes.append(
-                EpisodeInfo(
-                    id: epPath,
-                    number: idx + 1,
-                    title: title.isEmpty ? "Episode \(idx + 1)" : title,
-                    overview: nil,
-                    thumbnailURL: nil
-                )
-            )
+            let title = try row.selectFirst("strong")?.text() ?? "Episode \(epNumber)"
+            episodes.append(EpisodeInfo(id: epPath, number: epNumber, title: title))
         }
+
         if episodes.isEmpty {
-            episodes = [EpisodeInfo(id: "\(path)/episode-1", number: 1, title: "Episode 1", overview: nil, thumbnailURL: nil)]
+            for (idx, link) in try doc.select("a[href*=/episode-]").array().enumerated() {
+                let href = try link.attr("href")
+                let epPath = href.replacingOccurrences(of: "/anime/stream/", with: "")
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                guard !epPath.isEmpty, !episodes.contains(where: { $0.id == epPath }) else { continue }
+                let title = try link.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                episodes.append(
+                    EpisodeInfo(
+                        id: epPath,
+                        number: idx + 1,
+                        title: title.isEmpty ? "Episode \(idx + 1)" : title
+                    )
+                )
+            }
         }
         return episodes
     }
 
-    func streams(showId: String, seasonId: String?, episodeId: String?) async throws -> [StreamSource] {
+    func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
         let path = episodeId ?? seasonId ?? showId
         let url = URL(string: "anime/stream/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
-        let hosts = try doc.select("a[href*=/redirect/], li[data-link-id] a, .hosterSiteVideo a").array()
-        for (idx, host) in hosts.prefix(12).enumerated() {
-            let href = try host.attr("abs:href")
-            let name = try host.text().trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let streamURL = URL(string: href), !href.isEmpty else { continue }
+
+        for (idx, host) in try doc.select("div.hosterSiteVideo > ul > li").array().enumerated() {
+            let href = try host.selectFirst("a")?.attr("href") ?? ""
+            guard let streamURL = HTTPClient.absoluteURL(href, base: baseURL) else { continue }
+            let baseName = try host.selectFirst("h4")?.text() ?? "Host \(idx + 1)"
+            let lang: String = {
+                switch try? host.attr("data-lang-key") {
+                case "1": return "DUB"
+                case "2": return "SUB EN"
+                case "3": return "SUB"
+                default: return ""
+                }
+            }()
+            let name = lang.isEmpty ? baseName : "\(baseName) - \(lang)"
             sources.append(
                 StreamSource(
-                    id: "\(idx)-\(streamURL.host ?? "host")",
-                    name: name.isEmpty ? "Host \(idx + 1)" : name,
+                    id: "aw-\(idx)-\(baseName)",
+                    name: name,
                     url: streamURL,
-                    headers: ["User-Agent": HTTPClient.userAgent, "Referer": baseURL.absoluteString]
+                    headers: ["User-Agent": HTTPClient.desktopUserAgent, "Referer": baseURL.absoluteString],
+                    resolveKind: .followRedirect
                 )
             )
+        }
+
+        if sources.isEmpty {
+            for (idx, host) in try doc.select("a[href*=/redirect/], li[data-link-id] a").array().prefix(12).enumerated() {
+                let href = try host.attr("abs:href").ifBlank(try host.attr("href"))
+                guard let streamURL = HTTPClient.absoluteURL(href, base: baseURL) else { continue }
+                let name = try host.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                sources.append(
+                    StreamSource(
+                        id: "aw-legacy-\(idx)",
+                        name: name.isEmpty ? "Host \(idx + 1)" : name,
+                        url: streamURL,
+                        headers: ["User-Agent": HTTPClient.desktopUserAgent, "Referer": baseURL.absoluteString],
+                        resolveKind: .followRedirect
+                    )
+                )
+            }
         }
         return sources
     }
 
-    private func parseCards(_ elements: [Element]) throws -> [MediaItem] {
+    // MARK: - Alphabet cache (Android Room equivalent)
+
+    private static func ensureAlphabetCache(baseURL: URL) async throws {
+        let existing = alphabetLock.withLock { alphabetCache }
+        if !existing.isEmpty { return }
+        let url = URL(string: "animes-alphabet", relativeTo: baseURL)!.absoluteURL
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
+        var items: [MediaItem] = []
+        var seen = Set<String>()
+        for link in try doc.select(".genre > ul > li a, a[href*=/anime/stream/]").array() {
+            let href = try link.attr("href")
+            guard let id = extractAnimeId(from: href), seen.insert(id).inserted else { continue }
+            let title = try link.attr("data-alternative-title").ifBlank(try link.text())
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            items.append(
+                MediaItem(
+                    id: id,
+                    title: title.ifBlank(id.replacingOccurrences(of: "-", with: " ").capitalized),
+                    posterURL: nil,
+                    kind: .tvShow,
+                    providerHint: "aniworld"
+                )
+            )
+        }
+        alphabetLock.withLock { alphabetCache = items }
+    }
+
+    private func parseCoverList(_ doc: Document) throws -> [MediaItem] {
+        let items = try parseCoverItems(doc.select("div.coverListItem, a[href*=/anime/stream/]").array())
+        return items
+    }
+
+    private func parseCoverItems(_ elements: [Element]) throws -> [MediaItem] {
         var items: [MediaItem] = []
         var seen = Set<String>()
         for el in elements {
-            let href = try el.attr("href")
-            guard let id = extractAnimeId(from: href), seen.insert(id).inserted else { continue }
-            let fromHeading = try el.selectFirst("h3")?.text()
-            let fromAttr = try el.attr("title")
-            let fromText = try el.text()
-            let rawTitle = (fromHeading?.ifBlank(fromAttr) ?? fromAttr).ifBlank(fromText)
-            let title = rawTitle
-                .replacingOccurrences(of: #"\s*stream online.*$"#, with: "", options: [.regularExpression])
-                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            let link = try el.selectFirst("a") ?? el
+            let href = try link.attr("href")
+            guard let id = Self.extractAnimeId(from: href), seen.insert(id).inserted else { continue }
+            let title = try el.selectFirst("a h3, h3")?.text()
+                ?? link.attr("title").ifBlank(try link.text())
             let img = try el.selectFirst("img")
             let poster = HTTPClient.absoluteURL(
                 try img?.attr("data-src").ifBlank(try img?.attr("src")),
@@ -160,24 +256,32 @@ struct AniWorldProvider: CatalogProvider {
             items.append(
                 MediaItem(
                     id: id,
-                    title: title.ifBlank(id.replacingOccurrences(of: "-", with: " ").capitalized),
+                    title: title.trimmingCharacters(in: .whitespacesAndNewlines).ifBlank(id),
                     posterURL: poster,
-                    bannerURL: nil,
-                    overview: nil,
-                    year: nil,
-                    rating: nil,
-                    kind: .tvShow
+                    kind: .tvShow,
+                    providerHint: self.id
                 )
             )
         }
         return items
     }
 
-    private func extractAnimeId(from href: String) -> String? {
+    private func parseCards(_ elements: [Element]) throws -> [MediaItem] {
+        try parseCoverItems(elements)
+    }
+
+    private static func extractAnimeId(from href: String) -> String? {
         guard let range = href.range(of: "/anime/stream/") else { return nil }
-        let rest = href[range.upperBound...]
-        let slug = rest.split(separator: "/").first.map(String.init) ?? ""
+        let slug = href[range.upperBound...].split(separator: "/").first.map(String.init) ?? ""
         return (slug.isEmpty || slug == "stream") ? nil : slug
+    }
+}
+
+private extension NSLock {
+    func withLock<T>(_ body: () -> T) -> T {
+        lock()
+        defer { unlock() }
+        return body()
     }
 }
 

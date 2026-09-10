@@ -1,7 +1,7 @@
 name: Build Unsigned iOS IPA
 
 # Builds an unsigned BetterStreamflix IPA + xcarchive for sideloading / local re-sign.
-# No Apple Developer certificates or provisioning profiles are required.
+# Injects TMDB_API_KEY from GitHub Actions secrets (same as Android) at build time.
 
 on:
   workflow_dispatch:
@@ -36,6 +36,13 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      - name: Inject TMDb API key
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: |
+          chmod +x ios/ci/generate-secrets.sh
+          ./ios/ci/generate-secrets.sh
 
       - name: Generate Xcode project
         working-directory: ios

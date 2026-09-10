@@ -19,7 +19,7 @@ struct ProvidersView: View {
                                 Text(provider.name)
                                     .font(.headline)
                                     .foregroundStyle(.white)
-                                Text(provider.baseURL.host() ?? provider.baseURL.absoluteString)
+                                Text(subtitle(for: provider))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -40,7 +40,7 @@ struct ProvidersView: View {
             } header: {
                 Text("Catalog sources")
             } footer: {
-                Text("Beta v1 ships SerienStream and AniWorld. More providers land after the Liquid Glass shell is solid.")
+                Text("Beta v2: TMDb (DE) is the primary catalog. SerienStream, AniWorld and Filmpalast provide scrape playback; TMDb plays via Videasy + title-matched hosts.")
             }
         }
         .scrollContentBackground(.hidden)
@@ -50,10 +50,17 @@ struct ProvidersView: View {
 
     private func iconName(for id: String) -> String {
         switch id {
-        case "aniworld":
-            return "sparkles.tv"
-        default:
-            return "tv"
+        case "tmdb-de": return "globe"
+        case "aniworld": return "sparkles.tv"
+        case "filmpalast": return "film"
+        default: return "tv"
         }
+    }
+
+    private func subtitle(for provider: any CatalogProvider) -> String {
+        if provider.id == "tmdb-de" {
+            return AppSecrets.hasTMDbKey ? "API key ready · \(provider.language.uppercased())" : "API key missing"
+        }
+        return provider.baseURL.host() ?? provider.baseURL.absoluteString
     }
 }

@@ -1,9 +1,11 @@
+import AVFoundation
 import AVKit
 import SwiftUI
 
 struct PlayerView: View {
     let url: URL
     let title: String
+    var headers: [String: String] = [:]
     @Environment(\.dismiss) private var dismiss
     @State private var player: AVPlayer?
 
@@ -23,9 +25,7 @@ struct PlayerView: View {
                     .tint(.white)
             }
 
-            Button {
-                dismiss()
-            } label: {
+            Button { dismiss() } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title)
                     .symbolRenderingMode(.hierarchical)
@@ -36,9 +36,7 @@ struct PlayerView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .statusBarHidden(true)
-        .onAppear {
-            player = AVPlayer(url: url)
-        }
+        .onAppear { setupPlayer() }
         .safeAreaInset(edge: .bottom) {
             Text(title)
                 .font(.footnote.weight(.medium))
@@ -47,5 +45,16 @@ struct PlayerView: View {
                 .padding(.vertical, 8)
                 .background(.ultraThinMaterial)
         }
+    }
+
+    private func setupPlayer() {
+        if headers.isEmpty {
+            player = AVPlayer(url: url)
+            return
+        }
+        let options = ["AVURLAssetHTTPHeaderFieldsKey": headers]
+        let asset = AVURLAsset(url: url, options: options)
+        let item = AVPlayerItem(asset: asset)
+        player = AVPlayer(playerItem: item)
     }
 }

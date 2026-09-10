@@ -13,17 +13,13 @@ struct SearchView: View {
             if isSearching {
                 HStack {
                     ProgressView()
-                    Text("Searching…")
-                        .foregroundStyle(.secondary)
+                    Text("Searching…").foregroundStyle(.secondary)
                 }
                 .listRowBackground(Color.clear)
             } else if let errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
-                    .listRowBackground(Color.clear)
+                Text(errorMessage).foregroundStyle(.red).listRowBackground(Color.clear)
             } else if results.isEmpty && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                ContentUnavailableView.search(text: query)
-                    .listRowBackground(Color.clear)
+                ContentUnavailableView.search(text: query).listRowBackground(Color.clear)
             } else {
                 ForEach(results) { item in
                     NavigationLink(value: item) {

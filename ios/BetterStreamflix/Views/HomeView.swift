@@ -10,6 +10,9 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: EmberTheme.spaceLG) {
                 header
+                if !app.library.continueWatching.isEmpty {
+                    continueRow
+                }
                 if isLoading {
                     ProgressView("Loading catalog…")
                         .frame(maxWidth: .infinity, minHeight: 220)
@@ -24,7 +27,11 @@ struct HomeView: View {
                         .tint(EmberTheme.accent)
                 } else {
                     ForEach(catalog) { section in
-                        CatalogRow(section: section)
+                        if section.isFeatured, let hero = section.items.first {
+                            FeaturedHero(item: hero, subtitle: section.title)
+                        } else {
+                            CatalogRow(section: section)
+                        }
                     }
                 }
             }
@@ -39,9 +46,7 @@ struct HomeView: View {
                     .font(.system(.headline, design: .rounded).weight(.bold))
             }
         }
-        .task(id: app.activeProvider.id) {
-            await load()
-        }
+        .task(id: app.activeProvider.id) { await load() }
         .refreshable { await load() }
     }
 
@@ -50,12 +55,34 @@ struct HomeView: View {
             Text(app.activeProvider.name)
                 .font(.system(.largeTitle, design: .rounded).weight(.bold))
                 .foregroundStyle(.white)
-            Text("Liquid Glass beta · German catalogs")
+            Text("Beta v2 · Liquid Glass")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.7))
         }
         .padding(.top, EmberTheme.spaceMD)
-        .padding(.bottom, EmberTheme.spaceSM)
+    }
+
+    private var continueRow: some View {
+        VStack(alignment: .leading, spacing: EmberTheme.spaceSM) {
+            Text("Weitersehen")
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(.white)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: EmberTheme.spaceSM) {
+                    ForEach(app.library.continueWatching) { entry in
+                        NavigationLink {
+                            DetailView(
+                                item: entry.asMediaItem,
+                                forcedProviderID: entry.providerID
+                            )
+                        } label: {
+                            PosterCard(item: entry.asMediaItem, progress: entry.progress)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 
     @MainActor
@@ -68,6 +95,52 @@ struct HomeView: View {
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+        }
+    }
+}
+
+private struct FeaturedHero: View {
+    let item: MediaItem
+    let subtitle: String
+
+    var body: some View {
+        NavigationLink(value: item) {
+            ZStack(alignment: .bottomLeading) {
+                AsyncImage(url: item.bannerURL ?? item.posterURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        EmberTheme.surfaceElevated
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 280)
+                .clipped()
+
+                LinearGradient(
+                    colors: [.clear, EmberTheme.background.opacity(0.95)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(subtitle.uppercased())
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(EmberTheme.gold)
+                    Text(item.title)
+                        .font(.system(.title, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                }
+                .padding(EmberTheme.spaceMD)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusLG, style: .continuous))
+            .glassChrome(cornerRadius: EmberTheme.radiusLG)
+        }
+        .buttonStyle(.plain)
+        .navigationDestination(for: MediaItem.self) { item in
+            DetailView(item: item)
         }
     }
 }
@@ -99,26 +172,37 @@ private struct CatalogRow: View {
 
 struct PosterCard: View {
     let item: MediaItem
+    var progress: Double? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AsyncImage(url: item.posterURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .failure:
-                    placeholder
-                case .empty:
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                @unknown default:
-                    placeholder
+            ZStack(alignment: .bottom) {
+                AsyncImage(url: item.posterURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        placeholder
+                    case .empty:
+                        ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    @unknown default:
+                        placeholder
+                    }
+                }
+                .frame(width: 128, height: 192)
+                .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusMD, style: .continuous))
+
+                if let progress, progress > 0 {
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(EmberTheme.accent)
+                            .frame(width: geo.size.width * min(max(progress, 0), 1), height: 3)
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                    }
+                    .frame(width: 128, height: 192)
+                    .allowsHitTesting(false)
                 }
             }
-            .frame(width: 128, height: 192)
-            .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusMD, style: .continuous))
             .glassChrome(cornerRadius: EmberTheme.radiusMD)
 
             Text(item.title)
