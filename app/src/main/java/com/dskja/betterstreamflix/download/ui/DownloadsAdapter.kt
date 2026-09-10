@@ -33,9 +33,36 @@ class DownloadsAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_HEADER -> HeaderVH(inflater.inflate(R.layout.item_download_header, parent, false))
-            TYPE_PACK -> PackVH(inflater.inflate(R.layout.item_download_season, parent, false))
-            else -> ItemVH(inflater.inflate(R.layout.item_download, parent, false))
+            TYPE_HEADER -> HeaderVH(
+                inflater.inflate(
+                    ExperimentalMobileDesign.layout(
+                        R.layout.item_download_header,
+                        R.layout.item_download_header_exp,
+                    ),
+                    parent,
+                    false,
+                )
+            )
+            TYPE_PACK -> PackVH(
+                inflater.inflate(
+                    ExperimentalMobileDesign.layout(
+                        R.layout.item_download_season,
+                        R.layout.item_download_season_exp,
+                    ),
+                    parent,
+                    false,
+                )
+            )
+            else -> ItemVH(
+                inflater.inflate(
+                    ExperimentalMobileDesign.layout(
+                        R.layout.item_download,
+                        R.layout.item_download_exp,
+                    ),
+                    parent,
+                    false,
+                )
+            )
         }
     }
 
