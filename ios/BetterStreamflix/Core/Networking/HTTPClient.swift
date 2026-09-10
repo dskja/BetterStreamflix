@@ -18,25 +18,45 @@ enum HTTPClient {
         return URLSession(configuration: config)
     }()
 
+    /// Used only as last resort for scrape hosts with broken intermediate certs / captive DNS.
+    private static let lenientSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        return URLSession(configuration: config, delegate: LenientTLSDelegate.shared, delegateQueue: nil)
+    }()
+
     static func getHTML(
         url: URL,
         referer: URL? = nil,
-        desktopUA: Bool = false
+        desktopUA: Bool = false,
+        allowLenientTLS: Bool = false
     ) async throws -> String {
-        var request = URLRequest(url: url)
-        request.setValue(desktopUA ? desktopUserAgent : userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("text/html,application/xhtml+xml", forHTTPHeaderField: "Accept")
-        if let referer {
-            request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer")
+        do {
+            return try await fetchHTML(url: url, referer: referer, desktopUA: desktopUA, session: session)
+        } catch {
+            guard allowLenientTLS, isTLSFailure(error) else { throw error }
+            return try await fetchHTML(url: url, referer: referer, desktopUA: desktopUA, session: lenientSession)
         }
-        let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw ProviderError.http(http.statusCode)
+    }
+
+    /// Try multiple absolute base URLs until one returns HTML.
+    static func getHTML(
+        path: String,
+        bases: [URL],
+        referer: URL? = nil,
+        desktopUA: Bool = false
+    ) async throws -> (html: String, base: URL) {
+        var lastError: Error = ProviderError.emptyResponse
+        for base in bases {
+            let url = path.isEmpty ? base : (URL(string: path, relativeTo: base)?.absoluteURL ?? base)
+            do {
+                let html = try await getHTML(url: url, referer: referer ?? base, desktopUA: desktopUA, allowLenientTLS: true)
+                return (html, base)
+            } catch {
+                lastError = error
+            }
         }
-        guard let html = String(data: data, encoding: .utf8), !html.isEmpty else {
-            throw ProviderError.emptyResponse
-        }
-        return html
+        throw lastError
     }
 
     static func getJSON(url: URL, headers: [String: String] = [:]) async throws -> Data {
@@ -70,15 +90,20 @@ enum HTTPClient {
         return data
     }
 
-    /// Follow redirects and return the final URL after the chain.
     static func followRedirects(url: URL, headers: [String: String] = [:]) async throws -> URL {
         var request = URLRequest(url: url)
         request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        let (_, response) = try await session.data(for: request)
-        return response.url ?? url
+        do {
+            let (_, response) = try await session.data(for: request)
+            return response.url ?? url
+        } catch {
+            guard isTLSFailure(error) else { throw error }
+            let (_, response) = try await lenientSession.data(for: request)
+            return response.url ?? url
+        }
     }
 
     static func absoluteURL(_ value: String?, base: URL) -> URL? {
@@ -91,5 +116,59 @@ enum HTTPClient {
             return URL(string: "https:\(value)")
         }
         return URL(string: value, relativeTo: base)?.absoluteURL
+    }
+
+    private static func fetchHTML(
+        url: URL,
+        referer: URL?,
+        desktopUA: Bool,
+        session: URLSession
+    ) async throws -> String {
+        var request = URLRequest(url: url)
+        request.setValue(desktopUA ? desktopUserAgent : userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml", forHTTPHeaderField: "Accept")
+        if let referer {
+            request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer")
+        }
+        let (data, response) = try await session.data(for: request)
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw ProviderError.http(http.statusCode)
+        }
+        guard let html = String(data: data, encoding: .utf8), !html.isEmpty else {
+            throw ProviderError.emptyResponse
+        }
+        return html
+    }
+
+    private static func isTLSFailure(_ error: Error) -> Bool {
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            return [
+                NSURLErrorServerCertificateUntrusted,
+                NSURLErrorSecureConnectionFailed,
+                NSURLErrorServerCertificateHasBadDate,
+                NSURLErrorServerCertificateNotYetValid,
+                NSURLErrorClientCertificateRejected,
+                NSURLErrorClientCertificateRequired,
+            ].contains(ns.code)
+        }
+        return false
+    }
+}
+
+private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
+    static let shared = LenientTLSDelegate()
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
     }
 }

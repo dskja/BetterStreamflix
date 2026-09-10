@@ -48,7 +48,7 @@ struct DetailView: View {
                 }
             }
             .padding(.horizontal, EmberTheme.spaceMD)
-            .padding(.bottom, EmberTheme.spaceXL)
+            .padding(.bottom, 96)
         }
         .emberBackground()
         .navigationTitle(item.title)
@@ -127,7 +127,7 @@ struct DetailView: View {
             .padding(EmberTheme.spaceMD)
         }
         .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusLG, style: .continuous))
-        .glassChrome(cornerRadius: EmberTheme.radiusLG)
+        
     }
 
     @ViewBuilder
@@ -230,7 +230,7 @@ struct DetailView: View {
                                 .foregroundStyle(EmberTheme.accent)
                         }
                         .padding(EmberTheme.spaceMD)
-                        .glassChrome(cornerRadius: EmberTheme.radiusMD)
+                        
                     }
                     .buttonStyle(.plain)
                     .disabled(isResolving)
@@ -304,10 +304,10 @@ struct DetailView: View {
                 resolveError = "No playable streams found."
                 return
             }
+            pendingSources = streams
             if streams.count == 1 {
                 await resolveAndPlay(streams[0], title: title)
             } else {
-                pendingSources = streams
                 showSourcePicker = true
             }
         } catch {
@@ -319,22 +319,35 @@ struct DetailView: View {
     private func resolveAndPlay(_ source: StreamSource, title: String) async {
         isResolving = true
         defer { isResolving = false }
+
+        // Prefer the picked source, then auto-fall through the rest (skips gate sources).
+        var ordered = [source] + pendingSources.filter { $0.id != source.id }
+        if ordered.isEmpty { ordered = [source] }
+
         do {
             if source.resolveKind == .serienstreamGate {
                 challengeURL = IdentifiedURL(url: source.url)
                 return
             }
-            let url = try await StreamResolver.resolve(source)
-            openPlayer(url: url, title: title, headers: source.headers)
+            let resolved = try await StreamResolver.resolveFirst(ordered)
+            openPlayer(url: resolved.url, title: title, headers: resolved.source.headers)
         } catch let error as ProviderError {
             if case .streamGate = error {
                 challengeURL = IdentifiedURL(url: source.url)
             } else {
-                resolveError = error.localizedDescription
+                resolveError = friendlyPlaybackError(error)
             }
         } catch {
-            resolveError = error.localizedDescription
+            resolveError = friendlyPlaybackError(error)
         }
+    }
+
+    private func friendlyPlaybackError(_ error: Error) -> String {
+        let raw = error.localizedDescription
+        if raw.contains("HTTP 500") || raw.contains("HTTP 502") || raw.contains("HTTP 503") {
+            return "Upstream source unavailable. Open Choose source and try a host scrape (S.to / FP) or another Videasy mirror."
+        }
+        return raw
     }
 
     @MainActor
@@ -377,24 +390,61 @@ struct IdentifiedURL: Identifiable {
 private struct SourcePickerSheet: View {
     let sources: [StreamSource]
     let onPick: (StreamSource) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            List(sources) { source in
-                Button {
-                    onPick(source)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(source.name)
-                            .foregroundStyle(.primary)
-                        Text(source.resolveKind.rawValue)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            List {
+                Section {
+                    Text("Host scrapes are usually more reliable than Videasy DE right now.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                }
+                Section("Available sources") {
+                    ForEach(sources) { source in
+                        Button {
+                            onPick(source)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: icon(for: source))
+                                    .font(.title3)
+                                    .foregroundStyle(EmberTheme.accent)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(source.name)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text(source.resolveKind.displayLabel)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "play.circle.fill")
+                                    .foregroundStyle(EmberTheme.accent)
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
                 }
             }
             .navigationTitle("Choose source")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func icon(for source: StreamSource) -> String {
+        switch source.resolveKind {
+        case .videasy: return "cloud"
+        case .serienstreamGate: return "shield.lefthalf.filled"
+        case .followRedirect: return "arrow.triangle.branch"
+        case .direct: return "bolt.fill"
         }
     }
 }

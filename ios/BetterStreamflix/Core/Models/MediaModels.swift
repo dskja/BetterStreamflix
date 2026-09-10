@@ -94,6 +94,15 @@ struct StreamSource: Identifiable, Hashable, Sendable {
         case followRedirect
         case videasy
         case serienstreamGate
+
+        var displayLabel: String {
+            switch self {
+            case .direct: "Direct stream"
+            case .followRedirect: "Host redirect"
+            case .videasy: "Videasy"
+            case .serienstreamGate: "SerienStream gate"
+            }
+        }
     }
 }
 

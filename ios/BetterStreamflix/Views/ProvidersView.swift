@@ -40,7 +40,7 @@ struct ProvidersView: View {
             } header: {
                 Text("Catalog sources")
             } footer: {
-                Text("Beta v2: TMDb (DE) is the primary catalog. SerienStream, AniWorld and Filmpalast provide scrape playback; TMDb plays via Videasy + title-matched hosts.")
+                Text("Beta v3: TMDb (DE) catalog with host-first playback. SerienStream uses mirror failover + lenient TLS. Videasy DE fallbacks included.")
             }
         }
         .scrollContentBackground(.hidden)

@@ -29,7 +29,7 @@ struct SettingsView: View {
 
             Section("About") {
                 LabeledContent("App", value: "BetterStreamflix iOS")
-                LabeledContent("Version", value: "2.0.0-beta")
+                LabeledContent("Version", value: "0.0.3 (Beta v3)")
                 LabeledContent("Active provider", value: app.activeProvider.name)
             }
         }

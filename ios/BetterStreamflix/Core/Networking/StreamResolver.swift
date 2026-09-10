@@ -2,6 +2,27 @@ import Foundation
 import SwiftSoup
 
 enum StreamResolver {
+    /// Tries sources in order until one yields a playable URL.
+    static func resolveFirst(
+        _ sources: [StreamSource],
+        excluding excludedIDs: Set<String> = []
+    ) async throws -> (source: StreamSource, url: URL) {
+        var lastError: Error = ProviderError.emptyResponse
+        for source in sources where !excludedIDs.contains(source.id) {
+            if source.resolveKind == .serienstreamGate {
+                // Gate needs WebView — skip in auto-fallback.
+                continue
+            }
+            do {
+                let url = try await resolve(source)
+                return (source, url)
+            } catch {
+                lastError = error
+            }
+        }
+        throw lastError
+    }
+
     static func resolve(_ source: StreamSource) async throws -> URL {
         switch source.resolveKind {
         case .direct:

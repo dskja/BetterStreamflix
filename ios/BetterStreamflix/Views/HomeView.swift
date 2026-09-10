@@ -36,7 +36,7 @@ struct HomeView: View {
                 }
             }
             .padding(.horizontal, EmberTheme.spaceMD)
-            .padding(.bottom, EmberTheme.spaceXL)
+            .padding(.bottom, 96)
         }
         .emberBackground()
         .navigationBarTitleDisplayMode(.inline)
@@ -55,7 +55,7 @@ struct HomeView: View {
             Text(app.activeProvider.name)
                 .font(.system(.largeTitle, design: .rounded).weight(.bold))
                 .foregroundStyle(.white)
-            Text("Beta v2 · Liquid Glass")
+            Text("Browse · \(app.activeProvider.language.uppercased())")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.7))
         }
@@ -115,7 +115,7 @@ private struct FeaturedHero: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 280)
+                .frame(height: 260)
                 .clipped()
 
                 LinearGradient(
@@ -136,7 +136,6 @@ private struct FeaturedHero: View {
                 .padding(EmberTheme.spaceMD)
             }
             .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusLG, style: .continuous))
-            .glassChrome(cornerRadius: EmberTheme.radiusLG)
         }
         .buttonStyle(.plain)
         .navigationDestination(for: MediaItem.self) { item in
@@ -203,7 +202,6 @@ struct PosterCard: View {
                     .allowsHitTesting(false)
                 }
             }
-            .glassChrome(cornerRadius: EmberTheme.radiusMD)
 
             Text(item.title)
                 .font(.caption.weight(.semibold))

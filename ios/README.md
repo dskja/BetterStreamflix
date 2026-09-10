@@ -1,8 +1,8 @@
-# BetterStreamflix iOS — Liquid Glass Beta v2
+# BetterStreamflix iOS — Liquid Glass Beta v3
 
 Unsigned SwiftUI client (iOS 26+) with TMDb catalog + German scrape providers.
 
-## Beta v2 scope
+## Beta v3 scope
 
 - **TMDb (DE)** primary catalog (trending, popular, discover shelves) using the same `TMDB_API_KEY` as Android
 - Playback via **Videasy (Killjoy DE)** plus title-matched SerienStream / Filmpalast hosts

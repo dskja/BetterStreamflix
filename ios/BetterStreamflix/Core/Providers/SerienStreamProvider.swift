@@ -5,11 +5,21 @@ struct SerienStreamProvider: CatalogProvider {
     let id = "serienstream"
     let name = "SerienStream"
     let language = "de"
-    let baseURL = URL(string: "https://serienstream.to/")!
+
+    private static let candidateBases: [URL] = [
+        URL(string: "https://s.to/")!,
+        URL(string: "https://serienstream.to/")!,
+        URL(string: "https://serienstream.sx/")!,
+    ]
+
+    /// Last working mirror for this process.
+    private static var resolvedBase: URL = candidateBases[0]
+
+    var baseURL: URL { Self.resolvedBase }
 
     func home() async throws -> [CategoryRow] {
-        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true)
-        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
+        let (html, base) = try await fetchHTML(path: "")
+        let doc = try SwiftSoup.parse(html, base.absoluteString)
         var rows: [CategoryRow] = []
 
         let featured = try parseHero(doc)
@@ -67,7 +77,7 @@ struct SerienStreamProvider: CatalogProvider {
             URLQueryItem(name: "tab", value: "shows"),
         ]
         guard let url = components.url else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let cards = try doc.select("div.search-results-list div.card.cover-card").array()
         if !cards.isEmpty {
@@ -91,7 +101,7 @@ struct SerienStreamProvider: CatalogProvider {
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         let url = URL(string: "serie/\(id)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let title = try doc.selectFirst("h1")?.text().trimmingCharacters(in: .whitespacesAndNewlines)
             ?? id.replacingOccurrences(of: "-", with: " ").capitalized
@@ -131,7 +141,7 @@ struct SerienStreamProvider: CatalogProvider {
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         let path = seasonId.contains("/") ? seasonId : "\(showId)/\(seasonId)"
         let url = URL(string: "serie/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
 
@@ -169,7 +179,7 @@ struct SerienStreamProvider: CatalogProvider {
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
         let path = episodeId ?? seasonId ?? showId
         let url = URL(string: "serie/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
@@ -207,6 +217,21 @@ struct SerienStreamProvider: CatalogProvider {
             }
         }
         return sources
+    }
+
+
+    // MARK: - Networking
+
+    private func fetchHTML(path: String) async throws -> (String, URL) {
+        do {
+            let result = try await HTTPClient.getHTML(path: path, bases: Self.candidateBases, desktopUA: true)
+            Self.resolvedBase = result.base
+            return (result.html, result.base)
+        } catch {
+            throw ProviderError.parseFailed(
+                "SerienStream unreachable (tried s.to / serienstream.to / .sx). \(error.localizedDescription)"
+            )
+        }
     }
 
     // MARK: - Parsing helpers

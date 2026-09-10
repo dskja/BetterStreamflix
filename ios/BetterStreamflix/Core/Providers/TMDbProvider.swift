@@ -189,27 +189,9 @@ struct TMDbProvider: CatalogProvider {
         }
 
         let mediaType = kind == .movie ? "movie" : "tv"
-        let videasyURL = VideasyExtractor.sourcesURL(
-            tmdbId: String(tmdbID),
-            title: resolvedDetail.title,
-            mediaType: mediaType,
-            year: year,
-            imdbId: resolvedDetail.imdbId,
-            season: kind == .tvShow ? seasonNum : nil,
-            episode: kind == .tvShow ? episodeNum : nil,
-            language: "german"
-        )
+        var sources: [StreamSource] = []
 
-        var sources = [
-            StreamSource(
-                id: "videasy-de",
-                name: "Killjoy (Videasy · DE)",
-                url: videasyURL,
-                headers: ["Referer": "https://player.videasy.net/"],
-                resolveKind: .videasy
-            ),
-        ]
-
+        // Host scrapes first — Videasy DE (`meine`) often returns upstream HTTP 500.
         if kind == .tvShow {
             if let match = try? await SerienStreamProvider().search(query: resolvedDetail.title).first,
                let ssStreams = try? await SerienStreamProvider().streams(
@@ -218,7 +200,7 @@ struct TMDbProvider: CatalogProvider {
                 episodeId: nil,
                 detail: nil
                ) {
-                sources.append(contentsOf: ssStreams.prefix(6).map { source in
+                sources.append(contentsOf: ssStreams.prefix(8).map { source in
                     StreamSource(
                         id: "ss-\(source.id)",
                         name: "S.to · \(source.name)",
@@ -235,7 +217,7 @@ struct TMDbProvider: CatalogProvider {
                     episodeId: nil,
                     detail: nil
                   ) {
-            sources.append(contentsOf: fpStreams.prefix(6).map { source in
+            sources.append(contentsOf: fpStreams.prefix(8).map { source in
                 StreamSource(
                     id: "fp-\(source.id)",
                     name: "FP · \(source.name)",
@@ -245,6 +227,16 @@ struct TMDbProvider: CatalogProvider {
                 )
             })
         }
+
+        sources.append(contentsOf: VideasyExtractor.streamSources(
+            tmdbId: String(tmdbID),
+            title: resolvedDetail.title,
+            mediaType: mediaType,
+            year: year,
+            imdbId: resolvedDetail.imdbId,
+            season: kind == .tvShow ? seasonNum : nil,
+            episode: kind == .tvShow ? episodeNum : nil
+        ))
 
         return sources
     }
