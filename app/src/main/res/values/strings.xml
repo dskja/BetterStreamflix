@@ -565,10 +565,19 @@
     <string name="settings_watchlist_import_summary">Sign in on SerienStream or AniWorld and import your watchlist into Favorites</string>
     <string name="settings_watchlist_import_serienstream">Import from SerienStream</string>
     <string name="settings_watchlist_import_aniworld">Import from AniWorld</string>
+    <string name="watchlist_import_action">Import</string>
     <string name="watchlist_import_progress">Importing watchlist…</string>
+    <string name="watchlist_import_progress_page">Importing watchlist… page %1$d</string>
+    <string name="watchlist_import_progress_fallback">Trying alternate fetch…</string>
+    <string name="watchlist_import_progress_saving">Saving favorites…</string>
+    <string name="watchlist_import_ready">Logged in — tap Import to pull your watchlist</string>
+    <string name="watchlist_import_ready_soft">Page loaded — if you are logged in, tap Import</string>
     <string name="watchlist_import_done">Imported %1$d titles into Favorites</string>
     <string name="watchlist_import_failed">Watchlist import failed: %1$s</string>
     <string name="watchlist_import_login_hint">Log in on the site, then tap Import. Cookies stay on this device.</string>
+    <string name="watchlist_import_not_logged_in">Not logged in — please sign in first</string>
+    <string name="watchlist_import_challenge">Bot check still active — wait for the page to finish, then try again</string>
+    <string name="watchlist_import_empty">No watchlist titles found on your account</string>
 
     <string name="settings_screen_appearance_summary">Theme, immersive mode and screen layout adjustments</string>
     <string name="settings_theme_title">App Theme</string>
