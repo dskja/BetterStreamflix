@@ -1,0 +1,88 @@
+name: Build Unsigned iOS IPA
+
+# Builds an unsigned BetterStreamflix IPA + xcarchive for sideloading / local re-sign.
+# No Apple Developer certificates or provisioning profiles are required.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'dskja/**'
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build-unsigned-ipa:
+    name: Unsigned IPA
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0'
+
+      - name: Show Xcode
+        run: |
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Resolve packages
+        working-directory: ios
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project BetterStreamflix.xcodeproj \
+            -scheme BetterStreamflix
+
+      - name: Archive (unsigned)
+        working-directory: ios
+        run: |
+          mkdir -p build
+          xcodebuild archive \
+            -project BetterStreamflix.xcodeproj \
+            -scheme BetterStreamflix \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/BetterStreamflix.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Package unsigned IPA
+        working-directory: ios
+        run: |
+          chmod +x ci/package-unsigned-ipa.sh
+          ./ci/package-unsigned-ipa.sh \
+            build/BetterStreamflix.xcarchive \
+            build/BetterStreamflix-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterStreamflix-unsigned-ipa
+          path: ios/build/BetterStreamflix-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload xcarchive
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterStreamflix-xcarchive
+          path: ios/build/BetterStreamflix.xcarchive
+          if-no-files-found: error
+          retention-days: 14

@@ -11,3 +11,12 @@ local.properties
 *.salive
 *.log
 app/src/main/cpp/native-lib.cpp
+
+# iOS / Xcode
+ios/*.xcodeproj
+ios/*.xcworkspace
+ios/build/
+ios/DerivedData/
+**/xcuserdata/
+*.xcuserstate
+ios/.swiftpm/
