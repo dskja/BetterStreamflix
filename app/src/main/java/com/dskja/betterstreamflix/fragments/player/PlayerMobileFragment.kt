@@ -52,6 +52,7 @@ import com.dskja.betterstreamflix.player.PlaybackFailover
 import com.dskja.betterstreamflix.player.PlayerBuilderFactory
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.CrashReporter
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.activities.tools.BypassWebViewActivity
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerMobileBinding
@@ -279,7 +280,12 @@ class PlayerMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentPlayerMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_player_mobile,
+            R.layout.fragment_player_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentPlayerMobileBinding.bind(root)
         return binding.root
     }
 

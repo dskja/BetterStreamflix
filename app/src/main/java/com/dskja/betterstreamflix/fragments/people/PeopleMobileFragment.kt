@@ -24,6 +24,7 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.format
@@ -48,7 +49,12 @@ class PeopleMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentPeopleMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_people_mobile,
+            R.layout.fragment_people_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentPeopleMobileBinding.bind(root)
         return binding.root
     }
 

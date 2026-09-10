@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.FragmentGenreMobileBinding
@@ -21,6 +22,7 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
@@ -43,7 +45,12 @@ class GenreMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentGenreMobileBinding.inflate(inflater, container, false)
+        val layoutRes = ExperimentalMobileDesign.layout(
+            R.layout.fragment_genre_mobile,
+            R.layout.fragment_genre_mobile_exp,
+        )
+        val root = inflater.inflate(layoutRes, container, false)
+        _binding = FragmentGenreMobileBinding.bind(root)
         return binding.root
     }
 
