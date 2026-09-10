@@ -12,10 +12,10 @@ struct SerienStreamProvider: CatalogProvider {
         URL(string: "https://serienstream.sx/")!,
     ]
 
-    /// Last working mirror for this process.
-    private static var resolvedBase: URL = candidateBases[0]
+    /// Last working mirror for this process (Swift-6-safe mutable box).
+    private static let resolvedBaseBox = MirrorBox(candidateBases[0])
 
-    var baseURL: URL { Self.resolvedBase }
+    var baseURL: URL { Self.resolvedBaseBox.url }
 
     func home() async throws -> [CategoryRow] {
         let (html, base) = try await fetchHTML(path: "")
@@ -225,7 +225,7 @@ struct SerienStreamProvider: CatalogProvider {
     private func fetchHTML(path: String) async throws -> (String, URL) {
         do {
             let result = try await HTTPClient.getHTML(path: path, bases: Self.candidateBases, desktopUA: true)
-            Self.resolvedBase = result.base
+            Self.resolvedBaseBox.url = result.base
             return (result.html, result.base)
         } catch {
             throw ProviderError.parseFailed(
@@ -371,4 +371,10 @@ private extension Optional where Wrapped == String {
         guard let self else { return fallback }
         return self.ifBlank(fallback)
     }
+}
+
+
+private final class MirrorBox: @unchecked Sendable {
+    var url: URL
+    init(_ url: URL) { self.url = url }
 }
