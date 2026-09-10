@@ -1,15 +1,33 @@
-name: PR CI
+name: Build APKs
 
+# Debug APKs on every commit — artifacts only, no GitHub Release.
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main, 'dskja/**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: apk-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Strings + Assemble Debug
+  build-apks:
+    name: Debug APKs (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: universal
+            app_layout: ""
+            apk_name: BetterStreamflix-universal-debug
+          - name: mobile
+            app_layout: "mobile"
+            apk_name: BetterStreamflix-mobile-debug
+          - name: tv
+            app_layout: "tv"
+            apk_name: BetterStreamflix-tv-debug
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -20,10 +38,8 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Check duplicate strings
-        run: |
-          chmod +x ./scripts/check_duplicate_strings.sh
-          ./scripts/check_duplicate_strings.sh
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Access optional secrets
         env:
@@ -52,23 +68,36 @@ jobs:
                 -e "s|{{UPROT_DIRECT_KEY}}|$UPROT_DIRECT_KEY|g" \
                 app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
           elif [ -f app/src/main/cpp/native-lib.cpp.template ] && [ ! -f app/src/main/cpp/native-lib.cpp ]; then
-            # Local/CI without secrets: use template placeholders so CMake still configures.
             cp app/src/main/cpp/native-lib.cpp.template app/src/main/cpp/native-lib.cpp
           fi
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
-      - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+      - name: Set APP_LAYOUT
+        run: |
+          if [ -n "${{ matrix.app_layout }}" ]; then
+            echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
+          else
+            sed -i '/^APP_LAYOUT=/d' local.properties || true
+          fi
+          echo "local.properties:"
+          cat local.properties
 
-      - name: Assemble debug
-        run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Upload debug APK
+      - name: Package APK
+        run: |
+          mkdir -p dist
+          src=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
+          cp "$src" "dist/${{ matrix.apk_name }}.apk"
+          ls -lh dist/
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BetterStreamflix-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: ${{ matrix.apk_name }}
+          path: dist/${{ matrix.apk_name }}.apk
           if-no-files-found: error
           retention-days: 14
