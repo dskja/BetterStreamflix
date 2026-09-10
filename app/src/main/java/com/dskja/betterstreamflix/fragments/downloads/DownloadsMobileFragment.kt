@@ -136,7 +136,7 @@ class DownloadsMobileFragment : Fragment() {
             )
             chip.setTextColor(
                 if (selected) {
-                    requireContext().getColor(R.color.exp_accent_light)
+                    requireContext().getColor(R.color.exp_accent)
                 } else {
                     requireContext().getColor(R.color.exp_ink)
                 },

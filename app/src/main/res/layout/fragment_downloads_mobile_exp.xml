@@ -48,7 +48,7 @@
         android:id="@+id/tv_downloads_storage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="20dp"
         android:fontFamily="@font/manrope"
         android:paddingStart="22dp"
         android:paddingEnd="16dp"
