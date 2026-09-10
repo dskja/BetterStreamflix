@@ -634,8 +634,8 @@ class MainMobileActivity : FragmentActivity() {
             window.navigationBarColor = ContextCompat.getColor(this, R.color.exp_nav_bg)
         }
         WindowInsetsControllerCompat(window, window.decorView).apply {
-            isAppearanceLightStatusBars = true
-            isAppearanceLightNavigationBars = true
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
         }
     }
 

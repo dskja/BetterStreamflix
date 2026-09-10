@@ -8,4 +8,5 @@
     <dimen name="genre_spacing">16dp</dimen>
 
     <dimen name="season_episodes_spacing">30dp</dimen>
+    <dimen name="exp_poster_radius">12dp</dimen>
 </resources>

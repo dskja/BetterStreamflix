@@ -33,6 +33,7 @@ covers everything done on top of that upstream baseline.
 - Unit tests for playback failover, SerienStream bypass helper, provider health
 
 ### Changed
+- Experimental mobile design rebuilt as **Ember**: nocturnal cinema shell with amber spotlight accents (replaces Atelier light editorial)
 - App version set to **1.1.0** (`versionCode` 10100)
 - Public rebrand to **BetterStreamflix** (maintainer **dskja**): app name, deep links `betterstreamflix://`, in-app updater repo, Telegram `@BetterStreamflix`, About / README credits (`#77`)
 - Mass-rename package / namespace to `com.dskja.betterstreamflix` (`StreamFlixApp` → `BetterStreamflixApp`), BS / brand icons (`#78`)

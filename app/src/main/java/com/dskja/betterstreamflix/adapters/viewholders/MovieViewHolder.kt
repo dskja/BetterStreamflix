@@ -89,6 +89,7 @@ import com.dskja.betterstreamflix.utils.ArtworkRepair
 import com.dskja.betterstreamflix.utils.toActivity
 import java.util.Locale
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.providers.Provider
 import android.view.KeyEvent
 import android.graphics.Color
@@ -372,6 +373,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        ExperimentalMobileDesign.stylePoster(binding.ivMoviePoster)
         bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon, binding.ivMovieDownloadRibbon)
 
         binding.tvMovieQuality.apply {
@@ -539,6 +541,7 @@ class MovieViewHolder(
             centerCrop()
             transition(DrawableTransitionOptions.withCrossFade())
         }
+        ExperimentalMobileDesign.stylePoster(binding.ivMoviePoster)
         bindRibbons(binding.ivMovieFavoriteRibbon, binding.ivMovieWatchedRibbon, binding.ivMovieDownloadRibbon)
 
         binding.tvMovieQuality.apply {

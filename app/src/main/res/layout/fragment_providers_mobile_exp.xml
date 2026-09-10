@@ -36,10 +36,10 @@
         android:layout_marginEnd="36dp"
         android:fontFamily="@font/syne"
         android:gravity="center"
-        android:letterSpacing="-0.02"
+        android:letterSpacing="-0.03"
         android:text="@string/providers_choose_title"
         android:textColor="@color/exp_ink"
-        android:textSize="30sp"
+        android:textSize="32sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/rv_providers"
         app:layout_constraintEnd_toEndOf="parent"
@@ -48,10 +48,10 @@
         app:layout_constraintVertical_chainStyle="packed" />
 
     <View
-        android:layout_width="40dp"
-        android:layout_height="2dp"
+        android:layout_width="44dp"
+        android:layout_height="3dp"
         android:layout_marginTop="12dp"
-        android:background="@color/exp_accent"
+        android:background="@drawable/bg_exp_accent_rule"
         app:layout_constraintEnd_toEndOf="@id/tv_providers_label"
         app:layout_constraintStart_toStartOf="@id/tv_providers_label"
         app:layout_constraintTop_toBottomOf="@id/tv_providers_label" />
