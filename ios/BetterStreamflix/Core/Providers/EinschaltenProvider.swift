@@ -23,6 +23,9 @@ struct EinschaltenProvider: CatalogProvider {
         if let added = try? await fetchMovies(order: "added"), !added.isEmpty {
             rows.append(CategoryRow(id: "added", title: "Zuletzt hinzugefügte Filme", items: added))
         }
+        if rows.isEmpty {
+            throw ProviderError.parseFailed("Einschalten unreachable")
+        }
         return rows
     }
 
