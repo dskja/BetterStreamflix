@@ -186,13 +186,13 @@ enum HTTPClient {
     }
 
     static func followRedirects(url: URL, headers: [String: String] = [:]) async throws -> URL {
-        var request = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
+        let request = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
         do {
             let (_, response) = try await session.data(for: request)
             return response.url ?? url
         } catch {
             guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
-            var retry = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
+            let retry = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
             let (_, response) = try await lenientSession.data(for: retry)
             return response.url ?? url
         }

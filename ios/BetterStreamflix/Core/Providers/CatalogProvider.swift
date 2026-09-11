@@ -34,17 +34,23 @@ enum ProviderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: "Invalid URL"
-        case .emptyResponse: "Empty response from provider"
-        case .parseFailed(let reason): "Parse failed: \(reason)"
+        case .invalidURL:
+            return "Invalid URL"
+        case .emptyResponse:
+            return "Empty response from provider"
+        case .parseFailed(let reason):
+            return "Parse failed: \(reason)"
         case .http(let code, let url):
             if let url, !url.isEmpty {
                 return "HTTP \(code) · \(url)"
             }
             return "HTTP \(code)"
-        case .unsupported: "Not supported by this provider"
-        case .missingAPIKey(let name): "Missing API key for \(name)"
-        case .streamGate(let reason): reason
+        case .unsupported:
+            return "Not supported by this provider"
+        case .missingAPIKey(let name):
+            return "Missing API key for \(name)"
+        case .streamGate(let reason):
+            return reason
         }
     }
 }
