@@ -284,6 +284,34 @@ struct KinoGerProvider: CatalogProvider {
         pattern: #"Staffel\s+(\d+)"#,
         options: [.caseInsensitive]
     )
+
+    private func scrubOverview(_ raw: String) -> String? {
+        var text = raw
+        let junk = [
+            "Streamanbieter aussuchen", "auf 'Play' klicken", "Das schnellste VPN",
+            "Hier den Film bewerten", "Ähnliche Films", "Ähnliche Filme", "0/5 von",
+            "WEBRip", "Stream deutsch kostenlos"
+        ]
+        for j in junk {
+            if let r = text.range(of: j, options: .caseInsensitive) {
+                text = String(text[..<r.lowerBound])
+            }
+        }
+        text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.count > 40 ? text : (text.isEmpty ? nil : text)
+    }
+
+    private func humanizeSlug(_ slug: String) -> String {
+        var s = slug.replacingOccurrences(of: ".html", with: "")
+        // Drop leading numeric ids: 25532-danke-team-...
+        if let r = s.range(of: #"^\d+-"#, options: .regularExpression) {
+            s.removeSubrange(r)
+        }
+        s = s.replacingOccurrences(of: "-", with: " ")
+        return s.capitalized
+    }
+
 }
 
 private extension Array {
@@ -326,31 +354,4 @@ private extension NSRegularExpression {
         }
         return MatchResult(matched: String(string[full]), firstCaptured: captured)
     }
-    private func scrubOverview(_ raw: String) -> String? {
-        var text = raw
-        let junk = [
-            "Streamanbieter aussuchen", "auf 'Play' klicken", "Das schnellste VPN",
-            "Hier den Film bewerten", "Ähnliche Films", "Ähnliche Filme", "0/5 von",
-            "WEBRip", "Stream deutsch kostenlos"
-        ]
-        for j in junk {
-            if let r = text.range(of: j, options: .caseInsensitive) {
-                text = String(text[..<r.lowerBound])
-            }
-        }
-        text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.count > 40 ? text : (text.isEmpty ? nil : text)
-    }
-
-    private func humanizeSlug(_ slug: String) -> String {
-        var s = slug.replacingOccurrences(of: ".html", with: "")
-        // Drop leading numeric ids: 25532-danke-team-...
-        if let r = s.range(of: #"^\d+-"#, options: .regularExpression) {
-            s.removeSubrange(r)
-        }
-        s = s.replacingOccurrences(of: "-", with: " ")
-        return s.capitalized
-    }
-
 }

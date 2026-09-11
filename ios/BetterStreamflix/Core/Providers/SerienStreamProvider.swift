@@ -355,8 +355,21 @@ struct SerienStreamProvider: CatalogProvider {
     }
 
     private func dedupe(_ items: [MediaItem]) -> [MediaItem] { items.deduped() }
-}
 
+    /// Prefer larger CDN variants when SerienStream serves tiny thumbs (causes blurry covers).
+    private static func upscalePoster(_ url: URL?) -> URL? {
+        guard let url else { return nil }
+        var s = url.absoluteString
+        for (a, b) in [
+            ("/thumb/", "/cover/"), ("_thumb.", "."), ("-thumb.", "."),
+            ("/small/", "/big/"), ("_small.", "."), ("w154", "w500"), ("w185", "w500"), ("w92", "w342")
+        ] {
+            s = s.replacingOccurrences(of: a, with: b)
+        }
+        return URL(string: s) ?? url
+    }
+
+}
 private extension Array where Element == MediaItem {
     func deduped() -> [MediaItem] {
         var seen = Set<String>()
@@ -383,17 +396,4 @@ private extension Optional where Wrapped == String {
 private final class MirrorBox: @unchecked Sendable {
     var url: URL
     init(_ url: URL) { self.url = url }
-    /// Prefer larger CDN variants when SerienStream serves tiny thumbs (causes blurry covers).
-    private static func upscalePoster(_ url: URL?) -> URL? {
-        guard let url else { return nil }
-        var s = url.absoluteString
-        for (a, b) in [
-            ("/thumb/", "/cover/"), ("_thumb.", "."), ("-thumb.", "."),
-            ("/small/", "/big/"), ("_small.", "."), ("w154", "w500"), ("w185", "w500"), ("w92", "w342")
-        ] {
-            s = s.replacingOccurrences(of: a, with: b)
-        }
-        return URL(string: s) ?? url
-    }
-
 }

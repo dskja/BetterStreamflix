@@ -221,9 +221,9 @@ struct FrenchStreamProvider: CatalogProvider {
         var episodes: [EpisodeInfo] = []
         var seen = Set<Int>()
         for (idx, el) in try doc.select("div.fs-episode, a.fs-episode, .episode-list a, select.episodes option").array().enumerated() {
-            let num = Int(try el.attr("data-episode"))
-                ?? Int(try el.attr("value"))
-                ?? (idx + 1)
+            let dataEp = try el.attr("data-episode")
+            let valueAttr = try el.attr("value")
+            let num = Int(dataEp) ?? Int(valueAttr) ?? (idx + 1)
             guard seen.insert(num).inserted else { continue }
             let title = try el.text().trimmingCharacters(in: .whitespacesAndNewlines)
             episodes.append(
