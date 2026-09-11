@@ -479,7 +479,13 @@ struct FrenchStreamProvider: CatalogProvider {
         )
         guard let arr = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
         return arr.enumerated().compactMap { idx, season in
-            let sid = (season["id"] as? String) ?? "\(idx)"
+            // Android/API returns numeric ids — casting only as String produced "0","1",… and empty episodes.
+            let sid: String = {
+                if let s = season["id"] as? String, !s.isEmpty { return s }
+                if let n = season["id"] as? Int { return String(n) }
+                if let n = season["id"] as? NSNumber { return n.stringValue }
+                return tagz // never fall back to bare index
+            }()
             let title = (season["title"] as? String) ?? "Saison \(idx + 1)"
             let number = Int(title.components(separatedBy: "Saison ").last?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "") ?? (idx + 1)
