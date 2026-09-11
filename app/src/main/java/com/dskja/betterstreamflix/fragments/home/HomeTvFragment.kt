@@ -91,6 +91,9 @@ class HomeTvFragment : Fragment() {
                         displayHome(state.categories)
                         binding.vgvHome.visibility = View.VISIBLE
                         binding.isLoading.root.visibility = View.GONE
+                        state.providerWarning?.takeIf { it.isNotBlank() }?.let { warning ->
+                            Toast.makeText(requireContext(), warning, Toast.LENGTH_LONG).show()
+                        }
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()

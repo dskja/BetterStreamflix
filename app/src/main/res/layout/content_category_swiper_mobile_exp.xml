@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="620dp"
-    android:background="@color/exp_canvas">
+    android:layout_height="648dp"
+    android:background="@color/exp_void">
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/vp_category_swiper"
@@ -20,14 +20,14 @@
         android:id="@+id/tv_category_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="22dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="22dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="24dp"
         android:elevation="10dp"
-        android:fontFamily="@font/manrope"
-        android:letterSpacing="0.14"
+        android:fontFamily="@font/outfit"
+        android:letterSpacing="0.16"
         android:textAllCaps="true"
-        android:textColor="@color/exp_on_media_muted"
+        android:textColor="@color/exp_accent"
         android:textSize="11sp"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
@@ -40,8 +40,8 @@
         android:id="@+id/ll_dots_indicator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="22dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="28dp"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

@@ -91,6 +91,9 @@ class HomeMobileFragment : Fragment() {
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
                         binding.isLoading.root.visibility = View.GONE
+                        state.providerWarning?.takeIf { it.isNotBlank() }?.let { warning ->
+                            Toast.makeText(requireContext(), warning, Toast.LENGTH_LONG).show()
+                        }
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()
@@ -216,7 +219,11 @@ class HomeMobileFragment : Fragment() {
                             }
                         }
                     }
-                    category.itemSpacing = 10.dp(requireContext())
+                    category.itemSpacing = if (ExperimentalMobileDesign.enabled()) {
+                        14.dp(requireContext())
+                    } else {
+                        10.dp(requireContext())
+                    }
                     category.itemType = when (category.name) {
                         Category.FEATURED -> AppAdapter.Type.CATEGORY_MOBILE_SWIPER
                         else -> AppAdapter.Type.CATEGORY_MOBILE_ITEM

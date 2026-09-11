@@ -23,6 +23,7 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.CacheUtils
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
@@ -48,7 +49,15 @@ class PeopleMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentPeopleMobileBinding.inflate(inflater, container, false)
+        val root = inflater.inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.fragment_people_mobile,
+                R.layout.fragment_people_mobile_exp,
+            ),
+            container,
+            false,
+        )
+        _binding = FragmentPeopleMobileBinding.bind(root)
         return binding.root
     }
 
@@ -140,10 +149,15 @@ class PeopleMobileFragment : Fragment() {
     private fun displayPeople(people: People, hasMore: Boolean) {
         appAdapter.setHeader(
             binding = { parent ->
-                HeaderPeopleMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false,
+                HeaderPeopleMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.header_people_mobile,
+                            R.layout.header_people_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             },
             bind = { binding ->

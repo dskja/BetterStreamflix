@@ -400,7 +400,7 @@ class PlayerTvFragment : Fragment() {
                         }
 
                         player.playlistMetadata = MediaMetadata.Builder()
-                            .setTitle(state.toString())
+                            .setTitle(resolvePlayerTitle())
                             .setMediaServers(state.servers.map {
                                 MediaServer(
                                     id = it.id,
@@ -408,6 +408,7 @@ class PlayerTvFragment : Fragment() {
                                 )
                             })
                             .build()
+                        updatePlayerHeader()
                         binding.settings.setOnServerSelectedListener { server ->
                             viewModel.getVideo(state.servers.find { server.id == it.id }!!)
                         }
@@ -427,20 +428,12 @@ class PlayerTvFragment : Fragment() {
                         }
 
                         is PlayerViewModel.State.LoadingVideo -> {
-                            // Avoid clearing a playing stream to an empty URI when switching
-                            // servers mid-playback (causes silence then a jump back to the menu
-                            // when subsequent servers also fail — especially on Fire TV Stick).
-                            if (!::player.isInitialized || !player.isPlaying) {
-                                player.setMediaItem(
-                                    MediaItem.Builder()
-                                        .setUri("".toUri())
-                                        .setMediaMetadata(
-                                            MediaMetadata.Builder()
-                                                .setMediaServerId(state.server.id)
-                                                .build()
-                                        )
-                                        .build()
-                                )
+                            // Avoid installing an empty URI (0:00/0:00 "Playing" dead state)
+                            // and avoid clearing an already-playing stream when switching servers.
+                            if (::player.isInitialized && !player.isPlaying) {
+                                player.playWhenReady = false
+                                player.stop()
+                                player.clearMediaItems()
                             }
                         }
 

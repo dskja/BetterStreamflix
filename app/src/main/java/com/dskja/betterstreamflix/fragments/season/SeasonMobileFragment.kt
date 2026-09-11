@@ -21,6 +21,7 @@ import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.CacheUtils
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
@@ -55,7 +56,15 @@ class SeasonMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentSeasonMobileBinding.inflate(inflater, container, false)
+        val root = inflater.inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.fragment_season_mobile,
+                R.layout.fragment_season_mobile_exp,
+            ),
+            container,
+            false,
+        )
+        _binding = FragmentSeasonMobileBinding.bind(root)
         return binding.root
     }
 
