@@ -314,14 +314,23 @@ private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-              let trust = challenge.protectionSpace.serverTrust else {
-            completionHandler(.performDefaultHandling, nil)
-            return
+        let disposition: URLSession.AuthChallengeDisposition
+        let credential: URLCredential?
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = challenge.protectionSpace.serverTrust {
+            // Mirror Android hostnameVerifier { _, _ -> true } + empty TrustManager.
+            let exceptions = SecTrustCopyExceptions(trust)
+            SecTrustSetExceptions(trust, exceptions)
+            disposition = .useCredential
+            credential = URLCredential(trust: trust)
+        } else {
+            disposition = .performDefaultHandling
+            credential = nil
         }
-        // Mirror Android hostnameVerifier { _, _ -> true } + empty TrustManager.
-        let exceptions = SecTrustCopyExceptions(trust)
-        SecTrustSetExceptions(trust, exceptions)
-        completionHandler(.useCredential, URLCredential(trust: trust))
+        // URLSessionDelegate's completionHandler is MainActor-isolated in Swift 6;
+        // hop explicitly (delegateQueue is .main, but the witness is still nonisolated).
+        Task { @MainActor in
+            completionHandler(disposition, credential)
+        }
     }
 }
