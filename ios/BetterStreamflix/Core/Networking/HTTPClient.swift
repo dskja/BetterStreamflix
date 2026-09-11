@@ -278,10 +278,10 @@ enum HTTPClient {
 private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
     static let shared = LenientTLSDelegate()
 
-    func urlSession(
+    nonisolated func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+        completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
         if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
            let trust = challenge.protectionSpace.serverTrust {

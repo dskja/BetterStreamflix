@@ -6,28 +6,23 @@ enum DohResolver {
     static let cloudflareDoH = URL(string: "https://cloudflare-dns.com/dns-query")!
     static let googleDoH = URL(string: "https://dns.google/resolve")!
 
-    private static var cache: [String: (ip: String, expiry: Date)] = [:]
-    private static let lock = NSLock()
+    private static let cacheBox = CacheBox()
 
     static func ipv4(for hostname: String) async throws -> String {
         let host = hostname.lowercased()
-        lock.lock()
-        if let cached = cache[host], cached.expiry > Date() {
-            let ip = cached.ip
-            lock.unlock()
-            return ip
+        if let cached = cacheBox.get(host) {
+            return cached
         }
-        lock.unlock()
 
-        let ip = try await lookupIPv4(host: host, endpoint: cloudflareDoH)
-            ?? (try await lookupIPv4(host: host, endpoint: googleDoH))
-        guard let ip else {
+        let ip: String
+        if let resolved = try await lookupIPv4(host: host, endpoint: cloudflareDoH) {
+            ip = resolved
+        } else if let resolved = try await lookupIPv4(host: host, endpoint: googleDoH) {
+            ip = resolved
+        } else {
             throw ProviderError.parseFailed("DoH could not resolve \(host)")
         }
-
-        lock.lock()
-        cache[host] = (ip, Date().addingTimeInterval(300))
-        lock.unlock()
+        cacheBox.set(host, ip: ip)
         return ip
     }
 
@@ -83,5 +78,23 @@ enum DohResolver {
             guard let n = Int(part) else { return false }
             return (0...255).contains(n)
         }
+    }
+}
+
+private final class CacheBox: @unchecked Sendable {
+    private var cache: [String: (ip: String, expiry: Date)] = [:]
+    private let lock = NSLock()
+
+    func get(_ host: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let cached = cache[host], cached.expiry > Date() else { return nil }
+        return cached.ip
+    }
+
+    func set(_ host: String, ip: String) {
+        lock.lock()
+        cache[host] = (ip, Date().addingTimeInterval(300))
+        lock.unlock()
     }
 }
