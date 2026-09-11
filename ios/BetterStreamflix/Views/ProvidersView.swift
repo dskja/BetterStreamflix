@@ -40,7 +40,7 @@ struct ProvidersView: View {
             } header: {
                 Text("Catalog sources")
             } footer: {
-                Text("Beta v3: TMDb (DE) catalog with host-first playback. SerienStream uses mirror failover + lenient TLS. Videasy DE fallbacks included.")
+                Text("Beta v3: TMDb (DE) catalog with host-first playback. SerienStream mirrors match Android (serienstream.to / .cx) + lenient TLS. Videasy DE fallbacks included.")
             }
         }
         .scrollContentBackground(.hidden)
