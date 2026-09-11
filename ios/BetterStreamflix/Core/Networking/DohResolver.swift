@@ -1,5 +1,4 @@
 import Foundation
-import Network
 
 /// DNS helpers aligned with Android `DnsResolver`.
 ///
