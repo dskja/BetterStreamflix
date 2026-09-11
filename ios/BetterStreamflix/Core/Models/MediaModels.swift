@@ -10,6 +10,8 @@ struct MediaItem: Identifiable, Hashable, Sendable {
     var rating: Double?
     var kind: Kind
     var providerHint: String?
+    /// True for live TV / IPTV channels (shows a LIVE badge).
+    var isLive: Bool = false
 
     enum Kind: String, Hashable, Codable, Sendable {
         case tvShow

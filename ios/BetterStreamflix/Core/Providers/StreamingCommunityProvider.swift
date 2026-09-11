@@ -35,10 +35,30 @@ struct StreamingCommunityProvider: CatalogProvider {
         let sliders = (props["sliders"] as? [[String: Any]]) ?? []
         let hero = sliders.first { ($0["name"] as? String) == "hero" } ?? sliders.first
         if let hero, let titles = hero["titles"] as? [[String: Any]] {
-            let items = mapShows(titles).prefix(10).map { $0 }
+            let items = Array(mapShows(titles).prefix(12))
             if !items.isEmpty {
-                rows.append(CategoryRow(id: "featured", title: "Featured", items: Array(items), isFeatured: true))
+                rows.append(CategoryRow(id: "featured", title: "Featured", items: items, isFeatured: true))
                 if let name = hero["name"] as? String { usedNames.insert(name) }
+            }
+        }
+        for (idx, slider) in sliders.enumerated() {
+            let name = (slider["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard name.lowercased() != "hero", !usedNames.contains(name) else { continue }
+            guard let titles = slider["titles"] as? [[String: Any]] else { continue }
+            let items = Array(mapShows(titles).prefix(24))
+            guard !items.isEmpty else { continue }
+            usedNames.insert(name)
+            let title = name.isEmpty ? "Collection \(idx + 1)" : name.replacingOccurrences(of: "_", with: " ").capitalized
+            rows.append(CategoryRow(id: "slider-\(idx)-\(name)", title: title, items: items))
+        }
+        // Top lists / genres from props when present.
+        if let topLists = props["topList"] as? [[String: Any]] ?? props["top_lists"] as? [[String: Any]] {
+            for (idx, list) in topLists.prefix(6).enumerated() {
+                let name = (list["name"] as? String) ?? (list["title"] as? String) ?? "Top \(idx + 1)"
+                let titles = (list["titles"] as? [[String: Any]]) ?? []
+                let items = Array(mapShows(titles).prefix(24))
+                guard !items.isEmpty else { continue }
+                rows.append(CategoryRow(id: "top-\(idx)", title: name, items: items))
             }
         }
 

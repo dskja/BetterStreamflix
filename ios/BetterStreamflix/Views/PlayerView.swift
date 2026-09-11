@@ -25,7 +25,8 @@ struct PlayerView: View {
             if let player, !hasError {
                 VideoPlayer(player: player)
                     .ignoresSafeArea()
-                    .onTapGesture { toggleControls() }
+                    // VideoPlayer swallows most taps — keep an always-visible close control.
+                    .allowsHitTesting(true)
             }
 
             if hasError {
@@ -41,43 +42,61 @@ struct PlayerView: View {
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    Button("Retry") { setupPlayer(reset: true) }
-                        .buttonStyle(.borderedProminent)
-                        .tint(EmberTheme.accent)
+                    HStack(spacing: 12) {
+                        Button("Close") { dismiss() }
+                            .buttonStyle(.bordered)
+                        Button("Retry") { setupPlayer(reset: true) }
+                            .buttonStyle(.borderedProminent)
+                            .tint(EmberTheme.accent)
+                    }
                 }
             } else if player == nil {
                 ProgressView(statusText)
                     .tint(.white)
             }
 
-            if showControls {
-                VStack {
-                    HStack {
+            // Always-on chrome so the user can always leave the player.
+            VStack {
+                HStack {
+                    if showControls || hasError || player == nil {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(title)
                                 .font(.headline)
                                 .foregroundStyle(.white)
                                 .lineLimit(2)
-                            Text(statusText)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.7))
+                            if !hasError {
+                                Text(statusText)
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
                         }
-                        Spacer()
-                        Button { dismiss() } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.white)
-                        }
-                        .accessibilityLabel("Close player")
                     }
-                    .padding()
-                    .background(
-                        LinearGradient(colors: [.black.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom)
-                    )
-
                     Spacer()
+                    Button {
+                        teardown()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 32))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, .black.opacity(0.45))
+                    }
+                    .accessibilityLabel("Close player")
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .background(
+                    LinearGradient(
+                        colors: [.black.opacity(0.75), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
 
+                Spacer()
+
+                if showControls, !hasError, player != nil {
                     VStack(spacing: 12) {
                         Slider(
                             value: Binding(
@@ -110,11 +129,16 @@ struct PlayerView: View {
                     .background(
                         LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture { scheduleHide() }
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { toggleControls() }
         }
+        .persistentSystemOverlays(.visible)
         .toolbar(.hidden, for: .navigationBar)
-        .statusBarHidden(true)
+        .statusBarHidden(false)
         .onAppear {
             setupPlayer(reset: false)
             scheduleHide()
@@ -152,6 +176,7 @@ struct PlayerView: View {
             }
             if newPlayer.currentItem?.status == .failed {
                 hasError = true
+                showControls = true
                 statusText = newPlayer.currentItem?.error?.localizedDescription ?? "Stream error"
             }
         }
@@ -198,10 +223,11 @@ struct PlayerView: View {
 
     private func scheduleHide() {
         hideTask?.cancel()
+        // Keep the close button usable; only auto-hide the transport chrome.
         hideTask = Task {
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
-            if isPlaying { showControls = false }
+            if isPlaying, !hasError { showControls = false }
         }
     }
 

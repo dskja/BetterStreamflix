@@ -156,24 +156,35 @@ struct FrenchStreamProvider: CatalogProvider {
 
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         let base = try await ensureBase()
-        guard let url = HTTPClient.apiURL(
-            base: base,
-            path: "engine/ajax/sx.php",
-            query: [URLQueryItem(name: "id", value: seasonId)]
-        ) else {
-            throw ProviderError.invalidURL
+        let seasonKey = seasonId.contains("/") ? (seasonId.split(separator: "/").last.map(String.init) ?? seasonId) : seasonId
+        let paths = ["engine/ajax/sx.php", "engine/ajax/sx.php"]
+        var root: [String: Any] = [:]
+        for path in ["engine/ajax/sx.php"] {
+            guard let url = HTTPClient.apiURL(
+                base: base,
+                path: path,
+                query: [URLQueryItem(name: "id", value: seasonKey)]
+            ) else { continue }
+            if let data = try? await HTTPClient.getJSON(
+                url: url,
+                headers: [
+                    "User-Agent": HTTPClient.desktopUserAgent,
+                    "Cookie": "dle_skin=VFV1",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Referer": base.absoluteString,
+                    "Accept": "application/json",
+                ]
+            ),
+               let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               !parsed.isEmpty {
+                root = parsed
+                break
+            }
         }
-        let data = try await HTTPClient.getJSON(
-            url: url,
-            headers: [
-                "User-Agent": HTTPClient.desktopUserAgent,
-                "Cookie": "dle_skin=VFV1; fsschal=1",
-                "X-Requested-With": "XMLHttpRequest",
-                "Referer": base.absoluteString,
-                "Accept": "application/json",
-            ]
-        )
-        let root = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        if root.isEmpty {
+            // Fallback: scrape episode links from the season/show page.
+            return try await scrapeEpisodesFromPage(showId: showId, seasonId: seasonKey, base: base)
+        }
         let info = root["info"] as? [String: [String: Any]] ?? [:]
         let vf = root["vf"] as? [String: Any] ?? [:]
         let vostfr = root["vostfr"] as? [String: Any] ?? [:]
@@ -198,6 +209,30 @@ struct FrenchStreamProvider: CatalogProvider {
             )
             number += 1
             if number > 500 { break }
+        }
+        return episodes
+    }
+
+
+    private func scrapeEpisodesFromPage(showId: String, seasonId: String, base: URL) async throws -> [EpisodeInfo] {
+        guard let pageURL = itemURL(id: showId, base: base) else { return [] }
+        let html = try await fetchPage(url: pageURL, cookie: "dle_skin=VFV25; fsschal=1")
+        let doc = try SwiftSoup.parse(html, base.absoluteString)
+        var episodes: [EpisodeInfo] = []
+        var seen = Set<Int>()
+        for (idx, el) in try doc.select("div.fs-episode, a.fs-episode, .episode-list a, select.episodes option").array().enumerated() {
+            let num = Int(try el.attr("data-episode"))
+                ?? Int(try el.attr("value"))
+                ?? (idx + 1)
+            guard seen.insert(num).inserted else { continue }
+            let title = try el.text().trimmingCharacters(in: .whitespacesAndNewlines)
+            episodes.append(
+                EpisodeInfo(
+                    id: "\(seasonId)/\(num)",
+                    number: num,
+                    title: title.isEmpty ? "Episode \(num)" : title
+                )
+            )
         }
         return episodes
     }
@@ -283,7 +318,7 @@ struct FrenchStreamProvider: CatalogProvider {
             url: url,
             headers: [
                 "User-Agent": HTTPClient.desktopUserAgent,
-                "Cookie": "dle_skin=VFV1; fsschal=1",
+                "Cookie": "dle_skin=VFV1",
                 "X-Requested-With": "XMLHttpRequest",
                 "Accept": "application/json",
             ]
@@ -412,7 +447,7 @@ struct FrenchStreamProvider: CatalogProvider {
             url: url,
             headers: [
                 "User-Agent": HTTPClient.desktopUserAgent,
-                "Cookie": "dle_skin=VFV1; fsschal=1",
+                "Cookie": "dle_skin=VFV1",
                 "X-Requested-With": "XMLHttpRequest",
                 "Accept": "application/json",
             ]
@@ -437,7 +472,7 @@ struct FrenchStreamProvider: CatalogProvider {
             fields: ["serie_tag": tagz],
             headers: [
                 "User-Agent": HTTPClient.desktopUserAgent,
-                "Cookie": "dle_skin=VFV1; fsschal=1",
+                "Cookie": "dle_skin=VFV1",
                 "X-Requested-With": "XMLHttpRequest",
                 "Referer": base.absoluteString,
             ]

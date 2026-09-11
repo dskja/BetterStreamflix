@@ -48,7 +48,7 @@ struct DetailView: View {
                 }
             }
             .padding(.horizontal, EmberTheme.spaceMD)
-            .padding(.bottom, 96)
+            .padding(.bottom, 120)
         }
         .emberBackground()
         .navigationTitle(item.title)
@@ -100,7 +100,7 @@ struct DetailView: View {
                     AsyncImage(url: item.bannerURL ?? item.posterURL ?? detail?.bannerURL ?? detail?.posterURL) { phase in
                         switch phase {
                         case .success(let image):
-                            image.resizable().scaledToFill()
+                            image.resizable().scaledToFill().frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         default:
                             EmberTheme.surfaceElevated
                         }
@@ -204,7 +204,7 @@ struct DetailView: View {
                             if let thumb = episode.thumbnailURL {
                                 AsyncImage(url: thumb) { phase in
                                     if case .success(let image) = phase {
-                                        image.resizable().scaledToFill()
+                                        image.resizable().scaledToFill().frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                                     } else {
                                         EmberTheme.surfaceElevated
                                     }

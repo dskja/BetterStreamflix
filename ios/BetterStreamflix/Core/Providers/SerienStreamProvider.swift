@@ -313,13 +313,13 @@ struct SerienStreamProvider: CatalogProvider {
     private func extractPoster(from el: Element) throws -> URL? {
         let img = try el.selectFirst("img")
         let raw = try img?.attr("data-src").ifBlank(try img?.attr("src"))
-        return HTTPClient.absoluteURL(raw, base: baseURL)
+        return Self.upscalePoster(HTTPClient.absoluteURL(raw, base: baseURL))
     }
 
     private func extractShowPoster(_ doc: Document) throws -> URL? {
         let img = try doc.selectFirst("img.seriesCoverBox, .seriesCoverBox img, img[itemprop=image]")
         let raw = try img?.attr("data-src").ifBlank(try img?.attr("src"))
-        return HTTPClient.absoluteURL(raw, base: baseURL)
+        return Self.upscalePoster(HTTPClient.absoluteURL(raw, base: baseURL))
     }
 
     private func extractShowBanner(_ doc: Document) throws -> URL? {
@@ -383,4 +383,17 @@ private extension Optional where Wrapped == String {
 private final class MirrorBox: @unchecked Sendable {
     var url: URL
     init(_ url: URL) { self.url = url }
+    /// Prefer larger CDN variants when SerienStream serves tiny thumbs (causes blurry covers).
+    private static func upscalePoster(_ url: URL?) -> URL? {
+        guard let url else { return nil }
+        var s = url.absoluteString
+        for (a, b) in [
+            ("/thumb/", "/cover/"), ("_thumb.", "."), ("-thumb.", "."),
+            ("/small/", "/big/"), ("_small.", "."), ("w154", "w500"), ("w185", "w500"), ("w92", "w342")
+        ] {
+            s = s.replacingOccurrences(of: a, with: b)
+        }
+        return URL(string: s) ?? url
+    }
+
 }

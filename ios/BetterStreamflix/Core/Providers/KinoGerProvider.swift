@@ -48,15 +48,19 @@ struct KinoGerProvider: CatalogProvider {
             try doc.selectFirst(".content_text img, .full-text img, img[itemprop=image]")?.attr("src"),
             base: baseURL
         )
-        let overview = try doc.selectFirst(".full-text, .content_text")?.text()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let overviewRaw = try doc.selectFirst("meta[property=og:description]")?.attr("content")
+            .ifBlank(try doc.selectFirst("[itemprop=description]")?.text())
+            .ifBlank(try doc.selectFirst(".full-text p, .content_text p")?.text())
+            .ifBlank(try doc.selectFirst(".full-text, .content_text")?.text())
+            ?? ""
+        let overview = scrubOverview(overviewRaw)
         let year = Self.parenYear.firstMatch(in: titleRaw)?.firstCaptured
 
         if kind == .tvShow || isSeriesDocument(doc, title: titleRaw) {
             let seasonNumber = Self.staffelRegex.firstMatch(in: titleRaw)?.firstCaptured.flatMap(Int.init) ?? 1
             return ShowDetail(
                 id: id,
-                title: title.isEmpty ? pageURL.lastPathComponent : title,
+                title: title.isEmpty ? humanizeSlug(pageURL.lastPathComponent) : title,
                 overview: overview?.isEmpty == true ? nil : overview,
                 posterURL: poster,
                 bannerURL: poster,
@@ -68,7 +72,7 @@ struct KinoGerProvider: CatalogProvider {
 
         return ShowDetail(
             id: id,
-            title: title.isEmpty ? pageURL.lastPathComponent : title,
+            title: title.isEmpty ? humanizeSlug(pageURL.lastPathComponent) : title,
             overview: overview?.isEmpty == true ? nil : overview,
             posterURL: poster,
             bannerURL: poster,
@@ -322,4 +326,31 @@ private extension NSRegularExpression {
         }
         return MatchResult(matched: String(string[full]), firstCaptured: captured)
     }
+    private func scrubOverview(_ raw: String) -> String? {
+        var text = raw
+        let junk = [
+            "Streamanbieter aussuchen", "auf 'Play' klicken", "Das schnellste VPN",
+            "Hier den Film bewerten", "Ähnliche Films", "Ähnliche Filme", "0/5 von",
+            "WEBRip", "Stream deutsch kostenlos"
+        ]
+        for j in junk {
+            if let r = text.range(of: j, options: .caseInsensitive) {
+                text = String(text[..<r.lowerBound])
+            }
+        }
+        text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.count > 40 ? text : (text.isEmpty ? nil : text)
+    }
+
+    private func humanizeSlug(_ slug: String) -> String {
+        var s = slug.replacingOccurrences(of: ".html", with: "")
+        // Drop leading numeric ids: 25532-danke-team-...
+        if let r = s.range(of: #"^\d+-"#, options: .regularExpression) {
+            s.removeSubrange(r)
+        }
+        s = s.replacingOccurrences(of: "-", with: " ")
+        return s.capitalized
+    }
+
 }

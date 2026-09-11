@@ -11,7 +11,20 @@ struct SearchView: View {
     @State private var errorMessage: String?
     @State private var searchTask: Task<Void, Never>?
 
-    private let chips = ["Action", "Comedy", "Drama", "Thriller", "Anime", "Sci-Fi", "Horror", "Krimi"]
+    private var chips: [String] {
+        switch app.activeProvider.id {
+        case "plutotv-de", "pluto-de", "plutotv":
+            return ["Live", "Nachrichten", "Sport", "Filme", "Serien", "Kinder", "Doku"]
+        case "aniworld", "animeworld":
+            return ["Action", "Romance", "Fantasy", "Comedy", "Drama", "Horror", "Slice of Life"]
+        case "serienstream", "s.to":
+            return ["Serien", "Action", "Drama", "Thriller", "Comedy", "Krimi", "Sci-Fi", "Horror"]
+        case "filmo", "filmpalast", "kinoger", "megakino", "hdfilme", "einschalten":
+            return ["Filme", "Action", "Komödie", "Drama", "Thriller", "Horror", "Anime", "Krimi"]
+        default:
+            return ["Filme", "Serien", "Action", "Comedy", "Drama", "Thriller", "Anime", "Horror"]
+        }
+    }
 
     var body: some View {
         List {

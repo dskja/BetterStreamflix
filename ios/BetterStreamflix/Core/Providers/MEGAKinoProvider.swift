@@ -15,27 +15,27 @@ struct MEGAKinoProvider: CatalogProvider {
         let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let sections = try doc.select("section.sect").array()
-        var section: Element?
-        for sec in sections {
-            if try sec.select("h2.sect__title").text().localizedCaseInsensitiveContains("Topaktuelle Neuheiten") {
-                section = sec
-                break
+        var rows: [CategoryRow] = []
+        var seenTitles = Set<String>()
+        for (idx, sec) in sections.enumerated() {
+            let items = try parseContentItems(sec)
+            guard !items.isEmpty else { continue }
+            var title = try sec.select("h2.sect__title").text().trimmingCharacters(in: .whitespacesAndNewlines)
+            if title.isEmpty { title = idx == 0 ? "Topaktuelle Neuheiten" : "Mehr \(idx + 1)" }
+            // Skip pure news/blog rails that aren't playable posters when possible.
+            let key = title.lowercased()
+            if key.contains("news") && items.count < 3 { continue }
+            guard seenTitles.insert(key).inserted else { continue }
+            let isFeatured = idx == 0 || key.contains("neuheit") || key.contains("featured")
+            rows.append(CategoryRow(id: "sect-\(idx)", title: title, items: items, isFeatured: isFeatured && rows.isEmpty))
+        }
+        if rows.isEmpty {
+            let fallback = try parseContentItems(doc)
+            if !fallback.isEmpty {
+                rows.append(CategoryRow(id: "neuheiten", title: "Topaktuelle Neuheiten", items: fallback, isFeatured: true))
             }
         }
-        if section == nil {
-            for sec in sections {
-                if !(try sec.select("div#dle-content a.poster.grid-item").array().isEmpty) {
-                    section = sec
-                    break
-                }
-            }
-        }
-        guard let section else { return [] }
-        let items = try parseContentItems(section)
-        guard !items.isEmpty else { return [] }
-        let title = try section.select("h2.sect__title").text().trimmingCharacters(in: .whitespacesAndNewlines)
-            .ifBlank("Topaktuelle Neuheiten")
-        return [CategoryRow(id: "neuheiten", title: title, items: items)]
+        return rows
     }
 
     func search(query: String) async throws -> [MediaItem] {
@@ -124,10 +124,11 @@ struct MEGAKinoProvider: CatalogProvider {
         let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
-        for option in try doc.select("select.se-select option").array() {
+        var seen = Set<String>()
+        for option in try doc.select("select.se-select option, select.episode-select option, select[name*=episode] option").array() {
             let value = try option.attr("value").trimmingCharacters(in: .whitespacesAndNewlines)
             let name = try option.text().trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !value.isEmpty else { continue }
+            guard !value.isEmpty, seen.insert(value).inserted else { continue }
             let number = Self.episodeRegex.firstMatch(in: name)?.firstCaptured.flatMap(Int.init)
                 ?? (episodes.count + 1)
             episodes.append(
@@ -137,6 +138,22 @@ struct MEGAKinoProvider: CatalogProvider {
                     title: name.isEmpty ? "Episode \(number)" : name
                 )
             )
+        }
+        // Some layouts list episodes as buttons / tabs instead of <select>.
+        if episodes.isEmpty {
+            for (idx, el) in try doc.select(".pmovie__episodes a, .episodes-list a, [data-episode], .ep-item").array().enumerated() {
+                let value = try el.attr("data-episode").ifBlank(try el.attr("href")).ifBlank("\(idx + 1)")
+                let name = try el.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                guard seen.insert(value).inserted else { continue }
+                let number = Self.episodeRegex.firstMatch(in: name)?.firstCaptured.flatMap(Int.init) ?? (idx + 1)
+                episodes.append(
+                    EpisodeInfo(
+                        id: "\(pageURL.absoluteString)|\(value)",
+                        number: number,
+                        title: name.isEmpty ? "Episode \(number)" : name
+                    )
+                )
+            }
         }
         return episodes
     }

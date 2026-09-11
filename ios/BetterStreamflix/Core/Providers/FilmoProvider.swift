@@ -140,15 +140,29 @@ struct FilmoProvider: CatalogProvider {
 
     // MARK: - Parsing
 
+    private static let genreTitles: Set<String> = [
+        "Action", "Abenteuer", "Animation", "Anime", "Biografie", "Dokumentation", "Drama",
+        "Familie", "Fantasy", "Historie", "Horror", "Komödie", "Krieg", "Krimi", "Musik",
+        "Mystery", "Romance", "Science Fiction", "Sci-Fi", "Sport", "Thriller", "Western",
+        "Zeichentrick", "Kinder", "Jugend"
+    ]
+
     private func parseMovieCards(_ doc: Document) throws -> [MediaItem] {
+        // Prefer real movie tiles — spotlight/genre rails often reuse similar markup.
         let cards = try doc.select(
-            "a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/], a.popular-spotlight-card__link[href*=/movies/]"
+            "a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/]"
         ).array()
         var items: [MediaItem] = []
         var seen = Set<String>()
         for el in cards {
             guard let item = try parseVideoCard(el), seen.insert(item.id).inserted else { continue }
             items.append(item)
+        }
+        if items.isEmpty {
+            for el in try doc.select("a.popular-spotlight-card__link[href*=/movies/]").array() {
+                guard let item = try parseVideoCard(el), seen.insert(item.id).inserted else { continue }
+                items.append(item)
+            }
         }
         return items
     }
@@ -159,17 +173,28 @@ struct FilmoProvider: CatalogProvider {
             href = try el.selectFirst("a[href*=/movies/]")?.attr("href")
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
-        guard href.contains("/movies/"), let abs = HTTPClient.absoluteURL(href, base: baseURL) else { return nil }
-        let title = try el.selectFirst(".video-card__title, .movie-poster-grid-card__title, h2, h3")?.text()
+        guard href.contains("/movies/"),
+              !href.contains("/genres/"),
+              !href.contains("/genre/"),
+              let abs = HTTPClient.absoluteURL(href, base: baseURL) else { return nil }
+        // Require a real slug after /movies/ (not /movies/ or /movies/?x=).
+        let slug = abs.path.split(separator: "/").last.map(String.init) ?? ""
+        guard slug.count >= 2, !slug.hasPrefix("?") else { return nil }
+        let title = try el.selectFirst(".video-card__title, .movie-poster-grid-card__title")?.text()
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .ifBlank(try el.selectFirst("img")?.attr("alt"))
-            .ifBlank(abs.lastPathComponent.replacingOccurrences(of: "-", with: " "))
-            ?? abs.lastPathComponent.replacingOccurrences(of: "-", with: " ")
-        guard !title.isEmpty else { return nil }
+            ?? ""
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return nil }
+        if Self.genreTitles.contains(where: { $0.caseInsensitiveCompare(cleaned) == .orderedSame }) {
+            return nil
+        }
         let posterRaw = try el.selectFirst("img")?.attr("src").ifBlank(try el.selectFirst("img")?.attr("data-src"))
+        // Genre tiles often lack poster CDN paths under /img/poster/.
+        if let posterRaw, posterRaw.contains("/genres/") { return nil }
         return MediaItem(
             id: abs.absoluteString,
-            title: title,
+            title: cleaned,
             posterURL: HTTPClient.absoluteURL(posterRaw, base: baseURL),
             kind: .movie,
             providerHint: self.id

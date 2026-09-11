@@ -85,7 +85,7 @@ struct PlutoTvDeProvider: CatalogProvider {
         return ShowDetail(
             id: id,
             title: payload.name,
-            overview: "Canal de Pluto TV: \(payload.name)\nSeñal obtenida vía lista M3U.",
+            overview: "LIVE · Pluto TV\n\(payload.name)\n\nLive channel from the Pluto TV DE playlist.",
             posterURL: logo,
             bannerURL: logo,
             seasons: [],
@@ -95,7 +95,7 @@ struct PlutoTvDeProvider: CatalogProvider {
 
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         if showId == "creador-info" || showId == "apoyo-nando" { return [] }
-        return [EpisodeInfo(id: showId, number: 1, title: "Reproducir Señal")]
+        return [EpisodeInfo(id: showId, number: 1, title: "Live stream")]
     }
 
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
@@ -249,7 +249,8 @@ private struct M3UChannel {
             posterURL: logo.flatMap(URL.init(string:)),
             bannerURL: logo.flatMap(URL.init(string:)),
             kind: .tvShow,
-            providerHint: providerID
+            providerHint: providerID,
+            isLive: true
         )
     }
 }

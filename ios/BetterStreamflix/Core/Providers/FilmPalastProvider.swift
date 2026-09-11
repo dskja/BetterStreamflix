@@ -101,25 +101,39 @@ struct FilmPalastProvider: CatalogProvider {
             do {
                 let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
                 let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
-                let title = try doc.selectFirst("h1")?.text()
+                // Android FilmPalastProvider: h2 + img.cover2 + span[itemprop=description]
+                let title = try doc.selectFirst("h2")?.text()
+                    ?? doc.selectFirst("h1")?.text()
                     ?? id.replacingOccurrences(of: "-", with: " ").capitalized
-                let overview = try doc.selectFirst("div.detail-desc, #detail-desc, .seriesDescr")?.text()
-                let poster = HTTPClient.absoluteURL(
-                    try doc.selectFirst(".detail-cover img, .cover img, img[itemprop=image]")?.attr("src"),
-                    base: baseURL
-                )
+                let overview = try doc.selectFirst("span[itemprop=description]")?.text()
+                    ?? doc.selectFirst("div.detail-desc, #detail-desc, .seriesDescr")?.text()
+                let posterRaw = try doc.selectFirst("img.cover2")?.attr("src")
+                    ?? doc.selectFirst(".detail-cover img, .cover img, img[itemprop=image]")?.attr("src")
+                let poster = HTTPClient.absoluteURL(posterRaw, base: baseURL)
+                let year = try doc.selectFirst("ul#detail-content-list > li:has(p:matchesOwn(Release)) a")?.text()
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let genres = try doc.select("ul#detail-content-list > li:has(p:matchesOwn(Kategorien, Genre)) a").array().compactMap { a -> String? in
+                    let name = try a.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                    return name.isEmpty ? nil : name
+                }
+                let cast = try doc.select("ul#detail-content-list > li:has(p:matchesOwn(Schauspieler)) a").array().compactMap { a -> String? in
+                    let name = try a.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                    return name.isEmpty ? nil : name
+                }
                 return ShowDetail(
                     id: id,
                     title: title,
-                    overview: overview,
+                    overview: overview?.isEmpty == true ? nil : overview,
                     posterURL: poster,
                     bannerURL: poster,
-                    year: nil,
+                    year: year?.isEmpty == true ? nil : year,
                     rating: nil,
                     seasons: kind == .tvShow
                         ? [SeasonInfo(id: id, number: 1, title: "Episodes")]
                         : [],
-                    kind: kind
+                    kind: kind,
+                    genres: genres,
+                    cast: cast
                 )
             } catch {
                 lastError = error
@@ -160,33 +174,61 @@ struct FilmPalastProvider: CatalogProvider {
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
-        for (idx, el) in try doc.select("ul.currentStreamLinks a, a.iconPlay, a[data-player-url], a[href*=voe], a[href*=streamtape], a[href*=vidoza], a[href*=mixdrop]").array().enumerated() {
-            let href = try el.attr("data-player-url").ifBlank(try el.attr("href"))
+        // Android: each hoster is a `ul.currentStreamLinks` block with `p.hostName` + play link.
+        let blocks = try doc.select("ul.currentStreamLinks").array()
+        for (idx, block) in blocks.enumerated() {
+            let hostName = try block.selectFirst("li.hostBg p.hostName, p.hostName")?.text()
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let link = try block.selectFirst("a[data-player-url]") ?? block.selectFirst("a[href]")
+            let href = try (link?.attr("data-player-url")).flatMap { $0.isEmpty ? nil : $0 }
+                ?? (try link?.attr("href"))
+                ?? ""
             guard var streamURL = HTTPClient.absoluteURL(href, base: baseURL) else { continue }
-            let name = try el.text().trimmingCharacters(in: .whitespacesAndNewlines)
-            if streamURL.host()?.contains("filmpalast") == true,
-               let path = URLComponents(url: streamURL, resolvingAgainstBaseURL: false)?.path,
-               path.contains("/e/") || path.contains("/v/") {
-                // leave as-is; followRedirect will resolve
+            var name = hostName
+            if name.isEmpty {
+                name = try link?.text().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             }
-            // Normalize VOE short links (voe.sx/abc) onto /e/{id}.
+            if name.isEmpty || name.lowercased() == "play" || name.lowercased() == "stream" {
+                name = streamURL.host()?.replacingOccurrences(of: "www.", with: "").components(separatedBy: ".").first?
+                    .capitalized ?? "Host \(idx + 1)"
+            }
+            // Normalize VOE short links onto voe.sx/e/{id}.
             if let host = streamURL.host()?.lowercased(), host.contains("voe") {
-                let id = streamURL.path.split(separator: "/").last.map(String.init) ?? ""
-                if !id.isEmpty, !streamURL.path.contains("/e/"), !streamURL.path.contains("/d/") {
-                    streamURL = URL(string: "https://voe.sx/e/\(id)") ?? streamURL
+                let idPart = streamURL.path.split(separator: "/").last.map(String.init) ?? ""
+                if !idPart.isEmpty, !streamURL.path.contains("/e/"), !streamURL.path.contains("/d/") {
+                    streamURL = URL(string: "https://voe.sx/e/\(idPart)") ?? streamURL
                 } else if host != "voe.sx" {
                     streamURL = URL(string: "https://voe.sx\(streamURL.path)") ?? streamURL
                 }
             }
             sources.append(
                 StreamSource(
-                    id: "fp-\(idx)",
-                    name: name.isEmpty ? "Host \(idx + 1)" : name,
+                    id: "fp-\(idx)-\(name)",
+                    name: name,
                     url: streamURL,
                     headers: ["User-Agent": HTTPClient.desktopUserAgent, "Referer": baseURL.absoluteString],
                     resolveKind: .followRedirect
                 )
             )
+        }
+
+        // Fallback: flat anchor scrape if block markup is missing.
+        if sources.isEmpty {
+            for (idx, el) in try doc.select("a[data-player-url], a.iconPlay, a[href*=voe], a[href*=streamtape], a[href*=vidoza], a[href*=mixdrop]").array().enumerated() {
+                let href = try el.attr("data-player-url").ifBlank(try el.attr("href"))
+                guard let streamURL = HTTPClient.absoluteURL(href, base: baseURL) else { continue }
+                let label = streamURL.host()?.replacingOccurrences(of: "www.", with: "").components(separatedBy: ".").first?
+                    .capitalized ?? "Host \(idx + 1)"
+                sources.append(
+                    StreamSource(
+                        id: "fp-fb-\(idx)",
+                        name: label,
+                        url: streamURL,
+                        headers: ["User-Agent": HTTPClient.desktopUserAgent, "Referer": baseURL.absoluteString],
+                        resolveKind: .followRedirect
+                    )
+                )
+            }
         }
         return sources.uniqued(by: \.url)
     }

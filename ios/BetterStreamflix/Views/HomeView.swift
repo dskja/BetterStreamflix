@@ -10,6 +10,12 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: EmberTheme.spaceLG) {
                 header
+                // Featured must sit above Continue Watching.
+                if !isLoading, errorMessage == nil,
+                   let featured = catalog.first(where: \.isFeatured),
+                   let hero = featured.items.first {
+                    FeaturedHero(item: hero, subtitle: featured.title)
+                }
                 if !app.library.continueWatching.isEmpty {
                     continueRow
                 }
@@ -26,12 +32,8 @@ struct HomeView: View {
                         .buttonStyle(.borderedProminent)
                         .tint(EmberTheme.accent)
                 } else {
-                    ForEach(catalog) { section in
-                        if section.isFeatured, let hero = section.items.first {
-                            FeaturedHero(item: hero, subtitle: section.title)
-                        } else {
-                            CatalogRow(section: section)
-                        }
+                    ForEach(catalog.filter { !$0.isFeatured }) { section in
+                        CatalogRow(section: section)
                     }
                 }
             }
@@ -125,7 +127,10 @@ private struct FeaturedHero: View {
                         AsyncImage(url: item.bannerURL ?? item.posterURL) { phase in
                             switch phase {
                             case .success(let image):
-                                image.resizable().scaledToFill()
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             default:
                                 EmberTheme.surfaceElevated
                             }
@@ -186,20 +191,39 @@ struct PosterCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .bottom) {
-                AsyncImage(url: item.posterURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        placeholder
-                    case .empty:
-                        ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-                    @unknown default:
-                        placeholder
+                Color.clear
+                    .frame(width: 128, height: 192)
+                    .overlay(alignment: .top) {
+                        AsyncImage(url: item.posterURL ?? item.bannerURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                // Top-aligned fill reduces “zoomed into faces” crop on posters.
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 128, height: 192, alignment: .top)
+                            case .failure:
+                                placeholder
+                            case .empty:
+                                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                            @unknown default:
+                                placeholder
+                            }
+                        }
                     }
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusMD, style: .continuous))
+
+                if item.isLive {
+                    Text("LIVE")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(EmberTheme.accent, in: Capsule())
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                        .padding(6)
                 }
-                .frame(width: 128, height: 192)
-                .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusMD, style: .continuous))
 
                 if let progress, progress > 0 {
                     GeometryReader { geo in

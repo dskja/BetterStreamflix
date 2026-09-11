@@ -26,6 +26,9 @@ enum HosterExtractor {
         if isMixDrop(host) {
             return try await extractMixDrop(url: url, headers: headers)
         }
+        if isVixcloud(host) {
+            return try await extractVixcloud(url: url, headers: headers)
+        }
 
         // Generic: follow redirects then scrape m3u8/mp4 from HTML.
         let final = try await HTTPClient.followRedirects(url: url, headers: headers)
@@ -51,7 +54,8 @@ enum HosterExtractor {
             "lauradaydo.com", "lancewhosedifficult.com", "dianaavoidthey.com",
             "jefferycontrolmodel.com", "charlestoughrace.com", "richardquestionbuilding.com",
             "jessicayeahcatch.com", "juliewomanwish.com", "rebeccapracticeloss.com",
-            "johnbeyondnation.com"
+            "johnbeyondnation.com", "shannontechnicalthere.com", "bethanyleadingstatus.com",
+            "donaldlineargarden.com", "voe-network.com", "voe.sy", "voe.st"
         ]
         return aliases.contains(where: { host == $0 || host.hasSuffix(".\($0)") })
             || host.contains("voe")
@@ -80,6 +84,11 @@ enum HosterExtractor {
             || host.hasPrefix("md") && host.contains(".")
     }
 
+    
+    private static func isVixcloud(_ host: String) -> Bool {
+        host.contains("vixcloud") || host.contains("vixsrc") || host.contains("vixcloud.co")
+    }
+
     private static func normalizeVOEURL(_ url: URL) -> URL {
         guard let host = url.host()?.lowercased(), isVOE(host) else { return url }
         let parts = url.path.split(separator: "/").map(String.init)
@@ -97,6 +106,50 @@ enum HosterExtractor {
         return url
     }
 
+    
+    // MARK: - Vixcloud (StreamingCommunity)
+
+    private static func extractVixcloud(url: URL, headers: [String: String]) async throws -> URL {
+        var reqHeaders = headers
+        if reqHeaders["Referer"] == nil {
+            reqHeaders["Referer"] = "https://\(url.host() ?? "vixcloud.co")/"
+        }
+        if reqHeaders["User-Agent"] == nil {
+            reqHeaders["User-Agent"] = HTTPClient.desktopUserAgent
+        }
+        let html = try await HTTPClient.getHTML(
+            url: url,
+            referer: URL(string: reqHeaders["Referer"] ?? url.absoluteString),
+            desktopUA: true,
+            allowLenientTLS: true
+        )
+        // window.video = { id: 123, ... }
+        let videoID = firstMatch(in: html, pattern: #"window\.video\s*=\s*\{[^}]*?id\s*:\s*(\d+)"#)
+            ?? firstMatch(in: html, pattern: #"window\.video\s*=\s*\{[^}]*?"id"\s*:\s*(\d+)"#)
+            ?? firstMatch(in: html, pattern: #""id"\s*:\s*(\d+)"#)
+        guard let videoID, !videoID.isEmpty else {
+            if let media = StreamResolver.extractMediaURL(from: html, base: url) {
+                return media
+            }
+            throw ProviderError.parseFailed("Vixcloud: window.video id missing")
+        }
+        let token = firstMatch(in: html, pattern: #"token\s*:\s*"([^"]+)""#)
+            ?? firstMatch(in: html, pattern: #""token"\s*:\s*"([^"]+)""#)
+        let expires = firstMatch(in: html, pattern: #"expires\s*:\s*"([^"]+)""#)
+            ?? firstMatch(in: html, pattern: #""expires"\s*:\s*"([^"]+)""#)
+        let hasB = html.contains("b=1")
+        var comps = URLComponents(string: "https://\(url.host() ?? "vixcloud.co")/playlist/\(videoID)")!
+        var items: [URLQueryItem] = []
+        if let token, !token.isEmpty { items.append(URLQueryItem(name: "token", value: token)) }
+        if let expires, !expires.isEmpty { items.append(URLQueryItem(name: "expires", value: expires)) }
+        if hasB { items.append(URLQueryItem(name: "b", value: "1")) }
+        comps.queryItems = items.isEmpty ? nil : items
+        guard let playlist = comps.url else {
+            throw ProviderError.parseFailed("Vixcloud: playlist URL invalid")
+        }
+        return playlist
+    }
+
     // MARK: - VOE (DecryptHelper F7)
 
     private static func extractVOE(url: URL, headers: [String: String]) async throws -> URL {
@@ -109,9 +162,10 @@ enum HosterExtractor {
 
         // Android: VOE HTML often points at a rotating alias domain — refetch same path there.
         let pageURL: URL
+        // Only follow bounce hosts that are known VOE aliases (never the first random https:// on the page).
         if let bounceHost = firstMatch(in: html, pattern: #"https://([a-zA-Z0-9.-]+)/"#),
            bounceHost.lowercased() != (url.host() ?? "").lowercased(),
-           isVOE(bounceHost.lowercased()) || bounceHost.contains(".") {
+           isVOE(bounceHost.lowercased()) {
             var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
             comps?.host = bounceHost
             comps?.scheme = "https"

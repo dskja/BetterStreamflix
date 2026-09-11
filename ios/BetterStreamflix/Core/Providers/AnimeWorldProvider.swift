@@ -51,6 +51,9 @@ struct AnimeWorldProvider: CatalogProvider {
                 rows.append(CategoryRow(id: rowID, title: title, items: items))
             }
         }
+        if rows.isEmpty {
+            throw ProviderError.parseFailed("AnimeWorld: empty home (site layout changed or blocked)")
+        }
         return rows
     }
 

@@ -12,9 +12,26 @@ struct SflixProvider: CatalogProvider {
         guard let url = HTTPClient.apiURL(base: baseURL, path: "home") else {
             throw ProviderError.invalidURL
         }
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        // Cloudflare challenges can hang; fail home quickly so UI doesn't spin forever.
+        let html: String
+        do {
+            html = try await withThrowingTaskGroup(of: String.self) { group in
+                group.addTask {
+                    try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 18_000_000_000)
+                    throw ProviderError.parseFailed("SFlix timed out (Cloudflare/slow)")
+                }
+                let result = try await group.next()!
+                group.cancelAll()
+                return result
+            }
+        } catch {
+            throw ProviderError.parseFailed("SFlix unreachable: \(error.localizedDescription)")
+        }
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
-        if looksLikeCloudflare(html) {
+        if looksLikeCloudflare(html) || html.count < 400 {
             throw ProviderError.parseFailed("SFlix blocked or unreachable (Cloudflare/empty)")
         }
 
