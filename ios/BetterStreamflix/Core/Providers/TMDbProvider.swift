@@ -15,43 +15,25 @@ struct TMDbProvider: CatalogProvider {
             throw ProviderError.missingAPIKey("TMDb")
         }
 
-        async let trending: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
-            "trending/all/day",
-            language: apiLanguage
-        )
-        async let popularMovies: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
-            "movie/popular",
-            language: apiLanguage
-        )
-        async let popularTV: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
-            "tv/popular",
-            language: apiLanguage
-        )
-        async let airing: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
-            "tv/airing_today",
-            language: apiLanguage
-        )
-        async let topRated: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
-            "tv/top_rated",
-            language: apiLanguage
-        )
-        async let netflix: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
+        async let trendingResult = softPage("trending/all/day")
+        async let popularMoviesResult = softPage("movie/popular")
+        async let popularTVResult = softPage("tv/popular")
+        async let airingResult = softPage("tv/airing_today")
+        async let topRatedResult = softPage("tv/top_rated")
+        async let netflixResult = softPage(
             "discover/tv",
-            query: ["with_watch_providers": "8", "watch_region": region, "sort_by": "popularity.desc"],
-            language: apiLanguage
+            query: ["with_watch_providers": "8", "watch_region": region, "sort_by": "popularity.desc"]
         )
-        async let disney: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
+        async let disneyResult = softPage(
             "discover/tv",
-            query: ["with_watch_providers": "337", "watch_region": region, "sort_by": "popularity.desc"],
-            language: apiLanguage
+            query: ["with_watch_providers": "337", "watch_region": region, "sort_by": "popularity.desc"]
         )
-        async let amazon: TMDbClient.Page<TMDbClient.Multi> = TMDbClient.get(
+        async let amazonResult = softPage(
             "discover/movie",
-            query: ["with_watch_providers": "119", "watch_region": region, "sort_by": "popularity.desc"],
-            language: apiLanguage
+            query: ["with_watch_providers": "119", "watch_region": region, "sort_by": "popularity.desc"]
         )
 
-        let trendingItems = try await mapPage(trending)
+        let trendingItems = await trendingResult
         let featured = Array(trendingItems.prefix(8))
         let restTrending = Array(trendingItems.dropFirst(8))
 
@@ -62,14 +44,51 @@ struct TMDbProvider: CatalogProvider {
         if !restTrending.isEmpty {
             rows.append(CategoryRow(id: "trending", title: "Trending heute", items: restTrending))
         }
-        rows.append(CategoryRow(id: "movies", title: "Beliebte Filme", items: try await mapPage(popularMovies)))
-        rows.append(CategoryRow(id: "tv", title: "Beliebte Serien", items: try await mapPage(popularTV)))
-        rows.append(CategoryRow(id: "airing", title: "Heute im TV", items: try await mapPage(airing)))
-        rows.append(CategoryRow(id: "top", title: "Top bewertet", items: try await mapPage(topRated)))
-        rows.append(CategoryRow(id: "netflix", title: "Auf Netflix", items: try await mapPage(netflix)))
-        rows.append(CategoryRow(id: "disney", title: "Auf Disney+", items: try await mapPage(disney)))
-        rows.append(CategoryRow(id: "amazon", title: "Auf Prime Video", items: try await mapPage(amazon)))
-        return rows.filter { !$0.items.isEmpty }
+        let popularMovies = await popularMoviesResult
+        if !popularMovies.isEmpty {
+            rows.append(CategoryRow(id: "movies", title: "Beliebte Filme", items: popularMovies))
+        }
+        let popularTV = await popularTVResult
+        if !popularTV.isEmpty {
+            rows.append(CategoryRow(id: "tv", title: "Beliebte Serien", items: popularTV))
+        }
+        let airing = await airingResult
+        if !airing.isEmpty {
+            rows.append(CategoryRow(id: "airing", title: "Heute im TV", items: airing))
+        }
+        let topRated = await topRatedResult
+        if !topRated.isEmpty {
+            rows.append(CategoryRow(id: "top", title: "Top bewertet", items: topRated))
+        }
+        let netflix = await netflixResult
+        if !netflix.isEmpty {
+            rows.append(CategoryRow(id: "netflix", title: "Auf Netflix", items: netflix))
+        }
+        let disney = await disneyResult
+        if !disney.isEmpty {
+            rows.append(CategoryRow(id: "disney", title: "Auf Disney+", items: disney))
+        }
+        let amazon = await amazonResult
+        if !amazon.isEmpty {
+            rows.append(CategoryRow(id: "amazon", title: "Auf Prime Video", items: amazon))
+        }
+        if rows.isEmpty {
+            throw ProviderError.parseFailed("TMDb unreachable")
+        }
+        return rows
+    }
+
+    private func softPage(_ path: String, query: [String: String] = [:]) async -> [MediaItem] {
+        do {
+            let page: TMDbClient.Page<TMDbClient.Multi> = try await TMDbClient.get(
+                path,
+                query: query,
+                language: apiLanguage
+            )
+            return mapPage(page)
+        } catch {
+            return []
+        }
     }
 
     func search(query: String) async throws -> [MediaItem] {

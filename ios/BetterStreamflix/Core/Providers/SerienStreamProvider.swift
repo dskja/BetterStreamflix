@@ -19,53 +19,64 @@ struct SerienStreamProvider: CatalogProvider {
     var baseURL: URL { Self.resolvedBaseBox.url }
 
     func home() async throws -> [CategoryRow] {
-        let (html, base) = try await fetchHTML(path: "")
+        let fetched: (String, URL)
+        do {
+            fetched = try await fetchHTML(path: "")
+        } catch {
+            throw error
+        }
+        let (html, base) = fetched
         let doc = try SwiftSoup.parse(html, base.absoluteString)
         var rows: [CategoryRow] = []
 
-        let featured = try parseHero(doc)
-        if !featured.isEmpty {
+        if let featured = try? parseHero(doc), !featured.isEmpty {
             rows.append(CategoryRow(id: "featured", title: "Featured", items: featured, isFeatured: true))
         }
 
-        let trending = try parseTrending(doc)
-        if !trending.isEmpty {
+        if let trending = try? parseTrending(doc), !trending.isEmpty {
             rows.append(CategoryRow(id: "trending", title: "Angesagt", items: trending))
         }
 
-        let neu = try parseNewShows(doc)
-        if !neu.isEmpty {
+        if let neu = try? parseNewShows(doc), !neu.isEmpty {
             rows.append(CategoryRow(id: "new", title: "Neu auf SerienStream", items: neu))
         }
 
-        for (index, column) in try doc.select("#discover-blocks .col").array().enumerated() {
-            let title = try column.selectFirst("h4")?.text().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !title.isEmpty else { continue }
-            var items: [MediaItem] = []
-            for li in try column.select("li").array() {
-                let href = try li.selectFirst("a")?.attr("href") ?? ""
-                guard let id = extractSerieId(from: href) else { continue }
-                let name = try li.selectFirst("span.h6")?.text().trimmingCharacters(in: .whitespacesAndNewlines) ?? id
-                items.append(
-                    MediaItem(
-                        id: id,
-                        title: name,
-                        posterURL: try extractPoster(from: li),
-                        kind: .tvShow,
-                        providerHint: self.id
+        if let columns = try? doc.select("#discover-blocks .col").array() {
+            for (index, column) in columns.enumerated() {
+                let title = (try? column.selectFirst("h4")?.text().trimmingCharacters(in: .whitespacesAndNewlines)) ?? ""
+                guard !title.isEmpty else { continue }
+                var items: [MediaItem] = []
+                for li in (try? column.select("li").array()) ?? [] {
+                    let href = (try? li.selectFirst("a")?.attr("href")) ?? ""
+                    guard let id = extractSerieId(from: href) else { continue }
+                    let name = (try? li.selectFirst("span.h6")?.text().trimmingCharacters(in: .whitespacesAndNewlines)) ?? id
+                    items.append(
+                        MediaItem(
+                            id: id,
+                            title: name,
+                            posterURL: try? extractPoster(from: li),
+                            kind: .tvShow,
+                            providerHint: self.id
+                        )
                     )
-                )
-            }
-            if !items.isEmpty {
-                rows.append(CategoryRow(id: "discover-\(index)", title: title, items: dedupe(items)))
+                }
+                if !items.isEmpty {
+                    rows.append(CategoryRow(id: "discover-\(index)", title: title, items: dedupe(items)))
+                }
             }
         }
 
         if rows.isEmpty {
-            let fallback = try parseCards(doc.select("a[href*=/serie/]").array())
-            rows.append(CategoryRow(id: "all", title: "Serien", items: fallback))
+            let fallback = (try? parseCards(doc.select("a[href*=/serie/]").array())) ?? []
+            if !fallback.isEmpty {
+                rows.append(CategoryRow(id: "all", title: "Serien", items: fallback))
+            }
         }
-        return rows.filter { !$0.items.isEmpty }
+        let filtered = rows.filter { !$0.items.isEmpty }
+        if filtered.isEmpty {
+            throw ProviderError.parseFailed("SerienStream returned an empty home catalog")
+        }
+        return filtered
     }
 
     func search(query: String) async throws -> [MediaItem] {

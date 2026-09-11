@@ -27,24 +27,30 @@ struct AniWorldProvider: CatalogProvider {
             }
         }
 
-        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
-        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
+        if let html = try? await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true),
+           let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
+            let sectionSelectors = [
+                ("hot", "Beliebt bei AniWorld", "div.container > div:nth-child(7) > div.previews div.coverListItem"),
+                ("new", "Neue Animes", "div.container > div:nth-child(11) > div.previews div.coverListItem"),
+                ("now", "Derzeit beliebte Animes", "div.container > div:nth-child(16) > div.previews div.coverListItem"),
+            ]
+            for (id, title, selector) in sectionSelectors {
+                let items = try parseCoverItems(doc.select(selector).array())
+                if !items.isEmpty {
+                    rows.append(CategoryRow(id: id, title: title, items: items))
+                }
+            }
 
-        let sectionSelectors = [
-            ("hot", "Beliebt bei AniWorld", "div.container > div:nth-child(7) > div.previews div.coverListItem"),
-            ("new", "Neue Animes", "div.container > div:nth-child(11) > div.previews div.coverListItem"),
-            ("now", "Derzeit beliebte Animes", "div.container > div:nth-child(16) > div.previews div.coverListItem"),
-        ]
-        for (id, title, selector) in sectionSelectors {
-            let items = try parseCoverItems(doc.select(selector).array())
-            if !items.isEmpty {
-                rows.append(CategoryRow(id: id, title: title, items: items))
+            if rows.isEmpty {
+                let fallback = try parseCards(doc.select("a[href*=/anime/stream/]").array().prefix(40).map { $0 })
+                if !fallback.isEmpty {
+                    rows.append(CategoryRow(id: "home", title: "Animes", items: fallback))
+                }
             }
         }
 
         if rows.isEmpty {
-            let fallback = try parseCards(doc.select("a[href*=/anime/stream/]").array().prefix(40).map { $0 })
-            rows.append(CategoryRow(id: "home", title: "Animes", items: fallback))
+            throw ProviderError.parseFailed("AniWorld unreachable")
         }
         return rows.filter { !$0.items.isEmpty }
     }

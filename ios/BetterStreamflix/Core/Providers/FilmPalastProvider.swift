@@ -8,38 +8,39 @@ struct FilmPalastProvider: CatalogProvider {
     let baseURL = URL(string: "https://filmpalast.to/")!
 
     func home() async throws -> [CategoryRow] {
-        let html = try await HTTPClient.getHTML(
+        var rows: [CategoryRow] = []
+
+        if let html = try? await HTTPClient.getHTML(
             url: URL(string: "movies/new/page/1", relativeTo: baseURL)!.absoluteURL,
             desktopUA: true,
             allowLenientTLS: true
-        )
-        let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
-        var rows: [CategoryRow] = []
+        ),
+           let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
+            let featured = try doc.select("div.headerslider ul#sliderDla li").array().compactMap { li -> MediaItem? in
+                let title = try li.selectFirst("span.title.rb")?.text() ?? ""
+                let href = try li.selectFirst("a.moviSliderPlay")?.attr("href") ?? ""
+                let id = href.split(separator: "/").last.map(String.init) ?? ""
+                guard !id.isEmpty, !title.isEmpty else { return nil }
+                let poster = HTTPClient.absoluteURL(try li.selectFirst("a img")?.attr("src"), base: baseURL)
+                return MediaItem(
+                    id: id,
+                    title: title,
+                    posterURL: poster,
+                    bannerURL: poster,
+                    overview: try li.selectFirst("div.moviedescription")?.text(),
+                    year: try li.selectFirst("span.releasedate b")?.text(),
+                    kind: .movie,
+                    providerHint: self.id
+                )
+            }
+            if !featured.isEmpty {
+                rows.append(CategoryRow(id: "featured", title: "Featured", items: featured, isFeatured: true))
+            }
 
-        let featured = try doc.select("div.headerslider ul#sliderDla li").array().compactMap { li -> MediaItem? in
-            let title = try li.selectFirst("span.title.rb")?.text() ?? ""
-            let href = try li.selectFirst("a.moviSliderPlay")?.attr("href") ?? ""
-            let id = href.split(separator: "/").last.map(String.init) ?? ""
-            guard !id.isEmpty, !title.isEmpty else { return nil }
-            let poster = HTTPClient.absoluteURL(try li.selectFirst("a img")?.attr("src"), base: baseURL)
-            return MediaItem(
-                id: id,
-                title: title,
-                posterURL: poster,
-                bannerURL: poster,
-                overview: try li.selectFirst("div.moviedescription")?.text(),
-                year: try li.selectFirst("span.releasedate b")?.text(),
-                kind: .movie,
-                providerHint: self.id
-            )
-        }
-        if !featured.isEmpty {
-            rows.append(CategoryRow(id: "featured", title: "Featured", items: featured, isFeatured: true))
-        }
-
-        let movies = try parseArticles(doc, kind: .movie)
-        if !movies.isEmpty {
-            rows.append(CategoryRow(id: "movies", title: "Filme", items: movies))
+            let movies = try parseArticles(doc, kind: .movie)
+            if !movies.isEmpty {
+                rows.append(CategoryRow(id: "movies", title: "Filme", items: movies))
+            }
         }
 
         if let tvHTML = try? await HTTPClient.getHTML(
@@ -53,6 +54,10 @@ struct FilmPalastProvider: CatalogProvider {
             if !shows.isEmpty {
                 rows.append(CategoryRow(id: "series", title: "Serien", items: shows))
             }
+        }
+
+        if rows.isEmpty {
+            throw ProviderError.parseFailed("Filmpalast unreachable")
         }
         return rows
     }

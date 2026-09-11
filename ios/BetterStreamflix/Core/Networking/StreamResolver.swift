@@ -32,7 +32,7 @@ enum StreamResolver {
         case .followRedirect:
             let final = try await HTTPClient.followRedirects(url: source.url, headers: source.headers)
             if looksLikeDirectMedia(final) { return final }
-            if let html = try? await HTTPClient.getHTML(url: final, desktopUA: true),
+            if let html = try? await HTTPClient.getHTML(url: final, desktopUA: true, allowLenientTLS: true),
                let extracted = extractMediaURL(from: html, base: final) {
                 return extracted
             }

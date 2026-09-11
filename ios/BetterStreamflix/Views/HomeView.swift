@@ -46,7 +46,10 @@ struct HomeView: View {
                     .font(.system(.headline, design: .rounded).weight(.bold))
             }
         }
-        .task(id: app.activeProvider.id) { await load() }
+        .task(id: app.activeProvider.id) {
+            catalog = []
+            await load()
+        }
         .refreshable { await load() }
     }
 
@@ -87,12 +90,18 @@ struct HomeView: View {
 
     @MainActor
     private func load() async {
-        isLoading = true
+        isLoading = catalog.isEmpty
         errorMessage = nil
         do {
-            catalog = try await app.activeProvider.home()
+            let rows = try await app.activeProvider.home()
+            catalog = rows
             isLoading = false
         } catch {
+            // Android HomeViewModel: keep disk/in-memory catalog if live fetch fails.
+            if !catalog.isEmpty {
+                isLoading = false
+                return
+            }
             errorMessage = error.localizedDescription
             isLoading = false
         }

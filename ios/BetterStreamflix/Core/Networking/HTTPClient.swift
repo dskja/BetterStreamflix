@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 enum HTTPClient {
     static let userAgent =
@@ -19,10 +20,13 @@ enum HTTPClient {
         return URLSession(configuration: config)
     }()
 
-    /// Lenient TLS — mirrors Android NetworkClient / FilmPalast SSL fallback for broken chains.
+    /// Trust-all session — mirrors Android `NetworkClient.trustAll` / unsafe OkHttp clients.
     private static let lenientSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
+        config.httpAdditionalHeaders = [
+            "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+        ]
         return URLSession(configuration: config, delegate: LenientTLSDelegate.shared, delegateQueue: nil)
     }()
 
@@ -37,8 +41,7 @@ enum HTTPClient {
                 url: url,
                 referer: referer,
                 desktopUA: desktopUA,
-                session: session,
-                useDoH: DohResolver.shouldUseDoH(for: url.host())
+                session: session
             )
         } catch {
             guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) else { throw error }
@@ -46,8 +49,7 @@ enum HTTPClient {
                 url: url,
                 referer: referer,
                 desktopUA: desktopUA,
-                session: lenientSession,
-                useDoH: true
+                session: lenientSession
             )
         }
     }
@@ -84,59 +86,91 @@ enum HTTPClient {
                 method: "GET",
                 headers: headers,
                 body: nil,
-                session: session,
-                useDoH: DohResolver.shouldUseDoH(for: url.host())
+                session: session
             )
         } catch {
-            // Android TMDb/Videasy always use DoH + retry; fall back lenient + DoH.
+            guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
             return try await fetchData(
                 url: url,
                 method: "GET",
                 headers: headers,
                 body: nil,
-                session: lenientSession,
-                useDoH: true
+                session: lenientSession
+            )
+        }
+    }
+
+    /// Form POST used by Android DLE / MEGAKino search forms.
+    static func postForm(
+        url: URL,
+        fields: [String: String],
+        headers: [String: String] = [:],
+        allowLenientTLS: Bool = false
+    ) async throws -> Data {
+        let body = fields
+            .map { key, value in
+                "\(formEncode(key))=\(formEncode(value))"
+            }
+            .joined(separator: "&")
+            .data(using: .utf8)
+        let merged = headers.merging([
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "text/html,application/xhtml+xml,application/json",
+        ]) { _, new in new }
+        do {
+            return try await fetchData(
+                url: url,
+                method: "POST",
+                headers: merged,
+                body: body,
+                session: session
+            )
+        } catch {
+            guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            return try await fetchData(
+                url: url,
+                method: "POST",
+                headers: merged,
+                body: body,
+                session: lenientSession
             )
         }
     }
 
     static func postJSON(url: URL, body: Data, headers: [String: String] = [:]) async throws -> Data {
+        let merged = headers.merging([
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        ]) { _, new in new }
         do {
             return try await fetchData(
                 url: url,
                 method: "POST",
-                headers: headers.merging([
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                ]) { _, new in new },
+                headers: merged,
                 body: body,
-                session: session,
-                useDoH: DohResolver.shouldUseDoH(for: url.host())
+                session: session
             )
         } catch {
+            guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
             return try await fetchData(
                 url: url,
                 method: "POST",
-                headers: headers.merging([
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                ]) { _, new in new },
+                headers: merged,
                 body: body,
-                session: lenientSession,
-                useDoH: true
+                session: lenientSession
             )
         }
     }
 
     static func followRedirects(url: URL, headers: [String: String] = [:]) async throws -> URL {
-        var request = try await makeRequest(url: url, method: "GET", headers: headers, body: nil, useDoH: DohResolver.shouldUseDoH(for: url.host()))
+        var request = makeRequest(url: url, method: "GET", headers: headers, body: nil)
         request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
         do {
             let (_, response) = try await session.data(for: request)
             return response.url ?? url
         } catch {
             guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
-            var retry = try await makeRequest(url: url, method: "GET", headers: headers, body: nil, useDoH: true)
+            var retry = makeRequest(url: url, method: "GET", headers: headers, body: nil)
             retry.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
             let (_, response) = try await lenientSession.data(for: retry)
             return response.url ?? url
@@ -168,12 +202,17 @@ enum HTTPClient {
         return components?.url
     }
 
+    private static func formEncode(_ value: String) -> String {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: ":#[]@!$&'()*+,;=")
+        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    }
+
     private static func fetchHTML(
         url: URL,
         referer: URL?,
         desktopUA: Bool,
-        session: URLSession,
-        useDoH: Bool
+        session: URLSession
     ) async throws -> String {
         var headers: [String: String] = [
             "User-Agent": desktopUA ? desktopUserAgent : userAgent,
@@ -187,8 +226,7 @@ enum HTTPClient {
             method: "GET",
             headers: headers,
             body: nil,
-            session: session,
-            useDoH: useDoH
+            session: session
         )
         guard let html = String(data: data, encoding: .utf8), !html.isEmpty else {
             throw ProviderError.emptyResponse
@@ -201,10 +239,9 @@ enum HTTPClient {
         method: String,
         headers: [String: String],
         body: Data?,
-        session: URLSession,
-        useDoH: Bool
+        session: URLSession
     ) async throws -> Data {
-        var request = try await makeRequest(url: url, method: method, headers: headers, body: body, useDoH: useDoH)
+        var request = makeRequest(url: url, method: method, headers: headers, body: body)
         if request.value(forHTTPHeaderField: "User-Agent") == nil {
             request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
         }
@@ -218,29 +255,18 @@ enum HTTPClient {
         return data
     }
 
+    /// Keep the hostname in the URL (Android/OkHttp pattern). DoH is applied via `PrivacyContext`,
+    /// not by rewriting the host to an IP — that breaks SNI and cert hostname checks on URLSession.
     private static func makeRequest(
         url: URL,
         method: String,
         headers: [String: String],
-        body: Data?,
-        useDoH: Bool
-    ) async throws -> URLRequest {
-        var target = url
-        var requestHeaders = headers
-        if useDoH, let host = url.host(), DohResolver.shouldUseDoH(for: host) {
-            if let ip = try? await DohResolver.ipv4(for: host),
-               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                components.host = ip
-                if let rewritten = components.url {
-                    target = rewritten
-                    requestHeaders["Host"] = host
-                }
-            }
-        }
-        var request = URLRequest(url: target)
+        body: Data?
+    ) -> URLRequest {
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
-        for (key, value) in requestHeaders {
+        for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
         return request
@@ -283,11 +309,14 @@ private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-           let trust = challenge.protectionSpace.serverTrust {
-            completionHandler(.useCredential, URLCredential(trust: trust))
-        } else {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let trust = challenge.protectionSpace.serverTrust else {
             completionHandler(.performDefaultHandling, nil)
+            return
         }
+        // Mirror Android hostnameVerifier { _, _ -> true } + empty TrustManager.
+        let exceptions = SecTrustCopyExceptions(trust)
+        SecTrustSetExceptions(trust, exceptions)
+        completionHandler(.useCredential, URLCredential(trust: trust))
     }
 }

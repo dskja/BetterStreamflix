@@ -13,6 +13,11 @@ final class AppModel {
         SerienStreamProvider(),
         AniWorldProvider(),
         FilmPalastProvider(),
+        EinschaltenProvider(),
+        FilmoProvider(),
+        KinoGerProvider(),
+        MEGAKinoProvider(),
+        HDFilmeProvider(),
     ]
 
     init() {
