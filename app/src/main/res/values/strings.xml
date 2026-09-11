@@ -552,7 +552,7 @@
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_experimental_new_design_title">Experimental app design</string>
     <string name="settings_experimental_new_design_summary">Atelier — a premium light editorial mobile shell. Restarts the app. Off by default.</string>
-    <string name="exp_home_tagline">Curated cinema, beautifully arranged</string>
+    <string name="exp_home_tagline">Cinema, refined for 2026</string>
     <string name="player_cast_unsupported_stream">This stream cannot be cast (inline playlist). Try another server.</string>
     <string name="player_cast_proxy_unavailable">Cast proxy unavailable on this network. Streaming may fail without headers.</string>
     <string name="settings_catalog_sort_title">Catalog sort</string>
@@ -769,4 +769,17 @@
     <string name="player_bypass_resolved_server">Verified stream</string>
     <string name="player_bypass_retry_needed_mobile">SerienStream still needs verification. Open play again, finish the captcha, tap Weiter in the page, then Continue.</string>
     <string name="settings_serienstream_domain_current">Current: %1$s</string>
+    <string name="settings_download_storage_location">Download storage location</string>
+    <string name="settings_download_storage_location_summary">Choose where offline videos are saved. Existing downloads are not moved automatically.</string>
+    <string name="settings_download_storage_internal">App internal storage (secure)</string>
+    <string name="settings_download_storage_app_external">App folder on shared storage</string>
+    <string name="settings_download_storage_public_movies">Public Movies / BetterStreamflix</string>
+    <string name="settings_download_storage_path">Current folder</string>
+    <string name="settings_download_storage_changed">Storage location updated. New downloads use the new folder. Restart any active downloads.</string>
+    <string name="settings_cast_subtitles">Cast subtitles</string>
+    <string name="settings_cast_subtitles_summary">Send text tracks to Chromecast when the stream provides them</string>
+    <string name="settings_cast_keep_screen_awake">Keep screen awake while casting</string>
+    <string name="settings_cast_keep_screen_awake_summary">Prevents the phone from sleeping during an active Cast session</string>
+    <string name="settings_cast_queue_next">Queue next episode on Cast</string>
+    <string name="exp_home_eyebrow">Tonight</string>
 </resources>

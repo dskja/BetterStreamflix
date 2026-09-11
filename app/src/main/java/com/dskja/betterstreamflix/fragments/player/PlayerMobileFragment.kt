@@ -1853,6 +1853,9 @@ class PlayerMobileFragment : Fragment() {
         }
         isCasting = true
         CastPlaybackHub.markCasting(true)
+        if (UserPreferences.castKeepScreenAwake) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun switchPlaybackToLocal() {
@@ -1875,6 +1878,7 @@ class PlayerMobileFragment : Fragment() {
         }
         isCasting = false
         CastPlaybackHub.markCasting(false)
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     private fun releasePlayer() {

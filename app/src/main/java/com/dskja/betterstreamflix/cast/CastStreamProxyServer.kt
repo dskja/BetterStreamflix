@@ -6,11 +6,13 @@ import fi.iki.elonen.NanoHTTPD
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.internal.userAgent
-import java.io.ByteArrayInputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.net.URI
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -18,6 +20,8 @@ import java.util.concurrent.TimeUnit
  * (Referer, Cookie, User-Agent, tokens) which the default Cast receiver cannot send.
  *
  * Chromecast cannot reach the phone's 127.0.0.1 — we advertise the device LAN IP.
+ * Large media responses are streamed; HLS playlists are rewritten so variants/segments
+ * also flow through this proxy.
  */
 class CastStreamProxyServer(
     private val httpClient: OkHttpClient = defaultClient(),
@@ -25,6 +29,8 @@ class CastStreamProxyServer(
 
     @Volatile
     private var defaultHeaders: Map<String, String> = emptyMap()
+
+    private val pumpExecutor = Executors.newCachedThreadPool()
 
     fun updateDefaultHeaders(headers: Map<String, String>) {
         defaultHeaders = headers
@@ -45,8 +51,16 @@ class CastStreamProxyServer(
     override fun serve(session: IHTTPSession): Response {
         return try {
             when {
+                session.method == Method.OPTIONS -> {
+                    newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "").also {
+                        it.addHeader("Access-Control-Allow-Origin", "*")
+                        it.addHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+                        it.addHeader("Access-Control-Allow-Headers", "Range, Content-Type")
+                    }
+                }
+                session.uri == "/health" ->
+                    newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "ok")
                 session.uri == "/p" || session.uri.startsWith("/p") -> proxy(session)
-                session.uri == "/health" -> newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "ok")
                 else -> newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "not found")
             }
         } catch (e: Exception) {
@@ -73,6 +87,7 @@ class CastStreamProxyServer(
         val mergedHeaders = linkedMapOf("User-Agent" to userAgent)
         mergedHeaders.putAll(defaultHeaders)
         session.headers["range"]?.let { mergedHeaders["Range"] = it }
+        session.headers["accept"]?.let { mergedHeaders.putIfAbsent("Accept", it) }
         mergedHeaders.forEach { (key, value) ->
             if (key.equals("Host", ignoreCase = true)) return@forEach
             requestBuilder.header(key, value)
@@ -92,38 +107,66 @@ class CastStreamProxyServer(
             )
         }
 
-        val bytes = body?.bytes() ?: ByteArray(0)
-        val rewritten = maybeRewritePlaylist(target, contentType, bytes)
+        val looksLikePlaylist = contentType.contains("mpegurl", ignoreCase = true) ||
+            contentType.contains("m3u8", ignoreCase = true) ||
+            target.substringBefore('?').endsWith(".m3u8", ignoreCase = true)
+
+        if (looksLikePlaylist) {
+            val bytes = body?.bytes() ?: ByteArray(0)
+            val rewritten = maybeRewritePlaylist(target, contentType, bytes)
+            val response = newFixedLengthResponse(
+                Response.Status.lookup(upstream.code) ?: Response.Status.OK,
+                contentType,
+                rewritten.inputStream(),
+                rewritten.size.toLong(),
+            )
+            decorate(response, upstream)
+            return response
+        }
+
+        // Stream large media so Chromecast can start sooner and we avoid OOM.
+        val contentLength = body?.contentLength() ?: upstream.header("Content-Length")?.toLongOrNull() ?: -1L
+        val pipedIn = PipedInputStream(256 * 1024)
+        val pipedOut = PipedOutputStream(pipedIn)
+        pumpExecutor.execute {
+            try {
+                body?.byteStream()?.use { input ->
+                    input.copyTo(pipedOut, 64 * 1024)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Cast proxy stream pump ended: ${e.message}")
+            } finally {
+                runCatching { pipedOut.close() }
+                runCatching { upstream.close() }
+            }
+        }
+
         val response = newFixedLengthResponse(
             Response.Status.lookup(upstream.code) ?: Response.Status.OK,
             contentType,
-            ByteArrayInputStream(rewritten),
-            rewritten.size.toLong(),
+            pipedIn,
+            contentLength,
         )
-        upstream.header("Accept-Ranges")?.let { response.addHeader("Accept-Ranges", it) }
-        upstream.header("Content-Range")?.let { response.addHeader("Content-Range", it) }
-        response.addHeader("Access-Control-Allow-Origin", "*")
+        decorate(response, upstream)
+        response.setChunkedTransfer(contentLength < 0)
         return response
     }
 
-    /**
-     * Rewrite HLS playlists so relative segment / variant URIs also go through this proxy
-     * (and therefore carry auth headers).
-     */
-    private fun maybeRewritePlaylist(playlistUrl: String, contentType: String, bytes: ByteArray): ByteArray {
-        val looksLikePlaylist = contentType.contains("mpegurl", ignoreCase = true) ||
-            contentType.contains("m3u8", ignoreCase = true) ||
-            playlistUrl.substringBefore('?').endsWith(".m3u8", ignoreCase = true)
-        if (!looksLikePlaylist) return bytes
+    private fun decorate(response: Response, upstream: okhttp3.Response) {
+        upstream.header("Accept-Ranges")?.let { response.addHeader("Accept-Ranges", it) }
+        upstream.header("Content-Range")?.let { response.addHeader("Content-Range", it) }
+        upstream.header("Cache-Control")?.let { response.addHeader("Cache-Control", it) }
+        response.addHeader("Access-Control-Allow-Origin", "*")
+    }
 
+    private fun maybeRewritePlaylist(playlistUrl: String, contentType: String, bytes: ByteArray): ByteArray {
         val text = runCatching { String(bytes, StandardCharsets.UTF_8) }.getOrNull() ?: return bytes
         if (!text.contains("#EXTM3U")) return bytes
-
         val base = publicBaseUrl() ?: return bytes
         val rewritten = text.lineSequence().joinToString("\n") { line ->
             val trimmed = line.trim()
             when {
-                trimmed.isEmpty() || trimmed.startsWith("#") -> line
+                trimmed.isEmpty() || trimmed.startsWith("#") -> rewritePlaylistTagUris(line, playlistUrl, base)
                 else -> {
                     val absolute = resolveAgainst(playlistUrl, trimmed)
                     val encoded = URLEncoder.encode(absolute, StandardCharsets.UTF_8.name())
@@ -134,20 +177,37 @@ class CastStreamProxyServer(
         return rewritten.toByteArray(StandardCharsets.UTF_8)
     }
 
+    private fun rewritePlaylistTagUris(line: String, playlistUrl: String, base: String): String {
+        // Rewrite URI="..." attributes inside #EXT-X-KEY / #EXT-X-MAP / #EXT-X-MEDIA tags.
+        if (!line.contains("URI=", ignoreCase = true)) return line
+        return URI_ATTR_REGEX.replace(line) { match ->
+            val raw = match.groupValues[1]
+            val absolute = resolveAgainst(playlistUrl, raw)
+            val encoded = URLEncoder.encode(absolute, StandardCharsets.UTF_8.name())
+            "URI=\"$base/p?u=$encoded\""
+        }
+    }
+
     private fun resolveAgainst(baseUrl: String, ref: String): String {
         if (ref.startsWith("http://") || ref.startsWith("https://")) return ref
         return runCatching { URI(baseUrl).resolve(ref).toString() }.getOrDefault(ref)
     }
 
+    override fun stop() {
+        runCatching { super.stop() }
+        runCatching { pumpExecutor.shutdownNow() }
+    }
+
     companion object {
         private const val TAG = "CastStreamProxy"
+        private val URI_ATTR_REGEX = Regex("""URI="([^"]+)"""", RegexOption.IGNORE_CASE)
 
         private fun defaultClient(): OkHttpClient =
             OkHttpClient.Builder()
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .connectTimeout(20, TimeUnit.SECONDS)
-                .readTimeout(45, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
                 .build()
     }
 }

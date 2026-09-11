@@ -119,4 +119,15 @@
         <item>3</item>
         <item>4</item>
     </string-array>
+
+    <string-array name="download_storage_location_entries">
+        <item>@string/settings_download_storage_internal</item>
+        <item>@string/settings_download_storage_app_external</item>
+        <item>@string/settings_download_storage_public_movies</item>
+    </string-array>
+    <string-array name="download_storage_location_values">
+        <item>INTERNAL</item>
+        <item>APP_EXTERNAL</item>
+        <item>PUBLIC_MOVIES</item>
+    </string-array>
 </resources>

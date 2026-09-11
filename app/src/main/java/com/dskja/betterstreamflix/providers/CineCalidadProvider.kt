@@ -25,7 +25,7 @@ import kotlinx.coroutines.coroutineScope
 object CineCalidadProvider : Provider, ProviderConfigUrl {
 
     override val name = "CineCalidad"
-    override val defaultBaseUrl = "https://www.cinecalidad.ec"
+    override val defaultBaseUrl = "https://www.cinecalidad.am"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
@@ -34,7 +34,7 @@ object CineCalidadProvider : Provider, ProviderConfigUrl {
         baseUrl
     }
     override val language = "es"
-    override val logo = "https://www.cinecalidad.ec/wp-content/themes/Cinecalidad/assets/img/logo.png"
+    override val logo = "https://www.cinecalidad.am/wp-content/themes/Cinecalidad/assets/img/logo.png"
 
     private fun getOkHttpClient(): OkHttpClient {
         val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)

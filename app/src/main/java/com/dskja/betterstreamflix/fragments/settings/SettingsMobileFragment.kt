@@ -38,6 +38,8 @@ import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.download.DownloadQualityPreset
 import com.dskja.betterstreamflix.download.DownloadRepository
 import com.dskja.betterstreamflix.download.DownloadStorage
+import com.dskja.betterstreamflix.download.DownloadStorageLocation
+import com.dskja.betterstreamflix.download.StreamflixDownloadManager
 import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.dskja.betterstreamflix.providers.FrenchStreamProvider
 import com.dskja.betterstreamflix.providers.GuardaFlixProvider
@@ -508,6 +510,30 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.apply {
+            value = UserPreferences.downloadStorageLocation.name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                val location = DownloadStorageLocation.fromKey(newValue as String)
+                if (location != UserPreferences.downloadStorageLocation) {
+                    UserPreferences.downloadStorageLocation = location
+                    StreamflixDownloadManager.release()
+                    findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+                        DownloadStorage.absolutePathSummary(requireContext())
+                    findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+                        DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        R.string.settings_download_storage_changed,
+                        android.widget.Toast.LENGTH_LONG,
+                    ).show()
+                }
+                true
+            }
+        }
+        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+            DownloadStorage.absolutePathSummary(requireContext())
+
         findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.apply {
             isChecked = UserPreferences.downloadWifiOnly
             setOnPreferenceChangeListener { _, newValue ->
@@ -883,6 +909,21 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             isChecked = UserPreferences.castEnabled
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.castEnabled = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("CAST_SUBTITLES_ENABLED")?.apply {
+            isChecked = UserPreferences.castSubtitlesEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castSubtitlesEnabled = newValue as Boolean
+                true
+            }
+        }
+        findPreference<SwitchPreference>("CAST_KEEP_SCREEN_AWAKE")?.apply {
+            isChecked = UserPreferences.castKeepScreenAwake
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castKeepScreenAwake = newValue as Boolean
                 true
             }
         }
