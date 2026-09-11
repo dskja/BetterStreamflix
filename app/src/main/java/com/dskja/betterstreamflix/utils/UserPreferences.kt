@@ -32,6 +32,9 @@ object UserPreferences {
         "s.to",
         "www.s.to",
         "serien.stream",
+        // Invalid TLS / parking as of 2026 — prefer serienstream.to / .cx (serien.domains).
+        "serienstream.sx",
+        "www.serienstream.sx",
     )
     private const val DEFAULT_MOFLIX_DOMAIN = "moflix-stream.xyz"
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.cc"
