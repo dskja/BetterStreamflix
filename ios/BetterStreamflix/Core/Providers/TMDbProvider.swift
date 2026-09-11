@@ -203,7 +203,7 @@ struct TMDbProvider: CatalogProvider {
                 sources.append(contentsOf: ssStreams.prefix(8).map { source in
                     StreamSource(
                         id: "ss-\(source.id)",
-                        name: "S.to · \(source.name)",
+                        name: "SerienStream · \(source.name)",
                         url: source.url,
                         headers: source.headers,
                         resolveKind: source.resolveKind

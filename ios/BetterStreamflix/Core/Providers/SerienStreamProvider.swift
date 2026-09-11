@@ -6,10 +6,11 @@ struct SerienStreamProvider: CatalogProvider {
     let name = "SerienStream"
     let language = "de"
 
+    /// Same working mirrors as Android (`SerienStreamProvider` / serien.domains).
+    /// Dead hosts (s.to, serienstream.sx) are intentionally omitted.
     private static let candidateBases: [URL] = [
-        URL(string: "https://s.to/")!,
         URL(string: "https://serienstream.to/")!,
-        URL(string: "https://serienstream.sx/")!,
+        URL(string: "https://serienstream.cx/")!,
     ]
 
     /// Last working mirror for this process (Swift-6-safe mutable box).
@@ -34,7 +35,7 @@ struct SerienStreamProvider: CatalogProvider {
 
         let neu = try parseNewShows(doc)
         if !neu.isEmpty {
-            rows.append(CategoryRow(id: "new", title: "Neu auf S.to", items: neu))
+            rows.append(CategoryRow(id: "new", title: "Neu auf SerienStream", items: neu))
         }
 
         for (index, column) in try doc.select("#discover-blocks .col").array().enumerated() {
@@ -229,7 +230,7 @@ struct SerienStreamProvider: CatalogProvider {
             return (result.html, result.base)
         } catch {
             throw ProviderError.parseFailed(
-                "SerienStream unreachable (tried s.to / serienstream.to / .sx). \(error.localizedDescription)"
+                "SerienStream unreachable (tried serienstream.to / serienstream.cx). \(error.localizedDescription)"
             )
         }
     }

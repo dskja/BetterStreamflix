@@ -345,7 +345,7 @@ struct DetailView: View {
     private func friendlyPlaybackError(_ error: Error) -> String {
         let raw = error.localizedDescription
         if raw.contains("HTTP 500") || raw.contains("HTTP 502") || raw.contains("HTTP 503") {
-            return "Upstream source unavailable. Open Choose source and try a host scrape (S.to / FP) or another Videasy mirror."
+            return "Upstream source unavailable. Open Choose source and try a host scrape (SerienStream / FilmPalast) or another Videasy mirror."
         }
         return raw
     }

@@ -51,7 +51,10 @@ enum StreamResolver {
 
     static func isSerienStreamHost(_ url: URL) -> Bool {
         let host = url.host()?.lowercased() ?? ""
-        return host.contains("serienstream") || host.contains("s.to")
+        // Match Android: serienstream.to / .cx (and legacy s.to hoster redirects).
+        return host.contains("serienstream")
+            || host == "s.to"
+            || host.hasSuffix(".s.to")
     }
 
     static func looksLikeDirectMedia(_ url: URL) -> Bool {
