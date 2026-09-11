@@ -12,7 +12,7 @@ struct FrenchStreamProvider: CatalogProvider {
 
     var baseURL: URL { Self.baseBox.url ?? defaultMirror }
 
-    private static let baseBox = MirrorURLBox()
+    private static let baseBox = FrenchStreamBaseBox()
 
     func home() async throws -> [CategoryRow] {
         let base = try await ensureBase()
@@ -101,8 +101,12 @@ struct FrenchStreamProvider: CatalogProvider {
 
         let newsID = id.components(separatedBy: "newsid=").last ?? id
         let filmMeta = try? await fetchFilmData(itemID: newsID, base: base)
-        let poster = HTTPClient.absoluteURL(filmMeta?.affiche, base: base)
-            ?? HTTPClient.absoluteURL(try doc.selectFirst("meta[property=og:image]")?.attr("content"), base: base)
+        let posterFromMeta = HTTPClient.absoluteURL(filmMeta?.affiche, base: base)
+        let posterFromOg = HTTPClient.absoluteURL(
+            try doc.selectFirst("meta[property=og:image]")?.attr("content"),
+            base: base
+        )
+        let poster = posterFromMeta ?? posterFromOg
         let banner = HTTPClient.absoluteURL(filmMeta?.affiche2, base: base) ?? poster
         let year = try doc.selectFirst("span.release_date, span.release")?.text()
             .components(separatedBy: CharacterSet.decimalDigits.inverted)
@@ -459,5 +463,23 @@ struct FrenchStreamProvider: CatalogProvider {
             "User-Agent": HTTPClient.desktopUserAgent,
             "Referer": base.absoluteString,
         ]
+    }
+}
+
+private final class FrenchStreamBaseBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: URL?
+
+    var url: URL? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return value
+        }
+        set {
+            lock.lock()
+            value = newValue
+            lock.unlock()
+        }
     }
 }

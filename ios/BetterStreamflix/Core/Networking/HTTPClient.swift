@@ -27,7 +27,12 @@ enum HTTPClient {
         config.httpAdditionalHeaders = [
             "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
         ]
-        return URLSession(configuration: config, delegate: LenientTLSDelegate.shared, delegateQueue: nil)
+        // Main queue so Swift 6 URLSessionDelegate challenge handler can call completion safely.
+        return URLSession(
+            configuration: config,
+            delegate: LenientTLSDelegate.shared,
+            delegateQueue: .main
+        )
     }()
 
     static func getHTML(
@@ -303,9 +308,7 @@ enum HTTPClient {
 
 private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
     static let shared = LenientTLSDelegate()
-}
 
-extension LenientTLSDelegate {
     func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,

@@ -102,7 +102,7 @@ struct AnimeWorldProvider: CatalogProvider {
             }
 
         let isMovie = kind == .movie
-            || (try doc.selectFirst("div.status > div.movie")?.text() == "Movie")
+            || ((try? doc.selectFirst("div.status > div.movie")?.text()) == "Movie")
         if isMovie {
             return ShowDetail(
                 id: id,
