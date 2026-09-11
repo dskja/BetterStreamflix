@@ -72,7 +72,7 @@ struct FilmoProvider: CatalogProvider {
         let pageText = try doc.text()
         let year = Self.yearRegex.firstMatch(in: pageText)?.firstCaptured
             ?? Self.looseYearRegex.firstMatch(in: (try? doc.selectFirst(".ft-meta, .movie-detail")?.text()) ?? "")?.matched
-        let rating = Self.ratingRegex.firstMatch(in: pageText)?.firstCaptured.flatMap(Double.init)
+        let rating = Self.ratingRegex.firstMatch(in: pageText)?.firstCaptured.flatMap { Double($0) }
         let genres = try doc.select("a[href*=/genres/]").array().compactMap { a -> String? in
             let name = try a.text().trimmingCharacters(in: .whitespacesAndNewlines)
             return name.isEmpty ? nil : name

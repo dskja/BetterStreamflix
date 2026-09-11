@@ -84,8 +84,8 @@ struct HDFilmeProvider: CatalogProvider {
         )
         let overview = try extractOverview(doc)
         let year = try extractYear(doc)
-        let rating = try doc.selectFirst("p.imdb-badge span.imdb-rate")?.text().trimmingCharacters(in: .whitespacesAndNewlines)
-            .flatMap(Double.init)
+        let ratingText = try doc.selectFirst("p.imdb-badge span.imdb-rate")?.text().trimmingCharacters(in: .whitespacesAndNewlines)
+        let rating = ratingText.flatMap { Double($0) }
         let genres = try extractGenres(doc)
         let cast = try extractCast(doc)
         let isTV = kind == .tvShow || isTvShowDocument(doc)

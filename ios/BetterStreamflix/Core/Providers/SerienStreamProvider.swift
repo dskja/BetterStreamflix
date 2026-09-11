@@ -19,13 +19,7 @@ struct SerienStreamProvider: CatalogProvider {
     var baseURL: URL { Self.resolvedBaseBox.url }
 
     func home() async throws -> [CategoryRow] {
-        let fetched: (String, URL)
-        do {
-            fetched = try await fetchHTML(path: "")
-        } catch {
-            throw error
-        }
-        let (html, base) = fetched
+        let (html, base) = try await fetchHTML(path: "")
         let doc = try SwiftSoup.parse(html, base.absoluteString)
         var rows: [CategoryRow] = []
 

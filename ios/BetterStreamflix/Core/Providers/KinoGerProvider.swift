@@ -156,7 +156,9 @@ struct KinoGerProvider: CatalogProvider {
 
     private func isSeriesDocument(_ doc: Document, title: String) -> Bool {
         if title.localizedCaseInsensitiveContains("Staffel") { return true }
-        if !(try doc.select("ul.ep-menu li[id^=serie-]").array().isEmpty) { return true }
+        if let episodes = try? doc.select("ul.ep-menu li[id^=serie-]").array(), !episodes.isEmpty {
+            return true
+        }
         return false
     }
 

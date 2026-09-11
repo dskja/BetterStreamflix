@@ -9,6 +9,7 @@ final class AppModel {
     let library: LibraryStore
 
     let providers: [any CatalogProvider] = [
+        // DE
         TMDbProvider(),
         SerienStreamProvider(),
         AniWorldProvider(),
@@ -18,6 +19,13 @@ final class AppModel {
         KinoGerProvider(),
         MEGAKinoProvider(),
         HDFilmeProvider(),
+        PlutoTvDeProvider(),
+        // Others
+        SflixProvider(),
+        StreamingCommunityProvider(language: "it"),
+        StreamingCommunityProvider(language: "en"),
+        FrenchStreamProvider(),
+        AnimeWorldProvider(),
     ]
 
     init() {
