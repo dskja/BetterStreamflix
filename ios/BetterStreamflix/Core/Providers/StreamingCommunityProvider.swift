@@ -6,11 +6,14 @@ import SwiftSoup
 struct StreamingCommunityProvider: CatalogProvider {
     let language: String
     private let langCode: String
-    private let defaultDomain = "streamingunity.cc"
+    /// Live mirror (`.cc` 301 → `.win`). Android resolves redirects once and caches the host.
+    private static let defaultDomain = "streamingunity.win"
+    private static let seedDomains = ["streamingunity.win", "streamingunity.cc"]
+    private static let domainBox = DomainBox(defaultDomain)
 
     var id: String { language == "en" ? "streamingcommunity-en" : "streamingcommunity-it" }
     var name: String { language == "en" ? "StreamingCommunity (EN)" : "StreamingCommunity" }
-    var baseURL: URL { URL(string: "https://\(defaultDomain)/")! }
+    var baseURL: URL { URL(string: "https://\(Self.domainBox.host)/")! }
 
     private let lenientTLS = true
 
@@ -20,6 +23,7 @@ struct StreamingCommunityProvider: CatalogProvider {
     }
 
     func home() async throws -> [CategoryRow] {
+        try await resolveDomainIfNeeded()
         let page = try await fetchInertiaHome()
         guard let props = page["props"] as? [String: Any] else {
             throw ProviderError.parseFailed("StreamingCommunity: missing props")
@@ -69,6 +73,7 @@ struct StreamingCommunityProvider: CatalogProvider {
     }
 
     func search(query: String) async throws -> [MediaItem] {
+        try await resolveDomainIfNeeded()
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
         guard let url = HTTPClient.apiURL(
@@ -89,6 +94,7 @@ struct StreamingCommunityProvider: CatalogProvider {
     }
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
+        try await resolveDomainIfNeeded()
         let page = try await fetchTitleDetails(id: id)
         guard let props = page["props"] as? [String: Any],
               let titleObj = props["title"] as? [String: Any] else {
@@ -147,6 +153,7 @@ struct StreamingCommunityProvider: CatalogProvider {
     }
 
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
+        try await resolveDomainIfNeeded()
         let path = seasonId.contains("/") ? seasonId : "\(showId)/\(seasonId)"
         let page = try await fetchInertiaJSON(path: "titles/\(path)")
         guard let props = page["props"] as? [String: Any],
@@ -173,6 +180,7 @@ struct StreamingCommunityProvider: CatalogProvider {
     }
 
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
+        try await resolveDomainIfNeeded()
         let streamID = episodeId?.isEmpty == false ? episodeId! : showId
         let iframePath: String
         if streamID.contains("?episode_id=") {
@@ -211,8 +219,35 @@ struct StreamingCommunityProvider: CatalogProvider {
 
     // MARK: - Networking / Inertia
 
+    private var activeDomain: String { Self.domainBox.host }
+
     private var langBaseURL: URL {
-        URL(string: "https://\(defaultDomain)/\(langCode)/")!
+        URL(string: "https://\(activeDomain)/\(langCode)/")!
+    }
+
+    /// Follow Android `resolveFinalBaseUrl` — pick the post-redirect host once.
+    private func resolveDomainIfNeeded() async throws {
+        if Self.domainBox.resolved { return }
+        for seed in Self.seedDomains {
+            guard let start = URL(string: "https://\(seed)/") else { continue }
+            do {
+                let final = try await HTTPClient.followRedirects(
+                    url: start,
+                    headers: [
+                        "User-Agent": HTTPClient.desktopUserAgent,
+                        "Accept-Language": acceptLanguage,
+                    ]
+                )
+                let host = final.host()?.lowercased() ?? seed
+                Self.domainBox.host = host
+                Self.domainBox.resolved = true
+                return
+            } catch {
+                continue
+            }
+        }
+        Self.domainBox.host = Self.defaultDomain
+        Self.domainBox.resolved = true
     }
 
     private var acceptLanguage: String {
@@ -344,7 +379,7 @@ struct StreamingCommunityProvider: CatalogProvider {
     private func imageURL(_ images: [[String: Any]], type: String) -> URL? {
         guard let filename = images.first(where: { ($0["type"] as? String) == type })?["filename"] as? String,
               !filename.isEmpty else { return nil }
-        return URL(string: "https://cdn.\(defaultDomain)/images/\(filename)")
+        return URL(string: "https://cdn.\(activeDomain)/images/\(filename)")
     }
 
     private func sliderDisplayName(sliderName: String, label: String?) -> String {
@@ -367,5 +402,23 @@ struct StreamingCommunityProvider: CatalogProvider {
         if let n = value as? Int { return String(n) }
         if let n = value as? NSNumber { return n.stringValue }
         return ""
+    }
+}
+
+private final class DomainBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _host: String
+    private var _resolved = false
+
+    init(_ host: String) { _host = host }
+
+    var host: String {
+        get { lock.lock(); defer { lock.unlock() }; return _host }
+        set { lock.lock(); _host = newValue; lock.unlock() }
+    }
+
+    var resolved: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _resolved }
+        set { lock.lock(); _resolved = newValue; lock.unlock() }
     }
 }

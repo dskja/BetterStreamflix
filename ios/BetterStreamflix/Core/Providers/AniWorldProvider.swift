@@ -17,7 +17,7 @@ struct AniWorldProvider: CatalogProvider {
         if let popularHTML = try? await HTTPClient.getHTML(
             url: URL(string: "beliebte-animes", relativeTo: baseURL)!.absoluteURL,
             referer: baseURL,
-            desktopUA: true,
+            desktopUA: false,
             allowLenientTLS: true
         ),
            let popularDoc = try? SwiftSoup.parse(popularHTML, baseURL.absoluteString) {
@@ -27,7 +27,7 @@ struct AniWorldProvider: CatalogProvider {
             }
         }
 
-        if let html = try? await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true),
+        if let html = try? await HTTPClient.getHTML(url: baseURL, desktopUA: false, allowLenientTLS: true),
            let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
             let sectionSelectors = [
                 ("hot", "Beliebt bei AniWorld", "div.container > div:nth-child(7) > div.previews div.coverListItem"),
@@ -67,7 +67,7 @@ struct AniWorldProvider: CatalogProvider {
         // Fallback: site search page if alphabet cache is empty
         let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
         if let url = URL(string: "search?q=\(encoded)", relativeTo: baseURL)?.absoluteURL,
-           let html = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true),
+           let html = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true),
            let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
             return try parseCards(doc.select("a[href*=/anime/stream/]").array())
         }
@@ -76,7 +76,7 @@ struct AniWorldProvider: CatalogProvider {
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         let url = URL(string: "anime/stream/\(id)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let title = try doc.selectFirst("h1 > span, h1")?.text()
             ?? id.replacingOccurrences(of: "-", with: " ").capitalized
@@ -128,7 +128,7 @@ struct AniWorldProvider: CatalogProvider {
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         let path = seasonId.contains("/") ? seasonId : "\(showId)/\(seasonId)"
         let url = URL(string: "anime/stream/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
 
@@ -165,7 +165,7 @@ struct AniWorldProvider: CatalogProvider {
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
         let path = episodeId ?? seasonId ?? showId
         let url = URL(string: "anime/stream/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
@@ -222,7 +222,7 @@ struct AniWorldProvider: CatalogProvider {
         func ensure(baseURL: URL) async throws {
             if !stored.isEmpty { return }
             let url = URL(string: "animes-alphabet", relativeTo: baseURL)!.absoluteURL
-            let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+            let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
             let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
             var items: [MediaItem] = []
             var seen = Set<String>()

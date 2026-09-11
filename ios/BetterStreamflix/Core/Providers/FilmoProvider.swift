@@ -9,7 +9,7 @@ struct FilmoProvider: CatalogProvider {
     let baseURL = URL(string: "https://filmo.to/")!
 
     func home() async throws -> [CategoryRow] {
-        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let movies = try parseMovieCards(doc)
         guard !movies.isEmpty else { return [] }
@@ -52,14 +52,14 @@ struct FilmoProvider: CatalogProvider {
         var components = URLComponents(url: URL(string: "search", relativeTo: baseURL)!.absoluteURL, resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "q", value: trimmed)]
         guard let url = components.url else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         return try parseMovieCards(doc)
     }
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         guard let pageURL = HTTPClient.absoluteURL(id, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let title = try doc.selectFirst("h1")?.text().trimmingCharacters(in: .whitespacesAndNewlines)
             ?? ogTitle(from: doc)
@@ -97,7 +97,7 @@ struct FilmoProvider: CatalogProvider {
 
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
         guard let pageURL = HTTPClient.absoluteURL(showId, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let csrf = try extractCsrf(from: doc)
         let chips = try doc.select("[data-provider-chip][data-movie-link-id][data-p]").array()
@@ -198,7 +198,7 @@ struct FilmoProvider: CatalogProvider {
     private func mintHosterURL(payload: String, csrf: String) async throws -> URL {
         var effectiveCsrf = csrf
         if effectiveCsrf.isEmpty {
-            let homeHTML = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: false)
+            let homeHTML = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
             let homeDoc = try SwiftSoup.parse(homeHTML, baseURL.absoluteString)
             effectiveCsrf = try extractCsrf(from: homeDoc)
         }

@@ -12,7 +12,7 @@ struct MEGAKinoProvider: CatalogProvider {
 
     func home() async throws -> [CategoryRow] {
         try await ensureToken()
-        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let sections = try doc.select("section.sect").array()
         var section: Element?
@@ -63,7 +63,7 @@ struct MEGAKinoProvider: CatalogProvider {
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         try await ensureToken()
         guard let pageURL = HTTPClient.absoluteURL(id, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let titleRaw = try doc.selectFirst("h1[itemprop=name], h1")?.text()
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? pageURL.lastPathComponent
@@ -121,7 +121,7 @@ struct MEGAKinoProvider: CatalogProvider {
         try await ensureToken()
         let target = seasonId.isEmpty ? showId : seasonId
         guard let pageURL = HTTPClient.absoluteURL(target, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
         for option in try doc.select("select.se-select option").array() {
@@ -148,7 +148,7 @@ struct MEGAKinoProvider: CatalogProvider {
         }
 
         guard let pageURL = HTTPClient.absoluteURL(showId, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
@@ -252,7 +252,7 @@ struct MEGAKinoProvider: CatalogProvider {
             throw ProviderError.invalidURL
         }
         let epId = parts[1]
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
@@ -299,7 +299,7 @@ struct MEGAKinoProvider: CatalogProvider {
     private func resolveDlStream(_ href: String) async -> URL? {
         guard let url = HTTPClient.absoluteURL(href, base: baseURL) else { return nil }
         do {
-            let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+            let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
             let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
             let text = try doc.text()
             if text.localizedCaseInsensitiveContains("VPN"),
@@ -328,7 +328,7 @@ struct MEGAKinoProvider: CatalogProvider {
     }
 
     private func parseMeinecloudMirrors(embedURL: URL) async -> [StreamSource] {
-        guard let html = try? await HTTPClient.getHTML(url: embedURL, referer: baseURL, desktopUA: true, allowLenientTLS: false),
+        guard let html = try? await HTTPClient.getHTML(url: embedURL, referer: baseURL, desktopUA: true, allowLenientTLS: true),
               let doc = try? SwiftSoup.parse(html, embedURL.absoluteString) else { return [] }
         var sources: [StreamSource] = []
         for li in (try? doc.select("ul._source_list li[data-link], li[data-link]").array()) ?? [] {
@@ -379,7 +379,7 @@ struct MEGAKinoProvider: CatalogProvider {
         let now = Date().timeIntervalSince1970
         if now - Self.tokenBox.lastTokenTime < 10 * 60 { return }
         if let url = URL(string: "index.php?yg=token", relativeTo: baseURL)?.absoluteURL {
-            _ = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+            _ = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         }
         Self.tokenBox.lastTokenTime = now
     }

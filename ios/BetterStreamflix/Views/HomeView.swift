@@ -102,7 +102,7 @@ struct HomeView: View {
                 isLoading = false
                 return
             }
-            errorMessage = error.localizedDescription
+            errorMessage = "\(app.activeProvider.name): \(error.localizedDescription)"
             isLoading = false
         }
     }

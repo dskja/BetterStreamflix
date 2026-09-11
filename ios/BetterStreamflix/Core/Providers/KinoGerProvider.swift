@@ -9,7 +9,7 @@ struct KinoGerProvider: CatalogProvider {
     let baseURL = URL(string: "https://kinoger.fun/")!
 
     func home() async throws -> [CategoryRow] {
-        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let items = try parseShorts(doc)
         guard !items.isEmpty else { return [] }
@@ -39,7 +39,7 @@ struct KinoGerProvider: CatalogProvider {
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         guard let pageURL = HTTPClient.absoluteURL(id, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let titleRaw = try doc.selectFirst("h1#news-title, h1.title, h1")?.text()
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -86,7 +86,7 @@ struct KinoGerProvider: CatalogProvider {
         guard let pageURL = HTTPClient.absoluteURL(showURLString, base: baseURL) else {
             throw ProviderError.invalidURL
         }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         return try parseEpisodes(showURL: pageURL.absoluteString, seasonNumber: seasonNumber, doc: doc)
     }
@@ -97,7 +97,7 @@ struct KinoGerProvider: CatalogProvider {
         }
 
         guard let pageURL = HTTPClient.absoluteURL(showId, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
         for (idx, span) in try doc.select(".player-mirrors span[data-link]").array().enumerated() {
@@ -191,7 +191,7 @@ struct KinoGerProvider: CatalogProvider {
         guard let pageURL = HTTPClient.absoluteURL(pagePart, base: baseURL) else {
             throw ProviderError.invalidURL
         }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let li = try doc.selectFirst("ul.ep-menu li#serie-\(season)_\(episode)")
             ?? doc.selectFirst("ul.ep-menu li[id=serie-\(season)_\(episode)]")

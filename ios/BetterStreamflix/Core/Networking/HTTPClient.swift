@@ -2,11 +2,12 @@ import Foundation
 import Security
 
 enum HTTPClient {
+    /// Matches Android `NetworkClient.USER_AGENT` (best Cloudflare / DDoS-Guard compatibility).
     static let userAgent =
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 " +
-        "(KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1"
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/131.0.0.0 Mobile Safari/537.36"
 
-    /// Same desktop UA family Android providers use for scrape hosts.
+    /// Desktop Chrome — used when a scrape host expects it.
     static let desktopUserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/137.0.0.0 Safari/537.36"
@@ -14,8 +15,10 @@ enum HTTPClient {
     private static let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
+        config.httpCookieAcceptPolicy = .always
+        config.httpShouldSetCookies = true
         config.httpAdditionalHeaders = [
-            "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+            "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
         ]
         return URLSession(configuration: config)
     }()
@@ -24,10 +27,11 @@ enum HTTPClient {
     private static let lenientSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
+        config.httpCookieAcceptPolicy = .always
+        config.httpShouldSetCookies = true
         config.httpAdditionalHeaders = [
-            "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+            "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
         ]
-        // Main queue so Swift 6 URLSessionDelegate challenge handler can call completion safely.
         return URLSession(
             configuration: config,
             delegate: LenientTLSDelegate.shared,
@@ -49,10 +53,22 @@ enum HTTPClient {
                 session: session
             )
         } catch {
-            guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            // Some WAFs return 403/404 for one UA family — flip once before TLS fallback.
+            if isRetryableHTTP(error),
+               let html = try? await fetchHTML(
+                   url: url,
+                   referer: referer ?? url,
+                   desktopUA: !desktopUA,
+                   session: session
+               ) {
+                return html
+            }
+            guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) || isRetryableHTTP(error) else {
+                throw error
+            }
             return try await fetchHTML(
                 url: url,
-                referer: referer,
+                referer: referer ?? url,
                 desktopUA: desktopUA,
                 session: lenientSession
             )
@@ -94,7 +110,7 @@ enum HTTPClient {
                 session: session
             )
         } catch {
-            guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            guard isTLSFailure(error) || isNetworkFailure(error) || isRetryableHTTP(error) else { throw error }
             return try await fetchData(
                 url: url,
                 method: "GET",
@@ -131,7 +147,9 @@ enum HTTPClient {
                 session: session
             )
         } catch {
-            guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) || isRetryableHTTP(error) else {
+                throw error
+            }
             return try await fetchData(
                 url: url,
                 method: "POST",
@@ -156,7 +174,7 @@ enum HTTPClient {
                 session: session
             )
         } catch {
-            guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            guard isTLSFailure(error) || isNetworkFailure(error) || isRetryableHTTP(error) else { throw error }
             return try await fetchData(
                 url: url,
                 method: "POST",
@@ -168,15 +186,13 @@ enum HTTPClient {
     }
 
     static func followRedirects(url: URL, headers: [String: String] = [:]) async throws -> URL {
-        var request = makeRequest(url: url, method: "GET", headers: headers, body: nil)
-        request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
+        var request = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
         do {
             let (_, response) = try await session.data(for: request)
             return response.url ?? url
         } catch {
             guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
-            var retry = makeRequest(url: url, method: "GET", headers: headers, body: nil)
-            retry.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
+            var retry = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
             let (_, response) = try await lenientSession.data(for: retry)
             return response.url ?? url
         }
@@ -207,11 +223,7 @@ enum HTTPClient {
         return components?.url
     }
 
-    private static func formEncode(_ value: String) -> String {
-        var allowed = CharacterSet.urlQueryAllowed
-        allowed.remove(charactersIn: ":#[]@!$&'()*+,;=")
-        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
-    }
+    // MARK: - Internals
 
     private static func fetchHTML(
         url: URL,
@@ -219,12 +231,15 @@ enum HTTPClient {
         desktopUA: Bool,
         session: URLSession
     ) async throws -> String {
-        var headers: [String: String] = [
-            "User-Agent": desktopUA ? desktopUserAgent : userAgent,
-            "Accept": "text/html,application/xhtml+xml",
-        ]
+        var headers = browserHeaders(
+            desktopUA: desktopUA,
+            merging: [
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            ]
+        )
         if let referer {
             headers["Referer"] = referer.absoluteString
+            headers["Sec-Fetch-Site"] = "same-origin"
         }
         let data = try await fetchData(
             url: url,
@@ -235,6 +250,11 @@ enum HTTPClient {
         )
         guard let html = String(data: data, encoding: .utf8), !html.isEmpty else {
             throw ProviderError.emptyResponse
+        }
+        if looksLikeBotChallenge(html) {
+            throw ProviderError.streamGate(
+                "Bot-Schutz blockiert \(url.host() ?? url.absoluteString). Bitte später erneut versuchen."
+            )
         }
         return html
     }
@@ -248,20 +268,23 @@ enum HTTPClient {
     ) async throws -> Data {
         var request = makeRequest(url: url, method: method, headers: headers, body: body)
         if request.value(forHTTPHeaderField: "User-Agent") == nil {
-            request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
+            request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         }
         if request.value(forHTTPHeaderField: "Accept") == nil {
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("application/json,text/html,*/*", forHTTPHeaderField: "Accept")
         }
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw ProviderError.http(http.statusCode)
+            if let html = String(data: data, encoding: .utf8), looksLikeBotChallenge(html) {
+                throw ProviderError.streamGate(
+                    "Bot-Schutz (HTTP \(http.statusCode)) bei \(url.host() ?? url.absoluteString)"
+                )
+            }
+            throw ProviderError.http(http.statusCode, url: url.absoluteString)
         }
         return data
     }
 
-    /// Keep the hostname in the URL (Android/OkHttp pattern). DoH is applied via `PrivacyContext`,
-    /// not by rewriting the host to an IP — that breaks SNI and cert hostname checks on URLSession.
     private static func makeRequest(
         url: URL,
         method: String,
@@ -275,6 +298,54 @@ enum HTTPClient {
             request.setValue(value, forHTTPHeaderField: key)
         }
         return request
+    }
+
+    /// Browser-like defaults from Android `NetworkClient` interceptors.
+    private static func browserHeaders(
+        desktopUA: Bool = false,
+        merging extra: [String: String] = [:]
+    ) -> [String: String] {
+        var headers: [String: String] = [
+            "User-Agent": desktopUA ? desktopUserAgent : userAgent,
+            "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+        ]
+        for (key, value) in extra {
+            headers[key] = value
+        }
+        return headers
+    }
+
+    private static func formEncode(_ value: String) -> String {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: ":#[]@!$&'()*+,;=")
+        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    }
+
+    private static func looksLikeBotChallenge(_ html: String) -> Bool {
+        // Real interstitial pages are short. Do NOT match "ddos-guard" alone — valid
+        // SerienStream/AniWorld pages embed that script name on every 200 OK response.
+        guard html.count < 40_000 else { return false }
+        let lower = html.lowercased()
+        return lower.contains("cf-mitigated")
+            || lower.contains("cf-browser-verification")
+            || lower.contains("just a moment")
+            || lower.contains("checking your browser")
+            || lower.contains("challenge-platform")
+            || lower.contains("_cf_chl")
+            || (lower.contains("ddos-guard") && lower.contains("challenge"))
+    }
+
+    private static func isRetryableHTTP(_ error: Error) -> Bool {
+        if case let ProviderError.http(code, _) = error {
+            // Include 404: some bot walls answer with a fake Not Found for the wrong UA.
+            return [403, 404, 429, 502, 503, 520, 521, 522, 523, 524].contains(code)
+        }
+        return false
     }
 
     private static func isTLSFailure(_ error: Error) -> Bool {
@@ -318,7 +389,6 @@ private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked
         let credential: URLCredential?
         if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
            let trust = challenge.protectionSpace.serverTrust {
-            // Mirror Android hostnameVerifier { _, _ -> true } + empty TrustManager.
             let exceptions = SecTrustCopyExceptions(trust)
             SecTrustSetExceptions(trust, exceptions)
             disposition = .useCredential
@@ -327,8 +397,6 @@ private final class LenientTLSDelegate: NSObject, URLSessionDelegate, @unchecked
             disposition = .performDefaultHandling
             credential = nil
         }
-        // URLSessionDelegate's completionHandler is MainActor-isolated in Swift 6;
-        // hop explicitly (delegateQueue is .main, but the witness is still nonisolated).
         Task { @MainActor in
             completionHandler(disposition, credential)
         }

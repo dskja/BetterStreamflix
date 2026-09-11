@@ -27,7 +27,7 @@ enum ProviderError: LocalizedError {
     case invalidURL
     case emptyResponse
     case parseFailed(String)
-    case http(Int)
+    case http(Int, url: String?)
     case unsupported
     case missingAPIKey(String)
     case streamGate(String)
@@ -37,7 +37,11 @@ enum ProviderError: LocalizedError {
         case .invalidURL: "Invalid URL"
         case .emptyResponse: "Empty response from provider"
         case .parseFailed(let reason): "Parse failed: \(reason)"
-        case .http(let code): "HTTP \(code)"
+        case .http(let code, let url):
+            if let url, !url.isEmpty {
+                return "HTTP \(code) · \(url)"
+            }
+            return "HTTP \(code)"
         case .unsupported: "Not supported by this provider"
         case .missingAPIKey(let name): "Missing API key for \(name)"
         case .streamGate(let reason): reason

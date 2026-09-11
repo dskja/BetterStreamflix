@@ -1,9 +1,15 @@
 import Foundation
 import Network
 
-/// App-wide DNS-over-HTTPS aligned with Android `DnsResolver`.
-/// Uses Network.framework `PrivacyContext` so URLSession keeps the hostname for SNI / cert checks
-/// (unlike rewriting `https://host` → `https://ip`, which breaks TLS on iOS).
+/// DNS helpers aligned with Android `DnsResolver`.
+///
+/// IMPORTANT:
+/// - Never rewrite `https://hostname` → `https://ip` for URLSession (breaks SNI / cert checks).
+/// - Never force app-wide `requireEncryptedNameResolution(true)` — that made every provider
+///   fail on many German mobile/ISP networks (opaque errors / wrong routing). Android's DoH
+///   is OkHttp socket-level address selection; URLSession cannot mirror that safely.
+///
+/// Prefer system DNS exactly like Safari. Manual DoH lookup remains available for diagnostics.
 enum DohResolver {
     static let cloudflareDoH = URL(string: "https://cloudflare-dns.com/dns-query")!
     static let googleDoH = URL(string: "https://dns.google/resolve")!
@@ -11,22 +17,13 @@ enum DohResolver {
     private static let cacheBox = CacheBox()
     private static let configuredBox = FlagBox()
 
-    /// Call once at launch (Android: `DnsResolver.setDnsUrl` in `BetterStreamflixApp`).
+    /// Kept for call-site compatibility with app launch. Intentionally a no-op.
     static func configureAppDNS() {
         guard !configuredBox.value else { return }
         configuredBox.value = true
-
-        let servers: [NWEndpoint] = [
-            .hostPort(host: "1.1.1.1", port: 443),
-            .hostPort(host: "1.0.0.1", port: 443),
-        ]
-        NWParameters.PrivacyContext.default.requireEncryptedNameResolution(
-            true,
-            fallbackResolver: .https(cloudflareDoH, serverAddresses: servers)
-        )
+        // Do not touch NWParameters.PrivacyContext — leave system DNS alone.
     }
 
-    /// Manual A-record lookup (diagnostics / future NWConnection paths). Prefer `configureAppDNS`.
     static func ipv4(for hostname: String) async throws -> String {
         let host = hostname.lowercased()
         if let cached = cacheBox.get(host) {

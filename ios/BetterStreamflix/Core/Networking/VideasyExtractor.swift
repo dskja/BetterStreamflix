@@ -105,7 +105,7 @@ enum VideasyExtractor {
                 ]
             )
         } catch let error as ProviderError {
-            if case .http(let code) = error {
+            if case .http(let code, _) = error {
                 throw ProviderError.parseFailed(
                     "Videasy mirror offline (HTTP \(code)). Pick another source — host scrapes usually work."
                 )

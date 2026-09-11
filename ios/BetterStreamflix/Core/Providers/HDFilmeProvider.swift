@@ -11,7 +11,7 @@ struct HDFilmeProvider: CatalogProvider {
     private static let sitemapBox = SitemapBox()
 
     func home() async throws -> [CategoryRow] {
-        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var rows: [CategoryRow] = []
 
@@ -72,7 +72,7 @@ struct HDFilmeProvider: CatalogProvider {
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         guard let pageURL = HTTPClient.absoluteURL(id, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let titleRaw = try doc.selectFirst("h1.font-bold, h1")?.text().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let title = titleRaw.replacingOccurrences(of: #"\s*hdfilme\s*$"#, with: "", options: [.regularExpression, .caseInsensitive])
@@ -130,7 +130,7 @@ struct HDFilmeProvider: CatalogProvider {
         guard let pageURL = HTTPClient.absoluteURL(showURLString, base: baseURL) else {
             throw ProviderError.invalidURL
         }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
 
         if let serialDoc = await getSerialDocument(doc) {
@@ -147,7 +147,7 @@ struct HDFilmeProvider: CatalogProvider {
         }
 
         guard let pageURL = HTTPClient.absoluteURL(showId, base: baseURL) else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         return try await movieStreams(from: doc)
     }
@@ -188,7 +188,7 @@ struct HDFilmeProvider: CatalogProvider {
         var items: [MediaItem] = []
         for entry in matching {
             guard let pageURL = URL(string: entry.url) else { continue }
-            guard let html = try? await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false),
+            guard let html = try? await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true),
                   let doc = try? SwiftSoup.parse(html, pageURL.absoluteString),
                   let item = try? parseSearchResult(url: entry.url, doc: doc) else { continue }
             items.append(item)
@@ -203,7 +203,7 @@ struct HDFilmeProvider: CatalogProvider {
             let moviePath = page == 1 ? "filme1/" : "filme1/page/\(page)/"
             let seriesPath = page == 1 ? "serien/" : "serien/page/\(page)/"
             if let movieURL = URL(string: moviePath, relativeTo: baseURL)?.absoluteURL,
-               let html = try? await HTTPClient.getHTML(url: movieURL, referer: baseURL, desktopUA: true, allowLenientTLS: false),
+               let html = try? await HTTPClient.getHTML(url: movieURL, referer: baseURL, desktopUA: true, allowLenientTLS: true),
                let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
                 for el in try doc.select("div.listing.grid[id=dle-content] div.item.relative.mt-3").array() {
                     let title = try el.selectFirst("h3.line-clamp-2")?.text() ?? ""
@@ -214,7 +214,7 @@ struct HDFilmeProvider: CatalogProvider {
                 }
             }
             if let seriesURL = URL(string: seriesPath, relativeTo: baseURL)?.absoluteURL,
-               let html = try? await HTTPClient.getHTML(url: seriesURL, referer: baseURL, desktopUA: true, allowLenientTLS: false),
+               let html = try? await HTTPClient.getHTML(url: seriesURL, referer: baseURL, desktopUA: true, allowLenientTLS: true),
                let doc = try? SwiftSoup.parse(html, baseURL.absoluteString) {
                 for el in try doc.select("div.listing.grid[id=dle-content] div.item.relative.mt-3").array() {
                     let title = try el.selectFirst("h3.line-clamp-2")?.text() ?? ""
@@ -434,7 +434,7 @@ struct HDFilmeProvider: CatalogProvider {
         guard let imdbId = extractImdbId(doc) else { return nil }
         let numeric = imdbId.replacingOccurrences(of: "tt", with: "")
         if let url = URL(string: "https://meinecloud.click/serial/\(numeric)"),
-           let html = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: false),
+           let html = try? await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true),
            let parsed = try? SwiftSoup.parse(html, url.absoluteString) {
             return parsed
         }
@@ -444,7 +444,7 @@ struct HDFilmeProvider: CatalogProvider {
            let player = Self.playerURLRegex.firstMatch(in: text)?.firstCaptured?
             .replacingOccurrences(of: "\\/", with: "/"),
            let playerURL = URL(string: player),
-           let html = try? await HTTPClient.getHTML(url: playerURL, referer: baseURL, desktopUA: true, allowLenientTLS: false) {
+           let html = try? await HTTPClient.getHTML(url: playerURL, referer: baseURL, desktopUA: true, allowLenientTLS: true) {
             return try? SwiftSoup.parse(html, playerURL.absoluteString)
         }
         return nil
@@ -482,7 +482,7 @@ struct HDFilmeProvider: CatalogProvider {
             }
             guard let embedURL = HTTPClient.absoluteURL(iframeSrc, base: baseURL) else { continue }
             lastEmbed = embedURL
-            guard let embedHTML = try? await HTTPClient.getHTML(url: embedURL, referer: baseURL, desktopUA: true, allowLenientTLS: false),
+            guard let embedHTML = try? await HTTPClient.getHTML(url: embedURL, referer: baseURL, desktopUA: true, allowLenientTLS: true),
                   let embedDoc = try? SwiftSoup.parse(embedHTML, embedURL.absoluteString) else { continue }
 
             for li in try embedDoc.select(
@@ -534,7 +534,7 @@ struct HDFilmeProvider: CatalogProvider {
               let pageURL = HTTPClient.absoluteURL(showURLString, base: baseURL) else {
             throw ProviderError.invalidURL
         }
-        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: false)
+        let html = try await HTTPClient.getHTML(url: pageURL, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
 
         if let serialDoc = await getSerialDocument(doc),

@@ -40,7 +40,7 @@ struct ProvidersView: View {
             } header: {
                 Text("Catalog sources")
             } footer: {
-                Text("Beta v3: Same domains/paths as Android — TMDb via DoH, SerienStream .to/.cx, FilmPalast, AniWorld, Videasy. App icon matches Android branding.")
+                Text("Beta: Android-aligned networking (system DNS, Chrome mobile UA, cookies). SerienStream .to/.cx, Filmpalast, StreamingCommunity .win. TMDb needs API key in Settings.")
             }
         }
         .scrollContentBackground(.hidden)

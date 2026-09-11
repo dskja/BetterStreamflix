@@ -83,7 +83,7 @@ struct SerienStreamProvider: CatalogProvider {
             URLQueryItem(name: "tab", value: "shows"),
         ]
         guard let url = components.url else { throw ProviderError.invalidURL }
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let cards = try doc.select("div.search-results-list div.card.cover-card").array()
         if !cards.isEmpty {
@@ -107,7 +107,7 @@ struct SerienStreamProvider: CatalogProvider {
 
     func detail(id: String, kind: MediaItem.Kind) async throws -> ShowDetail {
         let url = URL(string: "serie/\(id)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         let title = try doc.selectFirst("h1")?.text().trimmingCharacters(in: .whitespacesAndNewlines)
             ?? id.replacingOccurrences(of: "-", with: " ").capitalized
@@ -147,7 +147,7 @@ struct SerienStreamProvider: CatalogProvider {
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         let path = seasonId.contains("/") ? seasonId : "\(showId)/\(seasonId)"
         let url = URL(string: "serie/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
 
@@ -185,7 +185,7 @@ struct SerienStreamProvider: CatalogProvider {
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
         let path = episodeId ?? seasonId ?? showId
         let url = URL(string: "serie/\(path)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
@@ -230,7 +230,7 @@ struct SerienStreamProvider: CatalogProvider {
 
     private func fetchHTML(path: String) async throws -> (String, URL) {
         do {
-            let result = try await HTTPClient.getHTML(path: path, bases: Self.candidateBases, desktopUA: true)
+            let result = try await HTTPClient.getHTML(path: path, bases: Self.candidateBases, desktopUA: false)
             Self.resolvedBaseBox.url = result.base
             return (result.html, result.base)
         } catch {
