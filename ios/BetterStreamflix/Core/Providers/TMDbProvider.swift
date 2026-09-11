@@ -116,7 +116,7 @@ struct TMDbProvider: CatalogProvider {
                 title: movie.title,
                 overview: movie.overview,
                 posterURL: TMDbClient.imageURL(movie.posterPath),
-                bannerURL: TMDbClient.imageURL(movie.backdropPath, size: "original"),
+                bannerURL: TMDbClient.imageURL(movie.backdropPath, size: "w1280"),
                 year: movie.releaseDate.map { String($0.prefix(4)) },
                 rating: movie.voteAverage,
                 seasons: [],
@@ -146,7 +146,7 @@ struct TMDbProvider: CatalogProvider {
                 title: show.name,
                 overview: show.overview,
                 posterURL: TMDbClient.imageURL(show.posterPath),
-                bannerURL: TMDbClient.imageURL(show.backdropPath, size: "original"),
+                bannerURL: TMDbClient.imageURL(show.backdropPath, size: "w1280"),
                 year: show.firstAirDate.map { String($0.prefix(4)) },
                 rating: show.voteAverage,
                 seasons: seasons,
@@ -210,43 +210,69 @@ struct TMDbProvider: CatalogProvider {
         let mediaType = kind == .movie ? "movie" : "tv"
         var sources: [StreamSource] = []
 
-        // Host scrapes first — Videasy DE (`meine`) often returns upstream HTTP 500.
+        // Host scrapes first — must hit *episode* pages for SerienStream (season pages have 0 hosts).
         if kind == .tvShow {
-            if let match = try? await SerienStreamProvider().search(query: resolvedDetail.title).first,
-               let ssStreams = try? await SerienStreamProvider().streams(
+            let ss = SerienStreamProvider()
+            if let match = bestMatch(
+                try? await ss.search(query: resolvedDetail.title),
+                target: resolvedDetail.title,
+                kind: .tvShow
+            ) {
+                let seasonPath = "\(match.id)/staffel-\(seasonNum ?? 1)"
+                let episodePath: String
+                if let episodeNum {
+                    if let episodes = try? await ss.episodes(showId: match.id, seasonId: seasonPath),
+                       let ep = episodes.first(where: { $0.number == episodeNum }) {
+                        episodePath = ep.id
+                    } else {
+                        episodePath = "\(seasonPath)/episode-\(episodeNum)"
+                    }
+                } else {
+                    episodePath = seasonPath
+                }
+                if let ssStreams = try? await ss.streams(
+                    showId: match.id,
+                    seasonId: seasonPath,
+                    episodeId: episodePath,
+                    detail: nil
+                ), !ssStreams.isEmpty {
+                    sources.append(contentsOf: ssStreams.prefix(10).map { source in
+                        StreamSource(
+                            id: "ss-\(source.id)",
+                            name: "S.to · \(source.name)",
+                            url: source.url,
+                            headers: source.headers,
+                            resolveKind: source.resolveKind
+                        )
+                    })
+                }
+            }
+        } else {
+            let fp = FilmPalastProvider()
+            if let match = bestMatch(
+                try? await fp.search(query: resolvedDetail.title),
+                target: resolvedDetail.title,
+                kind: .movie
+            ),
+               let fpStreams = try? await fp.streams(
                 showId: match.id,
-                seasonId: seasonNum.map { "\(match.id)/staffel-\($0)" },
+                seasonId: nil,
                 episodeId: nil,
                 detail: nil
-               ) {
-                sources.append(contentsOf: ssStreams.prefix(8).map { source in
+               ), !fpStreams.isEmpty {
+                sources.append(contentsOf: fpStreams.prefix(10).map { source in
                     StreamSource(
-                        id: "ss-\(source.id)",
-                        name: "SerienStream · \(source.name)",
+                        id: "fp-\(source.id)",
+                        name: "FP · \(source.name)",
                         url: source.url,
                         headers: source.headers,
                         resolveKind: source.resolveKind
                     )
                 })
             }
-        } else if let match = try? await FilmPalastProvider().search(query: resolvedDetail.title).first(where: { $0.kind == .movie }),
-                  let fpStreams = try? await FilmPalastProvider().streams(
-                    showId: match.id,
-                    seasonId: nil,
-                    episodeId: nil,
-                    detail: nil
-                  ) {
-            sources.append(contentsOf: fpStreams.prefix(8).map { source in
-                StreamSource(
-                    id: "fp-\(source.id)",
-                    name: "FP · \(source.name)",
-                    url: source.url,
-                    headers: source.headers,
-                    resolveKind: source.resolveKind
-                )
-            })
         }
 
+        // Videasy last — DE meine is often 500; keep EN mirrors as soft fallbacks.
         sources.append(contentsOf: VideasyExtractor.streamSources(
             tmdbId: String(tmdbID),
             title: resolvedDetail.title,
@@ -258,6 +284,41 @@ struct TMDbProvider: CatalogProvider {
         ))
 
         return sources
+    }
+
+    private func bestMatch(_ items: [MediaItem]?, target: String, kind: MediaItem.Kind) -> MediaItem? {
+        guard let items, !items.isEmpty else { return nil }
+        return items
+            .filter { $0.kind == kind }
+            .map { ($0, titleScore($0.title, target)) }
+            .filter { $0.1 >= 55 }
+            .max(by: { $0.1 < $1.1 })?
+            .0
+            ?? items.first(where: { $0.kind == kind })
+            ?? items.first
+    }
+
+    private func titleScore(_ lhs: String, _ rhs: String) -> Int {
+        let a = normalizeTitle(lhs)
+        let b = normalizeTitle(rhs)
+        if a.isEmpty || b.isEmpty { return 0 }
+        if a == b { return 100 }
+        if a.contains(b) || b.contains(a) { return 85 }
+        let aTokens = Set(a.split(separator: " ").map(String.init))
+        let bTokens = Set(b.split(separator: " ").map(String.init))
+        guard !aTokens.isEmpty, !bTokens.isEmpty else { return 0 }
+        let inter = aTokens.intersection(bTokens).count
+        let union = aTokens.union(bTokens).count
+        return Int((Double(inter) / Double(union)) * 100)
+    }
+
+    private func normalizeTitle(_ value: String) -> String {
+        value
+            .lowercased()
+            .replacingOccurrences(of: #"\(.*?\)|\[.*?\]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"[:'\!\?.,]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func mapPage(_ page: TMDbClient.Page<TMDbClient.Multi>) -> [MediaItem] {

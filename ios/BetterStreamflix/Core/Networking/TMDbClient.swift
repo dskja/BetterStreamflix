@@ -90,7 +90,7 @@ enum TMDbClient {
                 id: catalogID,
                 title: displayTitle,
                 posterURL: TMDbClient.imageURL(posterPath),
-                bannerURL: TMDbClient.imageURL(backdropPath, size: "original"),
+                bannerURL: TMDbClient.imageURL(backdropPath, size: "w1280"),
                 overview: overview,
                 year: year,
                 rating: voteAverage,

@@ -50,6 +50,9 @@ struct HomeView: View {
             catalog = []
             await load()
         }
+        .navigationDestination(for: MediaItem.self) { item in
+            DetailView(item: item)
+        }
         .refreshable { await load() }
     }
 
@@ -115,17 +118,20 @@ private struct FeaturedHero: View {
     var body: some View {
         NavigationLink(value: item) {
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: item.bannerURL ?? item.posterURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    default:
-                        EmberTheme.surfaceElevated
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 220)
+                    .overlay {
+                        AsyncImage(url: item.bannerURL ?? item.posterURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            default:
+                                EmberTheme.surfaceElevated
+                            }
+                        }
                     }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 260)
-                .clipped()
+                    .clipped()
 
                 LinearGradient(
                     colors: [.clear, EmberTheme.background.opacity(0.95)],
@@ -144,12 +150,10 @@ private struct FeaturedHero: View {
                 }
                 .padding(EmberTheme.spaceMD)
             }
+            .frame(maxWidth: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusLG, style: .continuous))
         }
         .buttonStyle(.plain)
-        .navigationDestination(for: MediaItem.self) { item in
-            DetailView(item: item)
-        }
     }
 }
 
@@ -171,9 +175,6 @@ private struct CatalogRow: View {
                     }
                 }
             }
-        }
-        .navigationDestination(for: MediaItem.self) { item in
-            DetailView(item: item)
         }
     }
 }

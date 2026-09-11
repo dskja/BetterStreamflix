@@ -13,12 +13,13 @@ enum VideasyExtractor {
 
     /// DE Killjoy (`meine`) is often HTTP 500 upstream — keep it, but always offer EN mirrors.
     private static let endpoints: [Endpoint] = [
-        .init(name: "Killjoy · DE", path: "meine", language: "german"),
+        // DE `meine` is frequently HTTP 500 upstream — keep last.
         .init(name: "Yoru · EN", path: "cdn", language: nil),
-        .init(name: "Cypher · EN", path: "downloader2", language: nil),
         .init(name: "Breach · EN", path: "m4uhd", language: nil),
-        .init(name: "Neon · EN", path: "vsrc", language: nil),
         .init(name: "Vyse · EN", path: "hdmovie", language: nil),
+        .init(name: "Cypher · EN", path: "downloader2", language: nil),
+        .init(name: "Neon · EN", path: "vsrc", language: nil),
+        .init(name: "Killjoy · DE", path: "meine", language: "german"),
     ]
 
     static func streamSources(

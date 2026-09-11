@@ -152,14 +152,15 @@ struct FilmPalastProvider: CatalogProvider {
     }
 
     func streams(showId: String, seasonId: String?, episodeId: String?, detail: ShowDetail?) async throws -> [StreamSource] {
-        let target = episodeId ?? showId
-        let path = target.contains(".html") ? "stream/\(target)" : "stream/\(target).html"
-        let url = URL(string: path, relativeTo: baseURL)!.absoluteURL
+        let target = (episodeId ?? showId)
+            .replacingOccurrences(of: #"\.html$"#, with: "", options: .regularExpression)
+        // Android uses /stream/{id} without forcing .html (that 404s for many titles).
+        let url = URL(string: "stream/\(target)", relativeTo: baseURL)!.absoluteURL
         let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: false, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 
-        for (idx, el) in try doc.select("ul.currentStreamLinks a, a.iconPlay, a[data-player-url], a[href*=voe], a[href*=streamtape], a[href*=vidoza]").array().enumerated() {
+        for (idx, el) in try doc.select("ul.currentStreamLinks a, a.iconPlay, a[data-player-url], a[href*=voe], a[href*=streamtape], a[href*=vidoza], a[href*=mixdrop]").array().enumerated() {
             let href = try el.attr("data-player-url").ifBlank(try el.attr("href"))
             guard var streamURL = HTTPClient.absoluteURL(href, base: baseURL) else { continue }
             let name = try el.text().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -168,9 +169,14 @@ struct FilmPalastProvider: CatalogProvider {
                path.contains("/e/") || path.contains("/v/") {
                 // leave as-is; followRedirect will resolve
             }
-            // VOE often needs voe.sx host
-            if let host = streamURL.host(), host.contains("voe"), !host.contains("voe.sx") {
-                streamURL = URL(string: "https://voe.sx\(streamURL.path)") ?? streamURL
+            // Normalize VOE short links (voe.sx/abc) onto /e/{id}.
+            if let host = streamURL.host()?.lowercased(), host.contains("voe") {
+                let id = streamURL.path.split(separator: "/").last.map(String.init) ?? ""
+                if !id.isEmpty, !streamURL.path.contains("/e/"), !streamURL.path.contains("/d/") {
+                    streamURL = URL(string: "https://voe.sx/e/\(id)") ?? streamURL
+                } else if host != "voe.sx" {
+                    streamURL = URL(string: "https://voe.sx\(streamURL.path)") ?? streamURL
+                }
             }
             sources.append(
                 StreamSource(

@@ -2,17 +2,24 @@ import Foundation
 import SwiftSoup
 
 enum StreamResolver {
-    /// Tries sources in order until one yields a playable URL.
+    /// Prefer host scrapes, then surface SerienStream gates before burning time on Videasy.
     static func resolveFirst(
         _ sources: [StreamSource],
         excluding excludedIDs: Set<String> = []
     ) async throws -> (source: StreamSource, url: URL) {
+        let filtered = sources.filter { !excludedIDs.contains($0.id) }
         var lastError: Error = ProviderError.emptyResponse
-        for source in sources where !excludedIDs.contains(source.id) {
-            if source.resolveKind == .serienstreamGate {
-                // Gate needs WebView — skip in auto-fallback.
-                continue
+
+        let hostScrapes = filtered.filter {
+            switch $0.resolveKind {
+            case .direct, .followRedirect: return true
+            case .serienstreamGate, .videasy: return false
             }
+        }
+        let gates = filtered.filter { $0.resolveKind == .serienstreamGate }
+        let videasy = filtered.filter { $0.resolveKind == .videasy }
+
+        for source in hostScrapes {
             do {
                 let url = try await resolve(source)
                 return (source, url)
@@ -20,33 +27,64 @@ enum StreamResolver {
                 lastError = error
             }
         }
+
+        // /r? always needs the in-app challenge WebView — surface it before Videasy timeouts.
+        if let gate = gates.first {
+            do {
+                let url = try await resolve(gate)
+                return (gate, url)
+            } catch {
+                throw ProviderError.streamGate(gate.url.absoluteString)
+            }
+        }
+
+        for source in videasy {
+            do {
+                let url = try await resolve(source)
+                return (source, url)
+            } catch {
+                lastError = error
+            }
+        }
+
         throw lastError
     }
 
     static func resolve(_ source: StreamSource) async throws -> URL {
         switch source.resolveKind {
         case .direct:
-            return source.url
+            if looksLikeDirectMedia(source.url) { return source.url }
+            return try await HosterExtractor.extract(from: source.url, headers: source.headers)
+
         case .videasy:
             return try await VideasyExtractor.resolve(source.url)
+
         case .followRedirect:
             let final = try await HTTPClient.followRedirects(url: source.url, headers: source.headers)
             if looksLikeDirectMedia(final) { return final }
-            if let html = try? await HTTPClient.getHTML(url: final, desktopUA: true, allowLenientTLS: true),
-               let extracted = extractMediaURL(from: html, base: final) {
-                return extracted
+            if isSerienStreamHost(final) || final.absoluteString.contains("/r?") {
+                throw ProviderError.streamGate(source.url.absoluteString)
             }
-            return final
+            return try await HosterExtractor.extract(from: final, headers: source.headers)
+
         case .serienstreamGate:
-            // Caller should open ChallengeWebView; best-effort follow here.
+            // Turnstile / ALTCHA pages never HTTP-redirect to the hoster.
+            if source.url.absoluteString.contains("/r?") {
+                throw ProviderError.streamGate(source.url.absoluteString)
+            }
             let final = try await HTTPClient.followRedirects(url: source.url, headers: source.headers)
             if isSerienStreamHost(final) || final.absoluteString.contains("/r?") {
-                throw ProviderError.streamGate(
-                    "SerienStream verification required. Complete the challenge, then continue."
-                )
+                throw ProviderError.streamGate(source.url.absoluteString)
             }
-            return final
+            if looksLikeDirectMedia(final) { return final }
+            return try await HosterExtractor.extract(from: final, headers: source.headers)
         }
+    }
+
+    /// Resolve a post-challenge hoster URL into playable media.
+    static func resolveHoster(_ url: URL, headers: [String: String] = [:]) async throws -> URL {
+        if looksLikeDirectMedia(url) { return url }
+        return try await HosterExtractor.extract(from: url, headers: headers)
     }
 
     static func isSerienStreamHost(_ url: URL) -> Bool {
@@ -65,6 +103,7 @@ enum StreamResolver {
             || path.hasSuffix(".mkv")
             || path.hasSuffix(".mpd")
             || abs.contains(".m3u8")
+            || abs.contains("get_video")
     }
 
     static func extractMediaURL(from html: String, base: URL) -> URL? {

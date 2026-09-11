@@ -92,17 +92,21 @@ struct DetailView: View {
 
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: item.bannerURL ?? item.posterURL ?? detail?.bannerURL ?? detail?.posterURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    EmberTheme.surfaceElevated
+            // Lock image inside a fixed frame so scaledToFill cannot blow up the layout.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 280)
+                .overlay {
+                    AsyncImage(url: item.bannerURL ?? item.posterURL ?? detail?.bannerURL ?? detail?.posterURL) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
+                            EmberTheme.surfaceElevated
+                        }
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 360)
-            .clipped()
+                .clipped()
 
             LinearGradient(
                 colors: [.clear, EmberTheme.background.opacity(0.95)],
@@ -126,8 +130,8 @@ struct DetailView: View {
             }
             .padding(EmberTheme.spaceMD)
         }
+        .frame(maxWidth: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: EmberTheme.radiusLG, style: .continuous))
-        
     }
 
     @ViewBuilder
@@ -332,8 +336,14 @@ struct DetailView: View {
             let resolved = try await StreamResolver.resolveFirst(ordered)
             openPlayer(url: resolved.url, title: title, headers: resolved.source.headers)
         } catch let error as ProviderError {
-            if case .streamGate = error {
-                challengeURL = IdentifiedURL(url: source.url)
+            if case .streamGate(let reason) = error {
+                if let gateURL = URL(string: reason), gateURL.scheme?.hasPrefix("http") == true {
+                    challengeURL = IdentifiedURL(url: gateURL)
+                } else if let gate = ordered.first(where: { $0.resolveKind == .serienstreamGate }) {
+                    challengeURL = IdentifiedURL(url: gate.url)
+                } else {
+                    challengeURL = IdentifiedURL(url: source.url)
+                }
             } else {
                 resolveError = friendlyPlaybackError(error)
             }
@@ -344,8 +354,8 @@ struct DetailView: View {
 
     private func friendlyPlaybackError(_ error: Error) -> String {
         let raw = error.localizedDescription
-        if raw.contains("HTTP 500") || raw.contains("HTTP 502") || raw.contains("HTTP 503") {
-            return "Upstream source unavailable. Open Choose source and try a host scrape (SerienStream / FilmPalast) or another Videasy mirror."
+        if raw.contains("HTTP 500") || raw.contains("HTTP 502") || raw.contains("HTTP 503") || raw.contains("HTTP 401") {
+            return "Upstream source unavailable. Open Choose source and try a host scrape (S.to / FP) — Videasy mirrors are flaky right now."
         }
         return raw
     }
@@ -356,10 +366,27 @@ struct DetailView: View {
             resolveError = "Challenge incomplete — stream gate still active."
             return
         }
-        openPlayer(url: finalURL, title: title, headers: [
-            "User-Agent": HTTPClient.desktopUserAgent,
-            "Referer": SerienStreamProvider().baseURL.absoluteString,
-        ])
+        isResolving = true
+        defer { isResolving = false }
+        do {
+            let media = try await StreamResolver.resolveHoster(finalURL, headers: [
+                "User-Agent": HTTPClient.desktopUserAgent,
+                "Referer": finalURL.absoluteString,
+            ])
+            openPlayer(url: media, title: title, headers: [
+                "User-Agent": HTTPClient.desktopUserAgent,
+                "Referer": finalURL.absoluteString,
+            ])
+        } catch {
+            if StreamResolver.looksLikeDirectMedia(finalURL) {
+                openPlayer(url: finalURL, title: title, headers: [
+                    "User-Agent": HTTPClient.desktopUserAgent,
+                    "Referer": finalURL.absoluteString,
+                ])
+            } else {
+                resolveError = friendlyPlaybackError(error)
+            }
+        }
     }
 
     @MainActor

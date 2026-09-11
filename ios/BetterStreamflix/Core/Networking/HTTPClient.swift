@@ -185,6 +185,31 @@ enum HTTPClient {
         }
     }
 
+    static func getText(url: URL, headers: [String: String] = [:]) async throws -> String {
+        do {
+            let data = try await fetchData(
+                url: url,
+                method: "GET",
+                headers: headers.merging(["User-Agent": desktopUserAgent]) { current, _ in current },
+                body: nil,
+                session: session
+            )
+            guard let text = String(data: data, encoding: .utf8) else { throw ProviderError.emptyResponse }
+            return text
+        } catch {
+            guard isTLSFailure(error) || isNetworkFailure(error) || isRetryableHTTP(error) else { throw error }
+            let data = try await fetchData(
+                url: url,
+                method: "GET",
+                headers: headers.merging(["User-Agent": desktopUserAgent]) { current, _ in current },
+                body: nil,
+                session: lenientSession
+            )
+            guard let text = String(data: data, encoding: .utf8) else { throw ProviderError.emptyResponse }
+            return text
+        }
+    }
+
     static func followRedirects(url: URL, headers: [String: String] = [:]) async throws -> URL {
         let request = makeRequest(url: url, method: "GET", headers: browserHeaders(merging: headers), body: nil)
         do {
