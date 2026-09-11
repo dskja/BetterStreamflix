@@ -176,7 +176,20 @@
 
         <PreferenceCategory android:title="@string/settings_screen_downloads">
 
-            <SwitchPreference
+                        <ListPreference
+                android:key="DOWNLOAD_STORAGE_LOCATION"
+                android:title="@string/settings_download_storage_location"
+                android:summary="@string/settings_download_storage_location_summary"
+                android:entries="@array/download_storage_location_entries"
+                android:entryValues="@array/download_storage_location_values"
+                android:defaultValue="INTERNAL" />
+
+            <Preference
+                android:key="DOWNLOAD_STORAGE_PATH"
+                android:title="@string/settings_download_storage_path"
+                android:selectable="false" />
+
+<SwitchPreference
                 android:key="DOWNLOAD_WIFI_ONLY"
                 android:title="@string/settings_download_wifi_only"
                 android:defaultValue="true"

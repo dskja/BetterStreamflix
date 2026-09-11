@@ -1,7 +1,7 @@
 package com.dskja.betterstreamflix.utils
 
 /**
- * Off-by-default Atelier mobile shell — premium light editorial redesign.
+ * Off-by-default Nova Obsidian mobile shell — 2026 cinema redesign.
  * Experimental layouts keep the same view IDs so existing ViewBindings can `.bind(view)`.
  */
 object ExperimentalMobileDesign {

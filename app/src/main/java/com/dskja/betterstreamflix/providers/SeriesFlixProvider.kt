@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
 object SeriesFlixProvider : Provider, ProviderConfigUrl {
 
     override val name = "SeriesFlix"
-    override val defaultBaseUrl = "https://seriesflixhd.lol"
+    override val defaultBaseUrl = "https://seriesflixhd.team"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
@@ -43,7 +43,7 @@ object SeriesFlixProvider : Provider, ProviderConfigUrl {
     override suspend fun onChangeUrl(forceRefresh: Boolean): String = changeUrlMutex.withLock {
         baseUrl
     }
-    override val logo = "https://s.seriesflixhd.lol/series/imgs/favicon-192.png"
+    override val logo = "https://s.seriesflixhd.team/series/imgs/favicon-192.png"
     override val language = "es"
 
     private const val USER_AGENT =

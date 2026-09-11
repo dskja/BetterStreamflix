@@ -19,7 +19,7 @@ import retrofit2.http.Url
 
 object TioAnimeProvider : Provider, ProviderConfigUrl {
     override val name = "TioAnime"
-    override val defaultBaseUrl = "https://tioanime.com"
+    override val defaultBaseUrl = "https://tioanime.top"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()

@@ -35,7 +35,7 @@ object UserPreferences {
     )
     private const val DEFAULT_MOFLIX_DOMAIN = "moflix-stream.xyz"
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.cc"
-    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana.gs"
+    private const val DEFAULT_CUEVANA_DOMAIN = "wv3.cuevana3.eu"
     private const val DEFAULT_POSEIDON_DOMAIN = "www.poseidonhd2.co"
 
     const val PROVIDER_URL = "URL"
@@ -175,6 +175,15 @@ object UserPreferences {
             Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
         }
 
+    var downloadStorageLocation: com.dskja.betterstreamflix.download.DownloadStorageLocation
+        get() = com.dskja.betterstreamflix.download.DownloadStorageLocation.fromKey(
+            Key.DOWNLOAD_STORAGE_LOCATION.getString()
+        )
+        set(value) {
+            Key.DOWNLOAD_STORAGE_LOCATION.setString(value.name)
+        }
+
+
     var keepScreenOnWhenPaused: Boolean
         get() = Key.KEEP_SCREEN_ON_WHEN_PAUSED.getBoolean() ?: false
         set(value) {
@@ -227,6 +236,17 @@ object UserPreferences {
     var castEnabled: Boolean
         get() = Key.CAST_ENABLED.getBoolean() ?: true
         set(value) = Key.CAST_ENABLED.setBoolean(value)
+
+    /** Forward selected text tracks to Chromecast when available. */
+    var castSubtitlesEnabled: Boolean
+        get() = Key.CAST_SUBTITLES_ENABLED.getBoolean() ?: true
+        set(value) = Key.CAST_SUBTITLES_ENABLED.setBoolean(value)
+
+    /** Keep phone screen on briefly while a Cast session is active. */
+    var castKeepScreenAwake: Boolean
+        get() = Key.CAST_KEEP_SCREEN_AWAKE.getBoolean() ?: false
+        set(value) = Key.CAST_KEEP_SCREEN_AWAKE.setBoolean(value)
+
 
     var tmdbApiKey: String
         get() = Key.TMDB_API_KEY.getString() ?: ""
@@ -696,6 +716,8 @@ object UserPreferences {
         EXPERIMENTAL_NEW_APP_DESIGN,
         CATALOG_SORT_MODE,
         CAST_ENABLED,
+        CAST_SUBTITLES_ENABLED,
+        CAST_KEEP_SCREEN_AWAKE,
         BYPASS_WS_ADVERTISED_HOST,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
@@ -705,7 +727,8 @@ object UserPreferences {
         DOWNLOAD_QUALITY_PRESET,
         DOWNLOAD_NOTIFY_COMPLETE,
         DOWNLOAD_FILTER_CURRENT_PROVIDER,
-        DOWNLOAD_SOFT_LIMIT_GB;
+        DOWNLOAD_SOFT_LIMIT_GB,
+        DOWNLOAD_STORAGE_LOCATION;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

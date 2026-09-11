@@ -8,10 +8,27 @@ import java.io.File
 
 object DownloadStorage {
     private const val DIR_NAME = "downloads"
+    private const val PUBLIC_FOLDER = "BetterStreamflix"
     private const val MIN_FREE_BYTES = 500L * 1024L * 1024L
 
+    fun location(): DownloadStorageLocation = UserPreferences.downloadStorageLocation
+
     fun downloadsDir(context: Context): File {
-        val dir = File(context.applicationContext.filesDir, DIR_NAME)
+        val app = context.applicationContext
+        val dir = when (location()) {
+            DownloadStorageLocation.INTERNAL ->
+                File(app.filesDir, DIR_NAME)
+            DownloadStorageLocation.APP_EXTERNAL -> {
+                val root = app.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
+                    ?: app.getExternalFilesDir(null)
+                    ?: app.filesDir
+                File(root, DIR_NAME)
+            }
+            DownloadStorageLocation.PUBLIC_MOVIES -> {
+                val movies = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+                File(File(movies, PUBLIC_FOLDER), DIR_NAME)
+            }
+        }
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
@@ -29,12 +46,15 @@ object DownloadStorage {
         return dir
     }
 
+    fun absolutePathSummary(context: Context): String =
+        downloadsDir(context).absolutePath
+
     fun usedBytes(context: Context): Long =
         downloadsDir(context).walkTopDown().filter { it.isFile }.sumOf { it.length() }
 
     fun freeBytes(context: Context): Long {
         return try {
-            val path = context.filesDir.absolutePath
+            val path = downloadsDir(context).absolutePath
             val stat = StatFs(path)
             stat.availableBlocksLong * stat.blockSizeLong
         } catch (_: Exception) {
