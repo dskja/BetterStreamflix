@@ -10,7 +10,8 @@ struct FilmPalastProvider: CatalogProvider {
     func home() async throws -> [CategoryRow] {
         let html = try await HTTPClient.getHTML(
             url: URL(string: "movies/new/page/1", relativeTo: baseURL)!.absoluteURL,
-            desktopUA: true
+            desktopUA: true,
+            allowLenientTLS: true
         )
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var rows: [CategoryRow] = []
@@ -44,7 +45,8 @@ struct FilmPalastProvider: CatalogProvider {
         if let tvHTML = try? await HTTPClient.getHTML(
             url: URL(string: "serien/view/page/1", relativeTo: baseURL)!.absoluteURL,
             referer: baseURL,
-            desktopUA: true
+            desktopUA: true,
+            allowLenientTLS: true
         ),
            let tvDoc = try? SwiftSoup.parse(tvHTML, baseURL.absoluteString) {
             let shows = try parseArticles(tvDoc, kind: .tvShow)
@@ -60,7 +62,7 @@ struct FilmPalastProvider: CatalogProvider {
         guard !trimmed.isEmpty else { return [] }
         let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? trimmed
         let url = URL(string: "search/title/\(encoded)", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         // Prefer path-based kind detection
         var items: [MediaItem] = []
@@ -92,7 +94,7 @@ struct FilmPalastProvider: CatalogProvider {
         for path in pathCandidates {
             guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else { continue }
             do {
-                let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+                let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
                 let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
                 let title = try doc.selectFirst("h1")?.text()
                     ?? id.replacingOccurrences(of: "-", with: " ").capitalized
@@ -123,7 +125,7 @@ struct FilmPalastProvider: CatalogProvider {
 
     func episodes(showId: String, seasonId: String) async throws -> [EpisodeInfo] {
         let url = URL(string: "stream/\(showId).html", relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var episodes: [EpisodeInfo] = []
         for (idx, link) in try doc.select("a[href*=staffel], a[href*=episode], .episodelist a").array().enumerated() {
@@ -148,7 +150,7 @@ struct FilmPalastProvider: CatalogProvider {
         let target = episodeId ?? showId
         let path = target.contains(".html") ? "stream/\(target)" : "stream/\(target).html"
         let url = URL(string: path, relativeTo: baseURL)!.absoluteURL
-        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true)
+        let html = try await HTTPClient.getHTML(url: url, referer: baseURL, desktopUA: true, allowLenientTLS: true)
         let doc = try SwiftSoup.parse(html, baseURL.absoluteString)
         var sources: [StreamSource] = []
 

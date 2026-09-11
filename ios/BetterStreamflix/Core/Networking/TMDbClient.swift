@@ -18,7 +18,8 @@ enum TMDbClient {
         guard AppSecrets.hasTMDbKey else {
             throw ProviderError.missingAPIKey("TMDb")
         }
-        var components = URLComponents(url: apiBase.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
+        // Same as Android TMDb3: https://api.themoviedb.org/3/{path}?api_key=…&language=…
+        // Do NOT use appendingPathComponent — it encodes "/" and breaks multi-segment paths.
         var items = [
             URLQueryItem(name: "api_key", value: AppSecrets.tmdbAPIKey),
             URLQueryItem(name: "language", value: language),
@@ -26,8 +27,9 @@ enum TMDbClient {
         for (key, value) in query {
             items.append(URLQueryItem(name: key, value: value))
         }
-        components.queryItems = items
-        guard let url = components.url else { throw ProviderError.invalidURL }
+        guard let url = HTTPClient.apiURL(base: apiBase, path: path, query: items) else {
+            throw ProviderError.invalidURL
+        }
         let data = try await HTTPClient.getJSON(url: url)
         return try JSONDecoder().decode(T.self, from: data)
     }

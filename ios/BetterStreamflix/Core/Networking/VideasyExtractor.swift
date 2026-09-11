@@ -65,28 +65,33 @@ enum VideasyExtractor {
         episode: Int?,
         language: String? = "german"
     ) -> URL {
-        var components = URLComponents(
-            url: apiBase.appendingPathComponent("\(endpoint)/sources-with-title"),
-            resolvingAgainstBaseURL: false
-        )!
-        var items: [URLQueryItem] = [
-            .init(name: "title", value: title),
-            .init(name: "mediaType", value: mediaType),
-            .init(name: "year", value: year),
-            .init(name: "tmdbId", value: tmdbId),
-            .init(name: "imdbId", value: imdbId ?? ""),
-        ]
-        if let language, !language.isEmpty {
-            items.append(.init(name: "language", value: language))
+        // Match Android VideasyExtractor path segments: /{endpoint}/sources-with-title
+        guard let url = HTTPClient.apiURL(
+            base: apiBase,
+            path: "\(endpoint)/sources-with-title",
+            query: {
+                var items: [URLQueryItem] = [
+                    .init(name: "title", value: title),
+                    .init(name: "mediaType", value: mediaType),
+                    .init(name: "year", value: year),
+                    .init(name: "tmdbId", value: tmdbId),
+                    .init(name: "imdbId", value: imdbId ?? ""),
+                ]
+                if let language, !language.isEmpty {
+                    items.append(.init(name: "language", value: language))
+                }
+                if let season {
+                    items.append(.init(name: "seasonId", value: String(season)))
+                }
+                if let episode {
+                    items.append(.init(name: "episodeId", value: String(episode)))
+                }
+                return items
+            }()
+        ) else {
+            return apiBase
         }
-        if let season {
-            items.append(.init(name: "seasonId", value: String(season)))
-        }
-        if let episode {
-            items.append(.init(name: "episodeId", value: String(episode)))
-        }
-        components.queryItems = items
-        return components.url!
+        return url
     }
 
     static func resolve(_ sourceURL: URL) async throws -> URL {

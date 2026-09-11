@@ -5,6 +5,7 @@ enum HTTPClient {
         "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 " +
         "(KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1"
 
+    /// Same desktop UA family Android providers use for scrape hosts.
     static let desktopUserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/137.0.0.0 Safari/537.36"
@@ -18,7 +19,7 @@ enum HTTPClient {
         return URLSession(configuration: config)
     }()
 
-    /// Used only as last resort for scrape hosts with broken intermediate certs / captive DNS.
+    /// Lenient TLS — mirrors Android NetworkClient / FilmPalast SSL fallback for broken chains.
     private static let lenientSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -32,14 +33,26 @@ enum HTTPClient {
         allowLenientTLS: Bool = false
     ) async throws -> String {
         do {
-            return try await fetchHTML(url: url, referer: referer, desktopUA: desktopUA, session: session)
+            return try await fetchHTML(
+                url: url,
+                referer: referer,
+                desktopUA: desktopUA,
+                session: session,
+                useDoH: DohResolver.shouldUseDoH(for: url.host())
+            )
         } catch {
-            guard allowLenientTLS, isTLSFailure(error) else { throw error }
-            return try await fetchHTML(url: url, referer: referer, desktopUA: desktopUA, session: lenientSession)
+            guard allowLenientTLS || isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            return try await fetchHTML(
+                url: url,
+                referer: referer,
+                desktopUA: desktopUA,
+                session: lenientSession,
+                useDoH: true
+            )
         }
     }
 
-    /// Try multiple absolute base URLs until one returns HTML.
+    /// Try multiple absolute base URLs until one returns HTML (Android-style mirror failover).
     static func getHTML(
         path: String,
         bases: [URL],
@@ -50,7 +63,12 @@ enum HTTPClient {
         for base in bases {
             let url = path.isEmpty ? base : (URL(string: path, relativeTo: base)?.absoluteURL ?? base)
             do {
-                let html = try await getHTML(url: url, referer: referer ?? base, desktopUA: desktopUA, allowLenientTLS: true)
+                let html = try await getHTML(
+                    url: url,
+                    referer: referer ?? base,
+                    desktopUA: desktopUA,
+                    allowLenientTLS: true
+                )
                 return (html, base)
             } catch {
                 lastError = error
@@ -60,48 +78,67 @@ enum HTTPClient {
     }
 
     static func getJSON(url: URL, headers: [String: String] = [:]) async throws -> Data {
-        var request = URLRequest(url: url)
-        request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        for (key, value) in headers {
-            request.setValue(value, forHTTPHeaderField: key)
+        do {
+            return try await fetchData(
+                url: url,
+                method: "GET",
+                headers: headers,
+                body: nil,
+                session: session,
+                useDoH: DohResolver.shouldUseDoH(for: url.host())
+            )
+        } catch {
+            // Android TMDb/Videasy always use DoH + retry; fall back lenient + DoH.
+            return try await fetchData(
+                url: url,
+                method: "GET",
+                headers: headers,
+                body: nil,
+                session: lenientSession,
+                useDoH: true
+            )
         }
-        let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw ProviderError.http(http.statusCode)
-        }
-        return data
     }
 
     static func postJSON(url: URL, body: Data, headers: [String: String] = [:]) async throws -> Data {
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = body
-        request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        for (key, value) in headers {
-            request.setValue(value, forHTTPHeaderField: key)
+        do {
+            return try await fetchData(
+                url: url,
+                method: "POST",
+                headers: headers.merging([
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                ]) { _, new in new },
+                body: body,
+                session: session,
+                useDoH: DohResolver.shouldUseDoH(for: url.host())
+            )
+        } catch {
+            return try await fetchData(
+                url: url,
+                method: "POST",
+                headers: headers.merging([
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                ]) { _, new in new },
+                body: body,
+                session: lenientSession,
+                useDoH: true
+            )
         }
-        let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw ProviderError.http(http.statusCode)
-        }
-        return data
     }
 
     static func followRedirects(url: URL, headers: [String: String] = [:]) async throws -> URL {
-        var request = URLRequest(url: url)
+        var request = try await makeRequest(url: url, method: "GET", headers: headers, body: nil, useDoH: DohResolver.shouldUseDoH(for: url.host()))
         request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
-        for (key, value) in headers {
-            request.setValue(value, forHTTPHeaderField: key)
-        }
         do {
             let (_, response) = try await session.data(for: request)
             return response.url ?? url
         } catch {
-            guard isTLSFailure(error) else { throw error }
-            let (_, response) = try await lenientSession.data(for: request)
+            guard isTLSFailure(error) || isNetworkFailure(error) else { throw error }
+            var retry = try await makeRequest(url: url, method: "GET", headers: headers, body: nil, useDoH: true)
+            retry.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
+            let (_, response) = try await lenientSession.data(for: retry)
             return response.url ?? url
         }
     }
@@ -118,26 +155,95 @@ enum HTTPClient {
         return URL(string: value, relativeTo: base)?.absoluteURL
     }
 
+    /// Build API URLs without encoding `/` inside the path (Foundation `appendingPathComponent` would).
+    static func apiURL(base: URL, path: String, query: [URLQueryItem] = []) -> URL? {
+        let trimmed = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let joined = base.absoluteString.hasSuffix("/")
+            ? base.absoluteString + trimmed
+            : base.absoluteString + "/" + trimmed
+        var components = URLComponents(string: joined)
+        if !query.isEmpty {
+            components?.queryItems = query
+        }
+        return components?.url
+    }
+
     private static func fetchHTML(
         url: URL,
         referer: URL?,
         desktopUA: Bool,
-        session: URLSession
+        session: URLSession,
+        useDoH: Bool
     ) async throws -> String {
-        var request = URLRequest(url: url)
-        request.setValue(desktopUA ? desktopUserAgent : userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("text/html,application/xhtml+xml", forHTTPHeaderField: "Accept")
+        var headers: [String: String] = [
+            "User-Agent": desktopUA ? desktopUserAgent : userAgent,
+            "Accept": "text/html,application/xhtml+xml",
+        ]
         if let referer {
-            request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer")
+            headers["Referer"] = referer.absoluteString
+        }
+        let data = try await fetchData(
+            url: url,
+            method: "GET",
+            headers: headers,
+            body: nil,
+            session: session,
+            useDoH: useDoH
+        )
+        guard let html = String(data: data, encoding: .utf8), !html.isEmpty else {
+            throw ProviderError.emptyResponse
+        }
+        return html
+    }
+
+    private static func fetchData(
+        url: URL,
+        method: String,
+        headers: [String: String],
+        body: Data?,
+        session: URLSession,
+        useDoH: Bool
+    ) async throws -> Data {
+        var request = try await makeRequest(url: url, method: method, headers: headers, body: body, useDoH: useDoH)
+        if request.value(forHTTPHeaderField: "User-Agent") == nil {
+            request.setValue(desktopUserAgent, forHTTPHeaderField: "User-Agent")
+        }
+        if request.value(forHTTPHeaderField: "Accept") == nil {
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
         }
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw ProviderError.http(http.statusCode)
         }
-        guard let html = String(data: data, encoding: .utf8), !html.isEmpty else {
-            throw ProviderError.emptyResponse
+        return data
+    }
+
+    private static func makeRequest(
+        url: URL,
+        method: String,
+        headers: [String: String],
+        body: Data?,
+        useDoH: Bool
+    ) async throws -> URLRequest {
+        var target = url
+        var requestHeaders = headers
+        if useDoH, let host = url.host(), DohResolver.shouldUseDoH(for: host) {
+            if let ip = try? await DohResolver.ipv4(for: host),
+               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                components.host = ip
+                if let rewritten = components.url {
+                    target = rewritten
+                    requestHeaders["Host"] = host
+                }
+            }
         }
-        return html
+        var request = URLRequest(url: target)
+        request.httpMethod = method
+        request.httpBody = body
+        for (key, value) in requestHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        return request
     }
 
     private static func isTLSFailure(_ error: Error) -> Bool {
@@ -150,9 +256,22 @@ enum HTTPClient {
                 NSURLErrorServerCertificateNotYetValid,
                 NSURLErrorClientCertificateRejected,
                 NSURLErrorClientCertificateRequired,
+                NSURLErrorCannotFindHost,
+                NSURLErrorDNSLookupFailed,
             ].contains(ns.code)
         }
         return false
+    }
+
+    private static func isNetworkFailure(_ error: Error) -> Bool {
+        let ns = error as NSError
+        guard ns.domain == NSURLErrorDomain else { return false }
+        return [
+            NSURLErrorTimedOut,
+            NSURLErrorCannotConnectToHost,
+            NSURLErrorNetworkConnectionLost,
+            NSURLErrorNotConnectedToInternet,
+        ].contains(ns.code)
     }
 }
 
