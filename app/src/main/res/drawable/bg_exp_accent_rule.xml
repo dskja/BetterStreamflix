@@ -3,11 +3,7 @@
     android:shape="rectangle">
     <size
         android:width="40dp"
-        android:height="3dp" />
-    <gradient
-        android:angle="0"
-        android:endColor="@color/exp_aurora_violet"
-        android:startColor="@color/exp_accent"
-        android:type="linear" />
+        android:height="4dp" />
+    <solid android:color="?attr/colorPrimary" />
     <corners android:radius="2dp" />
 </shape>

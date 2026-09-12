@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/exp_canvas"
+    android:background="?attr/colorSurface"
     android:padding="22dp">
 
     <LinearLayout
@@ -14,9 +14,8 @@
             android:id="@+id/tv_download_options_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/fraunces"
             android:letterSpacing="-0.01"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="22sp" />
 
         <TextView
@@ -24,8 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:fontFamily="@font/manrope"
-            android:textColor="@color/exp_ink_soft"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
 
         <TextView
@@ -33,19 +31,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:fontFamily="@font/manrope"
-            android:textColor="@color/exp_mist"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="13sp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:fontFamily="@font/manrope"
             android:letterSpacing="0.1"
             android:text="@string/download_options_server"
             android:textAllCaps="true"
-            android:textColor="@color/exp_accent"
+            android:textColor="?attr/colorPrimary"
             android:textSize="11sp"
             android:textStyle="bold" />
 
@@ -62,11 +58,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:fontFamily="@font/manrope"
             android:letterSpacing="0.1"
             android:text="@string/download_options_quality"
             android:textAllCaps="true"
-            android:textColor="@color/exp_accent"
+            android:textColor="?attr/colorPrimary"
             android:textSize="11sp"
             android:textStyle="bold" />
 
@@ -85,7 +80,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="14dp"
-            android:indeterminateTint="@color/exp_accent"
+            android:indeterminateTint="?attr/colorPrimary"
             android:visibility="gone" />
 
         <TextView
@@ -93,9 +88,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:fontFamily="@font/manrope"
             android:text="@string/download_options_wifi_hint"
-            android:textColor="@color/exp_mist"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>

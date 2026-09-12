@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_canvas"
+    android:background="?attr/colorSurface"
     tools:context=".fragments.season.SeasonMobileFragment">
 
     <TextView
@@ -14,15 +14,15 @@
         android:layout_marginStart="22dp"
         android:layout_marginTop="34dp"
         android:layout_marginEnd="22dp"
-        android:fontFamily="@font/fraunces"
         android:gravity="center"
         android:letterSpacing="-0.01"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="26sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Season #" />
+        tools:text="Season #" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <Spinner
         android:id="@+id/sp_season_picker"

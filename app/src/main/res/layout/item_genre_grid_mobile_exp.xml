@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_exp_provider_card">
+    android:background="@drawable/bg_exp_provider_card"
+    android:foreground="?attr/selectableItemBackground">
 
     <View
         android:layout_width="0dp"
@@ -20,9 +21,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="8dp"
-        android:fontFamily="@font/fraunces"
         android:gravity="center"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="17sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

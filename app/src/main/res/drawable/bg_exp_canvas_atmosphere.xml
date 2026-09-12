@@ -1,28 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape android:shape="rectangle">
-            <solid android:color="@color/exp_canvas" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:angle="135"
-                android:centerColor="@android:color/transparent"
-                android:endColor="@android:color/transparent"
-                android:startColor="#1AE9C77E"
-                android:type="linear" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:angle="315"
-                android:centerColor="@android:color/transparent"
-                android:endColor="@android:color/transparent"
-                android:startColor="@color/exp_aurora_violet_soft"
-                android:type="linear" />
-        </shape>
-    </item>
-</layer-list>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSurface" />
+</shape>

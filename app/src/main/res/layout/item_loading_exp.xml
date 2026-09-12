@@ -2,7 +2,8 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground">
 
     <View
         android:id="@+id/v_background"
@@ -17,7 +18,7 @@
         android:id="@+id/pb_load_more_is_loading"
         android:layout_width="34dp"
         android:layout_height="34dp"
-        android:indeterminateTint="@color/exp_accent"
+        android:indeterminateTint="?attr/colorPrimary"
         app:layout_constraintBottom_toBottomOf="@id/v_background"
         app:layout_constraintEnd_toEndOf="@id/v_background"
         app:layout_constraintStart_toStartOf="@id/v_background"

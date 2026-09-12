@@ -11,15 +11,15 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
         android:layout_marginTop="26dp"
-        android:fontFamily="@font/fraunces"
         android:letterSpacing="-0.02"
         android:text="@string/main_menu_favorites"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="34sp"
-        android:textStyle="bold"
+        
         app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder_mode"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <ImageButton
         android:id="@+id/btn_favorites_reorder_mode"
@@ -32,7 +32,7 @@
         app:layout_constraintBottom_toBottomOf="@id/tv_favorites_brand"
         app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder"
         app:layout_constraintTop_toTopOf="@id/tv_favorites_brand"
-        app:tint="@color/exp_on_media" />
+        app:tint="?attr/colorOnSurface" />
 
     <ImageButton
         android:id="@+id/btn_favorites_reorder"
@@ -47,7 +47,7 @@
         app:layout_constraintBottom_toBottomOf="@id/tv_favorites_brand"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_favorites_brand"
-        app:tint="@color/exp_on_media" />
+        app:tint="?attr/colorOnSurface" />
 
     <View
         android:layout_width="40dp"
@@ -83,9 +83,8 @@
         android:id="@+id/tv_favorites_empty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/manrope"
         android:text="@string/favorites_empty"
-        android:textColor="@color/exp_mist"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

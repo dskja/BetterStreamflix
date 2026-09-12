@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground">
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_tv_show_poster"
@@ -17,7 +18,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.Poster"
-        app:strokeColor="@color/exp_glass_strong"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp" />
 
     <ImageView
@@ -54,13 +55,12 @@
         android:layout_marginTop="9dp"
         android:layout_marginEnd="9dp"
         android:background="@drawable/bg_exp_meta_pill"
-        android:fontFamily="@font/manrope"
         android:paddingStart="7dp"
         android:paddingTop="2dp"
         android:paddingEnd="7dp"
         android:paddingBottom="2dp"
         android:textAllCaps="true"
-        android:textColor="@color/exp_on_accent"
+        android:textColor="?attr/colorOnPrimary"
         android:textSize="9sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
@@ -73,9 +73,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="9dp"
-        android:fontFamily="@font/manrope"
         android:padding="2dp"
-        android:textColor="@color/exp_on_media_muted"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="10sp"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
         app:layout_constraintTop_toBottomOf="@id/tv_tv_show_quality"
@@ -102,15 +101,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:ellipsize="end"
-        android:fontFamily="@font/manrope"
         android:gravity="start"
         android:lines="2"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="12sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
         app:layout_constraintStart_toStartOf="@id/iv_tv_show_poster"
         app:layout_constraintTop_toBottomOf="@id/iv_tv_show_poster"
-        tools:text="Title" />
+        tools:text="Title" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground">
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_episode_tv_show_poster"
@@ -16,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.Poster"
-        app:strokeColor="@color/exp_glass_strong"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp"
         tools:ignore="ContentDescription" />
 
@@ -42,9 +43,8 @@
         android:layout_marginTop="10dp"
         android:layout_marginEnd="8dp"
         android:ellipsize="end"
-        android:fontFamily="@font/manrope"
         android:lines="1"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="11sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,9 +60,8 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:ellipsize="end"
-        android:fontFamily="@font/manrope"
         android:lines="2"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="12sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"

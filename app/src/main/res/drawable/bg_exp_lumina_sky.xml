@@ -1,38 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:angle="135"
-                android:endColor="#12061E"
-                android:centerColor="#1C1430"
-                android:startColor="#0B0B10"
-                android:type="linear" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:angle="90"
-                android:centerColor="@android:color/transparent"
-                android:endColor="@color/exp_canvas"
-                android:startColor="@android:color/transparent"
-                android:type="linear" />
-        </shape>
-    </item>
-    <item
-        android:left="96dp"
-        android:top="180dp">
-        <shape android:shape="oval">
-            <gradient
-                android:gradientRadius="220dp"
-                android:endColor="#008F7DFF"
-                android:centerColor="#338F7DFF"
-                android:startColor="#4DE9C77E"
-                android:type="radial" />
-            <size
-                android:width="220dp"
-                android:height="220dp" />
-        </shape>
-    </item>
-</layer-list>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="?attr/colorSurfaceContainer"
+        android:startColor="?attr/colorSurfaceContainerHigh"
+        android:type="linear" />
+</shape>

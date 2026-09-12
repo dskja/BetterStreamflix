@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground">
 
     <View
         android:id="@+id/v_movie_poster_glow"
@@ -29,7 +30,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_percent="0.46"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.Card"
-        app:strokeColor="@color/exp_glass_strong"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp" />
 
     <ImageView
@@ -54,16 +55,16 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="28dp"
         android:layout_marginEnd="20dp"
-        android:fontFamily="@font/fraunces"
         android:gravity="center"
         android:letterSpacing="-0.01"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="30sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/iv_movie_poster"
         app:layout_goneMarginTop="64dp"
-        tools:text="Title" />
+        tools:text="Title" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <ImageView
         android:id="@+id/iv_movie_rating_icon"
@@ -78,15 +79,14 @@
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_movie_rating"
-        app:tint="@color/exp_accent" />
+        app:tint="?attr/colorPrimary" />
 
     <TextView
         android:id="@+id/tv_movie_rating"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/barrier1"
         app:layout_constraintEnd_toStartOf="@id/tv_movie_quality"
@@ -101,13 +101,12 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="12dp"
         android:background="@drawable/bg_exp_meta_pill"
-        android:fontFamily="@font/manrope"
         android:paddingStart="8dp"
         android:paddingTop="2dp"
         android:paddingEnd="8dp"
         android:paddingBottom="2dp"
         android:textAllCaps="true"
-        android:textColor="@color/exp_on_accent"
+        android:textColor="?attr/colorOnPrimary"
         android:textSize="11sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/barrier1"
@@ -123,8 +122,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="12dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         app:layout_constraintBottom_toTopOf="@id/barrier1"
         app:layout_constraintEnd_toStartOf="@id/tv_movie_runtime"
         app:layout_constraintStart_toEndOf="@id/tv_movie_quality"
@@ -138,8 +136,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="12dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         app:layout_constraintBottom_toTopOf="@id/barrier1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/tv_movie_released"
@@ -161,10 +158,9 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="10dp"
         android:layout_marginEnd="20dp"
-        android:fontFamily="@font/manrope"
         android:gravity="center"
         android:letterSpacing="0.04"
-        android:textColor="@color/exp_mist"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -239,9 +235,8 @@
         android:layout_marginStart="22dp"
         android:layout_marginTop="30dp"
         android:layout_marginEnd="22dp"
-        android:fontFamily="@font/manrope"
         android:lineSpacingExtra="4dp"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

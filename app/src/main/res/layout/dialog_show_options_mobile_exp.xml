@@ -17,7 +17,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_mist"
+        app:tint="?attr/colorOnSurfaceVariant"
         tools:ignore="ContentDescription" />
 
     <com.google.android.material.imageview.ShapeableImageView
@@ -32,7 +32,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ic_handlebar"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.Episode"
-        app:strokeColor="@color/exp_glass_strong"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp"
         tools:ignore="ContentDescription" />
 
@@ -43,9 +43,8 @@
         android:layout_marginStart="18dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="18dp"
-        android:fontFamily="@font/fraunces"
         android:letterSpacing="-0.01"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -59,8 +58,7 @@
         android:layout_marginStart="18dp"
         android:layout_marginTop="4dp"
         android:layout_marginEnd="18dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -85,11 +83,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_episode_open_tv_show"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
         <TextView
@@ -98,11 +95,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_show_favorite"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
         <TextView
@@ -111,11 +107,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_show_watched"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
         <TextView
@@ -124,11 +119,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_show_download"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
         <TextView
@@ -137,11 +131,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_show_mark_all_previous_watched"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
         <TextView
@@ -150,11 +143,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_clear_program"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
         <TextView
@@ -163,11 +155,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/bg_exp_option_item"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:padding="14dp"
             android:text="@string/option_clear_recently_watched"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp"
             android:visibility="gone" />
 
@@ -177,11 +168,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:background="@drawable/bg_exp_chip"
-            android:fontFamily="@font/manrope"
             android:gravity="center"
             android:padding="14dp"
             android:text="@string/option_cancel"
-            android:textColor="@color/exp_mist"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp"
             android:textStyle="bold" />
 

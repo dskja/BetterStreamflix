@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="640dp"
-    android:background="@color/exp_canvas">
+    android:background="?attr/colorSurface"
+    android:foreground="?attr/selectableItemBackground">
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/vp_category_swiper"
@@ -24,19 +25,19 @@
         android:layout_marginTop="14dp"
         android:background="@drawable/bg_exp_chip"
         android:elevation="10dp"
-        android:fontFamily="@font/manrope"
         android:letterSpacing="0.22"
         android:paddingStart="14dp"
         android:paddingTop="7dp"
         android:paddingEnd="14dp"
         android:paddingBottom="7dp"
         android:textAllCaps="true"
-        android:textColor="@color/exp_accent"
+        android:textColor="?attr/colorPrimary"
         android:textSize="10sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Featured" />
+        tools:text="Featured" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <LinearLayout
         android:id="@+id/ll_dots_indicator"

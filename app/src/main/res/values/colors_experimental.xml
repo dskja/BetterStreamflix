@@ -1,31 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Lumina — cinematic dark glass shell with champagne accent (experimental) -->
-    <color name="exp_canvas">#0B0B10</color>
-    <color name="exp_canvas_soft">#101018</color>
-    <color name="exp_surface">#15151F</color>
-    <color name="exp_surface_elevated">#1D1D2B</color>
-    <color name="exp_ink">#F7F6F2</color>
-    <color name="exp_ink_soft">#B8B6C4</color>
-    <color name="exp_mist">#6E7080</color>
-    <color name="exp_line">#262632</color>
-    <color name="exp_accent">#E9C77E</color>
-    <color name="exp_accent_deep">#B98F3E</color>
-    <color name="exp_accent_soft">#2EE9C77E</color>
-    <color name="exp_aurora_violet">#8F7DFF</color>
-    <color name="exp_aurora_violet_soft">#2E8F7DFF</color>
-    <color name="exp_glass">#12FFFFFF</color>
-    <color name="exp_glass_strong">#26FFFFFF</color>
-    <color name="exp_hero_scrim_top">#660B0B10</color>
-    <color name="exp_hero_scrim_mid">#B30B0B10</color>
-    <color name="exp_hero_scrim_bottom">#F50B0B10</color>
-    <color name="exp_on_media">#F7F6F2</color>
-    <color name="exp_on_media_muted">#C4C2CE</color>
-    <color name="exp_on_accent">#241A04</color>
-    <color name="exp_nav_bg">#0E0E16</color>
-    <color name="exp_nav_inactive">#63636F</color>
+    <!-- Material You static dark scheme (blue seed) — used below API 31 and as
+         fallback wherever a raw color is needed. Layouts should prefer
+         ?attr/color* tokens so DynamicColors can take over on Android 12+. -->
+    <color name="m3_primary">#AAC7FF</color>
+    <color name="m3_on_primary">#002F65</color>
+    <color name="m3_primary_container">#2E4A77</color>
+    <color name="m3_on_primary_container">#D6E3FF</color>
+    <color name="m3_secondary">#BBC7DB</color>
+    <color name="m3_on_secondary">#253140</color>
+    <color name="m3_secondary_container">#3B4858</color>
+    <color name="m3_on_secondary_container">#D7E3F7</color>
+    <color name="m3_tertiary">#D5BEE4</color>
+    <color name="m3_on_tertiary">#3B2948</color>
+    <color name="m3_tertiary_container">#523F61</color>
+    <color name="m3_on_tertiary_container">#F1DAFF</color>
+    <color name="m3_error">#FFB4AB</color>
+    <color name="m3_on_error">#690005</color>
+    <color name="m3_error_container">#93000A</color>
+    <color name="m3_on_error_container">#FFDAD6</color>
+    <color name="m3_surface">#101318</color>
+    <color name="m3_on_surface">#E1E2E9</color>
+    <color name="m3_on_surface_variant">#C3C6CF</color>
+    <color name="m3_surface_dim">#101318</color>
+    <color name="m3_surface_bright">#363941</color>
+    <color name="m3_surface_container_lowest">#0B0E13</color>
+    <color name="m3_surface_container_low">#191B21</color>
+    <color name="m3_surface_container">#1D1F25</color>
+    <color name="m3_surface_container_high">#27292F</color>
+    <color name="m3_surface_container_highest">#32353C</color>
+    <color name="m3_surface_variant">#43474E</color>
+    <color name="m3_outline">#8D9199</color>
+    <color name="m3_outline_variant">#43474E</color>
+    <color name="m3_surface_tint">@color/m3_primary</color>
+    <color name="m3_inverse_surface">#E1E2E9</color>
+    <color name="m3_inverse_on_surface">#2E3035</color>
+    <color name="m3_inverse_primary">#3D5F90</color>
+    <color name="m3_scrim">#000000</color>
 
-    <!-- Compatibility aliases used by remaining references -->
+    <!-- exp_* compatibility tokens — layouts that still reference them get
+         the M3 look automatically. -->
+    <color name="exp_canvas">@color/m3_surface</color>
+    <color name="exp_canvas_soft">@color/m3_surface_container_low</color>
+    <color name="exp_surface">@color/m3_surface_container</color>
+    <color name="exp_surface_elevated">@color/m3_surface_container_high</color>
+    <color name="exp_ink">@color/m3_on_surface</color>
+    <color name="exp_ink_soft">@color/m3_on_surface_variant</color>
+    <color name="exp_mist">@color/m3_outline</color>
+    <color name="exp_line">@color/m3_outline_variant</color>
+    <color name="exp_accent">@color/m3_primary</color>
+    <color name="exp_accent_deep">@color/m3_inverse_primary</color>
+    <color name="exp_accent_soft">#59AAC7FF</color>
+    <color name="exp_aurora_violet">@color/m3_tertiary</color>
+    <color name="exp_aurora_violet_soft">#40D5BEE4</color>
+    <color name="exp_glass">@color/m3_surface_container_high</color>
+    <color name="exp_glass_strong">@color/m3_outline_variant</color>
+    <color name="exp_hero_scrim_top">#66101318</color>
+    <color name="exp_hero_scrim_mid">#B3101318</color>
+    <color name="exp_hero_scrim_bottom">#F2101318</color>
+    <color name="exp_on_media">@color/m3_on_surface</color>
+    <color name="exp_on_media_muted">@color/m3_on_surface_variant</color>
+    <color name="exp_on_accent">@color/m3_on_primary</color>
+    <color name="exp_nav_bg">@color/m3_surface_container</color>
+    <color name="exp_nav_inactive">@color/m3_on_surface_variant</color>
+
+    <!-- Legacy aliases -->
     <color name="exp_cinema_bg">@color/exp_canvas</color>
     <color name="exp_cinema_surface">@color/exp_surface</color>
     <color name="exp_cinema_elevated">@color/exp_surface_elevated</color>

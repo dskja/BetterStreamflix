@@ -27,6 +27,7 @@ import com.dskja.betterstreamflix.download.ui.DownloadsViewModel
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.viewModelsFactory
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -144,8 +145,12 @@ class DownloadsMobileFragment : Fragment() {
         )
         chip.setTextColor(
             when {
-                exp && selected -> 0xFF0B0B10.toInt()
-                exp -> 0xFFF4F0E6.toInt()
+                exp && selected -> MaterialColors.getColor(
+                    chip, com.google.android.material.R.attr.colorOnPrimary,
+                )
+                exp -> MaterialColors.getColor(
+                    chip, com.google.android.material.R.attr.colorOnSurfaceVariant,
+                )
                 selected -> 0xFF111111.toInt()
                 else -> 0xFFFFFFFF.toInt()
             },

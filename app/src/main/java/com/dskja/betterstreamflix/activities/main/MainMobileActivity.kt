@@ -28,6 +28,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.activities.tools.BypassWebViewActivity
+import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.databinding.ActivityMainMobileBinding
 import com.dskja.betterstreamflix.fragments.player.PlayerMobileFragment
 import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
@@ -43,12 +44,13 @@ import com.dskja.betterstreamflix.providers.ZaluknijProvider
 import com.dskja.betterstreamflix.ui.UpdateAppMobileDialog
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
-import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.getCurrentFragment
 import com.google.android.gms.cast.framework.CastContext
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -114,6 +116,9 @@ class MainMobileActivity : FragmentActivity() {
                 ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
             }
         )
+        if (ExperimentalMobileDesign.enabled()) {
+            DynamicColors.applyToActivityIfAvailable(this)
+        }
 
         super.onCreate(savedInstanceState)
 
@@ -631,16 +636,19 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     private fun applyExperimentalNavigationChrome() {
-        binding.bnvMain.itemIconTintList =
-            ContextCompat.getColorStateList(this, R.color.nav_item_exp)
-        binding.bnvMain.itemTextColor =
-            ContextCompat.getColorStateList(this, R.color.nav_item_exp)
-        // Lumina: clip the floating glass nav pill.
+        // Material You: M3 styles the nav items; tint system bars with the
+        // (possibly dynamic) surface colors and clip the floating pill.
         binding.root.findViewById<View>(R.id.bv_main_nav)?.clipToOutline = true
+        val surface = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorSurface, "exp surface",
+        )
+        val navSurface = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorSurfaceContainer, "exp nav",
+        )
         @Suppress("DEPRECATION")
         run {
-            window.statusBarColor = ContextCompat.getColor(this, R.color.exp_canvas)
-            window.navigationBarColor = ContextCompat.getColor(this, R.color.exp_nav_bg)
+            window.statusBarColor = surface
+            window.navigationBarColor = navSurface
         }
         WindowInsetsControllerCompat(window, window.decorView).apply {
             isAppearanceLightStatusBars = false

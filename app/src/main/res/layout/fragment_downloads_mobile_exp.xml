@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_canvas"
+    android:background="?attr/colorSurface"
     android:paddingBottom="4dp">
 
     <TextView
@@ -13,14 +13,14 @@
         android:paddingStart="22dp"
         android:paddingTop="20dp"
         android:paddingEnd="8dp"
-        android:fontFamily="@font/fraunces"
         android:letterSpacing="-0.02"
         android:text="@string/downloads_title"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="30sp"
         app:layout_constraintEnd_toStartOf="@id/btn_downloads_menu"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <ImageButton
         android:id="@+id/btn_downloads_menu"
@@ -34,7 +34,7 @@
         android:src="@drawable/ic_menu_settings"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_ink" />
+        app:tint="?attr/colorOnSurface" />
 
     <TextView
         android:id="@+id/tv_downloads_storage"
@@ -44,8 +44,7 @@
         android:paddingTop="4dp"
         android:paddingEnd="16dp"
         android:paddingBottom="8dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -58,8 +57,7 @@
         android:paddingStart="22dp"
         android:paddingEnd="16dp"
         android:paddingBottom="6dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="#FFFF8A80"
+        android:textColor="?attr/colorError"
         android:textSize="13sp"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
@@ -91,13 +89,12 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_exp_chip"
-                android:fontFamily="@font/manrope"
                 android:paddingStart="16dp"
                 android:paddingTop="9dp"
                 android:paddingEnd="16dp"
                 android:paddingBottom="9dp"
                 android:text="@string/downloads_filter_all"
-                android:textColor="@color/exp_ink"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="13sp" />
 
             <TextView
@@ -106,13 +103,12 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_exp_chip"
-                android:fontFamily="@font/manrope"
                 android:paddingStart="16dp"
                 android:paddingTop="9dp"
                 android:paddingEnd="16dp"
                 android:paddingBottom="9dp"
                 android:text="@string/downloads_filter_downloading"
-                android:textColor="@color/exp_ink"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="13sp" />
 
             <TextView
@@ -121,13 +117,12 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_exp_chip"
-                android:fontFamily="@font/manrope"
                 android:paddingStart="16dp"
                 android:paddingTop="9dp"
                 android:paddingEnd="16dp"
                 android:paddingBottom="9dp"
                 android:text="@string/downloads_filter_completed"
-                android:textColor="@color/exp_ink"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="13sp" />
 
             <TextView
@@ -136,13 +131,12 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_exp_chip"
-                android:fontFamily="@font/manrope"
                 android:paddingStart="16dp"
                 android:paddingTop="9dp"
                 android:paddingEnd="16dp"
                 android:paddingBottom="9dp"
                 android:text="@string/downloads_filter_failed"
-                android:textColor="@color/exp_ink"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="13sp" />
         </LinearLayout>
     </HorizontalScrollView>
@@ -164,11 +158,10 @@
         android:id="@+id/tv_downloads_empty"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/manrope"
         android:gravity="center"
         android:padding="28dp"
         android:text="@string/downloads_empty"
-        android:textColor="@color/exp_mist"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="15sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"

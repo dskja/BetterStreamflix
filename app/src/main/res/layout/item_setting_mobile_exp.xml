@@ -10,7 +10,8 @@
     android:background="@drawable/bg_exp_provider_card"
     android:minHeight="54dp"
     android:paddingTop="9dp"
-    android:paddingBottom="9dp">
+    android:paddingBottom="9dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <ImageView
         android:id="@+id/iv_setting_icon"
@@ -21,7 +22,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_accent"
+        app:tint="?attr/colorPrimary"
         tools:ignore="ContentDescription"
         tools:src="@drawable/ic_player_settings_quality"
         tools:visibility="visible" />
@@ -53,8 +54,7 @@
         android:layout_marginStart="14dp"
         android:layout_marginEnd="12dp"
         android:duplicateParentState="true"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="14sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/tv_setting_sub_text"
@@ -71,8 +71,7 @@
         android:layout_marginStart="14dp"
         android:layout_marginEnd="12dp"
         android:duplicateParentState="true"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_mist"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/barrier2"
@@ -98,7 +97,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_mist"
+        app:tint="?attr/colorOnSurfaceVariant"
         tools:ignore="ContentDescription"
         tools:visibility="visible" />
 
@@ -112,7 +111,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_accent"
+        app:tint="?attr/colorPrimary"
         tools:ignore="ContentDescription"
         tools:visibility="visible" />
 

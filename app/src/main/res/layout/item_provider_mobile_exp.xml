@@ -7,7 +7,8 @@
     android:layout_margin="6dp"
     android:background="@drawable/bg_exp_provider_card"
     android:paddingTop="14dp"
-    android:paddingBottom="14dp">
+    android:paddingBottom="14dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <ImageView
         android:id="@+id/iv_provider_logo"
@@ -40,9 +41,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:fontFamily="@font/manrope"
         android:gravity="center"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="13sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -55,9 +55,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
-        android:fontFamily="@font/manrope"
         android:gravity="center"
-        android:textColor="@color/exp_mist"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="11sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

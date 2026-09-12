@@ -5,7 +5,7 @@
     android:id="@+id/main_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_canvas"
+    android:background="?attr/colorSurface"
     tools:context=".activities.main.MainMobileActivity">
 
     <androidx.fragment.app.FragmentContainerView
@@ -34,7 +34,7 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/exp_on_media" />
+        app:tint="?attr/colorOnSurface" />
 
     <fragment
         android:id="@+id/cast_mini_controller"
@@ -66,12 +66,6 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             android:elevation="0dp"
-            android:theme="@style/Theme.AppCompat"
-            app:itemIconTint="@color/nav_item_exp"
-            app:itemRippleColor="@color/exp_accent_soft"
-            app:itemTextAppearanceActive="@style/BottomNavLabelStyleExp"
-            app:itemTextAppearanceInactive="@style/BottomNavLabelStyleExp"
-            app:itemTextColor="@color/nav_item_exp"
             app:labelVisibilityMode="labeled"
             app:menu="@menu/menu_main_activity_mobile" />
 

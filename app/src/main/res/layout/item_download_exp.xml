@@ -6,7 +6,8 @@
     android:layout_marginBottom="10dp"
     android:background="@drawable/bg_exp_provider_card"
     android:focusable="true"
-    android:padding="12dp">
+    android:padding="12dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_download_poster"
@@ -17,7 +18,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.PosterSmall"
-        app:strokeColor="@color/exp_glass_strong"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp" />
 
     <TextView
@@ -25,10 +26,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:fontFamily="@font/manrope"
         android:maxLines="2"
         android:paddingStart="14dp"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="15sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -40,11 +40,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:fontFamily="@font/manrope"
         android:maxLines="1"
         android:paddingStart="14dp"
         android:paddingTop="3dp"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
@@ -67,10 +66,9 @@
         android:id="@+id/tv_download_progress"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/manrope"
         android:paddingStart="14dp"
         android:paddingTop="7dp"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/iv_download_poster"
@@ -93,14 +91,13 @@
             android:layout_height="wrap_content"
             android:background="@drawable/bg_exp_chip"
             android:focusable="true"
-            android:fontFamily="@font/manrope"
             android:paddingStart="16dp"
             android:paddingTop="9dp"
             android:paddingEnd="16dp"
             android:paddingBottom="9dp"
             android:text="@string/downloads_action_pause"
             android:textAllCaps="false"
-            android:textColor="@color/exp_accent"
+            android:textColor="?attr/colorPrimary"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -111,14 +108,13 @@
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_exp_chip"
             android:focusable="true"
-            android:fontFamily="@font/manrope"
             android:paddingStart="16dp"
             android:paddingTop="9dp"
             android:paddingEnd="16dp"
             android:paddingBottom="9dp"
             android:text="@string/downloads_action_delete"
             android:textAllCaps="false"
-            android:textColor="#FFFF8A80"
+            android:textColor="?attr/colorError"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>

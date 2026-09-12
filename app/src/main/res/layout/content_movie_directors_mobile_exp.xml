@@ -5,18 +5,18 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingTop="24dp"
-    android:paddingBottom="4dp">
+    android:paddingBottom="4dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <TextView
         android:id="@+id/tv_movie_directors_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
-        android:fontFamily="@font/manrope"
         android:letterSpacing="0.12"
         android:text="@string/movie_directors"
         android:textAllCaps="true"
-        android:textColor="@color/exp_accent"
+        android:textColor="?attr/colorPrimary"
         android:textSize="11sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="@id/rv_movie_directors"
@@ -30,9 +30,8 @@
         android:layout_marginStart="18dp"
         android:layout_marginEnd="22dp"
         android:ellipsize="end"
-        android:fontFamily="@font/fraunces"
         android:maxLines="3"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/tv_movie_directors_label"

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/exp_canvas"
+    android:background="?attr/colorSurface"
     android:clickable="true"
     android:focusable="true"
     android:visibility="visible"
@@ -19,8 +19,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:shimmer_auto_start="true"
-        app:shimmer_base_color="#26FFFFFF"
-        app:shimmer_highlight_color="#1AE9C77E">
+        app:shimmer_base_color="?attr/colorSurfaceContainerHigh"
+        app:shimmer_highlight_color="?attr/colorSurfaceBright">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -100,7 +100,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:indeterminate="true"
-        android:indeterminateTint="@color/exp_accent"
+        android:indeterminateTint="?attr/colorPrimary"
         android:indeterminateTintMode="src_atop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -111,9 +111,8 @@
         android:id="@+id/tv_is_loading_error"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/fraunces"
         android:text="@string/loading_error_title"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="22sp"
         app:layout_constraintBottom_toTopOf="@id/btn_is_loading_retry"
         app:layout_constraintEnd_toEndOf="parent"

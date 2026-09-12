@@ -240,15 +240,21 @@ internal object SettingsListStyler {
 
     private fun resolveThemeColor(view: View, attr: Int, fallback: Int): Int {
         val typedValue = android.util.TypedValue()
-        return if (view.context.theme.resolveAttribute(attr, typedValue, true)) {
-            if (typedValue.resourceId != 0) {
+        var currentAttr = attr
+        var depth = 0
+        while (view.context.theme.resolveAttribute(currentAttr, typedValue, true)) {
+            if (typedValue.type == android.util.TypedValue.TYPE_ATTRIBUTE && depth < 4) {
+                currentAttr = typedValue.data
+                depth++
+                continue
+            }
+            return if (typedValue.resourceId != 0) {
                 androidx.core.content.ContextCompat.getColor(view.context, typedValue.resourceId)
             } else {
                 typedValue.data
             }
-        } else {
-            fallback
         }
+        return fallback
     }
 
     private fun findRecyclerView(view: View): RecyclerView? {

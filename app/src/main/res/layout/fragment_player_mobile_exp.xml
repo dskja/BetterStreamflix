@@ -71,11 +71,10 @@
                 android:id="@+id/tv_next_episode_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/manrope"
                 android:letterSpacing="0.14"
                 android:text="@string/player_next_episode_up_next"
                 android:textAllCaps="true"
-                android:textColor="@color/exp_accent"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="9sp"
                 android:textStyle="bold" />
 
@@ -84,8 +83,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:fontFamily="@font/manrope"
-                android:textColor="@color/exp_ink"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 tools:text="S2 E8" />
@@ -96,9 +94,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
-                android:fontFamily="@font/manrope"
                 android:maxLines="2"
-                android:textColor="@color/exp_ink_soft"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp"
                 tools:text="Finale" />
 
@@ -107,8 +104,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:fontFamily="@font/manrope"
-                android:textColor="@color/exp_mist"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="11sp"
                 tools:text="Playing next in 8s" />
 
@@ -120,13 +116,12 @@
                 android:background="@drawable/bg_exp_button_primary"
                 android:clickable="true"
                 android:focusable="true"
-                android:fontFamily="@font/manrope"
                 android:paddingStart="14dp"
                 android:paddingTop="7dp"
                 android:paddingEnd="14dp"
                 android:paddingBottom="7dp"
                 android:text="@string/player_next_episode_action"
-                android:textColor="@color/exp_on_accent"
+                android:textColor="?attr/colorOnPrimary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
@@ -137,13 +132,12 @@
                 android:layout_marginTop="7dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:fontFamily="@font/manrope"
                 android:paddingStart="4dp"
                 android:paddingTop="2dp"
                 android:paddingEnd="4dp"
                 android:paddingBottom="2dp"
                 android:text="@string/player_next_episode_dismiss"
-                android:textColor="@color/exp_mist"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -166,8 +160,7 @@
             android:id="@+id/tv_brightness_percentage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/manrope"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="12sp"
             android:textStyle="bold"
             tools:text="50%" />
@@ -179,8 +172,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="60dp"
             android:layout_marginBottom="60dp"
-            android:progressTint="@color/exp_accent"
-            android:progressBackgroundTint="@color/exp_glass_strong"
+            android:progressTint="?attr/colorPrimary"
+            android:progressBackgroundTint="?attr/colorOutlineVariant"
             android:rotation="270"
             tools:progress="50" />
 
@@ -188,7 +181,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_brightness"
-            app:tint="@color/exp_accent" />
+            app:tint="?attr/colorPrimary" />
     </LinearLayout>
 
     <LinearLayout
@@ -208,8 +201,7 @@
             android:id="@+id/tv_volume_percentage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/manrope"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="12sp"
             android:textStyle="bold"
             tools:text="50%" />
@@ -221,8 +213,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="60dp"
             android:layout_marginBottom="60dp"
-            android:progressTint="@color/exp_accent"
-            android:progressBackgroundTint="@color/exp_glass_strong"
+            android:progressTint="?attr/colorPrimary"
+            android:progressBackgroundTint="?attr/colorOutlineVariant"
             android:rotation="270"
             tools:progress="50" />
 
@@ -230,7 +222,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_player_settings_audio"
-            app:tint="@color/exp_accent" />
+            app:tint="?attr/colorPrimary" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

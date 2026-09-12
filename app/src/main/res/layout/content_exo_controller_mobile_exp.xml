@@ -28,7 +28,7 @@
         app:layout_constraintBottom_toBottomOf="@id/tv_exo_subtitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_exo_title"
-        app:tint="@color/exp_ink"
+        app:tint="?attr/colorOnSurface"
         tools:ignore="ContentDescription" />
 
     <TextView
@@ -38,9 +38,8 @@
         android:layout_marginStart="14dp"
         android:layout_marginTop="18dp"
         android:layout_marginEnd="14dp"
-        android:fontFamily="@font/fraunces"
         android:letterSpacing="-0.01"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="20sp"
         app:layout_constraintEnd_toStartOf="@id/media_route_button"
         app:layout_constraintStart_toEndOf="@id/btn_exo_back"
@@ -54,8 +53,7 @@
         android:layout_marginStart="14dp"
         android:layout_marginTop="3dp"
         android:layout_marginEnd="14dp"
-        android:fontFamily="@font/manrope"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/media_route_button"
@@ -87,7 +85,7 @@
         app:layout_constraintBottom_toBottomOf="@id/tv_exo_subtitle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_exo_title"
-        app:tint="@color/exp_ink"
+        app:tint="?attr/colorOnSurface"
         tools:ignore="ContentDescription,PrivateResource" />
 
     <LinearLayout
@@ -109,7 +107,7 @@
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
             android:src="@drawable/ic_previous"
-            app:tint="@color/exp_ink" />
+            app:tint="?attr/colorOnSurface" />
 
         <ImageView
             android:id="@+id/exo_rew"
@@ -119,7 +117,7 @@
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
             android:src="@drawable/exo_styled_controls_rewind"
-            app:tint="@color/exp_ink"
+            app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
 
         <ImageView
@@ -130,7 +128,7 @@
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
             android:src="@drawable/ic_refresh"
-            app:tint="@color/exp_ink"
+            app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription" />
 
         <ImageView
@@ -142,7 +140,7 @@
             android:elevation="8dp"
             android:padding="22dp"
             android:src="@drawable/exo_styled_controls_play"
-            app:tint="@color/exp_on_accent"
+            app:tint="?attr/colorOnPrimary"
             tools:ignore="ContentDescription,PrivateResource" />
 
         <ImageView
@@ -153,7 +151,7 @@
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
             android:src="@drawable/exo_styled_controls_fastforward"
-            app:tint="@color/exp_ink"
+            app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
 
         <ImageView
@@ -163,7 +161,7 @@
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
             android:src="@drawable/ic_next"
-            app:tint="@color/exp_ink" />
+            app:tint="?attr/colorOnSurface" />
 
     </LinearLayout>
 
@@ -175,14 +173,14 @@
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="6dp"
         app:bar_height="3dp"
-        app:buffered_color="#4DE9C77E"
+        app:buffered_color="?attr/colorPrimaryContainer"
         app:layout_constraintBottom_toTopOf="@id/exo_bottom_bar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:played_color="@color/exp_accent"
-        app:scrubber_color="@color/exp_accent"
+        app:played_color="?attr/colorPrimary"
+        app:scrubber_color="?attr/colorPrimary"
         app:scrubber_drawable="@drawable/exp_seekbar_thumb"
-        app:unplayed_color="#33FFFFFF" />
+        app:unplayed_color="?attr/colorSurfaceContainerHighest" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/exo_bottom_bar"
@@ -203,14 +201,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_live_indicator"
-            android:fontFamily="@font/manrope"
             android:paddingStart="10dp"
             android:paddingTop="4dp"
             android:paddingEnd="10dp"
             android:paddingBottom="4dp"
             android:text="@string/player_live_badge"
             android:textAllCaps="true"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="11sp"
             android:textStyle="bold"
             android:visibility="gone"
@@ -223,8 +220,7 @@
             android:id="@+id/exo_position"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/manrope"
-            android:textColor="@color/exp_ink"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="12sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -236,11 +232,10 @@
             android:id="@+id/tv_time_separator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/manrope"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:text="·"
-            android:textColor="@color/exp_mist"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/exo_position"
@@ -251,8 +246,7 @@
             android:id="@+id/exo_duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/manrope"
-            android:textColor="@color/exp_ink_soft"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/tv_time_separator"
@@ -269,7 +263,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_exo_picture_in_picture"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/exp_ink"
+            app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
 
         <ImageView
@@ -282,7 +276,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_exo_aspect_ratio"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/exp_ink"
+            app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
 
         <ImageView
@@ -295,7 +289,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/exo_settings"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/exp_ink"
+            app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
 
         <ImageView
@@ -307,7 +301,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/exp_accent"
+            app:tint="?attr/colorPrimary"
             tools:ignore="ContentDescription,PrivateResource" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -321,15 +315,14 @@
         android:background="@drawable/bg_exp_button_primary"
         android:drawableStart="@drawable/exo_styled_controls_fastforward"
         android:drawablePadding="8dp"
-        android:drawableTint="@color/exp_on_accent"
-        android:fontFamily="@font/manrope"
+        android:drawableTint="?attr/colorOnPrimary"
         android:gravity="center"
         android:paddingStart="18dp"
         android:paddingTop="10dp"
         android:paddingEnd="18dp"
         android:paddingBottom="10dp"
         android:text="@string/player_skip_intro"
-        android:textColor="@color/exp_on_accent"
+        android:textColor="?attr/colorOnPrimary"
         android:textSize="13sp"
         android:textStyle="bold"
         android:visibility="gone"
@@ -349,7 +342,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:tint="@color/exp_accent"
+        app:tint="?attr/colorPrimary"
         tools:ignore="ContentDescription,PrivateResource"
         tools:visibility="visible" />
 

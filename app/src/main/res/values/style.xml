@@ -58,20 +58,20 @@
         <item name="android:textColor">@color/exp_on_media</item>
     </style>
 
-    <!-- Lumina rounded media shapes -->
+    <!-- Material You shape scale: small 8 / medium 12 / large 16 / xl 28 -->
     <style name="ShapeAppearance.Lumina.Poster" parent="">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">16dp</item>
-    </style>
-
-    <style name="ShapeAppearance.Lumina.PosterSmall" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">12dp</item>
     </style>
 
+    <style name="ShapeAppearance.Lumina.PosterSmall" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
     <style name="ShapeAppearance.Lumina.Card" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">20dp</item>
+        <item name="cornerSize">16dp</item>
     </style>
 
     <style name="ShapeAppearance.Lumina.Pill" parent="">
@@ -81,7 +81,7 @@
 
     <style name="ShapeAppearance.Lumina.Episode" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">14dp</item>
+        <item name="cornerSize">12dp</item>
     </style>
 
     <style name="ShapeAppearance.Lumina.Circle" parent="">

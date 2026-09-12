@@ -30,6 +30,7 @@ import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ThemeManager
+import com.google.android.material.color.DynamicColors
 import com.dskja.betterstreamflix.utils.UserPreferences
 
 class BypassWebViewActivity : AppCompatActivity() {
@@ -77,6 +78,9 @@ class BypassWebViewActivity : AppCompatActivity() {
                 ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
             }
         )
+        if (ExperimentalMobileDesign.enabled()) {
+            DynamicColors.applyToActivityIfAvailable(this)
+        }
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bypass_webview)
         WindowCompat.setDecorFitsSystemWindows(window, false)

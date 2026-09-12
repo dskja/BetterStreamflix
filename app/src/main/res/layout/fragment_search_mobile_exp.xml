@@ -14,15 +14,15 @@
         android:layout_marginStart="22dp"
         android:layout_marginTop="30dp"
         android:layout_marginEnd="22dp"
-        android:fontFamily="@font/fraunces"
         android:letterSpacing="-0.02"
         android:text="@string/main_menu_search"
-        android:textColor="@color/exp_ink"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="34sp"
-        android:textStyle="bold"
+        
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" 
+        android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <View
         android:layout_width="40dp"
@@ -51,7 +51,7 @@
             android:layout_height="0dp"
             android:padding="13dp"
             android:src="@drawable/ic_search"
-            android:tint="@color/exp_accent"
+            android:tint="?attr/colorPrimary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintStart_toStartOf="parent"
@@ -63,7 +63,6 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
-            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:hint="@string/search_input_hint"
             android:imeOptions="actionSearch"
@@ -71,8 +70,8 @@
             android:maxLines="1"
             android:paddingTop="16dp"
             android:paddingBottom="16dp"
-            android:textColor="@color/exp_ink"
-            android:textColorHint="@color/exp_mist"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant"
             android:textSize="16sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_search_clear"
@@ -86,7 +85,7 @@
             android:layout_height="0dp"
             android:padding="13dp"
             android:src="@drawable/ic_search_clear"
-            android:tint="@color/exp_mist"
+            android:tint="?attr/colorOnSurfaceVariant"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toStartOf="@id/btn_search_voice"
@@ -99,7 +98,7 @@
             android:layout_height="0dp"
             android:padding="13dp"
             android:src="@drawable/ic_mic"
-            android:tint="@color/exp_accent"
+            android:tint="?attr/colorPrimary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toEndOf="parent"
@@ -113,14 +112,13 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:fontFamily="@font/manrope"
         android:text="@string/global_search"
-        android:textColor="@color/exp_ink_soft"
+        android:textColor="?attr/colorOnSurfaceVariant"
         app:layout_constraintEnd_toEndOf="@id/cl_search"
         app:layout_constraintStart_toStartOf="@id/cl_search"
         app:layout_constraintTop_toBottomOf="@id/cl_search"
-        app:thumbTint="@color/exp_accent"
-        app:trackTint="@color/exp_accent_soft" />
+        app:thumbTint="?attr/colorPrimary"
+        app:trackTint="?attr/colorPrimaryContainer" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_search"
