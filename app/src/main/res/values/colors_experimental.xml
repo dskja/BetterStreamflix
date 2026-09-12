@@ -1,33 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Atelier — premium light editorial shell (experimental) -->
-    <color name="exp_canvas">#F2F3F7</color>
-    <color name="exp_canvas_soft">#E8EAF0</color>
-    <color name="exp_surface">#FFFFFF</color>
-    <color name="exp_ink">#12141A</color>
-    <color name="exp_ink_soft">#3C4252</color>
-    <color name="exp_mist">#6E7588</color>
-    <color name="exp_line">#D2D6E0</color>
-    <color name="exp_accent">#0F4C81</color>
-    <color name="exp_accent_deep">#0A355C</color>
-    <color name="exp_accent_soft">#1A0F4C81</color>
-    <color name="exp_hero_scrim_top">#6612141A</color>
-    <color name="exp_hero_scrim_bottom">#F212141A</color>
-    <color name="exp_on_media">#F7F8FA</color>
-    <color name="exp_on_media_muted">#C8CDD8</color>
-    <color name="exp_nav_bg">#F9FAFC</color>
-    <color name="exp_nav_inactive">#8A91A3</color>
+    <!-- Aurora — nocturnal glass cinema shell (experimental) -->
+    <color name="exp_canvas">#05080F</color>
+    <color name="exp_canvas_soft">#0A0F19</color>
+    <color name="exp_surface">#101722</color>
+    <color name="exp_surface_elevated">#182130</color>
+    <color name="exp_ink">#F2F6FC</color>
+    <color name="exp_ink_soft">#AAB6CA</color>
+    <color name="exp_mist">#68758A</color>
+    <color name="exp_line">#1E2A3B</color>
+    <color name="exp_accent">#3DE8C8</color>
+    <color name="exp_accent_deep">#18A98E</color>
+    <color name="exp_accent_soft">#2E3DE8C8</color>
+    <color name="exp_aurora_violet">#8B7CFF</color>
+    <color name="exp_aurora_violet_soft">#2E8B7CFF</color>
+    <color name="exp_glass">#12FFFFFF</color>
+    <color name="exp_glass_strong">#26FFFFFF</color>
+    <color name="exp_hero_scrim_top">#6605080F</color>
+    <color name="exp_hero_scrim_mid">#B305080F</color>
+    <color name="exp_hero_scrim_bottom">#F505080F</color>
+    <color name="exp_on_media">#F2F6FC</color>
+    <color name="exp_on_media_muted">#B4BFD2</color>
+    <color name="exp_on_accent">#041320</color>
+    <color name="exp_nav_bg">#080D15</color>
+    <color name="exp_nav_inactive">#5C6A80</color>
 
     <!-- Compatibility aliases used by remaining references -->
     <color name="exp_cinema_bg">@color/exp_canvas</color>
     <color name="exp_cinema_surface">@color/exp_surface</color>
-    <color name="exp_cinema_elevated">#FFFFFF</color>
+    <color name="exp_cinema_elevated">@color/exp_surface_elevated</color>
     <color name="exp_teal_accent">@color/exp_accent</color>
     <color name="exp_teal_dim">@color/exp_accent_deep</color>
     <color name="exp_text_primary">@color/exp_ink</color>
-    <color name="exp_text_secondary">@color/exp_mist</color>
+    <color name="exp_text_secondary">@color/exp_ink_soft</color>
     <color name="exp_charcoal">@color/exp_canvas</color>
-    <color name="exp_charcoal_elevated">#FFFFFF</color>
+    <color name="exp_charcoal_elevated">@color/exp_surface_elevated</color>
     <color name="exp_charcoal_nav">@color/exp_nav_bg</color>
     <color name="exp_steel_teal">@color/exp_accent</color>
     <color name="exp_steel_teal_dim">@color/exp_accent_deep</color>
@@ -36,6 +43,6 @@
     <color name="exp_signal">@color/exp_accent</color>
     <color name="exp_signal_dim">@color/exp_accent_deep</color>
     <color name="exp_haze">@color/exp_line</color>
-    <color name="exp_ink_elevated">#FFFFFF</color>
+    <color name="exp_ink_elevated">@color/exp_surface_elevated</color>
     <color name="exp_ink_nav">@color/exp_nav_bg</color>
 </resources>

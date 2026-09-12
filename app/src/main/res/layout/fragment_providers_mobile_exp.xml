@@ -48,10 +48,10 @@
         app:layout_constraintVertical_chainStyle="packed" />
 
     <View
-        android:layout_width="40dp"
-        android:layout_height="2dp"
-        android:layout_marginTop="12dp"
-        android:background="@color/exp_accent"
+        android:layout_width="44dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="13dp"
+        android:background="@drawable/bg_exp_accent_rule"
         app:layout_constraintEnd_toEndOf="@id/tv_providers_label"
         app:layout_constraintStart_toStartOf="@id/tv_providers_label"
         app:layout_constraintTop_toBottomOf="@id/tv_providers_label" />

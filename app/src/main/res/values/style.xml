@@ -30,12 +30,12 @@
     <style name="AppTheme.Widget.Mobile.Button.Exp" parent="AppTheme.Mobile">
         <item name="android:background">@drawable/bg_exp_button_primary</item>
         <item name="android:fontFamily">@font/manrope</item>
-        <item name="android:paddingTop">12dp</item>
-        <item name="android:paddingBottom">12dp</item>
-        <item name="android:paddingStart">22dp</item>
-        <item name="android:paddingEnd">22dp</item>
+        <item name="android:paddingTop">13dp</item>
+        <item name="android:paddingBottom">13dp</item>
+        <item name="android:paddingStart">26dp</item>
+        <item name="android:paddingEnd">26dp</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:textColor">@color/exp_on_media</item>
+        <item name="android:textColor">@color/exp_on_accent</item>
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.01</item>
         <item name="android:textSize">14sp</item>
@@ -43,17 +43,28 @@
 
     <style name="AppTheme.Widget.Mobile.Button.Exp.Secondary" parent="AppTheme.Widget.Mobile.Button.Exp">
         <item name="android:background">@drawable/bg_exp_button_secondary</item>
-        <item name="android:textColor">@color/exp_ink</item>
+        <item name="android:textColor">@color/exp_on_media</item>
     </style>
 
     <style name="AppTheme.Widget.Mobile.Button.Exp.OnMedia" parent="AppTheme.Widget.Mobile.Button.Exp">
         <item name="android:background">@drawable/bg_exp_button_primary</item>
-        <item name="android:textColor">@color/exp_on_media</item>
+        <item name="android:textColor">@color/exp_on_accent</item>
     </style>
 
     <style name="AppTheme.Widget.Mobile.Button.Exp.OnMedia.Secondary" parent="AppTheme.Widget.Mobile.Button.Exp.Secondary">
         <item name="android:background">@drawable/bg_exp_button_on_media_secondary</item>
         <item name="android:textColor">@color/exp_on_media</item>
+    </style>
+
+    <!-- Aurora rounded media shapes -->
+    <style name="ShapeAppearance.Aurora.Poster" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Aurora.PosterSmall" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
     </style>
 
     <!-- Stile per forzare il fondo nero nelle schermate di impostazione (Leanback) -->

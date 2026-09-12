@@ -251,7 +251,7 @@ class HomeMobileFragment : Fragment() {
                 AnimationUtils.loadAnimation(requireContext(), R.anim.exp_hero_kenburns)
             )
         } else {
-            binding.ivHomeBackground.setImageResource(R.drawable.bg_home_gradient_exp)
+            binding.ivHomeBackground.setImageResource(R.drawable.bg_exp_aurora_sky)
         }
     }
 }

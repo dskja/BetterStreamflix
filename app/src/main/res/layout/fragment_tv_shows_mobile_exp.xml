@@ -12,7 +12,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="30dp"
         android:layout_marginEnd="22dp"
         android:fontFamily="@font/syne"
         android:letterSpacing="-0.03"
@@ -25,10 +25,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <View
-        android:layout_width="36dp"
-        android:layout_height="2dp"
-        android:layout_marginTop="10dp"
-        android:background="@color/exp_accent"
+        android:layout_width="40dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="11dp"
+        android:background="@drawable/bg_exp_accent_rule"
         app:layout_constraintStart_toStartOf="@id/tv_tv_shows_brand"
         app:layout_constraintTop_toBottomOf="@id/tv_tv_shows_brand" />
 
@@ -40,9 +40,9 @@
         android:clipToPadding="false"
         android:orientation="vertical"
         android:paddingStart="14dp"
-        android:paddingTop="72dp"
+        android:paddingTop="78dp"
         android:paddingEnd="14dp"
-        android:paddingBottom="18dp"
+        android:paddingBottom="20dp"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

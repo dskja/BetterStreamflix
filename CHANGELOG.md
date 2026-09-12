@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Re-enabled five previously unregistered providers whose sites are live again: StreamingIta (it), AnyMovie (en), HiAnime (en), 1Jour1Film (fr), AfterDark (fr)
+- Experimental mobile design rebuilt as "Aurora": nocturnal dark glass cinema shell with teal→violet accent gradient, rounded posters, glass chips and pill buttons (still off-by-default behind the experimental toggle)
 
 ### Changed
 - StreamingCommunity default domain `streamingunity.cc` → `streamingunity.win`; stale stored domains auto-migrate

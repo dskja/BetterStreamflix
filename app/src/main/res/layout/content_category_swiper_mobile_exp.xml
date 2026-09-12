@@ -25,7 +25,7 @@
         android:layout_marginEnd="22dp"
         android:elevation="10dp"
         android:fontFamily="@font/manrope"
-        android:letterSpacing="0.14"
+        android:letterSpacing="0.18"
         android:textAllCaps="true"
         android:textColor="@color/exp_on_media_muted"
         android:textSize="11sp"
@@ -41,7 +41,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="22dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="26dp"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

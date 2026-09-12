@@ -10,7 +10,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="26dp"
         android:fontFamily="@font/syne"
         android:letterSpacing="-0.03"
         android:text="@string/main_menu_favorites"
@@ -23,36 +23,37 @@
 
     <ImageButton
         android:id="@+id/btn_favorites_reorder_mode"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:background="@drawable/bg_exp_icon_chip"
         android:contentDescription="@string/favorites_rearrange_on"
-        android:padding="10dp"
+        android:padding="11dp"
         android:src="@drawable/ic_reorder_white"
         app:layout_constraintBottom_toBottomOf="@id/tv_favorites_brand"
         app:layout_constraintEnd_toStartOf="@id/btn_favorites_reorder"
         app:layout_constraintTop_toTopOf="@id/tv_favorites_brand"
-        app:tint="@color/exp_accent" />
+        app:tint="@color/exp_on_media" />
 
     <ImageButton
         android:id="@+id/btn_favorites_reorder"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginEnd="14dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_exp_icon_chip"
         android:contentDescription="@string/favorites_reorder_categories"
-        android:padding="10dp"
+        android:padding="11dp"
         android:src="@drawable/ic_sort"
         app:layout_constraintBottom_toBottomOf="@id/tv_favorites_brand"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_favorites_brand"
-        app:tint="@color/exp_accent" />
+        app:tint="@color/exp_on_media" />
 
     <View
-        android:layout_width="36dp"
-        android:layout_height="2dp"
-        android:layout_marginTop="10dp"
-        android:background="@color/exp_accent"
+        android:layout_width="40dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="11dp"
+        android:background="@drawable/bg_exp_accent_rule"
         app:layout_constraintStart_toStartOf="@id/tv_favorites_brand"
         app:layout_constraintTop_toBottomOf="@id/tv_favorites_brand" />
 
@@ -72,7 +73,7 @@
         android:paddingStart="10dp"
         android:paddingTop="8dp"
         android:paddingEnd="10dp"
-        android:paddingBottom="18dp"
+        android:paddingBottom="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

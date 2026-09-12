@@ -5,7 +5,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <ImageView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_movie_poster"
         android:layout_width="0dp"
         android:layout_height="248dp"
@@ -14,13 +14,16 @@
         app:layout_constraintDimensionRatio="2:3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Aurora.Poster"
+        app:strokeColor="@color/exp_glass_strong"
+        app:strokeWidth="1dp" />
 
     <ImageView
         android:id="@+id/iv_movie_favorite_ribbon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_margin="8dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_margin="9dp"
         android:elevation="2dp"
         android:src="@drawable/ic_favorite_badge"
         android:visibility="gone"
@@ -31,9 +34,9 @@
 
     <ImageView
         android:id="@+id/iv_movie_download_ribbon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_margin="8dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_margin="9dp"
         android:elevation="2dp"
         android:src="@drawable/ic_offline_badge"
         android:visibility="gone"
@@ -44,10 +47,10 @@
 
     <ImageView
         android:id="@+id/iv_movie_watched_ribbon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="2dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="9dp"
+        android:layout_marginTop="3dp"
         android:elevation="2dp"
         android:src="@drawable/ic_watched"
         android:visibility="gone"
@@ -60,8 +63,8 @@
         android:id="@+id/tv_movie_quality"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginTop="9dp"
+        android:layout_marginEnd="9dp"
         android:fontFamily="@font/manrope"
         android:padding="2dp"
         android:textAllCaps="true"
@@ -70,7 +73,7 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_movie_poster"
         app:layout_constraintTop_toBottomOf="@id/iv_movie_download_ribbon"
-        app:layout_goneMarginTop="8dp"
+        app:layout_goneMarginTop="9dp"
         tools:text="HD"
         tools:visibility="visible" />
 
@@ -78,7 +81,7 @@
         android:id="@+id/tv_movie_released_year"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="9dp"
         android:fontFamily="@font/manrope"
         android:padding="2dp"
         android:textColor="@color/exp_on_media_muted"
@@ -92,9 +95,12 @@
         android:id="@+id/pb_movie_progress"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="2dp"
-        android:backgroundTint="#55FFFFFF"
-        android:progressTint="@color/exp_on_media"
+        android:layout_height="3dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="10dp"
+        android:backgroundTint="@color/exp_glass_strong"
+        android:progressTint="@color/exp_accent"
         app:layout_constraintBottom_toBottomOf="@id/iv_movie_poster"
         app:layout_constraintEnd_toEndOf="@id/iv_movie_poster"
         app:layout_constraintStart_toStartOf="@id/iv_movie_poster"
