@@ -21,6 +21,8 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
 import android.view.animation.AnimationUtils
@@ -53,6 +55,9 @@ class TvShowsMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvTvShows)
         if (ExperimentalMobileDesign.enabled()) {
             binding.rvTvShows.startAnimation(
                 AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_in)
@@ -65,7 +70,7 @@ class TvShowsMobileFragment : Fragment() {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     TvShowsViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
@@ -73,7 +78,7 @@ class TvShowsMobileFragment : Fragment() {
                     is TvShowsViewModel.State.SuccessLoading -> {
                         displayTvShows(state.tvShows, state.hasMore)
                         appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is TvShowsViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()

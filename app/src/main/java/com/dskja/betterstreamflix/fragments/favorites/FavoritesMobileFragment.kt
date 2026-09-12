@@ -24,6 +24,8 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
+import com.dskja.betterstreamflix.utils.ExpMotion
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import kotlinx.coroutines.launch
 
 class FavoritesMobileFragment : Fragment() {
@@ -57,6 +59,9 @@ class FavoritesMobileFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvFavorites)
         val columnCount = maxOf(3, resources.configuration.screenWidthDp / 120)
         val gridLayoutManager = GridLayoutManager(requireContext(), columnCount).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {

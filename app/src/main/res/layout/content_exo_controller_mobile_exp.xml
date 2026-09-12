@@ -24,7 +24,8 @@
         android:layout_marginStart="16dp"
         android:background="@drawable/bg_exp_icon_chip"
         android:padding="9dp"
-        android:src="@drawable/ic_player_back"
+        android:contentDescription="@string/exp_back"
+            android:src="@drawable/ic_player_back"
         app:layout_constraintBottom_toBottomOf="@id/tv_exo_subtitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_exo_title"
@@ -81,7 +82,8 @@
         android:layout_marginEnd="16dp"
         android:background="@drawable/bg_exp_icon_chip"
         android:padding="9dp"
-        android:src="@drawable/exo_styled_controls_external_player"
+        android:contentDescription="@string/exp_cd_external_player"
+            android:src="@drawable/exo_styled_controls_external_player"
         app:layout_constraintBottom_toBottomOf="@id/tv_exo_subtitle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tv_exo_title"
@@ -106,6 +108,7 @@
             android:layout_marginEnd="10dp"
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
+            android:contentDescription="@string/exp_cd_prev_episode"
             android:src="@drawable/ic_previous"
             app:tint="?attr/colorOnSurface" />
 
@@ -116,6 +119,7 @@
             android:layout_marginEnd="10dp"
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
+            android:contentDescription="@string/exp_cd_rewind"
             android:src="@drawable/exo_styled_controls_rewind"
             app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
@@ -127,6 +131,7 @@
             android:layout_marginEnd="10dp"
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
+            android:contentDescription="@string/exp_cd_replay"
             android:src="@drawable/ic_refresh"
             app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription" />
@@ -150,6 +155,7 @@
             android:layout_marginEnd="10dp"
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
+            android:contentDescription="@string/exp_cd_forward"
             android:src="@drawable/exo_styled_controls_fastforward"
             app:tint="?attr/colorOnSurface"
             tools:ignore="ContentDescription,PrivateResource" />
@@ -160,6 +166,7 @@
             android:layout_height="52dp"
             android:background="@drawable/bg_exp_icon_chip"
             android:padding="13dp"
+            android:contentDescription="@string/exp_cd_next_episode"
             android:src="@drawable/ic_next"
             app:tint="?attr/colorOnSurface" />
 
@@ -220,6 +227,7 @@
             android:id="@+id/exo_position"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
             android:textColor="?attr/colorOnSurface"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -246,6 +254,7 @@
             android:id="@+id/exo_duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -259,6 +268,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:padding="10dp"
+            android:contentDescription="@string/exp_cd_lock"
             android:src="@drawable/exo_styled_controls_lock"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_exo_picture_in_picture"
@@ -272,6 +282,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:padding="10dp"
+            android:contentDescription="@string/exp_cd_pip"
             android:src="@drawable/exo_styled_controls_picture_in_picture"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_exo_aspect_ratio"
@@ -285,6 +296,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:padding="10dp"
+            android:contentDescription="@string/exp_cd_aspect_ratio"
             android:src="@drawable/exo_styled_controls_aspect_ratio"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/exo_settings"
@@ -297,6 +309,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="10dp"
+            android:contentDescription="@string/exp_cd_settings"
             android:src="@drawable/exo_styled_controls_settings"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -337,7 +350,8 @@
         android:layout_marginBottom="28dp"
         android:background="@drawable/bg_exp_icon_chip"
         android:padding="12dp"
-        android:src="@drawable/exo_styled_controls_unlock"
+        android:contentDescription="@string/exp_cd_unlock"
+            android:src="@drawable/exo_styled_controls_unlock"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -345,6 +359,17 @@
         app:tint="?attr/colorPrimary"
         tools:ignore="ContentDescription,PrivateResource"
         tools:visibility="visible" />
+
+    <ProgressBar
+        android:id="@+id/exo_buffering"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:indeterminateTint="?attr/colorPrimary"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.Group
         android:id="@+id/g_controls_lock"

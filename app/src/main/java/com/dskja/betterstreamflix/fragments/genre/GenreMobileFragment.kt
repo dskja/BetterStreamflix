@@ -22,6 +22,8 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
@@ -60,6 +62,9 @@ class GenreMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvGenre)
 
         initializeGenre()
 
@@ -67,7 +72,7 @@ class GenreMobileFragment : Fragment() {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     GenreViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
@@ -75,7 +80,7 @@ class GenreMobileFragment : Fragment() {
                     is GenreViewModel.State.SuccessLoading -> {
                         displayGenre(state.genre, state.hasMore)
                         appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is GenreViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()

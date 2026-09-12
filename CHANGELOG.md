@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Re-enabled five previously unregistered providers whose sites are live again: StreamingIta (it), AnyMovie (en), HiAnime (en), 1Jour1Film (fr), AfterDark (fr)
 - Experimental mobile design rebuilt on Material 3: `Theme.Material3.Dark` shell with dynamic wallpaper color on Android 12+ (static M3 dark scheme below) covering the entire mobile surface — home, details, seasons/episodes, genres, people, downloads, player, dialogs and loading states
 - Poster-derived ambient glow behind home hero and detail posters (Palette API), floating tonal nav pill, shimmer skeleton loading, hero scroll parallax, press-scale and ripple feedback on cards (still off-by-default behind the experimental toggle)
+- Experimental motion layer: ViewPager2 page transformer + animated pill dots on the featured swiper, ambient glow follows the active slide, brand fade/parallax on scroll, auto-hiding bottom nav, fragment enter transitions, staggered grid/row fill-in, loading crossfades, ribbon pop-ins, haptic ticks on primary actions
+- Experimental player polish: primary-tinted buffering spinner, glass brightness/volume panels, tabular-figure time labels, M3 error overlay with close action, content descriptions on all transport controls
+- Experimental detail screens: floating tonal back chip, play-icon CTA, M3 meta chips, provider selected-check badge, icon+text empty states for favorites/downloads/search
 
 ### Changed
 - StreamingCommunity default domain `streamingunity.cc` → `streamingunity.win`; stale stored domains auto-migrate

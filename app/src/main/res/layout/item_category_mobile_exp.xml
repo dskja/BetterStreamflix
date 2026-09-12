@@ -16,13 +16,11 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
         android:layout_marginEnd="22dp"
-        android:letterSpacing="0.01"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="19sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Title" 
+        tools:text="Title"
         android:textAppearance="?attr/textAppearanceTitleLarge"/>
 
     <View
@@ -42,8 +40,8 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="horizontal"
-        android:paddingStart="18dp"
-        android:paddingEnd="18dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

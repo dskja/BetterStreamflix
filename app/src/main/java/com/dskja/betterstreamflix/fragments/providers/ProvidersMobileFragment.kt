@@ -19,8 +19,11 @@ import com.dskja.betterstreamflix.databinding.FragmentProvidersMobileBinding
 import com.dskja.betterstreamflix.models.Provider as ModelProvider
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
+import com.dskja.betterstreamflix.utils.ExpMotion
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -55,19 +58,23 @@ class ProvidersMobileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvProviders)
+
         initializeProviders()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     ProvidersViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
                     is ProvidersViewModel.State.SuccessLoading -> {
                         displayProviders(state.providers)
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is ProvidersViewModel.State.FailedLoading -> {
                         Toast.makeText(

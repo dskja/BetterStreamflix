@@ -104,6 +104,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
+                android:fontFeatureSettings="tnum"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="11sp"
                 tools:text="Playing next in 8s" />
@@ -144,11 +145,66 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/ll_player_error"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_exp_glass_card"
+        android:elevation="14dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/settings"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_exp_error"
+            tools:ignore="ContentDescription" />
+
+        <TextView
+            android:id="@+id/tv_player_error_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/exp_player_error_title"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnSurface" />
+
+        <TextView
+            android:id="@+id/tv_player_error_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="Error message" />
+
+        <TextView
+            android:id="@+id/btn_player_error_close"
+            style="@style/AppTheme.Widget.Mobile.Button.Exp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/exp_cd_close" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/ll_brightness"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_exp_controls_pill"
         android:orientation="vertical"
         android:gravity="center"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="18dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -160,6 +216,7 @@
             android:id="@+id/tv_brightness_percentage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
             android:textColor="?attr/colorOnSurface"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -188,8 +245,13 @@
         android:id="@+id/ll_volume"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_exp_controls_pill"
         android:orientation="vertical"
         android:gravity="center"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="18dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -201,6 +263,7 @@
             android:id="@+id/tv_volume_percentage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
             android:textColor="?attr/colorOnSurface"
             android:textSize="12sp"
             android:textStyle="bold"

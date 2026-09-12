@@ -27,6 +27,8 @@ import com.dskja.betterstreamflix.download.ui.DownloadsViewModel
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.viewModelsFactory
+import com.dskja.betterstreamflix.utils.ExpMotion
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,6 +71,9 @@ class DownloadsMobileFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvDownloads)
         binding.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
         binding.rvDownloads.itemAnimator = null
         binding.rvDownloads.adapter = adapter

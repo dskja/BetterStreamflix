@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.inputmethod.EditorInfo
@@ -25,6 +26,8 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.UserPreferences // <-- IMPORT AÑADIDO
@@ -69,6 +72,9 @@ class SearchMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvSearch)
 
         initializeSearch()
 
@@ -78,10 +84,11 @@ class SearchMobileFragment : Fragment() {
                 when (state) {
                     is State.Searching, is State.GlobalSearching -> {
                         binding.isLoading.apply {
-                            root.visibility = View.VISIBLE
+                            ExpMotion.fadeInAndShow(root)
                             pbIsLoading.visibility = View.VISIBLE
                             gIsLoadingRetry.visibility = View.GONE
                         }
+                        binding.root.findViewById<View>(R.id.tv_search_empty)?.isVisible = false
                         appAdapter.isLoading = false
                         appAdapter.setOnLoadMoreListener(null)
                     }
@@ -89,11 +96,11 @@ class SearchMobileFragment : Fragment() {
                     is State.SuccessSearching -> {
                         displaySearch(state.results, state.hasMore)
                         appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is State.SuccessGlobalSearching -> {
                         displayGlobalSearch(state.providerResults)
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is State.FailedSearching -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()
@@ -239,6 +246,7 @@ class SearchMobileFragment : Fragment() {
     }
 
     private fun displaySearch(list: List<AppAdapter.Item>, hasMore: Boolean) {
+        binding.root.findViewById<View>(R.id.tv_search_empty)?.isVisible = list.isEmpty()
         appAdapter.submitList(list.onEach {
             when (it) {
                 is Genre -> it.itemType = AppAdapter.Type.GENRE_GRID_MOBILE_ITEM
@@ -290,6 +298,12 @@ class SearchMobileFragment : Fragment() {
 
         appAdapter.submitList(allItems)
         appAdapter.setOnLoadMoreListener(null) // Desactivamos la carga infinita en la búsqueda global
+
+        binding.root.findViewById<View>(R.id.tv_search_empty)?.isVisible =
+            providerResults.all { it.state !is ProviderResult.State.Success }
+                || providerResults.sumOf {
+                    (it.state as? ProviderResult.State.Success)?.results?.size ?: 0
+                } == 0
     }
     // ================================================================
 }

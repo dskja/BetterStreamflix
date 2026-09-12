@@ -41,6 +41,22 @@
         tools:itemCount="1"
         tools:listitem="@layout/content_movie_mobile_exp" />
 
+
+    <ImageView
+        android:id="@+id/iv_detail_back"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="52dp"
+        android:background="@drawable/bg_exp_icon_chip"
+        android:contentDescription="@string/exp_back"
+        android:elevation="6dp"
+        android:padding="11dp"
+        android:src="@drawable/ic_player_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="?attr/colorOnSurface" />
+
     <include
         android:id="@+id/is_loading"
         layout="@layout/layout_is_loading_mobile_exp"

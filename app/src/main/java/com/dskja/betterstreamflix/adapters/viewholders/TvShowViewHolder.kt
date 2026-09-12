@@ -59,6 +59,7 @@ import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.dskja.betterstreamflix.ui.ShowOptionsTvDialog
 import com.dskja.betterstreamflix.utils.ExpAmbientGlow
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -568,6 +569,7 @@ class TvShowViewHolder(
             centerCrop().transition(DrawableTransitionOptions.withCrossFade())
         }
         binding.tvSwiperTitle.text = tvShow.title
+        itemView.contentDescription = tvShow.title
         binding.tvSwiperTvShowLastEpisode.text = if (isIptvProvider()) "" else tvShow.seasons.lastOrNull()?.episodes?.lastOrNull()?.let { "E${it.number}" } ?: context.getString(R.string.tv_show_item_type)
         
         binding.tvSwiperQuality.apply {
@@ -588,6 +590,7 @@ class TvShowViewHolder(
 
         binding.tvSwiperOverview.text = tvShow.overview
         binding.btnSwiperWatchNow.setOnClickListener {
+            ExpMotion.hapticTap(it)
             if (isIptvProvider()) {
                 handleDirectPlay(binding.root.findNavController())
             } else {
@@ -596,12 +599,18 @@ class TvShowViewHolder(
         }
     }
 
+    private fun setRibbonVisible(view: View, visible: Boolean) {
+        val wasVisible = view.isVisible
+        view.isVisible = visible
+        if (visible && !wasVisible) ExpMotion.popIn(view)
+    }
+
     private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View) {
         ribbonStateJob?.cancel()
 
         val boundTvShowId = tvShow.id
-        favoriteRibbon.isVisible = tvShow.isFavorite
-        watchedRibbon.isVisible = false
+        setRibbonVisible(favoriteRibbon, tvShow.isFavorite)
+        setRibbonVisible(watchedRibbon, false)
         val lifecycleOwner = itemView.findViewTreeLifecycleOwner()
             ?: context.toActivity()
             ?: return
@@ -614,8 +623,8 @@ class TvShowViewHolder(
                 (persistedTvShow?.isFavorite ?: tvShow.isFavorite) to isFullyWatched
             }.collect { (isFavorite, isFullyWatched) ->
                 if (tvShow.id == boundTvShowId) {
-                    favoriteRibbon.isVisible = isFavorite
-                    watchedRibbon.isVisible = isFullyWatched
+                    setRibbonVisible(favoriteRibbon, isFavorite)
+                    setRibbonVisible(watchedRibbon, isFullyWatched)
                 }
             }
         }
@@ -681,6 +690,7 @@ class TvShowViewHolder(
         binding.btnTvShowWatchNow.apply {
             isVisible = episodeToWatch != null
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 if (isIptvProvider()) {
                     handleDirectPlay(findNavController())
                 } else {
@@ -739,6 +749,7 @@ class TvShowViewHolder(
             }
 
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 checkProviderAndRun {
                     itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
                         val dao = database.tvShowDao()
@@ -755,6 +766,7 @@ class TvShowViewHolder(
                             setImageDrawable(
                                 ContextCompat.getDrawable(context, newValue.drawable())
                             )
+                            ExpMotion.popIn(binding.btnTvShowFavorite)
                         }
                     }
                 }
@@ -815,6 +827,7 @@ class TvShowViewHolder(
         binding.btnTvShowWatchNow.apply {
             isVisible = episodeToWatch != null
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 if (isIptvProvider()) {
                     handleDirectPlay(findNavController())
                 } else {
@@ -873,6 +886,7 @@ class TvShowViewHolder(
             }
 
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 checkProviderAndRun {
                     itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
                         val dao = database.tvShowDao()
@@ -889,6 +903,7 @@ class TvShowViewHolder(
                             setImageDrawable(
                                 ContextCompat.getDrawable(context, newValue.drawable())
                             )
+                            ExpMotion.popIn(binding.btnTvShowFavorite)
                         }
                     }
                 }

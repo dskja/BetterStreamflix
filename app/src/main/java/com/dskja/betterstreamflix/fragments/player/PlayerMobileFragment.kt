@@ -52,6 +52,7 @@ import com.dskja.betterstreamflix.player.PlaybackFailover
 import com.dskja.betterstreamflix.player.PlayerBuilderFactory
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.CrashReporter
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.activities.tools.BypassWebViewActivity
 import com.dskja.betterstreamflix.database.AppDatabase
@@ -1300,11 +1301,15 @@ class PlayerMobileFragment : Fragment() {
                         }
                     }
                     PlaybackFailover.Action.GiveUp -> {
-                        Toast.makeText(
-                            requireContext(),
-                            error.message ?: error.errorCodeName,
-                            Toast.LENGTH_LONG,
-                        ).show()
+                        if (ExperimentalMobileDesign.enabled()) {
+                            showPlayerError(error.message ?: error.errorCodeName)
+                        } else {
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: error.errorCodeName,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
                     }
                 }
             }
@@ -1646,6 +1651,18 @@ class PlayerMobileFragment : Fragment() {
             binding.layoutNextEpisodeOverlay.startAnimation(fadeOut)
             binding.layoutNextEpisodeOverlay.isGone = true
         }
+    }
+
+    private fun showPlayerError(message: String) {
+        val root = _binding?.root ?: return
+        val overlay = root.findViewById<View>(R.id.ll_player_error) ?: return
+        root.findViewById<android.widget.TextView>(R.id.tv_player_error_message)?.text = message
+        root.findViewById<View>(R.id.btn_player_error_close)?.setOnClickListener {
+            ExpMotion.hapticTap(it)
+            overlay.isGone = true
+            findNavController().navigateUp()
+        }
+        ExpMotion.fadeInAndShow(overlay)
     }
 
     private fun showSkipIntroButton(show: Boolean) {

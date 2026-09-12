@@ -19,6 +19,8 @@ import com.dskja.betterstreamflix.databinding.FragmentTvShowMobileBinding
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
@@ -62,6 +64,12 @@ class TvShowMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        binding.root.findViewById<View>(com.dskja.betterstreamflix.R.id.iv_detail_back)
+            ?.setOnClickListener {
+                androidx.navigation.Navigation.findNavController(binding.root).navigateUp()
+            }
 
         initializeTvShow()
 
@@ -69,13 +77,13 @@ class TvShowMobileFragment : Fragment() {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     TvShowViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
                     is TvShowViewModel.State.SuccessLoading -> {
                         displayTvShow(state.tvShow)
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is TvShowViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()

@@ -83,6 +83,7 @@
             android:id="@+id/btn_search_clear"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:contentDescription="@string/exp_cd_search_clear"
             android:padding="13dp"
             android:src="@drawable/ic_search_clear"
             android:tint="?attr/colorOnSurfaceVariant"
@@ -96,6 +97,7 @@
             android:id="@+id/btn_search_voice"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:contentDescription="@string/exp_cd_voice_search"
             android:padding="13dp"
             android:src="@drawable/ic_mic"
             android:tint="?attr/colorPrimary"
@@ -136,6 +138,24 @@
         app:layout_constraintTop_toBottomOf="@id/sw_global_search"
         app:spanCount="3"
         tools:listitem="@layout/item_movie_grid_mobile_exp" />
+
+    <TextView
+        android:id="@+id/tv_search_empty"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:drawableTop="@drawable/ic_search"
+        android:drawablePadding="18dp"
+        android:drawableTint="?attr/colorOnSurfaceVariant"
+        android:gravity="center"
+        android:padding="28dp"
+        android:text="@string/search_no_results"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sw_global_search" />
 
     <include
         android:id="@+id/is_loading"

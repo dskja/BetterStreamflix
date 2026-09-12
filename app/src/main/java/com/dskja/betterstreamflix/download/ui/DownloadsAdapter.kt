@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.download.DownloadItemState
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 
 class DownloadsAdapter(
@@ -114,6 +115,11 @@ class DownloadsAdapter(
     }
 
     inner class ItemVH(view: View) : RecyclerView.ViewHolder(view) {
+        init {
+            if (com.dskja.betterstreamflix.utils.ExperimentalMobileDesign.enabled()) {
+                with(com.dskja.betterstreamflix.utils.ExpPressEffects) { view.applyExpPress() }
+            }
+        }
         private val poster: ImageView = view.findViewById(R.id.iv_download_poster)
         private val title: TextView = view.findViewById(R.id.tv_download_title)
         private val subtitle: TextView = view.findViewById(R.id.tv_download_subtitle)
@@ -135,6 +141,7 @@ class DownloadsAdapter(
             bindPrimaryAction(item)
             actionDelete.setOnClickListener { onDelete(item) }
             actionPrimary.setOnClickListener {
+                ExpMotion.hapticTap(it)
                 when (item.state) {
                     DownloadItemState.COMPLETED -> onPlay(item)
                     DownloadItemState.FAILED -> onRetry(item)

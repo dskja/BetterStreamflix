@@ -24,6 +24,8 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
@@ -64,6 +66,9 @@ class PeopleMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        ExpMotion.staggerFirstFill(binding.rvPeople)
 
         initializePeople()
 
@@ -71,7 +76,7 @@ class PeopleMobileFragment : Fragment() {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     PeopleViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
@@ -79,7 +84,7 @@ class PeopleMobileFragment : Fragment() {
                     is PeopleViewModel.State.SuccessLoading -> {
                         displayPeople(state.people, state.hasMore)
                         appAdapter.isLoading = false
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is PeopleViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()

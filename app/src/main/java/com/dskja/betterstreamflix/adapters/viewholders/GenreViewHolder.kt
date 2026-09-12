@@ -7,6 +7,8 @@ import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.databinding.ItemGenreGridMobileBinding
 import com.dskja.betterstreamflix.databinding.ItemGenreGridTvBinding
 import com.dskja.betterstreamflix.models.Genre
@@ -19,6 +21,12 @@ class GenreViewHolder(
 ) {
 
     private val context = itemView.context
+    init {
+        if (ExperimentalMobileDesign.enabled() && _binding is ItemGenreGridMobileBinding) {
+            itemView.applyExpPress()
+        }
+    }
+
     private lateinit var genre: Genre
 
     fun bind(genre: Genre) {

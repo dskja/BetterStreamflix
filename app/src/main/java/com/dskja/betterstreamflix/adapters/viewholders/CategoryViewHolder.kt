@@ -8,6 +8,11 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.os.postDelayed
 import androidx.core.view.children
+import android.content.res.ColorStateList
+import android.transition.AutoTransition
+import android.transition.TransitionManager
+import com.google.android.material.color.MaterialColors
+import kotlin.math.abs
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
@@ -26,11 +31,14 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.Show
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
+import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.format
 import com.dskja.betterstreamflix.utils.getCurrentFragment
 import com.dskja.betterstreamflix.utils.toActivity
 import java.util.Locale
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.database.AppDatabase
 
@@ -80,6 +88,8 @@ class CategoryViewHolder(
         onTvShowLongClick: ((TvShow) -> Unit)?,
     ) {
         binding.tvCategoryTitle.text = category.name
+
+        com.dskja.betterstreamflix.utils.ExpMotion.staggerFirstFill(binding.rvCategory)
 
         binding.rvCategory.apply {
             val categoryAdapter = (adapter as? AppAdapter) ?: AppAdapter().also { adapter = it }
@@ -152,16 +162,36 @@ class CategoryViewHolder(
             }
         }
 
+        val exp = ExperimentalMobileDesign.enabled()
+        if (exp) {
+            applyExperimentalSwiperChrome(binding)
+        }
+
         binding.llDotsIndicator.apply {
             removeAllViews()
-            repeat(category.list.size) {
-                val view = View(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(15, 15).apply {
-                        setMargins(10, 0, 10, 0)
+            if (exp) {
+                val dotSize = context.dp(6)
+                val dotMargin = context.dp(5)
+                repeat(category.list.size) {
+                    val view = View(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply {
+                            setMargins(dotMargin, 0, dotMargin, 0)
+                        }
+                        setBackgroundResource(R.drawable.bg_exp_dot)
+                        backgroundTintList = ColorStateList.valueOf(expDotInactive)
                     }
-                    setBackgroundResource(R.drawable.bg_dot_indicator)
+                    addView(view)
                 }
-                addView(view)
+            } else {
+                repeat(category.list.size) {
+                    val view = View(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(15, 15).apply {
+                            setMargins(10, 0, 10, 0)
+                        }
+                        setBackgroundResource(R.drawable.bg_dot_indicator)
+                    }
+                    addView(view)
+                }
             }
         }
 
@@ -172,8 +202,16 @@ class CategoryViewHolder(
                     items.lastIndex -> 0
                     else -> position - 1
                 }
-                binding.llDotsIndicator.children.forEachIndexed { index, view ->
-                    view.isSelected = (indicatorPosition == index)
+                if (exp) {
+                    updateExpDots(binding, indicatorPosition)
+                    category.list.getOrNull(indicatorPosition)?.let { show ->
+                        (context.toActivity()?.getCurrentFragment() as? HomeMobileFragment)
+                            ?.updateExperimentalHeroArt(show)
+                    }
+                } else {
+                    binding.llDotsIndicator.children.forEachIndexed { index, view ->
+                        view.isSelected = (indicatorPosition == index)
+                    }
                 }
 
                 handler.removeCallbacksAndMessages(null)
@@ -197,6 +235,52 @@ class CategoryViewHolder(
                 }
             }
         })
+    }
+
+    private val expDotInactive: Int
+        get() = androidx.core.graphics.ColorUtils.setAlphaComponent(
+            MaterialColors.getColor(
+                context, com.google.android.material.R.attr.colorOnSurface, 0xFFFFFFFF.toInt(),
+            ),
+            0x59,
+        )
+
+    private fun applyExperimentalSwiperChrome(binding: ContentCategorySwiperMobileBinding) {
+        binding.vpCategorySwiper.setPageTransformer { page, position ->
+            val clamped = abs(position).coerceAtMost(1f)
+            page.findViewById<View>(R.id.iv_swiper_background)?.apply {
+                translationX = -position * page.width * 0.25f
+                scaleX = 1f + clamped * 0.05f
+                scaleY = scaleX
+            }
+            page.findViewById<View>(R.id.tv_swiper_title)?.apply {
+                alpha = (1f - clamped * 1.2f).coerceAtLeast(0f)
+                translationY = position * page.width * 0.05f
+            }
+        }
+    }
+
+    private fun updateExpDots(
+        binding: ContentCategorySwiperMobileBinding,
+        selected: Int,
+    ) {
+        val activeColor = MaterialColors.getColor(
+            context, com.google.android.material.R.attr.colorPrimary, 0xFFFFFFFF.toInt(),
+        )
+        val inactive = expDotInactive
+        val activeWidth = context.dp(20)
+        val dotSize = context.dp(6)
+        TransitionManager.beginDelayedTransition(
+            binding.llDotsIndicator,
+            AutoTransition().setDuration(180),
+        )
+        binding.llDotsIndicator.children.forEachIndexed { index, view ->
+            val isActive = index == selected
+            view.layoutParams = (view.layoutParams as LinearLayout.LayoutParams).apply {
+                width = if (isActive) activeWidth else dotSize
+            }
+            view.backgroundTintList = ColorStateList.valueOf(if (isActive) activeColor else inactive)
+        }
     }
 
     private fun displayTvSwiper(binding: ContentCategorySwiperTvBinding) {

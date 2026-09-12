@@ -80,6 +80,7 @@ import com.dskja.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.dskja.betterstreamflix.ui.ShowOptionsTvDialog
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.ExpAmbientGlow
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.dp
@@ -670,13 +671,22 @@ class MovieViewHolder(
         return DownloadContentKey.movie(providerName, movie.id)
     }
 
+    private fun setRibbonVisible(view: View, visible: Boolean) {
+        val wasVisible = view.visibility == View.VISIBLE
+        view.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible && !wasVisible) ExpMotion.popIn(view)
+    }
+
     private fun bindRibbons(favoriteRibbon: View, watchedRibbon: View, downloadRibbon: View? = null) {
-        favoriteRibbon.visibility = if (movie.isFavorite) View.VISIBLE else View.GONE
-        watchedRibbon.visibility = if (movie.isWatched) View.VISIBLE else View.GONE
+        setRibbonVisible(favoriteRibbon, movie.isFavorite)
+        setRibbonVisible(watchedRibbon, movie.isWatched)
         val contentKey = movieDownloadContentKey()
-        downloadRibbon?.visibility = if (
-            contentKey != null && OfflineBadgeStore.isCompleted(context, contentKey)
-        ) View.VISIBLE else View.GONE
+        downloadRibbon?.let {
+            setRibbonVisible(
+                it,
+                contentKey != null && OfflineBadgeStore.isCompleted(context, contentKey),
+            )
+        }
 
         ribbonStateJob?.cancel()
         val boundMovieId = movie.id
@@ -688,8 +698,8 @@ class MovieViewHolder(
             launch {
                 database.movieDao().getByIdAsFlow(boundMovieId).collect { persistedMovie ->
                     if (movie.id != boundMovieId || persistedMovie == null) return@collect
-                    favoriteRibbon.visibility = if (persistedMovie.isFavorite) View.VISIBLE else View.GONE
-                    watchedRibbon.visibility = if (persistedMovie.isWatched) View.VISIBLE else View.GONE
+                    setRibbonVisible(favoriteRibbon, persistedMovie.isFavorite)
+                    setRibbonVisible(watchedRibbon, persistedMovie.isWatched)
                 }
             }
             if (downloadRibbon != null) {
@@ -697,8 +707,10 @@ class MovieViewHolder(
                     OfflineBadgeStore.completedKeys(context).collect { keys ->
                         if (movie.id != boundMovieId) return@collect
                         val key = movieDownloadContentKey()
-                        downloadRibbon.visibility =
-                            if (key != null && keys.contains(key)) View.VISIBLE else View.GONE
+                        setRibbonVisible(
+                            downloadRibbon,
+                            key != null && keys.contains(key),
+                        )
                     }
                 }
             }
@@ -712,6 +724,7 @@ class MovieViewHolder(
         }
 
         binding.tvSwiperTitle.text = movie.title
+        itemView.contentDescription = movie.title
 
         binding.tvSwiperTvShowLastEpisode.text = context.getString(R.string.movie_item_type)
 
@@ -754,6 +767,7 @@ class MovieViewHolder(
 
         binding.btnSwiperWatchNow.apply {
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 findNavController().navigate(
                     HomeMobileFragmentDirections.actionHomeToMovie(
                         id = movie.id,
@@ -854,6 +868,7 @@ class MovieViewHolder(
                 context.getString(R.string.movie_watch_now)
             }
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 // Este botón ya navega al reproductor, no a otra página de detalles.
                 // Generalmente non necesita el cambio de proveedor, pero lo añadimos por seguridad.
                 checkProviderAndRun {
@@ -905,6 +920,7 @@ class MovieViewHolder(
             }
 
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 checkProviderAndRun {
                     itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
                         val dao = database.movieDao()
@@ -921,6 +937,7 @@ class MovieViewHolder(
                             setImageDrawable(
                                 ContextCompat.getDrawable(context, newValue.drawable())
                             )
+                            ExpMotion.popIn(binding.btnMovieFavorite)
                         }
                     }
                 }
@@ -1049,6 +1066,7 @@ class MovieViewHolder(
             }
 
             setOnClickListener {
+                ExpMotion.hapticTap(it)
                 checkProviderAndRun {
                     itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
                         val dao = database.movieDao()
@@ -1065,6 +1083,7 @@ class MovieViewHolder(
                             setImageDrawable(
                                 ContextCompat.getDrawable(context, newValue.drawable())
                             )
+                            ExpMotion.popIn(binding.btnMovieFavorite)
                         }
                     }
                 }

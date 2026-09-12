@@ -25,7 +25,7 @@
         android:id="@+id/pb_episode_progress"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="3dp"
+        android:layout_height="4dp"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="10dp"

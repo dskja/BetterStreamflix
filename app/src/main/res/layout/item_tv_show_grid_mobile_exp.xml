@@ -63,7 +63,7 @@
         android:paddingEnd="6dp"
         android:paddingBottom="2dp"
         android:textAllCaps="true"
-        android:textColor="?attr/colorOnPrimary"
+        android:textColor="?attr/colorOnSecondaryContainer"
         android:textSize="9sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
@@ -88,7 +88,7 @@
         android:id="@+id/pb_tv_show_progress"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="3dp"
+        android:layout_height="4dp"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
@@ -107,12 +107,10 @@
         android:gravity="start"
         android:lines="2"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="12sp"
-        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
         app:layout_constraintStart_toStartOf="@id/iv_tv_show_poster"
         app:layout_constraintTop_toBottomOf="@id/iv_tv_show_poster"
         tools:text="Title" 
-        android:textAppearance="?attr/textAppearanceTitleLarge"/>
+        android:textAppearance="?attr/textAppearanceTitleSmall"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

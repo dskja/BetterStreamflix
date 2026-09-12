@@ -22,6 +22,8 @@ import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.dp
@@ -71,6 +73,13 @@ class SeasonMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ExpNavAutoHide.attach(binding.root)
+        ExpMotion.enterScreen(binding.root)
+        binding.root.findViewById<View>(com.dskja.betterstreamflix.R.id.iv_detail_back)
+            ?.setOnClickListener {
+                androidx.navigation.Navigation.findNavController(binding.root).navigateUp()
+            }
+        ExpMotion.staggerFirstFill(binding.rvEpisodes)
 
         initializeSeason()
 
@@ -78,13 +87,13 @@ class SeasonMobileFragment : Fragment() {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     SeasonViewModel.State.LoadingEpisodes -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
                     is SeasonViewModel.State.SuccessLoadingEpisodes -> {
                         displaySeason(state.episodes)
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is SeasonViewModel.State.FailedLoadingEpisodes -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()

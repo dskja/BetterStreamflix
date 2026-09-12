@@ -25,6 +25,8 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.CacheUtils
 import com.dskja.betterstreamflix.utils.ExpAmbientGlow
+import com.dskja.betterstreamflix.utils.ExpMotion
+import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -85,13 +87,13 @@ class HomeMobileFragment : Fragment() {
             viewModel.state.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { state ->
                 when (state) {
                     HomeViewModel.State.Loading -> binding.isLoading.apply {
-                        root.visibility = View.VISIBLE
+                        ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
                     }
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
-                        binding.isLoading.root.visibility = View.GONE
+                        ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         val code = (state.error as? retrofit2.HttpException)?.code()
@@ -163,6 +165,7 @@ class HomeMobileFragment : Fragment() {
 
         if (ExperimentalMobileDesign.enabled()) {
             applyExperimentalParallax()
+            ExpNavAutoHide.attach(binding.root)
         }
     }
 
@@ -177,12 +180,20 @@ class HomeMobileFragment : Fragment() {
                 binding.ivHomeBackground.translationY = -parallax
                 binding.root.findViewById<View>(R.id.v_home_atmosphere)
                     ?.translationY = -parallax
-                binding.root.findViewById<View>(R.id.tv_home_brand)
-                    ?.translationY = -parallax * 0.5f
-                binding.root.findViewById<View>(R.id.tv_home_tagline)
-                    ?.translationY = -parallax * 0.5f
-                binding.root.findViewById<View>(R.id.v_home_brand_rule)
-                    ?.translationY = -parallax * 0.5f
+                val brandDrift = -parallax * 0.5f
+                val brandAlpha = (1f - parallax / 340f).coerceIn(0f, 1f)
+                binding.root.findViewById<View>(R.id.tv_home_brand)?.apply {
+                    translationY = brandDrift
+                    alpha = brandAlpha
+                }
+                binding.root.findViewById<View>(R.id.tv_home_tagline)?.apply {
+                    translationY = brandDrift
+                    alpha = brandAlpha
+                }
+                binding.root.findViewById<View>(R.id.v_home_brand_rule)?.apply {
+                    translationY = brandDrift
+                    alpha = brandAlpha
+                }
             }
         })
     }
@@ -260,13 +271,23 @@ class HomeMobileFragment : Fragment() {
         }
     }
 
+    private var currentHeroArt: String? = null
+
     private fun updateExperimentalHero(categories: List<Category>) {
         val featured = categories.find { it.name == Category.FEATURED }?.list?.firstOrNull()
-        val art = when (featured) {
-            is Movie -> featured.banner ?: featured.poster
-            is TvShow -> featured.banner ?: featured.poster
+        updateExperimentalHeroArt(featured)
+    }
+
+    /** Keeps the hero backdrop + ambient glow in sync with the featured swiper. */
+    fun updateExperimentalHeroArt(show: com.dskja.betterstreamflix.models.Show?) {
+        if (_binding == null || !ExperimentalMobileDesign.enabled()) return
+        val art = when (show) {
+            is Movie -> show.banner ?: show.poster
+            is TvShow -> show.banner ?: show.poster
             else -> null
         }
+        if (art == currentHeroArt) return
+        currentHeroArt = art
         if (!art.isNullOrBlank()) {
             Glide.with(binding.ivHomeBackground)
                 .load(art)

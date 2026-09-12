@@ -107,6 +107,14 @@ private fun ImageView.loadRecoverableArtwork(
         }
 
         configure(Glide.with(this).load(requestedUrl))
+            .let {
+                if (ExperimentalMobileDesign.enabled()) {
+                    it.transition(
+                        com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+                            .withCrossFade(200)
+                    )
+                } else it
+            }
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?,

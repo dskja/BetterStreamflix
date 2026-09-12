@@ -635,6 +635,24 @@ class MainMobileActivity : FragmentActivity() {
         }
     }
 
+    private var expNavHidden = false
+
+    /** Slides the floating nav pill off-screen while the user scrolls down. */
+    fun setExperimentalNavHidden(hidden: Boolean) {
+        if (!ExperimentalMobileDesign.enabled()) return
+        val pill = binding.root.findViewById<View>(R.id.bv_main_nav) ?: return
+        if (expNavHidden == hidden) return
+        expNavHidden = hidden
+        val density = resources.displayMetrics.density
+        pill.animate().cancel()
+        pill.animate()
+            .translationY(if (hidden) pill.height + 40f * density else 0f)
+            .alpha(if (hidden) 0f else 1f)
+            .setDuration(220)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
+    }
+
     private fun applyExperimentalNavigationChrome() {
         // Material You: M3 styles the nav items; tint system bars with the
         // (possibly dynamic) surface colors and clip the floating pill.

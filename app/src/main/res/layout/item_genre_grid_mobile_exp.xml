@@ -7,23 +7,15 @@
     android:background="@drawable/bg_exp_provider_card"
     android:foreground="?attr/selectableItemBackground">
 
-    <View
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@drawable/bg_exp_lumina_veil"
-        app:layout_constraintDimensionRatio="3:2"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <TextView
         android:id="@+id/tv_genre_name"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_margin="8dp"
         android:gravity="center"
-        android:textColor="?attr/colorOnSurface"
-        android:textSize="17sp"
+        android:minHeight="96dp"
+        android:textColor="?attr/colorPrimary"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

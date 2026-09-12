@@ -11,6 +11,8 @@ import androidx.viewbinding.ViewBinding
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.databinding.ItemEpisodeContinueWatchingMobileBinding
 import com.dskja.betterstreamflix.databinding.ItemEpisodeContinueWatchingTvBinding
 import com.dskja.betterstreamflix.databinding.ItemEpisodeMobileBinding
@@ -45,6 +47,12 @@ class EpisodeViewHolder(
 ) {
 
     private val context = itemView.context
+    init {
+        if (ExperimentalMobileDesign.enabled() && (_binding is ItemEpisodeMobileBinding || _binding is ItemEpisodeContinueWatchingMobileBinding)) {
+            itemView.applyExpPress()
+        }
+    }
+
     private lateinit var episode: Episode
     private var downloadRibbonJob: Job? = null
 

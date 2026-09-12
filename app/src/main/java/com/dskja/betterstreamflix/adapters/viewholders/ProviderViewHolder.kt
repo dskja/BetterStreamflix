@@ -9,6 +9,8 @@ import androidx.viewbinding.ViewBinding
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.databinding.ItemProviderMobileBinding
 import com.dskja.betterstreamflix.databinding.ItemProviderTvBinding
 import com.dskja.betterstreamflix.models.Provider
@@ -23,6 +25,12 @@ class ProviderViewHolder(
 ) {
 
     private val context = itemView.context
+    init {
+        if (ExperimentalMobileDesign.enabled() && _binding is ItemProviderMobileBinding) {
+            itemView.applyExpPress()
+        }
+    }
+
     private lateinit var provider: Provider
 
     fun bind(provider: Provider) {
@@ -56,6 +64,9 @@ class ProviderViewHolder(
         }
         
         binding.ivProviderFavorite.visibility = if (provider.isFavorite) android.view.View.VISIBLE else android.view.View.GONE
+
+        binding.root.findViewById<ImageView>(R.id.iv_provider_selected)?.visibility =
+            if (UserPreferences.currentProvider?.name == provider.name) View.VISIBLE else View.GONE
 
         loadProviderLogo(binding.ivProviderLogo)
 
