@@ -43,10 +43,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
 
-    private const val SITE_BASE_URL = "https://ww3.animeonline.ninja"
+    private const val SITE_BASE_URL = "https://ver.animeonline.ninja"
 
     override val name = "Anime Online Ninja"
-    override val defaultBaseUrl = "https://ww3.animeonline.ninja"
+    override val defaultBaseUrl = "https://ver.animeonline.ninja"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()
@@ -60,7 +60,7 @@ object AnimeOnlineNinjaProvider : Provider, ProviderConfigUrl {
     override val language = "es"
 
     private const val TAG = "AnimeOnlineNinja"
-    private const val MAIN_HOST = "ww3.animeonline.ninja"
+    private const val MAIN_HOST = "ver.animeonline.ninja"
     internal val cronetHost: String get() = MAIN_HOST
     private const val DOCUMENT_CACHE_TTL_MS = 2 * 60 * 1000L
 

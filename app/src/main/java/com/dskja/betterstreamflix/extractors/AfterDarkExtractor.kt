@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 class AfterDarkExtractor( var newUrl: String = "" ) : Extractor() {
-    val defaultUrl = "https://afterdark.best"
+    val defaultUrl = "https://afterdark.rest"
     override var mainUrl = newUrl.ifBlank { defaultUrl }
     override val name = "AfterDark"
 

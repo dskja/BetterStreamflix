@@ -34,8 +34,18 @@ object UserPreferences {
         "serien.stream",
     )
     private const val DEFAULT_MOFLIX_DOMAIN = "moflix-stream.xyz"
-    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.cc"
-    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana.gs"
+    private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.win"
+    private val DEPRECATED_STREAMINGCOMMUNITY_DOMAINS = setOf(
+        "streamingunity.cc",
+        "streamingcommunityz.green",
+        "streamingunity.club",
+        "streamingunity.bike",
+        "streamingcommunityz.buzz",
+    )
+    private const val DEFAULT_CUEVANA_DOMAIN = "cuevana3.gs"
+    private val DEPRECATED_CUEVANA_DOMAINS = setOf(
+        "cuevana.gs",
+    )
     private const val DEFAULT_POSEIDON_DOMAIN = "www.poseidonhd2.co"
 
     const val PROVIDER_URL = "URL"
@@ -449,11 +459,21 @@ object UserPreferences {
                 return DEFAULT_STREAMINGCOMMUNITY_DOMAIN
             }
             val storedValue = prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null)
-            return if (storedValue.isNullOrEmpty()) {
-                DEFAULT_STREAMINGCOMMUNITY_DOMAIN
-            } else {
-                storedValue
+                ?.trim()
+                ?.removePrefix("https://")
+                ?.removePrefix("http://")
+                ?.trimEnd('/')
+            if (storedValue.isNullOrEmpty()) return DEFAULT_STREAMINGCOMMUNITY_DOMAIN
+            // streamingunity.cc now redirects to streamingunity.win; migrate stale domains.
+            if (storedValue.removePrefix("www.").lowercase() in DEPRECATED_STREAMINGCOMMUNITY_DOMAINS) {
+                with(prefs.edit()) {
+                    putString(Key.STREAMINGCOMMUNITY_DOMAIN.name, DEFAULT_STREAMINGCOMMUNITY_DOMAIN)
+                    apply()
+                }
+                clearProviderCache("StreamingCommunity")
+                return DEFAULT_STREAMINGCOMMUNITY_DOMAIN
             }
+            return storedValue
         }
         set(value) {
             val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.STREAMINGCOMMUNITY_DOMAIN.name, null) else null
@@ -527,7 +547,21 @@ object UserPreferences {
         get() {
             if (!::prefs.isInitialized) return DEFAULT_CUEVANA_DOMAIN
             val storedValue = prefs.getString(Key.CUEVANA_DOMAIN.name, null)
-            return if (storedValue.isNullOrEmpty()) DEFAULT_CUEVANA_DOMAIN else storedValue
+                ?.trim()
+                ?.removePrefix("https://")
+                ?.removePrefix("http://")
+                ?.trimEnd('/')
+            if (storedValue.isNullOrEmpty()) return DEFAULT_CUEVANA_DOMAIN
+            // cuevana.gs redirects to cuevana3.gs; migrate stale stored domains.
+            if (storedValue.removePrefix("www.").lowercase() in DEPRECATED_CUEVANA_DOMAINS) {
+                with(prefs.edit()) {
+                    putString(Key.CUEVANA_DOMAIN.name, DEFAULT_CUEVANA_DOMAIN)
+                    apply()
+                }
+                clearProviderCache("Cuevana 3")
+                return DEFAULT_CUEVANA_DOMAIN
+            }
+            return storedValue
         }
         set(value) {
             val oldDomain = if (::prefs.isInitialized) prefs.getString(Key.CUEVANA_DOMAIN.name, null) else null

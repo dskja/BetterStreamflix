@@ -90,10 +90,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         val title: String?,
     )
 
-    private val DEFAULT_DOMAIN_VALUE = "streamingunity.cc"
+    private val DEFAULT_DOMAIN_VALUE = "streamingunity.win"
     private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "serienstream.to"
     private val DEFAULT_MOFLIX_DOMAIN_VALUE = "moflix-stream.xyz"
-    private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.la"
+    private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.gs"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
     private val PREFS_ERROR_VALUE = "PREFS_NOT_INIT_ERROR"
     private var currentScreenState = SettingsScreenState(rootKey = null, title = null)

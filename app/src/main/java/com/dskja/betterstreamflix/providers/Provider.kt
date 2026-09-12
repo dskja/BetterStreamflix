@@ -125,6 +125,11 @@ interface Provider {
             PlutoTvUsProvider to ProviderSupport(movies = false, tvShows = true),
             CineCityProvider to ProviderSupport(movies = false, tvShows = true),
             CineHaxProvider to ProviderSupport(movies = true, tvShows = true),
+            StreamingItaProvider to ProviderSupport(movies = true, tvShows = true),
+            AnyMovieProvider to ProviderSupport(movies = true, tvShows = true),
+            HiAnimeProvider to ProviderSupport(movies = true, tvShows = true),
+            UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true),
+            AfterDarkProvider to ProviderSupport(movies = true, tvShows = true),
         )
 
         // Helper functions to check support

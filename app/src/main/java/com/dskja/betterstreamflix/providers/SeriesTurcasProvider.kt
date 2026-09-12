@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
 object SeriesTurcasProvider : Provider, ProviderConfigUrl {
 
     override val name = "Series Turcas"
-    override val defaultBaseUrl = "https://tbg.seriesturcastv.to"
+    override val defaultBaseUrl = "https://kaj.seriesturcastv.to"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()

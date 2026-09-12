@@ -215,7 +215,7 @@ object ArtworkRepair {
 
     private fun isAnimeOnlineNinjaArtwork(url: String): Boolean {
         val lower = url.lowercase()
-        return lower.contains("ww3.animeonline.ninja")
+        return lower.contains("animeonline.ninja")
     }
 }
 

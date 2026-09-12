@@ -40,7 +40,7 @@ import org.json.JSONObject
 object CB01Provider : Provider, ProviderConfigUrl {
 
     override val name = "CB01"
-    override val defaultBaseUrl = "https://cb01official.uno"
+    override val defaultBaseUrl = "https://cb01uno.homes"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()

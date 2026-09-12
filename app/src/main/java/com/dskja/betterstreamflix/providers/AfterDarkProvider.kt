@@ -39,7 +39,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
 
     override val name = "AfterDark"
 
-    override val defaultPortalUrl: String = "https://topsitestreaming.club/site/afterdark/"
+    override val defaultPortalUrl: String = "https://topsitestreaming.club/"
 
     override val portalUrl: String = defaultPortalUrl
         get() {
@@ -47,7 +47,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty { field }
         }
 
-    override val defaultBaseUrl: String = "https://afterdark.best/"
+    override val defaultBaseUrl: String = "https://afterdark.rest/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)
@@ -671,7 +671,7 @@ object AfterDarkProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
                     val document = addressService.getPortalHome()
                     var html = document.body()
 
-                    val urlRegex = Regex("""slug:"afterdark".*?domain:"([^"]+)"""")
+                    val urlRegex = Regex("""slug:"afterdark".*?url:"([^"]+)"""")
                     var matchUrl = urlRegex.find(html ?: "")
                     val newUrl = matchUrl?.groupValues?.get(1)
 

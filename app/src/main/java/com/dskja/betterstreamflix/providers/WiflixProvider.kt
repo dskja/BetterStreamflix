@@ -38,7 +38,7 @@ object WiflixProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             return cachePortalURL.ifEmpty{ field }
         }
 
-    override val defaultBaseUrl: String = "https://flemmix.team/"
+    override val defaultBaseUrl: String = "https://www.neufneuf.space/"
     override val baseUrl: String = defaultBaseUrl
         get() {
             val cacheURL = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL)

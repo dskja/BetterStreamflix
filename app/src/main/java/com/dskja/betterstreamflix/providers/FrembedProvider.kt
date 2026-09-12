@@ -29,6 +29,7 @@ import com.dskja.betterstreamflix.utils.TMDb3.original
 import com.dskja.betterstreamflix.utils.TMDb3.w500
 import com.dskja.betterstreamflix.utils.UserPreferences
 import okhttp3.ResponseBody
+import org.jsoup.Jsoup
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.Header
 import retrofit2.http.Query
@@ -38,7 +39,7 @@ import kotlin.collections.map
 object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
     override val name = "Frembed"
 
-    override val defaultPortalUrl: String = "https://audin213.com/"
+    override val defaultPortalUrl: String = "https://frembed.casa/"
 
     override val portalUrl: String = defaultPortalUrl
         get() {
@@ -464,19 +465,33 @@ object FrembedProvider : Provider, ProviderPortalUrl, ProviderConfigUrl {
             if (forceRefresh || UserPreferences.getProviderCache(this,UserPreferences.PROVIDER_AUTOUPDATE) != "false") {
                 val addressService = Service.buildAddressFetcher()
                 try {
-                    val document = addressService.getPortalHome()
+                    // Fast path: portal domains (e.g. frembed.casa) redirect straight to the
+                    // live site — the resolved request URL is then already the new base URL.
+                    val portalRaw = addressService.loadPageRaw(portalUrl)
+                    if (!portalRaw.isSuccessful) {
+                        throw Exception("Portal fetch failed: HTTP ${portalRaw.code()}")
+                    }
+                    val resolvedPortal = portalRaw.raw().request.url.toString()
+                    if (isValidFrembedBaseUrl(resolvedPortal) &&
+                        !resolvedPortal.removeSuffix("/").equals(portalUrl.removeSuffix("/"), ignoreCase = true)
+                    ) {
+                        Log.d("FrembedProvider", "Portal redirected to live domain: $resolvedPortal")
+                        cacheProviderUrl(resolvedPortal)
+                    } else {
+                        // Classic announcement page: first link points at the live domain.
+                        val document = Jsoup.parse(portalRaw.body()?.string().orEmpty(), resolvedPortal)
+                        val newUrl = document.selectFirst("a")
+                            ?.attr("href")
+                            ?.trim()
+                        if (!newUrl.isNullOrEmpty()) {
+                            Log.d("FrembedProvider", "Fetched newUrl from portal: $newUrl")
+                            val raw = addressService.loadPageRaw(newUrl)
 
-                    val newUrl = document.selectFirst("a")
-                        ?.attr("href")
-                        ?.trim()
-                    if (!newUrl.isNullOrEmpty()) {
-                        Log.d("FrembedProvider", "Fetched newUrl from portal: $newUrl")
-                        val raw = addressService.loadPageRaw(newUrl)
-
-                        if (raw.isSuccessful) {
-                            val resolvedUrl = raw.raw().request.url.toString()
-                            Log.d("FrembedProvider", "Portal resolved to: $resolvedUrl")
-                            cacheProviderUrl(resolvedUrl)
+                            if (raw.isSuccessful) {
+                                val resolvedUrl = raw.raw().request.url.toString()
+                                Log.d("FrembedProvider", "Portal resolved to: $resolvedUrl")
+                                cacheProviderUrl(resolvedUrl)
+                            }
                         }
                     }
                 } catch (e: Exception) {

@@ -5,6 +5,27 @@ All notable changes to BetterStreamflix are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Re-enabled five previously unregistered providers whose sites are live again: StreamingIta (it), AnyMovie (en), HiAnime (en), 1Jour1Film (fr), AfterDark (fr)
+
+### Changed
+- StreamingCommunity default domain `streamingunity.cc` → `streamingunity.win`; stale stored domains auto-migrate
+- Cuevana 3 default domain `cuevana.gs` → `cuevana3.gs`; stale stored domains auto-migrate
+- Wiflix default `flemmix.team` → `neufneuf.space`
+- CB01 default `cb01official.uno` → `cb01uno.homes`
+- CineCalidad default `cinecalidad.ec` → `cinecalidad.am`
+- SeriesFlix default `seriesflixhd.lol` → `seriesflixhd.team`
+- Series Turcas default `tbg.seriesturcastv.to` → `kaj.seriesturcastv.to`
+- Anime Online Ninja `ww3.` → `ver.animeonline.ninja`
+- AfterDark `afterdark.best` → `afterdark.rest`; portal now reads the topsitestreaming.club index (new `url:` field)
+- Artwork repair matches all `animeonline.ninja` hosts, not only `ww3.`
+
+### Fixed
+- Frembed URL discovery: dead portal `audin213.com` (spam redirect) replaced by `frembed.casa`; portal redirects now resolve the live domain directly before DOM parsing
+- Settings screens showed outdated default domains for StreamingCommunity (`cuevana3.la` typo included) and Cuevana 3
+
 ## [1.1.0] - 2026-09-09
 
 Complete BetterStreamflix maintainer changelog since the upstream sync with
