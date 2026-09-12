@@ -42,7 +42,6 @@ import com.dskja.betterstreamflix.providers.SoloLatinoProvider
 import com.dskja.betterstreamflix.providers.ZaluknijProvider
 import com.dskja.betterstreamflix.ui.UpdateAppMobileDialog
 import com.dskja.betterstreamflix.utils.AppLanguageManager
-import com.dskja.betterstreamflix.utils.ExpBlur
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -636,12 +635,8 @@ class MainMobileActivity : FragmentActivity() {
             ContextCompat.getColorStateList(this, R.color.nav_item_exp)
         binding.bnvMain.itemTextColor =
             ContextCompat.getColorStateList(this, R.color.nav_item_exp)
-        // Lumina: clip + live-blur the floating nav pill.
-        (binding.root.findViewById<View>(R.id.bv_main_nav) as? eightbitlab.com.blurview.BlurView)
-            ?.let { pill ->
-                pill.clipToOutline = true
-                ExpBlur.applyTo(pill, binding.mainContent)
-            }
+        // Lumina: clip the floating glass nav pill.
+        binding.root.findViewById<View>(R.id.bv_main_nav)?.clipToOutline = true
         @Suppress("DEPRECATION")
         run {
             window.statusBarColor = ContextCompat.getColor(this, R.color.exp_canvas)

@@ -47,7 +47,7 @@
         app:layout_constraintStart_toStartOf="parent"
         tools:ignore="FragmentTagUsage" />
 
-    <eightbitlab.com.blurview.BlurView
+    <FrameLayout
         android:id="@+id/bv_main_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -56,7 +56,6 @@
         android:layout_marginBottom="14dp"
         android:background="@drawable/bg_exp_nav_pill"
         android:elevation="16dp"
-        app:blurOverlayColor="#5914141F"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -76,6 +75,6 @@
             app:labelVisibilityMode="labeled"
             app:menu="@menu/menu_main_activity_mobile" />
 
-    </eightbitlab.com.blurview.BlurView>
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
