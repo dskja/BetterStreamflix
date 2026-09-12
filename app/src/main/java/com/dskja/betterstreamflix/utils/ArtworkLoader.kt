@@ -144,8 +144,8 @@ private fun ImageView.loadRecoverableArtwork(
 
 fun ImageView.loadMoviePoster(
     movie: Movie,
-    configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
     onReady: (Drawable) -> Unit = {},
+    configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
 ) {
     loadRecoverableArtwork(movie.poster, configure, onReady) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairMovieArtwork(this, movie, staleUrl) { refreshedMovie ->
@@ -173,8 +173,8 @@ fun ImageView.loadMovieBanner(
 
 fun ImageView.loadTvShowPoster(
     tvShow: TvShow,
-    configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
     onReady: (Drawable) -> Unit = {},
+    configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
 ) {
     loadRecoverableArtwork(tvShow.poster, configure, onReady) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairTvShowArtwork(this, tvShow, staleUrl) { refreshedTvShow ->
