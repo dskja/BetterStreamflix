@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/tv_download_header"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -12,4 +13,5 @@
     android:textColor="?attr/colorPrimary"
     android:textSize="11sp"
     android:textStyle="bold"
-    android:foreground="?attr/selectableItemBackground" />
+    android:foreground="?attr/selectableItemBackground" 
+        tools:text="Beispieltext" />

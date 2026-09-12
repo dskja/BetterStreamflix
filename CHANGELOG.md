@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Experimental motion layer: ViewPager2 page transformer + animated pill dots on the featured swiper, ambient glow follows the active slide, brand fade/parallax on scroll, auto-hiding bottom nav, fragment enter transitions, staggered grid/row fill-in, loading crossfades, ribbon pop-ins, haptic ticks on primary actions
 - Experimental player polish: primary-tinted buffering spinner, glass brightness/volume panels, tabular-figure time labels, M3 error overlay with close action, content descriptions on all transport controls
 - Experimental detail screens: floating tonal back chip, play-icon CTA, M3 meta chips, provider selected-check badge, icon+text empty states for favorites/downloads/search
+- Experimental dialogs/settings: icon rows with ripple state layers in the options sheet, tonal spinner fields, primary-tinted progress in watchlist-import/bypass, tooltips + TalkBack page announcements on the swiper, all entry animations honour the system animator-duration scale
 
 ### Changed
 - StreamingCommunity default domain `streamingunity.cc` → `streamingunity.win`; stale stored domains auto-migrate
