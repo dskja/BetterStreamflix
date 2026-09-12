@@ -275,7 +275,7 @@ class HomeMobileFragment : Fragment() {
 
     private fun updateExperimentalHero(categories: List<Category>) {
         val featured = categories.find { it.name == Category.FEATURED }?.list?.firstOrNull()
-        updateExperimentalHeroArt(featured)
+        updateExperimentalHeroArt(featured as? com.dskja.betterstreamflix.models.Show)
     }
 
     /** Keeps the hero backdrop + ambient glow in sync with the featured swiper. */

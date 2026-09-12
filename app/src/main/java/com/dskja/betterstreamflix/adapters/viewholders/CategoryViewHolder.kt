@@ -170,8 +170,8 @@ class CategoryViewHolder(
         binding.llDotsIndicator.apply {
             removeAllViews()
             if (exp) {
-                val dotSize = context.dp(6)
-                val dotMargin = context.dp(5)
+                val dotSize = 6.dp(context)
+                val dotMargin = 5.dp(context)
                 repeat(category.list.size) {
                     val view = View(context).apply {
                         layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply {
@@ -204,7 +204,7 @@ class CategoryViewHolder(
                 }
                 if (exp) {
                     updateExpDots(binding, indicatorPosition)
-                    category.list.getOrNull(indicatorPosition)?.let { show ->
+                    (category.list.getOrNull(indicatorPosition) as? Show)?.let { show ->
                         (context.toActivity()?.getCurrentFragment() as? HomeMobileFragment)
                             ?.updateExperimentalHeroArt(show)
                     }
@@ -265,11 +265,11 @@ class CategoryViewHolder(
         selected: Int,
     ) {
         val activeColor = MaterialColors.getColor(
-            context, com.google.android.material.R.attr.colorPrimary, 0xFFFFFFFF.toInt(),
+            context, androidx.appcompat.R.attr.colorPrimary, 0xFFFFFFFF.toInt(),
         )
         val inactive = expDotInactive
-        val activeWidth = context.dp(20)
-        val dotSize = context.dp(6)
+        val activeWidth = 20.dp(context)
+        val dotSize = 6.dp(context)
         TransitionManager.beginDelayedTransition(
             binding.llDotsIndicator,
             AutoTransition().setDuration(180),
