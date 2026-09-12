@@ -34,7 +34,6 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
-import android.view.animation.AnimationUtils
 
 class HomeMobileFragment : Fragment() {
 
@@ -262,12 +261,10 @@ class HomeMobileFragment : Fragment() {
         )
 
         if (ExperimentalMobileDesign.enabled()) {
-            binding.rvHome.startAnimation(
-                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_up)
-            )
-            binding.root.findViewById<View>(R.id.tv_home_brand)?.startAnimation(
-                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_brand_reveal)
-            )
+            ExpMotion.startAnimation(binding.rvHome, R.anim.exp_fade_slide_up)
+            binding.root.findViewById<View>(R.id.tv_home_brand)?.let {
+                ExpMotion.startAnimation(it, R.anim.exp_brand_reveal)
+            }
         }
     }
 
@@ -316,9 +313,7 @@ class HomeMobileFragment : Fragment() {
                     }
                 })
                 .into(binding.ivHomeBackground)
-            binding.ivHomeBackground.startAnimation(
-                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_hero_kenburns)
-            )
+            ExpMotion.startAnimation(binding.ivHomeBackground, R.anim.exp_hero_kenburns)
         } else {
             binding.ivHomeBackground.setImageResource(R.drawable.bg_exp_lumina_sky)
         }

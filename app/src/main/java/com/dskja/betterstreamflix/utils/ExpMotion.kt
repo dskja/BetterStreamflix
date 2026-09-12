@@ -128,6 +128,12 @@ object ExpMotion {
         })
     }
 
+    /** Load + start an XML animation, honouring reduced-motion. */
+    fun startAnimation(view: View, animRes: Int) {
+        if (!view.motionAllowed()) return
+        view.startAnimation(AnimationUtils.loadAnimation(view.context, animRes))
+    }
+
     /** Light haptic tick for primary actions. */
     fun hapticTap(view: View) {
         if (!ExperimentalMobileDesign.enabled()) return

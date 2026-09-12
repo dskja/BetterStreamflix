@@ -38,50 +38,8 @@
     <color name="m3_inverse_primary">#3D5F90</color>
     <color name="m3_scrim">#000000</color>
 
-    <!-- exp_* compatibility tokens — layouts that still reference them get
-         the M3 look automatically. -->
-    <color name="exp_canvas">@color/m3_surface</color>
-    <color name="exp_canvas_soft">@color/m3_surface_container_low</color>
-    <color name="exp_surface">@color/m3_surface_container</color>
-    <color name="exp_surface_elevated">@color/m3_surface_container_high</color>
-    <color name="exp_ink">@color/m3_on_surface</color>
-    <color name="exp_ink_soft">@color/m3_on_surface_variant</color>
-    <color name="exp_mist">@color/m3_outline</color>
-    <color name="exp_line">@color/m3_outline_variant</color>
-    <color name="exp_accent">@color/m3_primary</color>
-    <color name="exp_accent_deep">@color/m3_inverse_primary</color>
-    <color name="exp_accent_soft">#59AAC7FF</color>
-    <color name="exp_aurora_violet">@color/m3_tertiary</color>
-    <color name="exp_aurora_violet_soft">#40D5BEE4</color>
-    <color name="exp_glass">@color/m3_surface_container_high</color>
-    <color name="exp_glass_strong">@color/m3_outline_variant</color>
-    <color name="exp_hero_scrim_top">#66101318</color>
-    <color name="exp_hero_scrim_mid">#B3101318</color>
-    <color name="exp_hero_scrim_bottom">#F2101318</color>
+    <!-- exp_* compatibility tokens still referenced by the exp button styles.
+         Everything else resolves straight to ?attr/color* tokens. -->
     <color name="exp_on_media">@color/m3_on_surface</color>
-    <color name="exp_on_media_muted">@color/m3_on_surface_variant</color>
     <color name="exp_on_accent">@color/m3_on_primary</color>
-    <color name="exp_nav_bg">@color/m3_surface_container</color>
-    <color name="exp_nav_inactive">@color/m3_on_surface_variant</color>
-
-    <!-- Legacy aliases -->
-    <color name="exp_cinema_bg">@color/exp_canvas</color>
-    <color name="exp_cinema_surface">@color/exp_surface</color>
-    <color name="exp_cinema_elevated">@color/exp_surface_elevated</color>
-    <color name="exp_teal_accent">@color/exp_accent</color>
-    <color name="exp_teal_dim">@color/exp_accent_deep</color>
-    <color name="exp_text_primary">@color/exp_ink</color>
-    <color name="exp_text_secondary">@color/exp_ink_soft</color>
-    <color name="exp_charcoal">@color/exp_canvas</color>
-    <color name="exp_charcoal_elevated">@color/exp_surface_elevated</color>
-    <color name="exp_charcoal_nav">@color/exp_nav_bg</color>
-    <color name="exp_steel_teal">@color/exp_accent</color>
-    <color name="exp_steel_teal_dim">@color/exp_accent_deep</color>
-    <color name="exp_text_muted">@color/exp_mist</color>
-    <color name="exp_frost">@color/exp_ink</color>
-    <color name="exp_signal">@color/exp_accent</color>
-    <color name="exp_signal_dim">@color/exp_accent_deep</color>
-    <color name="exp_haze">@color/exp_line</color>
-    <color name="exp_ink_elevated">@color/exp_surface_elevated</color>
-    <color name="exp_ink_nav">@color/exp_nav_bg</color>
 </resources>

@@ -62,6 +62,10 @@ class MovieMobileFragment : Fragment() {
         ExpNavAutoHide.attach(binding.root)
         ExpMotion.enterScreen(binding.root)
         binding.root.findViewById<View>(com.dskja.betterstreamflix.R.id.iv_detail_back)
+            ?.also { back ->
+                androidx.appcompat.widget.TooltipCompat.setTooltipText(
+                    back, back.context.getString(com.dskja.betterstreamflix.R.string.exp_back))
+            }
             ?.setOnClickListener {
                 androidx.navigation.Navigation.findNavController(binding.root).navigateUp()
             }

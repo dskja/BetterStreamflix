@@ -207,6 +207,16 @@ class CategoryViewHolder(
                     (category.list.getOrNull(indicatorPosition) as? Show)?.let { show ->
                         (context.toActivity()?.getCurrentFragment() as? HomeMobileFragment)
                             ?.updateExperimentalHeroArt(show)
+                        val title = when (show) {
+                            is Movie -> show.title
+                            is TvShow -> show.title
+                            else -> null
+                        }
+                        if (title != null) {
+                            binding.vpCategorySwiper.announceForAccessibility(
+                                context.getString(R.string.exp_swiper_page, title)
+                            )
+                        }
                     }
                 } else {
                     binding.llDotsIndicator.children.forEachIndexed { index, view ->

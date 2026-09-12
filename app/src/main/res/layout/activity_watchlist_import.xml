@@ -11,7 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="4dp"
         android:indeterminate="false"
-        android:max="100" />
+        android:max="100"
+        android:progressTint="?attr/colorPrimary" />
 
     <TextView
         android:id="@+id/watchlist_status"

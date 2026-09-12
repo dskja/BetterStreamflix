@@ -25,7 +25,6 @@ import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import kotlinx.coroutines.launch
-import android.view.animation.AnimationUtils
 
 class MoviesMobileFragment : Fragment() {
 
@@ -59,9 +58,7 @@ class MoviesMobileFragment : Fragment() {
         ExpMotion.enterScreen(binding.root)
         ExpMotion.staggerFirstFill(binding.rvMovies)
         if (ExperimentalMobileDesign.enabled()) {
-            binding.rvMovies.startAnimation(
-                AnimationUtils.loadAnimation(requireContext(), R.anim.exp_fade_slide_in)
-            )
+            ExpMotion.startAnimation(binding.rvMovies, R.anim.exp_fade_slide_in)
         }
 
         initializeMovies()
