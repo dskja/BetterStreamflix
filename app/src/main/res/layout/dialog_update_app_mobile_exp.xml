@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_exp_dialog">
+
+    <TextView
+        android:id="@+id/tv_update_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="22dp"
+        android:layout_marginEnd="20dp"
+        android:fontFamily="@font/fraunces"
+        android:gravity="center"
+        android:letterSpacing="-0.01"
+        android:text="@string/update_title"
+        android:textColor="@color/exp_ink"
+        android:textSize="26sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_update_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="20dp"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"
+        android:text="@string/update_message"
+        android:textColor="@color/exp_ink_soft"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_title" />
+
+    <TextView
+        android:id="@+id/tv_update_current_version_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="26dp"
+        android:layout_marginEnd="16dp"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"
+        android:letterSpacing="0.1"
+        android:text="@string/update_current_version_label"
+        android:textAllCaps="true"
+        android:textColor="@color/exp_mist"
+        android:textSize="11sp"
+        app:layout_constraintEnd_toStartOf="@id/iv_update_arrow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_message" />
+
+    <TextView
+        android:id="@+id/tv_update_current_version"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"
+        android:textColor="@color/exp_ink_soft"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toStartOf="@id/iv_update_arrow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_current_version_label"
+        tools:text="2.15.0" />
+
+    <ImageView
+        android:id="@+id/iv_update_arrow"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginTop="26dp"
+        android:src="@drawable/ic_update_arrow_right"
+        app:layout_constraintBottom_toBottomOf="@id/tv_update_new_version"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_message"
+        app:tint="@color/exp_accent"
+        tools:ignore="ContentDescription" />
+
+    <TextView
+        android:id="@+id/tv_update_new_version_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="26dp"
+        android:layout_marginEnd="16dp"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"
+        android:letterSpacing="0.1"
+        android:text="@string/update_new_version_label"
+        android:textAllCaps="true"
+        android:textColor="@color/exp_accent"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/iv_update_arrow"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_message" />
+
+    <TextView
+        android:id="@+id/tv_update_new_version"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:fontFamily="@font/fraunces"
+        android:gravity="center"
+        android:textColor="@color/exp_ink"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/iv_update_arrow"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_new_version_label"
+        tools:text="2.15.1" />
+
+    <TextView
+        android:id="@+id/tv_update_release_notes_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:fontFamily="@font/manrope"
+        android:letterSpacing="0.1"
+        android:text="@string/update_release_notes"
+        android:textAllCaps="true"
+        android:textColor="@color/exp_accent"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_new_version" />
+
+    <ScrollView
+        android:id="@+id/sv_release_notes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp"
+        android:background="@drawable/bg_exp_provider_card"
+        android:padding="14dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_max="300dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_update_release_notes_label">
+
+        <TextView
+            android:id="@+id/tv_update_release_notes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/manrope"
+            android:lineSpacingExtra="3dp"
+            android:textColor="@color/exp_ink_soft"
+            android:textSize="12sp"
+            tools:text="- Bug fixes" />
+    </ScrollView>
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrier1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="tv_update_current_version,tv_update_new_version,sv_release_notes" />
+
+    <ProgressBar
+        android:id="@+id/pb_update_is_loading"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/exp_accent"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/barrier1"
+        tools:visibility="visible" />
+
+    <Button
+        android:id="@+id/btn_update_cancel"
+        style="?android:attr/buttonBarButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="2dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/update_later"
+        android:textColor="@color/exp_ink_soft"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_update"
+        app:layout_constraintTop_toBottomOf="@id/pb_update_is_loading" />
+
+    <Button
+        android:id="@+id/btn_update"
+        style="?android:attr/buttonBarButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/update"
+        android:textColor="@color/exp_accent"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/pb_update_is_loading" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

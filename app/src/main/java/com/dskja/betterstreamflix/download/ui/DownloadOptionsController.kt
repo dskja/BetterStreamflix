@@ -30,6 +30,7 @@ import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -164,7 +165,13 @@ object DownloadOptionsController {
     }
 
     private fun showOptionsDialog(activity: Activity, prepared: DownloadPrepareResult) {
-        val view = LayoutInflater.from(activity).inflate(R.layout.dialog_download_options, null)
+        val view = LayoutInflater.from(activity).inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.dialog_download_options,
+                R.layout.dialog_download_options_exp,
+            ),
+            null,
+        )
         val titleView = view.findViewById<TextView>(R.id.tv_download_options_title)
         val subtitleView = view.findViewById<TextView>(R.id.tv_download_options_subtitle)
         val storageView = view.findViewById<TextView>(R.id.tv_download_options_storage)

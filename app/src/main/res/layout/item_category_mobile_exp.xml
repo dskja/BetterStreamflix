@@ -6,8 +6,8 @@
     android:layout_height="wrap_content"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingTop="20dp"
-    android:paddingBottom="8dp">
+    android:paddingTop="24dp"
+    android:paddingBottom="10dp">
 
     <TextView
         android:id="@+id/tv_category_title"
@@ -15,11 +15,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
         android:layout_marginEnd="22dp"
-        android:fontFamily="@font/syne"
-        android:letterSpacing="0.02"
+        android:fontFamily="@font/fraunces"
+        android:letterSpacing="0.01"
         android:textColor="@color/exp_ink"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:textSize="19sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -27,9 +26,9 @@
 
     <View
         android:id="@+id/v_category_rule"
-        android:layout_width="32dp"
+        android:layout_width="36dp"
         android:layout_height="3dp"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="10dp"
         android:background="@drawable/bg_exp_accent_rule"
         app:layout_constraintStart_toStartOf="@id/tv_category_title"
         app:layout_constraintTop_toBottomOf="@id/tv_category_title" />

@@ -11,7 +11,7 @@
                 android:angle="135"
                 android:centerColor="@android:color/transparent"
                 android:endColor="@android:color/transparent"
-                android:startColor="@color/exp_accent_soft"
+                android:startColor="#1AE9C77E"
                 android:type="linear" />
         </shape>
     </item>

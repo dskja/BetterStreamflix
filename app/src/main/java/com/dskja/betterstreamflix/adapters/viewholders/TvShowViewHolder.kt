@@ -58,6 +58,9 @@ import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.dskja.betterstreamflix.ui.ShowOptionsTvDialog
+import com.dskja.betterstreamflix.utils.ExpAmbientGlow
+import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.format
 import com.dskja.betterstreamflix.utils.toActivity
@@ -78,6 +81,17 @@ class TvShowViewHolder(
     private val context = itemView.context
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
+
+    init {
+        if (ExperimentalMobileDesign.enabled() &&
+            (_binding is ItemTvShowMobileBinding ||
+                _binding is ItemTvShowGridMobileBinding ||
+                _binding is ItemCategorySwiperMobileBinding)
+        ) {
+            itemView.applyExpPress()
+        }
+    }
+
     private lateinit var tvShow: TvShow
     private var onTvShowClick: ((TvShow) -> Unit)? = null
     private var onTvShowLongClick: ((TvShow) -> Unit)? = null
@@ -609,10 +623,21 @@ class TvShowViewHolder(
 
     private fun displayTvShowMobile(binding: ContentTvShowMobileBinding) {
         binding.ivTvShowPoster.run {
-            loadTvShowPoster(tvShow) {
-                fallback(R.drawable.glide_fallback_cover)
-                transition(DrawableTransitionOptions.withCrossFade())
-            }
+            loadTvShowPoster(
+                tvShow,
+                configure = {
+                    fallback(R.drawable.glide_fallback_cover)
+                    transition(DrawableTransitionOptions.withCrossFade())
+                },
+                onReady = { drawable ->
+                    binding.root.findViewById<View>(R.id.v_tv_show_poster_glow)?.let { glow ->
+                        ExpAmbientGlow.apply(
+                            (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap,
+                            glow,
+                        )
+                    }
+                },
+            )
             visibility = if (tvShow.poster.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
         binding.tvTvShowTitle.text = tvShow.title

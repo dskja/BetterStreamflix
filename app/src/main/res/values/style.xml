@@ -30,20 +30,22 @@
     <style name="AppTheme.Widget.Mobile.Button.Exp" parent="AppTheme.Mobile">
         <item name="android:background">@drawable/bg_exp_button_primary</item>
         <item name="android:fontFamily">@font/manrope</item>
-        <item name="android:paddingTop">13dp</item>
-        <item name="android:paddingBottom">13dp</item>
-        <item name="android:paddingStart">26dp</item>
-        <item name="android:paddingEnd">26dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:paddingStart">28dp</item>
+        <item name="android:paddingEnd">28dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textColor">@color/exp_on_accent</item>
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.01</item>
         <item name="android:textSize">14sp</item>
+        <item name="android:elevation">4dp</item>
     </style>
 
     <style name="AppTheme.Widget.Mobile.Button.Exp.Secondary" parent="AppTheme.Widget.Mobile.Button.Exp">
         <item name="android:background">@drawable/bg_exp_button_secondary</item>
         <item name="android:textColor">@color/exp_on_media</item>
+        <item name="android:elevation">0dp</item>
     </style>
 
     <style name="AppTheme.Widget.Mobile.Button.Exp.OnMedia" parent="AppTheme.Widget.Mobile.Button.Exp">
@@ -56,15 +58,35 @@
         <item name="android:textColor">@color/exp_on_media</item>
     </style>
 
-    <!-- Aurora rounded media shapes -->
-    <style name="ShapeAppearance.Aurora.Poster" parent="">
+    <!-- Lumina rounded media shapes -->
+    <style name="ShapeAppearance.Lumina.Poster" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
     </style>
 
-    <style name="ShapeAppearance.Aurora.PosterSmall" parent="">
+    <style name="ShapeAppearance.Lumina.PosterSmall" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Lumina.Card" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Lumina.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Lumina.Episode" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Lumina.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
     </style>
 
     <!-- Stile per forzare il fondo nero nelle schermate di impostazione (Leanback) -->

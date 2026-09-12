@@ -24,6 +24,7 @@ import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExpAmbientGlow
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -159,6 +160,31 @@ class HomeMobileFragment : Fragment() {
         // Default shell hides the background; experimental keeps a full-bleed hero plane.
         binding.ivHomeBackground.visibility =
             if (ExperimentalMobileDesign.enabled()) View.VISIBLE else View.GONE
+
+        if (ExperimentalMobileDesign.enabled()) {
+            applyExperimentalParallax()
+        }
+    }
+
+    private var heroScrollOffset = 0
+
+    private fun applyExperimentalParallax() {
+        binding.rvHome.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                heroScrollOffset += dy
+                // Hero drifts up slower than content, glow/veil follow it.
+                val parallax = (heroScrollOffset * 0.38f).coerceIn(0f, 900f)
+                binding.ivHomeBackground.translationY = -parallax
+                binding.root.findViewById<View>(R.id.v_home_atmosphere)
+                    ?.translationY = -parallax
+                binding.root.findViewById<View>(R.id.tv_home_brand)
+                    ?.translationY = -parallax * 0.5f
+                binding.root.findViewById<View>(R.id.tv_home_tagline)
+                    ?.translationY = -parallax * 0.5f
+                binding.root.findViewById<View>(R.id.v_home_brand_rule)
+                    ?.translationY = -parallax * 0.5f
+            }
+        })
     }
 
     private fun displayHome(categories: List<Category>) {
@@ -246,12 +272,34 @@ class HomeMobileFragment : Fragment() {
                 .load(art)
                 .transition(DrawableTransitionOptions.withCrossFade(450))
                 .centerCrop()
+                .listener(object : com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable> {
+                    override fun onLoadFailed(
+                        e: com.bumptech.glide.load.engine.GlideException?,
+                        model: Any?,
+                        target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>,
+                        isFirstResource: Boolean,
+                    ) = false
+
+                    override fun onResourceReady(
+                        resource: android.graphics.drawable.Drawable,
+                        model: Any,
+                        target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>,
+                        dataSource: com.bumptech.glide.load.DataSource,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        val bitmap = (resource as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                        binding.root.findViewById<View>(R.id.v_home_glow)?.let { glow ->
+                            ExpAmbientGlow.apply(bitmap, glow)
+                        }
+                        return false
+                    }
+                })
                 .into(binding.ivHomeBackground)
             binding.ivHomeBackground.startAnimation(
                 AnimationUtils.loadAnimation(requireContext(), R.anim.exp_hero_kenburns)
             )
         } else {
-            binding.ivHomeBackground.setImageResource(R.drawable.bg_exp_aurora_sky)
+            binding.ivHomeBackground.setImageResource(R.drawable.bg_exp_lumina_sky)
         }
     }
 }

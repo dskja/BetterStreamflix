@@ -7,15 +7,16 @@
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_tv_show_poster"
+        android:foreground="@drawable/bg_exp_poster_scrim"
         android:layout_width="0dp"
-        android:layout_height="248dp"
+        android:layout_height="252dp"
         android:importantForAccessibility="no"
         android:scaleType="centerCrop"
         app:layout_constraintDimensionRatio="2:3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Aurora.Poster"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.Poster"
         app:strokeColor="@color/exp_glass_strong"
         app:strokeWidth="1dp" />
 
@@ -52,11 +53,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="9dp"
         android:layout_marginEnd="9dp"
+        android:background="@drawable/bg_exp_meta_pill"
         android:fontFamily="@font/manrope"
-        android:padding="2dp"
+        android:paddingStart="7dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="7dp"
+        android:paddingBottom="2dp"
         android:textAllCaps="true"
-        android:textColor="@color/exp_on_media"
-        android:textSize="10sp"
+        android:textColor="@color/exp_on_accent"
+        android:textSize="9sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
         app:layout_constraintTop_toTopOf="@id/iv_tv_show_poster"
@@ -74,7 +79,7 @@
         android:textSize="10sp"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
         app:layout_constraintTop_toBottomOf="@id/tv_tv_show_quality"
-        app:layout_goneMarginTop="7dp"
+        app:layout_goneMarginTop="6dp"
         tools:text="S1 E1" />
 
     <ProgressBar
@@ -85,8 +90,7 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="10dp"
-        android:backgroundTint="@color/exp_glass_strong"
-        android:progressTint="@color/exp_accent"
+        android:progressDrawable="@drawable/bg_exp_progress_track"
         app:layout_constraintBottom_toBottomOf="@id/iv_tv_show_poster"
         app:layout_constraintEnd_toEndOf="@id/iv_tv_show_poster"
         app:layout_constraintStart_toStartOf="@id/iv_tv_show_poster"

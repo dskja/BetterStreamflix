@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <set xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="720"
-    android:interpolator="@android:interpolator/decelerate_cubic"
-    android:shareInterpolator="true">
+    android:interpolator="@android:interpolator/decelerate_quint">
     <alpha
+        android:duration="700"
         android:fromAlpha="0"
         android:toAlpha="1" />
     <scale
+        android:duration="700"
         android:fromXScale="0.94"
         android:fromYScale="0.94"
-        android:pivotX="0%"
+        android:pivotX="50%"
         android:pivotY="50%"
         android:toXScale="1"
         android:toYScale="1" />
     <translate
-        android:fromYDelta="14"
+        android:duration="700"
+        android:fromYDelta="4%"
         android:toYDelta="0" />
 </set>

@@ -7,7 +7,9 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.view.isVisible
 import com.dskja.betterstreamflix.BuildConfig
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.databinding.DialogUpdateAppMobileBinding
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.GitHub
 
 class UpdateAppMobileDialog(
@@ -15,7 +17,15 @@ class UpdateAppMobileDialog(
     newReleases: List<GitHub.Release>,
 ) : Dialog(context) {
 
-    private val binding = DialogUpdateAppMobileBinding.inflate(LayoutInflater.from(context))
+    private val binding = DialogUpdateAppMobileBinding.bind(
+        LayoutInflater.from(context).inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.dialog_update_app_mobile,
+                R.layout.dialog_update_app_mobile_exp,
+            ),
+            null,
+        )
+    )
 
     var isLoading: Boolean
         get() = binding.pbUpdateIsLoading.isVisible

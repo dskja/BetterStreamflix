@@ -422,8 +422,8 @@
     <string name="settings_immersive_mode_on">An (Leisten ausgeblendet)</string>
     <string name="settings_immersive_mode_off">Aus (Leisten sichtbar)</string>
     <string name="settings_experimental_new_design_title">Experimentelles App-Design</string>
-    <string name="settings_experimental_new_design_summary">Aurora — nächtliches Glass-Cinema-Shell für Mobile. Startet die App neu. Standardmäßig aus.</string>
-    <string name="exp_home_tagline">Kino im Nordlicht</string>
+    <string name="settings_experimental_new_design_summary">Lumina — cineastisches Dark-Glass-Shell für Mobile. Startet die App neu. Standardmäßig aus.</string>
+    <string name="exp_home_tagline">Kino in schönstem Licht</string>
     <string name="player_cast_unsupported_stream">Dieser Stream kann nicht gecastet werden (Inline-Playlist). Anderen Server versuchen.</string>
     <string name="player_cast_proxy_unavailable">Cast-Proxy in diesem Netzwerk nicht verfügbar. Streaming ohne Header kann fehlschlagen.</string>
     <string name="settings_catalog_sort_title">Katalog-Sortierung</string>

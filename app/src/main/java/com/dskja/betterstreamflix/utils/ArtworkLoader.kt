@@ -91,6 +91,7 @@ private object ArtworkRepairCoordinator {
 private fun ImageView.loadRecoverableArtwork(
     initialUrl: String?,
     configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable>,
+    onReady: (Drawable) -> Unit = {},
     onRepair: (staleUrl: String, onUpdated: (String) -> Unit) -> Unit,
 ) {
     var hasRequestedRepairForBlankUrl = false
@@ -130,7 +131,10 @@ private fun ImageView.loadRecoverableArtwork(
                     target: Target<Drawable>?,
                     dataSource: DataSource,
                     isFirstResource: Boolean,
-                ) = false
+                ): Boolean {
+                    onReady(resource)
+                    return false
+                }
             })
             .into(this)
     }
@@ -141,8 +145,9 @@ private fun ImageView.loadRecoverableArtwork(
 fun ImageView.loadMoviePoster(
     movie: Movie,
     configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
+    onReady: (Drawable) -> Unit = {},
 ) {
-    loadRecoverableArtwork(movie.poster, configure) { staleUrl, onUpdated ->
+    loadRecoverableArtwork(movie.poster, configure, onReady) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairMovieArtwork(this, movie, staleUrl) { refreshedMovie ->
             val refreshedUrl = refreshedMovie.poster
             if (!refreshedUrl.isNullOrBlank() && refreshedUrl != staleUrl) {
@@ -169,8 +174,9 @@ fun ImageView.loadMovieBanner(
 fun ImageView.loadTvShowPoster(
     tvShow: TvShow,
     configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
+    onReady: (Drawable) -> Unit = {},
 ) {
-    loadRecoverableArtwork(tvShow.poster, configure) { staleUrl, onUpdated ->
+    loadRecoverableArtwork(tvShow.poster, configure, onReady) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairTvShowArtwork(this, tvShow, staleUrl) { refreshedTvShow ->
             val refreshedUrl = refreshedTvShow.poster
             if (!refreshedUrl.isNullOrBlank() && refreshedUrl != staleUrl) {

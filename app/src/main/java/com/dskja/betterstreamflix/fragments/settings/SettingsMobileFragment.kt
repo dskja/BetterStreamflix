@@ -52,6 +52,7 @@ import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.ui.UserDataNotifier
 import com.dskja.betterstreamflix.utils.ThemeManager
@@ -1660,7 +1661,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
 
         val contentView = LayoutInflater.from(requireContext()).inflate(
-            R.layout.layout_is_loading_mobile,
+            ExperimentalMobileDesign.layout(
+                R.layout.layout_is_loading_mobile,
+                R.layout.layout_is_loading_mobile_exp,
+            ),
             null
         )
         contentView.findViewById<android.widget.TextView>(R.id.tv_is_loading_error)?.visibility = View.GONE

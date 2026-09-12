@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_exp_bottom_sheet"
+    android:paddingBottom="20dp">
+
+    <ImageView
+        android:id="@+id/ic_handlebar"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_handlebar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/exp_mist"
+        tools:ignore="ContentDescription" />
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/iv_options_show_poster"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="18dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ic_handlebar"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Lumina.Episode"
+        app:strokeColor="@color/exp_glass_strong"
+        app:strokeWidth="1dp"
+        tools:ignore="ContentDescription" />
+
+    <TextView
+        android:id="@+id/tv_options_show_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="18dp"
+        android:fontFamily="@font/fraunces"
+        android:letterSpacing="-0.01"
+        android:textColor="@color/exp_ink"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/iv_options_show_poster"
+        tools:text="Title" />
+
+    <TextView
+        android:id="@+id/tv_show_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="18dp"
+        android:fontFamily="@font/manrope"
+        android:textColor="@color/exp_ink_soft"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_options_show_title"
+        tools:text="Subtitle" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="14dp"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_show_subtitle">
+
+        <TextView
+            android:id="@+id/btn_option_episode_open_tv_show"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_episode_open_tv_show"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btn_option_show_favorite"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_show_favorite"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btn_option_show_watched"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_show_watched"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btn_option_show_download"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_show_download"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btn_option_episode_mark_all_previous_watched"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_show_mark_all_previous_watched"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btn_option_program_clear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_clear_program"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btn_option_recently_watched_clear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_option_item"
+            android:fontFamily="@font/manrope"
+            android:gravity="center_vertical"
+            android:padding="14dp"
+            android:text="@string/option_clear_recently_watched"
+            android:textColor="@color/exp_ink"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/btn_option_cancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_exp_chip"
+            android:fontFamily="@font/manrope"
+            android:gravity="center"
+            android:padding="14dp"
+            android:text="@string/option_cancel"
+            android:textColor="@color/exp_mist"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

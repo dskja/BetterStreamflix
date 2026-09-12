@@ -20,6 +20,7 @@ import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.providers.AniWorldProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.watchlist.WatchlistImporter
@@ -68,7 +69,13 @@ class WatchlistImportActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
+        setTheme(
+            if (ExperimentalMobileDesign.enabled()) {
+                R.style.AppTheme_Mobile_Experimental
+            } else {
+                ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
+            }
+        )
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_watchlist_import)
         WindowCompat.setDecorFitsSystemWindows(window, false)

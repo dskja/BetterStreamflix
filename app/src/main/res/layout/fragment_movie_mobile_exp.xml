@@ -22,7 +22,7 @@
     <View
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@drawable/bg_exp_aurora_veil"
+        android:background="@drawable/bg_exp_lumina_veil"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -43,7 +43,7 @@
 
     <include
         android:id="@+id/is_loading"
-        layout="@layout/layout_is_loading_mobile"
+        layout="@layout/layout_is_loading_mobile_exp"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"

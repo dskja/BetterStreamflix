@@ -34,7 +34,7 @@
         android:layout_marginStart="36dp"
         android:layout_marginTop="36dp"
         android:layout_marginEnd="36dp"
-        android:fontFamily="@font/syne"
+        android:fontFamily="@font/fraunces"
         android:gravity="center"
         android:letterSpacing="-0.02"
         android:text="@string/providers_choose_title"
@@ -66,7 +66,7 @@
         android:clipToPadding="false"
         android:orientation="vertical"
         android:paddingTop="12dp"
-        android:paddingBottom="32dp"
+        android:paddingBottom="110dp"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -74,11 +74,11 @@
         app:layout_constraintTop_toBottomOf="@id/tv_providers_label"
         app:spanCount="2"
         tools:itemCount="3"
-        tools:listitem="@layout/item_provider_mobile" />
+        tools:listitem="@layout/item_provider_mobile_exp" />
 
     <include
         android:id="@+id/is_loading"
-        layout="@layout/layout_is_loading_mobile"
+        layout="@layout/layout_is_loading_mobile_exp"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"

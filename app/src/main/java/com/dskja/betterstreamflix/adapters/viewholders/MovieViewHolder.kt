@@ -79,6 +79,9 @@ import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.ui.ShowOptionsMobileDialog
 import com.dskja.betterstreamflix.ui.ShowOptionsTvDialog
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
+import com.dskja.betterstreamflix.utils.ExpAmbientGlow
+import com.dskja.betterstreamflix.utils.ExpPressEffects.applyExpPress
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.dp
 import androidx.preference.Preference
 import com.dskja.betterstreamflix.utils.format
@@ -109,6 +112,16 @@ class MovieViewHolder(
     private val context = itemView.context
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
+
+    init {
+        if (ExperimentalMobileDesign.enabled() &&
+            (_binding is ItemMovieMobileBinding ||
+                _binding is ItemMovieGridMobileBinding ||
+                _binding is ItemCategorySwiperMobileBinding)
+        ) {
+            itemView.applyExpPress()
+        }
+    }
     private lateinit var movie: Movie
     private var onMovieClick: ((Movie) -> Unit)? = null
     private var onMovieLongClick: ((Movie) -> Unit)? = null
@@ -766,9 +779,18 @@ class MovieViewHolder(
 
     private fun displayMovieMobile(binding: ContentMovieMobileBinding) {
         binding.ivMoviePoster.run {
-            loadMoviePoster(movie) {
-                transition(DrawableTransitionOptions.withCrossFade())
-            }
+            loadMoviePoster(
+                movie,
+                configure = { transition(DrawableTransitionOptions.withCrossFade()) },
+                onReady = { drawable ->
+                    binding.root.findViewById<View>(R.id.v_movie_poster_glow)?.let { glow ->
+                        ExpAmbientGlow.apply(
+                            (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap,
+                            glow,
+                        )
+                    }
+                },
+            )
             visibility = when {
                 movie.poster.isNullOrEmpty() -> View.GONE
                 else -> View.VISIBLE

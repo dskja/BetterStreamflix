@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="620dp"
+    android:layout_height="640dp"
     android:background="@color/exp_canvas">
 
     <androidx.viewpager2.widget.ViewPager2
@@ -18,31 +18,39 @@
 
     <TextView
         android:id="@+id/tv_category_title"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="22dp"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/bg_exp_chip"
         android:elevation="10dp"
         android:fontFamily="@font/manrope"
-        android:letterSpacing="0.18"
+        android:letterSpacing="0.22"
+        android:paddingStart="14dp"
+        android:paddingTop="7dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="7dp"
         android:textAllCaps="true"
-        android:textColor="@color/exp_on_media_muted"
-        android:textSize="11sp"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:textColor="@color/exp_accent"
+        android:textSize="10sp"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Featured"
-        tools:visibility="visible" />
+        tools:text="Featured" />
 
     <LinearLayout
         android:id="@+id/ll_dots_indicator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="22dp"
-        android:layout_marginBottom="26dp"
+        android:layout_marginBottom="30dp"
+        android:background="@drawable/bg_exp_chip"
+        android:gravity="center"
         android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="7dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="7dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/exp_canvas"
+    android:padding="22dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_download_options_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/fraunces"
+            android:letterSpacing="-0.01"
+            android:textColor="@color/exp_ink"
+            android:textSize="22sp" />
+
+        <TextView
+            android:id="@+id/tv_download_options_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:fontFamily="@font/manrope"
+            android:textColor="@color/exp_ink_soft"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tv_download_options_storage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/manrope"
+            android:textColor="@color/exp_mist"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:fontFamily="@font/manrope"
+            android:letterSpacing="0.1"
+            android:text="@string/download_options_server"
+            android:textAllCaps="true"
+            android:textColor="@color/exp_accent"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Spinner
+            android:id="@+id/sp_download_server"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_spinner"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="@font/manrope"
+            android:letterSpacing="0.1"
+            android:text="@string/download_options_quality"
+            android:textAllCaps="true"
+            android:textColor="@color/exp_accent"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Spinner
+            android:id="@+id/sp_download_quality"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_exp_spinner"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp" />
+
+        <ProgressBar
+            android:id="@+id/pb_download_options_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="14dp"
+            android:indeterminateTint="@color/exp_accent"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_download_options_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="@font/manrope"
+            android:text="@string/download_options_wifi_hint"
+            android:textColor="@color/exp_mist"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

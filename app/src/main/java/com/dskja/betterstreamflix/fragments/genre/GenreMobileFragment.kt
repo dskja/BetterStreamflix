@@ -21,6 +21,7 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
@@ -43,7 +44,16 @@ class GenreMobileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentGenreMobileBinding.inflate(inflater, container, false)
+        _binding = FragmentGenreMobileBinding.bind(
+            inflater.inflate(
+                ExperimentalMobileDesign.layout(
+                    R.layout.fragment_genre_mobile,
+                    R.layout.fragment_genre_mobile_exp,
+                ),
+                container,
+                false,
+            )
+        )
         return binding.root
     }
 
@@ -132,10 +142,15 @@ class GenreMobileFragment : Fragment() {
     private fun displayGenre(genre: Genre, hasMore: Boolean) {
         appAdapter.setHeader(
             binding = { parent ->
-                HeaderGenreMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
+                HeaderGenreMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.header_genre_mobile,
+                            R.layout.header_genre_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             },
             bind = { binding ->

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.databinding.ItemSettingMobileBinding
 import com.dskja.betterstreamflix.databinding.ViewPlayerSettingsMobileBinding
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.margin
 
@@ -21,10 +22,15 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : PlayerSettingsView(context, attrs, defStyleAttr) {
 
-    val binding = ViewPlayerSettingsMobileBinding.inflate(
-        LayoutInflater.from(context),
-        this,
-        true
+    val binding = ViewPlayerSettingsMobileBinding.bind(
+        LayoutInflater.from(context).inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.view_player_settings_mobile,
+                R.layout.view_player_settings_mobile_exp,
+            ),
+            this,
+            true,
+        )
     )
 
     private val settingsAdapter = SettingsAdapter(this, Settings.listMobile)
@@ -200,10 +206,15 @@ class PlayerSettingsMobileView @JvmOverloads constructor(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             SettingViewHolder(
                 settingsView,
-                ItemSettingMobileBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
+                ItemSettingMobileBinding.bind(
+                    LayoutInflater.from(parent.context).inflate(
+                        ExperimentalMobileDesign.layout(
+                            R.layout.item_setting_mobile,
+                            R.layout.item_setting_mobile_exp,
+                        ),
+                        parent,
+                        false,
+                    )
                 )
             )
 

@@ -42,6 +42,7 @@ import com.dskja.betterstreamflix.providers.SoloLatinoProvider
 import com.dskja.betterstreamflix.providers.ZaluknijProvider
 import com.dskja.betterstreamflix.ui.UpdateAppMobileDialog
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.ExpBlur
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -107,7 +108,13 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
+        setTheme(
+            if (ExperimentalMobileDesign.enabled()) {
+                R.style.AppTheme_Mobile_Experimental
+            } else {
+                ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
+            }
+        )
 
         super.onCreate(savedInstanceState)
 
@@ -318,7 +325,10 @@ class MainMobileActivity : FragmentActivity() {
     private fun updateBottomNavigationVisibility(destinationId: Int?) {
         val showBottomNav =
             UserPreferences.currentProvider != null && isTopLevelProviderDestination(destinationId)
-        binding.bnvMain.visibility = if (showBottomNav) View.VISIBLE else View.GONE
+        val navVisibility = if (showBottomNav) View.VISIBLE else View.GONE
+        binding.bnvMain.visibility = navVisibility
+        // Lumina: the floating glass pill wraps the nav — hide the container too.
+        binding.root.findViewById<View>(R.id.bv_main_nav)?.visibility = navVisibility
         binding.btnMainSearch.visibility = if (
             UserPreferences.currentProvider != null &&
             isTopLevelProviderDestination(destinationId) &&
@@ -622,15 +632,19 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     private fun applyExperimentalNavigationChrome() {
-        binding.bnvMain.setBackgroundResource(R.drawable.bg_exp_bottom_nav)
         binding.bnvMain.itemIconTintList =
             ContextCompat.getColorStateList(this, R.color.nav_item_exp)
         binding.bnvMain.itemTextColor =
             ContextCompat.getColorStateList(this, R.color.nav_item_exp)
-        val canvas = ContextCompat.getColor(this, R.color.exp_canvas)
+        // Lumina: clip + live-blur the floating nav pill.
+        (binding.root.findViewById<View>(R.id.bv_main_nav) as? eightbitlab.com.blurview.BlurView)
+            ?.let { pill ->
+                pill.clipToOutline = true
+                ExpBlur.applyTo(pill, binding.mainContent)
+            }
         @Suppress("DEPRECATION")
         run {
-            window.statusBarColor = canvas
+            window.statusBarColor = ContextCompat.getColor(this, R.color.exp_canvas)
             window.navigationBarColor = ContextCompat.getColor(this, R.color.exp_nav_bg)
         }
         WindowInsetsControllerCompat(window, window.decorView).apply {

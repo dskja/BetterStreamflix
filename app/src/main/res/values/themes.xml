@@ -21,6 +21,55 @@
         <item name="android:textStyle">bold</item>
     </style>
 
+    <!-- Lumina experimental shell theme: dark glass canvas + champagne accent.
+         Applied in MainMobileActivity when EXPERIMENTAL_NEW_APP_DESIGN is on, so
+         settings screens, dialogs and system chrome follow the shell too. -->
+    <style name="AppTheme.Mobile.Experimental" parent="Theme.AppCompat">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="app_background_color">@color/exp_canvas</item>
+        <item name="android:windowBackground">@color/exp_canvas</item>
+        <item name="android:colorBackground">@color/exp_canvas</item>
+        <item name="colorAccent">@color/exp_accent</item>
+        <item name="colorControlActivated">@color/exp_accent</item>
+        <item name="colorControlNormal">@color/exp_mist</item>
+        <item name="colorControlHighlight">@color/exp_accent_soft</item>
+        <item name="android:textColorPrimary">@color/exp_ink</item>
+        <item name="android:textColorSecondary">@color/exp_ink_soft</item>
+        <item name="android:textColorHint">@color/exp_mist</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Lumina</item>
+        <item name="alertDialogTheme">@style/Theme.Lumina.Dialog.Alert</item>
+        <item name="home_gradient_drawable">@drawable/bg_home_gradient_exp</item>
+        <item name="movie_banner_gradient_drawable">@drawable/bg_home_gradient_exp</item>
+        <item name="tv_show_banner_gradient_drawable">@drawable/bg_home_gradient_exp</item>
+        <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_exp</item>
+    </style>
+
+    <style name="PreferenceThemeOverlay.Lumina" parent="PreferenceThemeOverlay">
+        <item name="android:windowBackground">@color/exp_canvas</item>
+        <item name="android:colorBackground">@color/exp_canvas</item>
+        <item name="android:textColorPrimary">@color/exp_ink</item>
+        <item name="android:textColorSecondary">@color/exp_ink_soft</item>
+        <item name="colorAccent">@color/exp_accent</item>
+        <item name="colorControlActivated">@color/exp_accent</item>
+    </style>
+
+    <style name="Theme.Lumina.Dialog.Alert" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_exp_dialog</item>
+        <item name="android:colorBackground">@color/exp_surface_elevated</item>
+        <item name="colorAccent">@color/exp_accent</item>
+        <item name="android:textColorPrimary">@color/exp_ink</item>
+        <item name="android:textColorSecondary">@color/exp_ink_soft</item>
+        <item name="android:buttonBarButtonStyle">@style/Widget.Lumina.DialogButton</item>
+    </style>
+
+    <style name="Widget.Lumina.DialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textColor">@color/exp_accent</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <!-- Tema Nero Amoled/Oled per Mobile -->
     <style name="AppTheme.Mobile.NeroAmoledOled" parent="AppTheme.Mobile">
         <item name="app_background_color">#000000</item>

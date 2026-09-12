@@ -14,7 +14,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:defaultNavHost="true"
-        app:layout_constraintBottom_toTopOf="@+id/cast_mini_controller"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -42,27 +42,40 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/bnv_main"
+        app:layout_constraintBottom_toTopOf="@+id/bv_main_nav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         tools:ignore="FragmentTagUsage" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bnv_main"
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/bv_main_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_exp_bottom_nav"
-        android:elevation="12dp"
-        android:theme="@style/Theme.AppCompat"
-        app:itemIconTint="@color/nav_item_exp"
-        app:itemRippleColor="@color/exp_accent_soft"
-        app:itemTextAppearanceActive="@style/BottomNavLabelStyleExp"
-        app:itemTextAppearanceInactive="@style/BottomNavLabelStyleExp"
-        app:itemTextColor="@color/nav_item_exp"
-        app:labelVisibilityMode="labeled"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_exp_nav_pill"
+        android:elevation="16dp"
+        app:blurOverlayColor="#5914141F"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/menu_main_activity_mobile" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bnv_main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:elevation="0dp"
+            android:theme="@style/Theme.AppCompat"
+            app:itemIconTint="@color/nav_item_exp"
+            app:itemRippleColor="@color/exp_accent_soft"
+            app:itemTextAppearanceActive="@style/BottomNavLabelStyleExp"
+            app:itemTextAppearanceInactive="@style/BottomNavLabelStyleExp"
+            app:itemTextColor="@color/nav_item_exp"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/menu_main_activity_mobile" />
+
+    </eightbitlab.com.blurview.BlurView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

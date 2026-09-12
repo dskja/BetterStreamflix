@@ -40,6 +40,7 @@ import com.google.zxing.common.HybridBinarizer
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.databinding.ActivityQrScannerBinding
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import java.util.concurrent.Executor
@@ -122,7 +123,13 @@ class QrScannerActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
+        setTheme(
+            if (ExperimentalMobileDesign.enabled()) {
+                R.style.AppTheme_Mobile_Experimental
+            } else {
+                ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
+            }
+        )
 
         super.onCreate(savedInstanceState)
 

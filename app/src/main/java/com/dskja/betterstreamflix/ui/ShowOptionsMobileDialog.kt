@@ -30,7 +30,15 @@ class ShowOptionsMobileDialog(
     show: AppAdapter.Item,
 ) : BottomSheetDialog(context) {
 
-    private val binding = DialogShowOptionsMobileBinding.inflate(LayoutInflater.from(context))
+    private val binding = DialogShowOptionsMobileBinding.bind(
+        LayoutInflater.from(context).inflate(
+            ExperimentalMobileDesign.layout(
+                R.layout.dialog_show_options_mobile,
+                R.layout.dialog_show_options_mobile_exp,
+            ),
+            null,
+        )
+    )
 
     private val database: AppDatabase
         get() = AppDatabase.getInstance(context)
