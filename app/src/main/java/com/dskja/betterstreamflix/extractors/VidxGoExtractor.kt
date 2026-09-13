@@ -9,17 +9,20 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
-import kotlinx.coroutines.DelicateCoroutinesApi
 
 object TokenManager {
     var latestQuery: String? = null
+
+    /** App-lifetime scope for the background token refresh loop (replaces GlobalScope). */
+    internal val refreshScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+    )
 }
 
 class VidxGoExtractor : Extractor() {
     override val name = "VidxGo"
     override val mainUrl = "https://v.vidxgo.co"
 
-    @OptIn(DelicateCoroutinesApi::class)
     override suspend fun extract(link: String): Video {
         val client = OkHttpClient.Builder()
             .dns(DnsResolver.doh)
@@ -55,7 +58,7 @@ class VidxGoExtractor : Extractor() {
             TokenManager.latestQuery = initialUri.encodedQuery
             Log.d("TokenManager", "[INIT] Initial token set. expire=${expireTime}, query=${TokenManager.latestQuery?.take(60)}...")
 
-            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 while (true) {
                     val delayMs = if (expireTime != null) {
                         val remaining = expireTime!! - System.currentTimeMillis()
@@ -171,7 +174,7 @@ class VidxGoExtractor : Extractor() {
         Log.d("TokenManager", "[FILM-INIT] Token/Expiry extracted from JS. token=$currentToken, expireTime=${initialExpireTime}")
 
         if (filmRefreshUrl != null) {
-            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            TokenManager.refreshScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 var expireTime: Long? = initialExpireTime
                 while (true) {
                     val delayMs = if (expireTime != null) {

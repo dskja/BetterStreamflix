@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.providers
 
+import android.util.Log
 import android.util.Base64
 import com.google.gson.annotations.SerializedName
 import com.dskja.betterstreamflix.adapters.AppAdapter
@@ -542,7 +543,7 @@ object SuperStreamProvider : Provider {
 
                 Base64.encode(cipher.doFinal(str.toByteArray()), 2).toString(Charsets.UTF_8)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("SuperStreamProvider", "aes encryption failed", e)
                 null
             }
         }
@@ -606,7 +607,7 @@ object SuperStreamProvider : Provider {
                 digest.update(bArr ?: return null)
                 digest.digest()
             } catch (e: NoSuchAlgorithmException) {
-                e.printStackTrace()
+                Log.e("SuperStreamProvider", "md5 unavailable", e)
                 null
             }
         }

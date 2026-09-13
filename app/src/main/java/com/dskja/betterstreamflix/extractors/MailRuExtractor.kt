@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.extractors
 
+import android.util.Log
 import com.dskja.betterstreamflix.models.Video
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -65,7 +66,7 @@ class MailRuExtractor : Extractor() {
             )
             
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("MailRuExtractor", "extraction failed", e)
             throw Exception("MailRu extraction failed: ${e.message}")
         }
     }

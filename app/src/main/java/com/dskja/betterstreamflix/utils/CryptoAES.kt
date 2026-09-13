@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.utils
 
+import android.util.Log
 import android.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -24,7 +25,7 @@ object CryptoAES {
 
             String(decryptedData)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("CryptoAES", "decrypt failed", e)
             ""
         }
     }

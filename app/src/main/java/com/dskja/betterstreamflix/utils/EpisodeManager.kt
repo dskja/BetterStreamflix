@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.utils
 
+import android.util.Log
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
@@ -73,7 +74,7 @@ object EpisodeManager {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("EpisodeManager", "episode refresh failed", e)
             }
         }
 

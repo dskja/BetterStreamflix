@@ -15,8 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Experimental player polish: primary-tinted buffering spinner, glass brightness/volume panels, tabular-figure time labels, M3 error overlay with close action, content descriptions on all transport controls
 - Experimental detail screens: floating tonal back chip, play-icon CTA, M3 meta chips, provider selected-check badge, icon+text empty states for favorites/downloads/search
 - Experimental dialogs/settings: icon rows with ripple state layers in the options sheet, tonal spinner fields, primary-tinted progress in watchlist-import/bypass, tooltips + TalkBack page announcements on the swiper, all entry animations honour the system animator-duration scale
+- Download notifications carry Pause/Resume-All actions; failed downloads get a per-item notification with a Retry action (`DownloadActionReceiver`)
+- Orphaned download sidecar subtitle directories are pruned on startup when their DB item no longer exists
+- Subtitle offset is persisted per video (`movie:<id>`/`episode:<id>`) and restored on every player build instead of being reset globally
+- Media3 audio focus handling enabled (playback pauses on calls/transient focus loss); audio content type set to movie
 
 ### Changed
+- Centralized HTTP 409 cache-clear + one-shot retry in `Http409CacheGuard` across all 16 content fragments; skips the wipe while offline
+- `Accept-Language` header is now built from the app locale instead of a hardcoded `it-IT`; OkHttp gained explicit call/write timeouts, throttled cookie persistence and 429/5xx `Retry-After` backoff
+- Cloud sync worker retries are capped at 5 attempts with explicit exponential backoff
+- Continue-watching queries gained bounded variants (LIMIT 25) for home/cross-provider rails; backup export keeps the unbounded query
+- SearchViewModel cancels in-flight searches when a new query starts, guards `loadMore` against double-fires and no longer reports cancellations as failures
 - StreamingCommunity default domain `streamingunity.cc` → `streamingunity.win`; stale stored domains auto-migrate
 - Cuevana 3 default domain `cuevana.gs` → `cuevana3.gs`; stale stored domains auto-migrate
 - Wiflix default `flemmix.team` → `neufneuf.space`
@@ -31,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Frembed URL discovery: dead portal `audin213.com` (spam redirect) replaced by `frembed.casa`; portal redirects now resolve the live domain directly before DOM parsing
 - Settings screens showed outdated default domains for StreamingCommunity (`cuevana3.la` typo included) and Cuevana 3
+- Backup import now refuses backups written by a newer app version instead of parsing them with stale field mappings
+- DoH bootstrap/client diagnostics no longer log in release builds
 
 ## [1.1.0] - 2026-09-09
 
