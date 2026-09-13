@@ -374,8 +374,8 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             val db = AppDatabase.getInstance(appContext)
             val moviesDeferred = async { db.movieDao().getFavorites().first() }
             val tvShowsDeferred = async { db.tvShowDao().getFavorites().first() }
-            val watchingMoviesDeferred = async { db.movieDao().getWatchingMovies().first() }
-            val watchingEpisodesDeferred = async { db.episodeDao().getWatchingEpisodes().first() }
+            val watchingMoviesDeferred = async { db.movieDao().getWatchingMoviesCapped().first() }
+            val watchingEpisodesDeferred = async { db.episodeDao().getWatchingEpisodesCapped().first() }
 
             val movies = moviesDeferred.await()
             val tvShows = tvShowsDeferred.await()

@@ -38,10 +38,10 @@ object CrossProviderLibrary {
             favoriteTvShows += db.tvShowDao().getFavorites().first()
                 .map { it.withProvider(provider.name) }
 
-            continueWatching += db.movieDao().getWatchingMovies().first()
+            continueWatching += db.movieDao().getWatchingMoviesCapped().first()
                 .map { it.withProvider(provider.name) }
 
-            val watchingEpisodes = db.episodeDao().getWatchingEpisodes().first()
+            val watchingEpisodes = db.episodeDao().getWatchingEpisodesCapped().first()
             val nextEpisodes = db.episodeDao().getNextEpisodesToWatch().first()
             val tvShowsMap = db.tvShowDao().getAll().first().associateBy { it.id }
             val allEpisodes = (watchingEpisodes + nextEpisodes).distinctBy { it.id }

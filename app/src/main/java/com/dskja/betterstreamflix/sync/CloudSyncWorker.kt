@@ -16,6 +16,11 @@ class CloudSyncWorker(
             Result.success()
         }
     } catch (_: Throwable) {
-        Result.retry()
+        // Persistent failures (e.g. expired session) must not retry forever.
+        if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.success()
+    }
+
+    private companion object {
+        const val MAX_ATTEMPTS = 5
     }
 }

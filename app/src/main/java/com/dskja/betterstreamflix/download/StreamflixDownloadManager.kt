@@ -108,8 +108,8 @@ object StreamflixDownloadManager {
     }
 
     /**
-     * Deletes `downloads/subs/*` directories whose owning download item no longer
-     * exists in the DB (leftovers from crashes or older versions). Fire-and-forget.
+     * Deletes download sidecar subtitle directories whose owning download item no
+     * longer exists in the DB (leftovers from crashes or older versions).
      */
     private fun pruneOrphanedSidecarDirs(app: Context) {
         connectivityScope.launch {

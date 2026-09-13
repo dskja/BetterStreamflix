@@ -113,6 +113,10 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingEpisodes(): Flow<List<Episode>>
 
+    /** Bounded variant for UI rows — keeps the home continue-watching rail snappy. */
+    @Query("SELECT * FROM episodes WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC LIMIT 25")
+    fun getWatchingEpisodesCapped(): Flow<List<Episode>>
+
     @Query(
         """
         SELECT DISTINCT tvShow

@@ -11,8 +11,10 @@ import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.utils.ParentalControlUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -107,99 +109,119 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
     var query = ""
     private var page = 1
 
+    private var searchJob: Job? = null
+    private var loadMoreJob: Job? = null
+    private var globalSearchJob: Job? = null
+
     init {
         search(query)
     }
 
-    fun search(query: String) = viewModelScope.launch(Dispatchers.IO) {
-        _state.emit(State.Searching)
+    fun search(query: String) {
+        // Cancel the in-flight request so stale results can't overwrite newer ones.
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
+            _state.emit(State.Searching)
 
-        try {
-            val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
-            this@SearchViewModel.query = query
-            page = 1
-            _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
-        } catch (e: Exception) {
-            Log.e("SearchViewModel", "search: ", e)
-            _state.emit(State.FailedSearching(e))
-        }
-    }
-
-    fun loadMore() = viewModelScope.launch(Dispatchers.IO) {
-        val currentState = _state.value
-        if (currentState is State.SuccessSearching) {
-            _state.emit(State.SearchingMore)
             try {
-                val results = ParentalControlUtils.filterItems(
-                    UserPreferences.currentProvider!!.search(query, page + 1)
-                )
-                val existingKeys = currentState.results
-                    .asSequence()
-                    .map { it.searchIdentityKey() }
-                    .toHashSet()
-                val newUniqueResults = results.filterNot { it.searchIdentityKey() in existingKeys }
-                page += 1
-                _state.emit(
-                    State.SuccessSearching(
-                        results = currentState.results + newUniqueResults,
-                        hasMore = newUniqueResults.isNotEmpty(),
-                    )
-                )
+                val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
+                this@SearchViewModel.query = query
+                page = 1
+                _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                Log.e("SearchViewModel", "loadMore: ", e)
+                Log.e("SearchViewModel", "search: ", e)
                 _state.emit(State.FailedSearching(e))
             }
         }
     }
 
-    // FUNCIÓN DE BÚSQUEDA GLOBAL AÑADIDA
-    fun searchGlobal(query: String, currentLanguage: String) = viewModelScope.launch(Dispatchers.IO) {
-        _state.emit(State.GlobalSearching)
-
-        val isCurrentProviderIptv = UserPreferences.currentProvider is IptvProvider
-        val targetProviders = Provider.providers.keys
-            .filter { it.language == currentLanguage && (it is IptvProvider) == isCurrentProviderIptv }
-            .toList()
-
-        if (targetProviders.isEmpty()) {
-            _state.emit(State.SuccessGlobalSearching(emptyList()))
-            return@launch
-        }
-
-        val initialResults = targetProviders.map { provider ->
-            ProviderResult(provider, ProviderResult.State.Loading)
-        }
-        _state.emit(State.SuccessGlobalSearching(initialResults))
-
-        val mutableResults = initialResults.toMutableList()
-
-        val stateComparator = compareBy<ProviderResult> { providerResult ->
-            when (val state = providerResult.state) {
-                is ProviderResult.State.Success -> if (state.results.isNotEmpty()) 1 else 3
-                is ProviderResult.State.Loading -> 2
-                is ProviderResult.State.Error -> 4
+    fun loadMore() {
+        if (loadMoreJob?.isActive == true) return
+        loadMoreJob = viewModelScope.launch(Dispatchers.IO) {
+            val currentState = _state.value
+            if (currentState is State.SuccessSearching) {
+                _state.emit(State.SearchingMore)
+                try {
+                    val results = ParentalControlUtils.filterItems(
+                        UserPreferences.currentProvider!!.search(query, page + 1)
+                    )
+                    val existingKeys = currentState.results
+                        .asSequence()
+                        .map { it.searchIdentityKey() }
+                        .toHashSet()
+                    val newUniqueResults = results.filterNot { it.searchIdentityKey() in existingKeys }
+                    page += 1
+                    _state.emit(
+                        State.SuccessSearching(
+                            results = currentState.results + newUniqueResults,
+                            hasMore = newUniqueResults.isNotEmpty(),
+                        )
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e("SearchViewModel", "loadMore: ", e)
+                    _state.emit(State.FailedSearching(e))
+                }
             }
         }
+    }
 
-        targetProviders.forEachIndexed { index, provider ->
-            launch {
-                try {
-                    val results = ParentalControlUtils.filterItems(provider.search(query).onEach { item ->
-                        // ========= ¡AQUÍ ESTÁ LA MAGIA! =========
-                        // Le ponemos el sello a cada resultado
-                        when (item) {
-                            is Movie -> item.providerName = provider.name
-                            is TvShow -> item.providerName = provider.name
-                        }
-                        // =======================================
-                    })
-                    mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
-                } catch (e: Exception) {
-                    Log.e("SearchViewModel", "searchGlobal for ${provider.name}: ", e)
-                    mutableResults[index] = ProviderResult(provider, ProviderResult.State.Error(e))
+    // FUNCIÓN DE BÚSQUEDA GLOBAL AÑADIDA
+    fun searchGlobal(query: String, currentLanguage: String) {
+        globalSearchJob?.cancel()
+        globalSearchJob = viewModelScope.launch(Dispatchers.IO) {
+            _state.emit(State.GlobalSearching)
+
+            val isCurrentProviderIptv = UserPreferences.currentProvider is IptvProvider
+            val targetProviders = Provider.providers.keys
+                .filter { it.language == currentLanguage && (it is IptvProvider) == isCurrentProviderIptv }
+                .toList()
+
+            if (targetProviders.isEmpty()) {
+                _state.emit(State.SuccessGlobalSearching(emptyList()))
+                return@launch
+            }
+
+            val initialResults = targetProviders.map { provider ->
+                ProviderResult(provider, ProviderResult.State.Loading)
+            }
+            _state.emit(State.SuccessGlobalSearching(initialResults))
+
+            val mutableResults = initialResults.toMutableList()
+
+            val stateComparator = compareBy<ProviderResult> { providerResult ->
+                when (val state = providerResult.state) {
+                    is ProviderResult.State.Success -> if (state.results.isNotEmpty()) 1 else 3
+                    is ProviderResult.State.Loading -> 2
+                    is ProviderResult.State.Error -> 4
                 }
+            }
 
-                _state.emit(State.SuccessGlobalSearching(mutableResults.sortedWith(stateComparator)))
+            targetProviders.forEachIndexed { index, provider ->
+                launch {
+                    try {
+                        val results = ParentalControlUtils.filterItems(provider.search(query).onEach { item ->
+                            // ========= ¡AQUÍ ESTÁ LA MAGIA! =========
+                            // Le ponemos el sello a cada resultado
+                            when (item) {
+                                is Movie -> item.providerName = provider.name
+                                is TvShow -> item.providerName = provider.name
+                            }
+                            // =======================================
+                        })
+                        mutableResults[index] = ProviderResult(provider, ProviderResult.State.Success(results))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e("SearchViewModel", "searchGlobal for ${provider.name}: ", e)
+                        mutableResults[index] = ProviderResult(provider, ProviderResult.State.Error(e))
+                    }
+
+                    _state.emit(State.SuccessGlobalSearching(mutableResults.sortedWith(stateComparator)))
+                }
             }
         }
     }

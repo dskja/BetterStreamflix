@@ -43,6 +43,8 @@ class BackupRestoreManager(
 ) {
     private val TAG = "BackupVerify"
 
+    private val backupVersion = 5
+
     suspend fun refreshCachesFromDatabase(): Boolean {
         return try {
             providers.forEach { buildCacheForProvider(it) }
@@ -82,7 +84,7 @@ class BackupRestoreManager(
     fun exportUserData(): String? {
         return try {
             val root = JSONObject()
-            root.put("version", 5)
+            root.put("version", backupVersion)
             root.put("exportedAt", System.currentTimeMillis())
 
             val providersArray = JSONArray()
@@ -195,9 +197,13 @@ class BackupRestoreManager(
         return try {
             val obj = JSONObject(json)
             val providersArray = obj.optJSONArray("providers") ?: return false
-            val backupVersion = obj.optInt("version", 1)
+            val importedVersion = obj.optInt("version", 1)
+            if (importedVersion > backupVersion) {
+                Log.w(TAG, "Backup version $importedVersion is newer than supported $backupVersion — refusing import")
+                return false
+            }
 
-            Log.d(TAG, "Starting import from version $backupVersion for ${providersArray.length()} providers")
+            Log.d(TAG, "Starting import from version $importedVersion for ${providersArray.length()} providers")
 
             for (i in 0 until providersArray.length()) {
                 val providerObj = providersArray.optJSONObject(i) ?: continue

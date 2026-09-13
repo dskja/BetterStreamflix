@@ -36,6 +36,10 @@ interface MovieDao {
     @Query("SELECT * FROM movies WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC")
     fun getWatchingMovies(): Flow<List<Movie>>
 
+    /** Bounded variant for UI rows — keeps the home continue-watching rail snappy. */
+    @Query("SELECT * FROM movies WHERE lastEngagementTimeUtcMillis IS NOT NULL ORDER BY lastEngagementTimeUtcMillis DESC LIMIT 25")
+    fun getWatchingMoviesCapped(): Flow<List<Movie>>
+
     @Query("SELECT * FROM movies WHERE lastPlayedAtMillis IS NOT NULL ORDER BY lastPlayedAtMillis DESC LIMIT 10")
     fun getRecentlyWatched(): Flow<List<Movie>>
 
