@@ -80,15 +80,16 @@ object PlayerBuilderFactory {
         player.setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
-                .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                 .build(),
-            /* handleAudioFocus= */ false,
+            /* handleAudioFocus= */ true,
         )
 
         var params = player.trackSelectionParameters.buildUpon()
         val lang = UserPreferences.currentProvider?.language?.substringBefore("-")
         ProviderAudioLanguage.preferredAudioLanguages(lang)?.let { codes ->
             params = params.setPreferredAudioLanguages(*codes)
+            params = params.setPreferredTextLanguages(*codes)
         }
         if (options.preferStereoAudio || constrained) {
             params = params.setMaxAudioChannelCount(2)

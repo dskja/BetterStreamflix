@@ -32,12 +32,20 @@ object NetworkClient {
 
     private val cookieManager by lazy { CookieManager.getInstance() }
 
+    @Volatile
+    private var lastCookieFlush = 0L
+
     val cookieJar = object : CookieJar {
         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
             cookies.forEach { cookie ->
                 cookieManager.setCookie(url.toString(), cookie.toString())
             }
-            cookieManager.flush()
+            // CookieManager.flush() hits disk — throttle bursts of Set-Cookie headers.
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastCookieFlush > 5_000) {
+                lastCookieFlush = now
+                cookieManager.flush()
+            }
         }
 
         override fun loadForRequest(url: HttpUrl): List<Cookie> {
@@ -45,6 +53,48 @@ object NetworkClient {
             return cookieString.split(";").mapNotNull {
                 Cookie.parse(url, it.trim())
             }
+        }
+    }
+
+    /**
+     * One-shot retry for rate-limited GETs: honours a short `Retry-After` on HTTP 429.
+     * Everything else (POST/PUT, other codes) passes through untouched — providers do
+     * their own fallback handling.
+     */
+    private val retryAfterInterceptor = okhttp3.Interceptor { chain ->
+        val request = chain.request()
+        val response = chain.proceed(request)
+        if (request.method == "GET" && response.code == 429) {
+            val waitMs = response.header("Retry-After")
+                ?.toLongOrNull()
+                ?.coerceIn(0, 5)
+                ?.times(1000)
+            if (waitMs != null) {
+                response.close()
+                Thread.sleep(waitMs)
+                chain.proceed(request)
+            } else {
+                response
+            }
+        } else {
+            response
+        }
+    }
+
+    /** Builds an Accept-Language header from the in-app/system locale. */
+    private fun acceptLanguage(): String {
+        val selected = AppLanguageManager.getSelectedLanguage(BetterStreamflixApp.instance)
+        val locale = if (selected == AppLanguageManager.SYSTEM_LANGUAGE) {
+            java.util.Locale.getDefault()
+        } else {
+            java.util.Locale.forLanguageTag(selected)
+        }
+        val full = locale.toLanguageTag()
+        val lang = locale.language
+        return if (lang == "en") {
+            "$full,en;q=0.9"
+        } else {
+            "$full,$lang;q=0.9,en;q=0.7"
         }
     }
 
@@ -86,7 +136,7 @@ object NetworkClient {
                 if (original.header("Accept") == null)
                     requestBuilder.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
                 if (original.header("Accept-Language") == null)
-                    requestBuilder.header("Accept-Language", "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7")
+                    requestBuilder.header("Accept-Language", acceptLanguage())
                 if (!isCorsRequest && original.header("Sec-Fetch-Dest") == null)
                     requestBuilder.header("Sec-Fetch-Dest", "document")
                 if (!isCorsRequest && original.header("Sec-Fetch-Mode") == null)
@@ -100,6 +150,9 @@ object NetworkClient {
             .cookieJar(cookieJar)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(retryAfterInterceptor)
             .dns(dns)
 
         // Modern and compatible TLS configuration

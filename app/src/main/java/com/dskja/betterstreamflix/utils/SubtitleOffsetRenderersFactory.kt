@@ -14,9 +14,28 @@ object SubtitleOffset {
     @Volatile
     var offsetMs: Long = 0
 
+    @Volatile
+    private var videoKey: String? = null
+
     fun reset() {
         offsetMs = 0
+        videoKey = null
     }
+
+    /** Loads the previously saved offset for [key] (per-video persistence). */
+    fun restore(context: Context, key: String) {
+        videoKey = key
+        offsetMs = prefs(context).getLong(key, 0L)
+    }
+
+    /** Saves the current offset under the key set by [restore]. */
+    fun persist(context: Context) {
+        val key = videoKey ?: return
+        prefs(context).edit().putLong(key, offsetMs).apply()
+    }
+
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences("subtitle_offsets", Context.MODE_PRIVATE)
 }
 
 /**

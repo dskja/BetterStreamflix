@@ -19,6 +19,7 @@ import com.dskja.betterstreamflix.databinding.FragmentTvShowMobileBinding
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.Http409CacheGuard
 import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
@@ -30,7 +31,7 @@ import kotlinx.coroutines.launch
 
 class TvShowMobileFragment : Fragment() {
 
-    private var hasAutoCleared409: Boolean = false
+    private val http409Guard = Http409CacheGuard()
 
     private var _binding: FragmentTvShowMobileBinding? = null
     private val binding get() = _binding!!
@@ -90,14 +91,9 @@ class TvShowMobileFragment : Fragment() {
                         ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is TvShowViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.dskja.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getTvShow(args.id)
-                            return@collect
-                        }
+                        if (http409Guard.handle(requireContext(), state.error) { viewModel.getTvShow(args.id) }) {
+                                return@collect
+                            }
                         Toast.makeText(
                             requireContext(),
                             state.error.message ?: "",

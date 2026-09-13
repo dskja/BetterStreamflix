@@ -80,6 +80,7 @@ object StreamflixDownloadManager {
             notificationHelper = DownloadNotificationHelper(app, DownloadNotifier.CHANNEL_ID)
             DownloadEventBridge.attach(app)
             startConnectivityWatcher(app)
+            pruneOrphanedSidecarDirs(app)
             return manager
         }
     }
@@ -103,6 +104,25 @@ object StreamflixDownloadManager {
                         }
                     }
                 }
+        }
+    }
+
+    /**
+     * Deletes `downloads/subs/*` directories whose owning download item no longer
+     * exists in the DB (leftovers from crashes or older versions). Fire-and-forget.
+     */
+    private fun pruneOrphanedSidecarDirs(app: Context) {
+        connectivityScope.launch {
+            runCatching {
+                val validKeys = DownloadRepository.get(app)
+                    .getAllOnce()
+                    .map { it.contentKey.replace(Regex("[^a-zA-Z0-9._-]"), "_") }
+                    .toSet()
+                val subsRoot = java.io.File(DownloadStorage.downloadsDir(app), "subs")
+                subsRoot.listFiles()
+                    ?.filter { it.isDirectory && it.name !in validKeys }
+                    ?.forEach { DownloadStorage.deleteQuietly(it) }
+            }
         }
     }
 

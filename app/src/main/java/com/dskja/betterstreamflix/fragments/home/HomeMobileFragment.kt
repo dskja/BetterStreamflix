@@ -24,6 +24,7 @@ import com.dskja.betterstreamflix.ui.SpacingItemDecoration
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.Http409CacheGuard
 import com.dskja.betterstreamflix.utils.ExpAmbientGlow
 import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExpNavAutoHide
@@ -37,7 +38,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class HomeMobileFragment : Fragment() {
 
-    private var hasAutoCleared409: Boolean = false
+    private val http409Guard = Http409CacheGuard()
 
     private var _binding: FragmentHomeMobileBinding? = null
     private val binding get() = _binding!!
@@ -95,14 +96,9 @@ class HomeMobileFragment : Fragment() {
                         ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is HomeViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.dskja.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getHome()
-                            return@collect
-                        }
+                        if (http409Guard.handle(requireContext(), state.error) { viewModel.getHome() }) {
+                                return@collect
+                            }
                         Toast.makeText(
                             requireContext(),
                             state.error.message ?: "",

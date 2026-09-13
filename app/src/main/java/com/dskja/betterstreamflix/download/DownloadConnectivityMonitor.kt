@@ -86,4 +86,8 @@ object DownloadConnectivityMonitor {
         }
         _status.value = Status(type = type, validated = validated)
     }
+
+    /** True when any network is up — lets UI distinguish offline vs provider errors. */
+    fun isOnline(context: Context): Boolean =
+        current(context).type != DownloadNetworkType.NONE
 }

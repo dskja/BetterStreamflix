@@ -21,6 +21,7 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.dp
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.Http409CacheGuard
 import com.dskja.betterstreamflix.utils.ExpNavAutoHide
 import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
@@ -28,7 +29,7 @@ import kotlinx.coroutines.launch
 
 class TvShowsMobileFragment : Fragment() {
 
-    private var hasAutoCleared409: Boolean = false
+    private val http409Guard = Http409CacheGuard()
 
     private var _binding: FragmentTvShowsMobileBinding? = null
     private val binding get() = _binding!!
@@ -78,14 +79,9 @@ class TvShowsMobileFragment : Fragment() {
                         ExpMotion.fadeOutAndHide(binding.isLoading.root)
                     }
                     is TvShowsViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.dskja.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            viewModel.getTvShows()
-                            return@collect
-                        }
+                        if (http409Guard.handle(requireContext(), state.error) { viewModel.getTvShows() }) {
+                                return@collect
+                            }
                         Toast.makeText(
                             requireContext(),
                             state.error.message ?: "",

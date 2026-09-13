@@ -19,6 +19,8 @@ object DownloadNotifier {
     /** Must not collide with StreamflixDownloadService FOREGROUND_NOTIFICATION_ID (42001). */
     const val NOTIFICATION_ID_ACTIVE = 42003
     const val NOTIFICATION_ID_COMPLETE = 42002
+    /** Failed downloads get one notification per item, offset from this base. */
+    private const val NOTIFICATION_ID_FAILED_BASE = 42100
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -50,6 +52,16 @@ object DownloadNotifier {
             .setOngoing(true)
             .setContentIntent(openDownloadsIntent(context))
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(
+                0,
+                context.getString(R.string.download_notification_pause),
+                actionIntent(context, DownloadActionReceiver.ACTION_PAUSE_ALL),
+            )
+            .addAction(
+                0,
+                context.getString(R.string.download_notification_resume),
+                actionIntent(context, DownloadActionReceiver.ACTION_RESUME_ALL),
+            )
         if (indeterminate || progressPct < 0) {
             builder.setProgress(0, 0, true)
         } else {
@@ -91,6 +103,49 @@ object DownloadNotifier {
 
     fun cancelActive(context: Context) {
         NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID_ACTIVE)
+    }
+
+    fun notifyFailed(context: Context, itemId: String, title: String) {
+        ensureChannel(context)
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_menu_downloads)
+            .setContentTitle(context.getString(R.string.download_notification_failed_title))
+            .setContentText(title)
+            .setAutoCancel(true)
+            .setContentIntent(openDownloadsIntent(context))
+            .addAction(
+                0,
+                context.getString(R.string.download_notification_retry),
+                actionIntent(context, DownloadActionReceiver.ACTION_RETRY, itemId),
+            )
+            .build()
+        runCatching {
+            NotificationManagerCompat.from(context)
+                .notify(failedNotificationId(itemId), notification)
+        }
+    }
+
+    fun cancelFailed(context: Context, itemId: String) {
+        NotificationManagerCompat.from(context).cancel(failedNotificationId(itemId))
+    }
+
+    private fun failedNotificationId(itemId: String): Int =
+        NOTIFICATION_ID_FAILED_BASE + Math.floorMod(itemId.hashCode(), 900)
+
+    private fun actionIntent(
+        context: Context,
+        action: String,
+        itemId: String? = null,
+    ): PendingIntent {
+        val intent = Intent(context, DownloadActionReceiver::class.java)
+            .setAction(action)
+        if (itemId != null) intent.putExtra(DownloadActionReceiver.EXTRA_ITEM_ID, itemId)
+        return PendingIntent.getBroadcast(
+            context,
+            action.hashCode() + (itemId?.hashCode() ?: 0),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     private fun openDownloadsIntent(context: Context): PendingIntent {

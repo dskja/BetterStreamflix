@@ -78,6 +78,7 @@ import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.EpisodeManager
 import com.dskja.betterstreamflix.utils.MediaServer
 import com.dskja.betterstreamflix.utils.PlayerGestureHelper
+import com.dskja.betterstreamflix.utils.SubtitleOffset
 import com.dskja.betterstreamflix.providers.IptvProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -1666,6 +1667,11 @@ class PlayerTvFragment : Fragment() {
             UserDataCache.syncEpisodeToCache(requireContext(), provider, persistedNextEpisode)
         }
 
+        private fun subtitleOffsetKey(): String = when (val t = args.videoType) {
+            is Video.Type.Movie -> "movie:${t.id}"
+            is Video.Type.Episode -> "episode:${t.id}"
+        }
+
         private fun startProgressHandler() {
             progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
             progressRunnable = Runnable {
@@ -2139,6 +2145,8 @@ class PlayerTvFragment : Fragment() {
         dataSourceFactory = DefaultDataSource.Factory(requireContext(), httpDataSource)
 
         player = buildPlayer(extraBuffering)
+
+        SubtitleOffset.restore(requireContext(), subtitleOffsetKey())
 
         // Bind new player to UI view
         binding.pvPlayer.player = player

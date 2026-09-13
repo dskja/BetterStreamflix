@@ -52,6 +52,8 @@ object DownloadEventBridge : DownloadManager.Listener {
         val context = appContext ?: return
         scope.launch {
             lastBytes.remove(download.request.id)
+            val entity = DownloadRepository.get(context).getByMedia3Id(download.request.id)
+            if (entity != null) DownloadNotifier.cancelFailed(context, entity.id)
             refreshAggregateNotification(context, downloadManager)
         }
     }
@@ -137,6 +139,11 @@ object DownloadEventBridge : DownloadManager.Listener {
 
         if (state == DownloadItemState.COMPLETED && entity.state != DownloadItemState.COMPLETED.name) {
             DownloadNotifier.notifyCompleted(context, entity.title)
+        }
+        if (state == DownloadItemState.FAILED && entity.state != DownloadItemState.FAILED.name) {
+            DownloadNotifier.notifyFailed(context, entity.id, entity.title)
+        } else if (state != DownloadItemState.FAILED && entity.state == DownloadItemState.FAILED.name) {
+            DownloadNotifier.cancelFailed(context, entity.id)
         }
 
         refreshAggregateNotification(context, downloadManager)

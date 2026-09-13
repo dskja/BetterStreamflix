@@ -34,7 +34,9 @@ object DnsResolver : Dns {
         .connectTimeout(30, TimeUnit.SECONDS)
         .sslSocketFactory(sslContext.socketFactory, trustManager)
         .hostnameVerifier { _, _ -> true }
-        .addInterceptor(logging)
+        .apply {
+            if (com.dskja.betterstreamflix.BuildConfig.DEBUG) addInterceptor(logging)
+        }
         .build()
 
     private var _url: String = UserPreferences.dohProviderUrl

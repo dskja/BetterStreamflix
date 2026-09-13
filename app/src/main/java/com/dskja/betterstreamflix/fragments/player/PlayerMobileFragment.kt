@@ -1535,6 +1535,11 @@ class PlayerMobileFragment : Fragment() {
         episodeDao.save(persistedNextEpisode)
         UserDataCache.syncEpisodeToCache(requireContext(), provider, persistedNextEpisode)
     }
+    private fun subtitleOffsetKey(): String = when (val t = args.videoType) {
+        is Video.Type.Movie -> "movie:${t.id}"
+        is Video.Type.Episode -> "episode:${t.id}"
+    }
+
     private fun startProgressHandler() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
         progressRunnable = Runnable {
@@ -1738,6 +1743,8 @@ class PlayerMobileFragment : Fragment() {
                 mediaSession = MediaSession.Builder(requireContext(), built)
                     .build()
             }
+
+        SubtitleOffset.restore(requireContext(), subtitleOffsetKey())
 
         if (isCasting) {
             binding.pvPlayer.player = castPlayer

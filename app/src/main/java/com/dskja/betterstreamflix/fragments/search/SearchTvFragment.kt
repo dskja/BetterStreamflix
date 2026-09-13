@@ -26,6 +26,7 @@ import com.dskja.betterstreamflix.models.Genre
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.Http409CacheGuard
 import com.dskja.betterstreamflix.utils.LoggingUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.VoiceRecognitionHelper
@@ -38,8 +39,9 @@ import com.dskja.betterstreamflix.providers.IptvProvider
 
 class SearchTvFragment : Fragment() {
 
-    private var hasAutoCleared409: Boolean = false
-    private var _binding: FragmentSearchTvBinding? = null
+    private val http409Guard = Http409CacheGuard()
+
+        private var _binding: FragmentSearchTvBinding? = null
     private val binding get() = _binding!!
 
     private val database by lazy { AppDatabase.getInstance(requireContext()) }
@@ -122,13 +124,10 @@ class SearchTvFragment : Fragment() {
                         binding.isLoading.root.visibility = View.GONE
                     }
                     is State.FailedSearching -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            Toast.makeText(requireContext(), getString(R.string.clear_cache_done_409), Toast.LENGTH_SHORT).show()
-                            if (appAdapter.isLoading) appAdapter.isLoading = false
-                            viewModel.search(viewModel.query)
+                        if (http409Guard.handle(requireContext(), state.error) {
+                                if (appAdapter.isLoading) appAdapter.isLoading = false
+                                viewModel.search(viewModel.query)
+                            }) {
                             return@collect
                         }
                         Toast.makeText(requireContext(), state.error.message ?: "", Toast.LENGTH_SHORT).show()

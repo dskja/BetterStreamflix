@@ -201,6 +201,7 @@ abstract class PlayerSettingsView @JvmOverloads constructor(
         fun(offset) {
             val player = player ?: return
             SubtitleOffset.offsetMs = offset.milliseconds
+            SubtitleOffset.persist(context)
             // Reset the text renderer so cues discarded under the previous offset are available.
             player.seekTo(player.currentPosition)
         }

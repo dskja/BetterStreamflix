@@ -19,12 +19,13 @@ import com.dskja.betterstreamflix.models.Genre
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.utils.CacheUtils
+import com.dskja.betterstreamflix.utils.Http409CacheGuard
 import com.dskja.betterstreamflix.utils.viewModelsFactory
 import kotlinx.coroutines.launch
 
 class GenreTvFragment : Fragment() {
 
-    private var hasAutoCleared409: Boolean = false
+    private val http409Guard = Http409CacheGuard()
 
     private var _binding: FragmentGenreTvBinding? = null
     private val binding get() = _binding!!
@@ -64,15 +65,12 @@ class GenreTvFragment : Fragment() {
                         binding.isLoading.root.visibility = View.GONE
                     }
                     is GenreViewModel.State.FailedLoading -> {
-                        val code = (state.error as? retrofit2.HttpException)?.code()
-                        if (code == 409 && !hasAutoCleared409) {
-                            hasAutoCleared409 = true
-                            CacheUtils.clearAppCache(requireContext())
-                            android.widget.Toast.makeText(requireContext(), getString(com.dskja.betterstreamflix.R.string.clear_cache_done_409), android.widget.Toast.LENGTH_SHORT).show()
-                            if (appAdapter.isLoading) appAdapter.isLoading = false
-                            viewModel.getGenre(args.id)
-                            return@collect
-                        }
+                        if (http409Guard.handle(requireContext(), state.error) {
+                                if (appAdapter.isLoading) appAdapter.isLoading = false
+                                                            viewModel.getGenre(args.id)
+                            }) {
+                                return@collect
+                            }
                         Toast.makeText(
                             requireContext(),
                             state.error.message ?: "",

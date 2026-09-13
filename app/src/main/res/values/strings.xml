@@ -754,6 +754,10 @@
     <string name="download_notification_active_many">%1$d downloads</string>
     <string name="download_notification_progress">%1$d%%</string>
     <string name="download_notification_indeterminate">Preparing…</string>
+    <string name="download_notification_pause">Pause</string>
+    <string name="download_notification_resume">Resume</string>
+    <string name="download_notification_retry">Retry</string>
+    <string name="download_notification_failed_title">Download failed</string>
     <string name="download_error_iptv">Live TV cannot be downloaded</string>
     <string name="download_error_drm">Protected stream cannot be downloaded</string>
     <string name="download_error_no_servers">No servers available</string>
