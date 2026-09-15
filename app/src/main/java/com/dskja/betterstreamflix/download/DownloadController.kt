@@ -261,6 +261,7 @@ object DownloadController {
             streamUrl = candidate.video.source,
             headers = candidate.video.headers.orEmpty(),
             streamKeys = track?.streamKeys.orEmpty(),
+            subtitleUrls = candidate.video.subtitles.map { it.label to it.file },
         )
         DownloadEnqueueOutcome.Started(item)
     }

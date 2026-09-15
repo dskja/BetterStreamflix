@@ -64,6 +64,7 @@ import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerTvBinding
 import com.dskja.betterstreamflix.databinding.FragmentPlayerTvBinding
+import com.dskja.betterstreamflix.download.SmartDownloadsManager
 import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
@@ -1375,6 +1376,14 @@ class PlayerTvFragment : Fragment() {
                                 val provider = UserPreferences.currentProvider ?: return
                                 (watchItem as? Episode)?.let { episode ->
                                     if (player.hasFinished()) {
+                                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                            runCatching {
+                                                SmartDownloadsManager.onEpisodeFinished(
+                                                    requireContext().applicationContext,
+                                                    videoType,
+                                                )
+                                            }
+                                        }
                                         database.episodeDao()
                                             .resetProgressionFromEpisode(videoType.id)
                                         UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, episode.id)

@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Orphaned download sidecar subtitle directories are pruned on startup when their DB item no longer exists
 - Subtitle offset is persisted per video (`movie:<id>`/`episode:<id>`) and restored on every player build instead of being reset globally
 - Media3 audio focus handling enabled (playback pauses on calls/transient focus loss); audio content type set to movie
+- Offline subtitles: subtitle tracks offered by the resolved server are downloaded alongside the video into the download's sidecar directory and injected into offline playback (`SubtitleFetch` + `subtitleUrlsJson`/`subtitlePathsJson`)
+- Smart Downloads (opt-in, Settings → Downloads): automatically enqueue the next episode after one finishes — including season-boundary rollover — and optionally delete watched episode downloads; honours Wi-Fi-only and storage guards
+- Downloads tab: sort menu (newest/title/size, mobile + TV), "retry all failed", "delete watched", per-item long-press overflow with Share (FileProvider) and Retry, long-press season packs to pause/resume/delete the whole pack, watched badge on finished downloads
+- `DownloadDatabase` migration 1→2 preserves existing downloads (adds `subtitleUrlsJson`, `smartEnqueued`); destructive fallback removed so the Media3 cache is never orphaned
 
 ### Changed
 - Centralized HTTP 409 cache-clear + one-shot retry in `Http409CacheGuard` across all 16 content fragments; skips the wipe while offline
@@ -28,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SearchViewModel cancels in-flight searches when a new query starts, guards `loadMore` against double-fires and no longer reports cancellations as failures
 - StreamingCommunity default domain `streamingunity.cc` → `streamingunity.win`; stale stored domains auto-migrate
 - Cuevana 3 default domain `cuevana.gs` → `cuevana3.gs`; stale stored domains auto-migrate
+- Download HTTP headers (Referer/User-Agent/cookies) are now keyed per URL/origin and injected at `DataSpec` level — fixes header bleed across parallel downloads on the shared data-source factory
+- Download failures are classified (space/expired/cleartext/network) instead of always reporting a generic network error; speed sampling no longer leaks entries for finished downloads
 - Wiflix default `flemmix.team` → `neufneuf.space`
 - CB01 default `cb01official.uno` → `cb01uno.homes`
 - CineCalidad default `cinecalidad.ec` → `cinecalidad.am`

@@ -185,6 +185,20 @@ object UserPreferences {
             Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
         }
 
+    /** Smart Downloads: auto-download the next episode after one finishes (opt-in). */
+    var downloadSmartEnabled: Boolean
+        get() = Key.DOWNLOAD_SMART_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.DOWNLOAD_SMART_ENABLED.setBoolean(value)
+        }
+
+    /** Delete episode downloads once they were watched (Netflix-style, opt-in). */
+    var downloadAutoDeleteWatched: Boolean
+        get() = Key.DOWNLOAD_AUTO_DELETE_WATCHED.getBoolean() ?: false
+        set(value) {
+            Key.DOWNLOAD_AUTO_DELETE_WATCHED.setBoolean(value)
+        }
+
     var keepScreenOnWhenPaused: Boolean
         get() = Key.KEEP_SCREEN_ON_WHEN_PAUSED.getBoolean() ?: false
         set(value) {
@@ -739,7 +753,9 @@ object UserPreferences {
         DOWNLOAD_QUALITY_PRESET,
         DOWNLOAD_NOTIFY_COMPLETE,
         DOWNLOAD_FILTER_CURRENT_PROVIDER,
-        DOWNLOAD_SOFT_LIMIT_GB;
+        DOWNLOAD_SOFT_LIMIT_GB,
+        DOWNLOAD_SMART_ENABLED,
+        DOWNLOAD_AUTO_DELETE_WATCHED;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

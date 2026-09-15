@@ -565,6 +565,22 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<SwitchPreference>("DOWNLOAD_SMART_ENABLED")?.apply {
+            isChecked = UserPreferences.downloadSmartEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadSmartEnabled = newValue as Boolean
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("DOWNLOAD_AUTO_DELETE_WATCHED")?.apply {
+            isChecked = UserPreferences.downloadAutoDeleteWatched
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.downloadAutoDeleteWatched = newValue as Boolean
+                true
+            }
+        }
+
         findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
             DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
 
@@ -1725,6 +1741,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>("KEEP_SCREEN_ON_WHEN_PAUSED")?.isChecked = UserPreferences.keepScreenOnWhenPaused
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.isChecked = UserPreferences.enableTmdb
         findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.isChecked = UserPreferences.downloadWifiOnly
+        findPreference<SwitchPreference>("DOWNLOAD_SMART_ENABLED")?.isChecked = UserPreferences.downloadSmartEnabled
+        findPreference<SwitchPreference>("DOWNLOAD_AUTO_DELETE_WATCHED")?.isChecked = UserPreferences.downloadAutoDeleteWatched
         findPreference<SwitchPreference>("DOWNLOAD_NOTIFY_COMPLETE")?.isChecked = UserPreferences.downloadNotifyComplete
         findPreference<SwitchPreference>("DOWNLOAD_FILTER_CURRENT_PROVIDER")?.isChecked =
             UserPreferences.downloadFilterCurrentProvider

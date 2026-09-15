@@ -47,7 +47,9 @@ class DownloadDataSourceFactory(
         if (headers.isNotEmpty()) {
             factory.setDefaultRequestProperties(headers)
         }
-        return factory.createDataSource()
+        // URL-scoped headers win over the shared defaults — fixes header bleed
+        // when several downloads run in parallel on this factory.
+        return HeaderInjectingDataSource(appContext, factory.createDataSource())
     }
 
     fun httpFactory(): HttpDataSource.Factory {

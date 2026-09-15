@@ -56,3 +56,9 @@ enum class DownloadsFilter {
     COMPLETED,
     FAILED,
 }
+
+enum class DownloadsSort {
+    NEWEST,
+    TITLE,
+    SIZE,
+}

@@ -20,6 +20,8 @@ class DownloadsAdapter(
     private val onPauseResume: (DownloadRowUiModel.Item) -> Unit,
     private val onRetry: (DownloadRowUiModel.Item) -> Unit,
     private val onDelete: (DownloadRowUiModel.Item) -> Unit,
+    private val onItemMore: (DownloadRowUiModel.Item, View) -> Unit = { _, _ -> },
+    private val onPackMore: (DownloadRowUiModel.SeasonPack, View) -> Unit = { _, _ -> },
 ) : ListAdapter<DownloadRowUiModel, RecyclerView.ViewHolder>(Diff) {
 
     object Payload {
@@ -111,6 +113,10 @@ class DownloadsAdapter(
             )
             progress.max = pack.totalEpisodes.coerceAtLeast(1)
             progress.progress = pack.completedEpisodes
+            itemView.setOnLongClickListener {
+                onPackMore(item, it)
+                true
+            }
         }
     }
 
@@ -135,7 +141,7 @@ class DownloadsAdapter(
                 item.entity.providerName,
                 item.entity.serverName.takeIf { it.isNotBlank() },
                 item.entity.qualityLabel.takeIf { it.isNotBlank() },
-            ).joinToString(" · ")
+            ).joinToString(" · ") + watchedSuffix(item)
             Glide.with(poster).load(item.entity.posterUrl).centerCrop().into(poster)
             bindProgress(item)
             bindPrimaryAction(item)
@@ -153,7 +159,18 @@ class DownloadsAdapter(
                     DownloadItemState.REMOVING -> Unit
                 }
             }
+            itemView.setOnLongClickListener {
+                onItemMore(item, it)
+                true
+            }
         }
+
+        private fun watchedSuffix(item: DownloadRowUiModel.Item): String =
+            if (item.entity.watchedOffline) {
+                " · " + itemView.context.getString(R.string.downloads_watched)
+            } else {
+                ""
+            }
 
         fun bindPrimaryAction(item: DownloadRowUiModel.Item) {
             actionPrimary.text = when (item.state) {

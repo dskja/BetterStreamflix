@@ -269,6 +269,20 @@
                 android:inputType="number"
                 app:iconSpaceReserved="false" />
 
+            <SwitchPreference
+                android:key="DOWNLOAD_SMART_ENABLED"
+                android:title="@string/settings_download_smart"
+                android:summary="@string/settings_download_smart_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+
+            <SwitchPreference
+                android:key="DOWNLOAD_AUTO_DELETE_WATCHED"
+                android:title="@string/settings_download_auto_delete_watched"
+                android:summary="@string/settings_download_auto_delete_watched_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+
             <Preference
                 android:key="DOWNLOAD_STORAGE_USED"
                 android:title="@string/settings_download_storage_used"

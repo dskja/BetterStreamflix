@@ -58,6 +58,7 @@ import com.dskja.betterstreamflix.activities.tools.BypassWebViewActivity
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.databinding.ContentExoControllerMobileBinding
 import com.dskja.betterstreamflix.databinding.FragmentPlayerMobileBinding
+import com.dskja.betterstreamflix.download.SmartDownloadsManager
 import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
@@ -1229,6 +1230,14 @@ class PlayerMobileFragment : Fragment() {
                                     val episode = watchItem as? Episode
                                     episode?.let {
                                         if (player.hasFinished()) {
+                                            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                                runCatching {
+                                                    SmartDownloadsManager.onEpisodeFinished(
+                                                        requireContext().applicationContext,
+                                                        videoType,
+                                                    )
+                                                }
+                                            }
                                             database.episodeDao().resetProgressionFromEpisode(videoType.id)
                                             UserDataCache.removeEpisodeFromContinueWatching(requireContext(), provider, it.id)
                                             queueNextEpisodeForContinueWatching(provider)

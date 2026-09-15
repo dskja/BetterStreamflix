@@ -101,6 +101,8 @@ class DownloadRepository private constructor(
         seasonPackId: String? = null,
         sortIndex: Int = 0,
         streamKeys: List<StreamKey> = emptyList(),
+        subtitleUrls: List<Pair<String, String>> = emptyList(),
+        smartEnqueued: Boolean = false,
     ): DownloadItemEntity {
         val existing = dao.getByContentKey(contentKey)
         if (existing != null && existing.state == DownloadItemState.COMPLETED.name) {
@@ -115,6 +117,7 @@ class DownloadRepository private constructor(
         val headersJson = JSONObject(headers as Map<*, *>).toString()
 
         DownloadHeaderStore.put(context, media3Id, headers)
+        DownloadHeaderStore.putForUrl(context, streamUrl, headers)
         StreamflixDownloadManager.dataSourceFactory(context).apply {
             activeMedia3Id = media3Id
             activeHeaders = headers
@@ -155,6 +158,8 @@ class DownloadRepository private constructor(
             headersJson = headersJson,
             seasonPackId = seasonPackId,
             sortIndex = sortIndex,
+            subtitleUrlsJson = serializeSubtitleUrls(subtitleUrls),
+            smartEnqueued = smartEnqueued,
             createdAt = existing?.createdAt ?: System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
         )
@@ -228,6 +233,7 @@ class DownloadRepository private constructor(
             false,
         )
         DownloadHeaderStore.remove(context, item.media3Id)
+        DownloadHeaderStore.removeForUrl(context, item.streamUrl)
         DownloadStorage.deleteQuietly(DownloadStorage.subsDir(context, item.contentKey))
         dao.deleteById(id)
         OfflineVideoCache.remove(item.contentKey)
@@ -263,10 +269,59 @@ class DownloadRepository private constructor(
             .forEach { remove(it.id) }
     }
 
+    /** Remove only downloads that were marked watched (Smart-Downloads cleanup). */
+    suspend fun clearWatched() {
+        getAllOnce()
+            .filter { it.state == DownloadItemState.COMPLETED.name && it.watchedOffline }
+            .forEach { remove(it.id) }
+    }
+
+    /**
+     * Re-queue every FAILED item with its stored Media3 request. Cheap retry for
+     * transient failures — items whose URLs expired will fail again and keep
+     * their FAILED state until a full in-app re-resolve.
+     */
+    suspend fun resumeFailed() {
+        if (UserPreferences.downloadWifiOnly && DownloadConnectivityMonitor.isMetered(context)) return
+        getAllOnce()
+            .filter { it.state == DownloadItemState.FAILED.name }
+            .forEach { resume(it.id) }
+    }
+
+    suspend fun pausePack(packId: String) {
+        dao.itemsForPack(packId)
+            .filter { DownloadItemState.fromKey(it.state).isActive }
+            .forEach { pause(it.id) }
+    }
+
+    suspend fun resumePack(packId: String) {
+        dao.itemsForPack(packId)
+            .filter {
+                it.state == DownloadItemState.PAUSED.name ||
+                    it.state == DownloadItemState.FAILED.name
+            }
+            .forEach { resume(it.id) }
+    }
+
+    suspend fun removePack(packId: String) {
+        dao.itemsForPack(packId).forEach { remove(it.id) }
+        dao.deleteSeasonPack(packId)
+    }
+
     suspend fun clearFailed() {
         getAllOnce()
             .filter { it.state == DownloadItemState.FAILED.name }
             .forEach { remove(it.id) }
+    }
+
+    /** Subtitle entries are stored as JSON array of {"lang": "...", "url": "..."}. */
+    private fun serializeSubtitleUrls(subtitles: List<Pair<String, String>>): String {
+        if (subtitles.isEmpty()) return "[]"
+        val arr = org.json.JSONArray()
+        subtitles.forEach { (lang, url) ->
+            arr.put(JSONObject().put("lang", lang).put("url", url))
+        }
+        return arr.toString()
     }
 
     suspend fun clearAll() {

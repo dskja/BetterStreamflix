@@ -23,6 +23,7 @@ import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.download.ui.DownloadRowUiModel
 import com.dskja.betterstreamflix.download.ui.DownloadsAdapter
 import com.dskja.betterstreamflix.download.ui.DownloadsFilter
+import com.dskja.betterstreamflix.download.ui.DownloadsSort
 import com.dskja.betterstreamflix.download.ui.DownloadsViewModel
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
@@ -50,6 +51,8 @@ class DownloadsMobileFragment : Fragment() {
         },
         onRetry = { retry(it) },
         onDelete = { viewModel.remove(it.id) },
+        onItemMore = { row, anchor -> showItemMenu(row, anchor) },
+        onPackMore = { pack, anchor -> showPackMenu(pack, anchor) },
     )
 
     override fun onCreateView(
@@ -180,9 +183,22 @@ class DownloadsMobileFragment : Fragment() {
         PopupMenu(requireContext(), anchor).apply {
             menu.add(0, 1, 0, R.string.downloads_action_pause_all)
             menu.add(0, 2, 1, R.string.downloads_action_resume_all)
-            menu.add(0, 3, 2, R.string.downloads_action_clear_completed)
-            menu.add(0, 4, 3, R.string.downloads_action_clear_failed)
-            menu.add(0, 5, 4, R.string.downloads_action_settings)
+            menu.add(0, 6, 2, R.string.downloads_action_retry_all_failed)
+            menu.add(0, 3, 3, R.string.downloads_action_clear_completed)
+            menu.add(0, 7, 4, R.string.downloads_action_clear_watched)
+            menu.add(0, 4, 5, R.string.downloads_action_clear_failed)
+            val sortMenu = menu.addSubMenu(0, 8, 6, R.string.downloads_sort)
+            sortMenu.add(0, 10, 0, R.string.downloads_sort_newest)
+                .setCheckable(true)
+                .setChecked(viewModel.currentSort() == DownloadsSort.NEWEST)
+            sortMenu.add(0, 11, 1, R.string.downloads_sort_title)
+                .setCheckable(true)
+                .setChecked(viewModel.currentSort() == DownloadsSort.TITLE)
+            sortMenu.add(0, 12, 2, R.string.downloads_sort_size)
+                .setCheckable(true)
+                .setChecked(viewModel.currentSort() == DownloadsSort.SIZE)
+            sortMenu.setGroupCheckable(0, true, true)
+            menu.add(0, 5, 7, R.string.downloads_action_settings)
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     1 -> viewModel.pauseAll()
@@ -190,10 +206,73 @@ class DownloadsMobileFragment : Fragment() {
                     3 -> viewModel.clearCompleted()
                     4 -> viewModel.clearFailed()
                     5 -> findNavController().navigate(R.id.settings)
+                    6 -> viewModel.retryAllFailed()
+                    7 -> viewModel.clearWatched()
+                    10 -> viewModel.setSort(DownloadsSort.NEWEST)
+                    11 -> viewModel.setSort(DownloadsSort.TITLE)
+                    12 -> viewModel.setSort(DownloadsSort.SIZE)
                 }
                 true
             }
             show()
+        }
+    }
+
+    private fun showItemMenu(row: DownloadRowUiModel.Item, anchor: View) {
+        PopupMenu(requireContext(), anchor).apply {
+            if (row.state == DownloadItemState.COMPLETED) {
+                menu.add(0, 1, 0, R.string.downloads_action_share)
+            }
+            if (row.state == DownloadItemState.FAILED) {
+                menu.add(0, 2, 1, R.string.downloads_action_retry)
+            }
+            menu.add(0, 3, 2, R.string.downloads_action_delete)
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    1 -> share(row)
+                    2 -> retry(row)
+                    3 -> viewModel.remove(row.id)
+                }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun showPackMenu(pack: DownloadRowUiModel.SeasonPack, anchor: View) {
+        PopupMenu(requireContext(), anchor).apply {
+            menu.add(0, 1, 0, R.string.downloads_pack_pause)
+            menu.add(0, 2, 1, R.string.downloads_pack_resume)
+            menu.add(0, 3, 2, R.string.downloads_pack_delete)
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    1 -> viewModel.pausePack(pack.pack.id)
+                    2 -> viewModel.resumePack(pack.pack.id)
+                    3 -> viewModel.removePack(pack.pack.id)
+                }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun share(row: DownloadRowUiModel.Item) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val uri = withContext(Dispatchers.IO) {
+                OfflinePlayback.exportShareUri(requireContext(), row.entity)
+            }
+            if (uri == null) {
+                Toast.makeText(requireContext(), R.string.download_error_file_missing, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "video/*"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            runCatching {
+                startActivity(android.content.Intent.createChooser(intent, row.entity.title))
+            }
         }
     }
 

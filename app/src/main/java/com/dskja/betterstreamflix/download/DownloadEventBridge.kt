@@ -1,6 +1,7 @@
 package com.dskja.betterstreamflix.download
 
 import android.content.Context
+import android.util.Log
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import kotlinx.coroutines.CoroutineScope
@@ -101,6 +102,10 @@ object DownloadEventBridge : DownloadManager.Listener {
             Download.STATE_REMOVING, Download.STATE_RESTARTING -> DownloadItemState.REMOVING
             else -> DownloadItemState.QUEUED
         }
+        // Terminal states no longer need speed sampling — otherwise lastBytes grows forever.
+        if (state != DownloadItemState.DOWNLOADING && state != DownloadItemState.QUEUED) {
+            lastBytes.remove(download.request.id)
+        }
 
         val localUri = if (state == DownloadItemState.COMPLETED) {
             download.request.uri.toString()
@@ -133,12 +138,22 @@ object DownloadEventBridge : DownloadManager.Listener {
             speedBytesPerSec = nextSpeed,
             etaSeconds = nextEta,
             localUri = localUri,
-            errorCode = if (state == DownloadItemState.FAILED) DownloadErrorCode.NETWORK.name else "",
+            errorCode = if (state == DownloadItemState.FAILED) {
+                classifyFailure(finalException).name
+            } else {
+                ""
+            },
             errorMessage = if (state == DownloadItemState.FAILED) errorMessage else "",
         )
 
         if (state == DownloadItemState.COMPLETED && entity.state != DownloadItemState.COMPLETED.name) {
             DownloadNotifier.notifyCompleted(context, entity.title)
+            lastBytes.remove(download.request.id)
+            scope.launch {
+                runCatching {
+                    SubtitleFetch.fetchFor(context, repo.getById(entity.id) ?: entity)
+                }.onFailure { Log.w("DownloadEventBridge", "subtitle fetch failed", it) }
+            }
         }
         if (state == DownloadItemState.FAILED && entity.state != DownloadItemState.FAILED.name) {
             DownloadNotifier.notifyFailed(context, entity.id, entity.title)
@@ -148,6 +163,23 @@ object DownloadEventBridge : DownloadManager.Listener {
 
         refreshAggregateNotification(context, downloadManager)
         entity.seasonPackId?.let { repo.refreshSeasonPack(it) }
+    }
+
+    private fun classifyFailure(e: Exception?): DownloadErrorCode {
+        val msg = e?.message?.lowercase().orEmpty()
+        val chain = generateSequence(e as Throwable?) { it.cause }
+            .mapNotNull { it.message?.lowercase() }
+            .joinToString(" ")
+        val hay = "$msg $chain"
+        return when {
+            "no space" in hay || "enospc" in hay || "space left" in hay ->
+                DownloadErrorCode.NOSPACE
+            "403" in hay || "410" in hay || "expired" in hay || "forbidden" in hay ->
+                DownloadErrorCode.EXPIRED
+            "cleartext" in hay || "ssl" in hay || "certificate" in hay ->
+                DownloadErrorCode.UNSUPPORTED
+            else -> DownloadErrorCode.NETWORK
+        }
     }
 
     private fun refreshAggregateNotification(context: Context, downloadManager: DownloadManager) {

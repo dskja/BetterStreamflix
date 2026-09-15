@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.download.DownloadConnectivityMonitor
-import com.dskja.betterstreamflix.download.DownloadController
 import com.dskja.betterstreamflix.download.DownloadEventBridge
 import com.dskja.betterstreamflix.download.DownloadItemState
 import com.dskja.betterstreamflix.download.DownloadRepository
@@ -27,9 +26,11 @@ class DownloadsViewModel(
 ) : ViewModel() {
     private val repo = DownloadRepository.get(appContext)
     private val filter = MutableStateFlow(DownloadsFilter.ALL)
+    private val sort = MutableStateFlow(DownloadsSort.NEWEST)
     private var progressJob: Job? = null
 
     val selectedFilter: StateFlow<DownloadsFilter> = filter.asStateFlow()
+    val selectedSort: StateFlow<DownloadsSort> = sort.asStateFlow()
 
     val storageLabel: StateFlow<String> = MutableStateFlow(
         appContext.getString(
@@ -51,8 +52,8 @@ class DownloadsViewModel(
     val rows: StateFlow<List<DownloadRowUiModel>> = combine(
         repo.observeAll(),
         repo.observeSeasonPacks(),
-        filter,
-    ) { items, packs, selectedFilter ->
+        combine(filter, sort) { f, s -> f to s },
+    ) { items, packs, (selectedFilter, selectedSort) ->
         val providerFilter = UserPreferences.downloadFilterCurrentProvider
         val providerName = UserPreferences.currentProvider?.name
         var filtered = items
@@ -71,9 +72,27 @@ class DownloadsViewModel(
                 it.state == DownloadItemState.FAILED.name
             }
         }
-        val active = filtered.filter { DownloadItemState.fromKey(it.state).isActive }
-        val completed = filtered.filter { it.state == DownloadItemState.COMPLETED.name }
-        val failed = filtered.filter { it.state == DownloadItemState.FAILED.name }
+        val sorter: Comparator<com.dskja.betterstreamflix.download.DownloadItemEntity> =
+            when (selectedSort) {
+                DownloadsSort.NEWEST -> compareByDescending<com.dskja.betterstreamflix.download.DownloadItemEntity> { it.createdAt }
+                    .thenBy { it.sortIndex }
+                DownloadsSort.TITLE -> compareBy(
+                    { it.title.lowercase() },
+                    { it.sortIndex },
+                )
+                DownloadsSort.SIZE -> compareByDescending {
+                    maxOf(it.contentLength, it.bytesDownloaded)
+                }
+            }
+        val active = filtered
+            .filter { DownloadItemState.fromKey(it.state).isActive }
+            .sortedWith(sorter)
+        val completed = filtered
+            .filter { it.state == DownloadItemState.COMPLETED.name }
+            .sortedWith(sorter)
+        val failed = filtered
+            .filter { it.state == DownloadItemState.FAILED.name }
+            .sortedWith(sorter)
         buildList {
             val relevantPacks = packs.filter { pack ->
                 filtered.any { it.seasonPackId == pack.id } ||
@@ -102,7 +121,12 @@ class DownloadsViewModel(
         filter.value = value
     }
 
+    fun setSort(value: DownloadsSort) {
+        sort.value = value
+    }
+
     fun currentFilter(): DownloadsFilter = filter.value
+    fun currentSort(): DownloadsSort = sort.value
 
     /** Poll Media3 while the Downloads screen is visible so progress stays live. */
     fun startLiveProgress() {
@@ -148,11 +172,16 @@ class DownloadsViewModel(
         repo.clearFailed()
         refreshStorage()
     }
-
-    fun retry(id: String) = viewModelScope.launch {
-        val item = repo.getById(id) ?: return@launch
-        DownloadController.deserializeVideoType(item.videoTypeJson) ?: return@launch
-        repo.remove(id)
+    fun clearWatched() = viewModelScope.launch {
+        repo.clearWatched()
+        refreshStorage()
+    }
+    fun retryAllFailed() = viewModelScope.launch { repo.resumeFailed() }
+    fun pausePack(packId: String) = viewModelScope.launch { repo.pausePack(packId) }
+    fun resumePack(packId: String) = viewModelScope.launch { repo.resumePack(packId) }
+    fun removePack(packId: String) = viewModelScope.launch {
+        repo.removePack(packId)
+        refreshStorage()
     }
 
     override fun onCleared() {

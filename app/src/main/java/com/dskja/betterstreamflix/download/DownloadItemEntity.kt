@@ -39,12 +39,14 @@ data class DownloadItemEntity(
     val streamUrl: String = "",
     val headersJson: String = "",
     val subtitlePathsJson: String = "[]",
+    val subtitleUrlsJson: String = "[]",
     val seasonPackId: String? = null,
     val sortIndex: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val completedAt: Long = 0L,
     val watchedOffline: Boolean = false,
+    val smartEnqueued: Boolean = false,
 )
 
 @Entity(tableName = "download_season_packs")
