@@ -29,6 +29,12 @@
 
     <Preference
         app:iconSpaceReserved="false"
+        app:key="p_settings_github_sponsors"
+        app:title="@string/settings_github_sponsors"
+        app:summary="@string/settings_github_sponsors_summary" />
+
+    <Preference
+        app:iconSpaceReserved="false"
         app:key="p_settings_upstream"
         app:title="@string/settings_about_upstream"
         android:summary="github.com/streamflix-reborn2/streamflix" />

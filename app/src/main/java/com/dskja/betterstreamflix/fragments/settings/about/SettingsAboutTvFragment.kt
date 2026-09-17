@@ -31,6 +31,11 @@ class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_github_sponsors")?.setOnPreferenceClickListener {
+            openUrl("https://github.com/sponsors/dskja")
+            true
+        }
+
         findPreference<Preference>("p_settings_upstream")?.setOnPreferenceClickListener {
             openUrl("https://github.com/streamflix-reborn2/streamflix")
             true
