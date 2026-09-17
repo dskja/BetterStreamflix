@@ -16,10 +16,18 @@
   ·
   <a href="https://buymeacoffee.com/betterstreamflix">Buy me a coffee</a>
   ·
+  <a href="https://github.com/sponsors/dskja">GitHub Sponsors</a>
+  ·
   <a href="https://github.com/dskja/BetterStreamflix/issues">Report Bug</a>
   ·
   <a href="https://github.com/dskja/BetterStreamflix/issues">Request Feature</a>
 </p>
+
+> **Einmaliges Ziel: 25 USD** · Status: **offen**  
+> Persönliche Grundkosten in einer knappen Phase — damit BetterStreamflix weitergebaut werden kann.  
+> **Kein** Hosting, **keine** API, **kein** Server. Danach wird dieser Aufruf geschlossen.  
+> [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja) · [Details](docs/FUNDING_CAMPAIGN.md)  
+> <sub>EN: One-time ~$25 for personal basic costs so development can continue — not hosting/API. Ask closes when reached.</sub>
 
 <details>
   <summary>Table of Contents</summary>
@@ -33,6 +41,7 @@
   - [Setup](#setup)
 - [Development](#development)
 - [Contributing](#contributing)
+- [Support / Spenden](#support--spenden)
 - [Legal Disclaimer](#legal-disclaimer)
 - [Credits &amp; Authors](#credits--authors)
 - [License](#license)
@@ -102,6 +111,17 @@ Contributions are welcome.
 3. Commit your changes (`git commit -m 'feat: add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a pull request against [dskja/BetterStreamflix](https://github.com/dskja/BetterStreamflix)
+
+## Support / Spenden
+
+**Aktuell:** einmaliges Ziel **25 USD** (offen) — persönliche Grundkosten, damit die Weiterentwicklung nicht abbrechen muss. Keine Server-/API-Kosten. Details und Posting-Texte: [docs/FUNDING_CAMPAIGN.md](docs/FUNDING_CAMPAIGN.md).
+
+| | |
+| --- | --- |
+| Buy Me a Coffee | https://buymeacoffee.com/betterstreamflix |
+| GitHub Sponsors | https://github.com/sponsors/dskja |
+
+Nach Erreichen: Aufruf schließen, Danke posten, diesen Abschnitt auf „Ziel erreicht / reguläre Sponsoren willkommen“ umstellen.
 
 ## Legal Disclaimer
 
