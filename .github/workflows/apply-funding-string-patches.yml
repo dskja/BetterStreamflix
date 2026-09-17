@@ -1,0 +1,64 @@
+name: apply-funding-string-patches
+on:
+  workflow_dispatch:
+  push:
+    branches: ["dskja/funding-25usd-campaign-588a"]
+    paths:
+      - ".github/workflows/apply-funding-string-patches.yml"
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dskja/funding-25usd-campaign-588a
+      - name: Patch EN/DE funding strings and commit
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          def commit(path, message):
+              subprocess.check_call(["git", "add", path])
+              # skip empty
+              st = subprocess.check_output(["git", "status", "--porcelain", path]).decode().strip()
+              if not st:
+                  print("unchanged", path)
+                  return
+              subprocess.check_call(["git", "commit", "-m", message])
+              print("committed", path)
+
+          en = Path("app/src/main/res/values/strings.xml")
+          en_txt = en.read_text(encoding="utf-8")
+          en_old = '    <string name="settings_buy_me_a_coffee_summary">Support BetterStreamflix development</string>\n'
+          en_new = (
+              '    <string name="settings_buy_me_a_coffee_summary">One-time ~$25 goal (open): personal basic costs so development can continue — not hosting/API</string>\n'
+              '    <string name="settings_github_sponsors">GitHub Sponsors</string>\n'
+              '    <string name="settings_github_sponsors_summary">Same one-time ~$25 ask via GitHub Sponsors</string>\n'
+          )
+          if "settings_github_sponsors" not in en_txt:
+              if en_old not in en_txt:
+                  raise SystemExit("EN anchor missing")
+              en.write_text(en_txt.replace(en_old, en_new, 1), encoding="utf-8")
+          commit(str(en), "about: EN funding campaign string updates")
+
+          de = Path("app/src/main/res/values-de/strings.xml")
+          de_txt = de.read_text(encoding="utf-8")
+          de_old = '    <string name="settings_buy_me_a_coffee_summary">Unterstütze die Entwicklung von BetterStreamflix</string>\n'
+          de_new = (
+              '    <string name="settings_buy_me_a_coffee_summary">Einmalig ~25 USD (offen): persönliche Grundkosten, damit Weiterentwicklung möglich bleibt — kein Hosting/API</string>\n'
+              '    <string name="settings_github_sponsors">GitHub Sponsors</string>\n'
+              '    <string name="settings_github_sponsors_summary">Gleicher einmaliger ~25-USD-Aufruf über GitHub Sponsors</string>\n'
+          )
+          if "settings_github_sponsors" not in de_txt:
+              if de_old not in de_txt:
+                  raise SystemExit("DE anchor missing")
+              de.write_text(de_txt.replace(de_old, de_new, 1), encoding="utf-8")
+          commit(str(de), "about: DE funding campaign string updates")
+          PY
+          git push origin HEAD:dskja/funding-25usd-campaign-588a
