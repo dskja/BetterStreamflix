@@ -23,11 +23,10 @@
   <a href="https://github.com/dskja/BetterStreamflix/issues">Request Feature</a>
 </p>
 
-> **Einmaliges Ziel: 25 USD** · Status: **offen**  
-> Persönliche Grundkosten in einer knappen Phase — damit BetterStreamflix weitergebaut werden kann.  
-> **Kein** Hosting, **keine** API, **kein** Server. Danach wird dieser Aufruf geschlossen.  
-> [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja) · [Details](docs/FUNDING_CAMPAIGN.md)  
-> <sub>EN: One-time ~$25 for personal basic costs so development can continue — not hosting/API. Ask closes when reached.</sub>
+> **One-time goal: $25** · Status: **open**  
+> Personal basic costs during a tight stretch — so BetterStreamflix development can continue.  
+> Not hosting, APIs, or servers. This ask closes when reached.  
+> [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja)
 
 <details>
   <summary>Table of Contents</summary>
@@ -41,7 +40,7 @@
   - [Setup](#setup)
 - [Development](#development)
 - [Contributing](#contributing)
-- [Support / Spenden](#support--spenden)
+- [Support](#support)
 - [Legal Disclaimer](#legal-disclaimer)
 - [Credits &amp; Authors](#credits--authors)
 - [License](#license)
@@ -112,16 +111,14 @@ Contributions are welcome.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a pull request against [dskja/BetterStreamflix](https://github.com/dskja/BetterStreamflix)
 
-## Support / Spenden
+## Support
 
-**Aktuell:** einmaliges Ziel **25 USD** (offen) — persönliche Grundkosten, damit die Weiterentwicklung nicht abbrechen muss. Keine Server-/API-Kosten. Details und Posting-Texte: [docs/FUNDING_CAMPAIGN.md](docs/FUNDING_CAMPAIGN.md).
+One-time goal of **$25** (open) for personal basic costs so development can continue — not hosting or API costs.
 
 | | |
 | --- | --- |
 | Buy Me a Coffee | https://buymeacoffee.com/betterstreamflix |
 | GitHub Sponsors | https://github.com/sponsors/dskja |
-
-Nach Erreichen: Aufruf schließen, Danke posten, diesen Abschnitt auf „Ziel erreicht / reguläre Sponsoren willkommen“ umstellen.
 
 ## Legal Disclaimer
 
