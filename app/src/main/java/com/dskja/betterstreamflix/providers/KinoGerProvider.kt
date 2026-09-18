@@ -25,11 +25,9 @@ import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.http.Field
@@ -234,7 +232,9 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             html.contains("ep-menu") ||
             html.contains("news-title") ||
             html.contains("kinofilme") ||
-            html.contains("content_text")
+            html.contains("content_text") ||
+            html.contains("movieList") ||
+            html.contains("owl-iteml-post")
     }
 
     private suspend fun getDocument(url: String): Document {
@@ -303,83 +303,18 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         }
     }
 
-    private fun cleanTitle(raw: String): String =
-        raw.replace(Regex("""\s*\(\d{4}\)\s*$"""), "").trim()
+    private fun cleanTitle(raw: String): String = KinoGerHtml.cleanTitle(raw)
 
-    private fun extractYear(raw: String): Int? =
-        Regex("""\((\d{4})\)""").find(raw)?.groupValues?.get(1)?.toIntOrNull()
-
-    private fun isSeriesCard(el: Element, title: String): Boolean {
-        if (el.selectFirst(".serie-num") != null) return true
-        if (title.contains("Staffel", ignoreCase = true)) return true
-        val cats = el.select(".content_text").text()
-        return cats.contains("Serien", ignoreCase = true)
-    }
-
-    private fun parseShort(el: Element): AppAdapter.Item? {
-        val link = el.selectFirst(".title a[href$=.html]")
-            ?: el.selectFirst("a[href$=.html]")
-            ?: return null
-        val href = link.attr("href").trim()
-        if (href.isBlank()) return null
-        val titleRaw = link.text().trim().ifBlank {
-            el.selectFirst(".title")?.text()?.trim().orEmpty()
-        }
-        if (titleRaw.isBlank()) return null
-        val posterPath = el.selectFirst(".content_text img, img")?.attr("src").orEmpty()
-        val poster = absoluteUrl(posterPath)
-        val title = cleanTitle(titleRaw)
-
-        return if (isSeriesCard(el, titleRaw)) {
-            TvShow(id = absoluteUrl(href), title = title, poster = poster)
-        } else {
-            Movie(id = absoluteUrl(href), title = title, poster = poster)
-        }
-    }
+    private fun extractYear(raw: String): Int? = KinoGerHtml.extractYear(raw)
 
     private fun parseShorts(document: Document): List<AppAdapter.Item> =
-        document.select("div.short").mapNotNull { parseShort(it) }
-            .ifEmpty {
-                document.select("article, .movie-item, .item").mapNotNull { parseShort(it) }
-            }
+        KinoGerHtml.parseShorts(document, ::absoluteUrl)
 
-    private fun hosterDisplayName(url: String, fallback: String): String {
-        val host = runCatching {
-            url.toHttpUrlOrNull()?.host
-                ?.removePrefix("www.")
-                ?.substringBefore('.')
-        }.getOrNull().orEmpty()
-        return when {
-            host.equals("voe", ignoreCase = true) -> "Voe"
-            host.equals("meinecloud", ignoreCase = true) -> "Meinecloud"
-            host.equals("vidara", ignoreCase = true) -> "Vidara"
-            host.equals("firestream", ignoreCase = true) -> "Firestream"
-            host.equals("mixdrop", ignoreCase = true) -> "Mixdrop"
-            host.equals("streamtape", ignoreCase = true) -> "Streamtape"
-            host.equals("dood", ignoreCase = true) || host.startsWith("dood", ignoreCase = true) -> "Doodstream"
-            fallback.isNotBlank() -> fallback
-            host.isNotBlank() -> host.replaceFirstChar { it.uppercase() }
-            else -> "Server"
-        }
-    }
+    private fun hosterDisplayName(url: String, fallback: String): String =
+        KinoGerHtml.hosterDisplayName(url, fallback)
 
-    private fun normalizeStreamUrl(raw: String): String? {
-        val trimmed = raw.trim()
-        if (trimmed.isBlank()) return null
-        if (trimmed.contains("/vod/vpn", ignoreCase = true)) return null
-        return when {
-            trimmed.startsWith("//") -> "https:$trimmed"
-            trimmed.startsWith("http") -> trimmed
-            trimmed.startsWith("/") -> absoluteUrl(trimmed)
-            else -> MeinecloudEmbedHelper.decodeDataLink(trimmed)?.let { decoded ->
-                when {
-                    decoded.startsWith("//") -> "https:$decoded"
-                    decoded.startsWith("http") -> decoded
-                    else -> null
-                }
-            }
-        }
-    }
+    private fun normalizeStreamUrl(raw: String): String? =
+        KinoGerHtml.normalizeStreamUrl(raw, ::absoluteUrl)
 
     private suspend fun expandWrapperServers(
         link: String,
@@ -400,7 +335,6 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
                 server.copy(name = hosterDisplayName(server.src, server.name))
             }
         }
-        // Keep wrapper as last-resort — getVideo will try to resolve again.
         return listOf(
             Video.Server(
                 id = link,
@@ -412,11 +346,25 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         val document = getDocument(normalizedBaseUrl())
-        val items = parseShorts(document)
-        if (items.isEmpty()) {
+        val featured = KinoGerHtml.parseFeaturedCarousel(document, ::absoluteUrl)
+        val latest = parseShorts(document)
+        val sidebar = KinoGerHtml.parseMovieListSidebar(document, ::absoluteUrl)
+        if (featured.isEmpty() && latest.isEmpty() && sidebar.isEmpty()) {
             throw Exception("KinoGer home returned no titles (site layout may have changed or CF blocked the scrape).")
         }
-        return listOf(Category(name = Category.FEATURED, list = items))
+        return buildList {
+            if (featured.isNotEmpty()) {
+                add(Category(name = Category.FEATURED, list = featured))
+            } else if (latest.isNotEmpty()) {
+                add(Category(name = Category.FEATURED, list = latest))
+            }
+            if (latest.isNotEmpty() && featured.isNotEmpty()) {
+                add(Category(name = "Neueste", list = latest))
+            }
+            if (sidebar.isNotEmpty()) {
+                add(Category(name = "Beliebt", list = sidebar))
+            }
+        }
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -429,27 +377,16 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             )
         }
 
-        val resultFrom = (page - 1) * 20 + 1
         return try {
-            // Search goes through getDocument path via service; CF may block POST —
-            // fall back to fetching search results page after clearance seed.
-            val document = try {
-                getService().search(
-                    searchStart = page,
-                    resultFrom = resultFrom,
-                    story = query,
-                )
-            } catch (e: Exception) {
-                // Seed clearance first, then retry search.
+            // Live site uses GET /?do=search&subaction=search&story=… (Sep 2026 scrape).
+            val searchUrl = KinoGerHtml.buildSearchUrl(normalizedBaseUrl(), query, page)
+            val document = getDocument(searchUrl)
+            parseShorts(document)
+        } catch (_: Exception) {
+            // Legacy POST fallback if GET layout fails after CF clearance.
+            try {
                 getDocument(normalizedBaseUrl())
-                getService().search(
-                    searchStart = page,
-                    resultFrom = resultFrom,
-                    story = query,
-                )
-            }
-            if (requiresClearance(document.outerHtml())) {
-                getDocument(normalizedBaseUrl())
+                val resultFrom = (page - 1) * 20 + 1
                 parseShorts(
                     getService().search(
                         searchStart = page,
@@ -457,11 +394,9 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
                         story = query,
                     ),
                 )
-            } else {
-                parseShorts(document)
+            } catch (_: Exception) {
+                emptyList()
             }
-        } catch (_: Exception) {
-            emptyList()
         }
     }
 
@@ -485,7 +420,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getMovie(id: String): Movie {
         val document = getDocument(absoluteUrl(id))
-        val titleRaw = document.selectFirst("h1#news-title, h1.title, h1")?.text()?.trim().orEmpty()
+        val titleRaw = KinoGerHtml.pageTitle(document)
         val title = cleanTitle(titleRaw)
         val year = extractYear(titleRaw)
         val tmdbMovie = TmdbUtils.getMovie(title, year = year, language = language)
@@ -512,9 +447,8 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getTvShow(id: String): TvShow {
         val document = getDocument(absoluteUrl(id))
-        val titleRaw = document.selectFirst("h1#news-title, h1.title, h1")?.text()?.trim().orEmpty()
-        val seasonNumber = Regex("""Staffel\s+(\d+)""", RegexOption.IGNORE_CASE)
-            .find(titleRaw)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+        val titleRaw = KinoGerHtml.pageTitle(document)
+        val seasonNumber = KinoGerHtml.extractStaffelNumber(titleRaw)
         val titleForTmdb = cleanTitle(titleRaw)
             .replace(Regex("""\s*-\s*Staffel\s+\d+\s*$""", RegexOption.IGNORE_CASE), "")
             .trim()
@@ -525,7 +459,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             ?.attr("src").orEmpty()
         val overview = document.selectFirst(".full-text, .content_text")?.text()?.trim()
 
-        val episodes = parseEpisodesFromDocument(absoluteUrl(id), seasonNumber, document, emptyList())
+        val episodes = KinoGerHtml.parseEpisodes(absoluteUrl(id), seasonNumber, document, emptyList())
         val seasons = listOf(
             Season(
                 id = "${absoluteUrl(id)}#season-$seasonNumber",
@@ -558,30 +492,14 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         seasonNumber: Int,
         document: Document,
         tmdbEpisodes: List<Episode>
-    ): List<Episode> {
-        return document.select("ul.ep-menu li[id^=serie-]").mapNotNull { li ->
-            val idAttr = li.id().removePrefix("serie-")
-            val parts = idAttr.split("_")
-            val s = parts.getOrNull(0)?.toIntOrNull() ?: seasonNumber
-            val e = parts.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
-            if (s != seasonNumber) return@mapNotNull null
-            val tmdbEp = tmdbEpisodes.find { it.number == e }
-            Episode(
-                id = "$showUrl#s${s}e$e",
-                number = e,
-                title = tmdbEp?.title ?: "Episode $e",
-                poster = tmdbEp?.poster,
-                overview = tmdbEp?.overview
-            )
-        }.distinctBy { it.number }.sortedBy { it.number }
-    }
+    ): List<Episode> = KinoGerHtml.parseEpisodes(showUrl, seasonNumber, document, tmdbEpisodes)
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showUrl = seasonId.substringBefore("#")
         val seasonNumber = seasonId.substringAfter("#season-").toIntOrNull() ?: 1
         val document = getDocument(absoluteUrl(showUrl))
 
-        val titleRaw = document.selectFirst("h1#news-title, h1.title, h1")?.text()?.trim().orEmpty()
+        val titleRaw = KinoGerHtml.pageTitle(document)
         val titleForTmdb = cleanTitle(titleRaw)
             .replace(Regex("""\s*-\s*Staffel\s+\d+\s*$""", RegexOption.IGNORE_CASE), "")
             .trim()
@@ -605,7 +523,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
                     .removeSuffix("/") + "/"
                 getService().getPage(path, page)
             }
-            val name = document.selectFirst("h1, title")?.text()?.trim().orEmpty()
+            val name = document.selectFirst("h1#news-title, h1, title")?.text()?.trim().orEmpty()
                 .ifBlank { id.substringAfterLast('/').ifBlank { "Genre" } }
             val shows = parseShorts(document).filterIsInstance<Show>()
             Genre(id = id, name = name, shows = shows)
@@ -622,15 +540,8 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         return when (videoType) {
             is Video.Type.Movie -> {
                 val document = getDocument(absoluteUrl(id))
-                val raw = document.select(".player-mirrors span[data-link], .player-mirrors a[data-link], [data-link]")
-                    .mapNotNull { el ->
-                        val link = normalizeStreamUrl(el.attr("data-link")) ?: return@mapNotNull null
-                        if (link.contains("youtube", ignoreCase = true)) return@mapNotNull null
-                        val label = el.ownText().ifBlank { el.text() }.trim()
-                        link to label
-                    }
-                    .distinctBy { it.first }
-                raw.flatMap { (link, label) -> expandWrapperServers(link, label) }
+                KinoGerHtml.parseMovieServers(document, ::absoluteUrl)
+                    .flatMap { (link, label) -> expandWrapperServers(link, label) }
                     .distinctBy { it.src }
             }
             is Video.Type.Episode -> {
@@ -656,15 +567,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
                 }
 
                 val document = getDocument(absoluteUrl(pageUrl))
-                val li = document.selectFirst("ul.ep-menu li#serie-${season}_${episode}")
-                    ?: document.selectFirst("ul.ep-menu li[id=serie-${season}_${episode}]")
-                val links = li?.select("a[data-link], [data-link]").orEmpty()
-                links.mapNotNull { a ->
-                    val link = normalizeStreamUrl(a.attr("data-link")) ?: return@mapNotNull null
-                    if (link.contains("youtube", ignoreCase = true)) return@mapNotNull null
-                    val label = a.ownText().ifBlank { a.text() }.trim()
-                    link to label
-                }.distinctBy { it.first }
+                KinoGerHtml.parseEpisodeServers(document, season, episode, ::absoluteUrl)
                     .flatMap { (link, label) -> expandWrapperServers(link, label) }
                     .distinctBy { it.src }
             }
