@@ -71,6 +71,8 @@ jobs:
 
       # ── Universal (no APP_LAYOUT) ──────────────────────────────────────────
       - name: Build universal APK
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           ./gradlew clean assembleRelease --stacktrace
 
@@ -100,6 +102,8 @@ jobs:
           echo "APP_LAYOUT=mobile" >> local.properties
 
       - name: Build mobile APK
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           ./gradlew clean assembleRelease --stacktrace
 
@@ -128,9 +132,10 @@ jobs:
           echo "APP_LAYOUT=tv" >> local.properties
 
       - name: Build TV APK
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           ./gradlew clean assembleRelease --stacktrace
-
       - name: Sign TV APK
         id: sign_apk_tv
         uses: r0adkll/sign-android-release@v1

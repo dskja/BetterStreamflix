@@ -5,6 +5,7 @@ plugins {
     id 'kotlin-parcelize'
     id 'com.google.devtools.ksp'
     id 'org.jetbrains.kotlin.plugin.serialization'
+    id 'io.sentry.android.gradle' version '6.22.0'
 }
 
 android {
@@ -84,10 +85,14 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             applicationIdSuffix '.debug'
+            manifestPlaceholders = [sentryEnvironment: "debug"]
         }
         release {
-            minifyEnabled false
+            // R8 on for readable Sentry stack traces via uploaded mappings.
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            manifestPlaceholders = [sentryEnvironment: "production"]
         }
     }
 
@@ -171,6 +176,37 @@ dependencies {
     implementation "com.google.zxing:core:3.5.1"
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
     
+}
+
+// Sentry Android Gradle plugin (SDK is added automatically).
+// Mapping / source uploads need an org auth token (sntrys_…), never the DSN public key.
+def sentryProps = new Properties()
+def sentryPropsFile = rootProject.file("sentry.properties")
+if (sentryPropsFile.exists()) {
+    sentryPropsFile.withInputStream { sentryProps.load(it) }
+}
+def envToken = (System.getenv("SENTRY_AUTH_TOKEN") ?: "").trim()
+def fileToken = (sentryProps.getProperty("auth.token") ?: "").trim()
+// Prefer CI/env; from sentry.properties only accept real org tokens (sntrys_…).
+def sentryAuthToken = !envToken.isEmpty()
+        ? envToken
+        : (fileToken.startsWith("sntrys_") ? fileToken : "")
+def canUploadSentryArtifacts = !sentryAuthToken.isEmpty()
+sentry {
+    org = sentryProps.getProperty("defaults.org", "betterstreamflix")
+    projectName = sentryProps.getProperty("defaults.project", "betterstreamflix")
+    authToken = sentryAuthToken
+    includeProguardMapping = true
+    autoUploadProguardMapping = canUploadSentryArtifacts
+    autoUploadNativeSymbols = canUploadSentryArtifacts
+    includeNativeSources = false
+    includeSourceContext = canUploadSentryArtifacts
+    tracingInstrumentation {
+        enabled = true
+    }
+    autoInstallation {
+        enabled = true
+    }
 }
 
 ksp {

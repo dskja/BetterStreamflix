@@ -74,6 +74,7 @@ class MainTvActivity : FragmentActivity() {
         val navHostFragment = this.supportFragmentManager
             .findFragmentById(binding.navMainFragment.id) as NavHostFragment
         val navController = navHostFragment.navController
+        com.dskja.betterstreamflix.utils.SentryBootstrap.trackNavigation(navController)
 
         adjustLayoutDelta(null, null)
 

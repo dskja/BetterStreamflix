@@ -795,13 +795,6 @@
             app:iconSpaceReserved="false" />
 
         <Preference
-            android:icon="@drawable/ic_patreon"
-            android:key="p_settings_patreon"
-            android:title="@string/settings_patreon"
-            android:summary="@string/settings_patreon_summary"
-            app:iconSpaceReserved="false" />
-
-        <Preference
             android:icon="@drawable/ic_discord"
             android:key="p_settings_discord"
             android:title="@string/settings_discord"
@@ -824,6 +817,12 @@
             android:key="VIEW_CRASH_LOG"
             android:title="@string/settings_view_crash_log_title"
             android:summary="@string/settings_view_crash_log_summary"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="SEND_SENTRY_FEEDBACK"
+            android:title="@string/settings_send_sentry_feedback_title"
+            android:summary="@string/settings_send_sentry_feedback_summary"
             app:iconSpaceReserved="false" />
 
 

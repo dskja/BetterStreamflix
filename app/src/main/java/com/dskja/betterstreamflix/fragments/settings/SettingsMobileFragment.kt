@@ -516,26 +516,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://www.patreon.com/BetterStreamflix"),
-                ),
-            )
-            true
-        }
-
-        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://www.patreon.com/BetterStreamflix"),
-                ),
-            )
-            true
-        }
-
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
             com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
                 requireContext(),
@@ -1090,6 +1070,40 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
         findPreference<Preference>("VIEW_CRASH_LOG")?.setOnPreferenceClickListener {
             com.dskja.betterstreamflix.ui.CrashLogDialog.show(requireContext())
+            true
+        }
+
+        findPreference<Preference>("SEND_SENTRY_FEEDBACK")?.setOnPreferenceClickListener {
+            val input = android.widget.EditText(requireContext()).apply {
+                hint = getString(R.string.settings_send_sentry_feedback_hint)
+                minLines = 3
+                setPadding(48, 32, 48, 32)
+            }
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.settings_send_sentry_feedback_title)
+                .setView(input)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val text = input.text?.toString().orEmpty()
+                    if (text.isBlank()) {
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_send_sentry_feedback_empty,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    } else {
+                        com.dskja.betterstreamflix.utils.SentryBootstrap.captureFeedback(
+                            message = text,
+                            email = com.dskja.betterstreamflix.sync.CloudSyncManager.currentUserEmail(),
+                        )
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_send_sentry_feedback_sent,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
             true
         }
 

@@ -607,6 +607,11 @@
             android:summary="@string/settings_view_crash_log_summary" />
 
         <Preference
+            android:key="SEND_SENTRY_FEEDBACK"
+            android:title="@string/settings_send_sentry_feedback_title"
+            android:summary="@string/settings_send_sentry_feedback_summary" />
+
+        <Preference
             android:icon="@drawable/ic_settings_about"
             android:key="p_settings_about"
             android:title="@string/settings_about" />
