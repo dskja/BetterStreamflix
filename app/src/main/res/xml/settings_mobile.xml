@@ -745,6 +745,13 @@
             app:iconSpaceReserved="false" />
 
         <Preference
+            android:icon="@drawable/ic_patreon"
+            android:key="p_settings_patreon"
+            android:title="@string/settings_patreon"
+            android:summary="@string/settings_patreon_summary"
+            app:iconSpaceReserved="false" />
+
+        <Preference
             android:icon="@drawable/ic_buy_me_a_coffee"
             android:key="p_settings_buy_me_a_coffee"
             android:title="@string/settings_buy_me_a_coffee"

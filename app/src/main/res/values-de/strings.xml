@@ -240,6 +240,8 @@
     <string name="settings_bypass_advertised_host_auto">Auto (Geräte-IP)</string>
     <string name="settings_buy_me_a_coffee">Buy me a coffee</string>
     <string name="settings_buy_me_a_coffee_summary">Einmalig ~25 USD (offen): persönliche Grundkosten, damit Weiterentwicklung möglich bleibt — kein Hosting/API</string>
+    <string name="settings_patreon">Patreon</string>
+    <string name="settings_patreon_summary">BetterStreamflix über Patreon unterstützen (Abo oder einmalig)</string>
     <string name="settings_github_sponsors">GitHub Sponsors</string>
     <string name="settings_github_sponsors_summary">Gleicher einmaliger ~25-USD-Aufruf über GitHub Sponsors</string>
     <string name="settings_category_streamingcommunity">StreamingCommunity - Einstellungen</string>
