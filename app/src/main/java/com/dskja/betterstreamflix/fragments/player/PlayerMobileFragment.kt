@@ -424,16 +424,13 @@ class PlayerMobileFragment : Fragment() {
                     }
 
                     is PlayerViewModel.State.LoadingVideo -> {
-                        player.setMediaItem(
-                            MediaItem.Builder()
-                                .setUri("".toUri())
-                                .setMediaMetadata(
-                                    MediaMetadata.Builder()
-                                        .setMediaServerId(state.server.id)
-                                        .build()
-                                )
-                                .build()
-                        )
+                        // Do not install an empty media URI — that leaves 0:00/0:00 with
+                        // playWhenReady looking like "Playing" while nothing can buffer.
+                        if (::player.isInitialized && !player.isPlaying) {
+                            player.playWhenReady = false
+                            player.stop()
+                            player.clearMediaItems()
+                        }
                     }
 
                     is PlayerViewModel.State.SuccessLoadingVideo -> {
@@ -1896,6 +1893,9 @@ class PlayerMobileFragment : Fragment() {
         }
         isCasting = true
         CastPlaybackHub.markCasting(true)
+        if (UserPreferences.castKeepScreenAwake) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun switchPlaybackToLocal() {
@@ -1918,6 +1918,7 @@ class PlayerMobileFragment : Fragment() {
         }
         isCasting = false
         CastPlaybackHub.markCasting(false)
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     private fun releasePlayer() {

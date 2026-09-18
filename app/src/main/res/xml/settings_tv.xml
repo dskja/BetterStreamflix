@@ -176,6 +176,19 @@
 
         <PreferenceCategory android:title="@string/settings_screen_downloads">
 
+            <ListPreference
+                android:key="DOWNLOAD_STORAGE_LOCATION"
+                android:title="@string/settings_download_storage_location"
+                android:summary="@string/settings_download_storage_location_summary"
+                android:entries="@array/download_storage_location_entries"
+                android:entryValues="@array/download_storage_location_values"
+                android:defaultValue="INTERNAL" />
+
+            <Preference
+                android:key="DOWNLOAD_STORAGE_PATH"
+                android:title="@string/settings_download_storage_path"
+                android:selectable="false" />
+
             <SwitchPreference
                 android:key="DOWNLOAD_WIFI_ONLY"
                 android:title="@string/settings_download_wifi_only"
@@ -561,6 +574,12 @@
             android:icon="@drawable/ic_telegram"
             android:key="p_settings_telegram"
             android:title="@string/settings_telegram" />
+
+        <Preference
+            android:icon="@drawable/ic_patreon"
+            android:key="p_settings_patreon"
+            android:title="@string/settings_patreon"
+            android:summary="@string/settings_patreon_summary" />
 
         <Preference
             android:icon="@drawable/ic_buy_me_a_coffee"

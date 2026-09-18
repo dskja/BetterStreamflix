@@ -5,14 +5,22 @@ name: Build & Release APK
 #   BetterStreamflix-only-Mobile.apk
 #   BetterStreamflix-only-TV.apk
 #
-# Trigger: push tag v* → GitHub Release with all three assets
-#          workflow_dispatch → upload all three as artifacts
+# Trigger: push tag v*              → GitHub Release with all three assets
+#          push to main / dskja/**  → upload all three as artifacts (no release)
+#          workflow_dispatch        → upload all three as artifacts (no release)
 
 on:
   workflow_dispatch:
   push:
     tags:
       - 'v*'
+    branches:
+      - main
+      - 'dskja/**'
+
+concurrency:
+  group: apk-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-release:
@@ -140,16 +148,18 @@ jobs:
           cp "${{ steps.sign_apk_tv.outputs.signedReleaseFile }}" BetterStreamflix-only-TV.apk
           rm -rf app/build/outputs/apk/release
 
+      # Artifacts for manual runs and every non-tag commit (no GitHub Release).
       - name: Upload build artifacts
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@v4
         with:
-          name: BetterStreamflix-release-apks
+          name: BetterStreamflix-apks-${{ github.sha }}
           path: |
             BetterStreamflix.apk
             BetterStreamflix-only-Mobile.apk
             BetterStreamflix-only-TV.apk
           if-no-files-found: error
+          retention-days: 14
 
       - name: Extract changelog for this version
         if: startsWith(github.ref, 'refs/tags/v')

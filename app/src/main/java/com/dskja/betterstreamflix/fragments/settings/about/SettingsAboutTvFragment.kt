@@ -26,6 +26,11 @@ class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
+            openUrl("https://www.patreon.com/BetterStreamflix")
+            true
+        }
+
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
             openUrl("https://buymeacoffee.com/betterstreamflix")
             true

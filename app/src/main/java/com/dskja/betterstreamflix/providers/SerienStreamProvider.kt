@@ -18,7 +18,6 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
-import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.TmdbUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -26,7 +25,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import org.jsoup.nodes.Document
@@ -42,19 +40,23 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Url
-import java.io.File
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 
 object SerienStreamProvider : Provider {
 
+    private const val TAG = "SerienStreamProvider"
     private const val DEFAULT_DOMAIN = "serienstream.to"
+
+    /**
+     * Working mirrors from serien.domains (July 2026+). Dead hosts (s.to, serienstream.sx)
+     * are intentionally excluded — .sx presents an invalid certificate.
+     */
+    private val FALLBACK_DOMAINS = listOf(
+        "serienstream.to",
+        "serienstream.cx",
+    )
 
     override val baseUrl: String
         get() = currentBaseUrl()
@@ -69,6 +71,8 @@ object SerienStreamProvider : Provider {
     private var service: SerienStreamService? = null
     @Volatile
     private var serviceBaseUrl: String? = null
+    @Volatile
+    private var usingUnsafeSsl: Boolean = false
 
 
     private var tvShowDao: TvShowDao? = null
@@ -91,15 +95,32 @@ object SerienStreamProvider : Provider {
     fun reloadService() {
         service = null
         serviceBaseUrl = null
+        usingUnsafeSsl = false
     }
 
-    private fun currentDomain(): String {
-        return UserPreferences.serienstreamDomain.trim().ifBlank { DEFAULT_DOMAIN }
+    private fun normalizeDomain(raw: String): String {
+        return raw.trim()
             .removePrefix("https://")
             .removePrefix("http://")
             .substringBefore("/")
             .removePrefix("www.")
+            .trimEnd('.')
+            .lowercase()
             .ifBlank { DEFAULT_DOMAIN }
+    }
+
+    private fun currentDomain(): String {
+        return normalizeDomain(
+            UserPreferences.serienstreamDomain.trim().ifBlank { DEFAULT_DOMAIN }
+        )
+    }
+
+    /** Ordered unique domains to try: configured first, then known-good mirrors. */
+    internal fun candidateDomains(configured: String = currentDomain()): List<String> {
+        val preferred = normalizeDomain(configured)
+        return linkedSetOf(preferred).apply {
+            addAll(FALLBACK_DOMAINS)
+        }.toList()
     }
 
     /** True when [hostOrUrl] is the configured SerienStream domain (or Cloudflare challenge). */
@@ -117,16 +138,75 @@ object SerienStreamProvider : Provider {
             .orEmpty()
         if (host.isBlank()) return false
         if (host == "challenges.cloudflare.com") return true
-        val configured = currentDomain().lowercase()
-        return host == configured || host.endsWith(".$configured")
+        val known = candidateDomains().toSet()
+        return known.any { host == it || host.endsWith(".$it") }
     }
 
     private fun currentBaseUrl(): String {
         val domain = currentDomain()
-            .removePrefix("https://")
-            .removePrefix("http://")
-            .trimEnd('/')
         return "https://$domain/"
+    }
+
+    private fun baseUrlFor(domain: String): String = "https://${normalizeDomain(domain)}/"
+
+    private fun isSslFailure(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            when (current) {
+                is javax.net.ssl.SSLHandshakeException,
+                is javax.net.ssl.SSLPeerUnverifiedException,
+                is java.security.cert.CertPathValidatorException -> return true
+            }
+            val message = current.message.orEmpty()
+            if (
+                message.contains("certificate", ignoreCase = true) ||
+                message.contains("CertPath", ignoreCase = true) ||
+                message.contains("SSL", ignoreCase = true) ||
+                message.contains("pretending to be", ignoreCase = true)
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private fun isRetryableDomainFailure(error: Throwable): Boolean {
+        if (isSslFailure(error)) return true
+        var current: Throwable? = error
+        while (current != null) {
+            when (current) {
+                is java.net.UnknownHostException,
+                is java.net.SocketTimeoutException,
+                is java.net.ConnectException,
+                is java.io.IOException -> return true
+            }
+            val message = current.message.orEmpty().lowercase()
+            if (
+                message.contains("unreachable") ||
+                message.contains("failed to connect") ||
+                message.contains("timeout") ||
+                message.contains("unable to resolve") ||
+                message.contains("cancelled")
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private fun rebuildService(domain: String, unsafe: Boolean): SerienStreamService {
+        val base = baseUrlFor(domain)
+        val built = if (unsafe) {
+            SerienStreamService.buildUnsafe(base)
+        } else {
+            SerienStreamService.build(base)
+        }
+        service = built
+        serviceBaseUrl = base
+        usingUnsafeSsl = unsafe
+        return built
     }
 
     private fun getService(): SerienStreamService {
@@ -141,11 +221,64 @@ object SerienStreamProvider : Provider {
             if (synced != null && serviceBaseUrl == currentBase) {
                 return synced
             }
-            return SerienStreamService.build(currentBase).also {
-                service = it
-                serviceBaseUrl = currentBase
+            return rebuildService(currentDomain(), unsafe = false)
+        }
+    }
+
+    private fun persistWorkingDomain(domain: String) {
+        val normalized = normalizeDomain(domain)
+        if (normalized == currentDomain()) return
+        Log.i(TAG, "Persisting working SerienStream domain: $normalized")
+        val keepUnsafe = usingUnsafeSsl
+        UserPreferences.serienstreamDomain = normalized
+        reloadService()
+        rebuildService(normalized, unsafe = keepUnsafe)
+    }
+
+    /**
+     * Run [block] against the configured domain, falling back to known-good mirrors and
+     * permissive TLS when the primary host is dead, blocked, or has certificate issues.
+     */
+    private suspend fun <T> withDomainAndSslFallback(block: suspend (SerienStreamService) -> T): T {
+        val tried = linkedSetOf<String>()
+        var lastError: Exception? = null
+
+        for (domain in candidateDomains()) {
+            tried.add(domain)
+            try {
+                val svc = synchronized(this) {
+                    rebuildService(domain, unsafe = false)
+                }
+                val result = block(svc)
+                persistWorkingDomain(domain)
+                return result
+            } catch (e: Exception) {
+                lastError = e
+                if (isSslFailure(e)) {
+                    try {
+                        Log.w(TAG, "SSL failure on $domain; retrying with permissive TLS", e)
+                        val unsafeSvc = synchronized(this) {
+                            rebuildService(domain, unsafe = true)
+                        }
+                        val result = block(unsafeSvc)
+                        persistWorkingDomain(domain)
+                        return result
+                    } catch (sslRetry: Exception) {
+                        lastError = sslRetry
+                    }
+                }
+                if (!isRetryableDomainFailure(e)) {
+                    throw e
+                }
+                Log.w(TAG, "SerienStream domain $domain failed (${e.message}); trying next mirror")
             }
         }
+
+        val triedLabel = tried.joinToString(" / ")
+        throw Exception(
+            "SerienStream unreachable (tried $triedLabel). ${lastError?.message ?: "unknown"}",
+            lastError,
+        )
     }
 
 
@@ -165,7 +298,7 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getHome(): List<Category> {
-        val document = getService().getHome()
+        val document = withDomainAndSslFallback { it.getHome() }
         val categories = mutableListOf<Category>()
         categories.add(
             Category(name = Category.FEATURED,
@@ -242,7 +375,7 @@ object SerienStreamProvider : Provider {
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
-            val document = getService().getSeriesListWithCategories()
+            val document = withDomainAndSslFallback { it.getSeriesListWithCategories() }
             return document
                 .select("div[data-group='genres'] .list-inline-item a")
                 .map {
@@ -252,7 +385,7 @@ object SerienStreamProvider : Provider {
                     )
                 }
         }
-        val document = getService().search(query, page)
+        val document = withDomainAndSslFallback { it.search(query, page) }
         return document
             .select("div.search-results-list div.card.cover-card")
             .mapNotNull { card ->
@@ -273,7 +406,7 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val document = getService().getAllTvShows(page)
+        val document = withDomainAndSslFallback { it.getAllTvShows(page) }
         return document
             .select("div.search-results-list div.card.cover-card")
             .mapNotNull { card ->
@@ -293,14 +426,14 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val document = getService().getTvShow(id)
+        val document = withDomainAndSslFallback { it.getTvShow(id) }
         val title = document.selectFirst("h1")?.text()?.trim() ?: ""
         
         val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
         
         val localRating = if (tmdbTvShow?.rating == null) {
             val imdbTitleUrl = document.selectFirst("a[href*='imdb.com']")?.attr("href") ?: ""
-            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { getService().getCustomUrl(imdbTitleUrl) } catch (e: Exception) { null } else null
+            val imdbDocument = if (imdbTitleUrl.isNotEmpty()) try { withDomainAndSslFallback { it.getCustomUrl(imdbTitleUrl) } } catch (e: Exception) { null } else null
             imdbDocument?.selectFirst("div[data-testid='hero-rating-bar__aggregate-rating__score'] span")
                 ?.text()?.toDoubleOrNull() ?: document.selectFirst(".text-white-50:contains(Bewertungen)")?.text()?.split(" ")?.firstOrNull()?.toDoubleOrNull() ?: 0.0
         } else {
@@ -362,7 +495,7 @@ object SerienStreamProvider : Provider {
         val seasonNumberStr = linkWithSplitData[1]
         val seasonNumber = Regex("""\d+""").find(seasonNumberStr)!!.value.toInt()
 
-        val document = getService().getTvShowEpisodes(showName, seasonNumberStr)
+        val document = withDomainAndSslFallback { it.getTvShowEpisodes(showName, seasonNumberStr) }
         
         // Get show title for TMDB lookup
         val title = (document.selectFirst("h1")?.text()?.trim() ?: "").split(" Staffel").firstOrNull()?.trim() ?: ""
@@ -396,7 +529,7 @@ object SerienStreamProvider : Provider {
 
         try {
             val shows = mutableListOf<TvShow>()
-            val document = getService().getGenre(id, page)
+            val document = withDomainAndSslFallback { it.getGenre(id, page) }
             document.select("div.row.g-3 > div").map {
                 shows.add(
                     TvShow(
@@ -415,7 +548,7 @@ object SerienStreamProvider : Provider {
 
     override suspend fun getPeople(id: String, page: Int): People {
         if (page > 1) return People(id, "")
-        val document = getService().getPeople(id)
+        val document = withDomainAndSslFallback { it.getPeople(id) }
         return People(id = id,
             name = document.selectFirst("h1 strong")?.text() ?: "",
             filmography = document.select("div.row.g-3 > div").map {
@@ -434,7 +567,7 @@ object SerienStreamProvider : Provider {
         val showName = linkWithSplitData[0]
         val seasonNumber = linkWithSplitData[1]
         val episodeNumber = linkWithSplitData[2]
-        val document = getService().getTvShowEpisodeServers(showName, seasonNumber, episodeNumber)
+        val document = withDomainAndSslFallback { it.getTvShowEpisodeServers(showName, seasonNumber, episodeNumber) }
 
         val elements = document.select("button.link-box")
         for (element in elements) {
@@ -480,7 +613,7 @@ object SerienStreamProvider : Provider {
         }
         return try {
             val response = try {
-                getService().getRedirectLink(playUrl)
+                withDomainAndSslFallback { it.getRedirectLink(playUrl) }
             } catch (_: Exception) {
                 SerienStreamService.buildUnsafe(currentBaseUrl()).getRedirectLink(playUrl)
             }
@@ -510,48 +643,21 @@ object SerienStreamProvider : Provider {
             }
 
             private fun getOkHttpClient(): OkHttpClient {
-                val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-                val clientBuilder = OkHttpClient.Builder()
-                    .cache(appCache)
+                return NetworkClient.default.newBuilder()
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
-
-                return clientBuilder
                     .applyBrowserHeaders()
-                    .dns(DnsResolver.doh)
                     .build()
             }
 
             private fun getUnsafeOkHttpClient(): OkHttpClient {
-                try {
-                    val trustAllCerts = arrayOf<TrustManager>(
-                        object : X509TrustManager {
-                            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-                            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                        }
-                    )
-                    val sslContext = SSLContext.getInstance("SSL")
-                    sslContext.init(null, trustAllCerts, SecureRandom())
-                    val sslSocketFactory = sslContext.socketFactory
-
-                    val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-                    val clientBuilder = OkHttpClient.Builder()
-                        .cache(appCache)
-                        .readTimeout(30, TimeUnit.SECONDS)
-                        .connectTimeout(30, TimeUnit.SECONDS)
-                        .sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-                        .hostnameVerifier { _, _ -> true }
-
-                    return clientBuilder
-                        .applyBrowserHeaders()
-                        .dns(DnsResolver.doh)
-                        .followRedirects(true)
-                        .followSslRedirects(true)
-                        .build()
-                } catch (e: Exception) {
-                    throw RuntimeException(e)
-                }
+                return NetworkClient.trustAll.newBuilder()
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .applyBrowserHeaders()
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .build()
             }
 
             fun build(baseUrl: String): SerienStreamService {

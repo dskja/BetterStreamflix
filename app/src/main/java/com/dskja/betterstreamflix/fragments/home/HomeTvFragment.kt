@@ -92,6 +92,9 @@ class HomeTvFragment : Fragment() {
                         displayHome(state.categories)
                         binding.vgvHome.visibility = View.VISIBLE
                         binding.isLoading.root.visibility = View.GONE
+                        state.providerWarning?.takeIf { it.isNotBlank() }?.let { warning ->
+                            Toast.makeText(requireContext(), warning, Toast.LENGTH_LONG).show()
+                        }
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         if (http409Guard.handle(requireContext(), state.error) { viewModel.getHome() }) {

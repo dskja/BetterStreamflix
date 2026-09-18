@@ -1,5 +1,6 @@
 package com.dskja.betterstreamflix.providers
 
+import android.util.Log
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
@@ -11,17 +12,13 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
-import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.TmdbUtils
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import okhttp3.Cache
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.OkHttpClient.Builder
 import okhttp3.ResponseBody
-import okhttp3.dnsoverhttps.DnsOverHttps
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
 import retrofit2.Response
@@ -31,21 +28,61 @@ import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Path
 import retrofit2.http.Url
-import java.io.File
+import java.security.cert.CertPathValidatorException
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLHandshakeException
+import javax.net.ssl.SSLPeerUnverifiedException
 
 object FilmPalastProvider : Provider {
 
+    private const val TAG = "FilmPalastProvider"
     private val BASE_URL = "https://filmpalast.to/"
     override val baseUrl = BASE_URL
     override val name = "Filmpalast"
     override val logo = "$BASE_URL/themes/downloadarchive/images/logo.png"
     override val language = "de"
 
-    private val service = FilmpalastService.build()
+    @Volatile
+    private var service = FilmpalastService.build()
+    @Volatile
+    private var usingUnsafeSsl = false
+
+    private fun isSslFailure(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            when (current) {
+                is SSLHandshakeException,
+                is SSLPeerUnverifiedException,
+                is CertPathValidatorException -> return true
+            }
+            val message = current.message.orEmpty()
+            if (
+                message.contains("certificate", ignoreCase = true) ||
+                message.contains("CertPath", ignoreCase = true) ||
+                message.contains("SSL", ignoreCase = true) ||
+                message.contains("pretending to be", ignoreCase = true)
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private suspend fun <T> withSslFallback(block: suspend (FilmpalastService) -> T): T {
+        return try {
+            block(service)
+        } catch (e: Exception) {
+            if (usingUnsafeSsl || !isSslFailure(e)) throw e
+            Log.w(TAG, "SSL failure talking to filmpalast.to; retrying with permissive TLS", e)
+            service = FilmpalastService.buildUnsafe()
+            usingUnsafeSsl = true
+            block(service)
+        }
+    }
 
     override suspend fun getHome(): List<Category> {
-        val document = service.getHome()
+        val document = withSslFallback { it.getHome() }
         val featured = coroutineScope {
             document.select("div.headerslider ul#sliderDla li").map { li ->
                 async {
@@ -104,7 +141,7 @@ object FilmPalastProvider : Provider {
                 poster = fullPosterUrl
             )
         }
-        val tvShowsDocument = service.getTvShowsHome()
+        val tvShowsDocument = withSslFallback { it.getTvShowsHome() }
         val tvShows = tvShowsDocument.select("div#content article").map { article ->
             val href = article.selectFirst("h2 a")?.attr("href") ?: ""
             val title = article.selectFirst("h2 a")?.text() ?: ""
@@ -116,8 +153,7 @@ object FilmPalastProvider : Provider {
                 posterSrc
             }
 
-            val info = article.select("*").toInfo()
-                
+            val info = article.select("*").toInfo()                
                 TvShow(
                 id = href.substringAfterLast("/"),
                     title = title,
@@ -138,19 +174,19 @@ object FilmPalastProvider : Provider {
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
         if (query.isEmpty()) {
-            val document = service.getHome()
+            val document = withSslFallback { it.getHome() }
             val genres = document.select("aside#sidebar section#genre ul li a").map { element ->
                 val text = element.text()
                 Genre(text, text)
             }
             return genres
         }
-        var document = service.searchNoPage(query)
+        var document = withSslFallback { it.searchNoPage(query) }
 
         if (page > 1){
             val paging = document.selectFirst("div#paging a.pageing.button-small.rb")
             if (paging != null){
-                document = service.search(query, page)
+                document = withSslFallback { it.search(query, page) }
             } else {
                 return emptyList()
             }
@@ -206,7 +242,7 @@ object FilmPalastProvider : Provider {
 
     override suspend fun getMovie(id: String): Movie {
         val relativeId = BASE_URL + "stream/" + id;
-        val document = service.getMoviePage(relativeId)
+        val document = withSslFallback { it.getMoviePage(relativeId) }
         val title = document.selectFirst("h2")?.text() ?: ""
         val poster = document.selectFirst("img.cover2")?.attr("src")?.let {
             if (it.startsWith("http")) it else "${BASE_URL.removeSuffix("/")}$it"
@@ -246,7 +282,7 @@ object FilmPalastProvider : Provider {
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         val relativeId = BASE_URL + "stream/" + id;
-        val document = service.getMoviePage(relativeId)
+        val document = withSslFallback { it.getMoviePage(relativeId) }
         val servers = mutableListOf<Video.Server>()
 
         val serverBlocks = document.select("ul.currentStreamLinks")
@@ -281,7 +317,7 @@ object FilmPalastProvider : Provider {
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val response = service.getRedirectLink(server.src)
+        val response = withSslFallback { it.getRedirectLink(server.src) }
             .let { response -> response.raw() as okhttp3.Response }
 
 
@@ -299,7 +335,7 @@ object FilmPalastProvider : Provider {
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        val document = service.getMovies(page)
+        val document = withSslFallback { it.getMovies(page) }
         val movies = document.select("div#content article").map { article ->
             val href = article.selectFirst("h2 a")?.attr("href") ?: ""
             val title = article.selectFirst("h2 a")?.text() ?: ""
@@ -326,7 +362,7 @@ object FilmPalastProvider : Provider {
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val document = service.getTvShows(page)
+        val document = withSslFallback { it.getTvShows(page) }
         val shows = document.select("div#content article").map { article ->
             val href = article.selectFirst("h2 a")?.attr("href") ?: ""
             val title = article.selectFirst("h2 a")?.text() ?: ""
@@ -354,7 +390,7 @@ object FilmPalastProvider : Provider {
 
     override suspend fun getTvShow(id: String): TvShow {
         val relativeId = BASE_URL + "stream/" + id
-        val document = service.getTvShow(relativeId)
+        val document = withSslFallback { it.getTvShow(relativeId) }
         val title = document.selectFirst("h2")?.text() ?: ""
         val poster = document.selectFirst("img.cover2")?.attr("src")?.let {
             if (it.startsWith("http")) it else "${BASE_URL.removeSuffix("/")}$it"
@@ -432,7 +468,7 @@ object FilmPalastProvider : Provider {
     }
 
     override suspend fun getGenre(id: String, page: Int): Genre {
-        val document = service.getGenre(id, page)
+        val document = withSslFallback { it.getGenre(id, page) }
 
         val shows = document.select("div#content article").map { article ->
             val aTag = article.selectFirst("h2 a")
@@ -474,7 +510,7 @@ object FilmPalastProvider : Provider {
         val seasonNumber = parts[1].toIntOrNull() ?: return emptyList()
         
         val relativeId = BASE_URL + "stream/" + showId
-        val document = service.getTvShow(relativeId)
+        val document = withSslFallback { it.getTvShow(relativeId) }
         val title = document.selectFirst("h2")?.text() ?: ""
 
         val cleanedTitle = title.replace(Regex("""\s+S\d+E\d+.*""", RegexOption.IGNORE_CASE), "")
@@ -518,7 +554,7 @@ object FilmPalastProvider : Provider {
     }
     override suspend fun getPeople(id: String, page: Int): People {
         val url = "$BASE_URL/search/title/$id"
-        val document = service.getPeoplePage(url)
+        val document = withSslFallback { it.getPeoplePage(url) }
         val name = document.selectFirst("h1")?.text() ?: ""
         val image = document.selectFirst("img.cover2")?.attr("src")?.let {
             if (it.startsWith("http")) it else "${BASE_URL.removeSuffix("/")}$it"
@@ -591,20 +627,24 @@ object FilmPalastProvider : Provider {
     interface FilmpalastService {
 
         companion object {
-            private fun getOkHttpClient(): OkHttpClient {
-                val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
-                val clientBuilder = Builder().cache(appCache).readTimeout(30, TimeUnit.SECONDS)
+            private fun client(trustAll: Boolean): OkHttpClient {
+                val base = if (trustAll) NetworkClient.trustAll else NetworkClient.default
+                return base.newBuilder()
+                    .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
-
-                val clientToReturn = clientBuilder.dns(DnsResolver.doh).build()
-                return clientToReturn
+                    .build()
             }
 
-            fun build(): FilmpalastService {
-                val client = getOkHttpClient()
+            fun build(): FilmpalastService = create(client(trustAll = false))
+
+            fun buildUnsafe(): FilmpalastService = create(client(trustAll = true))
+
+            private fun create(client: OkHttpClient): FilmpalastService {
                 val retrofit = Retrofit.Builder().baseUrl(BASE_URL)
                     .addConverterFactory(JsoupConverterFactory.create())
-                    .addConverterFactory(GsonConverterFactory.create()).client(client).build()
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .client(client)
+                    .build()
                 return retrofit.create(FilmpalastService::class.java)
             }
         }

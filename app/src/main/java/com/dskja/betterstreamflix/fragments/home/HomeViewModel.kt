@@ -208,7 +208,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         )
                     })
 
-                State.SuccessLoading(categories)
+                State.SuccessLoading(categories, providerWarning = state.providerWarning)
             }
 
             else -> state
@@ -217,7 +217,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
     sealed class State {
         data object Loading : State()
-        data class SuccessLoading(val categories: List<Category>) : State()
+        data class SuccessLoading(
+            val categories: List<Category>,
+            /** Soft warning when provider catalog failed but library rows can still show. */
+            val providerWarning: String? = null,
+        ) : State()
         data class FailedLoading(val error: Exception) : State()
     }
 
@@ -356,11 +360,14 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             Log.e("HomeViewModel", "getHome: ", e)
             ProviderSmoke.noteHomeFailure(provider.name)
             CrashReporter.logNonFatal("HomeViewModel", "getHome failed for ${provider.name}", e)
-            if (cachedCategories.isNullOrEmpty()) {
-                _state.emit(State.FailedLoading(e))
-            } else {
+            val warning = e.message?.takeIf { it.isNotBlank() }
+                ?: "Catalog unavailable for ${provider.name}"
+            if (!cachedCategories.isNullOrEmpty()) {
                 // Keep serving cache on failure / timeout (including deferred clearance case).
-                _state.emit(State.SuccessLoading(cachedCategories))
+                _state.emit(State.SuccessLoading(cachedCategories, providerWarning = warning))
+            } else {
+                // Soft-fail: empty catalog still lets continue-watching / favorites render.
+                _state.emit(State.SuccessLoading(emptyList(), providerWarning = warning))
             }
         }
     }
