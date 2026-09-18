@@ -55,6 +55,7 @@ class WatchlistImportActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SOURCE = "extra_source"
+        const val EXTRA_SAVE_SESSION_ONLY = "extra_save_session_only"
         const val SOURCE_SERIENSTREAM = "serienstream"
         const val SOURCE_ANIWORLD = "aniworld"
         private const val TAG = "WatchlistImport"
@@ -72,6 +73,10 @@ class WatchlistImportActivity : AppCompatActivity() {
     private var importing = false
     private var pageFinishedCallback: ((String?) -> Unit)? = null
     private var lastLoadError: String? = null
+
+    private val saveSessionOnly: Boolean by lazy {
+        intent.getBooleanExtra(EXTRA_SAVE_SESSION_ONLY, false)
+    }
 
     private val source: WatchlistImporter.Source by lazy {
         when (intent.getStringExtra(EXTRA_SOURCE)) {
@@ -118,14 +123,30 @@ class WatchlistImportActivity : AppCompatActivity() {
         cancelButton = findViewById(R.id.watchlist_cancel)
 
         statusView.setText(R.string.watchlist_import_login_hint)
-        title = getString(R.string.settings_watchlist_import_title)
-        importButton.setText(R.string.watchlist_import_action)
+        title = if (saveSessionOnly) {
+            getString(R.string.settings_serienstream_session_login)
+        } else {
+            getString(R.string.settings_watchlist_import_title)
+        }
+        importButton.setText(
+            if (saveSessionOnly) {
+                R.string.settings_serienstream_session_login
+            } else {
+                R.string.watchlist_import_action
+            },
+        )
 
         cancelButton.setOnClickListener {
             if (importing) return@setOnClickListener
             finish()
         }
-        importButton.setOnClickListener { runImport() }
+        importButton.setOnClickListener {
+            if (saveSessionOnly) {
+                saveSessionAndFinish()
+            } else {
+                runImport()
+            }
+        }
 
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
@@ -146,18 +167,18 @@ class WatchlistImportActivity : AppCompatActivity() {
     private fun warmAndOpenLogin(domainIndex: Int = 0) {
         val candidates = when (source) {
             WatchlistImporter.Source.SERIENSTREAM -> {
-                val preferred = SerienStreamProvider.baseUrl.trimEnd('/')
-                    .removePrefix("https://").removePrefix("http://")
-                (listOf(preferred) + SerienStreamProvider.candidateDomains())
-                    .map { it.trim().lowercase() }
-                    .distinct()
+                // Never use dead s.to / .sx — only current mirrors.
+                listOf("serienstream.to", "serienstream.cx") +
+                    SerienStreamProvider.candidateDomains()
+                        .map { it.trim().lowercase() }
+                        .filter { it.endsWith("serienstream.to") || it.endsWith("serienstream.cx") }
             }
             WatchlistImporter.Source.ANIWORLD -> listOf(
                 AniWorldProvider.baseUrl.trimEnd('/').removePrefix("https://").removePrefix("http://")
                     .ifBlank { "aniworld.to" },
                 "aniworld.to",
-            ).distinct()
-        }
+            )
+        }.map { it.trim().lowercase().removePrefix("www.") }.distinct()
         if (domainIndex >= candidates.size) {
             statusView.setText(R.string.watchlist_import_login_hint)
             webView.loadUrl(startUrl)
@@ -350,6 +371,22 @@ class WatchlistImportActivity : AppCompatActivity() {
         return merged.values.joinToString("; ")
     }
 
+    private fun saveSessionAndFinish() {
+        val cookies = cookieHeader()
+        if (cookies.isBlank()) {
+            Toast.makeText(this, R.string.watchlist_import_login_hint, Toast.LENGTH_LONG).show()
+            return
+        }
+        SerienStreamBypassHelper.applyCookies("$hostBase/", cookies)
+        val saved = SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
+        if (!saved) {
+            Toast.makeText(this, R.string.watchlist_import_not_logged_in, Toast.LENGTH_LONG).show()
+            return
+        }
+        Toast.makeText(this, R.string.settings_serienstream_session_login_saved, Toast.LENGTH_LONG).show()
+        finish()
+    }
+
     private fun runImport() {
         if (importing) return
         val cookies = cookieHeader()
@@ -363,9 +400,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             webView.url?.takeIf { it.isNotBlank() }?.let {
                 SerienStreamBypassHelper.applyCookies(it, cookies)
             }
-            if (looksLoggedIn(cookies) || SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
-                UserPreferences.serienStreamSessionCookies = cookies
-            }
+            SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
         }
 
         importing = true

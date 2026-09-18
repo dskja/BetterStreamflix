@@ -123,7 +123,8 @@ object DownloadEventBridge : DownloadManager.Listener {
             entity.bytesDownloaded == download.bytesDownloaded &&
             entity.progressPct == pct &&
             entity.contentLength == contentLength &&
-            entity.speedBytesPerSec == nextSpeed
+            entity.speedBytesPerSec == nextSpeed &&
+            entity.etaSeconds == nextEta
         if (unchanged) {
             refreshAggregateNotification(context, downloadManager)
             return

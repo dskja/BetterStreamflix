@@ -113,14 +113,14 @@ class DownloadsTvFragment : Fragment() {
         styleFilters(viewModel.currentFilter())
     }
 
-    override fun onStart() {
-        super.onStart()
+    override fun onResume() {
+        super.onResume()
         viewModel.startLiveProgress()
     }
 
-    override fun onStop() {
+    override fun onPause() {
         viewModel.stopLiveProgress()
-        super.onStop()
+        super.onPause()
     }
 
     private fun styleFilters(selected: DownloadsFilter) {

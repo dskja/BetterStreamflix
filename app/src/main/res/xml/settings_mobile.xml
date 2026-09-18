@@ -407,12 +407,16 @@
                 android:summary="@string/settings_watchlist_import_summary"
                 app:iconSpaceReserved="false" />
 
-            <EditTextPreference
+            <Preference
+                android:key="SERIENSTREAM_SESSION_LOGIN"
+                android:title="@string/settings_serienstream_session_login"
+                android:summary="@string/settings_serienstream_session_login_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
                 android:key="SERIENSTREAM_SESSION_COOKIES"
                 android:title="@string/settings_serienstream_session_cookies"
                 android:summary="@string/settings_serienstream_session_cookies_summary"
-                android:dialogTitle="@string/settings_serienstream_session_cookies"
-                android:inputType="textMultiLine"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>

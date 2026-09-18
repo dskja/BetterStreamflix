@@ -312,13 +312,23 @@ object DownloadController {
             val outcome = prepareEpisode(context, episode)
             when (outcome) {
                 is DownloadEnqueueOutcome.NeedsOptions -> {
-                    val (serverIdx, trackIdx) = onEachPrepared(outcome.prepared)
+                    val (rawServerIdx, rawTrackIdx) = onEachPrepared(outcome.prepared)
+                    val serverIdx = rawServerIdx.coerceIn(
+                        0,
+                        outcome.prepared.servers.lastIndex.coerceAtLeast(0),
+                    )
+                    val trackIdx = rawTrackIdx.coerceIn(
+                        0,
+                        outcome.prepared.trackOptions.lastIndex.coerceAtLeast(0),
+                    )
                     val label = outcome.prepared.trackOptions.getOrNull(trackIdx)?.label ?: "Auto"
                     val confirmed = confirmEnqueue(context, outcome.prepared, serverIdx, trackIdx, label)
                     if (confirmed is DownloadEnqueueOutcome.Started) {
                         val item = confirmed.item.copy(seasonPackId = packId, sortIndex = index)
                         repo.upsert(item)
                         started++
+                    } else {
+                        Log.w(TAG, "Season NeedsOptions confirm failed for ${episode.id}: $confirmed")
                     }
                 }
                 is DownloadEnqueueOutcome.Started -> {
