@@ -633,6 +633,16 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://www.patreon.com/BetterStreamflix"),
+                ),
+            )
+            true
+        }
+
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
             com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
                 requireContext(),
