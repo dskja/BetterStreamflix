@@ -244,6 +244,19 @@ object UserPreferences {
         get() = Key.EXPERIMENTAL_NEW_APP_DESIGN.getBoolean() ?: false
         set(value) = Key.EXPERIMENTAL_NEW_APP_DESIGN.setBoolean(value)
 
+    /**
+     * When true, the startup support presentation is never shown.
+     * Default false → show once until the user opts out.
+     */
+    var neverShowSupportOnStart: Boolean
+        get() = Key.NEVER_SHOW_SUPPORT_ON_START.getBoolean() ?: false
+        set(value) = Key.NEVER_SHOW_SUPPORT_ON_START.setBoolean(value)
+
+    /** Independent from startup opt-out — hides the home support card only. */
+    var homeSupportCardDismissed: Boolean
+        get() = Key.HOME_SUPPORT_CARD_DISMISSED.getBoolean() ?: false
+        set(value) = Key.HOME_SUPPORT_CARD_DISMISSED.setBoolean(value)
+
     var catalogSortMode: CatalogSortMode
         get() = CatalogSortMode.fromKey(Key.CATALOG_SORT_MODE.getString())
         set(value) = Key.CATALOG_SORT_MODE.setString(value.name)
@@ -742,6 +755,8 @@ object UserPreferences {
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
         EXPERIMENTAL_NEW_APP_DESIGN,
+        NEVER_SHOW_SUPPORT_ON_START,
+        HOME_SUPPORT_CARD_DISMISSED,
         CATALOG_SORT_MODE,
         CAST_ENABLED,
         BYPASS_WS_ADVERTISED_HOST,

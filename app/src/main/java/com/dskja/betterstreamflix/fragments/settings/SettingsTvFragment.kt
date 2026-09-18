@@ -32,6 +32,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.constraintlayout.widget.Group
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -567,50 +568,75 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<Preference>("p_settings_support")?.apply {
+            val titleStr = getString(R.string.support_settings_entry_title)
+            val spannableTitle = SpannableString(titleStr)
+            spannableTitle.setSpan(
+                ForegroundColorSpan(android.graphics.Color.parseColor("#E50914")),
+                0,
+                titleStr.length,
+                0,
+            )
+            title = spannableTitle
+            setOnPreferenceClickListener {
+                runCatching {
+                    findNavController().navigate(R.id.support)
+                }
+                true
+            }
+        }
+
+        findPreference<androidx.preference.SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
+            isChecked = UserPreferences.experimentalNewAppDesign
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.experimentalNewAppDesign = newValue as Boolean
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, com.dskja.betterstreamflix.activities.main.MainTvActivity::class.java))
+                }
+                true
+            }
+        }
+
         findPreference<Preference>("p_settings_about")?.apply {
             val palette = ThemeManager.palette(UserPreferences.selectedTheme)
-            val titleStr = getString(R.string.settings_version_tv)
+            val titleStr = getString(R.string.settings_about)
             val spannableTitle = SpannableString(titleStr)
             spannableTitle.setSpan(ForegroundColorSpan(palette.tvHeaderPrimary), 0, titleStr.length, 0)
             title = spannableTitle
             
-            val summaryStr = BuildConfig.VERSION_NAME
+            val summaryStr = getString(R.string.settings_about_version_name, BuildConfig.VERSION_NAME)
             val spannableSummary = SpannableString(summaryStr)
             spannableSummary.setSpan(ForegroundColorSpan(palette.tvHeaderSecondary), 0, summaryStr.length, 0)
             summary = spannableSummary
 
-            isSelectable = false
-            setOnPreferenceClickListener(null)
+            isSelectable = true
+            setOnPreferenceClickListener {
+                // About is embedded as preference XML on TV — open Support hub as the polished surface.
+                runCatching {
+                    findNavController().navigate(R.id.support)
+                }
+                true
+            }
         }
 
         findPreference<Preference>("p_settings_help")?.setOnPreferenceClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://github.com/dskja/BetterStreamflix")
-                )
+            com.dskja.betterstreamflix.support.SupportLinkOpener.open(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportUrls.GITHUB_REPOSITORY_URL,
             )
             true
         }
 
         findPreference<Preference>("p_settings_telegram")?.setOnPreferenceClickListener {
-            try {
-                val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=BetterStreamflix"))
-                startActivity(tgIntent)
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), R.string.settings_telegram_not_found, Toast.LENGTH_SHORT).show()
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/BetterStreamflix"))
-                startActivity(intent)
-            }
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openTelegram(requireContext())
             true
         }
 
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://buymeacoffee.com/betterstreamflix"),
-                ),
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.BUY_ME_A_COFFEE,
             )
             true
         }

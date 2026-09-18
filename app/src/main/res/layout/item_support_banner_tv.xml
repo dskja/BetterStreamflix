@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/support_banner_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="24dp"
+    android:layout_marginEnd="24dp"
+    android:background="@drawable/bg_support_banner"
+    android:focusable="true"
+    android:minHeight="@dimen/support_banner_height"
+    android:padding="18dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginEnd="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/iv_support_banner_icon"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_support_heart"
+            android:tint="@color/support_accent"
+            tools:ignore="ContentDescription,UseAppTint" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_support_banner_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_banner_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_card_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_support_banner_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_banner_subtitle"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_secondary" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btn_support_banner_cta"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/support_button_height"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/bg_support_btn_primary"
+            android:focusable="true"
+            android:gravity="center"
+            android:minWidth="120dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:text="@string/support_banner_cta"
+            android:textColor="@color/support_on_accent"
+            android:textSize="@dimen/support_text_cta"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btn_support_banner_dismiss"
+        android:layout_width="@dimen/support_close_size"
+        android:layout_height="@dimen/support_close_size"
+        android:layout_gravity="top|end"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/support_banner_dismiss_cd"
+        android:focusable="true"
+        android:padding="10dp"
+        android:src="@drawable/ic_support_close"
+        android:tint="@color/support_text_tertiary"
+        tools:ignore="UseAppTint" />
+</FrameLayout>

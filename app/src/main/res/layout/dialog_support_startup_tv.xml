@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/support_dialog_margin">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_support_dialog"
+        android:orientation="horizontal"
+        android:padding="28dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.32"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:contentDescription="@string/support_hub_title"
+                android:src="@mipmap/ic_launcher" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_weight="0.68"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tv_support_startup_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="48dp"
+                    android:fontFamily="@font/manrope"
+                    android:text="@string/support_hero_title"
+                    android:textColor="@color/support_text_primary"
+                    android:textSize="@dimen/support_text_screen_title"
+                    android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/btn_support_startup_close"
+                    android:layout_width="@dimen/support_close_size"
+                    android:layout_height="@dimen/support_close_size"
+                    android:layout_gravity="end|top"
+                    android:alpha="0.5"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/support_startup_close_cd"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_support_close"
+                    android:tint="@color/support_text_secondary"
+                    tools:ignore="UseAppTint" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_support_startup_body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="@font/manrope"
+                android:lineSpacingExtra="3dp"
+                android:text="@string/support_startup_body"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
+
+            <TextView
+                android:id="@+id/btn_support_startup_primary"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/support_button_height_lg"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_support_btn_primary"
+                android:focusable="true"
+                android:gravity="center"
+                android:minWidth="240dp"
+                android:paddingStart="28dp"
+                android:paddingEnd="28dp"
+                android:text="@string/support_startup_cta_primary"
+                android:textColor="@color/support_on_accent"
+                android:textSize="@dimen/support_text_cta"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btn_support_startup_sponsors"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/support_button_height"
+                    android:background="@drawable/bg_support_btn_secondary"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:minWidth="160dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:text="@string/support_startup_cta_sponsors"
+                    android:textColor="@color/support_text_primary"
+                    android:textSize="@dimen/support_text_caption" />
+
+                <TextView
+                    android:id="@+id/btn_support_startup_bmc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/support_button_height"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_support_btn_secondary"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:minWidth="160dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:text="@string/support_startup_cta_bmc"
+                    android:textColor="@color/support_text_primary"
+                    android:textSize="@dimen/support_text_caption" />
+
+                <TextView
+                    android:id="@+id/btn_support_startup_community"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/support_button_height"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_support_btn_secondary"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:minWidth="140dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:text="@string/support_startup_cta_community"
+                    android:textColor="@color/support_text_secondary"
+                    android:textSize="@dimen/support_text_caption" />
+
+                <TextView
+                    android:id="@+id/btn_support_startup_repo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/support_button_height"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_support_btn_secondary"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:minWidth="140dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:text="@string/support_provider_github_cta"
+                    android:textColor="@color/support_text_tertiary"
+                    android:textSize="@dimen/support_text_caption" />
+            </LinearLayout>
+
+            <CheckBox
+                android:id="@+id/cb_support_startup_never"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:buttonTint="@color/support_accent"
+                android:focusable="true"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_startup_never_again"
+                android:textColor="@color/support_text_tertiary"
+                android:textSize="@dimen/support_text_caption" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
