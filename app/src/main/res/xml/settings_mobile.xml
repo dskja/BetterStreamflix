@@ -795,13 +795,6 @@
             app:iconSpaceReserved="false" />
 
         <Preference
-            android:icon="@drawable/ic_patreon"
-            android:key="p_settings_patreon"
-            android:title="@string/settings_patreon"
-            android:summary="@string/settings_patreon_summary"
-            app:iconSpaceReserved="false" />
-
-        <Preference
             android:icon="@drawable/ic_discord"
             android:key="p_settings_discord"
             android:title="@string/settings_discord"

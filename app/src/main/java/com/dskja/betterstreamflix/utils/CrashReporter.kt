@@ -10,11 +10,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
+import retrofit2.HttpException
 
 /**
  * Lightweight local crash / error reporting, with optional Sentry forwarding.
  * Writes under filesDir/crash-logs and chains the previous default handler
  * (Sentry installs its own handler via ContentProvider before Application.onCreate).
+ *
+ * Expected provider / extractor / network failures stay local-only so Sentry
+ * is not flooded by SerienStream 404s, dead hosts, cancellations, etc.
  */
 object CrashReporter {
     private const val TAG = "CrashReporter"
@@ -49,6 +54,7 @@ object CrashReporter {
                 },
             )
         }
+        if (isExpectedProviderNoise(error, message)) return
         runCatching {
             if (error != null) {
                 io.sentry.Sentry.captureException(error) { scope ->
@@ -59,6 +65,63 @@ object CrashReporter {
                 io.sentry.Sentry.captureMessage("$tag: $message")
             }
         }
+    }
+
+    /**
+     * Scraping / streaming sites routinely return 4xx/5xx, cancel jobs, or lack extractors.
+     * Those are operational noise, not app defects.
+     */
+    fun isExpectedProviderNoise(error: Throwable?, message: String = ""): Boolean {
+        val combined = buildString {
+            append(message)
+            generateSequence(error) { it.cause }.forEach { t ->
+                append(' ')
+                append(t::class.java.name)
+                append(' ')
+                append(t.message.orEmpty())
+            }
+        }.lowercase(Locale.US)
+
+        if (combined.contains("job was cancelled") ||
+            combined.contains("cancellationexception") ||
+            combined.contains("coroutines.cancellation")
+        ) {
+            return true
+        }
+        if (error != null && generateSequence(error) { it.cause }.any { it is CancellationException }) {
+            return true
+        }
+
+        val http = generateSequence(error) { it.cause }
+            .filterIsInstance<HttpException>()
+            .firstOrNull()
+        if (http != null && http.code() in 400..599) return true
+
+        // OkHttp / Sentry HTTP client wrappers for upstream site failures.
+        if (combined.contains("sentryhttpclientexception") &&
+            (combined.contains("status code: 4") || combined.contains("status code: 5"))
+        ) {
+            return true
+        }
+
+        val noiseHints = listOf(
+            "no extractors found",
+            "http 404",
+            "http 410",
+            "http 502",
+            "http 503",
+            "http 520",
+            "http 521",
+            "http 522",
+            "http 524",
+            "timed out",
+            "unreachable",
+            "cloudflare",
+            "end of input at character 0",
+            "gethome failed",
+            "getvideo failed",
+        )
+        return noiseHints.any { combined.contains(it) }
     }
 
     fun latestCrashText(context: Context): String? {

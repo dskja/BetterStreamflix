@@ -13,6 +13,7 @@ import io.sentry.android.core.SentryAndroid
 import io.sentry.protocol.Feedback
 import io.sentry.protocol.User
 import io.sentry.ProfileLifecycle
+import kotlinx.coroutines.CancellationException
 
 /**
  * Central Sentry wiring for BetterStreamflix: init, release/environment,
@@ -54,9 +55,23 @@ object SentryBootstrap {
             options.sessionReplay.onErrorSampleRate = 1.0
             options.logs.isEnabled = true
 
+            // Coroutine cancellations are normal lifecycle noise, not defects.
+            options.addIgnoredExceptionForType(CancellationException::class.java)
+            options.setIgnoredErrors(
+                listOf(
+                    ".*Job was cancelled.*",
+                    ".*HTTP Client Error with status code: 4\\d\\d.*",
+                    ".*HTTP Client Error with status code: 5\\d\\d.*",
+                    ".*No extractors found.*",
+                ),
+            )
+
             options.beforeSend =
                 SentryOptions.BeforeSendCallback { event: SentryEvent, _: Hint ->
                     if (event.level == SentryLevel.DEBUG && !BuildConfig.DEBUG) {
+                        return@BeforeSendCallback null
+                    }
+                    if (shouldDropExpectedNoise(event)) {
                         return@BeforeSendCallback null
                     }
                     scrubEvent(event)
@@ -128,6 +143,35 @@ object SentryBootstrap {
             ?.filter { sensitiveHeaderNames.contains(it.lowercase()) }
             ?.forEach { key -> event.request?.headers?.put(key, "[Filtered]") }
         event.request?.cookies = event.request?.cookies?.let { "[Filtered]" }
+    }
+
+    private fun shouldDropExpectedNoise(event: SentryEvent): Boolean {
+        val exceptions = event.exceptions.orEmpty()
+        for (ex in exceptions) {
+            val type = ex.type.orEmpty()
+            val value = ex.value.orEmpty()
+            if (type.contains("CancellationException", ignoreCase = true) ||
+                value.contains("Job was cancelled", ignoreCase = true)
+            ) {
+                return true
+            }
+            if (type.contains("HttpException", ignoreCase = true) ||
+                type.contains("SentryHttpClientException", ignoreCase = true)
+            ) {
+                val code = Regex("""\b([45]\d\d)\b""").find(value)?.groupValues?.getOrNull(1)
+                    ?.toIntOrNull()
+                if (code != null && code in 400..599) return true
+            }
+            if (CrashReporter.isExpectedProviderNoise(
+                    Throwable(value),
+                    "$type $value ${event.message?.formatted.orEmpty()}",
+                )
+            ) {
+                return true
+            }
+        }
+        val message = event.message?.formatted.orEmpty()
+        return CrashReporter.isExpectedProviderNoise(null, message)
     }
 
     private fun scrubBreadcrumb(breadcrumb: Breadcrumb) {
