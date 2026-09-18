@@ -14,6 +14,8 @@ import kotlin.math.max
 
 object TmdbUtils {
     private const val MIN_ACCEPTABLE_SCORE = 60
+    private const val MIN_ACCEPTABLE_SCORE_WITH_YEAR = 80
+    private const val WEAK_CONTAINS_SCORE = 70
     private const val MAX_LOCALIZED_DETAIL_CANDIDATES = 5
     private const val UNKNOWN_AGE_RATING = Int.MIN_VALUE
     private val movieAgeCache = ConcurrentHashMap<String, Int>()
@@ -285,7 +287,8 @@ object TmdbUtils {
         }
 
         val bestSearchMatch = scoredResults.maxByOrNull { it.second }
-        if (bestSearchMatch != null && bestSearchMatch.second >= MIN_ACCEPTABLE_SCORE) {
+        val minScore = minAcceptableScore(year)
+        if (bestSearchMatch != null && bestSearchMatch.second >= minScore) {
             return bestSearchMatch.first
         }
 
@@ -301,7 +304,7 @@ object TmdbUtils {
         if (localizedFallback != null) return localizedFallback
 
         return bestSearchMatch
-            ?.takeIf { it.second > 0 }
+            ?.takeIf { it.second >= minScore }
             ?.first
     }
 
@@ -321,7 +324,8 @@ object TmdbUtils {
         }
 
         val bestSearchMatch = scoredResults.maxByOrNull { it.second }
-        if (bestSearchMatch != null && bestSearchMatch.second >= MIN_ACCEPTABLE_SCORE) {
+        val minScore = minAcceptableScore(year)
+        if (bestSearchMatch != null && bestSearchMatch.second >= minScore) {
             return bestSearchMatch.first
         }
 
@@ -337,7 +341,7 @@ object TmdbUtils {
         if (localizedFallback != null) return localizedFallback
 
         return bestSearchMatch
-            ?.takeIf { it.second > 0 }
+            ?.takeIf { it.second >= minScore }
             ?.first
     }
 
@@ -394,7 +398,7 @@ object TmdbUtils {
                 movie to score
             }
             .maxByOrNull { it.second }
-            ?.takeIf { it.second >= MIN_ACCEPTABLE_SCORE }
+            ?.takeIf { it.second >= minAcceptableScore(year) }
             ?.first
     }
 
@@ -425,9 +429,12 @@ object TmdbUtils {
                 tv to score
             }
             .maxByOrNull { it.second }
-            ?.takeIf { it.second >= MIN_ACCEPTABLE_SCORE }
+            ?.takeIf { it.second >= minAcceptableScore(year) }
             ?.first
     }
+
+    private fun minAcceptableScore(year: Int?): Int =
+        if (year != null) MIN_ACCEPTABLE_SCORE_WITH_YEAR else MIN_ACCEPTABLE_SCORE
 
     private fun scoreCandidate(
         candidateTitles: List<String?>,
@@ -447,18 +454,33 @@ object TmdbUtils {
                     candidate == query -> 120
                     candidate.replace(" ", "") == query.replace(" ", "") -> 110
                     candidate.startsWith(query) || query.startsWith(candidate) -> 85
-                    candidate.contains(query) || query.contains(candidate) -> 70
+                    candidate.contains(query) || query.contains(candidate) -> WEAK_CONTAINS_SCORE
                     overlapScore(candidate, query) >= 0.8 -> 55
                     else -> 0
                 }
             } ?: 0
         } ?: 0
 
+        // When the query has no year, don't accept pure substring matches alone.
+        if (year == null && titleScore == WEAK_CONTAINS_SCORE) {
+            return titleScore - 15
+        }
+
         val yearScore = when {
             year == null || candidateYear == null -> 0
             year == candidateYear -> 20
             max(year, candidateYear) - minOf(year, candidateYear) == 1 -> 5
-            else -> -25
+            else -> -50
+        }
+
+        // Query title includes a year: reject franchise mismatches (year off by >1).
+        if (year != null && candidateYear != null && yearScore < 0) {
+            return (titleScore + yearScore).coerceAtMost(MIN_ACCEPTABLE_SCORE - 1)
+        }
+
+        // Query has a year but candidate has none: require a strong title match.
+        if (year != null && candidateYear == null && titleScore < 110) {
+            return titleScore.coerceAtMost(MIN_ACCEPTABLE_SCORE - 1)
         }
 
         return titleScore + yearScore
@@ -473,8 +495,14 @@ object TmdbUtils {
         val withoutDecorators = withoutTrailingYear
             .replace(Regex("\\s*[\\-–:]\\s*(sub|dub|ita|ger|de|eng|en)\\s*$", RegexOption.IGNORE_CASE), "")
             .trim()
+        // SerienStream / DE catalogue often appends "Staffel N" to TV titles.
+        val withoutSeason = withoutDecorators
+            .replace(Regex("\\s*Staffel\\s+\\d+\\s*$", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\s*Season\\s+\\d+\\s*$", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\s*S\\d{1,2}\\s*$", RegexOption.IGNORE_CASE), "")
+            .trim()
 
-        return listOf(trimmed, withoutTrailingYear, withoutDecorators)
+        return listOf(trimmed, withoutTrailingYear, withoutDecorators, withoutSeason)
             .filter { it.isNotBlank() }
             .distinct()
     }

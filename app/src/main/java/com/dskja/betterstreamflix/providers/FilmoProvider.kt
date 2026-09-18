@@ -192,10 +192,15 @@ object FilmoProvider : Provider, ProviderConfigUrl {
             el.selectFirst("a[href*=/movies/]")?.attr("href")?.trim().orEmpty()
         }
         if (href.isBlank() || !href.contains("/movies/")) return null
-        val title = el.selectFirst(".video-card__title, .movie-poster-grid-card__title, h2, h3")
-            ?.text()?.trim()
-            ?: el.selectFirst("img")?.attr("alt")?.trim()
-            ?: href.substringAfterLast('/').replace('-', ' ')
+        val title = el.selectFirst(
+            ".swiper-card-title, .video-card__title, .movie-poster-grid-card__title, img[alt]"
+        )?.let { node ->
+            if (node.tagName() == "img") node.attr("alt").trim() else node.text().trim()
+        }.orEmpty().ifBlank {
+            el.selectFirst("img")?.attr("alt")?.trim().orEmpty()
+        }.ifBlank {
+            href.substringAfterLast('/').replace('-', ' ')
+        }
         if (title.isBlank()) return null
         val poster = el.selectFirst("img")?.let { img ->
             img.attr("src").ifBlank { img.attr("data-src") }
@@ -208,34 +213,101 @@ object FilmoProvider : Provider, ProviderConfigUrl {
     }
 
     private fun parseMovieCards(document: Document): List<Movie> {
-        val cards = document.select("a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/], a.popular-spotlight-card__link[href*=/movies/]")
+        val cards = document.select(
+            "a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/]"
+        )
         return cards.mapNotNull { parseVideoCard(it) }.distinctBy { it.id }
+    }
+
+    private fun parseRowMovies(row: Element): List<Movie> =
+        row.select("a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/]")
+            .mapNotNull { parseVideoCard(it) }
+            .distinctBy { it.id }
+
+    private fun videoRowTitle(row: Element): String {
+        val heading = row.selectFirst(
+            ".default-flex-wrapper h3.mb-0, .default-flex-wrapper h2.mb-0, h3.mb-0, h2.mb-0"
+        )
+        val own = heading?.ownText()?.trim().orEmpty()
+        if (own.isNotBlank()) return own
+
+        val labeled = heading?.selectFirst("a[aria-label]")?.attr("aria-label")?.trim().orEmpty()
+        if (labeled.isNotBlank()) return labeled
+
+        var sibling = row.previousElementSibling()
+        while (sibling != null) {
+            if (sibling.tagName() in listOf("h2", "h3")) {
+                val text = sibling.ownText().trim().ifBlank { sibling.text().trim() }
+                if (text.isNotBlank()) return text
+            }
+            val nested = sibling.selectFirst("h2, h3.headline__marker, h3")
+            val nestedText = nested?.let { el ->
+                el.ownText().trim().ifBlank { el.text().trim() }
+            }.orEmpty()
+            if (nestedText.isNotBlank() && !nestedText.contains("Mehr anzeigen", ignoreCase = true)) {
+                return nestedText
+            }
+            sibling = sibling.previousElementSibling()
+        }
+
+        return row.selectFirst("[class*=row-title], .video-row__title, .section-title")
+            ?.text()?.trim()
+            .orEmpty()
+            .ifBlank { "Filme" }
+    }
+
+    private fun parseHeroMovies(document: Document): List<Movie> {
+        val hero = document.selectFirst(".swiper-hero-layout, .swiper-container.swiper-hero-layout")
+            ?: return emptyList()
+        return hero.select("h2.ft-hero-title-box[aria-label], h2[aria-label]").mapNotNull { h2 ->
+            val href = h2.selectFirst("a[href*=/movies/]")?.attr("href")?.trim().orEmpty()
+            if (href.isBlank()) return@mapNotNull null
+            val title = h2.attr("aria-label").trim()
+                .ifBlank { h2.selectFirst("a")?.text()?.trim().orEmpty() }
+            if (title.isBlank()) return@mapNotNull null
+            val poster = h2.parents()
+                .firstOrNull { it.hasClass("swiper-slide") }
+                ?.selectFirst("img[src], img[data-src]")
+                ?.let { img -> img.attr("src").ifBlank { img.attr("data-src") } }
+                .orEmpty()
+            Movie(
+                id = absoluteUrl(href),
+                title = title,
+                poster = absoluteUrl(poster)
+            )
+        }.distinctBy { it.id }
     }
 
     override suspend fun getHome(): List<Category> {
         val document = getService().getHome()
         extractCsrf(document)
-        val spotlight = document.select("a.popular-spotlight-card__link[href*=/movies/]")
-            .mapNotNull { parseVideoCard(it) }
-            .distinctBy { it.id }
-        val rest = document.select(
-            "a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/]"
-        )
-            .mapNotNull { parseVideoCard(it) }
-            .distinctBy { it.id }
-            .filter { movie -> spotlight.none { it.id == movie.id } }
 
-        return when {
-            spotlight.isNotEmpty() && rest.isNotEmpty() -> listOf(
-                Category(name = Category.FEATURED, list = spotlight),
-                Category(name = "Filme", list = rest),
-            )
-            spotlight.isNotEmpty() -> listOf(Category(name = Category.FEATURED, list = spotlight))
-            rest.isNotEmpty() -> listOf(Category(name = Category.FEATURED, list = rest))
-            else -> {
+        val rows = document.select(".video-row")
+        val largeRowMovies = rows
+            .firstOrNull { it.classNames().any { cls -> cls.contains("large", ignoreCase = true) } }
+            ?.let { parseRowMovies(it) }
+            .orEmpty()
+
+        val featured = parseHeroMovies(document)
+            .ifEmpty { largeRowMovies }
+            .ifEmpty { parseMovieCards(document).take(12) }
+
+        val rowCategories = rows.mapNotNull { row ->
+            val movies = parseRowMovies(row)
+            if (movies.isEmpty()) return@mapNotNull null
+            Category(name = videoRowTitle(row), list = movies)
+        }
+
+        return buildList {
+            if (featured.isNotEmpty()) {
+                add(Category(name = Category.FEATURED, list = featured))
+            }
+            addAll(rowCategories)
+            if (isEmpty()) {
                 val movies = parseMovieCards(document)
-                if (movies.isEmpty()) emptyList()
-                else listOf(Category(name = Category.FEATURED, list = movies))
+                if (movies.isNotEmpty()) {
+                    add(Category(name = Category.FEATURED, list = movies))
+                }
             }
         }
     }

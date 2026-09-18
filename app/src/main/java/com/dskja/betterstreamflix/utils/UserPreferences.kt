@@ -442,14 +442,15 @@ object UserPreferences {
         }
 
     /**
-     * Pasted SerienStream / Cloudflare session cookie header (`name=value; …`).
-     * Used for watchlist import restore and TV bypass when the phone↔TV QR path
-     * is unavailable (different WLAN / VPN / hotspot-as-AP).
+     * SerienStream / Cloudflare session cookie header (`name=value; …`).
+     * Set after WebView login — DuckDuckGo/browser noise is stripped on write.
      */
     var serienStreamSessionCookies: String
         get() = Key.SERIENSTREAM_SESSION_COOKIES.getString() ?: ""
         set(value) {
-            Key.SERIENSTREAM_SESSION_COOKIES.setString(value.trim())
+            val cleaned = com.dskja.betterstreamflix.player.SerienStreamBypassHelper
+                .sanitizeSessionCookies(value)
+            Key.SERIENSTREAM_SESSION_COOKIES.setString(cleaned)
         }
 
     enum class PlayerResize(

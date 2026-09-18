@@ -170,13 +170,13 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
             }
         }
 
-        val latestMoviesSection = doc.selectFirst("section.sidebar-section:has(h3:containsOwn(neueste Filme eingefügt))")
+        val latestMoviesSection = findSidebarSection(doc, "neueste Filme")
         val latestMoviesItems = latestMoviesSection?.select("div.listing > a")?.mapNotNull { parseSidebarItemAsMovie(it) } ?: emptyList()
         if (latestMoviesItems.isNotEmpty()) {
             categories.add(Category(name = "Neueste Filme Eingefügt", list = latestMoviesItems))
         }
 
-        val latestSeriesSection = doc.selectFirst("section.sidebar-section:has(h3:containsOwn(neueste Serie eingefügt))")
+        val latestSeriesSection = findSidebarSection(doc, "neueste Serie")
         val latestSeriesItems = latestSeriesSection?.select("div.listing > a")?.mapNotNull { parseSidebarItemAsTvShow(it) } ?: emptyList()
         if (latestSeriesItems.isNotEmpty()) {
             categories.add(Category(name = "Neueste Serie Eingefügt", list = latestSeriesItems))
@@ -191,11 +191,11 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         val linkElement = el.selectFirst("div.actions a.watchnow") ?: return null
         val href = linkElement.attr("href").trim()
 
-        val bannerUrl = el.selectFirst("img")?.attr("data-src") ?: ""
-        val banner = normalizeUrl(bannerUrl)
+        val banner = imageUrl(el.selectFirst("img"))
 
         val tmdbMovie = TmdbUtils.getMovie(title, language = language)
 
+        // Keep full watchnow href as id (incl. /filme1/... paths).
         return Movie(
             id = href,
             title = title,
@@ -205,15 +205,12 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
     }
 
     private fun parseGridItem(el: Element): Movie? {
-        val titleElement = el.selectFirst("h3.line-clamp-2.text-sm.mt-1.font-light.leading-snug") ?: return null
+        val titleElement = gridTitleElement(el) ?: return null
         val title = titleElement.text().trim()
+        if (title.isBlank()) return null
 
-        val linkElement = el.selectFirst("a.block.relative[href]") ?: return null
-        val href = linkElement.attr("href").trim()
-
-        val posterUrl = el.selectFirst("img")?.attr("data-src") ?: ""
-        val poster = normalizeUrl(posterUrl)
-
+        val href = gridHref(el) ?: return null
+        val poster = imageUrl(el.selectFirst("img"))
         val quality = el.selectFirst("span.absolute")?.text()?.trim()
 
         return Movie(
@@ -225,15 +222,12 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
     }
 
     private fun parseGridItemAsTvShow(el: Element): TvShow? {
-        val titleElement = el.selectFirst("h3.line-clamp-2.text-sm.mt-1.font-light.leading-snug") ?: return null
+        val titleElement = gridTitleElement(el) ?: return null
         val title = titleElement.text().trim()
+        if (title.isBlank()) return null
 
-        val linkElement = el.selectFirst("a.block.relative[href]") ?: return null
-        val href = linkElement.attr("href").trim()
-
-        val posterUrl = el.selectFirst("img")?.attr("data-src") ?: ""
-        val poster = normalizeUrl(posterUrl)
-
+        val href = gridHref(el) ?: return null
+        val poster = imageUrl(el.selectFirst("img"))
         val quality = el.selectFirst("span.absolute")?.text()?.trim()
 
         return TvShow(
@@ -244,6 +238,19 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         )
     }
 
+    private fun gridTitleElement(el: Element): Element? =
+        el.selectFirst("a.movie-title h3")
+            ?: el.selectFirst(".movie-title h3")
+            ?: el.selectFirst("h3.line-clamp-2.text-sm.mt-1.font-light.leading-snug")
+            ?: el.selectFirst("h3.line-clamp-2")
+
+    private fun gridHref(el: Element): String? {
+        val href = el.selectFirst("a.block.relative[href]")?.attr("href")?.trim()
+            ?: el.selectFirst("a.movie-title[href]")?.attr("href")?.trim()
+            ?: el.selectFirst("a[href*=/filme]")?.attr("href")?.trim()
+        return href?.takeIf { it.isNotBlank() }
+    }
+
     private fun parseSidebarItemAsMovie(el: Element): Movie? {
         val href = el.attr("href").trim()
         if (href.isBlank()) return null
@@ -252,13 +259,10 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
             ?: el.selectFirst("h4.movie-title")?.text()?.trim()
             ?: return null
 
-        val posterUrl = el.selectFirst("img")?.attr("data-src") ?: ""
-        val poster = normalizeUrl(posterUrl)
-
         return Movie(
             id = href,
             title = title,
-            poster = poster
+            poster = imageUrl(el.selectFirst("img"))
         )
     }
 
@@ -270,15 +274,28 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
             ?: el.selectFirst("h4.movie-title")?.text()?.trim()
             ?: return null
 
-        val posterUrl = el.selectFirst("img")?.attr("data-src") ?: ""
-        val poster = normalizeUrl(posterUrl)
-
         return TvShow(
             id = href,
             title = title,
-            poster = poster
+            poster = imageUrl(el.selectFirst("img"))
         )
     }
+
+    private fun findSidebarSection(doc: Document, needle: String): Element? =
+        doc.select("section.sidebar-section").firstOrNull { section ->
+            section.selectFirst("h3")?.text()?.contains(needle, ignoreCase = true) == true
+        }
+
+    /** Prefer lazy-loaded data-src; fall back to src. */
+    private fun imageUrl(img: Element?): String {
+        if (img == null) return ""
+        val raw = img.attr("data-src").ifBlank { img.attr("src") }
+        return normalizeUrl(raw)
+    }
+
+    private fun detailPoster(doc: Document): String =
+        imageUrl(doc.selectFirst("figure.inline-block img"))
+            .ifBlank { imageUrl(doc.selectFirst("figure img")) }
 
     private fun normalizeUrl(url: String): String {
         if (url.isBlank()) return ""
@@ -464,7 +481,7 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
             ?: doc.selectFirst("meta[property=og:title]")?.attr("content")
                 ?.substringBefore(" Stream")?.trim()?.takeIf { it.isNotBlank() }
             ?: return null
-        val poster = normalizeUrl(doc.selectFirst("figure.inline-block img")?.attr("data-src").orEmpty())
+        val poster = detailPoster(doc)
         return if (isTvShowDocument(doc)) {
             TvShow(id = url, title = title, poster = poster)
         } else {
@@ -515,9 +532,7 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
                 doc.select("div.listing.grid[id=dle-content] div.item.relative.mt-3").map { element ->
                     async {
                         detailSemaphore.withPermit {
-                            val href = element.selectFirst("a.block.relative[href]")
-                                ?.attr("href")?.trim()?.takeIf { it.isNotBlank() }
-                                ?: return@withPermit null
+                            val href = gridHref(element) ?: return@withPermit null
                             val itemDoc = runCatching { service.getPage(href) }.getOrNull()
                                 ?: return@withPermit null
 
@@ -540,9 +555,7 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
                 doc.select("div.listing.grid[id=dle-content] div.item.relative.mt-3").map { element ->
                     async {
                         detailSemaphore.withPermit {
-                            val href = element.selectFirst("a.block.relative[href]")
-                                ?.attr("href")?.trim()?.takeIf { it.isNotBlank() }
-                                ?: return@withPermit null
+                            val href = gridHref(element) ?: return@withPermit null
                             val itemDoc = runCatching { service.getPage(href) }.getOrNull()
                                 ?: return@withPermit null
 
@@ -563,7 +576,8 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         val title = titleRaw.replace(Regex("\\s*hdfilme\\s*$", RegexOption.IGNORE_CASE), "").trim()
 
         val tmdbMovie = TmdbUtils.getMovie(title, language = language)
-        val poster = normalizeUrl(doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: "")
+        // Movies have no season accordion — never touch season UI here.
+        val poster = detailPoster(doc)
 
         val overviewDiv = doc.selectFirst("div.font-extralight.prose.max-w-none")
         val overview = overviewDiv?.select("p")?.firstOrNull()?.let { p ->
@@ -643,7 +657,7 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
 
         val tmdbTitle = title.replace(Regex("(?i)\\s*\\((Season|Staffel)s?\\s*\\d+-\\d+\\)"), "").trim()
         val tmdbTvShow = TmdbUtils.getTvShow(tmdbTitle, language = language)
-        val poster = normalizeUrl(doc.selectFirst("figure.inline-block img")?.attr("data-src") ?: "")
+        val poster = detailPoster(doc)
 
         val overviewDiv = doc.selectFirst("div.font-extralight.prose.max-w-none")
         val overview = overviewDiv?.select("p")?.firstOrNull()?.let { p ->
@@ -688,58 +702,62 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         val rating = metadataDiv?.selectFirst("p.imdb-badge span.imdb-rate")?.text()?.trim()?.toDoubleOrNull()
 
         val seasons = mutableListOf<Season>()
-        val serialDoc = getSerialDocument(doc)
-        serialDoc?.select("._season-eps")?.forEach { serialSeason ->
-            val seasonNumber = serialSeasonNumber(serialSeason, serialDoc) ?: return@forEach
-            val episodes = parseSerialEpisodes(id, seasonNumber, serialDoc)
-            if (episodes.isNotEmpty()) {
-                seasons.add(
-                    Season(
-                        id = "$id#season-$seasonNumber",
-                        number = seasonNumber,
-                        poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
-                        episodes = episodes
-                    )
-                )
-            }
-        }
-
-        if (seasons.isEmpty()) doc.select("div#se-accordion div.su-spoiler").forEach { spoiler ->
-            val seasonTitle = spoiler.selectFirst("div.su-spoiler-title")?.text()?.trim() ?: return@forEach
-            val seasonNumberMatch = Regex("Staffel\\s+(\\d+)").find(seasonTitle)
-            val seasonNumber = seasonNumberMatch?.groupValues?.get(1)?.toIntOrNull() ?: return@forEach
-
-            val episodes = mutableListOf<Episode>()
-            val content = spoiler.selectFirst("div.su-spoiler-content")?.html() ?: ""
-
-            if (content.isNotBlank()) {
-                val episodeRegex = Regex("""(\d+)x(\d+)\s+Episode\s+\d+""")
-                val lines = content.split("<br>")
-
-                lines.forEach { line ->
-                    val match = episodeRegex.find(line) ?: return@forEach
-                    val epNumber = match.groupValues[2].toIntOrNull() ?: return@forEach
-
-                    episodes.add(
-                        Episode(
-                            id = "$id#s${seasonNumber}e$epNumber",
-                            number = epNumber,
-                            title = "Episode $epNumber",
-                            poster = null
+        // Season UI may be absent (or a movie misrouted here) — never crash.
+        runCatching {
+            val serialDoc = getSerialDocument(doc)
+            serialDoc?.select("._season-eps")?.forEach { serialSeason ->
+                val seasonNumber = serialSeasonNumber(serialSeason, serialDoc) ?: return@forEach
+                val episodes = parseSerialEpisodes(id, seasonNumber, serialDoc)
+                if (episodes.isNotEmpty()) {
+                    seasons.add(
+                        Season(
+                            id = "$id#season-$seasonNumber",
+                            number = seasonNumber,
+                            poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
+                            episodes = episodes,
                         )
                     )
                 }
             }
 
-            if (episodes.isNotEmpty()) {
-                seasons.add(
-                    Season(
-                        id = "$id#season-$seasonNumber",
-                        number = seasonNumber,
-                        poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
-                        episodes = episodes.distinctBy { it.number }.sortedBy { it.number }
-                    )
-                )
+            if (seasons.isEmpty()) {
+                doc.select("div#se-accordion div.su-spoiler").forEach { spoiler ->
+                    val seasonTitle = spoiler.selectFirst("div.su-spoiler-title")?.text()?.trim()
+                        ?: return@forEach
+                    val seasonNumberMatch = Regex("Staffel\\s+(\\d+)").find(seasonTitle)
+                    val seasonNumber = seasonNumberMatch?.groupValues?.get(1)?.toIntOrNull()
+                        ?: return@forEach
+
+                    val episodes = mutableListOf<Episode>()
+                    val content = spoiler.selectFirst("div.su-spoiler-content")?.html().orEmpty()
+
+                    if (content.isNotBlank()) {
+                        val episodeRegex = Regex("""(\d+)x(\d+)\s+Episode\s+\d+""")
+                        content.split("<br>").forEach { line ->
+                            val match = episodeRegex.find(line) ?: return@forEach
+                            val epNumber = match.groupValues[2].toIntOrNull() ?: return@forEach
+                            episodes.add(
+                                Episode(
+                                    id = "$id#s${seasonNumber}e$epNumber",
+                                    number = epNumber,
+                                    title = "Episode $epNumber",
+                                    poster = null,
+                                )
+                            )
+                        }
+                    }
+
+                    if (episodes.isNotEmpty()) {
+                        seasons.add(
+                            Season(
+                                id = "$id#season-$seasonNumber",
+                                number = seasonNumber,
+                                poster = tmdbTvShow?.seasons?.find { it.number == seasonNumber }?.poster,
+                                episodes = episodes.distinctBy { it.number }.sortedBy { it.number },
+                            )
+                        )
+                    }
+                }
             }
         }
 
@@ -845,12 +863,12 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
                     coroutineScope {
                         elements.map { el ->
                             async {
-                                val href = el.selectFirst("a.block.relative[href]")?.attr("href")?.trim()
-                                    ?: return@async null
+                                val href = gridHref(el) ?: return@async null
 
                                 try {
                                     val itemDoc = service.getPage(href)
-                                    val hasSeasons = itemDoc.select("div#se-accordion").isNotEmpty()
+                                    val hasSeasons = itemDoc.select("div#se-accordion").isNotEmpty() ||
+                                        isTvShowDocument(itemDoc)
 
                                     if (hasSeasons) {
                                         parseGridItemAsTvShow(el)
@@ -894,12 +912,12 @@ object HDFilmeProvider : Provider, ProviderConfigUrl {
         val filmography = coroutineScope {
             elements.map { el ->
                 async {
-                    val href = el.selectFirst("a.block.relative[href]")?.attr("href")?.trim()
-                        ?: return@async null
+                    val href = gridHref(el) ?: return@async null
 
                     try {
                         val itemDoc = service.getPage(href)
-                        val hasSeasons = itemDoc.select("div#se-accordion").isNotEmpty()
+                        val hasSeasons = itemDoc.select("div#se-accordion").isNotEmpty() ||
+                            isTvShowDocument(itemDoc)
 
                         if (hasSeasons) {
                             parseGridItemAsTvShow(el)

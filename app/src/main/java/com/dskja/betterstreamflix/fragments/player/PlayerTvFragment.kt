@@ -500,15 +500,10 @@ class PlayerTvFragment : Fragment() {
                                 }
                                 PlaybackFailover.Action.GiveUp -> {
                                     val providerName = UserPreferences.currentProvider?.name ?: ""
-                                    val isTmdbDe = providerName.contains("TMDb", ignoreCase = true) &&
-                                        (providerName.contains("(de)", ignoreCase = true) ||
-                                            providerName.contains("Deutsch", ignoreCase = true))
                                     val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                                     val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                                    val message = if (isTmdbDe) {
-                                        getString(R.string.player_tmdb_de_try_serienstream)
-                                    } else if (isTmdb || isAD) {
+                                    val message = if (isTmdb || isAD) {
                                         val langCode =
                                             providerName.substringAfter("(").substringBefore(")")
                                         val locale = Locale.forLanguageTag(langCode)
@@ -2213,7 +2208,7 @@ class PlayerTvFragment : Fragment() {
         clearBypassSession(dismissDialog = true)
         applyBypassCookies(session.serverUrl, cookies)
         if (!cookies.isNullOrBlank()) {
-            UserPreferences.serienStreamSessionCookies = cookies.trim()
+            SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
         }
 
         lifecycleScope.launch {

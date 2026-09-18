@@ -210,9 +210,26 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getHome(): List<Category> {
-        val document = getService().getHome()
+        val document = try {
+            getService().getHome()
+        } catch (e: Exception) {
+            throw Exception(
+                "KinoGer is blocked by Cloudflare from this network (${e.message}). " +
+                    "Open the site in a browser on the same device, then retry — or set a working mirror URL in provider settings.",
+                e,
+            )
+        }
+        if (document.selectFirst("title")?.text()?.contains("Just a moment", ignoreCase = true) == true ||
+            document.selectFirst("#challenge-form, #cf-challenge-running") != null
+        ) {
+            throw Exception(
+                "KinoGer Cloudflare challenge is active. Complete the check in a browser on this device, then retry.",
+            )
+        }
         val items = parseShorts(document)
-        if (items.isEmpty()) return emptyList()
+        if (items.isEmpty()) {
+            throw Exception("KinoGer home returned no titles (site layout may have changed or CF blocked the scrape).")
+        }
         return listOf(Category(name = Category.FEATURED, list = items))
     }
 
