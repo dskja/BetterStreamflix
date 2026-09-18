@@ -69,8 +69,12 @@ import com.dskja.betterstreamflix.models.Provider
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.fragments.favorites.FavoriteSectionHeader
+import com.dskja.betterstreamflix.support.SupportBannerItem
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.databinding.ItemSupportBannerMobileBinding
+import com.dskja.betterstreamflix.databinding.ItemSupportBannerTvBinding
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
+import com.dskja.betterstreamflix.support.SupportUiBinder
 
 class AppAdapter(
     val items: MutableList<Item> = mutableListOf()
@@ -97,6 +101,8 @@ class AppAdapter(
     var onEpisodeClickListener: ((Episode) -> Unit)? = null
     var onSeasonClickListener: ((Season) -> Unit)? = null
     var onProviderClickListener: ((Provider) -> Unit)? = null
+    var onSupportBannerClickListener: (() -> Unit)? = null
+    var onSupportBannerDismissListener: (() -> Unit)? = null
     // ---------------------------------
     interface Item {
         var itemType: Type
@@ -117,6 +123,9 @@ class AppAdapter(
         FOOTER,
 
         FAVORITE_SECTION_HEADER,
+
+        SUPPORT_BANNER_MOBILE_ITEM,
+        SUPPORT_BANNER_TV_ITEM,
 
         GENRE_GRID_MOBILE_ITEM,
         GENRE_GRID_TV_ITEM,
@@ -273,6 +282,21 @@ class AppAdapter(
                         parent,
                         false,
                     )
+                )
+            )
+
+            Type.SUPPORT_BANNER_MOBILE_ITEM -> SupportBannerViewHolder(
+                ItemSupportBannerMobileBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false,
+                )
+            )
+            Type.SUPPORT_BANNER_TV_ITEM -> SupportBannerViewHolder(
+                ItemSupportBannerTvBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false,
                 )
             )
 
@@ -673,6 +697,10 @@ class AppAdapter(
             is FavoriteSectionHeaderViewHolder -> holder.bind(
                 items[adjustedPosition] as FavoriteSectionHeader
             )
+            is SupportBannerViewHolder -> holder.bind(
+                onSupportBannerClickListener,
+                onSupportBannerDismissListener,
+            )
             is GenreViewHolder -> holder.bind(
                 items[adjustedPosition] as Genre
             ) // Tu original no pasaba listener, lo respeto
@@ -985,6 +1013,31 @@ class AppAdapter(
         }
     }
 
+    private class SupportBannerViewHolder(
+        private val root: android.view.View,
+        private val cta: android.view.View,
+        private val dismiss: android.view.View,
+    ) : RecyclerView.ViewHolder(root) {
+        constructor(binding: ItemSupportBannerMobileBinding) : this(
+            binding.root,
+            binding.btnSupportBannerCta,
+            binding.btnSupportBannerDismiss,
+        )
+        constructor(binding: ItemSupportBannerTvBinding) : this(
+            binding.root,
+            binding.btnSupportBannerCta,
+            binding.btnSupportBannerDismiss,
+        )
+
+        fun bind(onClick: (() -> Unit)?, onDismiss: (() -> Unit)?) {
+            val open = android.view.View.OnClickListener { onClick?.invoke() }
+            root.setOnClickListener(open)
+            cta.setOnClickListener(open)
+            dismiss.setOnClickListener { onDismiss?.invoke() }
+            SupportUiBinder.applyFocusScale(root)
+        }
+    }
+
     private data class Header<T : ViewBinding>(
         val binding: (parent: ViewGroup) -> T,
         val bind: ((binding: T) -> Unit)? = null,
@@ -1044,6 +1097,7 @@ class AppAdapter(
         is Category -> "category:${name}"
         is Episode -> "episode:${id}"
         is FavoriteSectionHeader -> "favorite-header:${section.key}"
+        is SupportBannerItem -> "support-banner:${id}"
         is Genre -> "genre:${id}"
         is Movie -> "movie:${id}"
         is People -> "people:${id}"

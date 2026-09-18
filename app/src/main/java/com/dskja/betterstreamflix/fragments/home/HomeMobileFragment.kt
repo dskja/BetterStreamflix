@@ -235,26 +235,66 @@ class HomeMobileFragment : Fragment() {
             .find { it.name == Category.FAVORITE_TV_SHOWS }
             ?.also { it.name = getString(R.string.home_favorite_tv_shows) }
 
-        appAdapter.submitList(
-            categories
-                .filter { it.list.isNotEmpty() }
-                .onEach { category ->
-                    if (category.name != Category.FEATURED && category.name != getString(R.string.home_continue_watching)) {
-                        category.list.onEach { show ->
-                            when (show) {
-                                is Episode -> show.itemType = AppAdapter.Type.EPISODE_MOBILE_ITEM
-                                is Movie -> show.itemType = AppAdapter.Type.MOVIE_MOBILE_ITEM
-                                is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_MOBILE_ITEM
-                            }
+        appAdapter.onSupportBannerClickListener = {
+            runCatching { findNavController().navigate(R.id.support) }
+        }
+        appAdapter.onSupportBannerDismissListener = {
+            UserPreferences.homeSupportCardDismissed = true
+            val withoutBanner = appAdapter.items.filterNot { it is com.dskja.betterstreamflix.support.SupportBannerItem }
+            appAdapter.submitList(withoutBanner)
+        }
+
+        val homeItems = mutableListOf<AppAdapter.Item>()
+        categories
+            .filter { it.list.isNotEmpty() }
+            .onEach { category ->
+                if (category.name != Category.FEATURED && category.name != getString(R.string.home_continue_watching)) {
+                    category.list.onEach { show ->
+                        when (show) {
+                            is Episode -> show.itemType = AppAdapter.Type.EPISODE_MOBILE_ITEM
+                            is Movie -> show.itemType = AppAdapter.Type.MOVIE_MOBILE_ITEM
+                            is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_MOBILE_ITEM
                         }
                     }
-                    category.itemSpacing = 10.dp(requireContext())
-                    category.itemType = when (category.name) {
-                        Category.FEATURED -> AppAdapter.Type.CATEGORY_MOBILE_SWIPER
-                        else -> AppAdapter.Type.CATEGORY_MOBILE_ITEM
-                    }
                 }
-        )
+                category.itemSpacing = 10.dp(requireContext())
+                category.itemType = when (category.name) {
+                    Category.FEATURED -> AppAdapter.Type.CATEGORY_MOBILE_SWIPER
+                    else -> AppAdapter.Type.CATEGORY_MOBILE_ITEM
+                }
+            }
+            .forEachIndexed { index, category ->
+                homeItems.add(category)
+                // Place the support card after featured / continue watching — never first.
+                val insertAfter = category.name == getString(R.string.home_continue_watching) ||
+                    (category.name == Category.FEATURED &&
+                        categories.none { it.name == Category.CONTINUE_WATCHING && it.list.isNotEmpty() })
+                if (insertAfter &&
+                    !UserPreferences.homeSupportCardDismissed &&
+                    homeItems.none { it is com.dskja.betterstreamflix.support.SupportBannerItem }
+                ) {
+                    homeItems.add(
+                        com.dskja.betterstreamflix.support.SupportBannerItem().apply {
+                            itemType = AppAdapter.Type.SUPPORT_BANNER_MOBILE_ITEM
+                        }
+                    )
+                }
+            }
+
+        // Fallback: if no featured/continue rows, append near the top after first category.
+        if (!UserPreferences.homeSupportCardDismissed &&
+            homeItems.none { it is com.dskja.betterstreamflix.support.SupportBannerItem } &&
+            homeItems.isNotEmpty()
+        ) {
+            homeItems.add(
+                1.coerceAtMost(homeItems.size),
+                com.dskja.betterstreamflix.support.SupportBannerItem().apply {
+                    itemType = AppAdapter.Type.SUPPORT_BANNER_MOBILE_ITEM
+                }
+            )
+        }
+
+        appAdapter.submitList(homeItems)
 
         if (ExperimentalMobileDesign.enabled()) {
             ExpMotion.startAnimation(binding.rvHome, R.anim.exp_fade_slide_up)

@@ -551,11 +551,23 @@
     <PreferenceCategory
         android:title="@string/miscelaneous_title">
 
+        <Preference
+            android:icon="@drawable/ic_support_heart"
+            android:key="p_settings_support"
+            android:title="@string/support_settings_entry_title"
+            android:summary="@string/support_settings_entry_summary" />
+
         <SwitchPreference
             android:key="UPDATE_CHECK_ENABLED"
             android:title="@string/settings_update_check"
             android:summary="@string/settings_update_check_summary"
             android:defaultValue="true" />
+
+        <SwitchPreference
+            android:key="EXPERIMENTAL_NEW_APP_DESIGN"
+            android:title="@string/settings_experimental_new_design_title"
+            android:summary="@string/settings_experimental_new_design_summary"
+            android:defaultValue="false" />
 
         <Preference
             android:icon="@drawable/ic_telegram"

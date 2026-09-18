@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/support_dialog_margin">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_support_dialog"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/support_thanks_title"
+            android:src="@drawable/ic_support_heart"
+            android:tint="@color/support_accent" />
+
+        <TextView
+            android:id="@+id/tv_support_thanks_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="@font/manrope"
+            android:gravity="center"
+            android:text="@string/support_thanks_title"
+            android:textColor="@color/support_text_primary"
+            android:textSize="@dimen/support_text_section"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_support_thanks_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/manrope"
+            android:gravity="center"
+            android:text="@string/support_thanks_body"
+            android:textColor="@color/support_text_secondary"
+            android:textSize="@dimen/support_text_body" />
+
+        <TextView
+            android:id="@+id/btn_support_thanks_back"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/support_button_height"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_support_btn_primary"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/support_thanks_back"
+            android:textColor="@color/support_on_accent"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_support_thanks_community"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/support_button_height"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_support_btn_secondary"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/support_thanks_community"
+            android:textColor="@color/support_text_primary" />
+    </LinearLayout>
+</FrameLayout>
