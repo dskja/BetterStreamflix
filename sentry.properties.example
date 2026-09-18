@@ -1,9 +1,10 @@
-# Copy to sentry.properties (gitignored) or set SENTRY_AUTH_TOKEN in CI.
-# Create a token at: https://sentry.io/settings/account/api/auth-tokens/
-# Scopes needed: project:releases, project:write, org:read
+# Sentry org/project defaults for the Gradle plugin / sentry-cli.
+# Auth token: project public key (same as DSN / OTLP x-sentry-auth).
+# For release/ProGuard upload scopes, replace with a user auth token from
+# https://sentry.io/settings/account/api/auth-tokens/ if uploads fail.
 defaults.org=betterstreamflix
 defaults.project=betterstreamflix
-# auth.token=sntrys_YOUR_TOKEN_HERE
+auth.token=a725644155c0150523b89069e26ec38c
 
 # Optional: forward OpenTelemetry from other services via Collector
 # (same Sentry project). See otel-collector-config.yaml.

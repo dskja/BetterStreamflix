@@ -175,14 +175,20 @@ dependencies {
 }
 
 // Sentry Android Gradle plugin (SDK is added automatically).
-// Mapping upload runs only when SENTRY_AUTH_TOKEN is set or sentry.properties exists.
+def sentryProps = new Properties()
+def sentryPropsFile = rootProject.file("sentry.properties")
+if (sentryPropsFile.exists()) {
+    sentryPropsFile.withInputStream { sentryProps.load(it) }
+}
 def sentryAuthToken = System.getenv("SENTRY_AUTH_TOKEN")
-def hasSentryProperties = rootProject.file("sentry.properties").exists()
+        ?: sentryProps.getProperty("auth.token")
+        ?: ""
 sentry {
-    org = "betterstreamflix"
-    projectName = "betterstreamflix"
+    org = sentryProps.getProperty("defaults.org", "betterstreamflix")
+    projectName = sentryProps.getProperty("defaults.project", "betterstreamflix")
+    authToken = sentryAuthToken
     includeProguardMapping = true
-    autoUploadProguardMapping = (sentryAuthToken != null && !sentryAuthToken.isEmpty()) || hasSentryProperties
+    autoUploadProguardMapping = !sentryAuthToken.isEmpty()
     autoUploadNativeSymbols = false
     includeNativeSources = false
     tracingInstrumentation {
