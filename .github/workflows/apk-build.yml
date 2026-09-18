@@ -1,0 +1,105 @@
+name: Build APKs
+
+# Debug APKs on every commit — artifacts only, no GitHub Release.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: apk-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apks:
+    name: Debug APKs (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: universal
+            app_layout: ""
+            apk_name: BetterStreamflix-universal-debug
+          - name: mobile
+            app_layout: "mobile"
+            apk_name: BetterStreamflix-mobile-debug
+          - name: tv
+            app_layout: "tv"
+            apk_name: BetterStreamflix-tv-debug
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Access optional secrets
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          RABBITSTREAM_SOURCE_API: ${{ secrets.RABBITSTREAM_SOURCE_API }}
+        run: |
+          touch local.properties
+          if [ -n "$TMDB_API_KEY" ]; then
+            echo "TMDB_API_KEY=$TMDB_API_KEY" >> local.properties
+          fi
+          if [ -n "$RABBITSTREAM_SOURCE_API" ]; then
+            echo "RABBITSTREAM_SOURCE_API=$RABBITSTREAM_SOURCE_API" >> local.properties
+          fi
+
+      - name: Generate native-lib.cpp from template
+        env:
+          UPROT_API_BASE: ${{ secrets.UPROT_API_BASE }}
+          UPROT_SIGN_KEY: ${{ secrets.UPROT_SIGN_KEY }}
+          UPROT_DIRECT_API_BASE: ${{ secrets.UPROT_DIRECT_API_BASE }}
+          UPROT_DIRECT_KEY: ${{ secrets.UPROT_DIRECT_KEY }}
+        run: |
+          if [ -n "$UPROT_DIRECT_KEY" ] || [ -n "$UPROT_API_BASE" ]; then
+            sed -e "s|{{UPROT_API_BASE}}|$UPROT_API_BASE|g" \
+                -e "s|{{UPROT_SIGN_KEY}}|$UPROT_SIGN_KEY|g" \
+                -e "s|{{UPROT_DIRECT_API_BASE}}|$UPROT_DIRECT_API_BASE|g" \
+                -e "s|{{UPROT_DIRECT_KEY}}|$UPROT_DIRECT_KEY|g" \
+                app/src/main/cpp/native-lib.cpp.template > app/src/main/cpp/native-lib.cpp
+          elif [ -f app/src/main/cpp/native-lib.cpp.template ] && [ ! -f app/src/main/cpp/native-lib.cpp ]; then
+            cp app/src/main/cpp/native-lib.cpp.template app/src/main/cpp/native-lib.cpp
+          fi
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Set APP_LAYOUT
+        run: |
+          if [ -n "${{ matrix.app_layout }}" ]; then
+            echo "APP_LAYOUT=${{ matrix.app_layout }}" >> local.properties
+          else
+            sed -i '/^APP_LAYOUT=/d' local.properties || true
+          fi
+          echo "local.properties:"
+          cat local.properties
+
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Package APK
+        run: |
+          mkdir -p dist
+          src=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
+          cp "$src" "dist/${{ matrix.apk_name }}.apk"
+          ls -lh dist/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.apk_name }}
+          path: dist/${{ matrix.apk_name }}.apk
+          if-no-files-found: error
+          retention-days: 14
+
+# Maintainer: dskja
