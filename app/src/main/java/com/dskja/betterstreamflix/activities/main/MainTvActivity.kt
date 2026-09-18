@@ -168,6 +168,12 @@ class MainTvActivity : FragmentActivity() {
                         navigateToProviderHome(navController)
                         binding.navMain.requestFocus()
                     }
+                    R.id.support -> {
+                        if (!navController.navigateUp()) {
+                            navigateToProviderHome(navController)
+                            binding.navMain.requestFocus()
+                        }
+                    }
                     else -> {
                         val handled = (getCurrentFragment() as? PlayerTvFragment)?.onBackPressed() ?: false
                         if (!handled && !navController.navigateUp()) finish()
@@ -175,6 +181,8 @@ class MainTvActivity : FragmentActivity() {
                 }
             }
         })
+
+        com.dskja.betterstreamflix.support.SupportStartupController.schedule(this, isTv = true)
     }
 
     private fun bindingRootAndChrome() {

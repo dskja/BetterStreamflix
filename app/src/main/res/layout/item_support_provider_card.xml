@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/support_provider_card_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_support_card_focusable"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="@dimen/support_icon_chip"
+            android:layout_height="@dimen/support_icon_chip"
+            android:background="@drawable/bg_support_icon_chip">
+
+            <ImageView
+                android:id="@+id/iv_support_provider_icon"
+                android:layout_width="@dimen/support_icon_size"
+                android:layout_height="@dimen/support_icon_size"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_buy_me_a_coffee"
+                tools:ignore="ContentDescription" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tv_support_provider_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:fontFamily="@font/manrope"
+            android:textColor="@color/support_text_primary"
+            android:textSize="@dimen/support_text_card_title"
+            android:textStyle="bold"
+            tools:text="Buy Me a Coffee" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_support_provider_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/manrope"
+        android:lineSpacingExtra="2dp"
+        android:textColor="@color/support_text_secondary"
+        android:textSize="@dimen/support_text_secondary"
+        tools:text="A simple and direct way to support BetterStreamflix." />
+
+    <TextView
+        android:id="@+id/btn_support_provider_cta"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/support_button_height"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/bg_support_btn_secondary"
+        android:contentDescription="@string/support_external_link_cd"
+        android:focusable="true"
+        android:gravity="center"
+        android:textColor="@color/support_text_primary"
+        android:textSize="@dimen/support_text_cta"
+        android:textStyle="bold"
+        tools:text="Support on Buy Me a Coffee" />
+</LinearLayout>

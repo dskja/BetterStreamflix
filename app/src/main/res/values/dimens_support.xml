@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="support_page_padding">20dp</dimen>
+    <dimen name="support_page_padding_top">16dp</dimen>
+    <dimen name="support_section_spacing">28dp</dimen>
+    <dimen name="support_card_spacing">12dp</dimen>
+    <dimen name="support_card_radius">16dp</dimen>
+    <dimen name="support_card_radius_sm">12dp</dimen>
+    <dimen name="support_card_border">1dp</dimen>
+    <dimen name="support_icon_size">28dp</dimen>
+    <dimen name="support_icon_chip">48dp</dimen>
+    <dimen name="support_button_height">48dp</dimen>
+    <dimen name="support_button_height_lg">52dp</dimen>
+    <dimen name="support_dialog_margin">24dp</dimen>
+    <dimen name="support_mobile_margin">16dp</dimen>
+    <dimen name="support_hero_min_height">200dp</dimen>
+    <dimen name="support_banner_height">88dp</dimen>
+    <dimen name="support_close_size">40dp</dimen>
+    <dimen name="support_focus_stroke">2dp</dimen>
+
+    <!-- Typography -->
+    <dimen name="support_text_hero">28sp</dimen>
+    <dimen name="support_text_screen_title">24sp</dimen>
+    <dimen name="support_text_section">18sp</dimen>
+    <dimen name="support_text_card_title">16sp</dimen>
+    <dimen name="support_text_body">14sp</dimen>
+    <dimen name="support_text_secondary">13sp</dimen>
+    <dimen name="support_text_caption">12sp</dimen>
+    <dimen name="support_text_cta">14sp</dimen>
+</resources>

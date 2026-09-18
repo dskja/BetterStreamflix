@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Premium Support design tokens — cinematic dark, restrained red accent -->
+    <color name="support_bg">#0A0A0A</color>
+    <color name="support_surface">#121212</color>
+    <color name="support_surface_elevated">#1A1A1A</color>
+    <color name="support_surface_elevated_2">#222222</color>
+    <color name="support_card_bg">#161616</color>
+    <color name="support_card_border">#2A2A2A</color>
+    <color name="support_card_border_focus">#E50914</color>
+    <color name="support_text_primary">#F5F5F5</color>
+    <color name="support_text_secondary">#A3A3A3</color>
+    <color name="support_text_tertiary">#737373</color>
+    <color name="support_accent">#E50914</color>
+    <color name="support_accent_pressed">#B20710</color>
+    <color name="support_accent_soft">#33E50914</color>
+    <color name="support_success">#3DDC97</color>
+    <color name="support_warning">#F5A623</color>
+    <color name="support_divider">#1F1F1F</color>
+    <color name="support_scrim">#CC000000</color>
+    <color name="support_hero_overlay_start">#E6000000</color>
+    <color name="support_hero_overlay_end">#66000000</color>
+    <color name="support_on_accent">#FFFFFF</color>
+</resources>

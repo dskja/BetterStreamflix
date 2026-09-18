@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/support_bg"
+    android:paddingStart="@dimen/support_page_padding"
+    android:paddingTop="@dimen/support_page_padding_top"
+    android:paddingEnd="@dimen/support_page_padding"
+    android:paddingBottom="@dimen/support_page_padding">
+
+    <ImageButton
+        android:id="@+id/btn_support_back"
+        android:layout_width="@dimen/support_close_size"
+        android:layout_height="@dimen/support_close_size"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/support_back_cd"
+        android:focusable="true"
+        android:nextFocusDown="@id/include_support_hero"
+        android:padding="8dp"
+        android:src="@drawable/ic_support_back"
+        android:tint="@color/support_text_primary"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="UseAppTint" />
+
+    <TextView
+        android:id="@+id/tv_support_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:fontFamily="@font/manrope"
+        android:text="@string/support_hub_title"
+        android:textColor="@color/support_text_primary"
+        android:textSize="@dimen/support_text_screen_title"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/btn_support_back"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btn_support_back"
+        app:layout_constraintTop_toTopOf="@id/btn_support_back" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/sv_support"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_support_back">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="48dp">
+
+            <include
+                android:id="@+id/include_support_hero"
+                layout="@layout/include_support_hero"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="true" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_options_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_providers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_transparency_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_transparency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_support_card"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/manrope"
+                    android:text="@string/support_transparency_item_development"
+                    android:textColor="@color/support_text_secondary"
+                    android:textSize="@dimen/support_text_body" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/manrope"
+                    android:text="@string/support_transparency_item_bugs"
+                    android:textColor="@color/support_text_secondary"
+                    android:textSize="@dimen/support_text_body" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/manrope"
+                    android:text="@string/support_transparency_item_features"
+                    android:textColor="@color/support_text_secondary"
+                    android:textSize="@dimen/support_text_body" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/manrope"
+                    android:text="@string/support_transparency_item_maintenance"
+                    android:textColor="@color/support_text_secondary"
+                    android:textSize="@dimen/support_text_body" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/manrope"
+                    android:text="@string/support_transparency_item_community"
+                    android:textColor="@color/support_text_secondary"
+                    android:textSize="@dimen/support_text_body" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

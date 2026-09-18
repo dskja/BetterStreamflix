@@ -767,6 +767,13 @@
         android:title="@string/miscelaneous_title"
         app:iconSpaceReserved="false">
 
+        <Preference
+            android:icon="@drawable/ic_support_heart"
+            android:key="p_settings_support"
+            android:title="@string/support_settings_entry_title"
+            android:summary="@string/support_settings_entry_summary"
+            app:iconSpaceReserved="false" />
+
         <SwitchPreference
             android:key="UPDATE_CHECK_ENABLED"
             android:title="@string/settings_update_check"
@@ -804,6 +811,13 @@
             android:icon="@drawable/ic_settings_help"
             android:key="p_settings_help"
             android:title="@string/settings_help"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="p_settings_support_preview"
+            android:title="@string/support_preview_title"
+            android:summary="@string/support_preview_summary"
+            android:dependency="EXPERIMENTAL_NEW_APP_DESIGN"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 

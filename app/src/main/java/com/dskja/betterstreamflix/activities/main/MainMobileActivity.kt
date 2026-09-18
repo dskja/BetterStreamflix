@@ -288,6 +288,8 @@ class MainMobileActivity : FragmentActivity() {
         if (savedInstanceState == null) {
             handleIntent(intent)
         }
+
+        com.dskja.betterstreamflix.support.SupportStartupController.schedule(this, isTv = false)
     }
 
     override fun onNewIntent(intent: Intent) {

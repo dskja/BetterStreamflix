@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -237,26 +238,66 @@ class HomeTvFragment : Fragment() {
             .find { it.name == Category.FAVORITE_TV_SHOWS }
             ?.also { it.name = getString(R.string.home_favorite_tv_shows) }
 
-        appAdapter.submitList(
-            categories
-                .filter { it.list.isNotEmpty() }
-                .onEach { category ->
-                    if (category.name != getString(R.string.home_continue_watching)) {
-                        category.list.forEach { show ->
-                            when (show) {
-                                is Episode -> show.itemType = AppAdapter.Type.EPISODE_TV_ITEM
-                                is Movie -> show.itemType = AppAdapter.Type.MOVIE_TV_ITEM
-                                is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_TV_ITEM
-                            }
+        appAdapter.onSupportBannerClickListener = {
+            runCatching { findNavController().navigate(R.id.support) }
+        }
+        appAdapter.onSupportBannerDismissListener = {
+            UserPreferences.homeSupportCardDismissed = true
+            val withoutBanner = appAdapter.items.filterNot {
+                it is com.dskja.betterstreamflix.support.SupportBannerItem
+            }
+            appAdapter.submitList(withoutBanner)
+        }
+
+        val homeItems = mutableListOf<AppAdapter.Item>()
+        categories
+            .filter { it.list.isNotEmpty() }
+            .onEach { category ->
+                if (category.name != getString(R.string.home_continue_watching)) {
+                    category.list.forEach { show ->
+                        when (show) {
+                            is Episode -> show.itemType = AppAdapter.Type.EPISODE_TV_ITEM
+                            is Movie -> show.itemType = AppAdapter.Type.MOVIE_TV_ITEM
+                            is TvShow -> show.itemType = AppAdapter.Type.TV_SHOW_TV_ITEM
                         }
                     }
-                    category.itemSpacing = resources.getDimension(R.dimen.home_spacing).toInt()
-                    category.itemType = when (category.name) {
-                        Category.FEATURED -> AppAdapter.Type.CATEGORY_TV_SWIPER
-                        else -> AppAdapter.Type.CATEGORY_TV_ITEM
-                    }
                 }
-        )
+                category.itemSpacing = resources.getDimension(R.dimen.home_spacing).toInt()
+                category.itemType = when (category.name) {
+                    Category.FEATURED -> AppAdapter.Type.CATEGORY_TV_SWIPER
+                    else -> AppAdapter.Type.CATEGORY_TV_ITEM
+                }
+            }
+            .forEach { category ->
+                homeItems.add(category)
+                val insertAfter = category.name == getString(R.string.home_continue_watching) ||
+                    (category.name == Category.FEATURED &&
+                        categories.none { it.name == Category.CONTINUE_WATCHING && it.list.isNotEmpty() })
+                if (insertAfter &&
+                    !UserPreferences.homeSupportCardDismissed &&
+                    homeItems.none { it is com.dskja.betterstreamflix.support.SupportBannerItem }
+                ) {
+                    homeItems.add(
+                        com.dskja.betterstreamflix.support.SupportBannerItem().apply {
+                            itemType = AppAdapter.Type.SUPPORT_BANNER_TV_ITEM
+                        }
+                    )
+                }
+            }
+
+        if (!UserPreferences.homeSupportCardDismissed &&
+            homeItems.none { it is com.dskja.betterstreamflix.support.SupportBannerItem } &&
+            homeItems.isNotEmpty()
+        ) {
+            homeItems.add(
+                1.coerceAtMost(homeItems.size),
+                com.dskja.betterstreamflix.support.SupportBannerItem().apply {
+                    itemType = AppAdapter.Type.SUPPORT_BANNER_TV_ITEM
+                }
+            )
+        }
+
+        appAdapter.submitList(homeItems)
     }
 
     fun resetSwiperSchedule() {

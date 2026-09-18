@@ -1,18 +1,17 @@
 package com.dskja.betterstreamflix.fragments.settings.about
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.support.SupportLinkOpener
+import com.dskja.betterstreamflix.support.SupportUrls
 
 class SettingsAboutMobileFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings_about_mobile, rootKey)
-
         displaySettingsAbout()
     }
 
@@ -22,32 +21,32 @@ class SettingsAboutMobileFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("p_settings_github")?.setOnPreferenceClickListener {
-            openUrl("https://github.com/dskja/BetterStreamflix")
+            SupportLinkOpener.open(requireContext(), SupportUrls.GITHUB_REPOSITORY_URL)
             true
         }
 
         findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
-            openUrl("https://www.patreon.com/BetterStreamflix")
+            SupportLinkOpener.open(
+                requireContext(),
+                SupportUrls.PATREON_URL,
+                markAppreciation = true,
+            )
             true
         }
 
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
-            openUrl("https://buymeacoffee.com/betterstreamflix")
+            SupportLinkOpener.open(requireContext(), SupportUrls.BUY_ME_A_COFFEE_URL, markAppreciation = true)
             true
         }
 
         findPreference<Preference>("p_settings_github_sponsors")?.setOnPreferenceClickListener {
-            openUrl("https://github.com/sponsors/dskja")
+            SupportLinkOpener.open(requireContext(), SupportUrls.GITHUB_SPONSORS_URL, markAppreciation = true)
             true
         }
 
         findPreference<Preference>("p_settings_upstream")?.setOnPreferenceClickListener {
-            openUrl("https://github.com/streamflix-reborn2/streamflix")
+            SupportLinkOpener.open(requireContext(), SupportUrls.UPSTREAM_REPOSITORY_URL)
             true
         }
-    }
-
-    private fun openUrl(url: String) {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 }
