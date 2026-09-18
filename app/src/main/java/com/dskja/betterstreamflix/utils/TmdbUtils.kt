@@ -276,7 +276,7 @@ object TmdbUtils {
         year: Int?,
         language: String?,
     ): TMDb3.Movie? {
-        val results = searchMovieCandidates(rawTitle, language)
+        val results = searchMovieCandidates(rawTitle, year, language)
         val scoredResults = results.map { movie ->
             movie to scoreCandidate(
                 candidateTitles = listOf(movie.title, movie.originalTitle),
@@ -313,7 +313,7 @@ object TmdbUtils {
         year: Int?,
         language: String?,
     ): TMDb3.Tv? {
-        val results = searchTvCandidates(rawTitle, language)
+        val results = searchTvCandidates(rawTitle, year, language)
         val scoredResults = results.map { tv ->
             tv to scoreCandidate(
                 candidateTitles = listOf(tv.name, tv.originalName),
@@ -345,27 +345,80 @@ object TmdbUtils {
             ?.first
     }
 
-    private suspend fun searchMovieCandidates(rawTitle: String, language: String?): List<TMDb3.Movie> {
+    private suspend fun searchMovieCandidates(
+        rawTitle: String,
+        year: Int?,
+        language: String?,
+    ): List<TMDb3.Movie> {
         val variants = buildTitleVariants(rawTitle)
         val languages = listOfNotNull(language).plus(null).distinct()
 
         return languages
             .flatMap { searchLanguage ->
                 variants.flatMap { query ->
-                    TMDb3.Search.multi(query, language = searchLanguage).results.filterIsInstance<TMDb3.Movie>()
+                    buildList {
+                        // Year-scoped movie search first for franchise disambiguation.
+                        if (year != null) {
+                            runCatching {
+                                addAll(
+                                    TMDb3.Search.movie(
+                                        query = query,
+                                        language = searchLanguage,
+                                        primaryReleaseYear = year,
+                                    ).results,
+                                )
+                            }
+                        }
+                        runCatching {
+                            addAll(TMDb3.Search.movie(query = query, language = searchLanguage).results)
+                        }
+                        runCatching {
+                            addAll(
+                                TMDb3.Search.multi(query, language = searchLanguage)
+                                    .results
+                                    .filterIsInstance<TMDb3.Movie>(),
+                            )
+                        }
+                    }
                 }
             }
             .distinctBy { it.id }
     }
 
-    private suspend fun searchTvCandidates(rawTitle: String, language: String?): List<TMDb3.Tv> {
+    private suspend fun searchTvCandidates(
+        rawTitle: String,
+        year: Int?,
+        language: String?,
+    ): List<TMDb3.Tv> {
         val variants = buildTitleVariants(rawTitle)
         val languages = listOfNotNull(language).plus(null).distinct()
 
         return languages
             .flatMap { searchLanguage ->
                 variants.flatMap { query ->
-                    TMDb3.Search.multi(query, language = searchLanguage).results.filterIsInstance<TMDb3.Tv>()
+                    buildList {
+                        if (year != null) {
+                            runCatching {
+                                addAll(
+                                    TMDb3.Search.tv(
+                                        query = query,
+                                        language = searchLanguage,
+                                        firstAirDateYear = year,
+                                    ).results,
+                                )
+                            }
+                        }
+                        runCatching {
+                            addAll(TMDb3.Search.tv(query = query, language = searchLanguage).results)
+                        }
+                        runCatching {
+                            addAll(
+                                TMDb3.Search.multi(query, language = searchLanguage)
+                                    .results
+                                    .filterIsInstance<TMDb3.Tv>(),
+                            )
+                        }
+                    }
                 }
             }
             .distinctBy { it.id }

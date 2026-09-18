@@ -9,7 +9,9 @@ import java.security.Security
 import org.conscrypt.Conscrypt
 import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.providers.AniWorldProvider
+import com.dskja.betterstreamflix.providers.KinoGerProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
+import com.dskja.betterstreamflix.providers.SoloLatinoProvider
 import com.dskja.betterstreamflix.sync.CloudSyncManager
 import com.dskja.betterstreamflix.sync.SupabaseProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
@@ -117,6 +119,8 @@ class BetterStreamflixApp : Application() {
                 )
             }
             runCatching { SerienStreamProvider.initialize(appContext) }
+            runCatching { KinoGerProvider.init(appContext) }
+            runCatching { SoloLatinoProvider.init(appContext) }
             runCatching { AniWorldProvider.initialize(appContext) }
             runCatching { ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider) }
             runCatching {

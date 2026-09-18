@@ -2,6 +2,8 @@ package com.dskja.betterstreamflix.extractors
 
 import android.util.Log
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.utils.MeinecloudEmbedHelper
+import kotlinx.coroutines.delay
 
 abstract class Extractor {
 
@@ -113,6 +115,7 @@ abstract class Extractor {
             ShareCloudyExtractor(),
             StreamrubyExtractor(),
             VidaraExtractor(),
+            FirestreamExtractor(),
             VidsonicExtractor(),
             HxfileExtractor(),
             ZillaExtractor(),
@@ -122,12 +125,36 @@ abstract class Extractor {
         )
 
         suspend fun extract(link: String, server: Video.Server? = null): Video {
+            var lastError: Exception? = null
+            // Transient hoster flaps are common — retry once before surfacing failure.
+            repeat(2) { attempt ->
+                try {
+                    return extractOnce(link, server)
+                } catch (e: Exception) {
+                    lastError = e
+                    Log.w("Extractor", "extract attempt ${attempt + 1} failed for $link: ${e.message}")
+                    if (attempt == 0) delay(350)
+                }
+            }
+            throw lastError ?: Exception("No extractors found for URL: $link")
+        }
+
+        private suspend fun extractOnce(link: String, server: Video.Server? = null): Video {
             var finalLink = link
+
+            // Expand DE embed wrappers (meinecloud / firestream) to a concrete hoster URL.
+            if (MeinecloudEmbedHelper.isEmbedWrapper(finalLink)) {
+                val resolved = MeinecloudEmbedHelper.resolveToHosterUrl(finalLink)
+                if (resolved.isNotBlank() && resolved != finalLink) {
+                    Log.d("Extractor", "Embed wrapper resolved: $finalLink -> $resolved")
+                    finalLink = resolved
+                }
+            }
             
             // 1. RISOLUZIONE BRIDGE UNIVERSALE (StreamHG/Sync/Cuevana)
             // Facciamo questo PRIMA di cercare l'estrattore perché il link bridge (es. mysync.mov)
             // non appartiene a nessun estrattore specifico, ma il link risolto sì (es. filemoon).
-            if (link.contains("mysync.mov/stream/")) {
+            if (finalLink.contains("mysync.mov/stream/")) {
                 try {
                     val client = okhttp3.OkHttpClient.Builder()
                         .followRedirects(true)
@@ -136,7 +163,7 @@ abstract class Extractor {
                     
                     val responseBody = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                         val request = okhttp3.Request.Builder()
-                            .url(link)
+                            .url(finalLink)
                             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
                             .build()
                         client.newCall(request).execute().use { it.body?.string() }
@@ -147,7 +174,7 @@ abstract class Extractor {
                         .ifEmpty { responseBody.substringAfter("src=\"", "").substringBefore("\"") }
                     
                     if (redirectUrl.isNotEmpty() && redirectUrl.startsWith("http")) {
-                        Log.d("Extractor", "Universal Bridge resolved: $link -> $redirectUrl")
+                        Log.d("Extractor", "Universal Bridge resolved: $finalLink -> $redirectUrl")
                         finalLink = redirectUrl
                     }
                 } catch (e: Exception) {

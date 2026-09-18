@@ -1,6 +1,9 @@
 package com.dskja.betterstreamflix.providers
 
-import MyCookieJar
+import android.content.Context
+import android.util.Log
+import android.webkit.CookieManager
+import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.adapters.AppAdapter
 import com.dskja.betterstreamflix.extractors.Extractor
 import com.dskja.betterstreamflix.models.Category
@@ -12,20 +15,26 @@ import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.Show
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.MeinecloudEmbedHelper
+import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.TmdbUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.WebViewResolver
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
-import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Url
@@ -45,42 +54,38 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     override val language = "de"
     override val changeUrlMutex = Mutex()
 
-    private const val DEFAULT_AGENT =
-        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
+    private const val TAG = "KinoGerBypass"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+
+    private var webViewResolver: WebViewResolver? = null
+    private val providerMutex = Mutex()
 
     private interface KinoGerService {
-        @Headers(DEFAULT_AGENT)
         @GET(".")
         suspend fun getHome(): Document
 
-        @Headers(DEFAULT_AGENT)
         @GET("kinofilme-online/")
         suspend fun getMovies(): Document
 
-        @Headers(DEFAULT_AGENT)
         @GET("kinofilme-online/page/{page}/")
         suspend fun getMovies(@Path("page") page: Int): Document
 
-        @Headers(DEFAULT_AGENT)
         @GET("serienstream-deutsch/")
         suspend fun getTvShows(): Document
 
-        @Headers(DEFAULT_AGENT)
         @GET("serienstream-deutsch/page/{page}/")
         suspend fun getTvShows(@Path("page") page: Int): Document
 
-        @Headers(DEFAULT_AGENT)
         @GET
         suspend fun getDocument(@Url url: String): Document
 
-        @Headers(DEFAULT_AGENT)
         @GET("{path}page/{page}/")
         suspend fun getPage(
             @Path(value = "path", encoded = true) path: String,
             @Path("page") page: Int
         ): Document
 
-        @Headers(DEFAULT_AGENT)
         @FormUrlEncoded
         @POST("index.php?do=search")
         suspend fun search(
@@ -91,29 +96,24 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             @Field("result_from") resultFrom: Int,
             @Field("story") story: String
         ): Document
-
-        companion object {
-            fun build(baseUrl: String): KinoGerService {
-                val client = OkHttpClient.Builder()
-                    .cookieJar(MyCookieJar())
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .build()
-
-                return Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .client(client)
-                    .addConverterFactory(JsoupConverterFactory.create())
-                    .build()
-                    .create(KinoGerService::class.java)
-            }
-        }
     }
 
     @Volatile
-    private var service = KinoGerService.build(defaultBaseUrl)
+    private var client: OkHttpClient = buildOkHttpClient()
+    @Volatile
+    private var service = buildService(defaultBaseUrl)
     @Volatile
     private var serviceBaseUrl: String = defaultBaseUrl
+
+    fun init(context: Context) {
+        webViewResolver = WebViewResolver(context)
+    }
+
+    private fun getResolver(): WebViewResolver {
+        return webViewResolver ?: WebViewResolver(BetterStreamflixApp.instance).also {
+            webViewResolver = it
+        }
+    }
 
     private fun normalizedBaseUrl(): String =
         baseUrl.trim().removeSuffix("/") + "/"
@@ -125,13 +125,82 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         return if (path.startsWith("/")) "$base$path" else "$base/$path"
     }
 
+    private fun providerHost(): String =
+        runCatching { normalizedBaseUrl().toHttpUrl().host }.getOrDefault("kinoger.fun")
+
+    fun isKinoGerHost(hostOrUrl: String?): Boolean {
+        if (hostOrUrl.isNullOrBlank()) return false
+        val host = runCatching {
+            if (hostOrUrl.contains("://")) {
+                android.net.Uri.parse(hostOrUrl).host
+            } else {
+                hostOrUrl
+            }
+        }.getOrNull()
+            ?.lowercase()
+            ?.removePrefix("www.")
+            .orEmpty()
+        if (host.isBlank()) return false
+        val base = providerHost().lowercase().removePrefix("www.")
+        return host == base ||
+            host.endsWith(".$base") ||
+            host.contains("kinoger")
+    }
+
+    private fun isProviderUrl(url: String): Boolean = isKinoGerHost(url)
+
+    private fun buildOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val origin = normalizedBaseUrl().trimEnd('/')
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", BROWSER_UA)
+                    .header(
+                        "Accept",
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    )
+                    .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Referer", "$origin/")
+                    .header("Origin", origin)
+                    .header("Cache-Control", "no-cache")
+                    .header("Pragma", "no-cache")
+                    .header("Sec-Ch-Ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"")
+                    .header("Sec-Ch-Ua-Mobile", "?0")
+                    .header("Sec-Ch-Ua-Platform", "\"Windows\"")
+                    .header("Sec-Fetch-Dest", "document")
+                    .header("Sec-Fetch-Mode", "navigate")
+                    .header("Sec-Fetch-Site", "none")
+                    .header("Sec-Fetch-User", "?1")
+                    .header("Upgrade-Insecure-Requests", "1")
+                    .build()
+                chain.proceed(request)
+            }
+            .cookieJar(NetworkClient.cookieJar)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
+            .dns(DnsResolver.doh)
+            .build()
+    }
+
+    private fun buildService(root: String): KinoGerService {
+        val normalized = if (root.endsWith("/")) root else "$root/"
+        return Retrofit.Builder()
+            .baseUrl(normalized)
+            .client(client)
+            .addConverterFactory(JsoupConverterFactory.create())
+            .build()
+            .create(KinoGerService::class.java)
+    }
+
     private fun getService(): KinoGerService {
         val currentBase = normalizedBaseUrl()
         val cached = service
         if (serviceBaseUrl == currentBase) return cached
         synchronized(this) {
             if (serviceBaseUrl == currentBase) return service
-            return KinoGerService.build(currentBase).also {
+            client = buildOkHttpClient()
+            return buildService(currentBase).also {
                 service = it
                 serviceBaseUrl = currentBase
             }
@@ -141,14 +210,104 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     override suspend fun onChangeUrl(forceRefresh: Boolean): String {
         changeUrlMutex.withLock {
             val currentBase = normalizedBaseUrl()
-            service = KinoGerService.build(currentBase)
+            client = buildOkHttpClient()
+            service = buildService(currentBase)
             serviceBaseUrl = currentBase
         }
         return normalizedBaseUrl()
     }
 
+    private fun requiresClearance(html: String): Boolean {
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-browser-verification", ignoreCase = true) ||
+            html.contains("Checking your browser", ignoreCase = true) ||
+            html.contains("cf-mitigated", ignoreCase = true) ||
+            html.contains("challenge-platform", ignoreCase = true) &&
+            html.contains("cdn-cgi", ignoreCase = true) &&
+            !hasUsableContent(html)
+    }
+
+    private fun hasUsableContent(html: String): Boolean {
+        return html.contains("div.short") ||
+            html.contains("class=\"short\"") ||
+            html.contains("player-mirrors") ||
+            html.contains("ep-menu") ||
+            html.contains("news-title") ||
+            html.contains("kinofilme") ||
+            html.contains("content_text")
+    }
+
+    private suspend fun getDocument(url: String): Document {
+        val svc = getService()
+        try {
+            val document = if (url == normalizedBaseUrl() || url == normalizedBaseUrl().trimEnd('/')) {
+                svc.getHome()
+            } else {
+                svc.getDocument(url)
+            }
+            if (isProviderUrl(url) && requiresClearance(document.outerHtml())) {
+                throw Exception("KinoGer Cloudflare challenge detected")
+            }
+            return document
+        } catch (e: Exception) {
+            if (!isProviderUrl(url)) throw e
+
+            val httpCode = (e as? HttpException)?.code()
+            val challengeBody = (e as? HttpException)?.response()?.errorBody()?.string().orEmpty()
+            val needsWebView = requiresClearance(e.message.orEmpty()) ||
+                requiresClearance(challengeBody) ||
+                httpCode == 403 ||
+                httpCode == 503 ||
+                e.message?.contains("Cloudflare", ignoreCase = true) == true
+
+            if (!needsWebView) throw e
+
+            Log.d(TAG, "Using WebView bypass for $url")
+            val result = providerMutex.withLock {
+                getResolver().getResult(
+                    url = url,
+                    headers = mapOf(
+                        "User-Agent" to BROWSER_UA,
+                        "Accept-Language" to "de-DE,de;q=0.9,en;q=0.8",
+                    ),
+                    completion = { _, htmlText, cookies ->
+                        val hasClearance = cookies.contains("cf_clearance=", ignoreCase = true)
+                        (!requiresClearance(htmlText) && hasUsableContent(htmlText)) || hasClearance
+                    },
+                    shouldAllowNavigation = { targetUrl, _ ->
+                        runCatching {
+                            isProviderUrl(targetUrl) ||
+                                targetUrl.contains("/cdn-cgi/", ignoreCase = true) ||
+                                targetUrl.contains("challenges.cloudflare.com", ignoreCase = true)
+                        }.getOrDefault(false)
+                    },
+                )
+            }
+            CookieManager.getInstance().flush()
+
+            runCatching {
+                val retried = svc.getDocument(url)
+                if (!requiresClearance(retried.outerHtml()) && hasUsableContent(retried.outerHtml())) {
+                    return retried
+                }
+            }
+
+            val parsed = Jsoup.parse(result.html, url).apply { setBaseUri(normalizedBaseUrl()) }
+            if (requiresClearance(parsed.outerHtml()) && !hasUsableContent(parsed.outerHtml())) {
+                throw Exception(
+                    "KinoGer Cloudflare challenge is still active. Complete the check, then retry.",
+                    e,
+                )
+            }
+            return parsed
+        }
+    }
+
     private fun cleanTitle(raw: String): String =
         raw.replace(Regex("""\s*\(\d{4}\)\s*$"""), "").trim()
+
+    private fun extractYear(raw: String): Int? =
+        Regex("""\((\d{4})\)""").find(raw)?.groupValues?.get(1)?.toIntOrNull()
 
     private fun isSeriesCard(el: Element, title: String): Boolean {
         if (el.selectFirst(".serie-num") != null) return true
@@ -158,12 +317,16 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     }
 
     private fun parseShort(el: Element): AppAdapter.Item? {
-        val link = el.selectFirst(".title a[href$=.html]") ?: return null
+        val link = el.selectFirst(".title a[href$=.html]")
+            ?: el.selectFirst("a[href$=.html]")
+            ?: return null
         val href = link.attr("href").trim()
         if (href.isBlank()) return null
-        val titleRaw = link.text().trim()
+        val titleRaw = link.text().trim().ifBlank {
+            el.selectFirst(".title")?.text()?.trim().orEmpty()
+        }
         if (titleRaw.isBlank()) return null
-        val posterPath = el.selectFirst(".content_text img")?.attr("src").orEmpty()
+        val posterPath = el.selectFirst(".content_text img, img")?.attr("src").orEmpty()
         val poster = absoluteUrl(posterPath)
         val title = cleanTitle(titleRaw)
 
@@ -176,6 +339,9 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
 
     private fun parseShorts(document: Document): List<AppAdapter.Item> =
         document.select("div.short").mapNotNull { parseShort(it) }
+            .ifEmpty {
+                document.select("article, .movie-item, .item").mapNotNull { parseShort(it) }
+            }
 
     private fun hosterDisplayName(url: String, fallback: String): String {
         val host = runCatching {
@@ -205,27 +371,47 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             trimmed.startsWith("//") -> "https:$trimmed"
             trimmed.startsWith("http") -> trimmed
             trimmed.startsWith("/") -> absoluteUrl(trimmed)
-            else -> null
+            else -> MeinecloudEmbedHelper.decodeDataLink(trimmed)?.let { decoded ->
+                when {
+                    decoded.startsWith("//") -> "https:$decoded"
+                    decoded.startsWith("http") -> decoded
+                    else -> null
+                }
+            }
         }
     }
 
+    private suspend fun expandWrapperServers(
+        link: String,
+        label: String,
+    ): List<Video.Server> {
+        if (!MeinecloudEmbedHelper.isEmbedWrapper(link)) {
+            return listOf(
+                Video.Server(
+                    id = link,
+                    name = hosterDisplayName(link, label),
+                    src = link,
+                ),
+            )
+        }
+        val expanded = MeinecloudEmbedHelper.expandToServers(link, normalizedBaseUrl())
+        if (expanded.isNotEmpty()) {
+            return expanded.map { server ->
+                server.copy(name = hosterDisplayName(server.src, server.name))
+            }
+        }
+        // Keep wrapper as last-resort — getVideo will try to resolve again.
+        return listOf(
+            Video.Server(
+                id = link,
+                name = hosterDisplayName(link, label),
+                src = link,
+            ),
+        )
+    }
+
     override suspend fun getHome(): List<Category> {
-        val document = try {
-            getService().getHome()
-        } catch (e: Exception) {
-            throw Exception(
-                "KinoGer is blocked by Cloudflare from this network (${e.message}). " +
-                    "Open the site in a browser on the same device, then retry — or set a working mirror URL in provider settings.",
-                e,
-            )
-        }
-        if (document.selectFirst("title")?.text()?.contains("Just a moment", ignoreCase = true) == true ||
-            document.selectFirst("#challenge-form, #cf-challenge-running") != null
-        ) {
-            throw Exception(
-                "KinoGer Cloudflare challenge is active. Complete the check in a browser on this device, then retry.",
-            )
-        }
+        val document = getDocument(normalizedBaseUrl())
         val items = parseShorts(document)
         if (items.isEmpty()) {
             throw Exception("KinoGer home returned no titles (site layout may have changed or CF blocked the scrape).")
@@ -245,45 +431,68 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
 
         val resultFrom = (page - 1) * 20 + 1
         return try {
-            val document = getService().search(
-                searchStart = page,
-                resultFrom = resultFrom,
-                story = query
-            )
-            parseShorts(document)
+            // Search goes through getDocument path via service; CF may block POST —
+            // fall back to fetching search results page after clearance seed.
+            val document = try {
+                getService().search(
+                    searchStart = page,
+                    resultFrom = resultFrom,
+                    story = query,
+                )
+            } catch (e: Exception) {
+                // Seed clearance first, then retry search.
+                getDocument(normalizedBaseUrl())
+                getService().search(
+                    searchStart = page,
+                    resultFrom = resultFrom,
+                    story = query,
+                )
+            }
+            if (requiresClearance(document.outerHtml())) {
+                getDocument(normalizedBaseUrl())
+                parseShorts(
+                    getService().search(
+                        searchStart = page,
+                        resultFrom = resultFrom,
+                        story = query,
+                    ),
+                )
+            } else {
+                parseShorts(document)
+            }
         } catch (_: Exception) {
             emptyList()
         }
     }
 
     override suspend fun getMovies(page: Int): List<Movie> {
-        val document = if (page > 1) {
-            getService().getMovies(page)
+        val url = if (page > 1) {
+            absoluteUrl("/kinofilme-online/page/$page/")
         } else {
-            getService().getMovies()
+            absoluteUrl("/kinofilme-online/")
         }
-        return parseShorts(document).filterIsInstance<Movie>()
+        return parseShorts(getDocument(url)).filterIsInstance<Movie>()
     }
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
-        val document = if (page > 1) {
-            getService().getTvShows(page)
+        val url = if (page > 1) {
+            absoluteUrl("/serienstream-deutsch/page/$page/")
         } else {
-            getService().getTvShows()
+            absoluteUrl("/serienstream-deutsch/")
         }
-        return parseShorts(document).filterIsInstance<TvShow>()
+        return parseShorts(getDocument(url)).filterIsInstance<TvShow>()
     }
 
     override suspend fun getMovie(id: String): Movie {
-        val document = getService().getDocument(absoluteUrl(id))
+        val document = getDocument(absoluteUrl(id))
         val titleRaw = document.selectFirst("h1#news-title, h1.title, h1")?.text()?.trim().orEmpty()
         val title = cleanTitle(titleRaw)
-        val tmdbMovie = TmdbUtils.getMovie(title, language = language)
+        val year = extractYear(titleRaw)
+        val tmdbMovie = TmdbUtils.getMovie(title, year = year, language = language)
 
         val posterPath = document.selectFirst(".content_text img, .full-text img, img[itemprop=image]")
             ?.attr("src").orEmpty()
         val overview = document.selectFirst(".full-text, .content_text")?.text()?.trim()
-        val year = Regex("""\((\d{4})\)""").find(titleRaw)?.groupValues?.get(1)
 
         return Movie(
             id = id,
@@ -291,7 +500,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             poster = tmdbMovie?.poster ?: absoluteUrl(posterPath),
             banner = tmdbMovie?.banner,
             overview = tmdbMovie?.overview ?: overview,
-            released = tmdbMovie?.released?.let { "${it.get(Calendar.YEAR)}" } ?: year,
+            released = tmdbMovie?.released?.let { "${it.get(Calendar.YEAR)}" } ?: year?.toString(),
             rating = tmdbMovie?.rating,
             runtime = tmdbMovie?.runtime,
             genres = tmdbMovie?.genres ?: emptyList(),
@@ -302,19 +511,19 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val document = getService().getDocument(absoluteUrl(id))
+        val document = getDocument(absoluteUrl(id))
         val titleRaw = document.selectFirst("h1#news-title, h1.title, h1")?.text()?.trim().orEmpty()
         val seasonNumber = Regex("""Staffel\s+(\d+)""", RegexOption.IGNORE_CASE)
             .find(titleRaw)?.groupValues?.get(1)?.toIntOrNull() ?: 1
         val titleForTmdb = cleanTitle(titleRaw)
             .replace(Regex("""\s*-\s*Staffel\s+\d+\s*$""", RegexOption.IGNORE_CASE), "")
             .trim()
-        val tmdbTvShow = TmdbUtils.getTvShow(titleForTmdb, language = language)
+        val year = extractYear(titleRaw)
+        val tmdbTvShow = TmdbUtils.getTvShow(titleForTmdb, year = year, language = language)
 
         val posterPath = document.selectFirst(".content_text img, .full-text img, img[itemprop=image]")
             ?.attr("src").orEmpty()
         val overview = document.selectFirst(".full-text, .content_text")?.text()?.trim()
-        val year = Regex("""\((\d{4})\)""").find(titleRaw)?.groupValues?.get(1)
 
         val episodes = parseEpisodesFromDocument(absoluteUrl(id), seasonNumber, document, emptyList())
         val seasons = listOf(
@@ -333,7 +542,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
             poster = tmdbTvShow?.poster ?: absoluteUrl(posterPath),
             banner = tmdbTvShow?.banner,
             overview = tmdbTvShow?.overview ?: overview,
-            released = tmdbTvShow?.released?.let { "${it.get(Calendar.YEAR)}" } ?: year,
+            released = tmdbTvShow?.released?.let { "${it.get(Calendar.YEAR)}" } ?: year?.toString(),
             rating = tmdbTvShow?.rating,
             runtime = tmdbTvShow?.runtime,
             genres = tmdbTvShow?.genres ?: emptyList(),
@@ -370,13 +579,14 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val showUrl = seasonId.substringBefore("#")
         val seasonNumber = seasonId.substringAfter("#season-").toIntOrNull() ?: 1
-        val document = getService().getDocument(absoluteUrl(showUrl))
+        val document = getDocument(absoluteUrl(showUrl))
 
         val titleRaw = document.selectFirst("h1#news-title, h1.title, h1")?.text()?.trim().orEmpty()
         val titleForTmdb = cleanTitle(titleRaw)
             .replace(Regex("""\s*-\s*Staffel\s+\d+\s*$""", RegexOption.IGNORE_CASE), "")
             .trim()
-        val tmdbTvShow = TmdbUtils.getTvShow(titleForTmdb, language = language)
+        val year = extractYear(titleRaw)
+        val tmdbTvShow = TmdbUtils.getTvShow(titleForTmdb, year = year, language = language)
         val tmdbEpisodes = tmdbTvShow?.let {
             TmdbUtils.getEpisodesBySeason(it.id, seasonNumber, language = language)
         } ?: emptyList()
@@ -387,7 +597,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     override suspend fun getGenre(id: String, page: Int): Genre {
         return try {
             val document = if (page <= 1) {
-                getService().getDocument(absoluteUrl(id))
+                getDocument(absoluteUrl(id))
             } else {
                 val path = absoluteUrl(id)
                     .removePrefix(normalizedBaseUrl())
@@ -405,21 +615,23 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
     }
 
     override suspend fun getPeople(id: String, page: Int): People {
-        // KinoGer does not expose cast filmography pages; keep a safe placeholder.
         return People(id = id, name = id.substringAfterLast('/').ifBlank { "Unknown" }, filmography = emptyList())
     }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         return when (videoType) {
             is Video.Type.Movie -> {
-                val document = getService().getDocument(absoluteUrl(id))
-                document.select(".player-mirrors span[data-link]").mapNotNull { span ->
-                    val link = normalizeStreamUrl(span.attr("data-link")) ?: return@mapNotNull null
-                    if (link.contains("youtube", ignoreCase = true)) return@mapNotNull null
-                    val label = span.ownText().ifBlank { span.text() }.trim()
-                    val name = hosterDisplayName(link, label)
-                    Video.Server(id = link, name = name, src = link)
-                }.distinctBy { it.src }
+                val document = getDocument(absoluteUrl(id))
+                val raw = document.select(".player-mirrors span[data-link], .player-mirrors a[data-link], [data-link]")
+                    .mapNotNull { el ->
+                        val link = normalizeStreamUrl(el.attr("data-link")) ?: return@mapNotNull null
+                        if (link.contains("youtube", ignoreCase = true)) return@mapNotNull null
+                        val label = el.ownText().ifBlank { el.text() }.trim()
+                        link to label
+                    }
+                    .distinctBy { it.first }
+                raw.flatMap { (link, label) -> expandWrapperServers(link, label) }
+                    .distinctBy { it.src }
             }
             is Video.Type.Episode -> {
                 val pageUrl = id.substringBefore("#").substringBefore("|")
@@ -443,23 +655,27 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
                     }
                 }
 
-                val document = getService().getDocument(absoluteUrl(pageUrl))
+                val document = getDocument(absoluteUrl(pageUrl))
                 val li = document.selectFirst("ul.ep-menu li#serie-${season}_${episode}")
                     ?: document.selectFirst("ul.ep-menu li[id=serie-${season}_${episode}]")
-                val links = li?.select("a[data-link]").orEmpty()
+                val links = li?.select("a[data-link], [data-link]").orEmpty()
                 links.mapNotNull { a ->
                     val link = normalizeStreamUrl(a.attr("data-link")) ?: return@mapNotNull null
                     if (link.contains("youtube", ignoreCase = true)) return@mapNotNull null
                     val label = a.ownText().ifBlank { a.text() }.trim()
-                    val name = hosterDisplayName(link, label)
-                    Video.Server(id = link, name = name, src = link)
-                }.distinctBy { it.src }
+                    link to label
+                }.distinctBy { it.first }
+                    .flatMap { (link, label) -> expandWrapperServers(link, label) }
+                    .distinctBy { it.src }
             }
         }
     }
 
     override suspend fun getVideo(server: Video.Server): Video {
-        val src = server.src.ifBlank { server.id }
-        return Extractor.extract(src)
+        var src = server.src.ifBlank { server.id }
+        if (MeinecloudEmbedHelper.isEmbedWrapper(src)) {
+            src = MeinecloudEmbedHelper.resolveToHosterUrl(src, normalizedBaseUrl())
+        }
+        return Extractor.extract(src, server)
     }
 }

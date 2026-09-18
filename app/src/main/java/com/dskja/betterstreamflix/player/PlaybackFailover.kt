@@ -23,7 +23,9 @@ object PlaybackFailover {
             // Mid-play URI clear on TV looks like a crash-to-home; stop cascading.
             return if (!softwareDecoderAlreadyEnabled) Action.RetrySoftwareDecoder else Action.GiveUp
         }
-        val next = currentServerIndex + 1
+        // indexOf can return -1 when the server instance identity differs — treat as 0.
+        val safeIndex = currentServerIndex.coerceAtLeast(0)
+        val next = safeIndex + 1
         if (next in 0 until serverCount) {
             return Action.TryNextServer(next)
         }

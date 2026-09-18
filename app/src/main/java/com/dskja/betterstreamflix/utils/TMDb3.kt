@@ -8,7 +8,6 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import com.dskja.betterstreamflix.BuildConfig
-import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -424,6 +423,46 @@ object TMDb3 {
                 Params.Key.PAGE to page?.toString(),
             )
             return service.searchMulti(
+                query = query,
+                params = params.filterNotNullValues(),
+            )
+        }
+
+        suspend fun movie(
+            query: String,
+            includeAdult: Boolean? = null,
+            language: String? = null,
+            page: Int? = null,
+            year: Int? = null,
+            primaryReleaseYear: Int? = null,
+        ): PageResult<Movie> {
+            val params = mapOf(
+                Params.Key.INCLUDE_ADULT to includeAdult?.toString(),
+                Params.Key.LANGUAGE to language,
+                Params.Key.PAGE to page?.toString(),
+                Params.Key.YEAR to year?.toString(),
+                Params.Key.PRIMARY_RELEASE_YEAR to primaryReleaseYear?.toString(),
+            )
+            return service.searchMovie(
+                query = query,
+                params = params.filterNotNullValues(),
+            )
+        }
+
+        suspend fun tv(
+            query: String,
+            includeAdult: Boolean? = null,
+            language: String? = null,
+            page: Int? = null,
+            firstAirDateYear: Int? = null,
+        ): PageResult<Tv> {
+            val params = mapOf(
+                Params.Key.INCLUDE_ADULT to includeAdult?.toString(),
+                Params.Key.LANGUAGE to language,
+                Params.Key.PAGE to page?.toString(),
+                Params.Key.FIRST_AIR_DATE_YEAR to firstAirDateYear?.toString(),
+            )
+            return service.searchTv(
                 query = query,
                 params = params.filterNotNullValues(),
             )
@@ -948,24 +987,32 @@ object TMDb3 {
             fun build(): ApiService {
                 val apiKey = UserPreferences.tmdbApiKey.ifEmpty { BuildConfig.TMDB_API_KEY }
 
-                // Use app DoH DNS so ISP-poisoned/system DNS cannot blackhole api.themoviedb.org.
-                val client = OkHttpClient.Builder()
-                    .dns(DnsResolver.doh)
-                    .connectTimeout(15, TimeUnit.SECONDS)
-                    .readTimeout(30, TimeUnit.SECONDS)
+                // Prefer app NetworkClient (DoH + retry-after) so ISP DNS and brief 429s
+                // do not surface as "TMDB unreachable".
+                val client = NetworkClient.default.newBuilder()
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .readTimeout(35, TimeUnit.SECONDS)
                     .writeTimeout(30, TimeUnit.SECONDS)
+                    .callTimeout(60, TimeUnit.SECONDS)
                     .retryOnConnectionFailure(true)
                     .addInterceptor { chain ->
                         val original = chain.request()
-
                         val requestBuilder = original.newBuilder()
                             .url(
                                 original.url.newBuilder()
                                     .addQueryParameter("api_key", apiKey)
                                     .build()
                             )
+                            .header("Accept", "application/json")
 
-                        chain.proceed(requestBuilder.build())
+                        var response = chain.proceed(requestBuilder.build())
+                        // One soft retry on transient gateway / rate-limit responses.
+                        if (response.code in listOf(408, 425, 429, 500, 502, 503, 504)) {
+                            response.close()
+                            Thread.sleep(400)
+                            response = chain.proceed(requestBuilder.build())
+                        }
+                        response
                     }.build()
 
                 val retrofit = Retrofit.Builder()
@@ -1040,6 +1087,18 @@ object TMDb3 {
             @Query("query") query: String,
             @QueryMap params: Map<String, String> = emptyMap(),
         ): PageResult<MultiItem>
+
+        @GET("search/movie")
+        suspend fun searchMovie(
+            @Query("query") query: String,
+            @QueryMap params: Map<String, String> = emptyMap(),
+        ): PageResult<Movie>
+
+        @GET("search/tv")
+        suspend fun searchTv(
+            @Query("query") query: String,
+            @QueryMap params: Map<String, String> = emptyMap(),
+        ): PageResult<Tv>
 
 
         @GET("trending/all/{time_window}")
