@@ -12,6 +12,3 @@ local.properties
 *.log
 app/src/main/cpp/native-lib.cpp
 .android-sdk/
-# Sentry auth token for ProGuard/R8 mapping uploads (create locally / in CI)
-sentry.properties
-
