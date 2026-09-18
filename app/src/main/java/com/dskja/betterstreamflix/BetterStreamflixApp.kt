@@ -20,6 +20,7 @@ import com.dskja.betterstreamflix.utils.DeviceCapabilities
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.IsrgRootTrustProvider
 import com.dskja.betterstreamflix.providers.ProviderSmoke
+import com.dskja.betterstreamflix.utils.SentryBootstrap
 import com.dskja.betterstreamflix.utils.TMDb3
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +47,8 @@ class BetterStreamflixApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // Sentry first so early crashes (and CrashReporter's chained handler) are covered.
+        runCatching { SentryBootstrap.init(this) }
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
@@ -87,12 +90,6 @@ class BetterStreamflixApp : Application() {
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
         CrashReporter.install(this)
-        runCatching {
-            io.sentry.Sentry.configureScope { scope ->
-                scope.setTag("app_layout", BuildConfig.APP_LAYOUT)
-                scope.setTag("debug", BuildConfig.DEBUG.toString())
-            }
-        }
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         // Rebuild after DoH is applied so the first TMDB call never uses system DNS.
         runCatching { TMDb3.rebuildService() }
@@ -112,7 +109,13 @@ class BetterStreamflixApp : Application() {
             }
             runCatching { AppDatabase.setup(appContext) }
             runCatching { SupabaseProvider.initialize(appContext) }
-            runCatching { CloudSyncManager.initialize(appContext) }
+            runCatching {
+                CloudSyncManager.initialize(appContext)
+                SentryBootstrap.setCloudUser(
+                    CloudSyncManager.currentUserId(),
+                    CloudSyncManager.currentUserEmail(),
+                )
+            }
             runCatching { SerienStreamProvider.initialize(appContext) }
             runCatching { AniWorldProvider.initialize(appContext) }
             runCatching { ArtworkRepairScheduler.schedule(appContext, UserPreferences.currentProvider) }

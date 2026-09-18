@@ -1,10 +1,10 @@
-# Sentry org/project defaults for the Gradle plugin / sentry-cli.
-# Auth token: project public key (same as DSN / OTLP x-sentry-auth).
-# For release/ProGuard upload scopes, replace with a user auth token from
-# https://sentry.io/settings/account/api/auth-tokens/ if uploads fail.
+# Copy to sentry.properties for local release uploads (optional).
+# Runtime crash reporting uses the DSN baked into SentryBootstrap / manifests —
+# this file is only for Gradle (org/project + mapping upload auth).
 defaults.org=betterstreamflix
 defaults.project=betterstreamflix
-auth.token=a725644155c0150523b89069e26ec38c
 
-# Optional: forward OpenTelemetry from other services via Collector
-# (same Sentry project). See otel-collector-config.yaml.
+# Org auth token from https://sentry.io/settings/account/api/auth-tokens/
+# Required scopes: project:releases, org:read (and project:write for source context).
+# Prefer CI secret SENTRY_AUTH_TOKEN over committing a token.
+# auth.token=sntrys_YOUR_ORG_AUTH_TOKEN

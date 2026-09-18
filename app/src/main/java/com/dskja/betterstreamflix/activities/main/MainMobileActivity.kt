@@ -178,6 +178,7 @@ class MainMobileActivity : FragmentActivity() {
         val navHost =
             supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
         val navController = navHost.navController
+        com.dskja.betterstreamflix.utils.SentryBootstrap.trackNavigation(navController)
 
         if (BuildConfig.APP_LAYOUT == "tv" ||
             (BuildConfig.APP_LAYOUT != "mobile" &&

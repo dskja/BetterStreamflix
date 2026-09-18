@@ -826,6 +826,12 @@
             android:summary="@string/settings_view_crash_log_summary"
             app:iconSpaceReserved="false" />
 
+        <Preference
+            android:key="SEND_SENTRY_FEEDBACK"
+            android:title="@string/settings_send_sentry_feedback_title"
+            android:summary="@string/settings_send_sentry_feedback_summary"
+            app:iconSpaceReserved="false" />
+
 
         <Preference
             android:key="p_settings_support_preview"

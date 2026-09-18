@@ -1093,6 +1093,40 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("SEND_SENTRY_FEEDBACK")?.setOnPreferenceClickListener {
+            val input = android.widget.EditText(requireContext()).apply {
+                hint = getString(R.string.settings_send_sentry_feedback_hint)
+                minLines = 3
+                setPadding(48, 32, 48, 32)
+            }
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.settings_send_sentry_feedback_title)
+                .setView(input)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val text = input.text?.toString().orEmpty()
+                    if (text.isBlank()) {
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_send_sentry_feedback_empty,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    } else {
+                        com.dskja.betterstreamflix.utils.SentryBootstrap.captureFeedback(
+                            message = text,
+                            email = com.dskja.betterstreamflix.sync.CloudSyncManager.currentUserEmail(),
+                        )
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.settings_send_sentry_feedback_sent,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            true
+        }
+
         findPreference<ListPreference>("LIBRARY_SCOPE")?.apply {
             value = UserPreferences.libraryScope.key
             summary = entry

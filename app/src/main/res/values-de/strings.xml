@@ -615,6 +615,11 @@
     <string name="settings_view_crash_log_title">Letztes Crash-Log anzeigen</string>
     <string name="settings_view_crash_log_summary">Zeigt den letzten lokalen Crash-Bericht</string>
     <string name="settings_view_crash_log_empty">Keine Crash-Logs gefunden</string>
+    <string name="settings_send_sentry_feedback_title">Feedback an Sentry senden</string>
+    <string name="settings_send_sentry_feedback_summary">Problem mit optionalen Details melden</string>
+    <string name="settings_send_sentry_feedback_hint">Was ist schiefgelaufen?</string>
+    <string name="settings_send_sentry_feedback_sent">Feedback gesendet — danke</string>
+    <string name="settings_send_sentry_feedback_empty">Bitte eine kurze Nachricht eingeben</string>
     <string name="bypass_status_challenge_pending">Challenge in der Seite abschließen (Session-Cookies allein reichen nicht)</string>
     <string name="player_tmdb_de_try_serienstream">Keine funktionierenden deutschen Streams gefunden. Dieser Titel ist möglicherweise noch auf SerienStream verfügbar.</string>
     <string name="player_tmdb_de_switch_title">SerienStream versuchen?</string>

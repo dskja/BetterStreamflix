@@ -59,10 +59,12 @@ object CloudSyncManager {
             // signed-out user should stop syncing, not lose local favorites or
             // watch history.
             CloudAccountStore.setActiveUserId(appContext, null)
+            com.dskja.betterstreamflix.utils.SentryBootstrap.clearUser()
             return
         }
         activateAccount(appContext, userId)
         CloudRealtimeSync.start(appContext, userId)
+        com.dskja.betterstreamflix.utils.SentryBootstrap.setCloudUser(userId, currentUserEmail())
     }
 
     suspend fun signIn(
@@ -86,6 +88,7 @@ object CloudSyncManager {
             mergeLocalOnLogin = true,
         )
         CloudRealtimeSync.start(context.applicationContext, userId)
+        com.dskja.betterstreamflix.utils.SentryBootstrap.setCloudUser(userId, currentUserEmail())
     }
 
     suspend fun signUp(
@@ -109,6 +112,7 @@ object CloudSyncManager {
             mergeLocalOnLogin = true,
         )
         CloudRealtimeSync.start(context.applicationContext, userId)
+        com.dskja.betterstreamflix.utils.SentryBootstrap.setCloudUser(userId, currentUserEmail())
         return true
     }
 
@@ -120,6 +124,7 @@ object CloudSyncManager {
             SupabaseProvider.client.auth.signOut()
         }
         CloudAccountStore.setActiveUserId(appContext, null)
+        com.dskja.betterstreamflix.utils.SentryBootstrap.clearUser()
     }
 
     suspend fun syncNow(

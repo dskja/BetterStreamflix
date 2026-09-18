@@ -144,6 +144,11 @@
     <string name="settings_view_crash_log_title">View last crash log</string>
     <string name="settings_view_crash_log_summary">Show the most recent local crash report</string>
     <string name="settings_view_crash_log_empty">No crash logs found</string>
+    <string name="settings_send_sentry_feedback_title">Send feedback to Sentry</string>
+    <string name="settings_send_sentry_feedback_summary">Report a problem with optional details</string>
+    <string name="settings_send_sentry_feedback_hint">What went wrong?</string>
+    <string name="settings_send_sentry_feedback_sent">Feedback sent — thank you</string>
+    <string name="settings_send_sentry_feedback_empty">Please enter a short message</string>
     <string name="bypass_status_challenge_pending">Complete the challenge in the page (session cookies alone are not enough)</string>
     <string name="player_tmdb_de_try_serienstream">No working German streams found here. This title may still be available on SerienStream.</string>
     <string name="player_tmdb_de_switch_title">Try SerienStream?</string>
