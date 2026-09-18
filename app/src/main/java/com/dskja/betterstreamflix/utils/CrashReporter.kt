@@ -12,8 +12,9 @@ import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Lightweight local crash / error reporting (no third-party SDK required).
- * Writes under filesDir/crash-logs and chains the previous default handler.
+ * Lightweight local crash / error reporting, with optional Sentry forwarding.
+ * Writes under filesDir/crash-logs and chains the previous default handler
+ * (Sentry installs its own handler via ContentProvider before Application.onCreate).
  */
 object CrashReporter {
     private const val TAG = "CrashReporter"
@@ -47,6 +48,16 @@ object CrashReporter {
                     if (error != null) append(sw.toString())
                 },
             )
+        }
+        runCatching {
+            if (error != null) {
+                io.sentry.Sentry.captureException(error) { scope ->
+                    scope.setTag("local_tag", tag)
+                    scope.setExtra("message", message)
+                }
+            } else {
+                io.sentry.Sentry.captureMessage("$tag: $message")
+            }
         }
     }
 

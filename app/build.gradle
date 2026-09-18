@@ -5,6 +5,7 @@ plugins {
     id 'kotlin-parcelize'
     id 'com.google.devtools.ksp'
     id 'org.jetbrains.kotlin.plugin.serialization'
+    id 'io.sentry.android.gradle' version '6.22.0'
 }
 
 android {
@@ -171,6 +172,25 @@ dependencies {
     implementation "com.google.zxing:core:3.5.1"
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
     
+}
+
+// Sentry Android Gradle plugin (SDK is added automatically).
+// Mapping upload runs only when SENTRY_AUTH_TOKEN is set or sentry.properties exists.
+def sentryAuthToken = System.getenv("SENTRY_AUTH_TOKEN")
+def hasSentryProperties = rootProject.file("sentry.properties").exists()
+sentry {
+    org = "betterstreamflix"
+    projectName = "betterstreamflix"
+    includeProguardMapping = true
+    autoUploadProguardMapping = (sentryAuthToken != null && !sentryAuthToken.isEmpty()) || hasSentryProperties
+    autoUploadNativeSymbols = false
+    includeNativeSources = false
+    tracingInstrumentation {
+        enabled = true
+    }
+    autoInstallation {
+        enabled = true
+    }
 }
 
 ksp {

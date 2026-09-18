@@ -1,0 +1,6 @@
+# Copy to sentry.properties (gitignored) or set SENTRY_AUTH_TOKEN in CI.
+# Create a token at: https://sentry.io/settings/account/api/auth-tokens/
+# Scopes needed: project:releases, project:write, org:read
+defaults.org=betterstreamflix
+defaults.project=betterstreamflix
+# auth.token=sntrys_YOUR_TOKEN_HERE

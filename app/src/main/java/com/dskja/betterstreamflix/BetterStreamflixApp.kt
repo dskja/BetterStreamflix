@@ -87,6 +87,12 @@ class BetterStreamflixApp : Application() {
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
         CrashReporter.install(this)
+        runCatching {
+            io.sentry.Sentry.configureScope { scope ->
+                scope.setTag("app_layout", BuildConfig.APP_LAYOUT)
+                scope.setTag("debug", BuildConfig.DEBUG.toString())
+            }
+        }
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         // Rebuild after DoH is applied so the first TMDB call never uses system DNS.
         runCatching { TMDb3.rebuildService() }
