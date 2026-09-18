@@ -121,6 +121,59 @@ class WatchlistImporterTest {
     }
 
     @Test
+    fun aniWorldParsesLazySrcsetAndDataHref() {
+        val html = """
+            <div class="seriesListContainer row">
+              <a class="coverListItem" data-href="/anime/stream/one-punch-man" title="One Punch Man">
+                <img data-srcset="/public/img/cover/opm.webp 1x" alt="One Punch Man">
+              </a>
+            </div>
+        """.trimIndent()
+        val items = WatchlistImporter.parseItems(html, aniBase, WatchlistImporter.Source.ANIWORLD)
+        assertEquals(1, items.size)
+        assertEquals("one-punch-man", items[0].id)
+        assertEquals("One Punch Man", items[0].title)
+        assertTrue(items[0].poster!!.contains("opm.webp"))
+    }
+
+    @Test
+    fun serienStreamSkipsEpisodeDeepLinks() {
+        val html = """
+            <div class="seriesListContainer">
+              <a href="/serie/dark/staffel-1/episode-1">Dark S1E1</a>
+              <a href="/serie/dark"><h3>Dark</h3></a>
+            </div>
+        """.trimIndent()
+        val items = WatchlistImporter.parseItems(html, sBase, WatchlistImporter.Source.SERIENSTREAM)
+        assertEquals(1, items.size)
+        assertEquals("dark", items[0].id)
+    }
+
+    @Test
+    fun detectsChallengePage() {
+        assertTrue(
+            WatchlistImporter.looksLikeChallengePage(
+                "<html><body>Just a moment... Cloudflare</body></html>",
+            ),
+        )
+        assertFalse(
+            WatchlistImporter.looksLikeChallengePage(
+                """<div class="seriesListContainer"><a href="/serie/x">X</a></div>""",
+            ),
+        )
+    }
+
+    @Test
+    fun watchlistUrlsHonorBaseOverride() {
+        val urls = WatchlistImporter.watchlistUrls(
+            WatchlistImporter.Source.SERIENSTREAM,
+            1,
+            "https://serienstream.cx",
+        )
+        assertTrue(urls.first().startsWith("https://serienstream.cx/"))
+    }
+
+    @Test
     fun cleansSeoTitleJunk() {
         val item = WatchlistImporter.parseItemFromHref(
             href = "https://aniworld.to/anime/stream/tomb-raider-king",

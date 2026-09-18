@@ -238,6 +238,12 @@
     <string name="settings_telegram_not_found">Telegram nicht gefunden.</string>
     <string name="settings_bypass_advertised_host">Bypass advertised host</string>
     <string name="settings_bypass_advertised_host_auto">Auto (Geräte-IP)</string>
+    <string name="settings_serienstream_session_cookies">SerienStream Session-Cookies</string>
+    <string name="settings_serienstream_session_cookies_summary">Cookies vom Handy/Browser einfügen (name=value; …), wenn QR-Bypass kein gemeinsames WLAN hat. Auch für Watchlist-Login.</string>
+    <string name="settings_serienstream_session_cookies_empty">Nicht gesetzt — Cookie-Header nach CF-Check auf anderem Gerät einfügen</string>
+    <string name="settings_serienstream_session_cookies_set">Cookies gespeichert (%1$d Zeichen) — tippen zum Bearbeiten/Löschen</string>
+    <string name="player_subtitle_needs_playback">Wiedergabe starten, bevor Untertitel hinzugefügt werden</string>
+    <string name="player_server_unavailable">Dieser Server ist nicht mehr verfügbar</string>
     <string name="settings_buy_me_a_coffee">Buy me a coffee</string>
     <string name="settings_buy_me_a_coffee_summary">Einmalig ~25 USD (offen): persönliche Grundkosten, damit Weiterentwicklung möglich bleibt — kein Hosting/API</string>
     <string name="settings_patreon">Patreon</string>

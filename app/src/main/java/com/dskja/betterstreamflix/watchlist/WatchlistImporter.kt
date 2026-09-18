@@ -55,18 +55,29 @@ object WatchlistImporter {
         providerFor(source).baseUrl.trimEnd('/') + "/"
 
     /** Candidate watchlist URLs for a given 1-based page index. */
-    fun watchlistUrls(source: Source, page: Int): List<String> {
-        val base = baseUrlFor(source).trimEnd('/')
+    fun watchlistUrls(source: Source, page: Int, baseOverride: String? = null): List<String> {
+        val base = (baseOverride?.trimEnd('/') ?: baseUrlFor(source).trimEnd('/'))
+            .ifBlank { baseUrlFor(source).trimEnd('/') }
         return if (page <= 1) {
             listOf(
                 "$base/account/watchlist",
                 "$base/account/listed",
+                "$base/account/watchlist?tab=series",
+                "$base/account/watchlist?tab=anime",
+                "$base/account/watchlist?type=series",
+                "$base/account/watchlist?type=anime",
+                "$base/account/watchlist?sort=title",
+                "$base/account",
             )
         } else {
             listOf(
                 "$base/account/watchlist?page=$page",
                 "$base/account/watchlist/$page",
                 "$base/account/listed?page=$page",
+                "$base/account/watchlist?page=$page&tab=series",
+                "$base/account/watchlist?page=$page&tab=anime",
+                "$base/account/watchlist?page=$page&type=series",
+                "$base/account/watchlist?page=$page&type=anime",
             )
         }
     }
@@ -153,22 +164,36 @@ object WatchlistImporter {
 
         val cardSelector =
             "div.seriesListContainer div[class*=col-], " +
-                "div.coverListItem, div.card.cover-card, " +
+                "#seriesListContainer div[class*=col-], " +
+                "div.coverListItem, a.coverListItem, div.card.cover-card, " +
                 ".seriesListContainer .col-md-3, .seriesListContainer .col-md-15, " +
-                ".seriesListContainer .col-sm-3, .seriesListContainer .col-xs-6"
+                ".seriesListContainer .col-sm-3, .seriesListContainer .col-xs-6, " +
+                ".seriesListContainer .col-6, .seriesListContainer .col-4, " +
+                ".cover-list .coverListItem, .row .coverListItem, " +
+                "#seriesContainer div[class*=col-], .seriesContainer div[class*=col-], " +
+                "ul.seriesList li, .watchlist .item, .watchlist-item, " +
+                ".account-watchlist a[href], .seriesListContainer a[href*=/anime/stream/], " +
+                ".seriesListContainer a[href*=/serie/]"
 
         doc.select(cardSelector).forEach { card ->
             toItemFromCard(card, baseUrl, source)?.let { items.putIfAbsent(it.id, it) }
         }
 
-        if (items.isEmpty()) {
-            val anchorSelector = when (source) {
-                Source.SERIENSTREAM -> "a[href*=/serie/]"
-                Source.ANIWORLD -> "a[href*=/anime/stream/], a[href*=/serie/]"
+        // Always merge anchor fallback — some layouts nest links outside card wrappers.
+        val anchorSelector = when (source) {
+            Source.SERIENSTREAM ->
+                "a[href*=/serie/], a[href*=/anime/stream/], a[data-href*=/serie/]"
+            Source.ANIWORLD ->
+                "a[href*=/anime/stream/], a[href*=/serie/], a[data-href*=/anime/stream/]"
+        }
+        doc.select(anchorSelector).forEach { link ->
+            // Skip episode / season deep links when a parent show card already exists.
+            val href = link.attr("abs:href").ifBlank { link.attr("href") }
+            val path = pathOf(absolutize(href, baseUrl).orEmpty()).orEmpty()
+            if (path.contains("/staffel-") || path.contains("/episode-") || path.contains("/film/")) {
+                return@forEach
             }
-            doc.select(anchorSelector).forEach { link ->
-                toItemFromAnchor(link, baseUrl, source)?.let { items.putIfAbsent(it.id, it) }
-            }
+            toItemFromAnchor(link, baseUrl, source)?.let { items.putIfAbsent(it.id, it) }
         }
 
         return items.values.toList()
@@ -328,12 +353,15 @@ object WatchlistImporter {
     ): Result = importViaHttp(context, source, cookieHeader)
 
     private fun toItemFromCard(card: Element, baseUrl: String, source: Source): ImportedItem? {
+        if (card.tagName().equals("a", ignoreCase = true)) {
+            return toItemFromAnchor(card, baseUrl, source, card)
+        }
         val link = card.selectFirst(
             when (source) {
-                Source.SERIENSTREAM -> "a[href*=/serie/]"
-                Source.ANIWORLD -> "a[href*=/anime/stream/], a[href*=/serie/]"
+                Source.SERIENSTREAM -> "a[href*=/serie/], a[data-href*=/serie/]"
+                Source.ANIWORLD -> "a[href*=/anime/stream/], a[href*=/serie/], a[data-href*=/anime/stream/]"
             },
-        ) ?: card.selectFirst("a[href]") ?: return null
+        ) ?: card.selectFirst("a[href], a[data-href]") ?: return null
         return toItemFromAnchor(link, baseUrl, source, card)
     }
 
@@ -343,22 +371,40 @@ object WatchlistImporter {
         source: Source,
         card: Element? = null,
     ): ImportedItem? {
-        val href = link.attr("abs:href").ifBlank { link.attr("href") }
+        val href = link.attr("abs:href").ifBlank {
+            link.attr("href").ifBlank { link.attr("data-href") }
+        }
         val img = link.selectFirst("img")
             ?: card?.selectFirst("img")
+            ?: link.parent()?.selectFirst("img")
+        val srcset = sequenceOf(
+            img?.attr("srcset"),
+            img?.attr("data-srcset"),
+            img?.parent()?.selectFirst("source")?.attr("srcset"),
+        ).mapNotNull { raw ->
+            raw?.substringBefore(',')?.trim()?.substringBefore(' ')?.takeIf { it.isNotBlank() }
+        }.firstOrNull()
         val poster = sequenceOf(
-            img?.attr("abs:src"),
             img?.attr("abs:data-src"),
+            img?.attr("abs:src"),
             img?.attr("data-src"),
+            img?.attr("data-original"),
+            img?.attr("data-lazy"),
+            srcset,
             img?.attr("src"),
-        ).mapNotNull { it?.takeIf { s -> s.isNotBlank() } }.firstOrNull()
+        ).mapNotNull { it?.takeIf { s -> s.isNotBlank() && !s.startsWith("data:") } }.firstOrNull()
 
         val title = sequenceOf(
+            card?.selectFirst("h3")?.ownText()?.takeIf { it.isNotBlank() },
             card?.selectFirst("h3")?.text(),
+            link.selectFirst("h3")?.ownText()?.takeIf { it.isNotBlank() },
             link.selectFirst("h3")?.text(),
             link.attr("title"),
+            link.attr("data-title"),
+            link.attr("aria-label"),
             link.text(),
-            card?.selectFirst(".title, .coverListItem-title, strong")?.text(),
+            card?.selectFirst(".title, .coverListItem-title, strong, span.coverListItem-title, .name")?.text(),
+            img?.attr("alt"),
         ).mapNotNull { it?.takeIf { s -> s.isNotBlank() } }.firstOrNull().orEmpty()
 
         return parseItemFromHref(href, title, poster, baseUrl, source)
@@ -382,8 +428,14 @@ object WatchlistImporter {
                         segments[1] == "stream" -> segments[2]
                     segments[0] == "serie" -> segments.getOrNull(1)
                     segments[0] == "anime" -> segments.getOrNull(1)?.takeIf { it != "stream" }
+                    // Relative links sometimes omit the anime/stream prefix
+                    segments.size == 1 -> segments[0].takeIf {
+                        it !in setOf("account", "login", "anime", "stream", "serie", "film")
+                    }
                     else -> null
-                }?.substringBefore('?')?.takeIf { it.isNotBlank() }
+                }?.substringBefore('?')
+                    ?.substringBefore('#')
+                    ?.takeIf { it.isNotBlank() && it != "stream" && it != "anime" }
             }
         }
     }

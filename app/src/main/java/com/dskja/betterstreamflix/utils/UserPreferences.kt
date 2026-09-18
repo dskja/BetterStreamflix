@@ -428,6 +428,17 @@ object UserPreferences {
             Key.BYPASS_WS_ADVERTISED_HOST.setString(value.trim())
         }
 
+    /**
+     * Pasted SerienStream / Cloudflare session cookie header (`name=value; …`).
+     * Used for watchlist import restore and TV bypass when the phone↔TV QR path
+     * is unavailable (different WLAN / VPN / hotspot-as-AP).
+     */
+    var serienStreamSessionCookies: String
+        get() = Key.SERIENSTREAM_SESSION_COOKIES.getString() ?: ""
+        set(value) {
+            Key.SERIENSTREAM_SESSION_COOKIES.setString(value.trim())
+        }
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -767,6 +778,7 @@ object UserPreferences {
         CAST_SUBTITLES_ENABLED,
         CAST_KEEP_SCREEN_AWAKE,
         BYPASS_WS_ADVERTISED_HOST,
+        SERIENSTREAM_SESSION_COOKIES,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
         FAVORITE_PROVIDERS,

@@ -413,6 +413,14 @@
                 android:title="@string/settings_watchlist_import_aniworld"
                 android:summary="@string/settings_watchlist_import_summary"
                 app:iconSpaceReserved="false" />
+
+            <EditTextPreference
+                android:key="SERIENSTREAM_SESSION_COOKIES"
+                android:title="@string/settings_serienstream_session_cookies"
+                android:summary="@string/settings_serienstream_session_cookies_summary"
+                android:dialogTitle="@string/settings_serienstream_session_cookies"
+                android:inputType="textMultiLine"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
 

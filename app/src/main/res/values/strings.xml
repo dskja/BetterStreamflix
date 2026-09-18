@@ -279,6 +279,12 @@
     <string name="settings_telegram_not_found">Telegram not found.</string>
     <string name="settings_bypass_advertised_host">Bypass advertised host</string>
     <string name="settings_bypass_advertised_host_auto">Auto (device IP)</string>
+    <string name="settings_serienstream_session_cookies">SerienStream session cookies</string>
+    <string name="settings_serienstream_session_cookies_summary">Paste cookies from a phone/browser (name=value; …) when QR bypass needs the same WLAN. Also used to restore watchlist login.</string>
+    <string name="settings_serienstream_session_cookies_empty">Not set — paste Cookie header after solving CF on another device</string>
+    <string name="settings_serienstream_session_cookies_set">Cookies saved (%1$d chars) — tap to edit or clear</string>
+    <string name="player_subtitle_needs_playback">Start playback before adding subtitles</string>
+    <string name="player_server_unavailable">That server is no longer available</string>
     <string name="settings_buy_me_a_coffee">Buy me a coffee</string>
     <string name="settings_buy_me_a_coffee_summary">One-time ~$25 goal (open): personal basic costs so development can continue — not hosting/API</string>
     <string name="settings_patreon">Patreon</string>

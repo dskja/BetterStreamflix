@@ -50,6 +50,7 @@ import com.dskja.betterstreamflix.providers.MStreamProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.providers.StreamingCommunityProvider
 import com.dskja.betterstreamflix.providers.TmdbProvider
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.CrashReporter
@@ -567,8 +568,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             value = UserPreferences.downloadMaxConcurrent.toString()
             summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
             setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadMaxConcurrent =
-                    (newValue as String).toIntOrNull() ?: 2
+                val max = (newValue as String).toIntOrNull() ?: 2
+                UserPreferences.downloadMaxConcurrent = max
+                StreamflixDownloadManager.setMaxParallel(requireContext(), max)
                 true
             }
         }
@@ -973,6 +975,34 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 )
             )
             true
+        }
+
+        findPreference<EditTextPreference>("SERIENSTREAM_SESSION_COOKIES")?.apply {
+            fun refreshSummary() {
+                val cookies = UserPreferences.serienStreamSessionCookies
+                summary = if (cookies.isBlank()) {
+                    getString(R.string.settings_serienstream_session_cookies_empty)
+                } else {
+                    getString(R.string.settings_serienstream_session_cookies_set, cookies.length)
+                }
+            }
+            text = UserPreferences.serienStreamSessionCookies
+            refreshSummary()
+            setOnBindEditTextListener { editText ->
+                editText.minLines = 3
+                editText.hint = "cf_clearance=…; rememberLogin=…"
+                editText.setText(UserPreferences.serienStreamSessionCookies)
+                editText.setSelection(editText.text?.length ?: 0)
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                val value = (newValue as String).trim()
+                UserPreferences.serienStreamSessionCookies = value
+                if (value.isNotBlank()) {
+                    SerienStreamBypassHelper.applyStoredSessionCookies()
+                }
+                refreshSummary()
+                true
+            }
         }
 
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {

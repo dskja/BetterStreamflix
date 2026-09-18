@@ -492,8 +492,8 @@ object SerienStreamProvider : Provider {
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val linkWithSplitData = seasonId.split("/")
         val showName = linkWithSplitData[0]
-        val seasonNumberStr = linkWithSplitData[1]
-        val seasonNumber = Regex("""\d+""").find(seasonNumberStr)!!.value.toInt()
+        val seasonNumberStr = linkWithSplitData.getOrNull(1) ?: return emptyList()
+        val seasonNumber = Regex("""\d+""").find(seasonNumberStr)?.value?.toIntOrNull() ?: 0
 
         val document = withDomainAndSslFallback { it.getTvShowEpisodes(showName, seasonNumberStr) }
         

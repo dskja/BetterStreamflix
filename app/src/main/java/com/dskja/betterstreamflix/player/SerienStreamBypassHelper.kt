@@ -24,31 +24,49 @@ object SerienStreamBypassHelper {
     }
 
     fun applyCookies(url: String, cookieHeader: String) {
+        val parts = mutableListOf<String>()
+        if (cookieHeader.isNotBlank()) parts += cookieHeader.trim()
+        val stored = UserPreferences.serienStreamSessionCookies.trim()
+        if (stored.isNotBlank() && stored != cookieHeader.trim()) parts += stored
+        seedCookieHeader(url, parts.joinToString("; "))
+    }
+
+    /** Apply only the user-pasted session cookies (TV / VPN path without QR). */
+    fun applyStoredSessionCookies(url: String = SerienStreamProvider.baseUrl) {
+        seedCookieHeader(url, UserPreferences.serienStreamSessionCookies)
+    }
+
+    private fun seedCookieHeader(url: String, cookieHeader: String) {
         if (cookieHeader.isBlank()) return
         val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
         val targets = linkedSetOf<String>().apply {
-            add(url)
+            if (url.isNotBlank()) add(url)
             if (host.isNotBlank()) {
                 add("https://$host/")
                 add("http://$host/")
-                // Seed known-good SerienStream hosts so OkHttp/WebView share the session.
-                // Do not seed dead s.to / broken-TLS serienstream.sx.
-                add("https://serienstream.to/")
-                add("https://serienstream.cx/")
-                SerienStreamProvider.candidateDomains().forEach { domain ->
-                    add("https://$domain/")
-                }
+            }
+            // Seed known-good SerienStream hosts so OkHttp/WebView share the session.
+            // Do not seed dead s.to / broken-TLS serienstream.sx.
+            add("https://serienstream.to/")
+            add("https://serienstream.cx/")
+            SerienStreamProvider.candidateDomains().forEach { domain ->
+                add("https://$domain/")
             }
         }
         val cookieManager = CookieManager.getInstance()
+        val byName = linkedMapOf<String, String>()
         cookieHeader.split(";")
             .map { it.trim() }
             .filter { it.contains("=") }
             .forEach { cookie ->
-                targets.forEach { target ->
-                    runCatching { cookieManager.setCookie(target, cookie) }
-                }
+                val name = cookie.substringBefore('=').trim().lowercase()
+                if (name.isNotBlank()) byName[name] = cookie
             }
+        byName.values.forEach { cookie ->
+            targets.forEach { target ->
+                runCatching { cookieManager.setCookie(target, cookie) }
+            }
+        }
         runCatching { cookieManager.flush() }
     }
 

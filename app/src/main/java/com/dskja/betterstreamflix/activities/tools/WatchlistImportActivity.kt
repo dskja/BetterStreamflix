@@ -2,13 +2,18 @@ package com.dskja.betterstreamflix.activities.tools
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.http.SslError
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.webkit.CookieManager
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
@@ -23,12 +28,14 @@ import androidx.lifecycle.lifecycleScope
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.providers.AniWorldProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.watchlist.WatchlistImporter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -39,8 +46,8 @@ import kotlin.coroutines.resume
  * WebView login + scrape flow for SerienStream / AniWorld watchlists.
  *
  * After login, Import navigates the same WebView to watchlist pages (so DDoS /
- * Cloudflare challenges stay solved), extracts HTML via JavaScript, then
- * persists Favorites. OkHttp is only used as a fallback.
+ * Cloudflare challenges stay solved), scrolls to load lazy cards, extracts HTML,
+ * then persists Favorites. OkHttp is only used as a fallback.
  */
 class WatchlistImportActivity : AppCompatActivity() {
 
@@ -49,7 +56,11 @@ class WatchlistImportActivity : AppCompatActivity() {
         const val SOURCE_SERIENSTREAM = "serienstream"
         const val SOURCE_ANIWORLD = "aniworld"
         private const val TAG = "WatchlistImport"
-        private const val PAGE_SETTLE_MS = 700L
+        private const val PAGE_SETTLE_MS = 1_200L
+        private const val SCROLL_ROUNDS = 8
+        private const val MODERN_UA =
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36"
     }
 
     private lateinit var webView: WebView
@@ -61,6 +72,7 @@ class WatchlistImportActivity : AppCompatActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var importing = false
     private var pageFinishedCallback: ((String?) -> Unit)? = null
+    private var lastLoadError: String? = null
 
     private val source: WatchlistImporter.Source by lazy {
         when (intent.getStringExtra(EXTRA_SOURCE)) {
@@ -69,16 +81,10 @@ class WatchlistImportActivity : AppCompatActivity() {
         }
     }
 
-    private val hostBase: String by lazy {
-        when (source) {
-            WatchlistImporter.Source.SERIENSTREAM ->
-                SerienStreamProvider.baseUrl.trimEnd('/')
-            WatchlistImporter.Source.ANIWORLD ->
-                AniWorldProvider.baseUrl.trimEnd('/')
-        }
-    }
+    private var hostBase: String = ""
 
-    private val startUrl: String by lazy { "$hostBase/login" }
+    private val startUrl: String
+        get() = "$hostBase/login"
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(AppLanguageManager.wrap(newBase))
@@ -115,10 +121,83 @@ class WatchlistImportActivity : AppCompatActivity() {
 
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+        // Restore any previously pasted SerienStream session cookies.
+        if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            val pasted = UserPreferences.serienStreamSessionCookies.trim()
+            if (pasted.isNotBlank()) {
+                SerienStreamBypassHelper.applyStoredSessionCookies()
+            }
+        }
 
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.userAgentString = NetworkClient.USER_AGENT
+        hostBase = resolveHostBase()
+        setupWebView()
+        // Warm the site first (challenge cookies), then open login. Fail over domains if blank.
+        warmAndOpenLogin()
+    }
+
+    private fun warmAndOpenLogin(domainIndex: Int = 0) {
+        val candidates = when (source) {
+            WatchlistImporter.Source.SERIENSTREAM -> {
+                val preferred = SerienStreamProvider.baseUrl.trimEnd('/')
+                    .removePrefix("https://").removePrefix("http://")
+                (listOf(preferred) + SerienStreamProvider.candidateDomains())
+                    .map { it.trim().lowercase() }
+                    .distinct()
+            }
+            WatchlistImporter.Source.ANIWORLD -> listOf(
+                AniWorldProvider.baseUrl.trimEnd('/').removePrefix("https://").removePrefix("http://")
+                    .ifBlank { "aniworld.to" },
+                "aniworld.to",
+            ).distinct()
+        }
+        if (domainIndex >= candidates.size) {
+            statusView.setText(R.string.watchlist_import_login_hint)
+            webView.loadUrl(startUrl)
+            return
+        }
+        hostBase = "https://${candidates[domainIndex]}"
+        lastLoadError = null
+        webView.loadUrl(hostBase)
+        mainHandler.postDelayed({
+            if (isFinishing || importing) return@postDelayed
+            // Only fail over when the main frame failed hard — challenge pages still "load".
+            if (lastLoadError != null && domainIndex + 1 < candidates.size) {
+                Log.w(TAG, "Warm failed on ${candidates[domainIndex]} ($lastLoadError) — trying next")
+                warmAndOpenLogin(domainIndex + 1)
+            } else {
+                webView.loadUrl(startUrl)
+            }
+        }, 1_400L)
+    }
+
+    private fun resolveHostBase(): String {
+        return when (source) {
+            WatchlistImporter.Source.SERIENSTREAM -> {
+                val preferred = SerienStreamProvider.baseUrl.trimEnd('/')
+                preferred.ifBlank { "https://${SerienStreamProvider.candidateDomains().first()}" }
+            }
+            WatchlistImporter.Source.ANIWORLD ->
+                AniWorldProvider.baseUrl.trimEnd('/').ifBlank { "https://aniworld.to" }
+        }
+    }
+
+    private fun setupWebView() {
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            loadWithOverviewMode = true
+            useWideViewPort = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            userAgentString = MODERN_UA.ifBlank { NetworkClient.USER_AGENT }
+            allowFileAccess = false
+            allowContentAccess = false
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(false)
+            mediaPlaybackRequiresUserGesture = true
+            cacheMode = WebSettings.LOAD_DEFAULT
+        }
+
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 progressBar.progress = newProgress
@@ -132,14 +211,43 @@ class WatchlistImportActivity : AppCompatActivity() {
                 request: WebResourceRequest?,
             ): Boolean = false
 
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                lastLoadError = null
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 CookieManager.getInstance().flush()
                 updateLoginState(url)
                 pageFinishedCallback?.invoke(url)
             }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?,
+            ) {
+                if (request?.isForMainFrame != true) return
+                lastLoadError = error?.description?.toString() ?: "load error"
+                if (!importing) {
+                    statusView.text = getString(
+                        R.string.watchlist_import_failed,
+                        lastLoadError ?: "error",
+                    )
+                }
+            }
+
+            @SuppressLint("WebViewClientOnReceivedSslError")
+            override fun onReceivedSslError(
+                view: WebView?,
+                handler: SslErrorHandler?,
+                error: SslError?,
+            ) {
+                // Some SerienStream mirrors present odd intermediate certs on WebView.
+                Log.w(TAG, "SSL warning on ${error?.url}: ${error?.primaryError}")
+                handler?.proceed()
+            }
         }
-        webView.loadUrl(startUrl)
     }
 
     private fun updateLoginState(url: String?) {
@@ -148,6 +256,10 @@ class WatchlistImportActivity : AppCompatActivity() {
         val leftLogin = url != null && !url.contains("/login", ignoreCase = true)
         val hasSession = looksLoggedIn(cookies)
         importButton.isEnabled = leftLogin || hasSession || cookies.isNotBlank()
+        if (lastLoadError != null && !leftLogin && !hasSession) {
+            statusView.text = getString(R.string.watchlist_import_failed, lastLoadError!!)
+            return
+        }
         if (leftLogin && hasSession) {
             statusView.setText(R.string.watchlist_import_ready)
         } else if (leftLogin) {
@@ -168,8 +280,9 @@ class WatchlistImportActivity : AppCompatActivity() {
             "session",
             "token",
             "jwt",
+            "xsrf",
+            "laravel_session",
         )
-        // More than a bare PHPSESSID / challenge cookie.
         val parts = cookies.split(';').map { it.trim() }.filter { it.contains('=') }
         if (parts.size >= 2 && sessionMarkers.any { lower.contains(it) }) return true
         if (lower.contains("rememberlogin") || lower.contains("remember_login")) return true
@@ -182,19 +295,29 @@ class WatchlistImportActivity : AppCompatActivity() {
             "$hostBase/",
             hostBase.replace("https://", "http://"),
         )
-        // SerienStream mirrors
-        if (source == WatchlistImporter.Source.SERIENSTREAM) {
-            hosts += listOf("https://s.to/", "https://serienstream.to/")
+        when (source) {
+            WatchlistImporter.Source.SERIENSTREAM -> {
+                SerienStreamProvider.candidateDomains().forEach { domain ->
+                    hosts += "https://$domain/"
+                    hosts += "http://$domain/"
+                }
+            }
+            WatchlistImporter.Source.ANIWORLD -> {
+                hosts += listOf("https://aniworld.to/", "http://aniworld.to/")
+            }
         }
-        val merged = linkedSetOf<String>()
+        val merged = linkedMapOf<String, String>()
         for (host in hosts) {
             CookieManager.getInstance().getCookie(host)
                 ?.split(';')
                 ?.map { it.trim() }
                 ?.filter { it.contains('=') }
-                ?.forEach { merged += it }
+                ?.forEach { part ->
+                    val key = part.substringBefore('=').trim().lowercase()
+                    if (key.isNotBlank()) merged[key] = part
+                }
         }
-        return merged.joinToString("; ")
+        return merged.values.joinToString("; ")
     }
 
     private fun runImport() {
@@ -203,6 +326,10 @@ class WatchlistImportActivity : AppCompatActivity() {
         if (cookies.isBlank()) {
             Toast.makeText(this, R.string.watchlist_import_login_hint, Toast.LENGTH_LONG).show()
             return
+        }
+        // Persist a working SerienStream cookie jar for TV / later sessions.
+        if (source == WatchlistImporter.Source.SERIENSTREAM && looksLoggedIn(cookies)) {
+            UserPreferences.serienStreamSessionCookies = cookies
         }
 
         importing = true
@@ -214,24 +341,50 @@ class WatchlistImportActivity : AppCompatActivity() {
             val collected = linkedMapOf<String, WatchlistImporter.ImportedItem>()
             val errors = mutableListOf<String>()
             var pagesScraped = 0
-            val baseUrl = WatchlistImporter.baseUrlFor(source)
+            val baseUrl = "$hostBase/"
 
             try {
-                // 1) WebView scrape (preferred — challenge cookies already valid here)
-                var nextUrl: String? = WatchlistImporter.watchlistUrls(source, 1).first()
+                val startUrls = WatchlistImporter.watchlistUrls(source, 1, hostBase)
+                var nextUrl: String? = startUrls.first()
                 var page = 1
                 val visited = linkedSetOf<String>()
+                var startUrlIndex = 0
 
                 while (nextUrl != null && page <= WatchlistImporter.MAX_PAGES) {
-                    if (!visited.add(normalizeVisitKey(nextUrl))) break
+                    if (!visited.add(normalizeVisitKey(nextUrl))) {
+                        // Try alternate start URL patterns on page 1
+                        if (page == 1 && startUrlIndex + 1 < startUrls.size) {
+                            startUrlIndex++
+                            nextUrl = startUrls[startUrlIndex]
+                            continue
+                        }
+                        break
+                    }
                     statusView.text = getString(R.string.watchlist_import_progress_page, page)
                     val pageResult = loadHtmlInWebView(nextUrl)
                     val html = pageResult.html
                     val finalUrl = pageResult.url
 
                     if (WatchlistImporter.looksLikeChallengePage(html)) {
-                        errors += getString(R.string.watchlist_import_challenge)
-                        break
+                        // Give the challenge a chance to finish, then re-extract once.
+                        delay(2_500)
+                        val retried = extractHtmlNow(finalUrl)
+                        if (WatchlistImporter.looksLikeChallengePage(retried.html)) {
+                            errors += getString(R.string.watchlist_import_challenge)
+                            break
+                        }
+                        val parsedRetry = withContext(Dispatchers.Default) {
+                            WatchlistImporter.parseItems(retried.html, baseUrl, source)
+                        }
+                        parsedRetry.forEach { collected.putIfAbsent(it.id, it) }
+                        pagesScraped++
+                        nextUrl = WatchlistImporter.findNextPageUrl(
+                            retried.html,
+                            retried.url,
+                            baseUrl,
+                        ) ?: WatchlistImporter.watchlistUrls(source, page + 1, hostBase).firstOrNull()
+                        page++
+                        continue
                     }
                     if (WatchlistImporter.looksLikeLoginPage(html, finalUrl)) {
                         errors += getString(R.string.watchlist_import_not_logged_in)
@@ -246,22 +399,26 @@ class WatchlistImportActivity : AppCompatActivity() {
                     pagesScraped++
                     Log.i(TAG, "Page $page ($finalUrl): +${parsed.size} items (total ${collected.size})")
 
+                    // If page 1 is empty, try alternate watchlist URL shapes before giving up.
+                    if (parsed.isEmpty() && page == 1 && startUrlIndex + 1 < startUrls.size) {
+                        startUrlIndex++
+                        nextUrl = startUrls[startUrlIndex]
+                        continue
+                    }
+
                     val discoveredNext = WatchlistImporter.findNextPageUrl(html, finalUrl, baseUrl)
                     nextUrl = when {
                         discoveredNext != null -> discoveredNext
                         parsed.isNotEmpty() && collected.size > before -> {
-                            // Implicit next page guess
-                            WatchlistImporter.watchlistUrls(source, page + 1).firstOrNull()
+                            WatchlistImporter.watchlistUrls(source, page + 1, hostBase).firstOrNull()
                         }
                         else -> null
                     }
-                    // Stop when a guessed page yields nothing new
                     if (parsed.isEmpty() && page > 1) break
                     if (parsed.isNotEmpty() && collected.size == before && discoveredNext == null) break
                     page++
                 }
 
-                // 2) OkHttp fallback if WebView found nothing
                 if (collected.isEmpty()) {
                     statusView.setText(R.string.watchlist_import_progress_fallback)
                     val httpResult = WatchlistImporter.importViaHttp(
@@ -303,7 +460,6 @@ class WatchlistImportActivity : AppCompatActivity() {
                 importing = false
                 importButton.isEnabled = true
                 cancelButton.isEnabled = true
-                // Restore browsing client behavior
                 pageFinishedCallback = null
             }
         }
@@ -328,33 +484,78 @@ class WatchlistImportActivity : AppCompatActivity() {
                 if (settled) return@finish
                 settled = true
                 pageFinishedCallback = null
-                mainHandler.postDelayed({
-                    webView.evaluateJavascript(EXTRACT_HTML_JS) { raw ->
-                        val html = decodeJavascriptValue(raw).orEmpty()
+                mainHandler.post {
+                    lifecycleScope.launch {
+                        scrollWatchlistToEnd()
+                        delay(PAGE_SETTLE_MS)
+                        val html = extractDocumentHtml()
                         if (cont.isActive) {
                             cont.resume(PageHtml(finishedUrl ?: url, html))
                         }
                     }
-                }, PAGE_SETTLE_MS)
+                }
             }
             pageFinishedCallback = finish
             cont.invokeOnCancellation {
                 pageFinishedCallback = null
                 settled = true
             }
-            // If already on the target URL, force a reload so onPageFinished fires.
             val current = webView.url.orEmpty()
             if (normalizeVisitKey(current) == normalizeVisitKey(url)) {
                 webView.reload()
             } else {
                 webView.loadUrl(url)
             }
-            // Safety timeout
             mainHandler.postDelayed({
                 if (!settled && cont.isActive) {
                     finish(webView.url)
                 }
-            }, 25_000L)
+            }, 30_000L)
+        }
+
+    private suspend fun extractHtmlNow(fallbackUrl: String): PageHtml {
+        scrollWatchlistToEnd()
+        delay(PAGE_SETTLE_MS)
+        return PageHtml(webView.url ?: fallbackUrl, extractDocumentHtml())
+    }
+
+    private suspend fun scrollWatchlistToEnd() {
+        repeat(SCROLL_ROUNDS) { round ->
+            withContext(Dispatchers.Main) {
+                webView.evaluateJavascript(
+                    """
+                    (function(){
+                      try {
+                        var h = Math.max(
+                          document.body ? document.body.scrollHeight : 0,
+                          document.documentElement ? document.documentElement.scrollHeight : 0
+                        );
+                        window.scrollTo(0, h);
+                        var btn = document.querySelector(
+                          'a[rel=next], .pagination .next a, button.load-more, .loadMore, #loadMore'
+                        );
+                        if (btn) { try { btn.click(); } catch (e) {} }
+                        return h;
+                      } catch (e) { return 0; }
+                    })();
+                    """.trimIndent(),
+                    null,
+                )
+            }
+            delay(350L + round * 40L)
+        }
+        withContext(Dispatchers.Main) {
+            webView.evaluateJavascript("window.scrollTo(0, 0);", null)
+        }
+        delay(200L)
+    }
+
+    private suspend fun extractDocumentHtml(): String =
+        suspendCancellableCoroutine { cont ->
+            webView.evaluateJavascript(EXTRACT_HTML_JS) { raw ->
+                val html = decodeJavascriptValue(raw).orEmpty()
+                if (cont.isActive) cont.resume(html)
+            }
         }
 
     private fun normalizeVisitKey(url: String): String =
@@ -372,10 +573,11 @@ class WatchlistImportActivity : AppCompatActivity() {
     override fun onDestroy() {
         pageFinishedCallback = null
         mainHandler.removeCallbacksAndMessages(null)
-        webView.destroy()
+        runCatching { webView.stopLoading() }
+        runCatching { webView.destroy() }
         super.onDestroy()
     }
 }
 
 private const val EXTRACT_HTML_JS =
-    "(function(){return document.documentElement.outerHTML;})();"
+    "(function(){return document.documentElement ? document.documentElement.outerHTML : (document.body ? document.body.outerHTML : '');})();"
