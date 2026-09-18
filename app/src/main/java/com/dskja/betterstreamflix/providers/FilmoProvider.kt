@@ -215,9 +215,29 @@ object FilmoProvider : Provider, ProviderConfigUrl {
     override suspend fun getHome(): List<Category> {
         val document = getService().getHome()
         extractCsrf(document)
-        val movies = parseMovieCards(document)
-        if (movies.isEmpty()) return emptyList()
-        return listOf(Category(name = "Filme", list = movies))
+        val spotlight = document.select("a.popular-spotlight-card__link[href*=/movies/]")
+            .mapNotNull { parseVideoCard(it) }
+            .distinctBy { it.id }
+        val rest = document.select(
+            "a.video-card[href*=/movies/], a.movie-poster-grid-card[href*=/movies/]"
+        )
+            .mapNotNull { parseVideoCard(it) }
+            .distinctBy { it.id }
+            .filter { movie -> spotlight.none { it.id == movie.id } }
+
+        return when {
+            spotlight.isNotEmpty() && rest.isNotEmpty() -> listOf(
+                Category(name = Category.FEATURED, list = spotlight),
+                Category(name = "Filme", list = rest),
+            )
+            spotlight.isNotEmpty() -> listOf(Category(name = Category.FEATURED, list = spotlight))
+            rest.isNotEmpty() -> listOf(Category(name = Category.FEATURED, list = rest))
+            else -> {
+                val movies = parseMovieCards(document)
+                if (movies.isEmpty()) emptyList()
+                else listOf(Category(name = Category.FEATURED, list = movies))
+            }
+        }
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {

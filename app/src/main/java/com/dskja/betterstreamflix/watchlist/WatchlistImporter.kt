@@ -23,6 +23,13 @@ object WatchlistImporter {
 
     private const val TAG = "WatchlistImporter"
 
+    const val USER_AGENT_DESKTOP =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    const val USER_AGENT_MOBILE =
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
     enum class Source {
         SERIENSTREAM,
         ANIWORLD,
@@ -50,7 +57,7 @@ object WatchlistImporter {
         for (path in paths) {
             val url = baseUrl + path.removePrefix("/")
             runCatching {
-                val html = fetchHtml(url, cookieHeader, baseUrl)
+                val html = fetchHtml(url, cookieHeader, baseUrl, source)
                 parseItems(html, baseUrl, source).forEach { item ->
                     seen.putIfAbsent(item.id, item)
                 }
@@ -63,7 +70,7 @@ object WatchlistImporter {
         if (seen.isEmpty()) {
             // Fallback: try the account root in case watchlist is embedded.
             runCatching {
-                val html = fetchHtml(baseUrl + "account", cookieHeader, baseUrl)
+                val html = fetchHtml(baseUrl + "account", cookieHeader, baseUrl, source)
                 parseItems(html, baseUrl, source).forEach { item ->
                     seen.putIfAbsent(item.id, item)
                 }
@@ -115,11 +122,20 @@ object WatchlistImporter {
         Result(importedCount = count, errors = errors)
     }
 
-    private fun fetchHtml(url: String, cookieHeader: String, referer: String): String {
+    private fun fetchHtml(
+        url: String,
+        cookieHeader: String,
+        referer: String,
+        source: Source,
+    ): String {
+        val userAgent = when (source) {
+            Source.SERIENSTREAM -> USER_AGENT_DESKTOP
+            Source.ANIWORLD -> USER_AGENT_MOBILE
+        }
         val request = Request.Builder()
             .url(url)
             .header("Cookie", cookieHeader)
-            .header("User-Agent", USER_AGENT)
+            .header("User-Agent", userAgent)
             .header("Accept", "text/html,application/xhtml+xml")
             .header("Referer", referer)
             .get()
@@ -226,7 +242,4 @@ object WatchlistImporter {
         val kind: Kind,
     )
 
-    private const val USER_AGENT =
-        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
 }

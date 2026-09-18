@@ -4,6 +4,7 @@ import android.util.Base64
 import androidx.media3.common.MimeTypes
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.providers.MStreamProvider
+import com.dskja.betterstreamflix.utils.NetworkClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -96,6 +97,7 @@ class MoflixExtractor : Extractor() {
             fun build(baseUrl: String): Service {
                 val retrofit = Retrofit.Builder()
                     .baseUrl(baseUrl)
+                    .client(NetworkClient.default)
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()
 

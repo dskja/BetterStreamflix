@@ -360,10 +360,39 @@ class PlayerMobileFragment : Fragment() {
                         }
 
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
-                            val bypassUrl = buildSerienStreamBypassUrl()
+                            val bypassUrl = buildSerienStreamBypassUrl(servers)
                             if (bypassUrl.isNullOrBlank()) {
                                 waitingForBypass = false
-                                Toast.makeText(requireContext(), "Unable to open SerienStream bypass page.", Toast.LENGTH_SHORT).show()
+                                // Continue without blocking if we cannot open a bypass page —
+                                // native SerienStream servers may still play after cookies exist.
+                                val providerName = UserPreferences.currentProvider?.name ?: ""
+                                val isTmdb = providerName.contains("TMDb", ignoreCase = true)
+                                if (servers.isEmpty()) {
+                                    Toast.makeText(
+                                        requireContext(),
+                                        if (isTmdb) {
+                                            getString(R.string.player_not_available_lang_message, "Deutsch")
+                                        } else {
+                                            "Unable to open SerienStream bypass page."
+                                        },
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    return@collect
+                                }
+                                // Fall through to normal playback with remaining servers
+                                player.playlistMetadata = MediaMetadata.Builder()
+                                    .setTitle(state.toString())
+                                    .setMediaServers(state.servers.map {
+                                        MediaServer(id = it.id, name = it.name)
+                                    })
+                                    .build()
+                                binding.settings.setOnServerSelectedListener { server ->
+                                    viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                                }
+                                val preferredServer = state.servers.firstOrNull {
+                                    it.name.equals(args.preferredServerName, ignoreCase = true)
+                                }
+                                viewModel.getVideo(preferredServer ?: state.servers.first())
                                 return@collect
                             }
 
@@ -469,10 +498,15 @@ class PlayerMobileFragment : Fragment() {
                             }
                             PlaybackFailover.Action.GiveUp -> {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
+                            val isTmdbDe = providerName.contains("TMDb", ignoreCase = true) &&
+                                (providerName.contains("(de)", ignoreCase = true) ||
+                                    providerName.contains("Deutsch", ignoreCase = true))
                             val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                             val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                            val message = if (isTmdb || isAD) {
+                            val message = if (isTmdbDe) {
+                                getString(R.string.player_tmdb_de_try_serienstream)
+                            } else if (isTmdb || isAD) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
@@ -495,7 +529,11 @@ class PlayerMobileFragment : Fragment() {
                                 message,
                                 Toast.LENGTH_LONG
                             ).show()
-                            findNavController().navigateUp()
+                            if (isTmdbDe) {
+                                offerSwitchToSerienStream()
+                            } else {
+                                findNavController().navigateUp()
+                            }
                             }
                         }
                     }
@@ -1943,11 +1981,39 @@ class PlayerMobileFragment : Fragment() {
         return SerienStreamBypassHelper.isSerienStreamHost(url)
     }
 
-    private fun buildSerienStreamBypassUrl(): String? {
-        return SerienStreamBypassHelper.buildEpisodeBypassUrl(args.videoType)
+    private fun buildSerienStreamBypassUrl(serverList: List<Video.Server> = servers): String? {
+        return SerienStreamBypassHelper.buildEpisodeBypassUrl(args.videoType, serverList)
     }
 
     private fun applyBypassCookies(url: String, cookieHeader: String) {
         SerienStreamBypassHelper.applyCookies(url, cookieHeader)
+    }
+
+    private fun offerSwitchToSerienStream() {
+        val title = when (val vt = args.videoType) {
+            is Video.Type.Episode -> vt.tvShow.title
+            is Video.Type.Movie -> vt.title
+        }
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.player_tmdb_de_switch_title)
+            .setMessage(getString(R.string.player_tmdb_de_switch_message, title))
+            .setPositiveButton(R.string.player_tmdb_de_switch_cta) { _, _ ->
+                UserPreferences.currentProvider = SerienStreamProvider
+                com.dskja.betterstreamflix.utils.ProviderChangeNotifier.notifyProviderChanged()
+                runCatching {
+                    findNavController().navigate(
+                        com.dskja.betterstreamflix.R.id.search,
+                    )
+                }.onFailure {
+                    findNavController().navigateUp()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+                findNavController().navigateUp()
+            }
+            .setOnCancelListener {
+                findNavController().navigateUp()
+            }
+            .show()
     }
 }

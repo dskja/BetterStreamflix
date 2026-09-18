@@ -3,6 +3,7 @@ package com.dskja.betterstreamflix.activities.tools
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -21,6 +22,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.providers.AniWorldProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
@@ -107,6 +109,7 @@ class WatchlistImportActivity : AppCompatActivity() {
 
         statusView.setText(R.string.watchlist_import_login_hint)
         title = getString(R.string.settings_watchlist_import_title)
+        importButton.isEnabled = source != WatchlistImporter.Source.SERIENSTREAM
 
         cancelButton.setOnClickListener { finish() }
         importButton.setOnClickListener { runImport() }
@@ -125,12 +128,8 @@ class WatchlistImportActivity : AppCompatActivity() {
             loadWithOverviewMode = true
             // Desktop UA helps SerienStream CF challenges that blank mobile WebViews
             userAgentString = when (source) {
-                WatchlistImporter.Source.SERIENSTREAM ->
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                WatchlistImporter.Source.ANIWORLD ->
-                    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
-                        "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+                WatchlistImporter.Source.SERIENSTREAM -> WatchlistImporter.USER_AGENT_DESKTOP
+                WatchlistImporter.Source.ANIWORLD -> WatchlistImporter.USER_AGENT_MOBILE
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
@@ -145,12 +144,14 @@ class WatchlistImportActivity : AppCompatActivity() {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                statusView.setText(R.string.watchlist_import_login_hint)
+                if (source != WatchlistImporter.Source.SERIENSTREAM) {
+                    statusView.setText(R.string.watchlist_import_login_hint)
+                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                importButton.isEnabled = true
+                updateImportReadyState(url)
                 // After SerienStream home loads, open login once
                 if (source == WatchlistImporter.Source.SERIENSTREAM &&
                     !navigatedToLogin &&
@@ -178,17 +179,77 @@ class WatchlistImportActivity : AppCompatActivity() {
         webView.loadUrl(startUrl)
     }
 
-    private fun runImport() {
-        val host = when (source) {
-            WatchlistImporter.Source.SERIENSTREAM ->
-                SerienStreamProvider.baseUrl.trimEnd('/').removePrefix("https://").removePrefix("http://")
-            WatchlistImporter.Source.ANIWORLD ->
-                AniWorldProvider.baseUrl.trimEnd('/').removePrefix("https://").removePrefix("http://")
+    private fun updateImportReadyState(url: String?) {
+        val cookies = collectCookieHeader()
+        if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            val solved = SerienStreamBypassHelper.looksLikeBypassSolved(cookies)
+            importButton.isEnabled = cookies.isNotBlank() || solved
+            when {
+                cookies.isBlank() -> {
+                    statusView.setText(R.string.watchlist_import_login_hint)
+                }
+                !solved -> {
+                    statusView.setText(R.string.bypass_status_challenge_pending)
+                    SerienStreamBypassHelper.applyCookies(baseUrl, cookies)
+                    url?.takeIf { it.isNotBlank() }?.let {
+                        SerienStreamBypassHelper.applyCookies(it, cookies)
+                    }
+                }
+                else -> {
+                    statusView.setText(R.string.watchlist_import_login_hint)
+                    SerienStreamBypassHelper.applyCookies(baseUrl, cookies)
+                    url?.takeIf { it.isNotBlank() }?.let {
+                        SerienStreamBypassHelper.applyCookies(it, cookies)
+                    }
+                }
+            }
+        } else {
+            importButton.isEnabled = true
+            statusView.setText(R.string.watchlist_import_login_hint)
         }
-        val cookies = CookieManager.getInstance().getCookie("https://$host").orEmpty()
+    }
+
+    private fun collectCookieHeader(): String {
+        val cookieManager = CookieManager.getInstance()
+        val candidates = linkedSetOf<String>()
+        val currentUrl = webView.url
+
+        if (!currentUrl.isNullOrBlank()) {
+            candidates += currentUrl
+        }
+        candidates += baseUrl
+
+        if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            candidates += "https://serienstream.to/"
+            candidates += "https://s.to/"
+            candidates += "http://serienstream.to/"
+            candidates += "http://s.to/"
+        }
+
+        val host = runCatching { Uri.parse(currentUrl ?: baseUrl).host.orEmpty() }.getOrDefault("")
+        if (host.isNotBlank()) {
+            candidates += "https://$host/"
+            candidates += "http://$host/"
+        }
+
+        return candidates
+            .mapNotNull { candidate -> cookieManager.getCookie(candidate)?.trim() }
+            .firstOrNull { it.isNotBlank() }
+            .orEmpty()
+    }
+
+    private fun runImport() {
+        val cookies = collectCookieHeader()
         if (cookies.isBlank()) {
             Toast.makeText(this, R.string.watchlist_import_login_hint, Toast.LENGTH_LONG).show()
             return
+        }
+
+        if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            SerienStreamBypassHelper.applyCookies(baseUrl, cookies)
+            webView.url?.takeIf { it.isNotBlank() }?.let {
+                SerienStreamBypassHelper.applyCookies(it, cookies)
+            }
         }
 
         importButton.isEnabled = false
@@ -198,7 +259,7 @@ class WatchlistImportActivity : AppCompatActivity() {
                 WatchlistImporter.import(this@WatchlistImportActivity, source, cookies)
             }.getOrElse { e ->
                 statusView.text = getString(R.string.watchlist_import_failed, e.message ?: "error")
-                importButton.isEnabled = true
+                updateImportReadyState(webView.url)
                 return@launch
             }
             if (result.importedCount > 0) {
@@ -212,7 +273,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             } else {
                 val detail = result.errors.firstOrNull() ?: "empty"
                 statusView.text = getString(R.string.watchlist_import_failed, detail)
-                importButton.isEnabled = true
+                updateImportReadyState(webView.url)
             }
         }
     }

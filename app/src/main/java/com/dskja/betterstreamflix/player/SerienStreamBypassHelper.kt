@@ -4,22 +4,65 @@ import android.net.Uri
 import android.webkit.CookieManager
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
+import com.dskja.betterstreamflix.providers.TmdbProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
 
 /** Shared SerienStream / CF bypass helpers used by mobile WebView and TV QR paths. */
 object SerienStreamBypassHelper {
 
-    fun isSerienStreamHost(url: String): Boolean =
-        SerienStreamProvider.isSerienStreamHost(url)
+    private const val TMDB_DE_SERIENSTREAM = "tmdbde:serienstream:"
 
-    fun buildEpisodeBypassUrl(videoType: Video.Type): String? {
-        val provider = UserPreferences.currentProvider ?: return null
-        if (provider != SerienStreamProvider) return null
+    fun isSerienStreamHost(url: String): Boolean {
+        if (url.startsWith(TMDB_DE_SERIENSTREAM, ignoreCase = true)) return true
+        if (url.contains("tmdbde:serienstream:", ignoreCase = true)) return true
+        return SerienStreamProvider.isSerienStreamHost(url)
+    }
+
+    /**
+     * Build a SerienStream episode page URL for CF bypass.
+     * Works when the current provider is SerienStream OR when TMDb DE routed a
+     * `tmdbde:serienstream:…` server (title search bridge).
+     */
+    fun buildEpisodeBypassUrl(
+        videoType: Video.Type,
+        servers: List<Video.Server> = emptyList(),
+    ): String? {
+        val base = SerienStreamProvider.baseUrl.trimEnd('/') + "/"
+
+        // Prefer episode path embedded in a TMDb→SerienStream routed server id
+        val routed = servers.firstOrNull {
+            it.id.startsWith(TMDB_DE_SERIENSTREAM, ignoreCase = true) ||
+                it.src.contains("serienstream", ignoreCase = true) ||
+                SerienStreamProvider.isSerienStreamHost(it.src) ||
+                SerienStreamProvider.isSerienStreamHost(it.id)
+        }
+        if (routed != null) {
+            val episodePath = when {
+                routed.id.startsWith(TMDB_DE_SERIENSTREAM, ignoreCase = true) ->
+                    routed.id.removePrefix(TMDB_DE_SERIENSTREAM).removePrefix("tmdbde:serienstream:")
+                else -> null
+            }
+            if (!episodePath.isNullOrBlank() && !episodePath.startsWith("http", ignoreCase = true)) {
+                return "${base}serie/${episodePath.trimStart('/')}"
+            }
+            // Fall through to src-based host pages when id isn't a site path
+            val src = routed.src
+            if (SerienStreamProvider.isSerienStreamHost(src) && src.contains("/serie/")) {
+                return src.substringBefore('?')
+            }
+        }
+
+        val provider = UserPreferences.currentProvider
+        val allowed = provider == SerienStreamProvider ||
+            (provider is TmdbProvider && provider.language.lowercase().startsWith("de"))
+        if (!allowed) return null
+
         val episodeId = when (videoType) {
             is Video.Type.Episode -> videoType.id
             is Video.Type.Movie -> return null
         }
-        val base = SerienStreamProvider.baseUrl.trimEnd('/') + "/"
+        // TMDb episode ids are numeric — only useful when SerienStream is current provider
+        if (provider != SerienStreamProvider) return null
         return "${base}serie/$episodeId"
     }
 
@@ -34,6 +77,10 @@ object SerienStreamBypassHelper {
                 // Also seed common SerienStream hosts so OkHttp/WebView share the session.
                 add("https://s.to/")
                 add("https://serienstream.to/")
+            }
+            runCatching {
+                val configured = SerienStreamProvider.baseUrl.trimEnd('/') + "/"
+                add(configured)
             }
         }
         val cookieManager = CookieManager.getInstance()

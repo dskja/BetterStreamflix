@@ -15,6 +15,13 @@ import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.format
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -60,6 +67,8 @@ sealed class DownloadEnqueueOutcome {
 object DownloadController {
     private const val TAG = "DownloadController"
     private const val MAX_OPTION_SERVERS = 8
+    private const val RESOLVE_PARALLELISM = 3
+    private const val MIN_RESOLVED_CANDIDATES = 3
     private val helperExecutor = Executors.newSingleThreadExecutor()
 
     suspend fun prepareMovie(context: Context, movie: Movie): DownloadEnqueueOutcome =
@@ -368,18 +377,35 @@ object DownloadController {
 
         val resolved = mutableListOf<ResolvedServerCandidate>()
         var lastError: Exception? = null
-        // Resolve several servers so the options dialog can switch hosters.
-        for (server in servers.take(MAX_OPTION_SERVERS)) {
-            try {
-                val video = provider.getVideo(server)
-                if (video.source.isBlank()) continue
-                if (isUnsupportedSource(video.source)) continue
-                if (looksLikeDrm(video.source)) continue
-                resolved += ResolvedServerCandidate(server, video)
-            } catch (e: Exception) {
-                lastError = e
-                Log.w(TAG, "getVideo failed for ${server.name}: ${e.message}")
+        val errorMutex = Mutex()
+        val resolvedMutex = Mutex()
+        // Resolve several servers in parallel so the options dialog can switch hosters.
+        coroutineScope {
+            val semaphore = Semaphore(RESOLVE_PARALLELISM)
+            val jobs = servers.take(MAX_OPTION_SERVERS).map { server ->
+                async {
+                    semaphore.withPermit {
+                        resolvedMutex.withLock {
+                            if (resolved.size >= MIN_RESOLVED_CANDIDATES) return@withPermit
+                        }
+                        try {
+                            val video = provider.getVideo(server)
+                            if (video.source.isBlank()) return@withPermit
+                            if (isUnsupportedSource(video.source)) return@withPermit
+                            if (looksLikeDrm(video.source)) return@withPermit
+                            resolvedMutex.withLock {
+                                if (resolved.size < MIN_RESOLVED_CANDIDATES) {
+                                    resolved += ResolvedServerCandidate(server, video)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            errorMutex.withLock { lastError = e }
+                            Log.w(TAG, "getVideo failed for ${server.name}: ${e.message}")
+                        }
+                    }
+                }
             }
+            jobs.awaitAll()
         }
 
         if (resolved.isEmpty()) {

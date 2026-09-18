@@ -299,18 +299,9 @@ class PlayerTvFragment : Fragment() {
                             isSerienStreamBypassUrl(it.id) || isSerienStreamBypassUrl(it.src)
                         }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
+                            val bypassUrl = buildSerienStreamBypassUrl(servers)
+                            if (!bypassUrl.isNullOrBlank()) {
                             waitingForBypass = true
-
-                            val bypassUrl = buildSerienStreamBypassUrl()
-                            if (bypassUrl.isNullOrBlank()) {
-                                clearBypassSession(resetBypassDone = true)
-                                Toast.makeText(
-                                    requireContext(),
-                                    "Unable to prepare TV bypass page.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                return@collect
-                            }
 
                             val session = BypassSession(
                                 token = UUID.randomUUID().toString(),
@@ -373,6 +364,7 @@ class PlayerTvFragment : Fragment() {
                             }
 
                             return@collect
+                            }
                         }
 
 
@@ -479,10 +471,15 @@ class PlayerTvFragment : Fragment() {
                                 }
                                 PlaybackFailover.Action.GiveUp -> {
                                     val providerName = UserPreferences.currentProvider?.name ?: ""
+                                    val isTmdbDe = providerName.contains("TMDb", ignoreCase = true) &&
+                                        (providerName.contains("(de)", ignoreCase = true) ||
+                                            providerName.contains("Deutsch", ignoreCase = true))
                                     val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                                     val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                                    val message = if (isTmdb || isAD) {
+                                    val message = if (isTmdbDe) {
+                                        getString(R.string.player_tmdb_de_try_serienstream)
+                                    } else if (isTmdb || isAD) {
                                         val langCode =
                                             providerName.substringAfter("(").substringBefore(")")
                                         val locale = Locale.forLanguageTag(langCode)
@@ -2048,8 +2045,8 @@ class PlayerTvFragment : Fragment() {
         return SerienStreamBypassHelper.isSerienStreamHost(url)
     }
 
-    private fun buildSerienStreamBypassUrl(): String? {
-        return SerienStreamBypassHelper.buildEpisodeBypassUrl(args.videoType)
+    private fun buildSerienStreamBypassUrl(serverList: List<Video.Server> = servers): String? {
+        return SerienStreamBypassHelper.buildEpisodeBypassUrl(args.videoType, serverList)
     }
 
     private fun startWebSocketServer(): Int {

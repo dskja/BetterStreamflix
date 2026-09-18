@@ -129,7 +129,7 @@ object FilmPalastProvider : Provider {
         }
 
         return listOf(
-            Category(name = "Featured", list = featured),
+            Category(name = Category.FEATURED, list = featured),
             Category(name = "Filme", list = main_content),
             Category(name = "Serien", list = tvShows)
         )

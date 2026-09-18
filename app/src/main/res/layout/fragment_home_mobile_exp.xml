@@ -122,7 +122,6 @@
         android:background="@drawable/bg_provider_logo_home_exp"
         android:clickable="true"
         android:contentDescription="@string/providers_choose_title"
-        android:duplicateParentState="true"
         android:elevation="12dp"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackgroundBorderless"

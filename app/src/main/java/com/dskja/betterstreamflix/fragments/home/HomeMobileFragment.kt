@@ -77,7 +77,10 @@ class HomeMobileFragment : Fragment() {
 
         // Lightweight refresh when provider changes
         viewLifecycleOwner.lifecycleScope.launch {
-            com.dskja.betterstreamflix.utils.ProviderChangeNotifier.providerChangeFlow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { viewModel.getHome() }
+            ProviderChangeNotifier.providerChangeFlow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect {
+                refreshProviderLogo()
+                viewModel.getHome()
+            }
         }
 
         // Initial load
@@ -124,6 +127,11 @@ class HomeMobileFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshProviderLogo()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         appAdapter.onSaveInstanceState(binding.rvHome)
@@ -141,16 +149,10 @@ class HomeMobileFragment : Fragment() {
             )
         }
 
+        refreshProviderLogo()
         binding.ivProviderLogo.apply {
             isClickable = true
             isFocusable = true
-            Glide.with(context)
-                .load(UserPreferences.currentProvider?.logo?.takeIf { it.isNotEmpty() }
-                    ?: R.drawable.ic_provider_default_logo)
-                .error(R.drawable.ic_provider_default_logo)
-                .fitCenter()
-                .into(this)
-
             setOnClickListener {
                 findNavController().navigate(R.id.providers)
             }
@@ -164,6 +166,17 @@ class HomeMobileFragment : Fragment() {
             applyExperimentalParallax()
             ExpNavAutoHide.attach(binding.root)
         }
+    }
+
+    private fun refreshProviderLogo() {
+        val logoView = _binding?.ivProviderLogo ?: return
+        val context = logoView.context
+        Glide.with(context)
+            .load(UserPreferences.currentProvider?.logo?.takeIf { it.isNotEmpty() }
+                ?: R.drawable.ic_provider_default_logo)
+            .error(R.drawable.ic_provider_default_logo)
+            .fitCenter()
+            .into(logoView)
     }
 
     private var heroScrollOffset = 0

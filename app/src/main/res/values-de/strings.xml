@@ -599,6 +599,10 @@
     <string name="settings_view_crash_log_summary">Zeigt den letzten lokalen Crash-Bericht</string>
     <string name="settings_view_crash_log_empty">Keine Crash-Logs gefunden</string>
     <string name="bypass_status_challenge_pending">Challenge in der Seite abschließen (Session-Cookies allein reichen nicht)</string>
+    <string name="player_tmdb_de_try_serienstream">Keine funktionierenden deutschen Streams gefunden. Dieser Titel ist möglicherweise noch auf SerienStream verfügbar.</string>
+    <string name="player_tmdb_de_switch_title">SerienStream versuchen?</string>
+    <string name="player_tmdb_de_switch_message">\"%1$s\" hatte keine abspielbaren deutschen Server auf TMDb. Zu SerienStream wechseln und danach suchen?</string>
+    <string name="player_tmdb_de_switch_cta">Zu SerienStream wechseln</string>
 
     <string name="main_menu_downloads">Downloads</string>
     <string name="downloads_title">Downloads</string>

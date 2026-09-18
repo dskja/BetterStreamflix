@@ -145,6 +145,10 @@
     <string name="settings_view_crash_log_summary">Show the most recent local crash report</string>
     <string name="settings_view_crash_log_empty">No crash logs found</string>
     <string name="bypass_status_challenge_pending">Complete the challenge in the page (session cookies alone are not enough)</string>
+    <string name="player_tmdb_de_try_serienstream">No working German streams found here. This title may still be available on SerienStream.</string>
+    <string name="player_tmdb_de_switch_title">Try SerienStream?</string>
+    <string name="player_tmdb_de_switch_message">\"%1$s\" had no playable German servers on TMDb. Switch to SerienStream and search for it?</string>
+    <string name="player_tmdb_de_switch_cta">Switch to SerienStream</string>
     <string name="player_retry_later_message">Video currently unavailable on this provider. Please try again later</string>
     <string name="player_next_episode_up_next">Up next</string>
     <string name="player_next_episode_action">Play now</string>
