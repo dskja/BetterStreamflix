@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Patreon support link: https://www.patreon.com/BetterStreamflix (Settings, About, README, GitHub FUNDING.yml)
 - Re-enabled five previously unregistered providers whose sites are live again: StreamingIta (it), AnyMovie (en), HiAnime (en), 1Jour1Film (fr), AfterDark (fr)
 - Experimental mobile design rebuilt on Material 3: `Theme.Material3.Dark` shell with dynamic wallpaper color on Android 12+ (static M3 dark scheme below) covering the entire mobile surface — home, details, seasons/episodes, genres, people, downloads, player, dialogs and loading states
 - Poster-derived ambient glow behind home hero and detail posters (Palette API), floating tonal nav pill, shimmer skeleton loading, hero scroll parallax, press-scale and ripple feedback on cards (still off-by-default behind the experimental toggle)
