@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit
 object AnimeFlvProvider : Provider, ProviderConfigUrl {
 
     override val name = "AnimeFLV"
-    override val defaultBaseUrl = "https://vww.animeflv.one"
+    override val defaultBaseUrl = "https://www.animeflv.vc"
     override val baseUrl: String
         get() = UserPreferences.getProviderCache(this, UserPreferences.PROVIDER_URL).ifBlank { defaultBaseUrl }
     override val changeUrlMutex = Mutex()

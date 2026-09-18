@@ -94,6 +94,9 @@ class HomeMobileFragment : Fragment() {
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
                         ExpMotion.fadeOutAndHide(binding.isLoading.root)
+                        state.providerWarning?.takeIf { it.isNotBlank() }?.let { warning ->
+                            Toast.makeText(requireContext(), warning, Toast.LENGTH_LONG).show()
+                        }
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         if (http409Guard.handle(requireContext(), state.error) { viewModel.getHome() }) {

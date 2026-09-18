@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Patreon support link: https://www.patreon.com/BetterStreamflix (Settings, About, README, GitHub FUNDING.yml)
+- Configurable download storage location (internal / app-external / public Movies)
+- Chromecast queue, subtitle toggle, keep-screen-awake option, richer cast metadata
+- APK CI artifacts on every push to `main` / `dskja/**` (no GitHub Release unless tagged)
 - Re-enabled five previously unregistered providers whose sites are live again: StreamingIta (it), AnyMovie (en), HiAnime (en), 1Jour1Film (fr), AfterDark (fr)
 - Experimental mobile design rebuilt on Material 3: `Theme.Material3.Dark` shell with dynamic wallpaper color on Android 12+ (static M3 dark scheme below) covering the entire mobile surface — home, details, seasons/episodes, genres, people, downloads, player, dialogs and loading states
 - Poster-derived ambient glow behind home hero and detail posters (Palette API), floating tonal nav pill, shimmer skeleton loading, hero scroll parallax, press-scale and ripple feedback on cards (still off-by-default behind the experimental toggle)
@@ -26,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DownloadDatabase` migration 1→2 preserves existing downloads (adds `subtitleUrlsJson`, `smartEnqueued`); destructive fallback removed so the Media3 cache is never orphaned
 
 ### Changed
+- App version set to **1.1.1** (`versionCode` 10101) — no GitHub Release yet
 - Centralized HTTP 409 cache-clear + one-shot retry in `Http409CacheGuard` across all 16 content fragments; skips the wipe while offline
 - `Accept-Language` header is now built from the app locale instead of a hardcoded `it-IT`; OkHttp gained explicit call/write timeouts, throttled cookie persistence and 429/5xx `Retry-After` backoff
 - Cloud sync worker retries are capped at 5 attempts with explicit exponential backoff
@@ -45,6 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Artwork repair matches all `animeonline.ninja` hosts, not only `ww3.`
 
 ### Fixed
+- SerienStream/AniWorld watchlist import: correct ID parsing, WebView HTML scrape, pagination, login/challenge detection
+- Hide floating search on Downloads/Settings so the downloads gear is usable
+- FilmPalast SSL fallback via NetworkClient; SerienStream domain failover across known mirrors (incl. `.cx`; deprecate dead `.sx`; bypass cookie seed uses live hosts only)
+- Player no longer installs an empty media URI while loading a server (fake 0:00/0:00 playing state)
+- Home soft-fails when catalog fetch fails so continue-watching/favorites still render
+- AnimeFLV default domain → animeflv.vc; TioAnime → tioanime.top; SoloLatino browser headers refreshed
 - Frembed URL discovery: dead portal `audin213.com` (spam redirect) replaced by `frembed.casa`; portal redirects now resolve the live domain directly before DOM parsing
 - Settings screens showed outdated default domains for StreamingCommunity (`cuevana3.la` typo included) and Cuevana 3
 - Backup import now refuses backups written by a newer app version instead of parsing them with stale field mappings
@@ -87,6 +97,12 @@ covers everything done on top of that upstream baseline.
 - Release APK layout split via `APP_LAYOUT` (universal / mobile / tv), matching upstream
 
 ### Fixed
+- SerienStream/AniWorld watchlist import: correct ID parsing, WebView HTML scrape, pagination, login/challenge detection
+- Hide floating search on Downloads/Settings so the downloads gear is usable
+- FilmPalast SSL fallback via NetworkClient; SerienStream domain failover across known mirrors
+- Player no longer installs an empty media URI while loading a server (fake 0:00/0:00 playing state)
+- Home soft-fails when catalog fetch fails so continue-watching/favorites still render
+- AnimeFLV default domain → animeflv.vc; TioAnime → tioanime.top; SoloLatino browser headers refreshed
 - Fire Stick 4K (1st gen) splash → crash: soft-fail Conscrypt, skip Cronet on Fire/API ≤ 25, skip WebView cache wipe on low-RAM sticks, `extractNativeLibs` + `useLegacyPackaging` (`#84`, earlier `#37`)
 - Quiet-audio / ambience ducking mid-playback (`#38`); TV auto-pause from focus/lifecycle glitches (`#26`)
 - Provider “No servers found” / “All servers failed” restorations (`#81`, `#85`), including:

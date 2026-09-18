@@ -11,8 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="4dp"
         android:indeterminate="false"
-        android:max="100"
-        android:progressTint="?attr/colorPrimary" />
+        android:max="100" />
 
     <TextView
         android:id="@+id/watchlist_status"
@@ -54,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:enabled="false"
-            android:text="@string/settings_watchlist_import_title" />
+            android:text="@string/watchlist_import_action" />
 
     </LinearLayout>
 

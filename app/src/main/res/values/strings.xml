@@ -279,6 +279,12 @@
     <string name="settings_telegram_not_found">Telegram not found.</string>
     <string name="settings_bypass_advertised_host">Bypass advertised host</string>
     <string name="settings_bypass_advertised_host_auto">Auto (device IP)</string>
+    <string name="settings_serienstream_session_cookies">SerienStream session cookies</string>
+    <string name="settings_serienstream_session_cookies_summary">Paste cookies from a phone/browser (name=value; …) when QR bypass needs the same WLAN. Also used to restore watchlist login.</string>
+    <string name="settings_serienstream_session_cookies_empty">Not set — paste Cookie header after solving CF on another device</string>
+    <string name="settings_serienstream_session_cookies_set">Cookies saved (%1$d chars) — tap to edit or clear</string>
+    <string name="player_subtitle_needs_playback">Start playback before adding subtitles</string>
+    <string name="player_server_unavailable">That server is no longer available</string>
     <string name="settings_buy_me_a_coffee">Buy me a coffee</string>
     <string name="settings_buy_me_a_coffee_summary">One-time ~$25 goal (open): personal basic costs so development can continue — not hosting/API</string>
     <string name="settings_patreon">Patreon</string>
@@ -587,10 +593,19 @@
     <string name="settings_watchlist_import_summary">Sign in on SerienStream or AniWorld and import your watchlist into Favorites</string>
     <string name="settings_watchlist_import_serienstream">Import from SerienStream</string>
     <string name="settings_watchlist_import_aniworld">Import from AniWorld</string>
+    <string name="watchlist_import_action">Import</string>
     <string name="watchlist_import_progress">Importing watchlist…</string>
+    <string name="watchlist_import_progress_page">Importing watchlist… page %1$d</string>
+    <string name="watchlist_import_progress_fallback">Trying alternate fetch…</string>
+    <string name="watchlist_import_progress_saving">Saving favorites…</string>
+    <string name="watchlist_import_ready">Logged in — tap Import to pull your watchlist</string>
+    <string name="watchlist_import_ready_soft">Page loaded — if you are logged in, tap Import</string>
     <string name="watchlist_import_done">Imported %1$d titles into Favorites</string>
     <string name="watchlist_import_failed">Watchlist import failed: %1$s</string>
     <string name="watchlist_import_login_hint">Log in on the site, then tap Import. Cookies stay on this device.</string>
+    <string name="watchlist_import_not_logged_in">Not logged in — please sign in first</string>
+    <string name="watchlist_import_challenge">Bot check still active — wait for the page to finish, then try again</string>
+    <string name="watchlist_import_empty">No watchlist titles found on your account</string>
 
     <string name="settings_screen_appearance_summary">Theme, immersive mode and screen layout adjustments</string>
     <string name="settings_theme_title">App Theme</string>
@@ -810,6 +825,18 @@
     <string name="player_bypass_resolved_server">Verified stream</string>
     <string name="player_bypass_retry_needed_mobile">SerienStream still needs verification. Open play again, finish the captcha, tap Weiter in the page, then Continue.</string>
     <string name="settings_serienstream_domain_current">Current: %1$s</string>
+    <string name="settings_download_storage_location">Download storage location</string>
+    <string name="settings_download_storage_location_summary">Choose where offline videos are saved. Existing downloads are not moved automatically.</string>
+    <string name="settings_download_storage_internal">App internal storage (secure)</string>
+    <string name="settings_download_storage_app_external">App folder on shared storage</string>
+    <string name="settings_download_storage_public_movies">Public Movies / BetterStreamflix</string>
+    <string name="settings_download_storage_path">Current folder</string>
+    <string name="settings_download_storage_changed">Storage location updated. New downloads use the new folder. Restart any active downloads.</string>
+    <string name="settings_cast_subtitles">Cast subtitles</string>
+    <string name="settings_cast_subtitles_summary">Send text tracks to Chromecast when the stream provides them</string>
+    <string name="settings_cast_keep_screen_awake">Keep screen awake while casting</string>
+    <string name="settings_cast_keep_screen_awake_summary">Prevents the phone from sleeping during an active Cast session</string>
+    <string name="settings_cast_queue_next">Queue next episode on Cast</string>
 
     <!-- Premium Support experience -->
     <string name="support_hub_title">Support BetterStreamflix</string>

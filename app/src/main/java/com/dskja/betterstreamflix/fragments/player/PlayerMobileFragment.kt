@@ -200,6 +200,7 @@ class PlayerMobileFragment : Fragment() {
                 ?: buildSerienStreamBypassUrl()
             if (!bypassUrl.isNullOrBlank() && !cookies.isNullOrBlank()) {
                 applyBypassCookies(bypassUrl, cookies)
+                UserPreferences.serienStreamSessionCookies = cookies
             }
             waitingForBypass = false
             bypassDone = true
@@ -248,6 +249,12 @@ class PlayerMobileFragment : Fragment() {
 
         val fileName = uri.getFileName(requireContext()) ?: uri.toString()
 
+        val mediaUri = player.currentMediaItem?.localConfiguration?.uri
+        if (mediaUri == null || mediaUri.toString().isBlank()) {
+            Toast.makeText(requireContext(), R.string.player_subtitle_needs_playback, Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+
         val currentPosition = player.currentPosition
         val currentSubtitleConfigurations =
             player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
@@ -260,7 +267,7 @@ class PlayerMobileFragment : Fragment() {
             } ?: listOf()
         player.setMediaItem(
             MediaItem.Builder()
-                .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                .setUri(mediaUri)
                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                 .setSubtitleConfigurations(
                     currentSubtitleConfigurations
@@ -367,6 +374,20 @@ class PlayerMobileFragment : Fragment() {
                                 return@collect
                             }
 
+                            // Seed pasted/previous session cookies before the CF WebView.
+                            SerienStreamBypassHelper.applyStoredSessionCookies(bypassUrl)
+                            val stored = UserPreferences.serienStreamSessionCookies
+                            if (SerienStreamBypassHelper.looksLikeBypassSolved(stored)) {
+                                // Skip interactive bypass when a clearance cookie was pasted (#112/#117).
+                                waitingForBypass = false
+                                bypassDone = true
+                                lifecycleScope.launch {
+                                    delay(250)
+                                    viewModel.reloadServersAfterBypass()
+                                }
+                                return@collect
+                            }
+
                             waitingForBypass = true
                             bypassWebViewLauncher.launch(
                                 Intent(requireContext(), BypassWebViewActivity::class.java)
@@ -404,7 +425,16 @@ class PlayerMobileFragment : Fragment() {
                                 })
                                 .build()
                             binding.settings.setOnServerSelectedListener { server ->
-                                viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                                val selected = state.servers.find { server.id == it.id }
+                                if (selected == null) {
+                                    Toast.makeText(
+                                        requireContext(),
+                                        R.string.player_server_unavailable,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    return@setOnServerSelectedListener
+                                }
+                                viewModel.getVideo(selected)
                             }
                             val preferredServer = state.servers.firstOrNull {
                                 it.name.equals(args.preferredServerName, ignoreCase = true)
@@ -424,16 +454,13 @@ class PlayerMobileFragment : Fragment() {
                     }
 
                     is PlayerViewModel.State.LoadingVideo -> {
-                        player.setMediaItem(
-                            MediaItem.Builder()
-                                .setUri("".toUri())
-                                .setMediaMetadata(
-                                    MediaMetadata.Builder()
-                                        .setMediaServerId(state.server.id)
-                                        .build()
-                                )
-                                .build()
-                        )
+                        // Do not install an empty media URI — that leaves 0:00/0:00 with
+                        // playWhenReady looking like "Playing" while nothing can buffer.
+                        if (::player.isInitialized && !player.isPlaying) {
+                            player.playWhenReady = false
+                            player.stop()
+                            player.clearMediaItems()
+                        }
                     }
 
                     is PlayerViewModel.State.SuccessLoadingVideo -> {
@@ -515,6 +542,15 @@ class PlayerMobileFragment : Fragment() {
 
                     PlayerViewModel.SubtitleState.DownloadingOpenSubtitle -> {}
                     is PlayerViewModel.SubtitleState.SuccessDownloadingOpenSubtitle -> {
+                        val mediaUri = player.currentMediaItem?.localConfiguration?.uri
+                        if (mediaUri == null || mediaUri.toString().isBlank()) {
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.player_subtitle_needs_playback,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            return@collect
+                        }
                         val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
                         val currentPosition = player.currentPosition
                         val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
@@ -527,7 +563,7 @@ class PlayerMobileFragment : Fragment() {
                         } ?: listOf()
                         player.setMediaItem(
                             MediaItem.Builder()
-                                .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                .setUri(mediaUri)
                                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                                 .setSubtitleConfigurations(
                                     currentSubtitleConfigurations + MediaItem.SubtitleConfiguration.Builder(state.uri)
@@ -555,6 +591,15 @@ class PlayerMobileFragment : Fragment() {
 
                     PlayerViewModel.SubtitleState.DownloadingSubDLSubtitle -> {}
                     is PlayerViewModel.SubtitleState.SuccessDownloadingSubDLSubtitle -> {
+                        val mediaUri = player.currentMediaItem?.localConfiguration?.uri
+                        if (mediaUri == null || mediaUri.toString().isBlank()) {
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.player_subtitle_needs_playback,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            return@collect
+                        }
                         val fileName = state.uri.getFileName(requireContext()) ?: state.uri.toString()
                         val currentPosition = player.currentPosition
                         val currentSubtitleConfigurations = player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
@@ -567,7 +612,7 @@ class PlayerMobileFragment : Fragment() {
                         } ?: listOf()
                         player.setMediaItem(
                             MediaItem.Builder()
-                                .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                .setUri(mediaUri)
                                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                                 .setSubtitleConfigurations(
                                     currentSubtitleConfigurations + MediaItem.SubtitleConfiguration.Builder(state.uri)
@@ -1896,6 +1941,9 @@ class PlayerMobileFragment : Fragment() {
         }
         isCasting = true
         CastPlaybackHub.markCasting(true)
+        if (UserPreferences.castKeepScreenAwake) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun switchPlaybackToLocal() {
@@ -1918,6 +1966,7 @@ class PlayerMobileFragment : Fragment() {
         }
         isCasting = false
         CastPlaybackHub.markCasting(false)
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     private fun releasePlayer() {

@@ -39,6 +39,8 @@ import com.dskja.betterstreamflix.database.AppDatabase
 import com.dskja.betterstreamflix.download.DownloadQualityPreset
 import com.dskja.betterstreamflix.download.DownloadRepository
 import com.dskja.betterstreamflix.download.DownloadStorage
+import com.dskja.betterstreamflix.download.DownloadStorageLocation
+import com.dskja.betterstreamflix.download.StreamflixDownloadManager
 import com.dskja.betterstreamflix.providers.AnimeOnlineNinjaProvider
 import com.dskja.betterstreamflix.providers.FrenchStreamProvider
 import com.dskja.betterstreamflix.providers.GuardaFlixProvider
@@ -49,6 +51,7 @@ import com.dskja.betterstreamflix.providers.MStreamProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.providers.StreamingCommunityProvider
 import com.dskja.betterstreamflix.providers.TmdbProvider
+import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.CrashReporter
@@ -523,6 +526,16 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://www.patreon.com/BetterStreamflix"),
+                ),
+            )
+            true
+        }
+
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
             com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
                 requireContext(),
@@ -541,6 +554,30 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             UserPreferences.autoplay = newValue as Boolean
             true
         }
+
+        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.apply {
+            value = UserPreferences.downloadStorageLocation.name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                val location = DownloadStorageLocation.fromKey(newValue as String)
+                if (location != UserPreferences.downloadStorageLocation) {
+                    UserPreferences.downloadStorageLocation = location
+                    StreamflixDownloadManager.release()
+                    findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+                        DownloadStorage.absolutePathSummary(requireContext())
+                    findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+                        DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_download_storage_changed,
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+                true
+            }
+        }
+        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+            DownloadStorage.absolutePathSummary(requireContext())
 
         findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.apply {
             isChecked = UserPreferences.downloadWifiOnly
@@ -564,8 +601,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             value = UserPreferences.downloadMaxConcurrent.toString()
             summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
             setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadMaxConcurrent =
-                    (newValue as String).toIntOrNull() ?: 2
+                val max = (newValue as String).toIntOrNull() ?: 2
+                UserPreferences.downloadMaxConcurrent = max
+                StreamflixDownloadManager.setMaxParallel(requireContext(), max)
                 true
             }
         }
@@ -937,6 +975,21 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<SwitchPreference>("CAST_SUBTITLES_ENABLED")?.apply {
+            isChecked = UserPreferences.castSubtitlesEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castSubtitlesEnabled = newValue as Boolean
+                true
+            }
+        }
+        findPreference<SwitchPreference>("CAST_KEEP_SCREEN_AWAKE")?.apply {
+            isChecked = UserPreferences.castKeepScreenAwake
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castKeepScreenAwake = newValue as Boolean
+                true
+            }
+        }
+
         findPreference<Preference>("WATCHLIST_IMPORT_SERIENSTREAM")?.setOnPreferenceClickListener {
             startActivity(
                 Intent(requireContext(), WatchlistImportActivity::class.java).putExtra(
@@ -955,6 +1008,34 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 )
             )
             true
+        }
+
+        findPreference<EditTextPreference>("SERIENSTREAM_SESSION_COOKIES")?.apply {
+            fun refreshSummary() {
+                val cookies = UserPreferences.serienStreamSessionCookies
+                summary = if (cookies.isBlank()) {
+                    getString(R.string.settings_serienstream_session_cookies_empty)
+                } else {
+                    getString(R.string.settings_serienstream_session_cookies_set, cookies.length)
+                }
+            }
+            text = UserPreferences.serienStreamSessionCookies
+            refreshSummary()
+            setOnBindEditTextListener { editText ->
+                editText.minLines = 3
+                editText.hint = "cf_clearance=…; rememberLogin=…"
+                editText.setText(UserPreferences.serienStreamSessionCookies)
+                editText.setSelection(editText.text?.length ?: 0)
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                val value = (newValue as String).trim()
+                UserPreferences.serienStreamSessionCookies = value
+                if (value.isNotBlank()) {
+                    SerienStreamBypassHelper.applyStoredSessionCookies()
+                }
+                refreshSummary()
+                true
+            }
         }
 
         findPreference<SwitchPreferenceCompat>("ENABLE_TMDB")?.apply {

@@ -9,6 +9,7 @@ import com.dskja.betterstreamflix.BetterStreamflixApp
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.download.DownloadQualityPreset
+import com.dskja.betterstreamflix.download.DownloadStorageLocation
 import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.providers.Provider.Companion.providers
@@ -32,6 +33,9 @@ object UserPreferences {
         "s.to",
         "www.s.to",
         "serien.stream",
+        // Invalid TLS / parking as of 2026 — prefer serienstream.to / .cx (serien.domains).
+        "serienstream.sx",
+        "www.serienstream.sx",
     )
     private const val DEFAULT_MOFLIX_DOMAIN = "moflix-stream.xyz"
     private const val DEFAULT_STREAMINGCOMMUNITY_DOMAIN = "streamingunity.win"
@@ -185,6 +189,12 @@ object UserPreferences {
             Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
         }
 
+    var downloadStorageLocation: DownloadStorageLocation
+        get() = DownloadStorageLocation.fromKey(Key.DOWNLOAD_STORAGE_LOCATION.getString())
+        set(value) {
+            Key.DOWNLOAD_STORAGE_LOCATION.setString(value.name)
+        }
+
     /** Smart Downloads: auto-download the next episode after one finishes (opt-in). */
     var downloadSmartEnabled: Boolean
         get() = Key.DOWNLOAD_SMART_ENABLED.getBoolean() ?: false
@@ -264,6 +274,16 @@ object UserPreferences {
     var castEnabled: Boolean
         get() = Key.CAST_ENABLED.getBoolean() ?: true
         set(value) = Key.CAST_ENABLED.setBoolean(value)
+
+    /** Forward selected text tracks to Chromecast when available. */
+    var castSubtitlesEnabled: Boolean
+        get() = Key.CAST_SUBTITLES_ENABLED.getBoolean() ?: true
+        set(value) = Key.CAST_SUBTITLES_ENABLED.setBoolean(value)
+
+    /** Keep phone screen on briefly while a Cast session is active. */
+    var castKeepScreenAwake: Boolean
+        get() = Key.CAST_KEEP_SCREEN_AWAKE.getBoolean() ?: false
+        set(value) = Key.CAST_KEEP_SCREEN_AWAKE.setBoolean(value)
 
     var tmdbApiKey: String
         get() = Key.TMDB_API_KEY.getString() ?: ""
@@ -419,6 +439,17 @@ object UserPreferences {
         get() = Key.BYPASS_WS_ADVERTISED_HOST.getString() ?: ""
         set(value) {
             Key.BYPASS_WS_ADVERTISED_HOST.setString(value.trim())
+        }
+
+    /**
+     * Pasted SerienStream / Cloudflare session cookie header (`name=value; …`).
+     * Used for watchlist import restore and TV bypass when the phone↔TV QR path
+     * is unavailable (different WLAN / VPN / hotspot-as-AP).
+     */
+    var serienStreamSessionCookies: String
+        get() = Key.SERIENSTREAM_SESSION_COOKIES.getString() ?: ""
+        set(value) {
+            Key.SERIENSTREAM_SESSION_COOKIES.setString(value.trim())
         }
 
     enum class PlayerResize(
@@ -759,7 +790,10 @@ object UserPreferences {
         HOME_SUPPORT_CARD_DISMISSED,
         CATALOG_SORT_MODE,
         CAST_ENABLED,
+        CAST_SUBTITLES_ENABLED,
+        CAST_KEEP_SCREEN_AWAKE,
         BYPASS_WS_ADVERTISED_HOST,
+        SERIENSTREAM_SESSION_COOKIES,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
         FAVORITE_PROVIDERS,
@@ -769,6 +803,7 @@ object UserPreferences {
         DOWNLOAD_NOTIFY_COMPLETE,
         DOWNLOAD_FILTER_CURRENT_PROVIDER,
         DOWNLOAD_SOFT_LIMIT_GB,
+        DOWNLOAD_STORAGE_LOCATION,
         DOWNLOAD_SMART_ENABLED,
         DOWNLOAD_AUTO_DELETE_WATCHED;
 
