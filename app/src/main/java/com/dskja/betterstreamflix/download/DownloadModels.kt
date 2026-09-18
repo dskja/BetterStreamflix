@@ -47,5 +47,6 @@ enum class DownloadErrorCode {
     EXPIRED,
     FILE_MISSING,
     UNSUPPORTED,
+    EMPTY_RESPONSE,
     UNKNOWN,
 }

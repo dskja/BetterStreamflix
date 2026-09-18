@@ -6,6 +6,7 @@ import androidx.preference.Preference
 import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.support.SupportLinkOpener
+import com.dskja.betterstreamflix.support.SupportProvider
 import com.dskja.betterstreamflix.support.SupportUrls
 
 class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
@@ -41,6 +42,16 @@ class SettingsAboutTvFragment : LeanbackPreferenceFragmentCompat() {
 
         findPreference<Preference>("p_settings_github_sponsors")?.setOnPreferenceClickListener {
             SupportLinkOpener.open(requireContext(), SupportUrls.GITHUB_SPONSORS_URL, markAppreciation = true)
+            true
+        }
+
+        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.PATREON)
+            true
+        }
+
+        findPreference<Preference>("p_settings_discord")?.setOnPreferenceClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.DISCORD)
             true
         }
 

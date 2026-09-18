@@ -42,9 +42,7 @@ object SupportLinkOpener {
         if (provider.telegramDeepLink) {
             return openTelegram(context)
         }
-        val isSupportPayment = provider == SupportProvider.BUY_ME_A_COFFEE ||
-            provider == SupportProvider.GITHUB_SPONSORS
-        return open(context, provider.url, markAppreciation = isSupportPayment)
+        return open(context, provider.url, markAppreciation = provider.marksAppreciation)
     }
 
     fun openTelegram(context: Context): Boolean {

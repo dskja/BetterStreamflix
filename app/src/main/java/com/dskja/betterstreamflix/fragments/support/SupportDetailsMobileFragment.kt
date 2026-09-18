@@ -32,6 +32,15 @@ class SupportDetailsMobileFragment : Fragment() {
         binding.btnSupportDetailsCta.setOnClickListener {
             SupportLinkOpener.openProvider(requireContext(), SupportProvider.BUY_ME_A_COFFEE)
         }
+        binding.btnSupportDetailsPatreon.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.PATREON)
+        }
+        binding.btnSupportDetailsSponsors.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.GITHUB_SPONSORS)
+        }
+        binding.btnSupportDetailsDiscord.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.DISCORD)
+        }
     }
 
     override fun onDestroyView() {

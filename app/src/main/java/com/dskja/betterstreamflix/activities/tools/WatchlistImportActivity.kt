@@ -30,10 +30,12 @@ import com.dskja.betterstreamflix.providers.AniWorldProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.watchlist.WatchlistImporter
+import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,9 +60,6 @@ class WatchlistImportActivity : AppCompatActivity() {
         private const val TAG = "WatchlistImport"
         private const val PAGE_SETTLE_MS = 1_200L
         private const val SCROLL_ROUNDS = 8
-        private const val MODERN_UA =
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36"
     }
 
     private lateinit var webView: WebView
@@ -92,7 +91,16 @@ class WatchlistImportActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(ThemeManager.mobileThemeRes(UserPreferences.selectedTheme))
+        setTheme(
+            if (ExperimentalMobileDesign.enabled()) {
+                R.style.AppTheme_Mobile_Experimental
+            } else {
+                ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
+            },
+        )
+        if (ExperimentalMobileDesign.enabled()) {
+            DynamicColors.applyToActivityIfAvailable(this)
+        }
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_watchlist_import)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -182,14 +190,18 @@ class WatchlistImportActivity : AppCompatActivity() {
     }
 
     private fun setupWebView() {
+        webView.setBackgroundColor(android.graphics.Color.WHITE)
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
             loadWithOverviewMode = true
             useWideViewPort = true
+            loadsImagesAutomatically = true
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-            userAgentString = MODERN_UA.ifBlank { NetworkClient.USER_AGENT }
+            // Desktop UA helps SerienStream CF challenges that blank mobile WebViews.
+            userAgentString = WatchlistImporter.userAgentFor(source)
+                .ifBlank { NetworkClient.USER_AGENT }
             allowFileAccess = false
             allowContentAccess = false
             javaScriptCanOpenWindowsAutomatically = true
@@ -253,19 +265,37 @@ class WatchlistImportActivity : AppCompatActivity() {
     private fun updateLoginState(url: String?) {
         if (importing) return
         val cookies = cookieHeader()
+        if (source == WatchlistImporter.Source.SERIENSTREAM && cookies.isNotBlank()) {
+            SerienStreamBypassHelper.applyCookies("$hostBase/", cookies)
+            url?.takeIf { it.isNotBlank() }?.let {
+                SerienStreamBypassHelper.applyCookies(it, cookies)
+            }
+        }
         val leftLogin = url != null && !url.contains("/login", ignoreCase = true)
         val hasSession = looksLoggedIn(cookies)
+        val bypassSolved = source != WatchlistImporter.Source.SERIENSTREAM ||
+            SerienStreamBypassHelper.looksLikeBypassSolved(cookies)
         importButton.isEnabled = leftLogin || hasSession || cookies.isNotBlank()
         if (lastLoadError != null && !leftLogin && !hasSession) {
             statusView.text = getString(R.string.watchlist_import_failed, lastLoadError!!)
             return
         }
-        if (leftLogin && hasSession) {
-            statusView.setText(R.string.watchlist_import_ready)
-        } else if (leftLogin) {
-            statusView.setText(R.string.watchlist_import_ready_soft)
-        } else {
-            statusView.setText(R.string.watchlist_import_login_hint)
+        when {
+            source == WatchlistImporter.Source.SERIENSTREAM &&
+                cookies.isNotBlank() &&
+                !bypassSolved &&
+                !hasSession -> {
+                statusView.setText(R.string.bypass_status_challenge_pending)
+            }
+            leftLogin && hasSession -> {
+                statusView.setText(R.string.watchlist_import_ready)
+            }
+            leftLogin -> {
+                statusView.setText(R.string.watchlist_import_ready_soft)
+            }
+            else -> {
+                statusView.setText(R.string.watchlist_import_login_hint)
+            }
         }
     }
 
@@ -328,8 +358,14 @@ class WatchlistImportActivity : AppCompatActivity() {
             return
         }
         // Persist a working SerienStream cookie jar for TV / later sessions.
-        if (source == WatchlistImporter.Source.SERIENSTREAM && looksLoggedIn(cookies)) {
-            UserPreferences.serienStreamSessionCookies = cookies
+        if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            SerienStreamBypassHelper.applyCookies("$hostBase/", cookies)
+            webView.url?.takeIf { it.isNotBlank() }?.let {
+                SerienStreamBypassHelper.applyCookies(it, cookies)
+            }
+            if (looksLoggedIn(cookies) || SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
+                UserPreferences.serienStreamSessionCookies = cookies
+            }
         }
 
         importing = true

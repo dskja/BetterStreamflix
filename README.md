@@ -3,7 +3,7 @@
 <p align="center">
   <img src="./branding/ic_launcher-512.png" height="120px" alt="BetterStreamflix" />
   <br />
-  <strong>v1.1.1</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
+  <strong>v1.1.0</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
   <br />
   An actively maintained fork of Streamflix with extra fixes, providers and UX improvements for Android TV and mobile.
   <br />
@@ -14,9 +14,11 @@
   <br />
   <a href="https://t.me/BetterStreamflix">Telegram channel</a>
   ·
-  <a href="https://www.patreon.com/BetterStreamflix">Patreon</a>
+  <a href="https://discord.gg/R4F72rMUZ8">Discord</a>
   ·
   <a href="https://buymeacoffee.com/betterstreamflix">Buy me a coffee</a>
+  ·
+  <a href="https://www.patreon.com/BetterStreamflix">Patreon</a>
   ·
   <a href="https://github.com/sponsors/dskja">GitHub Sponsors</a>
   ·
@@ -28,7 +30,7 @@
 > **One-time goal: $25** · Status: **open**  
 > Personal basic costs during a tight stretch — so BetterStreamflix development can continue.  
 > Not hosting, APIs, or servers. This ask closes when reached.  
-> [Patreon](https://www.patreon.com/BetterStreamflix) · [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja)
+> [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [Patreon](https://www.patreon.com/BetterStreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja) · [Discord](https://discord.gg/R4F72rMUZ8)
 
 <details>
   <summary>Table of Contents</summary>
@@ -119,9 +121,11 @@ One-time goal of **$25** (open) for personal basic costs so development can cont
 
 | | |
 | --- | --- |
-| Patreon | https://www.patreon.com/BetterStreamflix |
 | Buy Me a Coffee | https://buymeacoffee.com/betterstreamflix |
+| Patreon | https://www.patreon.com/BetterStreamflix |
 | GitHub Sponsors | https://github.com/sponsors/dskja |
+| Discord | https://discord.gg/R4F72rMUZ8 |
+| Telegram | https://t.me/BetterStreamflix |
 
 ## Legal Disclaimer
 

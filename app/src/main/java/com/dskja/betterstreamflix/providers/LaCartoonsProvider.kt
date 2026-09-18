@@ -83,49 +83,89 @@ object LaCartoonsProvider : Provider, ProviderConfigUrl {
 
     override suspend fun getHome(): List<Category> {
         return try {
-            val shows = getTvShows(page = 1)
-            listOf(Category(name = "Series", list = shows))
+            val doc = service.getPage(baseUrl)
+            val groups = parseHomeGroups(doc)
+            when {
+                groups.size > 1 -> groups.mapIndexed { index, (title, list) ->
+                    Category(
+                        name = if (index == 0) Category.FEATURED else title,
+                        list = list,
+                    )
+                }
+                groups.size == 1 -> listOf(
+                    Category(name = Category.FEATURED, list = groups.first().second)
+                )
+                else -> {
+                    val shows = parseHomeShows(doc)
+                    if (shows.isEmpty()) emptyList()
+                    else listOf(Category(name = Category.FEATURED, list = shows))
+                }
+            }
         } catch (_: Exception) { emptyList() }
     }
 
-    private fun parseHomeShows(doc: Document): List<TvShow> {
-        val list = mutableListOf<TvShow>()
+    private fun parseHomeGroups(doc: Document): List<Pair<String, List<TvShow>>> {
         val containers = doc.select("div.conjuntos-series")
-        for (container in containers) {
-            val links = container.select("a[href^=/serie/], a[href*=/serie/]")
-            for (a in links) {
-                val href = a.attr("href")
-                if (href.isBlank() || href.contains("/capitulo", ignoreCase = true)) continue
-                val card = a.selectFirst("div.serie, div[class*=serie]") ?: continue
-                val img = card.selectFirst("img")?.attr("src").orEmpty()
-                val title = card.selectFirst("p.nombre-serie")?.text().orEmpty()
-                    .ifBlank { card.selectFirst("img")?.attr("alt").orEmpty() }
-                if (title.isBlank()) continue
-                val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
-                val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
-                list.add(
-                    TvShow(
-                        id = absoluteId,
-                        title = title,
-                        poster = absolutePoster,
-                        banner = absolutePoster,
-                    )
-                )
+        if (containers.isEmpty()) return emptyList()
+        val groups = mutableListOf<Pair<String, List<TvShow>>>()
+        containers.forEachIndexed { index, container ->
+            val heading = container.previousElementSibling()
+                ?.takeIf { it.tagName().matches(Regex("h[1-6]")) }
+                ?.text()?.trim().orEmpty()
+                .ifBlank {
+                    container.selectFirst("h1, h2, h3, h4, .titulo, .titulo-seccion")
+                        ?.text()?.trim().orEmpty()
+                }
+            val shows = parseShowsFromContainer(container)
+            if (shows.isNotEmpty()) {
+                groups += (heading.ifBlank { "Series ${index + 1}" }) to shows
             }
         }
-        if (list.isEmpty()) {
-            doc.select("a[href^=/serie/]").forEach { a ->
-                val href = a.attr("href")
-                if (href.isBlank() || href.contains("/capitulo", ignoreCase = true)) return@forEach
-                val title = a.selectFirst("p.nombre-serie")?.text()
-                    ?: a.selectFirst("img")?.attr("alt")
-                    ?: return@forEach
-                if (title.isBlank()) return@forEach
-                val img = a.selectFirst("img")?.attr("src").orEmpty()
-                val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
-                val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
-                list.add(TvShow(id = absoluteId, title = title, poster = absolutePoster, banner = absolutePoster))
-            }
+        return groups
+    }
+
+    private fun parseShowsFromContainer(container: Element): List<TvShow> {
+        val list = mutableListOf<TvShow>()
+        val links = container.select("a[href^=/serie/], a[href*=/serie/]")
+        for (a in links) {
+            val href = a.attr("href")
+            if (href.isBlank() || href.contains("/capitulo", ignoreCase = true)) continue
+            val card = a.selectFirst("div.serie, div[class*=serie]") ?: continue
+            val img = card.selectFirst("img")?.attr("src").orEmpty()
+            val title = card.selectFirst("p.nombre-serie")?.text().orEmpty()
+                .ifBlank { card.selectFirst("img")?.attr("alt").orEmpty() }
+            if (title.isBlank()) continue
+            val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
+            val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
+            list.add(
+                TvShow(
+                    id = absoluteId,
+                    title = title,
+                    poster = absolutePoster,
+                    banner = absolutePoster,
+                )
+            )
+        }
+        return list
+            .filter { it.id.isNotBlank() && it.title.isNotBlank() }
+            .distinctBy { it.id }
+    }
+
+    private fun parseHomeShows(doc: Document): List<TvShow> {
+        val fromGroups = parseHomeGroups(doc).flatMap { it.second }.distinctBy { it.id }
+        if (fromGroups.isNotEmpty()) return fromGroups
+        val list = mutableListOf<TvShow>()
+        doc.select("a[href^=/serie/]").forEach { a ->
+            val href = a.attr("href")
+            if (href.isBlank() || href.contains("/capitulo", ignoreCase = true)) return@forEach
+            val title = a.selectFirst("p.nombre-serie")?.text()
+                ?: a.selectFirst("img")?.attr("alt")
+                ?: return@forEach
+            if (title.isBlank()) return@forEach
+            val img = a.selectFirst("img")?.attr("src").orEmpty()
+            val absolutePoster = if (img.startsWith("http")) img else "$baseUrl$img"
+            val absoluteId = if (href.startsWith("http")) href else "$baseUrl$href"
+            list.add(TvShow(id = absoluteId, title = title, poster = absolutePoster, banner = absolutePoster))
         }
         return list
             .filter { it.id.isNotBlank() && it.title.isNotBlank() }

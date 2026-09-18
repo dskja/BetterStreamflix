@@ -26,6 +26,7 @@
     <string name="providers_all_languages">All languages</string>
     <string name="providers_favorites">Favorites</string>
     <string name="providers_choose_title">Choose a provider</string>
+    <string name="providers_choose_subtitle">Pick a source to browse movies and TV shows. Long-press to favorite.</string>
 
     <string name="main_menu_change_provider">Change provider</string>
     <string name="main_menu_search">Search</string>
@@ -144,6 +145,10 @@
     <string name="settings_view_crash_log_summary">Show the most recent local crash report</string>
     <string name="settings_view_crash_log_empty">No crash logs found</string>
     <string name="bypass_status_challenge_pending">Complete the challenge in the page (session cookies alone are not enough)</string>
+    <string name="player_tmdb_de_try_serienstream">No working German streams found here. This title may still be available on SerienStream.</string>
+    <string name="player_tmdb_de_switch_title">Try SerienStream?</string>
+    <string name="player_tmdb_de_switch_message">\"%1$s\" had no playable German servers on TMDb. Switch to SerienStream and search for it?</string>
+    <string name="player_tmdb_de_switch_cta">Switch to SerienStream</string>
     <string name="player_retry_later_message">Video currently unavailable on this provider. Please try again later</string>
     <string name="player_next_episode_up_next">Up next</string>
     <string name="player_next_episode_action">Play now</string>
@@ -890,4 +895,33 @@
     <string name="support_preview_title">Support UI Preview</string>
     <string name="support_preview_summary">Inspect premium support components</string>
     <string name="support_back_cd">Back</string>
+    <string name="settings_discord">Discord</string>
+    <string name="settings_discord_summary">Join the BetterStreamflix Discord community</string>
+    <string name="support_provider_patreon_title">Patreon</string>
+    <string name="support_provider_patreon_description">Support BetterStreamflix with a membership or a one-time contribution on Patreon.</string>
+    <string name="support_provider_patreon_cta">Support on Patreon</string>
+    <string name="support_provider_discord_title">Discord Community</string>
+    <string name="support_provider_discord_description">Chat with the community, share feedback and follow development updates live.</string>
+    <string name="support_provider_discord_cta">Join Discord</string>
+    <string name="support_details_body_extended">BetterStreamflix is open-source and ad-free. Support is completely optional — but every contribution helps keep momentum going.\n\nYour support helps with:\n• Continued feature development\n• Faster bug fixes and maintenance\n• Provider reliability improvements\n• Community tools and documentation\n\nWe never claim a donation was completed inside the app. External providers handle payments securely.</string>
+    <string name="support_details_helps_title">What your support helps with</string>
+    <string name="support_details_helps_features">Continued feature development and polish</string>
+    <string name="support_details_helps_bugs">Faster bug fixes and maintenance</string>
+    <string name="support_details_helps_providers">Provider reliability improvements</string>
+    <string name="support_details_helps_community">Community tools and documentation</string>
+    <string name="support_details_ways_title">Ways to support</string>
+    <string name="support_details_cta_hub">Explore support options</string>
+    <string name="about_screen_title">About BetterStreamflix</string>
+    <string name="about_screen_subtitle">Open-source streaming, built for the community.</string>
+    <string name="about_maintainer_label">Maintained by dskja</string>
+    <string name="crash_log_copy">Copy log</string>
+    <string name="crash_log_share">Share</string>
+    <string name="crash_log_copied">Crash log copied</string>
+    <string name="crash_log_clear">Clear logs</string>
+    <string name="crash_log_cleared">Crash logs cleared</string>
+    <string name="download_error_empty_response">The provider returned an empty response. Try another server or check your connection.</string>
+    <string name="download_error_no_episodes_queued">Could not queue any episodes for download.</string>
+    <string name="download_season_partial">Queued %1$d of %2$d episodes</string>
+    <string name="download_preparing">Preparing download…</string>
+    <string name="about_links_heading">Links &amp; community</string>
 </resources>

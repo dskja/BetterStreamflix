@@ -58,6 +58,14 @@ object CrashReporter {
         return runCatching { latest.readText() }.getOrNull()
     }
 
+    fun clearAll(context: Context): Boolean {
+        return runCatching {
+            val dir = crashDir(context)
+            dir.listFiles()?.forEach { it.delete() }
+            true
+        }.getOrDefault(false)
+    }
+
     fun hasRecentCrash(context: Context, withinMs: Long = 7L * 24 * 60 * 60 * 1000): Boolean {
         val latest = crashDir(context).listFiles()
             ?.filter { it.isFile }

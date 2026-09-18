@@ -59,7 +59,7 @@ class SupportStartupMobileDialog(
             SupportLinkOpener.openProvider(context, SupportProvider.BUY_ME_A_COFFEE)
         }
         binding.btnSupportStartupCommunity.setOnClickListener {
-            SupportLinkOpener.openProvider(context, SupportProvider.TELEGRAM)
+            SupportLinkOpener.openProvider(context, SupportProvider.DISCORD)
         }
         setOnDismissListener {
             persistNeverAgainIfChecked()

@@ -6,7 +6,8 @@
     android:background="@drawable/bg_support_hero_cinematic"
     android:minHeight="@dimen/support_hero_min_height"
     android:orientation="vertical"
-    android:padding="@dimen/support_page_padding">
+    android:padding="@dimen/support_page_padding"
+    android:paddingBottom="24dp">
 
     <ImageView
         android:id="@+id/iv_support_hero_logo"
@@ -48,14 +49,15 @@
 
         <TextView
             android:id="@+id/btn_support_hero_primary"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="@dimen/support_button_height"
+            android:layout_weight="1"
             android:background="@drawable/bg_support_btn_primary"
             android:focusable="true"
             android:gravity="center"
             android:minWidth="148dp"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             android:text="@string/support_hero_cta_primary"
             android:textColor="@color/support_on_accent"
             android:textSize="@dimen/support_text_cta"
@@ -63,15 +65,16 @@
 
         <TextView
             android:id="@+id/btn_support_hero_secondary"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="@dimen/support_button_height"
             android:layout_marginStart="10dp"
+            android:layout_weight="1"
             android:background="@drawable/bg_support_btn_secondary"
             android:focusable="true"
             android:gravity="center"
             android:minWidth="120dp"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:text="@string/support_hero_cta_secondary"
             android:textColor="@color/support_text_primary"
             android:textSize="@dimen/support_text_cta" />

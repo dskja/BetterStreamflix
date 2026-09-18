@@ -28,9 +28,22 @@ object WatchlistImporter {
     private const val TAG = "WatchlistImporter"
     const val MAX_PAGES = 40
 
+    /** Desktop UA helps SerienStream CF challenges that blank mobile WebViews / OkHttp. */
+    const val USER_AGENT_DESKTOP =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    const val USER_AGENT_MOBILE =
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
     enum class Source {
         SERIENSTREAM,
         ANIWORLD,
+    }
+
+    fun userAgentFor(source: Source): String = when (source) {
+        Source.SERIENSTREAM -> USER_AGENT_DESKTOP
+        Source.ANIWORLD -> USER_AGENT_MOBILE
     }
 
     data class Result(
@@ -281,7 +294,7 @@ object WatchlistImporter {
 
             for (url in urls) {
                 runCatching {
-                    val html = fetchHtml(url, cookieHeader, baseUrl)
+                    val html = fetchHtml(url, cookieHeader, baseUrl, source)
                     if (looksLikeLoginPage(html, url)) {
                         errors += "Not logged in (redirected to login)"
                         return@withContext Result(0, errors = errors)
@@ -306,7 +319,7 @@ object WatchlistImporter {
             if (pageItems.isEmpty()) {
                 if (page == 1) {
                     runCatching {
-                        val html = fetchHtml(baseUrl + "account", cookieHeader, baseUrl)
+                        val html = fetchHtml(baseUrl + "account", cookieHeader, baseUrl, source)
                         pageItems = parseItems(html, baseUrl, source)
                         pageHtml = html
                         pageUrl = baseUrl + "account"
@@ -481,11 +494,16 @@ object WatchlistImporter {
         return title
     }
 
-    private fun fetchHtml(url: String, cookieHeader: String, referer: String): String {
+    private fun fetchHtml(
+        url: String,
+        cookieHeader: String,
+        referer: String,
+        source: Source,
+    ): String {
         val request = Request.Builder()
             .url(url)
             .header("Cookie", cookieHeader)
-            .header("User-Agent", NetworkClient.USER_AGENT)
+            .header("User-Agent", userAgentFor(source))
             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
             .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7")
             .header("Referer", referer)

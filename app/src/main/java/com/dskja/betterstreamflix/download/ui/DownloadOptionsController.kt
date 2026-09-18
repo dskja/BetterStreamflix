@@ -41,35 +41,55 @@ import kotlin.coroutines.resume
 object DownloadOptionsController {
     fun enqueueMovie(fragment: Fragment, movie: Movie) {
         fragment.viewLifecycleOwner.lifecycleScope.launch {
-            handleOutcome(fragment, withContext(Dispatchers.IO) {
-                DownloadController.prepareMovie(fragment.requireContext(), movie)
-            })
+            val loading = showPreparing(fragment.requireActivity())
+            try {
+                handleOutcome(fragment, withContext(Dispatchers.IO) {
+                    DownloadController.prepareMovie(fragment.requireContext(), movie)
+                })
+            } finally {
+                loading.dismissQuietly()
+            }
         }
     }
 
     fun enqueueEpisode(fragment: Fragment, episode: Episode) {
         fragment.viewLifecycleOwner.lifecycleScope.launch {
-            handleOutcome(fragment, withContext(Dispatchers.IO) {
-                DownloadController.prepareEpisode(fragment.requireContext(), episode)
-            })
+            val loading = showPreparing(fragment.requireActivity())
+            try {
+                handleOutcome(fragment, withContext(Dispatchers.IO) {
+                    DownloadController.prepareEpisode(fragment.requireContext(), episode)
+                })
+            } finally {
+                loading.dismissQuietly()
+            }
         }
     }
 
     fun enqueueEpisode(context: Context, activity: Activity, episode: Episode, onNavigateDownloads: () -> Unit = {}) {
         activity.lifecycleScopeOrMain().launch {
-            val outcome = withContext(Dispatchers.IO) {
-                DownloadController.prepareEpisode(context, episode)
+            val loading = showPreparing(activity)
+            try {
+                val outcome = withContext(Dispatchers.IO) {
+                    DownloadController.prepareEpisode(context, episode)
+                }
+                handleOutcomeActivity(activity, outcome, onNavigateDownloads)
+            } finally {
+                loading.dismissQuietly()
             }
-            handleOutcomeActivity(activity, outcome, onNavigateDownloads)
         }
     }
 
     fun enqueueMovie(context: Context, activity: Activity, movie: Movie, onNavigateDownloads: () -> Unit = {}) {
         activity.lifecycleScopeOrMain().launch {
-            val outcome = withContext(Dispatchers.IO) {
-                DownloadController.prepareMovie(context, movie)
+            val loading = showPreparing(activity)
+            try {
+                val outcome = withContext(Dispatchers.IO) {
+                    DownloadController.prepareMovie(context, movie)
+                }
+                handleOutcomeActivity(activity, outcome, onNavigateDownloads)
+            } finally {
+                loading.dismissQuietly()
             }
-            handleOutcomeActivity(activity, outcome, onNavigateDownloads)
         }
     }
 
@@ -80,14 +100,19 @@ object DownloadOptionsController {
         video: Video,
     ) {
         fragment.viewLifecycleOwner.lifecycleScope.launch {
-            handleOutcome(fragment, withContext(Dispatchers.IO) {
-                DownloadController.prepareFromResolved(
-                    fragment.requireContext(),
-                    videoType,
-                    server,
-                    video,
-                )
-            })
+            val loading = showPreparing(fragment.requireActivity())
+            try {
+                handleOutcome(fragment, withContext(Dispatchers.IO) {
+                    DownloadController.prepareFromResolved(
+                        fragment.requireContext(),
+                        videoType,
+                        server,
+                        video,
+                    )
+                })
+            } finally {
+                loading.dismissQuietly()
+            }
         }
     }
 
@@ -99,22 +124,27 @@ object DownloadOptionsController {
     ) {
         fragment.viewLifecycleOwner.lifecycleScope.launch {
             maybeRequestNotifications(fragment.requireActivity())
-            val outcome = withContext(Dispatchers.IO) {
-                DownloadController.enqueueSeason(
-                    context = fragment.requireContext(),
-                    tvShow = tvShow,
-                    seasonNumber = seasonNumber,
-                    episodes = episodes,
-                ) { prepared ->
-                    val trackIdx = when (UserPreferences.downloadQualityPreset) {
-                        DownloadQualityPreset.DATA_SAVER ->
-                            prepared.trackOptions.lastIndex.coerceAtLeast(0)
-                        else -> 0
+            val loading = showPreparing(fragment.requireActivity())
+            try {
+                val outcome = withContext(Dispatchers.IO) {
+                    DownloadController.enqueueSeason(
+                        context = fragment.requireContext(),
+                        tvShow = tvShow,
+                        seasonNumber = seasonNumber,
+                        episodes = episodes,
+                    ) { prepared ->
+                        val trackIdx = when (UserPreferences.downloadQualityPreset) {
+                            DownloadQualityPreset.DATA_SAVER ->
+                                prepared.trackOptions.lastIndex.coerceAtLeast(0)
+                            else -> 0
+                        }
+                        0 to trackIdx
                     }
-                    0 to trackIdx
                 }
+                handleOutcome(fragment, outcome)
+            } finally {
+                loading.dismissQuietly()
             }
-            handleOutcome(fragment, outcome)
         }
     }
 
@@ -228,15 +258,18 @@ object DownloadOptionsController {
                 tracksJob = activity.lifecycleScopeOrMain().launch {
                     loading.visibility = View.VISIBLE
                     qualitySpinner.isEnabled = false
-                    val options = withContext(Dispatchers.IO) {
-                        DownloadController.prepareTrackOptions(activity, candidate.video)
+                    try {
+                        val options = withContext(Dispatchers.IO) {
+                            DownloadController.prepareTrackOptions(activity, candidate.video)
+                        }
+                        trackOptions.clear()
+                        trackOptions.addAll(options)
+                        currentPrepared = currentPrepared.copy(trackOptions = options, selectedServerIndex = position)
+                        bindQualitySpinner(options, defaultQualityIndex(options))
+                    } finally {
+                        qualitySpinner.isEnabled = true
+                        loading.visibility = View.GONE
                     }
-                    trackOptions.clear()
-                    trackOptions.addAll(options)
-                    currentPrepared = currentPrepared.copy(trackOptions = options, selectedServerIndex = position)
-                    bindQualitySpinner(options, defaultQualityIndex(options))
-                    qualitySpinner.isEnabled = true
-                    loading.visibility = View.GONE
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -307,7 +340,15 @@ object DownloadOptionsController {
             DownloadErrorCode.EXPIRED -> R.string.download_error_expired
             DownloadErrorCode.FILE_MISSING -> R.string.download_error_file_missing
             DownloadErrorCode.UNSUPPORTED -> R.string.download_error_unsupported
+            DownloadErrorCode.EMPTY_RESPONSE -> R.string.download_error_empty_response
             DownloadErrorCode.UNKNOWN -> null
+        }
+        // Also map raw JSON EOF messages that slipped through as UNKNOWN
+        if (res == null) {
+            val low = fallback.lowercase()
+            if (low.contains("end of input") || low.contains("character 0")) {
+                return context.getString(R.string.download_error_empty_response)
+            }
         }
         return res?.let { context.getString(it) } ?: fallback.ifBlank {
             context.getString(R.string.downloads_failed_generic)
@@ -321,6 +362,20 @@ object DownloadOptionsController {
             return
         }
         ActivityCompat.requestPermissions(activity, arrayOf(permission), 4209)
+    }
+
+    private fun showPreparing(activity: Activity): AlertDialog {
+        return AlertDialog.Builder(activity)
+            .setMessage(R.string.download_preparing)
+            .setCancelable(false)
+            .create()
+            .also { dialog ->
+                runCatching { dialog.show() }
+            }
+    }
+
+    private fun AlertDialog.dismissQuietly() {
+        runCatching { if (isShowing) dismiss() }
     }
 
     private fun toast(context: Context, message: String) {

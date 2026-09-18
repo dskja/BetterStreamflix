@@ -38,7 +38,6 @@ import com.dskja.betterstreamflix.utils.getCurrentFragment
 import com.dskja.betterstreamflix.utils.toActivity
 import java.util.Locale
 import com.dskja.betterstreamflix.utils.UserPreferences
-import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.database.AppDatabase
 
@@ -50,6 +49,8 @@ class CategoryViewHolder(
 
     private val context = itemView.context
     private lateinit var category: Category
+    private var swiperHandler: Handler? = null
+    private var swiperPageCallback: ViewPager2.OnPageChangeCallback? = null
 
     val childRecyclerView: RecyclerView?
         get() = when (_binding) {
@@ -88,8 +89,6 @@ class CategoryViewHolder(
         onTvShowLongClick: ((TvShow) -> Unit)?,
     ) {
         binding.tvCategoryTitle.text = category.name
-
-        com.dskja.betterstreamflix.utils.ExpMotion.staggerFirstFill(binding.rvCategory)
 
         binding.rvCategory.apply {
             val categoryAdapter = (adapter as? AppAdapter) ?: AppAdapter().also { adapter = it }
@@ -141,7 +140,12 @@ class CategoryViewHolder(
         onTvShowLongClick: ((TvShow) -> Unit)?,
     ) {
         binding.tvCategoryTitle.text = category.name
+
+        swiperPageCallback?.let { binding.vpCategorySwiper.unregisterOnPageChangeCallback(it) }
+        swiperPageCallback = null
+        swiperHandler?.removeCallbacksAndMessages(null)
         val handler = Handler(Looper.getMainLooper())
+        swiperHandler = handler
         handler.postDelayed(8_000) {
             binding.vpCategorySwiper.currentItem += 1
         }
@@ -195,7 +199,7 @@ class CategoryViewHolder(
             }
         }
 
-        binding.vpCategorySwiper.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+        val callback = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 val indicatorPosition = when (position) {
                     0 -> category.list.lastIndex
@@ -244,7 +248,9 @@ class CategoryViewHolder(
                     }
                 }
             }
-        })
+        }
+        swiperPageCallback = callback
+        binding.vpCategorySwiper.registerOnPageChangeCallback(callback)
     }
 
     private val expDotInactive: Int

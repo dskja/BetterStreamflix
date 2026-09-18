@@ -72,7 +72,7 @@ class ShowOptionsMobileDialog(
         }
 
         binding.btnOptionCancel.setOnClickListener {
-            hide()
+            dismiss()
         }
     }
 
@@ -120,7 +120,7 @@ class ShowOptionsMobileDialog(
                         )
                     }
                 }
-                hide()
+                dismiss()
             }
 
             visibility = when (context.toActivity()?.getCurrentFragment()) {
@@ -168,7 +168,7 @@ class ShowOptionsMobileDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -184,7 +184,7 @@ class ShowOptionsMobileDialog(
                 if (activity != null) {
                     DownloadOptionsController.enqueueEpisode(context, activity, episode)
                 }
-                hide()
+                dismiss()
             }
             visibility = View.VISIBLE
         }
@@ -238,7 +238,7 @@ class ShowOptionsMobileDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -274,7 +274,7 @@ class ShowOptionsMobileDialog(
                     UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                 }
 
-                hide()
+                dismiss()
             }
 
             visibility = when {
@@ -320,7 +320,7 @@ class ShowOptionsMobileDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -352,7 +352,7 @@ class ShowOptionsMobileDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -368,7 +368,7 @@ class ShowOptionsMobileDialog(
                 if (activity != null) {
                     DownloadOptionsController.enqueueMovie(context, activity, freshMovie)
                 }
-                hide()
+                dismiss()
             }
             visibility = View.VISIBLE
         }
@@ -388,7 +388,7 @@ class ShowOptionsMobileDialog(
                     UserDataCache.removeMovieFromContinueWatching(context, provider, freshMovie.id)
                 }
 
-                hide()
+                dismiss()
             }
 
             visibility = when {
@@ -405,7 +405,7 @@ class ShowOptionsMobileDialog(
                     movie.lastPlayedAtMillis = null
                     UserDataNotifier.notifyChanged()
                 }
-                hide()
+                dismiss()
             }
             visibility = if (recentlyWatchedAt != null) View.VISIBLE else View.GONE
         }
@@ -448,7 +448,7 @@ class ShowOptionsMobileDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = if (freshTvShow.isFavorite) {
@@ -474,7 +474,7 @@ class ShowOptionsMobileDialog(
                     tvShow.lastPlayedEpisodeId = null
                     UserDataNotifier.notifyChanged()
                 }
-                hide()
+                dismiss()
             }
             visibility = if (recentlyWatchedAt != null) View.VISIBLE else View.GONE
         }

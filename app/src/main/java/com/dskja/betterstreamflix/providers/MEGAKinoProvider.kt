@@ -185,23 +185,46 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
         val document = getService().getHome()
         val categories = mutableListOf<Category>()
 
-        val sections = document.select("section.sect")
-        val section = sections.find {
-            it.select("h2.sect__title").text().contains("Topaktuelle Neuheiten", ignoreCase = true)
-        } ?: sections.find {
-            it.select("div#dle-content a.poster.grid-item").isNotEmpty()
+        val sections = document.select("section.sect").filter {
+            it.select("a.poster.grid-item").isNotEmpty()
         }
+        val primary = sections.find {
+            it.select("h2.sect__title").text().contains("Topaktuelle Neuheiten", ignoreCase = true)
+        } ?: sections.firstOrNull()
 
-        if (section != null) {
-            val items = parseContentItems(section)
+        if (primary != null) {
+            val items = parseHomeSectionItems(primary)
             if (items.isNotEmpty()) {
-                val title = section.select("h2.sect__title").text().trim()
-                    .ifBlank { "Topaktuelle Neuheiten" }
-                categories.add(Category(name = title, list = items))
+                categories.add(Category(name = Category.FEATURED, list = items))
             }
         }
 
+        sections
+            .filter { it !== primary }
+            .forEach { section ->
+                val items = parseHomeSectionItems(section)
+                if (items.isEmpty()) return@forEach
+                val title = section.select("h2.sect__title").text().trim()
+                    .ifBlank { return@forEach }
+                categories.add(Category(name = title, list = items))
+            }
+
         return categories
+    }
+
+    private fun parseHomeSectionItems(section: Element): List<AppAdapter.Item> {
+        val fromContent = parseContentItems(section)
+        if (fromContent.isNotEmpty()) return fromContent
+        return section.select("a.poster.grid-item").mapNotNull { el ->
+            val href = el.attr("href")
+            val title = el.select("h3.poster__title").text().trim()
+            val posterPath = el.select("div.poster__img img").attr("data-src")
+                .ifBlank { el.select("div.poster__img img").attr("src") }
+            val posterUrl = absoluteUrl(posterPath)
+            if (href.isBlank() || title.isBlank()) null
+            else if (href.contains("/serials/")) TvShow(id = href, title = title, poster = posterUrl)
+            else Movie(id = href, title = title, poster = posterUrl)
+        }
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {

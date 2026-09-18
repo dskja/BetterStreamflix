@@ -544,6 +544,22 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.PATREON,
+            )
+            true
+        }
+
+        findPreference<Preference>("p_settings_discord")?.setOnPreferenceClickListener {
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.DISCORD,
+            )
+            true
+        }
+
         findPreference<Preference>("p_scan_resolver_qr")?.setOnPreferenceClickListener {
             scanResolverQrLauncher.launch(Intent(requireContext(), QrScannerActivity::class.java))
             true
@@ -1073,16 +1089,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("VIEW_CRASH_LOG")?.setOnPreferenceClickListener {
-            val text = CrashReporter.latestCrashText(requireContext())
-            if (text.isNullOrBlank()) {
-                Toast.makeText(requireContext(), R.string.settings_view_crash_log_empty, Toast.LENGTH_SHORT).show()
-            } else {
-                AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.settings_view_crash_log_title)
-                    .setMessage(text.take(8000))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
-            }
+            com.dskja.betterstreamflix.ui.CrashLogDialog.show(requireContext())
             true
         }
 
@@ -1866,6 +1873,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             UserPreferences.downloadMaxConcurrent.toString()
         findPreference<EditTextPreference>("DOWNLOAD_SOFT_LIMIT_GB")?.text =
             UserPreferences.downloadSoftLimitGb.toString()
+        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.value =
+            UserPreferences.downloadStorageLocation.name
+        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+            DownloadStorage.absolutePathSummary(requireContext())
         findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
             DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
         updateParentalControlPreferenceState()

@@ -780,33 +780,40 @@ class TmdbProvider(override val language: String) : Provider {
                 servers.add(VixSrcExtractor().server(videoType))
             }
             "de" -> {
-                // Existing direct extractors
-                servers.addAll(0, MoflixExtractor().servers(videoType))
-                if (videoType is Video.Type.Movie) {
-                    servers.add(EinschaltenExtractor().server(videoType))
-                }
-                VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
-
-                // Native German providers searched in parallel and routed via tmdbde: markers.
                 val targetTitle = when (videoType) {
                     is Video.Type.Movie -> videoType.title
                     is Video.Type.Episode -> videoType.tvShow.title
                 }
+                val originalTitle = runCatching { fetchGermanOriginalTitle(videoType) }.getOrNull()
+                val titleQueries = linkedSetOf(targetTitle).apply {
+                    if (!originalTitle.isNullOrBlank()) add(originalTitle)
+                }
+
+                // Prefer real German hosters first (SerienStream etc.) — extractors often
+                // return optimistic dead servers that waste failover into "not available".
                 val nativeProviders: List<Provider> = buildList {
+                    if (videoType is Video.Type.Episode) add(SerienStreamProvider)
                     add(KinoGerProvider)
                     add(HDFilmeProvider)
                     add(MEGAKinoProvider)
                     add(FilmPalastProvider)
                     if (videoType is Video.Type.Movie) add(FilmoProvider)
-                    if (videoType is Video.Type.Episode) add(SerienStreamProvider)
                 }
-                servers.addAll(
-                    resolveGermanNativeServers(
-                        providers = nativeProviders,
-                        targetTitle = targetTitle,
-                        videoType = videoType,
-                    ),
+                val nativeServers = resolveGermanNativeServers(
+                    providers = nativeProviders,
+                    titleQueries = titleQueries.toList(),
+                    videoType = videoType,
                 )
+                servers.addAll(nativeServers)
+
+                // Direct extractors as fallback when natives miss
+                runCatching { servers.addAll(MoflixExtractor().servers(videoType)) }
+                if (videoType is Video.Type.Movie) {
+                    runCatching { servers.add(EinschaltenExtractor().server(videoType)) }
+                }
+                runCatching {
+                    VideasyExtractor().server(videoType, language)?.let { servers.add(it) }
+                }
             }
             "fr" -> {
                 // Solo server francesi
@@ -992,46 +999,73 @@ class TmdbProvider(override val language: String) : Provider {
         return video
     }
 
+    private suspend fun fetchGermanOriginalTitle(videoType: Video.Type): String? {
+        return when (videoType) {
+            is Video.Type.Movie -> {
+                val id = videoType.id.toIntOrNull() ?: return null
+                TMDb3.Movies.details(movieId = id, language = "en").originalTitle
+                    ?.takeIf { it.isNotBlank() && !it.equals(videoType.title, ignoreCase = true) }
+            }
+            is Video.Type.Episode -> {
+                val id = videoType.tvShow.id.toIntOrNull() ?: return null
+                TMDb3.TvSeries.details(seriesId = id, language = "en").originalName
+                    ?.takeIf { it.isNotBlank() && !it.equals(videoType.tvShow.title, ignoreCase = true) }
+            }
+        }
+    }
+
     private suspend fun resolveGermanNativeServers(
         providers: List<Provider>,
-        targetTitle: String,
+        titleQueries: List<String>,
         videoType: Video.Type,
     ): List<Video.Server> = coroutineScope {
         providers.map { provider ->
             async {
                 runCatching {
                     withContext(Dispatchers.IO) {
-                        kotlinx.coroutines.withTimeout(15_000L) {
-                            val results = provider.search(targetTitle, 1)
-                            val best = results
-                                .mapNotNull { item ->
-                                    when {
-                                        videoType is Video.Type.Movie && item is Movie ->
-                                            item to germanTitleScore(item.title, targetTitle)
-                                        videoType is Video.Type.Episode && item is TvShow ->
-                                            item to germanTitleScore(item.title, targetTitle)
-                                        else -> null
+                        val timeoutMs = if (provider == SerienStreamProvider) 25_000L else 15_000L
+                        kotlinx.coroutines.withTimeout(timeoutMs) {
+                            var bestItem: AppAdapter.Item? = null
+                            var bestScore = 0
+                            for (query in titleQueries.filter { it.isNotBlank() }) {
+                                val results = runCatching { provider.search(query, 1) }
+                                    .getOrDefault(emptyList())
+                                for (item in results) {
+                                    val candidateTitle = when {
+                                        videoType is Video.Type.Movie && item is Movie -> item.title
+                                        videoType is Video.Type.Episode && item is TvShow -> item.title
+                                        else -> continue
+                                    }
+                                    val score = titleQueries.maxOf { germanTitleScore(candidateTitle, it) }
+                                    if (score > bestScore) {
+                                        bestScore = score
+                                        bestItem = item
                                     }
                                 }
-                                .filter { it.second >= 60 }
-                                .maxByOrNull { it.second }
-                                ?.first
-                                ?: return@withTimeout emptyList()
+                                if (bestScore >= 90) break
+                            }
+                            if (bestScore < 45 || bestItem == null) {
+                                Log.d(
+                                    "TmdbProvider",
+                                    "DE native miss ${provider.name}: bestScore=$bestScore queries=$titleQueries",
+                                )
+                                return@withTimeout emptyList()
+                            }
 
                             when (videoType) {
                                 is Video.Type.Movie -> {
-                                    val movie = best as Movie
+                                    val movie = bestItem as Movie
                                     provider.getServers(movie.id, videoType).map { server ->
                                         wrapGermanNativeServer(provider, server)
                                     }
                                 }
                                 is Video.Type.Episode -> {
-                                    val show = best as TvShow
+                                    val show = bestItem as TvShow
                                     val detailed = runCatching { provider.getTvShow(show.id) }.getOrDefault(show)
                                     val season = detailed.seasons.firstOrNull {
                                         it.number == videoType.season.number
                                     } ?: detailed.seasons.firstOrNull()
-                                    ?: return@withTimeout emptyList()
+                                        ?: return@withTimeout emptyList()
                                     val episodes = provider.getEpisodesBySeason(season.id)
                                     val episode = episodes.firstOrNull { it.number == videoType.number }
                                         ?: return@withTimeout emptyList()
@@ -1047,7 +1081,7 @@ class TmdbProvider(override val language: String) : Provider {
                                             poster = detailed.poster,
                                             banner = detailed.banner,
                                             releaseDate = null,
-                                            imdbId = null,
+                                            imdbId = detailed.imdbId ?: videoType.tvShow.imdbId,
                                         ),
                                         season = Video.Type.Episode.Season(
                                             number = season.number,
@@ -1070,10 +1104,12 @@ class TmdbProvider(override val language: String) : Provider {
 
     private fun wrapGermanNativeServer(provider: Provider, server: Video.Server): Video.Server {
         val key = germanProviderKey(provider)
+        // Keep original SerienStream play URL in src when present so CF host detection works;
+        // also embed episode path in id for bypass page construction under TMDb.
         return Video.Server(
             id = "$TMDB_DE_PREFIX$key:${server.id}",
             name = "${provider.name} • ${server.name}",
-            src = server.src,
+            src = server.src.ifBlank { server.id },
         )
     }
 
@@ -1119,15 +1155,35 @@ class TmdbProvider(override val language: String) : Provider {
                 .replace("ü", "ue")
                 .replace("ß", "ss")
                 .replace(Regex("[^a-z0-9]"), "")
+
+        fun words(value: String): Set<String> =
+            value.lowercase()
+                .replace("ä", "ae")
+                .replace("ö", "oe")
+                .replace("ü", "ue")
+                .replace("ß", "ss")
+                .replace(Regex("[^a-z0-9 ]"), " ")
+                .split(Regex("\\s+"))
+                .filter { it.length > 2 }
+                .toSet()
+
         val a = normalize(candidate)
         val b = normalize(target)
         if (a.isEmpty() || b.isEmpty()) return 0
-        return when {
-            a == b -> 100
-            a.startsWith(b) || b.startsWith(a) -> 80
-            a.contains(b) || b.contains(a) -> 60
-            else -> 0
-        }
+        if (a == b) return 100
+        if (a.startsWith(b) || b.startsWith(a)) return 85
+        val diff = kotlin.math.abs(a.length - b.length)
+        if ((a.contains(b) || b.contains(a)) && diff <= 8) return 75
+
+        val aw = words(candidate)
+        val bw = words(target)
+        if (aw.isEmpty() || bw.isEmpty()) return 0
+        if (aw == bw) return 95
+        if (aw.containsAll(bw) || bw.containsAll(aw)) return 80
+        val overlap = aw.intersect(bw).size
+        val needed = minOf(aw.size, bw.size)
+        if (needed > 0 && overlap * 2 >= needed) return 55
+        return 0
     }
 
     private fun getTranslation(key: String): String {

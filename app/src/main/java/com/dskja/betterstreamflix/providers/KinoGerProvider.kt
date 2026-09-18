@@ -213,7 +213,7 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         val document = getService().getHome()
         val items = parseShorts(document)
         if (items.isEmpty()) return emptyList()
-        return listOf(Category(name = "Kino Stream", list = items))
+        return listOf(Category(name = Category.FEATURED, list = items))
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {

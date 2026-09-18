@@ -15,6 +15,13 @@ import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.format
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -60,6 +67,8 @@ sealed class DownloadEnqueueOutcome {
 object DownloadController {
     private const val TAG = "DownloadController"
     private const val MAX_OPTION_SERVERS = 8
+    private const val RESOLVE_PARALLELISM = 3
+    private const val MIN_RESOLVED_CANDIDATES = 3
     private val helperExecutor = Executors.newSingleThreadExecutor()
 
     suspend fun prepareMovie(context: Context, movie: Movie): DownloadEnqueueOutcome =
@@ -323,7 +332,10 @@ object DownloadController {
         }
         repo.refreshSeasonPack(packId)
         if (started == 0) {
-            DownloadEnqueueOutcome.Failed(DownloadErrorCode.NO_SERVERS, "No episodes queued")
+            DownloadEnqueueOutcome.Failed(
+                DownloadErrorCode.NO_SERVERS,
+                "No episodes queued",
+            )
         } else {
             val pack = repo.getSeasonPack(packId)
             DownloadEnqueueOutcome.Started(
@@ -365,18 +377,35 @@ object DownloadController {
 
         val resolved = mutableListOf<ResolvedServerCandidate>()
         var lastError: Exception? = null
-        // Resolve several servers so the options dialog can switch hosters.
-        for (server in servers.take(MAX_OPTION_SERVERS)) {
-            try {
-                val video = provider.getVideo(server)
-                if (video.source.isBlank()) continue
-                if (isUnsupportedSource(video.source)) continue
-                if (looksLikeDrm(video.source)) continue
-                resolved += ResolvedServerCandidate(server, video)
-            } catch (e: Exception) {
-                lastError = e
-                Log.w(TAG, "getVideo failed for ${server.name}: ${e.message}")
+        val errorMutex = Mutex()
+        val resolvedMutex = Mutex()
+        // Resolve several servers in parallel so the options dialog can switch hosters.
+        coroutineScope {
+            val semaphore = Semaphore(RESOLVE_PARALLELISM)
+            val jobs = servers.take(MAX_OPTION_SERVERS).map { server ->
+                async {
+                    semaphore.withPermit {
+                        resolvedMutex.withLock {
+                            if (resolved.size >= MIN_RESOLVED_CANDIDATES) return@withPermit
+                        }
+                        try {
+                            val video = provider.getVideo(server)
+                            if (video.source.isBlank()) return@withPermit
+                            if (isUnsupportedSource(video.source)) return@withPermit
+                            if (looksLikeDrm(video.source)) return@withPermit
+                            resolvedMutex.withLock {
+                                if (resolved.size < MIN_RESOLVED_CANDIDATES) {
+                                    resolved += ResolvedServerCandidate(server, video)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            errorMutex.withLock { lastError = e }
+                            Log.w(TAG, "getVideo failed for ${server.name}: ${e.message}")
+                        }
+                    }
+                }
             }
+            jobs.awaitAll()
         }
 
         if (resolved.isEmpty()) {
@@ -536,16 +565,34 @@ object DownloadController {
 
     private fun classifyFailure(e: Exception): DownloadEnqueueOutcome.Failed {
         val msg = e.message.orEmpty()
+        val chain = generateSequence(e as Throwable?) { it.cause }
+            .mapNotNull { it.message }
+            .joinToString(" ")
+        val hay = "$msg $chain"
         val code = when {
-            msg.contains("cloudflare", true) || msg.contains("captcha", true) ||
-                msg.contains("Just a moment", true) -> DownloadErrorCode.CLOUDFLARE
-            msg.contains("403") || msg.contains("401") -> DownloadErrorCode.CLOUDFLARE
-            msg.contains("DRM", true) || msg.contains("Widevine", true) -> DownloadErrorCode.DRM
-            msg.contains("Unable to resolve host", true) || msg.contains("timeout", true) ->
+            hay.contains("end of input", true) ||
+                hay.contains("End of input", true) ||
+                (hay.contains("character 0", true) && hay.contains("input", true)) ||
+                hay.contains("Unexpected end", true) ||
+                hay.contains("empty response", true) ||
+                hay.contains("Empty body", true) -> DownloadErrorCode.EMPTY_RESPONSE
+            hay.contains("cloudflare", true) || hay.contains("captcha", true) ||
+                hay.contains("Just a moment", true) -> DownloadErrorCode.CLOUDFLARE
+            hay.contains("403") || hay.contains("401") -> DownloadErrorCode.CLOUDFLARE
+            hay.contains("DRM", true) || hay.contains("Widevine", true) -> DownloadErrorCode.DRM
+            hay.contains("Unable to resolve host", true) || hay.contains("timeout", true) ||
+                hay.contains("UnknownHost", true) || hay.contains("SocketTimeout", true) ->
                 DownloadErrorCode.NETWORK
+            hay.contains("No servers", true) || hay.contains("servers found", true) ->
+                DownloadErrorCode.NO_SERVERS
             else -> DownloadErrorCode.UNKNOWN
         }
-        return DownloadEnqueueOutcome.Failed(code, msg.ifBlank { code.name })
+        val display = when (code) {
+            DownloadErrorCode.EMPTY_RESPONSE -> "Empty response"
+            DownloadErrorCode.NO_SERVERS -> "No servers found"
+            else -> msg.ifBlank { code.name }
+        }
+        return DownloadEnqueueOutcome.Failed(code, display)
     }
 
     fun serializeVideoType(videoType: Video.Type): String {

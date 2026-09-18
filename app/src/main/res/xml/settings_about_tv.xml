@@ -41,6 +41,18 @@
 
     <Preference
         app:iconSpaceReserved="false"
+        app:key="p_settings_patreon"
+        app:title="@string/settings_patreon"
+        app:summary="@string/settings_patreon_summary" />
+
+    <Preference
+        app:iconSpaceReserved="false"
+        app:key="p_settings_discord"
+        app:title="@string/settings_discord"
+        app:summary="@string/settings_discord_summary" />
+
+    <Preference
+        app:iconSpaceReserved="false"
         app:key="p_settings_upstream"
         app:title="@string/settings_about_upstream"
         android:summary="github.com/streamflix-reborn2/streamflix" />

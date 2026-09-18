@@ -62,7 +62,7 @@ class ShowOptionsTvDialog(
         setContentView(binding.root)
 
         binding.btnOptionCancel.setOnClickListener {
-            hide()
+            dismiss()
         }
 
         when (show) {
@@ -126,7 +126,7 @@ class ShowOptionsTvDialog(
                         )
                     }
                 }
-                hide()
+                dismiss()
             }
 
             visibility = when (context.toActivity()?.getCurrentFragment()) {
@@ -176,7 +176,7 @@ class ShowOptionsTvDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -192,7 +192,7 @@ class ShowOptionsTvDialog(
                 if (activity != null) {
                     DownloadOptionsController.enqueueEpisode(context, activity, episode)
                 }
-                hide()
+                dismiss()
             }
             visibility = View.VISIBLE
         }
@@ -246,7 +246,7 @@ class ShowOptionsTvDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -281,7 +281,7 @@ class ShowOptionsTvDialog(
                     UserDataCache.removeEpisodeFromContinueWatching(context, provider, episode.id)
                 }
 
-                hide()
+                dismiss()
             }
 
             visibility = when {
@@ -328,7 +328,7 @@ class ShowOptionsTvDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -362,7 +362,7 @@ class ShowOptionsTvDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -378,7 +378,7 @@ class ShowOptionsTvDialog(
                 if (activity != null) {
                     DownloadOptionsController.enqueueMovie(context, activity, freshMovie)
                 }
-                hide()
+                dismiss()
             }
             visibility = View.VISIBLE
         }
@@ -398,7 +398,7 @@ class ShowOptionsTvDialog(
                     UserDataCache.removeMovieFromContinueWatching(context, provider, freshMovie.id)
                 }
 
-                hide()
+                dismiss()
             }
 
             visibility = when {
@@ -415,7 +415,7 @@ class ShowOptionsTvDialog(
                     movie.lastPlayedAtMillis = null
                     UserDataNotifier.notifyChanged()
                 }
-                hide()
+                dismiss()
             }
             visibility = if (recentlyWatchedAt != null) View.VISIBLE else View.GONE
         }
@@ -459,7 +459,7 @@ class ShowOptionsTvDialog(
                     }
                 }
 
-                hide()
+                dismiss()
             }
 
             text = when {
@@ -487,7 +487,7 @@ class ShowOptionsTvDialog(
                     tvShow.lastPlayedEpisodeId = null
                     UserDataNotifier.notifyChanged()
                 }
-                hide()
+                dismiss()
             }
             visibility = if (recentlyWatchedAt != null) View.VISIBLE else View.GONE
         }

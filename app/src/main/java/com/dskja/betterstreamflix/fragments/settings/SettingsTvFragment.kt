@@ -477,16 +477,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("VIEW_CRASH_LOG")?.setOnPreferenceClickListener {
-            val text = CrashReporter.latestCrashText(requireContext())
-            if (text.isNullOrBlank()) {
-                Toast.makeText(requireContext(), R.string.settings_view_crash_log_empty, Toast.LENGTH_SHORT).show()
-            } else {
-                AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.settings_view_crash_log_title)
-                    .setMessage(text.take(8000))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
-            }
+            com.dskja.betterstreamflix.ui.CrashLogDialog.show(requireContext())
             true
         }
 
@@ -637,21 +628,17 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://www.patreon.com/BetterStreamflix"),
-                ),
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.PATREON,
             )
             true
         }
 
-        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://www.patreon.com/BetterStreamflix"),
-                ),
+        findPreference<Preference>("p_settings_discord")?.setOnPreferenceClickListener {
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.DISCORD,
             )
             true
         }
@@ -682,6 +669,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                         DownloadStorage.absolutePathSummary(requireContext())
                     findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
                         DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_download_storage_changed,
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
                 true
             }
@@ -2288,6 +2280,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             UserPreferences.downloadSoftLimitGb.toString()
         findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
             DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+            DownloadStorage.absolutePathSummary(requireContext())
+        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.value =
+            UserPreferences.downloadStorageLocation.name
         
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->

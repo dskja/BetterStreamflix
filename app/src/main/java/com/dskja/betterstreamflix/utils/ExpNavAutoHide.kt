@@ -1,9 +1,10 @@
 package com.dskja.betterstreamflix.utils
 
+import com.dskja.betterstreamflix.R
+import androidx.recyclerview.widget.RecyclerView
+import androidx.core.widget.NestedScrollView
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.widget.NestedScrollView
-import androidx.recyclerview.widget.RecyclerView
 import com.dskja.betterstreamflix.activities.main.MainMobileActivity
 
 /**
@@ -15,6 +16,8 @@ object ExpNavAutoHide {
 
     fun attach(root: View) {
         if (!ExperimentalMobileDesign.enabled()) return
+        if (root.getTag(R.id.exp_nav_autohide_tag) == true) return
+        root.setTag(R.id.exp_nav_autohide_tag, true)
         findRecyclerView(root)?.let { attachRecyclerView(it) }
             ?: findNestedScrollView(root)?.let { attachScrollView(it) }
     }

@@ -160,7 +160,7 @@ object EinschaltenProvider : Provider, ProviderConfigUrl {
             val neueArray = neueJson.optJSONArray("data") ?: JSONArray()
             val neueMovies = parseMoviesFromJsonArray(neueArray)
             if (neueMovies.isNotEmpty()) {
-                categories.add(Category(name = "Neue Filme", list = neueMovies))
+                categories.add(Category(name = Category.FEATURED, list = neueMovies))
             }
 
             // Zuletzt hinzugefügte Filme
