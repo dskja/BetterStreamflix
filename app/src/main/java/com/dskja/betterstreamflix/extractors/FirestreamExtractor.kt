@@ -6,8 +6,9 @@ package com.dskja.betterstreamflix.extractors
  */
 class FirestreamExtractor : GenericPackedSourceExtractor() {
     override val name = "Firestream"
-    override val mainUrl = "https://firestream.to"
+    override val mainUrl = "https://firestream.site"
     override val aliasUrls = listOf(
+        "https://firestream.to",
         "https://firestream.click",
         "https://firestream.cam",
         "https://firestream.online",
