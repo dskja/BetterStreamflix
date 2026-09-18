@@ -1,52 +1,159 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/support_bg"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical"
-    android:padding="@dimen/support_page_padding">
+    android:fitsSystemWindows="true">
 
-    <ImageButton
-        android:id="@+id/btn_support_details_back"
-        android:layout_width="@dimen/support_close_size"
-        android:layout_height="@dimen/support_close_size"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/support_back_cd"
-        android:padding="8dp"
-        android:src="@drawable/ic_support_back"
-        android:tint="@color/support_text_primary"
-        tools:ignore="UseAppTint" />
-
-    <TextView
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:fontFamily="@font/manrope"
-        android:text="@string/support_details_title"
-        android:textColor="@color/support_text_primary"
-        android:textSize="@dimen/support_text_screen_title"
-        android:textStyle="bold" />
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="32dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:fontFamily="@font/manrope"
-        android:lineSpacingExtra="3dp"
-        android:text="@string/support_details_body"
-        android:textColor="@color/support_text_secondary"
-        android:textSize="@dimen/support_text_body" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/support_page_padding">
 
-    <TextView
-        android:id="@+id/btn_support_details_cta"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/support_button_height"
-        android:layout_marginTop="24dp"
-        android:background="@drawable/bg_support_btn_primary"
-        android:gravity="center"
-        android:text="@string/support_hero_cta_primary"
-        android:textColor="@color/support_on_accent"
-        android:textStyle="bold" />
-</LinearLayout>
+            <ImageButton
+                android:id="@+id/btn_support_details_back"
+                android:layout_width="@dimen/support_close_size"
+                android:layout_height="@dimen/support_close_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/support_back_cd"
+                android:padding="8dp"
+                android:src="@drawable/ic_support_back"
+                android:tint="@color/support_text_primary"
+                tools:ignore="UseAppTint" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_details_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_screen_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:fontFamily="@font/manrope"
+                android:lineSpacingExtra="4dp"
+                android:text="@string/support_details_body_extended"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_details_helps_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_support_card"
+                android:fontFamily="@font/manrope"
+                android:padding="14dp"
+                android:text="@string/support_details_helps_features"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_support_card"
+                android:fontFamily="@font/manrope"
+                android:padding="14dp"
+                android:text="@string/support_details_helps_bugs"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_support_card"
+                android:fontFamily="@font/manrope"
+                android:padding="14dp"
+                android:text="@string/support_details_helps_providers"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_support_card"
+                android:fontFamily="@font/manrope"
+                android:padding="14dp"
+                android:text="@string/support_details_helps_community"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_details_ways_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_support_details_cta"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/support_button_height"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_support_btn_primary"
+                android:gravity="center"
+                android:text="@string/support_provider_bmc_cta"
+                android:textColor="@color/support_on_accent"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_support_details_patreon"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/support_button_height"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_support_btn_secondary"
+                android:gravity="center"
+                android:text="@string/support_provider_patreon_cta"
+                android:textColor="@color/support_text_primary" />
+
+            <TextView
+                android:id="@+id/btn_support_details_sponsors"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/support_button_height"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_support_btn_secondary"
+                android:gravity="center"
+                android:text="@string/support_provider_sponsors_cta"
+                android:textColor="@color/support_text_primary" />
+
+            <TextView
+                android:id="@+id/btn_support_details_discord"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/support_button_height"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_support_btn_secondary"
+                android:gravity="center"
+                android:text="@string/support_provider_discord_cta"
+                android:textColor="@color/support_text_primary" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

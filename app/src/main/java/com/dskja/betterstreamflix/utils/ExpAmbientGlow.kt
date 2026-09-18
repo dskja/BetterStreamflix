@@ -37,9 +37,15 @@ object ExpAmbientGlow {
                     ColorUtils.setAlphaComponent(color, 0x00),
                 )
             }
-            target.alpha = 0f
             target.visibility = View.VISIBLE
-            target.animate().alpha(1f).setDuration(600).start()
+            // Prefer a short one-shot fade; skip restart if already visible.
+            if (target.alpha >= 0.7f) {
+                target.alpha = 0.85f
+                return@post
+            }
+            target.animate().cancel()
+            target.alpha = 0f
+            target.animate().alpha(0.85f).setDuration(280).start()
         }
     }
 }

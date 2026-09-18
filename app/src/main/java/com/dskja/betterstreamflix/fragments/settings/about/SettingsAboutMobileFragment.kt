@@ -1,43 +1,71 @@
 package com.dskja.betterstreamflix.fragments.settings.about
 
 import android.os.Bundle
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.dskja.betterstreamflix.BuildConfig
-import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.databinding.FragmentAboutMobileBinding
 import com.dskja.betterstreamflix.support.SupportLinkOpener
+import com.dskja.betterstreamflix.support.SupportProvider
 import com.dskja.betterstreamflix.support.SupportUrls
 
-class SettingsAboutMobileFragment : PreferenceFragmentCompat() {
+class SettingsAboutMobileFragment : Fragment() {
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.settings_about_mobile, rootKey)
-        displaySettingsAbout()
+    private var _binding: FragmentAboutMobileBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        _binding = FragmentAboutMobileBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    private fun displaySettingsAbout() {
-        findPreference<Preference>("p_settings_about_version")?.apply {
-            summary = getString(R.string.settings_about_version_name, BuildConfig.VERSION_NAME)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.tvAboutVersion.text = getString(
+            com.dskja.betterstreamflix.R.string.settings_about_version_name,
+            BuildConfig.VERSION_NAME,
+        )
+
+        binding.btnAboutBack.setOnClickListener {
+            findNavController().navigateUp()
         }
 
-        findPreference<Preference>("p_settings_github")?.setOnPreferenceClickListener {
+        binding.btnAboutGithub.setOnClickListener {
             SupportLinkOpener.open(requireContext(), SupportUrls.GITHUB_REPOSITORY_URL)
-            true
         }
-
-        findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
-            SupportLinkOpener.open(requireContext(), SupportUrls.BUY_ME_A_COFFEE_URL, markAppreciation = true)
-            true
+        binding.btnAboutBmc.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.BUY_ME_A_COFFEE)
         }
-
-        findPreference<Preference>("p_settings_github_sponsors")?.setOnPreferenceClickListener {
-            SupportLinkOpener.open(requireContext(), SupportUrls.GITHUB_SPONSORS_URL, markAppreciation = true)
-            true
+        binding.btnAboutSponsors.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.GITHUB_SPONSORS)
         }
-
-        findPreference<Preference>("p_settings_upstream")?.setOnPreferenceClickListener {
+        binding.btnAboutPatreon.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.PATREON)
+        }
+        binding.btnAboutDiscord.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.DISCORD)
+        }
+        binding.btnAboutTelegram.setOnClickListener {
+            SupportLinkOpener.openTelegram(requireContext())
+        }
+        binding.btnAboutUpstream.setOnClickListener {
             SupportLinkOpener.open(requireContext(), SupportUrls.UPSTREAM_REPOSITORY_URL)
-            true
         }
+        binding.btnAboutSupportHub.setOnClickListener {
+            runCatching { findNavController().navigate(com.dskja.betterstreamflix.R.id.support) }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

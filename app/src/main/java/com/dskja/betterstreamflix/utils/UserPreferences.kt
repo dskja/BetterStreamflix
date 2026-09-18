@@ -185,6 +185,14 @@ object UserPreferences {
             Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
         }
 
+    var downloadStorageLocation: com.dskja.betterstreamflix.download.DownloadStorageLocation
+        get() = com.dskja.betterstreamflix.download.DownloadStorageLocation.fromKey(
+            Key.DOWNLOAD_STORAGE_LOCATION.getString()
+        )
+        set(value) {
+            Key.DOWNLOAD_STORAGE_LOCATION.setString(value.name)
+        }
+
     /** Smart Downloads: auto-download the next episode after one finishes (opt-in). */
     var downloadSmartEnabled: Boolean
         get() = Key.DOWNLOAD_SMART_ENABLED.getBoolean() ?: false
@@ -770,7 +778,8 @@ object UserPreferences {
         DOWNLOAD_FILTER_CURRENT_PROVIDER,
         DOWNLOAD_SOFT_LIMIT_GB,
         DOWNLOAD_SMART_ENABLED,
-        DOWNLOAD_AUTO_DELETE_WATCHED;
+        DOWNLOAD_AUTO_DELETE_WATCHED,
+        DOWNLOAD_STORAGE_LOCATION;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

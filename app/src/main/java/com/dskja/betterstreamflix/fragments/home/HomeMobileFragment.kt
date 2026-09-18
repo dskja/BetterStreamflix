@@ -142,6 +142,8 @@ class HomeMobileFragment : Fragment() {
         }
 
         binding.ivProviderLogo.apply {
+            isClickable = true
+            isFocusable = true
             Glide.with(context)
                 .load(UserPreferences.currentProvider?.logo?.takeIf { it.isNotEmpty() }
                     ?: R.drawable.ic_provider_default_logo)
@@ -297,6 +299,7 @@ class HomeMobileFragment : Fragment() {
         appAdapter.submitList(homeItems)
 
         if (ExperimentalMobileDesign.enabled()) {
+            // One-shot enter only — skip continuous kenburns on the hero (expensive on mid devices).
             ExpMotion.startAnimation(binding.rvHome, R.anim.exp_fade_slide_up)
             binding.root.findViewById<View>(R.id.tv_home_brand)?.let {
                 ExpMotion.startAnimation(it, R.anim.exp_brand_reveal)
@@ -343,13 +346,17 @@ class HomeMobileFragment : Fragment() {
                     ): Boolean {
                         val bitmap = (resource as? android.graphics.drawable.BitmapDrawable)?.bitmap
                         binding.root.findViewById<View>(R.id.v_home_glow)?.let { glow ->
-                            ExpAmbientGlow.apply(bitmap, glow)
+                            // Soft static tint only — avoid re-triggering glow fade on every swipe.
+                            if (glow.tag != art) {
+                                glow.tag = art
+                                ExpAmbientGlow.apply(bitmap, glow)
+                            }
                         }
                         return false
                     }
                 })
                 .into(binding.ivHomeBackground)
-            ExpMotion.startAnimation(binding.ivHomeBackground, R.anim.exp_hero_kenburns)
+            // Kenburns removed: continuous scale animation caused jank on home scroll.
         } else {
             binding.ivHomeBackground.setImageResource(R.drawable.bg_exp_lumina_sky)
         }

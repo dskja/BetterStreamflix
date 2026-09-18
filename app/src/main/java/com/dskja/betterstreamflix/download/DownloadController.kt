@@ -323,7 +323,10 @@ object DownloadController {
         }
         repo.refreshSeasonPack(packId)
         if (started == 0) {
-            DownloadEnqueueOutcome.Failed(DownloadErrorCode.NO_SERVERS, "No episodes queued")
+            DownloadEnqueueOutcome.Failed(
+                DownloadErrorCode.NO_SERVERS,
+                "No episodes queued",
+            )
         } else {
             val pack = repo.getSeasonPack(packId)
             DownloadEnqueueOutcome.Started(
@@ -530,16 +533,34 @@ object DownloadController {
 
     private fun classifyFailure(e: Exception): DownloadEnqueueOutcome.Failed {
         val msg = e.message.orEmpty()
+        val chain = generateSequence(e as Throwable?) { it.cause }
+            .mapNotNull { it.message }
+            .joinToString(" ")
+        val hay = "$msg $chain"
         val code = when {
-            msg.contains("cloudflare", true) || msg.contains("captcha", true) ||
-                msg.contains("Just a moment", true) -> DownloadErrorCode.CLOUDFLARE
-            msg.contains("403") || msg.contains("401") -> DownloadErrorCode.CLOUDFLARE
-            msg.contains("DRM", true) || msg.contains("Widevine", true) -> DownloadErrorCode.DRM
-            msg.contains("Unable to resolve host", true) || msg.contains("timeout", true) ->
+            hay.contains("end of input", true) ||
+                hay.contains("End of input", true) ||
+                (hay.contains("character 0", true) && hay.contains("input", true)) ||
+                hay.contains("Unexpected end", true) ||
+                hay.contains("empty response", true) ||
+                hay.contains("Empty body", true) -> DownloadErrorCode.EMPTY_RESPONSE
+            hay.contains("cloudflare", true) || hay.contains("captcha", true) ||
+                hay.contains("Just a moment", true) -> DownloadErrorCode.CLOUDFLARE
+            hay.contains("403") || hay.contains("401") -> DownloadErrorCode.CLOUDFLARE
+            hay.contains("DRM", true) || hay.contains("Widevine", true) -> DownloadErrorCode.DRM
+            hay.contains("Unable to resolve host", true) || hay.contains("timeout", true) ||
+                hay.contains("UnknownHost", true) || hay.contains("SocketTimeout", true) ->
                 DownloadErrorCode.NETWORK
+            hay.contains("No servers", true) || hay.contains("servers found", true) ->
+                DownloadErrorCode.NO_SERVERS
             else -> DownloadErrorCode.UNKNOWN
         }
-        return DownloadEnqueueOutcome.Failed(code, msg.ifBlank { code.name })
+        val display = when (code) {
+            DownloadErrorCode.EMPTY_RESPONSE -> "Empty response"
+            DownloadErrorCode.NO_SERVERS -> "No servers found"
+            else -> msg.ifBlank { code.name }
+        }
+        return DownloadEnqueueOutcome.Failed(code, display)
     }
 
     fun serializeVideoType(videoType: Video.Type): String {

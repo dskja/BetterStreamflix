@@ -2,9 +2,13 @@ package com.dskja.betterstreamflix.activities.tools
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
@@ -51,16 +55,21 @@ class WatchlistImportActivity : AppCompatActivity() {
         }
     }
 
-    private val startUrl: String by lazy {
+    private val baseUrl: String by lazy {
         when (source) {
-            WatchlistImporter.Source.SERIENSTREAM -> {
-                val base = SerienStreamProvider.baseUrl.trimEnd('/')
-                "$base/login"
-            }
-            WatchlistImporter.Source.ANIWORLD -> {
-                val base = AniWorldProvider.baseUrl.trimEnd('/')
-                "$base/login"
-            }
+            WatchlistImporter.Source.SERIENSTREAM ->
+                SerienStreamProvider.baseUrl.trimEnd('/') + "/"
+            WatchlistImporter.Source.ANIWORLD ->
+                AniWorldProvider.baseUrl.trimEnd('/') + "/"
+        }
+    }
+
+    private val startUrl: String by lazy {
+        // Load site root first for SerienStream — Cloudflare often blanks /login
+        // when opened cold; landing on home then navigating to login is more reliable.
+        when (source) {
+            WatchlistImporter.Source.SERIENSTREAM -> baseUrl
+            WatchlistImporter.Source.ANIWORLD -> "${baseUrl.trimEnd('/')}/login"
         }
     }
 
@@ -105,11 +114,25 @@ class WatchlistImportActivity : AppCompatActivity() {
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.userAgentString =
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+        webView.setBackgroundColor(android.graphics.Color.WHITE)
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            loadsImagesAutomatically = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            // Desktop UA helps SerienStream CF challenges that blank mobile WebViews
+            userAgentString = when (source) {
+                WatchlistImporter.Source.SERIENSTREAM ->
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                WatchlistImporter.Source.ANIWORLD ->
+                    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+            }
+        }
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 progressBar.progress = newProgress
@@ -118,9 +141,38 @@ class WatchlistImportActivity : AppCompatActivity() {
             }
         }
         webView.webViewClient = object : WebViewClient() {
+            private var navigatedToLogin = false
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                statusView.setText(R.string.watchlist_import_login_hint)
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 importButton.isEnabled = true
+                // After SerienStream home loads, open login once
+                if (source == WatchlistImporter.Source.SERIENSTREAM &&
+                    !navigatedToLogin &&
+                    url != null &&
+                    !url.contains("/login", ignoreCase = true)
+                ) {
+                    navigatedToLogin = true
+                    view?.loadUrl("${baseUrl.trimEnd('/')}/login")
+                }
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?,
+            ) {
+                if (request?.isForMainFrame == true) {
+                    statusView.text = getString(
+                        R.string.watchlist_import_failed,
+                        error?.description?.toString() ?: "load error",
+                    )
+                }
             }
         }
         webView.loadUrl(startUrl)

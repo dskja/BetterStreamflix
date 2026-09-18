@@ -14,7 +14,11 @@
   <br />
   <a href="https://t.me/BetterStreamflix">Telegram channel</a>
   ·
+  <a href="https://discord.gg/R4F72rMUZ8">Discord</a>
+  ·
   <a href="https://buymeacoffee.com/betterstreamflix">Buy me a coffee</a>
+  ·
+  <a href="https://www.patreon.com/BetterStreamflix">Patreon</a>
   ·
   <a href="https://github.com/sponsors/dskja">GitHub Sponsors</a>
   ·
@@ -26,7 +30,7 @@
 > **One-time goal: $25** · Status: **open**  
 > Personal basic costs during a tight stretch — so BetterStreamflix development can continue.  
 > Not hosting, APIs, or servers. This ask closes when reached.  
-> [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja)
+> [Buy Me a Coffee](https://buymeacoffee.com/betterstreamflix) · [Patreon](https://www.patreon.com/BetterStreamflix) · [GitHub Sponsors](https://github.com/sponsors/dskja) · [Discord](https://discord.gg/R4F72rMUZ8)
 
 <details>
   <summary>Table of Contents</summary>
@@ -118,7 +122,10 @@ One-time goal of **$25** (open) for personal basic costs so development can cont
 | | |
 | --- | --- |
 | Buy Me a Coffee | https://buymeacoffee.com/betterstreamflix |
+| Patreon | https://www.patreon.com/BetterStreamflix |
 | GitHub Sponsors | https://github.com/sponsors/dskja |
+| Discord | https://discord.gg/R4F72rMUZ8 |
+| Telegram | https://t.me/BetterStreamflix |
 
 ## Legal Disclaimer
 

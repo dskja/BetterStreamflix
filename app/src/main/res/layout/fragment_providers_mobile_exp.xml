@@ -37,31 +37,48 @@
         android:gravity="center"
         android:letterSpacing="-0.02"
         android:text="@string/providers_choose_title"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
         android:textColor="?attr/colorOnSurface"
         android:textSize="30sp"
-        
-        app:layout_constraintBottom_toTopOf="@id/rv_providers"
+        app:layout_constraintBottom_toTopOf="@id/tv_providers_subtitle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/s_providers_language"
-        app:layout_constraintVertical_chainStyle="packed" 
-        android:textAppearance="?attr/textAppearanceTitleLarge"/>
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/tv_providers_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="36dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="36dp"
+        android:gravity="center"
+        android:text="@string/providers_choose_subtitle"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp"
+        app:layout_constraintBottom_toTopOf="@id/v_providers_rule"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_providers_label" />
 
     <View
+        android:id="@+id/v_providers_rule"
         android:layout_width="44dp"
         android:layout_height="3dp"
         android:layout_marginTop="13dp"
         android:background="@drawable/bg_exp_accent_rule"
+        app:layout_constraintBottom_toTopOf="@id/rv_providers"
         app:layout_constraintEnd_toEndOf="@id/tv_providers_label"
         app:layout_constraintStart_toStartOf="@id/tv_providers_label"
-        app:layout_constraintTop_toBottomOf="@id/tv_providers_label" />
+        app:layout_constraintTop_toBottomOf="@id/tv_providers_subtitle" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_providers"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="36dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="24dp"
         android:layout_marginEnd="36dp"
         android:clipToPadding="false"
         android:orientation="vertical"
@@ -71,7 +88,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_providers_label"
+        app:layout_constraintTop_toBottomOf="@id/v_providers_rule"
         app:spanCount="2"
         tools:itemCount="3"
         tools:listitem="@layout/item_provider_mobile_exp" />

@@ -474,16 +474,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("VIEW_CRASH_LOG")?.setOnPreferenceClickListener {
-            val text = CrashReporter.latestCrashText(requireContext())
-            if (text.isNullOrBlank()) {
-                Toast.makeText(requireContext(), R.string.settings_view_crash_log_empty, Toast.LENGTH_SHORT).show()
-            } else {
-                AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.settings_view_crash_log_title)
-                    .setMessage(text.take(8000))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
-            }
+            com.dskja.betterstreamflix.ui.CrashLogDialog.show(requireContext())
             true
         }
 
@@ -633,6 +624,22 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("p_settings_patreon")?.setOnPreferenceClickListener {
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.PATREON,
+            )
+            true
+        }
+
+        findPreference<Preference>("p_settings_discord")?.setOnPreferenceClickListener {
+            com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
+                requireContext(),
+                com.dskja.betterstreamflix.support.SupportProvider.DISCORD,
+            )
+            true
+        }
+
         findPreference<Preference>("p_settings_buy_me_a_coffee")?.setOnPreferenceClickListener {
             com.dskja.betterstreamflix.support.SupportLinkOpener.openProvider(
                 requireContext(),
@@ -646,6 +653,32 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             UserPreferences.autoplay = newValue as Boolean
             true
         }
+
+        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.apply {
+            value = UserPreferences.downloadStorageLocation.name
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                val location = com.dskja.betterstreamflix.download.DownloadStorageLocation.fromKey(
+                    newValue as String,
+                )
+                if (location != UserPreferences.downloadStorageLocation) {
+                    UserPreferences.downloadStorageLocation = location
+                    com.dskja.betterstreamflix.download.StreamflixDownloadManager.release()
+                    findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+                        DownloadStorage.absolutePathSummary(requireContext())
+                    findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
+                        DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_download_storage_changed,
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+                true
+            }
+        }
+        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+            DownloadStorage.absolutePathSummary(requireContext())
 
         findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.apply {
             isChecked = UserPreferences.downloadWifiOnly
@@ -2208,6 +2241,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             UserPreferences.downloadSoftLimitGb.toString()
         findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
             DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
+        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
+            DownloadStorage.absolutePathSummary(requireContext())
+        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.value =
+            UserPreferences.downloadStorageLocation.name
         
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->

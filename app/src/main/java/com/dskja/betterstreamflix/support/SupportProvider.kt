@@ -11,6 +11,7 @@ enum class SupportProvider(
     @DrawableRes val iconRes: Int,
     val url: String,
     val telegramDeepLink: Boolean = false,
+    val marksAppreciation: Boolean = false,
 ) {
     BUY_ME_A_COFFEE(
         titleRes = R.string.support_provider_bmc_title,
@@ -18,6 +19,7 @@ enum class SupportProvider(
         ctaRes = R.string.support_provider_bmc_cta,
         iconRes = R.drawable.ic_buy_me_a_coffee,
         url = SupportUrls.BUY_ME_A_COFFEE_URL,
+        marksAppreciation = true,
     ),
     GITHUB_SPONSORS(
         titleRes = R.string.support_provider_sponsors_title,
@@ -25,6 +27,22 @@ enum class SupportProvider(
         ctaRes = R.string.support_provider_sponsors_cta,
         iconRes = R.drawable.ic_github,
         url = SupportUrls.GITHUB_SPONSORS_URL,
+        marksAppreciation = true,
+    ),
+    PATREON(
+        titleRes = R.string.support_provider_patreon_title,
+        descriptionRes = R.string.support_provider_patreon_description,
+        ctaRes = R.string.support_provider_patreon_cta,
+        iconRes = R.drawable.ic_patreon,
+        url = SupportUrls.PATREON_URL,
+        marksAppreciation = true,
+    ),
+    DISCORD(
+        titleRes = R.string.support_provider_discord_title,
+        descriptionRes = R.string.support_provider_discord_description,
+        ctaRes = R.string.support_provider_discord_cta,
+        iconRes = R.drawable.ic_discord,
+        url = SupportUrls.DISCORD_URL,
     ),
     TELEGRAM(
         titleRes = R.string.support_provider_telegram_title,

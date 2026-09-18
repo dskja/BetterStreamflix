@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceScreen
         android:key="screen_content"
@@ -22,12 +23,6 @@
                 android:title="@string/settings_show_quarantined_providers_title"
                 android:summary="@string/settings_show_quarantined_providers_summary"
                 android:defaultValue="false" />
-
-            <Preference
-                android:key="VIEW_CRASH_LOG"
-                android:title="@string/settings_view_crash_log_title"
-                android:summary="@string/settings_view_crash_log_summary" />
-
 
             <EditTextPreference
                 android:key="TMDB_API_KEY"
@@ -175,6 +170,20 @@
         android:widgetLayout="@layout/preference_widget_chevron">
 
         <PreferenceCategory android:title="@string/settings_screen_downloads">
+
+            <ListPreference
+                android:key="DOWNLOAD_STORAGE_LOCATION"
+                android:title="@string/settings_download_storage_location"
+                android:summary="@string/settings_download_storage_location_summary"
+                android:entries="@array/download_storage_location_entries"
+                android:entryValues="@array/download_storage_location_values"
+                android:defaultValue="INTERNAL"
+                app:useSimpleSummaryProvider="true" />
+
+            <Preference
+                android:key="DOWNLOAD_STORAGE_PATH"
+                android:title="@string/settings_download_storage_path"
+                android:selectable="false" />
 
             <SwitchPreference
                 android:key="DOWNLOAD_WIFI_ONLY"
@@ -579,6 +588,23 @@
             android:key="p_settings_buy_me_a_coffee"
             android:title="@string/settings_buy_me_a_coffee"
             android:summary="@string/settings_buy_me_a_coffee_summary" />
+
+        <Preference
+            android:icon="@drawable/ic_patreon"
+            android:key="p_settings_patreon"
+            android:title="@string/settings_patreon"
+            android:summary="@string/settings_patreon_summary" />
+
+        <Preference
+            android:icon="@drawable/ic_discord"
+            android:key="p_settings_discord"
+            android:title="@string/settings_discord"
+            android:summary="@string/settings_discord_summary" />
+
+        <Preference
+            android:key="VIEW_CRASH_LOG"
+            android:title="@string/settings_view_crash_log_title"
+            android:summary="@string/settings_view_crash_log_summary" />
 
         <Preference
             android:icon="@drawable/ic_settings_about"
