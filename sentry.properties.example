@@ -4,3 +4,6 @@
 defaults.org=betterstreamflix
 defaults.project=betterstreamflix
 # auth.token=sntrys_YOUR_TOKEN_HERE
+
+# Optional: forward OpenTelemetry from other services via Collector
+# (same Sentry project). See otel-collector-config.yaml.

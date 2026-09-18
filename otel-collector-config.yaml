@@ -1,0 +1,43 @@
+# OpenTelemetry Collector → Sentry OTLP
+# Docs: https://docs.sentry.io/concepts/otlp/forwarding/pipelines/collector/
+#
+# The Android app already reports via the native Sentry SDK (DSN in manifests).
+# Use this Collector when other services (backends, workers, local OTel SDKs)
+# should forward logs/traces into the same Sentry project (betterstreamflix).
+#
+# Example:
+#   otelcol-contrib --config otel-collector-config.yaml
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 100
+
+exporters:
+  otlphttp:
+    logs_endpoint: https://o4512107753177088.ingest.de.sentry.io/api/4512107833655376/integration/otlp/v1/logs
+    traces_endpoint: https://o4512107753177088.ingest.de.sentry.io/api/4512107833655376/integration/otlp/v1/traces
+    headers:
+      x-sentry-auth: "sentry sentry_key=a725644155c0150523b89069e26ec38c"
+    compression: gzip
+    encoding: proto
+    timeout: 30s
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp]
