@@ -142,6 +142,24 @@ abstract class Extractor {
         private suspend fun extractOnce(link: String, server: Video.Server? = null): Video {
             var finalLink = link
 
+            // Optional Real-Debrid unrestrict for hoster / magnet links.
+            if (com.dskja.betterstreamflix.platform.debrid.DebridResolver.looksLikeHosterOrMagnet(finalLink)) {
+                when (
+                    val debrid = com.dskja.betterstreamflix.platform.debrid.DebridResolver.resolve(finalLink)
+                ) {
+                    is com.dskja.betterstreamflix.platform.debrid.DebridResult.Stream -> {
+                        Log.i("Extractor", "Debrid resolved: $finalLink")
+                        return Video(source = debrid.url, headers = debrid.headers.ifEmpty { null })
+                    }
+                    is com.dskja.betterstreamflix.platform.debrid.DebridResult.Pending -> {
+                        throw Exception("Debrid pending: ${debrid.message}")
+                    }
+                    is com.dskja.betterstreamflix.platform.debrid.DebridResult.Failure -> {
+                        Log.d("Extractor", "Debrid skip: ${debrid.reason}")
+                    }
+                }
+            }
+
             // Expand DE embed wrappers (meinecloud / firestream) to a concrete hoster URL.
             if (MeinecloudEmbedHelper.isEmbedWrapper(finalLink)) {
                 val resolved = MeinecloudEmbedHelper.resolveToHosterUrl(finalLink)

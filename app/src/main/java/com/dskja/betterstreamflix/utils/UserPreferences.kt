@@ -233,6 +233,87 @@ object UserPreferences {
             Key.FORCE_EXTRA_BUFFERING.setBoolean(value)
         }
 
+    // --- Full Platform: Trakt / Jellyfin / Plex / Debrid / Player backend ---
+
+    var traktEnabled: Boolean
+        get() = Key.TRAKT_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.TRAKT_ENABLED.setBoolean(value)
+        }
+
+    var traktClientId: String
+        get() = Key.TRAKT_CLIENT_ID.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_CLIENT_ID.setString(value.ifBlank { null })
+        }
+
+    var traktAccessToken: String
+        get() = Key.TRAKT_ACCESS_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_ACCESS_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var jellyfinBaseUrl: String
+        get() = Key.JELLYFIN_BASE_URL.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_BASE_URL.setString(value.ifBlank { null })
+        }
+
+    var jellyfinAccessToken: String
+        get() = Key.JELLYFIN_ACCESS_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_ACCESS_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var jellyfinUserId: String
+        get() = Key.JELLYFIN_USER_ID.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_USER_ID.setString(value.ifBlank { null })
+        }
+
+    var jellyfinDeviceId: String
+        get() = Key.JELLYFIN_DEVICE_ID.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_DEVICE_ID.setString(value.ifBlank { null })
+        }
+
+    var plexBaseUrl: String
+        get() = Key.PLEX_BASE_URL.getString().orEmpty()
+        set(value) {
+            Key.PLEX_BASE_URL.setString(value.ifBlank { null })
+        }
+
+    var plexToken: String
+        get() = Key.PLEX_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.PLEX_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var plexClientId: String
+        get() = Key.PLEX_CLIENT_ID.getString().orEmpty()
+        set(value) {
+            Key.PLEX_CLIENT_ID.setString(value.ifBlank { null })
+        }
+
+    var debridEnabled: Boolean
+        get() = Key.DEBRID_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.DEBRID_ENABLED.setBoolean(value)
+        }
+
+    var realDebridToken: String
+        get() = Key.REAL_DEBRID_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.REAL_DEBRID_TOKEN.setString(value.ifBlank { null })
+        }
+
+    /** exo | mpv */
+    var playerBackend: String
+        get() = Key.PLAYER_BACKEND.getString() ?: "exo"
+        set(value) {
+            Key.PLAYER_BACKEND.setString(value.ifBlank { "exo" })
+        }
+
     var autoplayBuffer: Long
         get() = Key.AUTOPLAY_BUFFER.getLong() ?: 3L
         set(value) {
@@ -806,7 +887,20 @@ object UserPreferences {
         DOWNLOAD_SOFT_LIMIT_GB,
         DOWNLOAD_STORAGE_LOCATION,
         DOWNLOAD_SMART_ENABLED,
-        DOWNLOAD_AUTO_DELETE_WATCHED;
+        DOWNLOAD_AUTO_DELETE_WATCHED,
+        TRAKT_ENABLED,
+        TRAKT_CLIENT_ID,
+        TRAKT_ACCESS_TOKEN,
+        JELLYFIN_BASE_URL,
+        JELLYFIN_ACCESS_TOKEN,
+        JELLYFIN_USER_ID,
+        JELLYFIN_DEVICE_ID,
+        PLEX_BASE_URL,
+        PLEX_TOKEN,
+        PLEX_CLIENT_ID,
+        DEBRID_ENABLED,
+        REAL_DEBRID_TOKEN,
+        PLAYER_BACKEND;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

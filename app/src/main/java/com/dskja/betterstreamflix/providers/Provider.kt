@@ -130,6 +130,14 @@ interface Provider {
             HiAnimeProvider to ProviderSupport(movies = true, tvShows = true),
             UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true),
             AfterDarkProvider to ProviderSupport(movies = true, tvShows = true),
+            com.dskja.betterstreamflix.platform.jellyfin.JellyfinProvider to ProviderSupport(
+                movies = true,
+                tvShows = true,
+            ),
+            com.dskja.betterstreamflix.platform.plex.PlexProvider to ProviderSupport(
+                movies = true,
+                tvShows = true,
+            ),
         )
 
         // Helper functions to check support

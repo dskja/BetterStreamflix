@@ -92,6 +92,9 @@ class BetterStreamflixApp : Application() {
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
         CrashReporter.install(this)
+        runCatching {
+            com.dskja.betterstreamflix.platform.PlatformBootstrap.start(this)
+        }
         DnsResolver.setDnsUrl(UserPreferences.dohProviderUrl)
         // Rebuild after DoH is applied so the first TMDB call never uses system DNS.
         runCatching { TMDb3.rebuildService() }

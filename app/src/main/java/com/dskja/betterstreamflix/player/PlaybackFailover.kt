@@ -3,12 +3,14 @@ package com.dskja.betterstreamflix.player
 /**
  * Unified playback failover policy for mobile + TV.
  * Prefer the next hoster first; after servers are exhausted, retry once with software decoding.
+ * Optional third stage: hand off to an external MPV-capable player when enabled.
  */
 object PlaybackFailover {
 
     sealed class Action {
         data class TryNextServer(val nextIndex: Int) : Action()
         data object RetrySoftwareDecoder : Action()
+        data object TryExternalPlayer : Action()
         data object GiveUp : Action()
     }
 
@@ -18,10 +20,16 @@ object PlaybackFailover {
         playbackAlreadyStarted: Boolean,
         softwareDecoderAlreadyEnabled: Boolean,
         allowMidPlaybackFailover: Boolean = false,
+        externalPlayerAvailable: Boolean = false,
+        externalPlayerAlreadyTried: Boolean = false,
     ): Action {
         if (playbackAlreadyStarted && !allowMidPlaybackFailover) {
             // Mid-play URI clear on TV looks like a crash-to-home; stop cascading.
-            return if (!softwareDecoderAlreadyEnabled) Action.RetrySoftwareDecoder else Action.GiveUp
+            return when {
+                !softwareDecoderAlreadyEnabled -> Action.RetrySoftwareDecoder
+                externalPlayerAvailable && !externalPlayerAlreadyTried -> Action.TryExternalPlayer
+                else -> Action.GiveUp
+            }
         }
         // indexOf can return -1 when the server instance identity differs — treat as 0.
         val safeIndex = currentServerIndex.coerceAtLeast(0)
@@ -31,6 +39,9 @@ object PlaybackFailover {
         }
         if (!softwareDecoderAlreadyEnabled) {
             return Action.RetrySoftwareDecoder
+        }
+        if (externalPlayerAvailable && !externalPlayerAlreadyTried) {
+            return Action.TryExternalPlayer
         }
         return Action.GiveUp
     }

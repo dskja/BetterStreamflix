@@ -508,6 +508,9 @@ class PlayerMobileFragment : Fragment() {
                                 playbackAlreadyStarted = false,
                                 softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
                                 allowMidPlaybackFailover = true,
+                                externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
+                                    com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
+                                externalPlayerAlreadyTried = currentExternalPlayerTried,
                             )
                         ) {
                             is PlaybackFailover.Action.TryNextServer -> {
@@ -522,6 +525,19 @@ class PlayerMobileFragment : Fragment() {
                                     Toast.LENGTH_SHORT,
                                 ).show()
                                 viewModel.getVideo(state.server)
+                            }
+                            PlaybackFailover.Action.TryExternalPlayer -> {
+                                currentExternalPlayerTried = true
+                                val video = currentVideo
+                                if (video != null) {
+                                    com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                                        requireContext(),
+                                        video.source,
+                                        video.headers.orEmpty(),
+                                    )
+                                } else {
+                                    viewModel.getVideo(state.server)
+                                }
                             }
                             PlaybackFailover.Action.GiveUp -> {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
@@ -1103,6 +1119,16 @@ class PlayerMobileFragment : Fragment() {
         currentServer = server
         updatePlayerHeader()
 
+        if (com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal()) {
+            currentExternalPlayerTried = true
+            com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                requireContext(),
+                video.source,
+                video.headers.orEmpty(),
+            )
+            return
+        }
+
         val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
 
         val softwareDecoder = PlayerSettingsView.Settings.SoftwareDecoder.isEnabled
@@ -1361,6 +1387,9 @@ class PlayerMobileFragment : Fragment() {
                         playbackAlreadyStarted = ::player.isInitialized && player.hasStarted(),
                         softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
                         allowMidPlaybackFailover = true,
+                        externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
+                            com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
+                        externalPlayerAlreadyTried = currentExternalPlayerTried,
                     )
                 ) {
                     is PlaybackFailover.Action.TryNextServer -> {
@@ -1381,6 +1410,17 @@ class PlayerMobileFragment : Fragment() {
                                 Toast.LENGTH_SHORT,
                             ).show()
                             displayVideo(video, server)
+                        }
+                    }
+                    PlaybackFailover.Action.TryExternalPlayer -> {
+                        currentExternalPlayerTried = true
+                        val video = currentVideo
+                        if (video != null) {
+                            com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                                requireContext(),
+                                video.source,
+                                video.headers.orEmpty(),
+                            )
                         }
                     }
                     PlaybackFailover.Action.GiveUp -> {
@@ -1776,6 +1816,7 @@ class PlayerMobileFragment : Fragment() {
 
     private var currentExtraBuffering = false
     private var currentSoftwareDecoder = false
+    private var currentExternalPlayerTried = false
 
     private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
         return PlayerBuilderFactory.build(

@@ -934,4 +934,40 @@
     <string name="download_season_partial">Queued %1$d of %2$d episodes</string>
     <string name="download_preparing">Preparing download…</string>
     <string name="about_links_heading">Links &amp; community</string>
+
+    <!-- Full Platform -->
+    <string name="platform_settings_title">Platform</string>
+    <string name="platform_settings_summary">Trakt, Jellyfin, Plex, Debrid and player backend</string>
+    <string name="platform_settings_saved">Platform setting saved</string>
+    <string name="platform_player_category">Player backend</string>
+    <string name="platform_player_backend_title">Playback engine</string>
+    <string name="platform_player_backend_summary">ExoPlayer (built-in) or external MPV-compatible player</string>
+    <string name="platform_player_backend_exo">ExoPlayer (Media3)</string>
+    <string name="platform_player_backend_mpv">MPV / external player</string>
+    <string name="platform_trakt_category">Trakt</string>
+    <string name="platform_trakt_enabled_title">Enable Trakt scrobbling</string>
+    <string name="platform_trakt_enabled_summary">Sync watch progress and favorites to Trakt.tv</string>
+    <string name="platform_trakt_client_id_title">Trakt client ID</string>
+    <string name="platform_trakt_client_id_summary">API app client id from trakt.tv</string>
+    <string name="platform_trakt_token_title">Trakt access token</string>
+    <string name="platform_trakt_token_summary">OAuth access token</string>
+    <string name="platform_trakt_auth_help_title">Trakt device auth help</string>
+    <string name="platform_trakt_auth_help_summary">Open trakt.tv device authorization</string>
+    <string name="platform_jellyfin_category">Jellyfin</string>
+    <string name="platform_jellyfin_url_title">Jellyfin server URL</string>
+    <string name="platform_jellyfin_url_summary">https://jellyfin.example.com</string>
+    <string name="platform_jellyfin_user_id_title">Jellyfin user id</string>
+    <string name="platform_jellyfin_user_id_summary">User GUID from dashboard</string>
+    <string name="platform_jellyfin_token_title">Jellyfin access token</string>
+    <string name="platform_jellyfin_token_summary">API key / access token</string>
+    <string name="platform_plex_category">Plex</string>
+    <string name="platform_plex_url_title">Plex server URL</string>
+    <string name="platform_plex_url_summary">http://192.168.x.x:32400</string>
+    <string name="platform_plex_token_title">Plex token</string>
+    <string name="platform_plex_token_summary">X-Plex-Token</string>
+    <string name="platform_debrid_category">Debrid</string>
+    <string name="platform_debrid_enabled_title">Enable Real-Debrid</string>
+    <string name="platform_debrid_enabled_summary">Unrestrict hoster links and magnets via RD</string>
+    <string name="platform_rd_token_title">Real-Debrid API token</string>
+    <string name="platform_rd_token_summary">Token from real-debrid.com/apitoken</string>
 </resources>

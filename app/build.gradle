@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         applicationId "com.dskja.betterstreamflix"
-        minSdk 21
+        minSdk 23
         targetSdk 35
         // SemVer display + monotonic Play/update code: major*10000 + minor*100 + patch
         versionCode 10101
@@ -111,7 +111,7 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.media3:media3-datasource-okhttp:1.8.0'
+    implementation 'androidx.media3:media3-datasource-okhttp:1.11.0'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.8.8'
@@ -127,13 +127,13 @@ dependencies {
     implementation 'com.caverock:androidsvg-aar:1.4'
     implementation 'org.chromium.net:cronet-embedded:119.6045.31'
 
-    implementation 'androidx.media3:media3-exoplayer:1.8.0'
-    implementation 'androidx.media3:media3-exoplayer-dash:1.8.0'
-    implementation 'androidx.media3:media3-exoplayer-hls:1.8.0'
-    implementation 'androidx.media3:media3-database:1.8.0'
-    implementation 'androidx.media3:media3-session:1.8.0'
-    implementation 'androidx.media3:media3-ui:1.8.0'
-    implementation 'androidx.media3:media3-cast:1.8.0'
+    implementation 'androidx.media3:media3-exoplayer:1.11.0'
+    implementation 'androidx.media3:media3-exoplayer-dash:1.11.0'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.11.0'
+    implementation 'androidx.media3:media3-database:1.11.0'
+    implementation 'androidx.media3:media3-session:1.11.0'
+    implementation 'androidx.media3:media3-ui:1.11.0'
+    implementation 'androidx.media3:media3-cast:1.11.0'
     implementation 'com.google.android.gms:play-services-cast-framework:21.5.0'
     implementation 'androidx.mediarouter:mediarouter:1.7.0'
 

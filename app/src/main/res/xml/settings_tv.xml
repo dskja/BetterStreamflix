@@ -480,6 +480,99 @@
     </PreferenceScreen>
 
     <PreferenceScreen
+        android:key="screen_platform"
+        android:title="@string/platform_settings_title"
+        android:summary="@string/platform_settings_summary"
+        android:widgetLayout="@layout/preference_widget_chevron">
+
+        <PreferenceCategory
+            android:key="pc_platform_player"
+            android:title="@string/platform_player_category">
+            <ListPreference
+                android:key="PLAYER_BACKEND"
+                android:title="@string/platform_player_backend_title"
+                android:summary="@string/platform_player_backend_summary"
+                android:entries="@array/player_backend_names"
+                android:entryValues="@array/player_backend_values"
+                android:defaultValue="exo" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_trakt"
+            android:title="@string/platform_trakt_category">
+            <SwitchPreference
+                android:key="TRAKT_ENABLED"
+                android:title="@string/platform_trakt_enabled_title"
+                android:summary="@string/platform_trakt_enabled_summary"
+                android:defaultValue="false" />
+            <EditTextPreference
+                android:key="TRAKT_CLIENT_ID"
+                android:title="@string/platform_trakt_client_id_title"
+                android:summary="@string/platform_trakt_client_id_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="TRAKT_ACCESS_TOKEN"
+                android:title="@string/platform_trakt_token_title"
+                android:summary="@string/platform_trakt_token_summary"
+                android:inputType="textPassword" />
+            <Preference
+                android:key="trakt_device_auth_help"
+                android:title="@string/platform_trakt_auth_help_title"
+                android:summary="@string/platform_trakt_auth_help_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_jellyfin"
+            android:title="@string/platform_jellyfin_category">
+            <EditTextPreference
+                android:key="JELLYFIN_BASE_URL"
+                android:title="@string/platform_jellyfin_url_title"
+                android:summary="@string/platform_jellyfin_url_summary"
+                android:inputType="textUri" />
+            <EditTextPreference
+                android:key="JELLYFIN_USER_ID"
+                android:title="@string/platform_jellyfin_user_id_title"
+                android:summary="@string/platform_jellyfin_user_id_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="JELLYFIN_ACCESS_TOKEN"
+                android:title="@string/platform_jellyfin_token_title"
+                android:summary="@string/platform_jellyfin_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_plex"
+            android:title="@string/platform_plex_category">
+            <EditTextPreference
+                android:key="PLEX_BASE_URL"
+                android:title="@string/platform_plex_url_title"
+                android:summary="@string/platform_plex_url_summary"
+                android:inputType="textUri" />
+            <EditTextPreference
+                android:key="PLEX_TOKEN"
+                android:title="@string/platform_plex_token_title"
+                android:summary="@string/platform_plex_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_debrid"
+            android:title="@string/platform_debrid_category">
+            <SwitchPreference
+                android:key="DEBRID_ENABLED"
+                android:title="@string/platform_debrid_enabled_title"
+                android:summary="@string/platform_debrid_enabled_summary"
+                android:defaultValue="false" />
+            <EditTextPreference
+                android:key="REAL_DEBRID_TOKEN"
+                android:title="@string/platform_rd_token_title"
+                android:summary="@string/platform_rd_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
         android:key="screen_cloud_sync"
         android:title="@string/cloud_sync_title"
         android:summary="@string/cloud_sync_screen_summary"
