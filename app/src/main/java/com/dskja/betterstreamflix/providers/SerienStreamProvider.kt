@@ -173,6 +173,10 @@ object SerienStreamProvider : Provider {
 
     private fun isRetryableDomainFailure(error: Throwable): Boolean {
         if (isSslFailure(error)) return true
+        val httpCode = (error as? retrofit2.HttpException)?.code()
+        if (httpCode == 403 || httpCode == 502 || httpCode == 503 || httpCode == 521 || httpCode == 522 || httpCode == 523) {
+            return true
+        }
         var current: Throwable? = error
         while (current != null) {
             when (current) {
@@ -187,7 +191,9 @@ object SerienStreamProvider : Provider {
                 message.contains("failed to connect") ||
                 message.contains("timeout") ||
                 message.contains("unable to resolve") ||
-                message.contains("cancelled")
+                message.contains("cancelled") ||
+                message.contains("cloudflare") ||
+                message.contains("just a moment")
             ) {
                 return true
             }
@@ -671,8 +677,24 @@ object SerienStreamProvider : Provider {
             } catch (_: Exception) {
                 SerienStreamService.buildUnsafe(currentBaseUrl()).getRedirectLink(playUrl)
             }
-            val finalUrl = (response.raw() as okhttp3.Response).request.url.toString()
-            finalUrl
+            val raw = response.raw() as okhttp3.Response
+            val finalUrl = raw.request.url.toString()
+            if (!isSerienStreamHost(finalUrl) && !finalUrl.contains("/r?", ignoreCase = true)) {
+                return finalUrl
+            }
+            // CF/ALTCHA gate often returns HTML with an iframe instead of an HTTP redirect.
+            val body = runCatching { response.body()?.string().orEmpty() }.getOrDefault("")
+            val fromIframe = Regex(
+                """(?:src|data-src)\s*=\s*["'](https?://[^"']+)["']""",
+                RegexOption.IGNORE_CASE,
+            ).findAll(body)
+                .map { it.groupValues[1] }
+                .firstOrNull { candidate ->
+                    !isSerienStreamHost(candidate) &&
+                        !candidate.contains("cloudflare", ignoreCase = true) &&
+                        !candidate.contains("youtube", ignoreCase = true)
+                }
+            fromIframe ?: finalUrl
         } catch (e: Exception) {
             Log.w("SerienStreamProvider", "resolvePlayUrl failed for $playUrl: ${e.message}")
             playUrl

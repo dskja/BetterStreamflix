@@ -176,9 +176,11 @@ class MainMobileActivity : FragmentActivity() {
         updateImmersiveMode()
 
         val navHost =
-            supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as NavHostFragment
-        val navController = navHost.navController
-        com.dskja.betterstreamflix.utils.SentryBootstrap.trackNavigation(navController)
+            supportFragmentManager.findFragmentById(R.id.nav_main_fragment) as? NavHostFragment
+        val navController = navHost?.navController
+        if (navController != null) {
+            com.dskja.betterstreamflix.utils.SentryBootstrap.trackNavigation(navController)
+        }
 
         if (BuildConfig.APP_LAYOUT == "tv" ||
             (BuildConfig.APP_LAYOUT != "mobile" &&
@@ -186,6 +188,11 @@ class MainMobileActivity : FragmentActivity() {
         ) {
             finish()
             startActivity(Intent(this, MainTvActivity::class.java))
+            return
+        }
+
+        if (navHost == null || navController == null) {
+            android.util.Log.e("MainMobileActivity", "NavHostFragment missing — aborting setup")
             return
         }
 

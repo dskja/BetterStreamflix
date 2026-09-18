@@ -26,6 +26,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
+import com.dskja.betterstreamflix.providers.KinoGerProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
@@ -324,6 +325,7 @@ class BypassWebViewActivity : AppCompatActivity() {
 
     private fun isAllowedBypassHost(url: String): Boolean {
         if (SerienStreamProvider.isSerienStreamHost(url)) return true
+        if (KinoGerProvider.isKinoGerHost(url)) return true
         val host = runCatching { Uri.parse(url).host.orEmpty().lowercase() }.getOrDefault("")
         return host == "challenges.cloudflare.com" ||
             host.endsWith(".cloudflare.com") ||
