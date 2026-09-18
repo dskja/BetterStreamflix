@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - SerienStream/AniWorld watchlist import: correct ID parsing, WebView HTML scrape, pagination, login/challenge detection
 - Hide floating search on Downloads/Settings so the downloads gear is usable
-- FilmPalast SSL fallback via NetworkClient; SerienStream domain failover across known mirrors
+- FilmPalast SSL fallback via NetworkClient; SerienStream domain failover across known mirrors (incl. `.cx`; deprecate dead `.sx`; bypass cookie seed uses live hosts only)
 - Player no longer installs an empty media URI while loading a server (fake 0:00/0:00 playing state)
 - Home soft-fails when catalog fetch fails so continue-watching/favorites still render
 - AnimeFLV default domain → animeflv.vc; TioAnime → tioanime.top; SoloLatino browser headers refreshed

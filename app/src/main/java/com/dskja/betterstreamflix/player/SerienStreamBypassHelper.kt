@@ -31,9 +31,13 @@ object SerienStreamBypassHelper {
             if (host.isNotBlank()) {
                 add("https://$host/")
                 add("http://$host/")
-                // Also seed common SerienStream hosts so OkHttp/WebView share the session.
-                add("https://s.to/")
+                // Seed known-good SerienStream hosts so OkHttp/WebView share the session.
+                // Do not seed dead s.to / broken-TLS serienstream.sx.
                 add("https://serienstream.to/")
+                add("https://serienstream.cx/")
+                SerienStreamProvider.candidateDomains().forEach { domain ->
+                    add("https://$domain/")
+                }
             }
         }
         val cookieManager = CookieManager.getInstance()
