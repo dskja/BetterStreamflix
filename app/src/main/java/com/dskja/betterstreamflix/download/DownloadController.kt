@@ -537,6 +537,12 @@ object DownloadController {
         if (!DownloadStorage.hasEnoughSpace(context)) {
             return DownloadEnqueueOutcome.Failed(DownloadErrorCode.NOSPACE, "Not enough storage")
         }
+        if (DownloadStorage.isOverSoftLimit(context)) {
+            return DownloadEnqueueOutcome.Failed(
+                DownloadErrorCode.NOSPACE,
+                "Download soft limit reached — free space or raise the limit in Settings",
+            )
+        }
         if (UserPreferences.downloadWifiOnly && DownloadConnectivityMonitor.isMetered(context)) {
             return DownloadEnqueueOutcome.Failed(DownloadErrorCode.WIFI_REQUIRED, "Wi-Fi required")
         }

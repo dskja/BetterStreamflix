@@ -146,7 +146,7 @@ class PlayerViewModel(
             ) {
                 UserPreferences.currentProvider!!.getVideo(server)
             }
-            if (video.source.isEmpty()) throw Exception("No source found")
+            if (video.source.isBlank()) throw Exception("No source found")
 
             // LOGICA SOTTOTITOLI GLOBALE: 
             // Se il provider non ha già impostato un default (es. i "forced" in spagnolo),

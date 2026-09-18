@@ -197,6 +197,12 @@ class PlayerTvFragment : Fragment() {
 
         val fileName = uri.getFileName(requireContext()) ?: uri.toString()
 
+        val mediaUri = player.currentMediaItem?.localConfiguration?.uri
+        if (mediaUri == null || mediaUri.toString().isBlank()) {
+            Toast.makeText(requireContext(), R.string.player_subtitle_needs_playback, Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+
         val currentPosition = player.currentPosition
         val currentSubtitleConfigurations =
             player.currentMediaItem?.localConfiguration?.subtitleConfigurations?.map {
@@ -209,7 +215,7 @@ class PlayerTvFragment : Fragment() {
             } ?: listOf()
         player.setMediaItem(
             MediaItem.Builder()
-                .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                .setUri(mediaUri)
                 .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                 .setSubtitleConfigurations(
                     currentSubtitleConfigurations
@@ -300,7 +306,30 @@ class PlayerTvFragment : Fragment() {
                         }
                         if (sToServer != null && !waitingForBypass && !bypassDone) {
                             val bypassUrl = buildSerienStreamBypassUrl(servers)
-                            if (!bypassUrl.isNullOrBlank()) {
+                            if (bypassUrl.isNullOrBlank()) {
+                                clearBypassSession(resetBypassDone = true)
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Unable to prepare TV bypass page.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@collect
+                            }
+
+                            // Pasted cookies: skip QR when clearance is already present (#112/#117).
+                            SerienStreamBypassHelper.applyStoredSessionCookies(bypassUrl)
+                            val stored = UserPreferences.serienStreamSessionCookies
+                            if (SerienStreamBypassHelper.looksLikeBypassSolved(stored)) {
+                                waitingForBypass = false
+                                bypassDone = true
+                                applyBypassCookies(sToServer.id, stored)
+                                lifecycleScope.launch {
+                                    delay(250)
+                                    viewModel.reloadServersAfterBypass()
+                                }
+                                return@collect
+                            }
+
                             waitingForBypass = true
 
                             val session = BypassSession(
@@ -364,7 +393,6 @@ class PlayerTvFragment : Fragment() {
                             }
 
                             return@collect
-                            }
                         }
 
 
@@ -403,7 +431,16 @@ class PlayerTvFragment : Fragment() {
                             })
                             .build()
                         binding.settings.setOnServerSelectedListener { server ->
-                            viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                            val selected = state.servers.find { server.id == it.id }
+                            if (selected == null) {
+                                Toast.makeText(
+                                    requireContext(),
+                                    R.string.player_server_unavailable,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                return@setOnServerSelectedListener
+                            }
+                            viewModel.getVideo(selected)
                         }
                         val preferredServer = state.servers.firstOrNull {
                             it.name.equals(args.preferredServerName, ignoreCase = true)
@@ -421,20 +458,12 @@ class PlayerTvFragment : Fragment() {
                         }
 
                         is PlayerViewModel.State.LoadingVideo -> {
-                            // Avoid clearing a playing stream to an empty URI when switching
-                            // servers mid-playback (causes silence then a jump back to the menu
-                            // when subsequent servers also fail — especially on Fire TV Stick).
-                            if (!::player.isInitialized || !player.isPlaying) {
-                                player.setMediaItem(
-                                    MediaItem.Builder()
-                                        .setUri("".toUri())
-                                        .setMediaMetadata(
-                                            MediaMetadata.Builder()
-                                                .setMediaServerId(state.server.id)
-                                                .build()
-                                        )
-                                        .build()
-                                )
+                            // Avoid installing an empty URI (0:00/0:00 "Playing" dead state)
+                            // and avoid clearing an already-playing stream when switching servers.
+                            if (::player.isInitialized && !player.isPlaying) {
+                                player.playWhenReady = false
+                                player.stop()
+                                player.clearMediaItems()
                             }
                         }
 
@@ -534,6 +563,15 @@ class PlayerTvFragment : Fragment() {
 
                             PlayerViewModel.SubtitleState.DownloadingOpenSubtitle -> {}
                             is PlayerViewModel.SubtitleState.SuccessDownloadingOpenSubtitle -> {
+                                val mediaUri = player.currentMediaItem?.localConfiguration?.uri
+                                if (mediaUri == null || mediaUri.toString().isBlank()) {
+                                    Toast.makeText(
+                                        requireContext(),
+                                        R.string.player_subtitle_needs_playback,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    return@collect
+                                }
                                 val fileName =
                                     state.uri.getFileName(requireContext()) ?: state.uri.toString()
                                 val currentPosition = player.currentPosition
@@ -548,7 +586,7 @@ class PlayerTvFragment : Fragment() {
                                     } ?: listOf()
                                 player.setMediaItem(
                                     MediaItem.Builder()
-                                        .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                        .setUri(mediaUri)
                                         .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                                         .setSubtitleConfigurations(
                                             currentSubtitleConfigurations
@@ -584,6 +622,15 @@ class PlayerTvFragment : Fragment() {
 
                             PlayerViewModel.SubtitleState.DownloadingSubDLSubtitle -> {}
                             is PlayerViewModel.SubtitleState.SuccessDownloadingSubDLSubtitle -> {
+                                val mediaUri = player.currentMediaItem?.localConfiguration?.uri
+                                if (mediaUri == null || mediaUri.toString().isBlank()) {
+                                    Toast.makeText(
+                                        requireContext(),
+                                        R.string.player_subtitle_needs_playback,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    return@collect
+                                }
                                 val fileName =
                                     state.uri.getFileName(requireContext()) ?: state.uri.toString()
                                 val currentPosition = player.currentPosition
@@ -598,7 +645,7 @@ class PlayerTvFragment : Fragment() {
                                     } ?: listOf()
                                 player.setMediaItem(
                                     MediaItem.Builder()
-                                        .setUri(player.currentMediaItem?.localConfiguration?.uri)
+                                        .setUri(mediaUri)
                                         .setMimeType(player.currentMediaItem?.localConfiguration?.mimeType)
                                         .setSubtitleConfigurations(
                                             currentSubtitleConfigurations
@@ -2165,6 +2212,9 @@ class PlayerTvFragment : Fragment() {
 
         clearBypassSession(dismissDialog = true)
         applyBypassCookies(session.serverUrl, cookies)
+        if (!cookies.isNullOrBlank()) {
+            UserPreferences.serienStreamSessionCookies = cookies.trim()
+        }
 
         lifecycleScope.launch {
             delay(300)

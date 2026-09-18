@@ -369,6 +369,18 @@
                 android:summary="@string/settings_cast_enabled_summary"
                 android:defaultValue="true"
                 app:iconSpaceReserved="false" />
+            <SwitchPreference
+                android:key="CAST_SUBTITLES_ENABLED"
+                android:title="@string/settings_cast_subtitles"
+                android:summary="@string/settings_cast_subtitles_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
+            <SwitchPreference
+                android:key="CAST_KEEP_SCREEN_AWAKE"
+                android:title="@string/settings_cast_keep_screen_awake"
+                android:summary="@string/settings_cast_keep_screen_awake_summary"
+                android:defaultValue="false"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
 
@@ -393,6 +405,14 @@
                 android:key="WATCHLIST_IMPORT_ANIWORLD"
                 android:title="@string/settings_watchlist_import_aniworld"
                 android:summary="@string/settings_watchlist_import_summary"
+                app:iconSpaceReserved="false" />
+
+            <EditTextPreference
+                android:key="SERIENSTREAM_SESSION_COOKIES"
+                android:title="@string/settings_serienstream_session_cookies"
+                android:summary="@string/settings_serienstream_session_cookies_summary"
+                android:dialogTitle="@string/settings_serienstream_session_cookies"
+                android:inputType="textMultiLine"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
@@ -758,6 +778,13 @@
             android:icon="@drawable/ic_telegram"
             android:key="p_settings_telegram"
             android:title="@string/settings_telegram"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:icon="@drawable/ic_patreon"
+            android:key="p_settings_patreon"
+            android:title="@string/settings_patreon"
+            android:summary="@string/settings_patreon_summary"
             app:iconSpaceReserved="false" />
 
         <Preference

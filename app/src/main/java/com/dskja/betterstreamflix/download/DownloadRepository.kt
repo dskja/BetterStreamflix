@@ -117,7 +117,7 @@ class DownloadRepository private constructor(
         val headersJson = JSONObject(headers as Map<*, *>).toString()
 
         DownloadHeaderStore.put(context, media3Id, headers)
-        DownloadHeaderStore.putForUrl(context, streamUrl, headers)
+        DownloadHeaderStore.putForUrl(context, streamUrl, headers, media3Id = media3Id)
         StreamflixDownloadManager.dataSourceFactory(context).apply {
             activeMedia3Id = media3Id
             activeHeaders = headers

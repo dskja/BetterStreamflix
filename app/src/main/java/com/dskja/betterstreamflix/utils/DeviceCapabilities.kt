@@ -24,9 +24,36 @@ object DeviceCapabilities {
         return activityManager?.isLowRamDevice == true
     }
 
-    /** Fire Stick / low-RAM boxes struggle with huge ExoPlayer buffers and multi-channel audio. */
+    fun isLeanbackDevice(context: Context): Boolean =
+        runCatching {
+            context.packageManager.hasSystemFeature("android.software.leanback")
+        }.getOrDefault(false)
+
+    /** Xiaomi / OEM Android TV sticks that often crash on HW decoder init. */
+    fun isFragileTvOem(): Boolean {
+        val mfr = Build.MANUFACTURER.orEmpty()
+        val model = Build.MODEL.orEmpty()
+        return mfr.equals("Xiaomi", ignoreCase = true) ||
+            mfr.contains("skyworth", ignoreCase = true) ||
+            mfr.contains("amlogic", ignoreCase = true) ||
+            model.contains("MIBOX", ignoreCase = true) ||
+            model.contains("MiTV", ignoreCase = true) ||
+            model.contains("Mi Box", ignoreCase = true)
+    }
+
+    /** Fire Stick / low-RAM / fragile leanback boxes struggle with huge buffers and HW-only decode. */
     fun shouldUseConstrainedPlayback(context: Context): Boolean {
-        return isAmazonFireTv(context) || isLowRamDevice(context)
+        return isAmazonFireTv(context) ||
+            isLowRamDevice(context) ||
+            (isLeanbackDevice(context) && isFragileTvOem())
+    }
+
+    /** Prefer software/extension renderers from the first player build (TV crash mitigation). */
+    fun shouldPreferSoftwareDecoder(context: Context): Boolean {
+        return isAmazonFireTv(context) ||
+            isLeanbackDevice(context) ||
+            isFragileTvOem() ||
+            isLowRamDevice(context)
     }
 
     /**

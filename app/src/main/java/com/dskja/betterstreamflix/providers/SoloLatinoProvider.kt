@@ -61,7 +61,7 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
 
     private const val TAG = "SoloLatinoBypass"
     private const val BROWSER_UA =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
 
     private var webViewResolver: WebViewResolver? = null
     private val providerMutex = Mutex()
@@ -96,13 +96,19 @@ object SoloLatinoProvider : Provider, ProviderConfigUrl {
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .header("User-Agent", BROWSER_UA)
-                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
                     .header("Accept-Language", "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7")
                     .header("Referer", "$baseUrl/")
                     .header("Origin", baseUrl.trimEnd('/'))
+                    .header("Cache-Control", "no-cache")
+                    .header("Pragma", "no-cache")
+                    .header("Sec-Ch-Ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"")
+                    .header("Sec-Ch-Ua-Mobile", "?0")
+                    .header("Sec-Ch-Ua-Platform", "\"Windows\"")
                     .header("Sec-Fetch-Dest", "document")
                     .header("Sec-Fetch-Mode", "navigate")
-                    .header("Sec-Fetch-Site", "same-origin")
+                    .header("Sec-Fetch-Site", "none")
+                    .header("Sec-Fetch-User", "?1")
                     .header("Upgrade-Insecure-Requests", "1")
                     .build()
                 chain.proceed(request)

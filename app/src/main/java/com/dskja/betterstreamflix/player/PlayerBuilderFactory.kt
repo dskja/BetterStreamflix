@@ -52,17 +52,26 @@ object PlayerBuilderFactory {
             .build()
 
         val renderersFactory = SubtitleOffsetRenderersFactory(context).apply {
+            val preferSoftware =
+                options.softwareDecoder || DeviceCapabilities.shouldPreferSoftwareDecoder(context)
             // Always enable decoder fallback on modern devices and constrained TVs.
             // Silent hardware decoder failures on Xiaomi/Fire OS often crash to launcher.
             if (
                 Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1 ||
-                options.softwareDecoder ||
+                preferSoftware ||
                 constrained
             ) {
                 setEnableDecoderFallback(true)
             }
-            if (options.softwareDecoder) {
-                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            if (preferSoftware) {
+                // ON (not only PREFER) so TV boxes that hard-crash in HW codecs get FFmpeg first.
+                setExtensionRendererMode(
+                    if (DeviceCapabilities.isLeanbackDevice(context) || options.softwareDecoder) {
+                        DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+                    } else {
+                        DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+                    },
+                )
             }
         }
 

@@ -338,7 +338,9 @@ class MainMobileActivity : FragmentActivity() {
         binding.btnMainSearch.visibility = if (
             UserPreferences.currentProvider != null &&
             isTopLevelProviderDestination(destinationId) &&
-            destinationId != R.id.search
+            destinationId != R.id.search &&
+            destinationId != R.id.downloads &&
+            destinationId != R.id.settings
         ) View.VISIBLE else View.GONE
         runCatching {
             val mini = binding.root.findViewById<View>(R.id.cast_mini_controller)

@@ -9,7 +9,7 @@ import com.google.android.gms.cast.framework.media.CastMediaOptions
 import com.google.android.gms.cast.framework.media.NotificationOptions
 
 /**
- * Default Cast Media Receiver with notification + expanded controller.
+ * Default Cast Media Receiver with notification + expanded controller + reconnect.
  * Registered via AndroidManifest meta-data OPTIONS_PROVIDER_CLASS_NAME.
  */
 class CastOptionsProvider : OptionsProvider {

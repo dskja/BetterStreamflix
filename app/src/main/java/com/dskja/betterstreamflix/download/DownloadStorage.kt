@@ -15,22 +15,49 @@ object DownloadStorage {
 
     fun downloadsDir(context: Context): File {
         val app = context.applicationContext
-        val dir = when (location()) {
+        val preferred = when (location()) {
             DownloadStorageLocation.INTERNAL ->
                 File(app.filesDir, DIR_NAME)
-            DownloadStorageLocation.APP_EXTERNAL -> {
-                val root = app.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
-                    ?: app.getExternalFilesDir(null)
-                    ?: app.filesDir
-                File(root, DIR_NAME)
-            }
-            DownloadStorageLocation.PUBLIC_MOVIES -> {
-                val movies = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-                File(File(movies, PUBLIC_FOLDER), DIR_NAME)
-            }
+            DownloadStorageLocation.APP_EXTERNAL ->
+                appExternalDownloads(app)
+            DownloadStorageLocation.PUBLIC_MOVIES ->
+                publicMoviesDownloads()
         }
-        if (!dir.exists()) dir.mkdirs()
-        return dir
+        return ensureWritableDir(preferred) ?: appExternalDownloads(app).also { fallback ->
+            // Scoped storage often blocks bare public Movies mkdirs on API 29+.
+            // Fall back to app-external so downloads still work; path summary reflects reality.
+            if (!fallback.exists()) fallback.mkdirs()
+        }
+    }
+
+    private fun appExternalDownloads(app: Context): File {
+        val root = app.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
+            ?: app.getExternalFilesDir(null)
+            ?: app.filesDir
+        return File(root, DIR_NAME)
+    }
+
+    private fun publicMoviesDownloads(): File {
+        val movies = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+        return File(File(movies, PUBLIC_FOLDER), DIR_NAME)
+    }
+
+    /** Create [dir] if needed; return it only when it exists and is writable. */
+    private fun ensureWritableDir(dir: File): File? {
+        return try {
+            if (!dir.exists() && !dir.mkdirs()) return null
+            if (!dir.isDirectory || !dir.canWrite()) return null
+            // Probe write — canWrite() alone is unreliable on some OEM public paths.
+            val probe = File(dir, ".bsf_write_probe")
+            val ok = runCatching {
+                probe.writeText("ok")
+                probe.delete()
+                true
+            }.getOrDefault(false)
+            if (ok) dir else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun cacheDir(context: Context): File {
