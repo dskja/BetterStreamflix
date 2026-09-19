@@ -12,13 +12,22 @@ import androidx.preference.Preference
 import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.platform.IntegrationProbes
+import com.dskja.betterstreamflix.platform.IntegrationStatus
+import com.dskja.betterstreamflix.platform.debrid.DebridProviderId
 import com.dskja.betterstreamflix.platform.jellyfin.JellyfinApi
+import com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend
+import com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendKind
+import com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector
 import com.dskja.betterstreamflix.platform.plugins.PluginManager
-import com.dskja.betterstreamflix.platform.plugins.PluginRegistry
+import com.dskja.betterstreamflix.platform.simkl.SimklClient
+import com.dskja.betterstreamflix.platform.subtitles.OpenSubtitlesV1Client
 import com.dskja.betterstreamflix.platform.trakt.TraktClient
 import com.dskja.betterstreamflix.platform.trakt.TraktConfig
 import com.dskja.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object PlatformSettingsController {
     fun bind(
@@ -28,13 +37,14 @@ object PlatformSettingsController {
     ) {
         val context = fragment.requireContext()
 
-        fun bindSwitch(key: String, get: () -> Boolean, set: (Boolean) -> Unit) {
+        fun bindSwitch(key: String, get: () -> Boolean, set: (Boolean) -> Unit, after: (() -> Unit)? = null) {
             val pref = findPreference(key)
             when (pref) {
                 is SwitchPreferenceCompat -> {
                     pref.isChecked = get()
                     pref.setOnPreferenceChangeListener { _, v ->
                         set(v as Boolean)
+                        after?.invoke()
                         false
                     }
                 }
@@ -42,6 +52,7 @@ object PlatformSettingsController {
                     pref.isChecked = get()
                     pref.setOnPreferenceChangeListener { _, v ->
                         set(v as Boolean)
+                        after?.invoke()
                         false
                     }
                 }
@@ -57,6 +68,7 @@ object PlatformSettingsController {
             set: (String) -> Unit,
             mask: Boolean = false,
             validateUrl: Boolean = false,
+            after: (() -> Unit)? = null,
         ) {
             val pref = findPreference(key) as? EditTextPreference ?: return
             val value = get()
@@ -80,14 +92,20 @@ object PlatformSettingsController {
                 }
                 Toast.makeText(context, R.string.platform_settings_saved, Toast.LENGTH_SHORT).show()
                 runCatching { PluginManager.reload(context) }
+                after?.invoke()
                 false
             }
+        }
+
+        fun refreshIntegrationSummaries() {
+            refreshSummaries(context, findPreference)
         }
 
         bindSwitch(
             key = "TRAKT_ENABLED",
             get = { UserPreferences.traktEnabled },
             set = { UserPreferences.traktEnabled = it },
+            after = { refreshIntegrationSummaries() },
         )
         fun openSupportHub() {
             runCatching {
@@ -125,11 +143,6 @@ object PlatformSettingsController {
             findPreference("trakt_oauth_logout")?.isEnabled = available && TraktConfig.isSignedIn()
             findPreference("trakt_device_auth_start")?.isEnabled = available
             findPreference("trakt_device_auth_help")?.isEnabled = available
-            findPreference("screen_platform_trakt")?.summary = if (available) {
-                null
-            } else {
-                context.getString(R.string.platform_trakt_unavailable_title)
-            }
         }
         refreshTraktLoginSummary()
 
@@ -147,80 +160,97 @@ object PlatformSettingsController {
             get = { UserPreferences.jellyfinBaseUrl },
             set = { UserPreferences.jellyfinBaseUrl = it },
             validateUrl = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "JELLYFIN_USER_ID",
             get = { UserPreferences.jellyfinUserId },
             set = { UserPreferences.jellyfinUserId = it },
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "JELLYFIN_ACCESS_TOKEN",
             get = { UserPreferences.jellyfinAccessToken },
             set = { UserPreferences.jellyfinAccessToken = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "PLEX_BASE_URL",
             get = { UserPreferences.plexBaseUrl },
             set = { UserPreferences.plexBaseUrl = it },
             validateUrl = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "PLEX_TOKEN",
             get = { UserPreferences.plexToken },
             set = { UserPreferences.plexToken = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindSwitch(
             key = "DEBRID_ENABLED",
             get = { UserPreferences.debridEnabled },
             set = { UserPreferences.debridEnabled = it },
+            after = {
+                refreshDebridKeyVisibility(findPreference)
+                refreshIntegrationSummaries()
+            },
         )
         bindText(
             key = "REAL_DEBRID_TOKEN",
             get = { UserPreferences.realDebridToken },
             set = { UserPreferences.realDebridToken = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "PREMIUMIZE_API_KEY",
             get = { UserPreferences.premiumizeApiKey },
             set = { UserPreferences.premiumizeApiKey = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "ALLDEBRID_API_KEY",
             get = { UserPreferences.allDebridApiKey },
             set = { UserPreferences.allDebridApiKey = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "TORBOX_API_KEY",
             get = { UserPreferences.torBoxApiKey },
             set = { UserPreferences.torBoxApiKey = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindSwitch(
             key = "SIMKL_ENABLED",
             get = { UserPreferences.simklEnabled },
             set = { UserPreferences.simklEnabled = it },
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "SIMKL_CLIENT_ID",
             get = { UserPreferences.simklClientId },
             set = { UserPreferences.simklClientId = it },
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "SIMKL_ACCESS_TOKEN",
             get = { UserPreferences.simklAccessToken },
             set = { UserPreferences.simklAccessToken = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "OPENSUBTITLES_API_KEY",
             get = { UserPreferences.openSubtitlesApiKey },
             set = { UserPreferences.openSubtitlesApiKey = it },
             mask = true,
+            after = { refreshIntegrationSummaries() },
         )
         bindText(
             key = "OPENSUBTITLES_LANGUAGES",
@@ -241,6 +271,7 @@ object PlatformSettingsController {
                 val list = preference as ListPreference
                 val idx = list.entryValues.indexOf(newValue.toString()).coerceAtLeast(0)
                 list.summary = list.entries.getOrNull(idx)
+                refreshIntegrationSummaries()
                 true
             }
         }
@@ -253,9 +284,12 @@ object PlatformSettingsController {
                 val list = preference as ListPreference
                 val idx = list.entryValues.indexOf(newValue.toString()).coerceAtLeast(0)
                 list.summary = list.entries.getOrNull(idx)
+                refreshDebridKeyVisibility(findPreference)
+                refreshIntegrationSummaries()
                 true
             }
         }
+        refreshDebridKeyVisibility(findPreference)
 
         (findPreference("SELF_HOST_PROGRESS_INTERVAL") as? ListPreference)?.apply {
             value = UserPreferences.selfHostProgressIntervalMs.toString()
@@ -309,6 +343,7 @@ object PlatformSettingsController {
             }
             TraktClient.logout()
             refreshTraktLoginSummary()
+            refreshIntegrationSummaries()
             Toast.makeText(context, R.string.platform_trakt_oauth_logged_out, Toast.LENGTH_SHORT).show()
             true
         }
@@ -351,7 +386,10 @@ object PlatformSettingsController {
                     else R.string.platform_trakt_device_auth_failed,
                     Toast.LENGTH_LONG,
                 ).show()
-                if (ok) refreshTraktLoginSummary()
+                if (ok) {
+                    refreshTraktLoginSummary()
+                    refreshIntegrationSummaries()
+                }
             }
             true
         }
@@ -379,14 +417,17 @@ object PlatformSettingsController {
                         key = "JELLYFIN_USER_ID",
                         get = { UserPreferences.jellyfinUserId },
                         set = { UserPreferences.jellyfinUserId = it },
+                        after = { refreshIntegrationSummaries() },
                     )
                     bindText(
                         key = "JELLYFIN_ACCESS_TOKEN",
                         get = { UserPreferences.jellyfinAccessToken },
                         set = { UserPreferences.jellyfinAccessToken = it },
                         mask = true,
+                        after = { refreshIntegrationSummaries() },
                     )
-                    runCatching { com.dskja.betterstreamflix.platform.plugins.PluginManager.reload(context) }
+                    runCatching { PluginManager.reload(context) }
+                    refreshIntegrationSummaries()
                 }
             }
             true
@@ -423,48 +464,206 @@ object PlatformSettingsController {
                         key = "JELLYFIN_USER_ID",
                         get = { UserPreferences.jellyfinUserId },
                         set = { UserPreferences.jellyfinUserId = it },
+                        after = { refreshIntegrationSummaries() },
                     )
                     bindText(
                         key = "JELLYFIN_ACCESS_TOKEN",
                         get = { UserPreferences.jellyfinAccessToken },
                         set = { UserPreferences.jellyfinAccessToken = it },
                         mask = true,
+                        after = { refreshIntegrationSummaries() },
                     )
-                    runCatching { com.dskja.betterstreamflix.platform.plugins.PluginManager.reload(context) }
+                    runCatching { PluginManager.reload(context) }
+                    refreshIntegrationSummaries()
                 }
             }
             true
         }
 
-        PluginSettingsController.bind(fragment, scope, findPreference)
+        findPreference("plex_token_help")?.setOnPreferenceClickListener {
+            runCatching {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/")),
+                )
+            }
+            true
+        }
 
-                findPreference("platform_test_jellyfin")?.setOnPreferenceClickListener {
-            scope.launch {
-                val ok = runCatching {
-                    JellyfinApi().configured() && JellyfinApi().resumeItems(1).length() >= 0
-                }.getOrDefault(false)
-                Toast.makeText(
-                    context,
-                    if (ok) R.string.platform_test_ok else R.string.platform_test_fail,
-                    Toast.LENGTH_SHORT,
-                ).show()
+        findPreference("simkl_token_help")?.setOnPreferenceClickListener {
+            runCatching {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://simkl.docs.apiary.io/")),
+                )
             }
             true
         }
-        findPreference("platform_test_plex")?.setOnPreferenceClickListener {
+
+        findPreference("simkl_logout")?.setOnPreferenceClickListener {
+            SimklClient.clearTokens()
+            bindText(
+                key = "SIMKL_ACCESS_TOKEN",
+                get = { UserPreferences.simklAccessToken },
+                set = { UserPreferences.simklAccessToken = it },
+                mask = true,
+                after = { refreshIntegrationSummaries() },
+            )
+            refreshIntegrationSummaries()
+            Toast.makeText(context, R.string.platform_simkl_logged_out, Toast.LENGTH_SHORT).show()
+            true
+        }
+
+        findPreference("opensubtitles_login_submit")?.setOnPreferenceClickListener {
+            val user = (findPreference("opensubtitles_login_user") as? EditTextPreference)?.text.orEmpty()
+            val pass = (findPreference("opensubtitles_login_password") as? EditTextPreference)?.text.orEmpty()
+            if (UserPreferences.openSubtitlesApiKey.isBlank() || user.isBlank() || pass.isBlank()) {
+                Toast.makeText(context, R.string.platform_opensubtitles_login_missing, Toast.LENGTH_LONG).show()
+                return@setOnPreferenceClickListener true
+            }
             scope.launch {
-                val ok = runCatching {
-                    val api = com.dskja.betterstreamflix.platform.plex.PlexApi()
-                    api.configured() && api.librarySections().length() >= 0
-                }.getOrDefault(false)
-                Toast.makeText(
-                    context,
-                    if (ok) R.string.platform_test_ok else R.string.platform_test_fail,
-                    Toast.LENGTH_SHORT,
-                ).show()
+                val result = withContext(Dispatchers.IO) {
+                    OpenSubtitlesV1Client.login(user, pass)
+                }
+                when (result) {
+                    is OpenSubtitlesV1Client.Result.Ok -> {
+                        (findPreference("opensubtitles_login_password") as? EditTextPreference)?.text = ""
+                        refreshIntegrationSummaries()
+                        Toast.makeText(context, R.string.platform_opensubtitles_login_success, Toast.LENGTH_SHORT).show()
+                    }
+                    is OpenSubtitlesV1Client.Result.Err -> {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.platform_opensubtitles_login_failed, result.reason),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
             }
             true
         }
+
+        findPreference("opensubtitles_logout")?.setOnPreferenceClickListener {
+            OpenSubtitlesV1Client.clearSession()
+            refreshIntegrationSummaries()
+            Toast.makeText(context, R.string.platform_opensubtitles_logged_out, Toast.LENGTH_SHORT).show()
+            true
+        }
+
+        fun bindProbe(key: String, probe: suspend () -> IntegrationProbes.ProbeResult) {
+            findPreference(key)?.setOnPreferenceClickListener { pref ->
+                pref.isEnabled = false
+                pref.summary = context.getString(R.string.platform_test_running)
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) { probe() }
+                    pref.isEnabled = true
+                    pref.summary = result.message
+                    refreshIntegrationSummaries()
+                    Toast.makeText(
+                        context,
+                        if (result.ok) R.string.platform_test_ok else R.string.platform_test_fail,
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                true
+            }
+        }
+
+        bindProbe("platform_test_jellyfin") { IntegrationProbes.jellyfin() }
+        bindProbe("platform_test_plex") { IntegrationProbes.plex() }
+        bindProbe("platform_test_debrid") { IntegrationProbes.debrid() }
+        bindProbe("platform_test_simkl") { IntegrationProbes.simkl() }
+        bindProbe("platform_test_opensubtitles") { IntegrationProbes.openSubtitles() }
+
+        PluginSettingsController.bind(fragment, scope, findPreference)
+        refreshIntegrationSummaries()
+    }
+
+    /** Call from Settings onResume so OAuth returns refresh Trakt / status rows. */
+    fun refresh(fragment: Fragment, findPreference: (String) -> Preference?) {
+        refreshSummaries(fragment.requireContext(), findPreference)
+        val available = TraktConfig.hasAppCredentials()
+        findPreference("trakt_status_notice")?.isVisible = !available
+        findPreference("trakt_support_cta")?.isVisible = !available
+        findPreference("TRAKT_ENABLED")?.isEnabled = available
+        findPreference("trakt_oauth_login")?.apply {
+            isEnabled = available
+            summary = when {
+                !available -> fragment.getString(R.string.platform_trakt_oauth_login_unavailable_summary)
+                TraktConfig.isSignedIn() -> fragment.getString(R.string.platform_trakt_oauth_signed_in_summary)
+                else -> fragment.getString(R.string.platform_trakt_oauth_login_summary)
+            }
+        }
+        findPreference("trakt_oauth_logout")?.isEnabled = available && TraktConfig.isSignedIn()
+        findPreference("trakt_device_auth_start")?.isEnabled = available
+        findPreference("trakt_device_auth_help")?.isEnabled = available
+        refreshDebridKeyVisibility(findPreference)
+    }
+
+    private fun refreshDebridKeyVisibility(findPreference: (String) -> Preference?) {
+        val provider = DebridProviderId.fromId(UserPreferences.debridProvider)
+        findPreference("REAL_DEBRID_TOKEN")?.isVisible = provider == DebridProviderId.REAL_DEBRID
+        findPreference("PREMIUMIZE_API_KEY")?.isVisible = provider == DebridProviderId.PREMIUMIZE
+        findPreference("ALLDEBRID_API_KEY")?.isVisible = provider == DebridProviderId.ALLDEBRID
+        findPreference("TORBOX_API_KEY")?.isVisible = provider == DebridProviderId.TORBOX
+    }
+
+    private fun refreshSummaries(
+        context: android.content.Context,
+        findPreference: (String) -> Preference?,
+    ) {
+        fun setStatus(key: String, snapshot: IntegrationStatus.Snapshot) {
+            findPreference(key)?.summary = IntegrationStatus.label(context, snapshot)
+        }
+
+        val trakt = IntegrationStatus.trakt()
+        val jellyfin = IntegrationStatus.jellyfin()
+        val plex = IntegrationStatus.plex()
+        val debrid = IntegrationStatus.debrid()
+        val simkl = IntegrationStatus.simkl()
+        val os = IntegrationStatus.openSubtitles()
+        val player = IntegrationStatus.player(context)
+        val plugins = IntegrationStatus.plugins()
+
+        setStatus("platform_jellyfin_status", jellyfin)
+        setStatus("platform_plex_status", plex)
+        setStatus("platform_debrid_status", debrid)
+        setStatus("platform_simkl_status", simkl)
+        setStatus("platform_opensubtitles_status", os)
+        setStatus("platform_player_status", player)
+
+        findPreference("screen_platform_trakt")?.summary = IntegrationStatus.label(context, trakt)
+        findPreference("screen_platform_jellyfin")?.summary = IntegrationStatus.label(context, jellyfin)
+        findPreference("screen_platform_plex")?.summary = IntegrationStatus.label(context, plex)
+        findPreference("screen_platform_debrid")?.summary = IntegrationStatus.label(context, debrid)
+        findPreference("screen_platform_simkl")?.summary = IntegrationStatus.label(context, simkl)
+        findPreference("screen_platform_subtitles")?.summary = IntegrationStatus.label(context, os)
+        findPreference("screen_platform_player")?.summary = IntegrationStatus.label(context, player)
+        findPreference("screen_platform_plugins")?.summary = IntegrationStatus.label(context, plugins)
+        findPreference("screen_platform")?.summary = hubOverview(context)
+
+        findPreference("platform_mpv_status")?.summary = when (PlayerBackendSelector.preferredKind()) {
+            PlayerBackendKind.EXO -> context.getString(R.string.platform_mpv_status_summary)
+            PlayerBackendKind.EXTERNAL_MPV -> {
+                val pkg = ExternalMpvBackend.preferredInstalledPackage(context)
+                if (pkg != null) context.getString(R.string.platform_mpv_installed, pkg)
+                else context.getString(R.string.platform_mpv_missing)
+            }
+        }
+
+        findPreference("opensubtitles_logout")?.isEnabled = OpenSubtitlesV1Client.signedIn()
+        findPreference("simkl_logout")?.isEnabled =
+            UserPreferences.simklAccessToken.isNotBlank()
+    }
+
+    private fun hubOverview(context: android.content.Context): String {
+        val connected = listOf(
+            IntegrationStatus.trakt(),
+            IntegrationStatus.jellyfin(),
+            IntegrationStatus.plex(),
+            IntegrationStatus.debrid(),
+            IntegrationStatus.simkl(),
+            IntegrationStatus.openSubtitles(),
+        ).count { it.isHealthy }
+        return context.getString(R.string.platform_hub_overview, connected, 6)
     }
 
     private fun defaultSummaryRes(key: String): Int = when (key) {

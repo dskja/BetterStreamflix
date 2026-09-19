@@ -26,7 +26,21 @@ class AllDebridClient(
         private const val API = "https://api.alldebrid.com/v4"
     }
 
-    override suspend fun isAuthenticated(): Boolean = keyProvider().trim().isNotEmpty()
+    override suspend fun isAuthenticated(): Boolean = withContext(Dispatchers.IO) {
+        val key = keyProvider().trim()
+        if (key.isEmpty()) return@withContext false
+        runCatching {
+            val request = Request.Builder()
+                .url("$API/user?agent=BetterStreamflix&apikey=$key")
+                .get()
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use false
+                val raw = response.body?.string().orEmpty()
+                JSONObject(raw).optString("status").equals("success", ignoreCase = true)
+            }
+        }.getOrDefault(false)
+    }
 
     override suspend fun unrestrict(link: String): DebridResult = withContext(Dispatchers.IO) {
         val key = keyProvider().trim()

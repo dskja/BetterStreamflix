@@ -29,7 +29,21 @@ class PremiumizeClient(
         )
     }
 
-    override suspend fun isAuthenticated(): Boolean = keyProvider().trim().isNotEmpty()
+    override suspend fun isAuthenticated(): Boolean = withContext(Dispatchers.IO) {
+        val key = keyProvider().trim()
+        if (key.isEmpty()) return@withContext false
+        runCatching {
+            val request = Request.Builder()
+                .url("$API/account/info?apikey=$key")
+                .get()
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use false
+                val raw = response.body?.string().orEmpty()
+                JSONObject(raw).optString("status") != "error"
+            }
+        }.getOrDefault(false)
+    }
 
     override suspend fun unrestrict(link: String): DebridResult = withContext(Dispatchers.IO) {
         val key = keyProvider().trim()

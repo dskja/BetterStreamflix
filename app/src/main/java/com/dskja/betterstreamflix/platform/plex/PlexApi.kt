@@ -51,6 +51,20 @@ class PlexApi(
             ?.optJSONArray("Metadata") ?: JSONArray()
     }
 
+    /**
+     * Live identity probe against the PMS `/identity` endpoint.
+     * Returns friendlyName / machineIdentifier on success.
+     */
+    suspend fun ping(): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val root = getJson("/identity")
+            val container = root.optJSONObject("MediaContainer") ?: root
+            val name = container.optString("friendlyName")
+                .ifBlank { container.optString("machineIdentifier") }
+            name.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
     suspend fun search(query: String): JSONArray = withContext(Dispatchers.IO) {
         val q = java.net.URLEncoder.encode(query, Charsets.UTF_8.name())
         getJson("/hubs/search?query=$q&limit=30")

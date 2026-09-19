@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Massive Integrations upgrade: shared `IntegrationStatus` + `IntegrationProbes`, live hub card summaries (“N of M connected”), per-service status rows, hardened Jellyfin/Plex/Debrid/Simkl/OpenSubtitles connection tests, OpenSubtitles login/JWT UI, Debrid credential visibility by provider, Cast queue moved to Player, Plex/Simkl help links, MPV install status, Settings onResume refresh after OAuth
 - Massive providers + home upgrade: shared `HomeCatalogPipeline` (FEATURED synthesis, providerName stamp, absolute artwork URLs, empty-shelf drop, dedupe), home circuit breaker in `ProviderSmoke`, persistent catalog warning banner (Mobile/TV, tap to retry), `ProviderDefaults` stubs, healthier provider picker ranking, expanded quarantine/smoke lists
 - Home cache now persists `providerName` so stale-while-revalidate shelves keep ownership across process death
 - Massive IPTV live player: channel guide session with prev/next zapping, Go Live edge seek, pulsing LIVE badge, channel meta chrome, live-tuned ExoPlayer buffers + Media3 LiveConfiguration, IPTV-Org/Spain channel list overrides
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Massive plugin/addon system: `PluginManager` lifecycle, host facade, home/search/metadata/playback/extractor/subtitle/settings extension hooks, `LoadedPluginFacade` for LOCAL APKs, Demo Addon v1.1, manage/enable/uninstall UI, soft reload, diagnostics event ring
 
 ### Fixed
+- Jellyfin/Plex “Test connection” lived under Plugins and almost always reported OK; probes now live on their own screens and verify real identity endpoints
+- Debrid `isAuthenticated()` now hits provider account APIs instead of only checking non-empty keys
 - Settings → Miscellaneous hardened against BETTERSTREAMFLIX-K recurrence: dependency sanitizer on nested PreferenceScreens + regression tests that `screen_more` never keeps cross-screen `android:dependency`
 - Home soft-fail no longer relies on Toast-only warnings — catalog issues stay visible until retry succeeds
 - Home featured swiper crash after leave (BETTERSTREAMFLIX-1): clear ViewPager auto-advance on recycle

@@ -83,4 +83,35 @@ object SimklClient {
     fun clearTokens() {
         UserPreferences.simklAccessToken = ""
     }
+
+    /**
+     * GET /users/settings — validates client id + access token.
+     * Returns account name / id when healthy.
+     */
+    suspend fun pingUser(): String? = withContext(Dispatchers.IO) {
+        if (!SimklConfig.configured()) return@withContext null
+        runCatching {
+            val url = "${SimklConfig.API}/users/settings?${SimklConfig.queryParams()}"
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .apply { SimklConfig.authHeaders().forEach { (k, v) -> header(k, v) } }
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "pingUser HTTP ${response.code}")
+                    return@use null
+                }
+                val user = JSONObject(raw).optJSONObject("user") ?: JSONObject(raw)
+                user.optString("name")
+                    .ifBlank { user.optString("username") }
+                    .ifBlank { user.optString("id") }
+                    .takeIf { it.isNotBlank() }
+            }
+        }.getOrElse {
+            Log.w(TAG, "pingUser failed: ${it.message}")
+            null
+        }
+    }
 }

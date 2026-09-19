@@ -151,6 +151,12 @@
             android:summary="@string/platform_player_backend_summary"
             android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_player_status"
+                android:title="@string/platform_status_title"
+                android:summary="@string/platform_status_ready"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
             <ListPreference
                 android:key="PLAYER_BACKEND"
                 android:title="@string/platform_player_backend_title"
@@ -158,6 +164,18 @@
                 android:entries="@array/player_backend_names"
                 android:entryValues="@array/player_backend_values"
                 android:defaultValue="exo"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="platform_mpv_status"
+                android:title="@string/platform_mpv_status_title"
+                android:summary="@string/platform_mpv_status_summary"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
+            <SwitchPreferenceCompat
+                android:key="CAST_QUEUE_NEXT_EPISODE"
+                android:title="@string/platform_cast_queue_title"
+                android:summary="@string/platform_cast_queue_summary"
+                android:defaultValue="true"
                 app:iconSpaceReserved="false" />
         </PreferenceScreen>
 
@@ -212,6 +230,17 @@
             android:summary="@string/platform_selfhost_interval_summary"
             android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_jellyfin_status"
+                android:title="@string/platform_status_title"
+                android:summary="@string/platform_status_not_configured"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
+            <Preference
+                android:key="platform_test_jellyfin"
+                android:title="@string/platform_test_jellyfin_title"
+                android:summary="@string/platform_test_jellyfin_summary"
+                app:iconSpaceReserved="false" />
             <EditTextPreference
                 android:key="JELLYFIN_BASE_URL"
                 android:title="@string/platform_jellyfin_url_title"
@@ -268,6 +297,17 @@
             android:summary="@string/platform_test_plex_summary"
             android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_plex_status"
+                android:title="@string/platform_status_title"
+                android:summary="@string/platform_status_not_configured"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
+            <Preference
+                android:key="platform_test_plex"
+                android:title="@string/platform_test_plex_title"
+                android:summary="@string/platform_test_plex_summary"
+                app:iconSpaceReserved="false" />
             <EditTextPreference
                 android:key="PLEX_BASE_URL"
                 android:title="@string/platform_plex_url_title"
@@ -280,6 +320,11 @@
                 android:summary="@string/platform_plex_token_summary"
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
+            <Preference
+                android:key="plex_token_help"
+                android:title="@string/platform_plex_token_help_title"
+                android:summary="@string/platform_plex_token_help_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceScreen>
 
         <PreferenceScreen
@@ -288,6 +333,12 @@
             android:summary="@string/platform_simkl_enabled_summary"
             android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_simkl_status"
+                android:title="@string/platform_status_title"
+                android:summary="@string/platform_status_disabled"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
             <SwitchPreferenceCompat
                 android:key="SIMKL_ENABLED"
                 android:title="@string/platform_simkl_enabled_title"
@@ -306,6 +357,21 @@
                 android:summary="@string/platform_simkl_token_summary"
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
+            <Preference
+                android:key="platform_test_simkl"
+                android:title="@string/platform_test_simkl_title"
+                android:summary="@string/platform_test_simkl_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="simkl_token_help"
+                android:title="@string/platform_simkl_token_help_title"
+                android:summary="@string/platform_simkl_token_help_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="simkl_logout"
+                android:title="@string/platform_simkl_logout_title"
+                android:summary="@string/platform_simkl_logout_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceScreen>
 
         <PreferenceScreen
@@ -314,6 +380,12 @@
             android:summary="@string/platform_opensubtitles_langs_summary"
             android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_opensubtitles_status"
+                android:title="@string/platform_status_title"
+                android:summary="@string/platform_status_not_configured"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
             <EditTextPreference
                 android:key="OPENSUBTITLES_API_KEY"
                 android:title="@string/platform_opensubtitles_key_title"
@@ -326,11 +398,32 @@
                 android:summary="@string/platform_opensubtitles_langs_summary"
                 android:inputType="text"
                 app:iconSpaceReserved="false" />
-            <SwitchPreferenceCompat
-                android:key="CAST_QUEUE_NEXT_EPISODE"
-                android:title="@string/platform_cast_queue_title"
-                android:summary="@string/platform_cast_queue_summary"
-                android:defaultValue="true"
+            <EditTextPreference
+                android:key="opensubtitles_login_user"
+                android:title="@string/platform_opensubtitles_login_user_title"
+                android:summary="@string/platform_opensubtitles_login_user_summary"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+            <EditTextPreference
+                android:key="opensubtitles_login_password"
+                android:title="@string/platform_opensubtitles_login_password_title"
+                android:summary="@string/platform_opensubtitles_login_password_summary"
+                android:inputType="textPassword"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="opensubtitles_login_submit"
+                android:title="@string/platform_opensubtitles_login_submit_title"
+                android:summary="@string/platform_opensubtitles_login_submit_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="opensubtitles_logout"
+                android:title="@string/platform_opensubtitles_logout_title"
+                android:summary="@string/platform_opensubtitles_logout_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="platform_test_opensubtitles"
+                android:title="@string/platform_test_opensubtitles_title"
+                android:summary="@string/platform_test_opensubtitles_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceScreen>
 
@@ -340,6 +433,12 @@
             android:summary="@string/platform_debrid_enabled_summary"
             android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_debrid_status"
+                android:title="@string/platform_status_title"
+                android:summary="@string/platform_status_disabled"
+                app:iconSpaceReserved="false"
+                app:selectable="false" />
             <SwitchPreferenceCompat
                 android:key="DEBRID_ENABLED"
                 android:title="@string/platform_debrid_enabled_title"
@@ -377,6 +476,11 @@
                 android:title="@string/platform_torbox_key_title"
                 android:summary="@string/platform_torbox_key_summary"
                 android:inputType="textPassword"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="platform_test_debrid"
+                android:title="@string/platform_test_debrid_title"
+                android:summary="@string/platform_test_debrid_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceScreen>
 
@@ -428,16 +532,6 @@
                 android:key="platform_plugin_reload"
                 android:title="@string/platform_plugin_reload_title"
                 android:summary="@string/platform_plugin_reload_summary"
-                app:iconSpaceReserved="false" />
-            <Preference
-                android:key="platform_test_jellyfin"
-                android:title="@string/platform_test_jellyfin_title"
-                android:summary="@string/platform_test_jellyfin_summary"
-                app:iconSpaceReserved="false" />
-            <Preference
-                android:key="platform_test_plex"
-                android:title="@string/platform_test_plex_title"
-                android:summary="@string/platform_test_plex_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceScreen>
     </PreferenceScreen>

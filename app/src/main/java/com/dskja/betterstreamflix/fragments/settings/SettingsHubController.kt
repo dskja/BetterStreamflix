@@ -69,10 +69,11 @@ internal class SettingsHubController(
             if (!visible) post { requestFocus() }
         }
         if (mode != null) {
-            if (boundMode != mode) {
+            val needsBind = boundMode != mode || mode == HubMode.PLATFORM
+            if (needsBind) {
                 bindMode(binding, mode)
+                if (boundMode != mode) enterAnimated = false
                 boundMode = mode
-                enterAnimated = false
             }
             if (!enterAnimated) {
                 ExpMotion.startAnimation(binding.svSettingsHub, R.anim.support_fade_slide_up)
@@ -122,7 +123,7 @@ internal class SettingsHubController(
             HubMode.PLATFORM -> {
                 binding.tvSettingsHubEyebrow.setText(R.string.settings_hub_featured_badge)
                 binding.tvSettingsHubTitle.setText(R.string.platform_settings_title)
-                binding.tvSettingsHubSubtitle.setText(R.string.platform_hub_subtitle)
+                binding.tvSettingsHubSubtitle.text = PlatformHubCategories.hubSubtitle(fragment.requireContext())
                 binding.cardSettingsFeatured.visibility = View.GONE
                 setSectionLabel(binding, R.id.ll_settings_hub_app, R.string.platform_hub_section_services, true)
                 setSectionLabel(binding, R.id.ll_settings_hub_account, 0, false)
@@ -156,6 +157,27 @@ internal class SettingsHubController(
         return parent.getChildAt(index - 1) as? TextView
     }
 
+    private fun inflatePlatformCards(container: LinearLayout) {
+        container.removeAllViews()
+        val inflater = LayoutInflater.from(fragment.requireContext())
+        val context = fragment.requireContext()
+        PlatformHubCategories.cards().forEachIndexed { index, card ->
+            if (fragment.findPreference<androidx.preference.Preference>(card.screenKey) == null) {
+                return@forEachIndexed
+            }
+            addCard(
+                inflater = inflater,
+                container = container,
+                index = index,
+                titleRes = card.titleRes,
+                summaryText = PlatformHubCategories.liveSummary(context, card.screenKey),
+                iconRes = card.iconRes,
+            ) {
+                onOpenPreferenceScreen(card.screenKey, fragment.getString(card.titleRes))
+            }
+        }
+    }
+
     private fun inflateSettingsCards(container: LinearLayout, cards: List<SettingsHubCard>) {
         container.removeAllViews()
         val inflater = LayoutInflater.from(fragment.requireContext())
@@ -171,7 +193,7 @@ internal class SettingsHubController(
                 container = container,
                 index = index,
                 titleRes = card.titleRes,
-                summaryRes = card.summaryRes,
+                summaryText = fragment.getString(card.summaryRes),
                 iconRes = card.iconRes,
             ) {
                 when (val target = card.target) {
@@ -184,38 +206,18 @@ internal class SettingsHubController(
         }
     }
 
-    private fun inflatePlatformCards(container: LinearLayout) {
-        container.removeAllViews()
-        val inflater = LayoutInflater.from(fragment.requireContext())
-        PlatformHubCategories.cards().forEachIndexed { index, card ->
-            if (fragment.findPreference<androidx.preference.Preference>(card.screenKey) == null) {
-                return@forEachIndexed
-            }
-            addCard(
-                inflater = inflater,
-                container = container,
-                index = index,
-                titleRes = card.titleRes,
-                summaryRes = card.summaryRes,
-                iconRes = card.iconRes,
-            ) {
-                onOpenPreferenceScreen(card.screenKey, fragment.getString(card.titleRes))
-            }
-        }
-    }
-
     private fun addCard(
         inflater: LayoutInflater,
         container: LinearLayout,
         index: Int,
         titleRes: Int,
-        summaryRes: Int,
+        summaryText: CharSequence,
         iconRes: Int,
         onClick: () -> Unit,
     ) {
         val row = inflater.inflate(R.layout.item_settings_hub_card, container, false)
         row.findViewById<TextView>(R.id.tv_settings_hub_card_title).setText(titleRes)
-        row.findViewById<TextView>(R.id.tv_settings_hub_card_summary).setText(summaryRes)
+        row.findViewById<TextView>(R.id.tv_settings_hub_card_summary).text = summaryText
         row.findViewById<ImageView>(R.id.iv_settings_hub_card_icon).apply {
             setImageResource(iconRes)
             imageTintList = ContextCompat.getColorStateList(context, R.color.support_accent)
