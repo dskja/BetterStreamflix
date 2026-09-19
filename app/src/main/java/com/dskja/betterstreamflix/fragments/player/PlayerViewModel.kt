@@ -88,6 +88,15 @@ class PlayerViewModel(
     fun playNextEpisode() =
         playEpisode(Direction.NEXT)
 
+    fun playLiveChannel(channel: com.dskja.betterstreamflix.iptv.IptvLiveSession.Channel) {
+        val episode = com.dskja.betterstreamflix.iptv.IptvLiveSession.toEpisodeType(channel)
+        com.dskja.betterstreamflix.iptv.IptvLiveSession.setCurrent(channel.id)
+        playEpisode(episode)
+        viewModelScope.launch {
+            _playPreviousOrNextEpisode.emit(episode)
+        }
+    }
+
     fun autoplayNextEpisode() {
         if (UserPreferences.autoplay) {
             playEpisode(Direction.NEXT)

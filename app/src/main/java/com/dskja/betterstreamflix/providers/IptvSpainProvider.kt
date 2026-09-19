@@ -230,6 +230,26 @@ object IptvSpainProvider : IptvProvider, ProviderConfigUrl {
         )
     }
 
+    override suspend fun listLiveChannels(
+        aroundId: String?,
+        limit: Int,
+    ): List<com.dskja.betterstreamflix.iptv.IptvLiveSession.Channel> {
+        val all = getAllChannels().map {
+            com.dskja.betterstreamflix.iptv.IptvLiveSession.Channel(
+                id = createId(it),
+                name = it.name,
+                logo = it.logo,
+                group = it.group,
+            )
+        }
+        if (aroundId == null) return all.take(limit)
+        val idx = all.indexOfFirst { it.id == aroundId }
+        if (idx < 0) return all.take(limit)
+        val half = limit / 2
+        val start = (idx - half).coerceAtLeast(0)
+        return all.drop(start).take(limit)
+    }
+
     private fun getInfoItem(id: String): TvShow {
         val isReport = id == "creador-info"
         return TvShow(
