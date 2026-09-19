@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dskja.betterstreamflix.download.DownloadConnectivityMonitor
+import com.dskja.betterstreamflix.download.DownloadController
 import com.dskja.betterstreamflix.download.DownloadEventBridge
 import com.dskja.betterstreamflix.download.DownloadItemState
 import com.dskja.betterstreamflix.download.DownloadRepository
+import com.dskja.betterstreamflix.download.DownloadStats
 import com.dskja.betterstreamflix.download.DownloadStorage
 import com.dskja.betterstreamflix.download.StreamflixDownloadManager
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -33,11 +35,7 @@ class DownloadsViewModel(
     val selectedSort: StateFlow<DownloadsSort> = sort.asStateFlow()
 
     val storageLabel: StateFlow<String> = MutableStateFlow(
-        appContext.getString(
-            com.dskja.betterstreamflix.R.string.downloads_storage_chip,
-            DownloadStorage.formatBytes(DownloadStorage.usedBytes(appContext)),
-            DownloadStorage.formatBytes(DownloadStorage.freeBytes(appContext)),
-        ),
+        DownloadStats.storageSummary(appContext),
     )
 
     val lowSpace: StateFlow<Boolean> = MutableStateFlow(DownloadStorage.isLowSpace(appContext))
@@ -148,11 +146,7 @@ class DownloadsViewModel(
     }
 
     fun refreshStorage() {
-        (storageLabel as MutableStateFlow).value = appContext.getString(
-            com.dskja.betterstreamflix.R.string.downloads_storage_chip,
-            DownloadStorage.formatBytes(DownloadStorage.usedBytes(appContext)),
-            DownloadStorage.formatBytes(DownloadStorage.freeBytes(appContext)),
-        )
+        (storageLabel as MutableStateFlow).value = DownloadStats.storageSummary(appContext)
         (lowSpace as MutableStateFlow).value = DownloadStorage.isLowSpace(appContext)
     }
 
@@ -176,7 +170,10 @@ class DownloadsViewModel(
         repo.clearWatched()
         refreshStorage()
     }
-    fun retryAllFailed() = viewModelScope.launch { repo.resumeFailed() }
+    fun retryAllFailed() = viewModelScope.launch {
+        DownloadController.retryAllFailed(appContext)
+        refreshStorage()
+    }
     fun pausePack(packId: String) = viewModelScope.launch { repo.pausePack(packId) }
     fun resumePack(packId: String) = viewModelScope.launch { repo.resumePack(packId) }
     fun removePack(packId: String) = viewModelScope.launch {

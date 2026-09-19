@@ -6,8 +6,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.StreamKey
 import androidx.media3.exoplayer.offline.DownloadHelper
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
+import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.providers.IptvProvider
@@ -442,13 +444,97 @@ object DownloadController {
         return DownloadEnqueueOutcome.NeedsOptions(prepared)
     }
 
+    /**
+     * Re-resolve and re-enqueue a failed/paused item (fresh servers + headers).
+     * Auto-confirms quality using the user's preset when options would be shown.
+     */
+    suspend fun retryItem(context: Context, entity: DownloadItemEntity): DownloadEnqueueOutcome =
+        withContext(Dispatchers.IO) {
+            val videoType = deserializeVideoType(entity.videoTypeJson)
+                ?: return@withContext DownloadEnqueueOutcome.Failed(
+                    DownloadErrorCode.UNKNOWN,
+                    "Missing video metadata",
+                )
+            DownloadRepository.get(context).remove(entity.id)
+            val prepared = when (videoType) {
+                is Video.Type.Movie -> prepareMovie(
+                    context,
+                    Movie(
+                        id = videoType.id,
+                        title = videoType.title,
+                        poster = videoType.poster,
+                        imdbId = videoType.imdbId,
+                    ),
+                )
+                is Video.Type.Episode -> prepareEpisode(
+                    context,
+                    Episode(
+                        id = videoType.id,
+                        number = videoType.number,
+                        title = videoType.title,
+                        poster = videoType.poster,
+                        overview = videoType.overview,
+                        tvShow = TvShow(
+                            id = videoType.tvShow.id,
+                            title = videoType.tvShow.title,
+                            poster = videoType.tvShow.poster,
+                            banner = videoType.tvShow.banner,
+                            imdbId = videoType.tvShow.imdbId,
+                        ),
+                        season = Season(
+                            id = "",
+                            number = videoType.season.number,
+                            title = videoType.season.title,
+                        ),
+                    ),
+                )
+            }
+            when (prepared) {
+                is DownloadEnqueueOutcome.NeedsOptions -> {
+                    val trackIdx = when (UserPreferences.downloadQualityPreset) {
+                        DownloadQualityPreset.DATA_SAVER ->
+                            prepared.prepared.trackOptions.lastIndex.coerceAtLeast(0)
+                        else -> 0
+                    }.coerceIn(0, prepared.prepared.trackOptions.lastIndex.coerceAtLeast(0))
+                    confirmEnqueue(
+                        context,
+                        prepared.prepared,
+                        prepared.prepared.selectedServerIndex,
+                        trackIdx,
+                        prepared.prepared.trackOptions.getOrNull(trackIdx)?.label ?: "Auto",
+                    )
+                }
+                else -> prepared
+            }
+        }
+
+    /** Returns how many failed items were successfully re-queued. */
+    suspend fun retryAllFailed(context: Context): Int = withContext(Dispatchers.IO) {
+        val failed = DownloadRepository.get(context).getAllOnce()
+            .filter { it.state == DownloadItemState.FAILED.name }
+        var started = 0
+        failed.forEach { entity ->
+            when (retryItem(context, entity)) {
+                is DownloadEnqueueOutcome.Started,
+                is DownloadEnqueueOutcome.AlreadyActive,
+                is DownloadEnqueueOutcome.AlreadyCompleted,
+                -> started++
+                else -> Unit
+            }
+        }
+        started
+    }
+
     suspend fun prepareTrackOptions(context: Context, video: Video): List<DownloadTrackOption> {
         return try {
             val helper = createHelper(context, video)
             prepareHelper(helper)
             val options = mutableListOf<DownloadTrackOption>()
             // Default: download all tracks Media3 would pick (empty stream keys = default)
-            options += DownloadTrackOption(label = "Best available", streamKeys = emptyList())
+            options += DownloadTrackOption(
+                label = context.getString(R.string.download_quality_best),
+                streamKeys = emptyList(),
+            )
             // Expose video track heights when present
             val mapped = runCatching {
                 val periodCount = helper.periodCount
@@ -478,7 +564,7 @@ object DownloadController {
                 options += mapped
                 if (mapped.size > 1) {
                     options += DownloadTrackOption(
-                        label = "Data saver",
+                        label = context.getString(R.string.download_quality_data_saver),
                         streamKeys = mapped.last().streamKeys,
                     )
                 }

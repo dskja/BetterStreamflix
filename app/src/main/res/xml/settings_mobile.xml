@@ -716,8 +716,25 @@
                 app:iconSpaceReserved="false" />
 
             <Preference
+                android:key="DOWNLOAD_QUEUE_STATUS"
+                android:title="@string/settings_download_queue_status"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="DOWNLOAD_RETRY_FAILED"
+                android:title="@string/settings_download_retry_failed"
+                android:summary="@string/settings_download_retry_failed_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
                 android:key="DOWNLOAD_CLEAR_COMPLETED"
                 android:title="@string/settings_download_clear_completed"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="DOWNLOAD_CLEAR_FAILED"
+                android:title="@string/settings_download_clear_failed"
                 app:iconSpaceReserved="false" />
 
             <Preference

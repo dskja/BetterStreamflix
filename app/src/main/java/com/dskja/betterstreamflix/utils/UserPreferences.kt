@@ -187,7 +187,7 @@ object UserPreferences {
     var downloadSoftLimitGb: Int
         get() = Key.DOWNLOAD_SOFT_LIMIT_GB.getInt() ?: 20
         set(value) {
-            Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceAtLeast(1))
+            Key.DOWNLOAD_SOFT_LIMIT_GB.setInt(value.coerceIn(0, 500))
         }
 
     var downloadStorageLocation: DownloadStorageLocation
