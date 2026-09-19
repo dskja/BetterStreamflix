@@ -26,7 +26,7 @@
         android:layout_marginEnd="16dp"
         android:textColor="#FFFFFF"
         android:textSize="34sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_exo_external_player"
+        app:layout_constraintEnd_toStartOf="@id/media_route_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Title" />
@@ -39,10 +39,31 @@
         android:layout_marginTop="4dp"
         android:layout_marginEnd="16dp"
         android:textSize="20sp"
-        app:layout_constraintEnd_toStartOf="@id/btn_exo_external_player"
+        app:layout_constraintEnd_toStartOf="@id/media_route_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_exo_title"
         tools:text="Description" />
+
+    <androidx.mediarouter.app.MediaRouteButton
+        android:id="@+id/media_route_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="7dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="7dp"
+        android:background="@drawable/bg_btn_exoplayer_tv"
+        android:contentDescription="@string/player_cast_content_description"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:mediaRouteTypes="user"
+        android:nextFocusLeft="@id/media_route_button"
+        android:nextFocusRight="@id/btn_exo_external_player"
+        android:padding="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/tv_exo_subtitle"
+        app:layout_constraintEnd_toStartOf="@id/btn_exo_external_player"
+        app:layout_constraintTop_toTopOf="@id/tv_exo_title"
+        tools:visibility="visible" />
 
     <ImageView
         android:id="@+id/btn_exo_external_player"
@@ -54,7 +75,7 @@
         android:background="@drawable/bg_btn_exoplayer_tv"
         android:focusable="true"
         android:focusableInTouchMode="true"
-        android:nextFocusLeft="@id/btn_exo_external_player"
+        android:nextFocusLeft="@id/media_route_button"
         android:nextFocusRight="@id/btn_exo_external_player"
         android:padding="12dp"
         android:src="@drawable/exo_styled_controls_external_player"

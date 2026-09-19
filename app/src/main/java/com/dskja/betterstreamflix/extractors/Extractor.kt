@@ -142,6 +142,13 @@ abstract class Extractor {
         private suspend fun extractOnce(link: String, server: Video.Server? = null): Video {
             var finalLink = link
 
+            // Magnets can be resolved immediately (no embed/bridge needed).
+            if (finalLink.startsWith("magnet:", ignoreCase = true) &&
+                com.dskja.betterstreamflix.platform.debrid.DebridResolver.looksLikeHosterOrMagnet(finalLink)
+            ) {
+                tryDebrid(finalLink)?.let { return it }
+            }
+
             // Expand DE embed wrappers (meinecloud / firestream) to a concrete hoster URL.
             if (MeinecloudEmbedHelper.isEmbedWrapper(finalLink)) {
                 val resolved = MeinecloudEmbedHelper.resolveToHosterUrl(finalLink)
@@ -180,6 +187,11 @@ abstract class Extractor {
                 } catch (e: Exception) {
                     Log.e("Extractor", "Universal Bridge error: ${e.message}")
                 }
+            }
+
+            // Debrid AFTER embed/bridge so hosters behind wrappers get unrestricted.
+            if (com.dskja.betterstreamflix.platform.debrid.DebridResolver.looksLikeHosterOrMagnet(finalLink)) {
+                tryDebrid(finalLink)?.let { return it }
             }
 
             val urlRegex = Regex("^(https?://)?(www\\.)?")
@@ -257,6 +269,28 @@ abstract class Extractor {
             }
 
             throw Exception("No extractors found for URL: $finalLink")
+        }
+
+        private suspend fun tryDebrid(link: String): Video? {
+            return when (
+                val debrid = com.dskja.betterstreamflix.platform.debrid.DebridResolver.resolve(link)
+            ) {
+                is com.dskja.betterstreamflix.platform.debrid.DebridResult.Stream -> {
+                    Log.i("Extractor", "Debrid resolved: $link")
+                    Video(source = debrid.url, headers = debrid.headers.ifEmpty { null })
+                }
+                is com.dskja.betterstreamflix.platform.debrid.DebridResult.Pending -> {
+                    if (link.startsWith("magnet:", ignoreCase = true)) {
+                        throw Exception("Debrid still caching torrent (${debrid.id}). Try again shortly.")
+                    }
+                    Log.i("Extractor", "Debrid pending (${debrid.id}): ${debrid.message}")
+                    null
+                }
+                is com.dskja.betterstreamflix.platform.debrid.DebridResult.Failure -> {
+                    Log.d("Extractor", "Debrid skip: ${debrid.reason}")
+                    null
+                }
+            }
         }
     }
 }

@@ -29,6 +29,9 @@ jobs:
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           RABBITSTREAM_SOURCE_API: ${{ secrets.RABBITSTREAM_SOURCE_API }}
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+          SIMKL_CLIENT_ID: ${{ secrets.SIMKL_CLIENT_ID }}
         run: |
           touch local.properties
           if [ -n "$TMDB_API_KEY" ]; then
@@ -36,6 +39,15 @@ jobs:
           fi
           if [ -n "$RABBITSTREAM_SOURCE_API" ]; then
             echo "RABBITSTREAM_SOURCE_API=$RABBITSTREAM_SOURCE_API" >> local.properties
+          fi
+          if [ -n "$TRAKT_CLIENT_ID" ]; then
+            echo "TRAKT_CLIENT_ID=$TRAKT_CLIENT_ID" >> local.properties
+          fi
+          if [ -n "$TRAKT_CLIENT_SECRET" ]; then
+            echo "TRAKT_CLIENT_SECRET=$TRAKT_CLIENT_SECRET" >> local.properties
+          fi
+          if [ -n "$SIMKL_CLIENT_ID" ]; then
+            echo "SIMKL_CLIENT_ID=$SIMKL_CLIENT_ID" >> local.properties
           fi
 
       - name: Generate native-lib.cpp from template

@@ -95,6 +95,7 @@ object UserPreferences {
                 return TmdbProvider(lang)
             }
             return Provider.providers.keys.find { it.name == providerName }
+                ?: providerName?.let { Provider.findByName(it) }
         }
         set(value) {
             // CRITICO: Resetta l'istanza del database prima di cambiare provider
@@ -231,6 +232,196 @@ object UserPreferences {
         get() = Key.FORCE_EXTRA_BUFFERING.getBoolean() ?: false
         set(value) {
             Key.FORCE_EXTRA_BUFFERING.setBoolean(value)
+        }
+
+    // --- Full Platform: Trakt / Jellyfin / Plex / Debrid / Player backend ---
+
+    var traktEnabled: Boolean
+        get() = Key.TRAKT_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.TRAKT_ENABLED.setBoolean(value)
+        }
+
+    var traktClientId: String
+        get() = Key.TRAKT_CLIENT_ID.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_CLIENT_ID.setString(value.ifBlank { null })
+        }
+
+    var traktAccessToken: String
+        get() = Key.TRAKT_ACCESS_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_ACCESS_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var jellyfinBaseUrl: String
+        get() = Key.JELLYFIN_BASE_URL.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_BASE_URL.setString(value.ifBlank { null })
+        }
+
+    var jellyfinAccessToken: String
+        get() = Key.JELLYFIN_ACCESS_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_ACCESS_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var jellyfinUserId: String
+        get() = Key.JELLYFIN_USER_ID.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_USER_ID.setString(value.ifBlank { null })
+        }
+
+    var jellyfinDeviceId: String
+        get() = Key.JELLYFIN_DEVICE_ID.getString().orEmpty()
+        set(value) {
+            Key.JELLYFIN_DEVICE_ID.setString(value.ifBlank { null })
+        }
+
+    var plexBaseUrl: String
+        get() = Key.PLEX_BASE_URL.getString().orEmpty()
+        set(value) {
+            Key.PLEX_BASE_URL.setString(value.ifBlank { null })
+        }
+
+    var plexToken: String
+        get() = Key.PLEX_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.PLEX_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var plexClientId: String
+        get() = Key.PLEX_CLIENT_ID.getString().orEmpty()
+        set(value) {
+            Key.PLEX_CLIENT_ID.setString(value.ifBlank { null })
+        }
+
+    var debridEnabled: Boolean
+        get() = Key.DEBRID_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.DEBRID_ENABLED.setBoolean(value)
+        }
+
+    var realDebridToken: String
+        get() = Key.REAL_DEBRID_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.REAL_DEBRID_TOKEN.setString(value.ifBlank { null })
+        }
+
+    /** realdebrid | premiumize | alldebrid | torbox */
+    var debridProvider: String
+        get() = Key.DEBRID_PROVIDER.getString() ?: "realdebrid"
+        set(value) {
+            Key.DEBRID_PROVIDER.setString(value.ifBlank { "realdebrid" })
+        }
+
+    var premiumizeApiKey: String
+        get() = Key.PREMIUMIZE_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.PREMIUMIZE_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var allDebridApiKey: String
+        get() = Key.ALLDEBRID_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.ALLDEBRID_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var torBoxApiKey: String
+        get() = Key.TORBOX_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.TORBOX_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var simklEnabled: Boolean
+        get() = Key.SIMKL_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.SIMKL_ENABLED.setBoolean(value)
+        }
+
+    var simklClientId: String
+        get() = Key.SIMKL_CLIENT_ID.getString().orEmpty()
+        set(value) {
+            Key.SIMKL_CLIENT_ID.setString(value.ifBlank { null })
+        }
+
+    var simklAccessToken: String
+        get() = Key.SIMKL_ACCESS_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.SIMKL_ACCESS_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var openSubtitlesApiKey: String
+        get() = Key.OPENSUBTITLES_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.OPENSUBTITLES_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var openSubtitlesJwt: String
+        get() = Key.OPENSUBTITLES_JWT.getString().orEmpty()
+        set(value) {
+            Key.OPENSUBTITLES_JWT.setString(value.ifBlank { null })
+        }
+
+    var openSubtitlesUserAgent: String
+        get() = Key.OPENSUBTITLES_USER_AGENT.getString().orEmpty()
+        set(value) {
+            Key.OPENSUBTITLES_USER_AGENT.setString(value.ifBlank { null })
+        }
+
+    /** Comma-separated ISO language codes for OpenSubtitles.com (e.g. en,de). */
+    var openSubtitlesLanguages: String
+        get() = Key.OPENSUBTITLES_LANGUAGES.getString() ?: "en,de"
+        set(value) {
+            Key.OPENSUBTITLES_LANGUAGES.setString(value.ifBlank { "en,de" })
+        }
+
+    /** Prefetch next episode onto Chromecast queue while casting. */
+    var castQueueNextEpisode: Boolean
+        get() = Key.CAST_QUEUE_NEXT_EPISODE.getBoolean() ?: true
+        set(value) {
+            Key.CAST_QUEUE_NEXT_EPISODE.setBoolean(value)
+        }
+
+    /** Progress report interval for Jellyfin/Plex (ms). Clamped 5s–60s at use site. */
+    var selfHostProgressIntervalMs: Long
+        get() = Key.SELF_HOST_PROGRESS_INTERVAL_MS.getLong() ?: 15_000L
+        set(value) {
+            Key.SELF_HOST_PROGRESS_INTERVAL_MS.setLong(value.coerceIn(5_000L, 60_000L))
+        }
+
+    var traktClientSecret: String
+        get() = Key.TRAKT_CLIENT_SECRET.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_CLIENT_SECRET.setString(value.ifBlank { null })
+        }
+
+    var traktRefreshToken: String
+        get() = Key.TRAKT_REFRESH_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_REFRESH_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var disabledPluginIds: Set<String>
+        get() = Key.DISABLED_PLUGIN_IDS.getStringSet() ?: emptySet()
+        set(value) {
+            Key.DISABLED_PLUGIN_IDS.setStringSet(value.ifEmpty { null })
+        }
+
+    fun isPluginDisabled(pluginId: String): Boolean =
+        disabledPluginIds.contains(pluginId)
+
+    fun setPluginDisabled(pluginId: String, disabled: Boolean) {
+        val next = disabledPluginIds.toMutableSet()
+        if (disabled) next.add(pluginId) else next.remove(pluginId)
+        disabledPluginIds = next
+    }
+
+    /** exo | mpv */
+    var playerBackend: String
+        get() = Key.PLAYER_BACKEND.getString() ?: "exo"
+        set(value) {
+            Key.PLAYER_BACKEND.setString(value.ifBlank { "exo" })
         }
 
     var autoplayBuffer: Long
@@ -806,7 +997,36 @@ object UserPreferences {
         DOWNLOAD_SOFT_LIMIT_GB,
         DOWNLOAD_STORAGE_LOCATION,
         DOWNLOAD_SMART_ENABLED,
-        DOWNLOAD_AUTO_DELETE_WATCHED;
+        DOWNLOAD_AUTO_DELETE_WATCHED,
+        TRAKT_ENABLED,
+        TRAKT_CLIENT_ID,
+        TRAKT_ACCESS_TOKEN,
+        JELLYFIN_BASE_URL,
+        JELLYFIN_ACCESS_TOKEN,
+        JELLYFIN_USER_ID,
+        JELLYFIN_DEVICE_ID,
+        PLEX_BASE_URL,
+        PLEX_TOKEN,
+        PLEX_CLIENT_ID,
+        DEBRID_ENABLED,
+        REAL_DEBRID_TOKEN,
+        DEBRID_PROVIDER,
+        PREMIUMIZE_API_KEY,
+        ALLDEBRID_API_KEY,
+        TORBOX_API_KEY,
+        TRAKT_CLIENT_SECRET,
+        TRAKT_REFRESH_TOKEN,
+        DISABLED_PLUGIN_IDS,
+        PLAYER_BACKEND,
+        SIMKL_ENABLED,
+        SIMKL_CLIENT_ID,
+        SIMKL_ACCESS_TOKEN,
+        OPENSUBTITLES_API_KEY,
+        OPENSUBTITLES_JWT,
+        OPENSUBTITLES_USER_AGENT,
+        OPENSUBTITLES_LANGUAGES,
+        CAST_QUEUE_NEXT_EPISODE,
+        SELF_HOST_PROGRESS_INTERVAL_MS;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

@@ -98,6 +98,22 @@
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <activity
+            android:name=".activities.tools.TraktOAuthActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.AppCompat.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="betterstreamflix"
+                    android:host="trakt"
+                    android:pathPrefix="/oauth" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".activities.tools.WatchlistImportActivity"
             android:exported="false"
             android:theme="@style/AppTheme.Mobile" />
