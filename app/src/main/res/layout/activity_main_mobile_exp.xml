@@ -67,6 +67,9 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             android:elevation="0dp"
+            app:itemTextAppearanceActive="@style/TextAppearance.Lumina.NavLabel"
+            app:itemTextAppearanceInactive="@style/TextAppearance.Lumina.NavLabel"
+            app:itemRippleColor="?attr/colorPrimary"
             app:labelVisibilityMode="labeled"
             app:menu="@menu/menu_main_activity_mobile" />
 

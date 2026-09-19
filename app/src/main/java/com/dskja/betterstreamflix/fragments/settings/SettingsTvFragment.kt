@@ -72,6 +72,7 @@ import com.dskja.betterstreamflix.utils.BypassWebSocketEndpointHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.ui.UserDataNotifier
 import com.dskja.betterstreamflix.utils.QrUtils
@@ -95,7 +96,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     )
 
     private val DEFAULT_DOMAIN_VALUE = "streamingunity.win"
-    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "serienstream.to"
+    private val DEFAULT_SERIENSTREAM_DOMAIN_VALUE = "186.2.175.5"
     private val DEFAULT_MOFLIX_DOMAIN_VALUE = "moflix-stream.xyz"
     private val DEFAULT_CUEVANA_DOMAIN_VALUE = "cuevana3.gs"
     private val DEFAULT_POSEIDON_DOMAIN_VALUE = "www.poseidonhd2.co"
@@ -111,6 +112,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     private lateinit var seasonDao: SeasonDao
     private lateinit var backupRestoreManager: BackupRestoreManager
     private var backupLoadingDialog: AlertDialog? = null
+    private var settingsHubController: SettingsHubController? = null
 
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -207,13 +209,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         if (preference is PreferenceScreen && !preference.key.isNullOrBlank()) {
-            screenBackStack.addLast(currentScreenState)
-            currentScreenState = SettingsScreenState(
-                rootKey = preference.key,
-                title = preference.title?.toString(),
+            openNestedSettingsScreen(
+                key = preference.key!!,
+                title = preference.title?.toString()
+                    ?: getString(R.string.player_settings_title),
             )
-            settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
-            renderCurrentScreen()
             return true
         }
         return super.onPreferenceTreeClick(preference)
@@ -230,25 +230,68 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         activity?.title = currentScreenState.title ?: getString(R.string.player_settings_title)
     }
 
+    private fun openNestedSettingsScreen(key: String, title: String) {
+        screenBackStack.addLast(currentScreenState)
+        currentScreenState = SettingsScreenState(rootKey = key, title = title)
+        settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+        renderCurrentScreen()
+    }
+
+    private fun ensureSettingsHub(view: View) {
+        if (!ExperimentalMobileDesign.enabled()) {
+            settingsHubController?.detach()
+            settingsHubController = null
+            return
+        }
+        val controller = settingsHubController ?: SettingsHubController(
+            fragment = this,
+            currentRootKey = { currentScreenState.rootKey },
+            onOpenPreferenceScreen = { key, title -> openNestedSettingsScreen(key, title) },
+            onOpenSupport = {
+                runCatching { findNavController().navigate(R.id.support) }
+            },
+            onOpenAbout = {
+                runCatching { findNavController().navigate(R.id.support) }
+            },
+        ).also { settingsHubController = it }
+        controller.attach(view)
+    }
+
     private fun renderCurrentScreen() {
         setPreferencesFromResource(R.xml.settings_tv, currentScreenState.rootKey)
         if (::backupRestoreManager.isInitialized) {
             displaySettings()
         }
         applyScreenTitle()
-        view?.post { listView?.requestFocus() }
+        view?.let { ensureSettingsHub(it) }
+        settingsHubController?.updateVisibility()
+        if (currentScreenState.rootKey != null || !ExperimentalMobileDesign.enabled()) {
+            view?.post { listView?.requestFocus() }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         SettingsListStyler.attach(view, isTv = true)
-        view.post { listView?.requestFocus() }
+        ensureSettingsHub(view)
+        if (currentScreenState.rootKey != null || !ExperimentalMobileDesign.enabled()) {
+            view.post { listView?.requestFocus() }
+        }
+    }
+
+    override fun onDestroyView() {
+        settingsHubController?.detach()
+        settingsHubController = null
+        super.onDestroyView()
     }
 
     private fun displaySettings() {
         updateOverviewLabels()
         updateProviderVisibilityState()
         SupabaseSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
+        }
+        PlatformSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
 
@@ -1057,14 +1100,46 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 networkSettingsCategory.addPreference(hostPreference)
             }
 
-            if (findPreference<EditTextPreference>("SERIENSTREAM_SESSION_COOKIES") == null) {
-                val cookiePreference = EditTextPreference(requireContext()).apply {
+            if (findPreference<Preference>("SERIENSTREAM_SESSION_LOGIN") == null) {
+                val loginPreference = Preference(requireContext()).apply {
+                    key = "SERIENSTREAM_SESSION_LOGIN"
+                    title = getString(R.string.settings_serienstream_session_login)
+                    summary = getString(R.string.settings_serienstream_session_login_summary)
+                    setOnPreferenceClickListener {
+                        startActivity(
+                            android.content.Intent(
+                                requireContext(),
+                                com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity::class.java,
+                            )
+                                .putExtra(
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SOURCE,
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                                )
+                                .putExtra(
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY,
+                                    true,
+                                ),
+                        )
+                        true
+                    }
+                }
+                networkSettingsCategory.addPreference(loginPreference)
+            }
+
+            if (findPreference<Preference>("SERIENSTREAM_SESSION_COOKIES") == null) {
+                val cookiePreference = Preference(requireContext()).apply {
                     key = "SERIENSTREAM_SESSION_COOKIES"
                     title = getString(R.string.settings_serienstream_session_cookies)
-                    dialogTitle = getString(R.string.settings_serienstream_session_cookies)
                     fun refreshSummary() {
-                        val cookies = UserPreferences.serienStreamSessionCookies
-                        summary = if (cookies.isBlank()) {
+                        val raw = UserPreferences.serienStreamSessionCookies
+                        val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(raw)
+                        if (cookies != raw) {
+                            UserPreferences.serienStreamSessionCookies = cookies
+                        }
+                        summary = if (cookies.isBlank() || !SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
+                            if (cookies.isNotBlank()) {
+                                UserPreferences.serienStreamSessionCookies = ""
+                            }
                             getString(R.string.settings_serienstream_session_cookies_empty)
                         } else {
                             getString(
@@ -1074,20 +1149,41 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                         }
                     }
                     refreshSummary()
-                    text = UserPreferences.serienStreamSessionCookies
-                    setOnBindEditTextListener { editText ->
-                        editText.minLines = 3
-                        editText.hint = "cf_clearance=…; rememberLogin=…"
-                        editText.setText(UserPreferences.serienStreamSessionCookies)
-                        editText.setSelection(editText.text?.length ?: 0)
-                    }
-                    setOnPreferenceChangeListener { _, newValue ->
-                        val value = (newValue as String).trim()
-                        UserPreferences.serienStreamSessionCookies = value
-                        if (value.isNotBlank()) {
-                            SerienStreamBypassHelper.applyStoredSessionCookies()
+                    setOnPreferenceClickListener {
+                        val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(
+                            UserPreferences.serienStreamSessionCookies,
+                        )
+                        if (cookies.isBlank()) {
+                            startActivity(
+                                android.content.Intent(
+                                    requireContext(),
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity::class.java,
+                                )
+                                    .putExtra(
+                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SOURCE,
+                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                                    )
+                                    .putExtra(
+                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY,
+                                        true,
+                                    ),
+                            )
+                        } else {
+                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.settings_serienstream_session_cookies_clear_title)
+                                .setMessage(cookies.take(240))
+                                .setPositiveButton(android.R.string.ok) { _, _ ->
+                                    SerienStreamBypassHelper.clearStoredSessionCookies()
+                                    refreshSummary()
+                                    Toast.makeText(
+                                        requireContext(),
+                                        R.string.settings_serienstream_session_cookies_cleared,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show()
                         }
-                        refreshSummary()
                         true
                     }
                 }
@@ -1136,6 +1232,33 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             setOnPreferenceChangeListener { preference, newValue ->
                 UserPreferences.paddingY = newValue as Int
                 (activity as? MainTvActivity)?.adjustLayoutDelta(null, UserPreferences.paddingY)
+                true
+            }
+        }
+
+        findPreference<SwitchPreference>("CAST_ENABLED")?.apply {
+            isChecked = UserPreferences.castEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castEnabled = newValue as Boolean
+                if (UserPreferences.castEnabled) {
+                    runCatching {
+                        com.dskja.betterstreamflix.cast.CastPlaybackHub.ensureCastContext(requireContext())
+                    }
+                }
+                true
+            }
+        }
+        findPreference<SwitchPreference>("CAST_SUBTITLES_ENABLED")?.apply {
+            isChecked = UserPreferences.castSubtitlesEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castSubtitlesEnabled = newValue as Boolean
+                true
+            }
+        }
+        findPreference<SwitchPreference>("CAST_KEEP_SCREEN_AWAKE")?.apply {
+            isChecked = UserPreferences.castKeepScreenAwake
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castKeepScreenAwake = newValue as Boolean
                 true
             }
         }

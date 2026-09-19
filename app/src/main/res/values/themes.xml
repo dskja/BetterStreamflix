@@ -72,6 +72,15 @@
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.Exp</item>
         <item name="alertDialogTheme">@style/Theme.Exp.Dialog.Alert</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Exp.MaterialAlertDialog</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.Lumina.Hero</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Lumina.Brand</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Lumina.Title</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Lumina.Body</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Lumina.Body</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Lumina.Eyebrow</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.Lumina.NavLabel</item>
+        <item name="fontFamily">@font/manrope_family</item>
+        <item name="android:fontFamily">@font/manrope_family</item>
         <item name="home_gradient_drawable">@drawable/bg_home_gradient_exp</item>
         <item name="movie_banner_gradient_drawable">@drawable/bg_home_gradient_exp</item>
         <item name="tv_show_banner_gradient_drawable">@drawable/bg_home_gradient_exp</item>
@@ -79,12 +88,14 @@
     </style>
 
     <style name="PreferenceThemeOverlay.Exp" parent="PreferenceThemeOverlay">
-        <item name="android:windowBackground">?attr/colorSurface</item>
-        <item name="android:colorBackground">?attr/colorSurface</item>
-        <item name="android:textColorPrimary">?attr/colorOnSurface</item>
-        <item name="android:textColorSecondary">?attr/colorOnSurfaceVariant</item>
-        <item name="colorAccent">?attr/colorPrimary</item>
-        <item name="colorControlActivated">?attr/colorPrimary</item>
+        <item name="android:windowBackground">@color/support_bg</item>
+        <item name="android:colorBackground">@color/support_bg</item>
+        <item name="android:textColorPrimary">@color/support_text_primary</item>
+        <item name="android:textColorSecondary">@color/support_text_secondary</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="fontFamily">@font/manrope</item>
+        <item name="colorAccent">@color/support_accent</item>
+        <item name="colorControlActivated">@color/support_accent</item>
     </style>
 
     <style name="Theme.Exp.Dialog.Alert" parent="Theme.Material3.Dark.Dialog.Alert" />

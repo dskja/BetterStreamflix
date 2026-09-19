@@ -62,6 +62,14 @@ class FavoritesMobileFragment : Fragment() {
         ExpNavAutoHide.attach(binding.root)
         ExpMotion.enterScreen(binding.root)
         ExpMotion.staggerFirstFill(binding.rvFavorites)
+        if (ExperimentalMobileDesign.enabled()) {
+            ExpMotion.revealHeader(
+                binding.root.findViewById(R.id.tv_favorites_eyebrow),
+                binding.root.findViewById(R.id.tv_favorites_brand),
+                binding.root.findViewById(R.id.tv_favorites_tagline),
+                binding.root.findViewById(R.id.v_favorites_rule),
+            )
+        }
         val columnCount = maxOf(3, resources.configuration.screenWidthDp / 120)
         val gridLayoutManager = GridLayoutManager(requireContext(), columnCount).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {

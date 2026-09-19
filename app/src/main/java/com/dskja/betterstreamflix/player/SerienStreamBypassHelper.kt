@@ -6,11 +6,36 @@ import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
+import java.util.Locale
 
 /** Shared SerienStream / CF bypass helpers used by mobile WebView and TV QR paths. */
 object SerienStreamBypassHelper {
 
     private const val TMDB_DE_SERIENSTREAM = "tmdbde:serienstream:"
+
+    /** Cookie names that are only browser noise (DuckDuckGo etc.), never a SerienStream login. */
+    private val NOISE_COOKIE_NAMES = setOf(
+        "__ddg1", "__ddg2", "__ddg3", "__ddg4", "__ddg5",
+        "__ddg6", "__ddg7", "__ddg8", "__ddg9", "__ddg10",
+        "__ddgid", "__ddgmark", "__ddg_privacy",
+    )
+
+    /** Cookie names that indicate a real SerienStream / CF / session pass. */
+    private val AUTH_COOKIE_MARKERS = listOf(
+        "cf_clearance",
+        "ddos_token",
+        "remember",
+        "login",
+        "session",
+        "phpsessid",
+        "xsrf",
+        "laravel",
+        "altcha",
+        "serien",
+        "auth",
+        "token",
+        "sso",
+    )
 
     fun isSerienStreamHost(url: String): Boolean {
         if (url.startsWith(TMDB_DE_SERIENSTREAM, ignoreCase = true)) return true
@@ -29,7 +54,6 @@ object SerienStreamBypassHelper {
     ): String? {
         val base = SerienStreamProvider.baseUrl.trimEnd('/') + "/"
 
-        // Prefer episode path embedded in a TMDb→SerienStream routed server id
         val routed = servers.firstOrNull {
             it.id.startsWith(TMDB_DE_SERIENSTREAM, ignoreCase = true) ||
                 it.src.contains("serienstream", ignoreCase = true) ||
@@ -45,7 +69,6 @@ object SerienStreamBypassHelper {
             if (!episodePath.isNullOrBlank() && !episodePath.startsWith("http", ignoreCase = true)) {
                 return "${base}serie/${episodePath.trimStart('/')}"
             }
-            // Fall through to src-based host pages when id isn't a site path
             val src = routed.src
             if (SerienStreamProvider.isSerienStreamHost(src) && src.contains("/serie/")) {
                 return src.substringBefore('?')
@@ -61,26 +84,74 @@ object SerienStreamBypassHelper {
             is Video.Type.Episode -> videoType.id
             is Video.Type.Movie -> return null
         }
-        // TMDb episode ids are numeric — only useful when SerienStream is current provider
         if (provider != SerienStreamProvider) return null
         return "${base}serie/$episodeId"
     }
 
     fun applyCookies(url: String, cookieHeader: String) {
+        val cleaned = sanitizeSessionCookies(cookieHeader)
         val parts = mutableListOf<String>()
-        if (cookieHeader.isNotBlank()) parts += cookieHeader.trim()
-        val stored = UserPreferences.serienStreamSessionCookies.trim()
-        if (stored.isNotBlank() && stored != cookieHeader.trim()) parts += stored
+        if (cleaned.isNotBlank()) parts += cleaned
+        val stored = sanitizeSessionCookies(UserPreferences.serienStreamSessionCookies)
+        if (stored.isNotBlank() && stored != cleaned) parts += stored
         seedCookieHeader(url, parts.joinToString("; "))
     }
 
-    /** Apply only the user-pasted session cookies (TV / VPN path without QR). */
+    /** Apply only the user session cookies (TV / VPN path without QR). */
     fun applyStoredSessionCookies(url: String = SerienStreamProvider.baseUrl) {
-        seedCookieHeader(url, UserPreferences.serienStreamSessionCookies)
+        seedCookieHeader(url, sanitizeSessionCookies(UserPreferences.serienStreamSessionCookies))
+    }
+
+    /**
+     * Keep only SerienStream/CF/session cookies. Drops DuckDuckGo `__ddg*` noise that
+     * previously made Settings show "Cookies saved" without a real login.
+     */
+    fun sanitizeSessionCookies(cookieHeader: String): String {
+        if (cookieHeader.isBlank()) return ""
+        val byName = linkedMapOf<String, String>()
+        cookieHeader.split(";")
+            .map { it.trim() }
+            .filter { it.contains("=") }
+            .forEach { cookie ->
+                val name = cookie.substringBefore("=").trim().lowercase(Locale.US)
+                if (name.isBlank()) return@forEach
+                if (NOISE_COOKIE_NAMES.any { noise ->
+                        name == noise || name.startsWith("${noise}_") || name.startsWith(noise)
+                    }
+                ) {
+                    return@forEach
+                }
+                byName[name] = cookie
+            }
+        return byName.values.joinToString("; ")
+    }
+
+    /** True when the jar contains a real challenge/login cookie (not just browser noise). */
+    fun looksLikeBypassSolved(cookieHeader: String): Boolean {
+        val cleaned = sanitizeSessionCookies(cookieHeader)
+        if (cleaned.isBlank()) return false
+        val lower = cleaned.lowercase(Locale.US)
+        return AUTH_COOKIE_MARKERS.any { lower.contains(it) }
+    }
+
+    /** Persist sanitized cookies only when they look like a real session. */
+    fun persistSessionCookiesIfValid(cookieHeader: String): Boolean {
+        val cleaned = sanitizeSessionCookies(cookieHeader)
+        if (!looksLikeBypassSolved(cleaned)) {
+            return false
+        }
+        UserPreferences.serienStreamSessionCookies = cleaned
+        applyStoredSessionCookies()
+        return true
+    }
+
+    fun clearStoredSessionCookies() {
+        UserPreferences.serienStreamSessionCookies = ""
     }
 
     private fun seedCookieHeader(url: String, cookieHeader: String) {
-        if (cookieHeader.isBlank()) return
+        val cleaned = sanitizeSessionCookies(cookieHeader)
+        if (cleaned.isBlank()) return
         val host = runCatching { Uri.parse(url).host.orEmpty() }.getOrDefault("")
         val targets = linkedSetOf<String>().apply {
             if (url.isNotBlank()) add(url)
@@ -88,25 +159,22 @@ object SerienStreamBypassHelper {
                 add("https://$host/")
                 add("http://$host/")
             }
-            // Seed known-good SerienStream hosts so OkHttp/WebView share the session.
-            // Do not seed dead s.to / broken-TLS serienstream.sx.
             add("https://serienstream.to/")
             add("https://serienstream.cx/")
             SerienStreamProvider.candidateDomains().forEach { domain ->
                 add("https://$domain/")
             }
             runCatching {
-                val configured = SerienStreamProvider.baseUrl.trimEnd('/') + "/"
-                add(configured)
+                add(SerienStreamProvider.baseUrl.trimEnd('/') + "/")
             }
         }
         val cookieManager = CookieManager.getInstance()
         val byName = linkedMapOf<String, String>()
-        cookieHeader.split(";")
+        cleaned.split(";")
             .map { it.trim() }
             .filter { it.contains("=") }
             .forEach { cookie ->
-                val name = cookie.substringBefore('=').trim().lowercase()
+                val name = cookie.substringBefore("=").trim().lowercase(Locale.US)
                 if (name.isNotBlank()) byName[name] = cookie
             }
         byName.values.forEach { cookie ->
@@ -115,21 +183,5 @@ object SerienStreamBypassHelper {
             }
         }
         runCatching { cookieManager.flush() }
-    }
-
-    /** True when the cookie jar looks like a real challenge pass, not just a session id. */
-    fun looksLikeBypassSolved(cookieHeader: String): Boolean {
-        if (cookieHeader.isBlank()) return false
-        val lower = cookieHeader.lowercase()
-        // Cloudflare / DDoS-Guard style markers — session-only cookies are not enough.
-        val markers = listOf(
-            "cf_clearance",
-            "ddos_token",
-            "__ddg1",
-            "__ddg2",
-            "altcha",
-            "challenge",
-        )
-        return markers.any { lower.contains(it) }
     }
 }

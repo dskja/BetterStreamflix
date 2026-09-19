@@ -8,7 +8,6 @@ import okhttp3.Request
 import okhttp3.internal.userAgent
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
-import java.net.URI
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -163,35 +162,12 @@ class CastStreamProxyServer(
         val text = runCatching { String(bytes, StandardCharsets.UTF_8) }.getOrNull() ?: return bytes
         if (!text.contains("#EXTM3U")) return bytes
         val base = publicBaseUrl() ?: return bytes
-        val rewritten = text.lineSequence().joinToString("\n") { line ->
-            val trimmed = line.trim()
-            when {
-                trimmed.isEmpty() || trimmed.startsWith("#") -> rewritePlaylistTagUris(line, playlistUrl, base)
-                else -> {
-                    val absolute = resolveAgainst(playlistUrl, trimmed)
-                    val encoded = URLEncoder.encode(absolute, StandardCharsets.UTF_8.name())
-                    "$base/p?u=$encoded"
-                }
-            }
-        }
-        return rewritten.toByteArray(StandardCharsets.UTF_8)
+        return CastPlaylistRewriter.rewrite(text, playlistUrl, base)
+            .toByteArray(StandardCharsets.UTF_8)
     }
 
-    private fun rewritePlaylistTagUris(line: String, playlistUrl: String, base: String): String {
-        // Rewrite URI="..." attributes inside #EXT-X-KEY / #EXT-X-MAP / #EXT-X-MEDIA tags.
-        if (!line.contains("URI=", ignoreCase = true)) return line
-        return URI_ATTR_REGEX.replace(line) { match ->
-            val raw = match.groupValues[1]
-            val absolute = resolveAgainst(playlistUrl, raw)
-            val encoded = URLEncoder.encode(absolute, StandardCharsets.UTF_8.name())
-            "URI=\"$base/p?u=$encoded\""
-        }
-    }
-
-    private fun resolveAgainst(baseUrl: String, ref: String): String {
-        if (ref.startsWith("http://") || ref.startsWith("https://")) return ref
-        return runCatching { URI(baseUrl).resolve(ref).toString() }.getOrDefault(ref)
-    }
+    private fun resolveAgainst(baseUrl: String, ref: String): String =
+        CastPlaylistRewriter.resolveAgainst(baseUrl, ref)
 
     override fun stop() {
         runCatching { super.stop() }
@@ -200,7 +176,6 @@ class CastStreamProxyServer(
 
     companion object {
         private const val TAG = "CastStreamProxy"
-        private val URI_ATTR_REGEX = Regex("""URI="([^"]+)"""", RegexOption.IGNORE_CASE)
 
         private fun defaultClient(): OkHttpClient =
             OkHttpClient.Builder()

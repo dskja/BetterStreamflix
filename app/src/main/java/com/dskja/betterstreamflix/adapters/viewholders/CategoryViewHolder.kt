@@ -162,7 +162,13 @@ class CategoryViewHolder(
                 this.onMovieLongClickListener = onMovieLongClick
                 this.onTvShowLongClickListener = onTvShowLongClick
                 submitList(category.list)
-                post { (adapter as AppAdapter).submitList(items) }
+                post {
+                    (adapter as AppAdapter).submitList(items)
+                    if (category.list.isNotEmpty()) {
+                        // Infinite loop: [last] + items + [first] — start on first real item.
+                        setCurrentItem(1, false)
+                    }
+                }
             }
         }
 

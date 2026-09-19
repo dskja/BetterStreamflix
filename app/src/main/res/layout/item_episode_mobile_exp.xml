@@ -72,6 +72,7 @@
 
     <TextView
         android:id="@+id/tv_episode_info"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
@@ -85,6 +86,7 @@
 
     <TextView
         android:id="@+id/tv_episode_released"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
@@ -100,6 +102,7 @@
 
     <TextView
         android:id="@+id/tv_episode_title"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
@@ -117,6 +120,7 @@
 
     <TextView
         android:id="@+id/tv_episode_overview"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"

@@ -77,6 +77,7 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.dskja.betterstreamflix.cast.CastMediaFactory
 import com.dskja.betterstreamflix.cast.CastPlaybackHub
+import com.dskja.betterstreamflix.cast.CastQueueCoordinator
 import com.dskja.betterstreamflix.utils.UserDataCache
 import com.dskja.betterstreamflix.utils.ProviderAudioLanguage
 import com.dskja.betterstreamflix.utils.dp
@@ -200,7 +201,7 @@ class PlayerMobileFragment : Fragment() {
                 ?: buildSerienStreamBypassUrl()
             if (!bypassUrl.isNullOrBlank() && !cookies.isNullOrBlank()) {
                 applyBypassCookies(bypassUrl, cookies)
-                UserPreferences.serienStreamSessionCookies = cookies
+                SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
             }
             waitingForBypass = false
             bypassDone = true
@@ -508,6 +509,9 @@ class PlayerMobileFragment : Fragment() {
                                 playbackAlreadyStarted = false,
                                 softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
                                 allowMidPlaybackFailover = true,
+                                externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
+                                    com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
+                                externalPlayerAlreadyTried = currentExternalPlayerTried,
                             )
                         ) {
                             is PlaybackFailover.Action.TryNextServer -> {
@@ -523,17 +527,25 @@ class PlayerMobileFragment : Fragment() {
                                 ).show()
                                 viewModel.getVideo(state.server)
                             }
+                            PlaybackFailover.Action.TryExternalPlayer -> {
+                                currentExternalPlayerTried = true
+                                val video = currentVideo
+                                if (video != null) {
+                                    com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                                        requireContext(),
+                                        video.source,
+                                        video.headers.orEmpty(),
+                                    )
+                                } else {
+                                    viewModel.getVideo(state.server)
+                                }
+                            }
                             PlaybackFailover.Action.GiveUp -> {
                             val providerName = UserPreferences.currentProvider?.name ?: ""
-                            val isTmdbDe = providerName.contains("TMDb", ignoreCase = true) &&
-                                (providerName.contains("(de)", ignoreCase = true) ||
-                                    providerName.contains("Deutsch", ignoreCase = true))
                             val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                             val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                            val message = if (isTmdbDe) {
-                                getString(R.string.player_tmdb_de_try_serienstream)
-                            } else if (isTmdb || isAD) {
+                            val message = if (isTmdb || isAD) {
                                 val langCode = providerName.substringAfter("(").substringBefore(")")
                                 val locale = Locale.forLanguageTag(langCode)
                                 val langDisplayName = locale.getDisplayLanguage(Locale.getDefault())
@@ -556,11 +568,7 @@ class PlayerMobileFragment : Fragment() {
                                 message,
                                 Toast.LENGTH_LONG
                             ).show()
-                            if (isTmdbDe) {
-                                offerSwitchToSerienStream()
-                            } else {
-                                findNavController().navigateUp()
-                            }
+                            findNavController().navigateUp()
                             }
                         }
                     }
@@ -727,6 +735,10 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        runCatching {
+            com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.resetSession()
+        }
+        castNextQueueJob?.cancel()
         nextEpisodePrefetchJob?.cancel()
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -1112,6 +1124,19 @@ class PlayerMobileFragment : Fragment() {
         currentServer = server
         updatePlayerHeader()
 
+        if (com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal()) {
+            currentExternalPlayerTried = true
+            val pos = runCatching { player.currentPosition }.getOrDefault(0L)
+            com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                requireContext(),
+                video.source,
+                video.headers.orEmpty(),
+                positionMs = pos,
+                title = resolvePlayerTitle(),
+            )
+            return
+        }
+
         val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
 
         val softwareDecoder = PlayerSettingsView.Settings.SoftwareDecoder.isEnabled
@@ -1298,6 +1323,13 @@ class PlayerMobileFragment : Fragment() {
                         }
                     }
 
+                    reportTraktProgress(
+                        videoType = videoType,
+                        positionMs = player.currentPosition,
+                        durationMs = player.duration,
+                        isPlaying = false,
+                    )
+
                             when (videoType) {
                                 is Video.Type.Movie -> {
                                     val provider = UserPreferences.currentProvider ?: return
@@ -1370,6 +1402,9 @@ class PlayerMobileFragment : Fragment() {
                         playbackAlreadyStarted = ::player.isInitialized && player.hasStarted(),
                         softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
                         allowMidPlaybackFailover = true,
+                        externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
+                            com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
+                        externalPlayerAlreadyTried = currentExternalPlayerTried,
                     )
                 ) {
                     is PlaybackFailover.Action.TryNextServer -> {
@@ -1390,6 +1425,17 @@ class PlayerMobileFragment : Fragment() {
                                 Toast.LENGTH_SHORT,
                             ).show()
                             displayVideo(video, server)
+                        }
+                    }
+                    PlaybackFailover.Action.TryExternalPlayer -> {
+                        currentExternalPlayerTried = true
+                        val video = currentVideo
+                        if (video != null) {
+                            com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                                requireContext(),
+                                video.source,
+                                video.headers.orEmpty(),
+                            )
                         }
                     }
                     PlaybackFailover.Action.GiveUp -> {
@@ -1635,11 +1681,20 @@ class PlayerMobileFragment : Fragment() {
     private fun startProgressHandler() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
         progressRunnable = Runnable {
-            if (player.isPlaying) {
+            val active = runCatching { activePlayer() }.getOrNull() ?: return@Runnable
+            if (active.isPlaying) {
                 if (!isLiveTvPlayback()) {
-                    val show = player.currentPosition in 3000..120000
+                    val pos = active.currentPosition
+                    val dur = active.duration
+                    val show = pos in 3000..120000
                     showSkipIntroButton(show)
                     updateNextEpisodeOverlay()
+                    reportTraktProgress(
+                        videoType = args.videoType,
+                        positionMs = pos,
+                        durationMs = dur,
+                        isPlaying = true,
+                    )
                 } else {
                     showSkipIntroButton(false)
                     hideNextEpisodeOverlay()
@@ -1648,6 +1703,25 @@ class PlayerMobileFragment : Fragment() {
             progressHandler.postDelayed(progressRunnable, 1000)
         }
         progressHandler.post(progressRunnable)
+    }
+
+    private fun reportTraktProgress(
+        videoType: Video.Type,
+        positionMs: Long,
+        durationMs: Long,
+        isPlaying: Boolean,
+    ) {
+        com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.report(
+            videoType = videoType,
+            positionMs = positionMs,
+            durationMs = durationMs,
+            isPlaying = isPlaying,
+            provider = UserPreferences.currentProvider,
+            itemId = when (videoType) {
+                is Video.Type.Movie -> videoType.id
+                is Video.Type.Episode -> videoType.id
+            },
+        )
     }
 
     private fun stopProgressHandler() {
@@ -1661,11 +1735,12 @@ class PlayerMobileFragment : Fragment() {
             hideNextEpisodeOverlay()
             return
         }
-        val duration = player.duration.takeIf { it > 0 } ?: run {
+        val active = runCatching { activePlayer() }.getOrNull() ?: player
+        val duration = active.duration.takeIf { it > 0 } ?: run {
             hideNextEpisodeOverlay()
             return
         }
-        val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
+        val remainingMs = (duration - active.currentPosition).coerceAtLeast(0L)
 
         if (nextEpisodeOverlayDismissed) {
             hideNextEpisodeOverlay()
@@ -1674,6 +1749,9 @@ class PlayerMobileFragment : Fragment() {
 
         if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
             ensureNextEpisodePrepared(currentEpisode)
+            if (isCasting || CastPlaybackHub.isCasting) {
+                scheduleCastNextEpisodeQueue()
+            }
         }
 
         val nextEpisode = EpisodeManager.peekNextEpisode()
@@ -1779,12 +1857,21 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        if (::player.isInitialized && !isLiveTvPlayback()) {
+            reportTraktProgress(
+                videoType = args.videoType,
+                positionMs = player.currentPosition,
+                durationMs = player.duration,
+                isPlaying = false,
+            )
+        }
         stopProgressHandler()
         hideNextEpisodeOverlay()
     }
 
     private var currentExtraBuffering = false
     private var currentSoftwareDecoder = false
+    private var currentExternalPlayerTried = false
 
     private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
         return PlayerBuilderFactory.build(
@@ -1883,6 +1970,17 @@ class PlayerMobileFragment : Fragment() {
                     switchPlaybackToLocal()
                 }
             })
+            castPlayer?.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState != Player.STATE_ENDED) return
+                    if (!isAdded || view == null) return
+                    // Hub auto-advances queued items; if empty, fall back to local next-episode flow.
+                    if (CastPlaybackHub.queuedCount() > 0) return
+                    if (UserPreferences.autoplay) {
+                        playNextEpisodeAcrossSeasons(autoplay = true)
+                    }
+                }
+            })
 
             // Re-attach if a session is already active (e.g. returning from browse).
             if (CastPlaybackHub.isCasting || castPlayer?.isCastSessionAvailable == true) {
@@ -1937,6 +2035,29 @@ class PlayerMobileFragment : Fragment() {
         cp.setMediaItem(castItem, startPosition)
         cp.prepare()
         cp.playWhenReady = playWhenReady
+        scheduleCastNextEpisodeQueue()
+    }
+
+    private var castNextQueueJob: Job? = null
+
+    private fun scheduleCastNextEpisodeQueue() {
+        if (!isCasting && !CastPlaybackHub.isCasting) return
+        if (args.videoType !is Video.Type.Episode) return
+        if (CastPlaybackHub.queuedCount() > 0) return
+        if (castNextQueueJob?.isActive == true) return
+        castNextQueueJob = lifecycleScope.launch {
+            val prepared = withContext(Dispatchers.IO) {
+                CastQueueCoordinator.prepareNextEpisodeQueue(
+                    provider = UserPreferences.currentProvider,
+                    currentVideoType = args.videoType,
+                    subtitleConfigurations = emptyList(),
+                    headers = lastCastHeaders,
+                )
+            }
+            if (prepared != null && isAdded) {
+                CastQueueCoordinator.enqueueExclusive(prepared.mediaItem)
+            }
+        }
     }
 
     private fun switchPlaybackToCast() {
@@ -2036,33 +2157,5 @@ class PlayerMobileFragment : Fragment() {
 
     private fun applyBypassCookies(url: String, cookieHeader: String) {
         SerienStreamBypassHelper.applyCookies(url, cookieHeader)
-    }
-
-    private fun offerSwitchToSerienStream() {
-        val title = when (val vt = args.videoType) {
-            is Video.Type.Episode -> vt.tvShow.title
-            is Video.Type.Movie -> vt.title
-        }
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle(R.string.player_tmdb_de_switch_title)
-            .setMessage(getString(R.string.player_tmdb_de_switch_message, title))
-            .setPositiveButton(R.string.player_tmdb_de_switch_cta) { _, _ ->
-                UserPreferences.currentProvider = SerienStreamProvider
-                com.dskja.betterstreamflix.utils.ProviderChangeNotifier.notifyProviderChanged()
-                runCatching {
-                    findNavController().navigate(
-                        com.dskja.betterstreamflix.R.id.search,
-                    )
-                }.onFailure {
-                    findNavController().navigateUp()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-                findNavController().navigateUp()
-            }
-            .setOnCancelListener {
-                findNavController().navigateUp()
-            }
-            .show()
     }
 }

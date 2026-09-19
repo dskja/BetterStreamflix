@@ -60,6 +60,12 @@ class TvShowsMobileFragment : Fragment() {
         ExpMotion.staggerFirstFill(binding.rvTvShows)
         if (ExperimentalMobileDesign.enabled()) {
             ExpMotion.startAnimation(binding.rvTvShows, R.anim.exp_fade_slide_in)
+            ExpMotion.revealHeader(
+                binding.root.findViewById(R.id.tv_tv_shows_eyebrow),
+                binding.root.findViewById(R.id.tv_tv_shows_brand),
+                binding.root.findViewById(R.id.tv_tv_shows_tagline),
+                binding.root.findViewById(R.id.v_tv_shows_rule),
+            )
         }
 
         initializeTvShows()

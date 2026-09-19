@@ -2,6 +2,7 @@
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/tv_download_header"
+        android:fontFamily="@font/manrope"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:letterSpacing="0.14"

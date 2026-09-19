@@ -10,6 +10,7 @@
 
     <TextView
         android:id="@+id/tv_movie_directors_label"
+        android:fontFamily="@font/manrope"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -25,6 +26,7 @@
 
     <TextView
         android:id="@+id/rv_movie_directors"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="18dp"

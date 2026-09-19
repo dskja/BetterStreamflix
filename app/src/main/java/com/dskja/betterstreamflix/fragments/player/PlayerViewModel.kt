@@ -209,14 +209,18 @@ class PlayerViewModel(
                 Log.d("PlayerViewModel", "Inizio ricerca OpenSubtitles")
                 val subtitles = when (videoType) {
                     is Video.Type.Episode -> {
-                        OpenSubtitles.search(
+                        com.dskja.betterstreamflix.platform.subtitles.OpenSubtitlesBridge.search(
+                            imdbId = videoType.tvShow.imdbId,
                             query = videoType.tvShow.title,
                             season = videoType.season.number,
                             episode = videoType.number,
                         )
                     }
                     is Video.Type.Movie -> {
-                        OpenSubtitles.search(query = videoType.title)
+                        com.dskja.betterstreamflix.platform.subtitles.OpenSubtitlesBridge.search(
+                            imdbId = videoType.imdbId,
+                            query = videoType.title,
+                        )
                     }
                 }.sortedWith(compareBy({ it.languageName }, { it.subDownloadsCnt }))
                 
@@ -262,7 +266,7 @@ class PlayerViewModel(
         _subtitleState.emit(SubtitleState.DownloadingOpenSubtitle)
         try {
             val contentKey = SubtitleFileCache.contentKey(videoType)
-            val uri = OpenSubtitles.download(
+            val uri = com.dskja.betterstreamflix.platform.subtitles.OpenSubtitlesBridge.download(
                 context = BetterStreamflixApp.instance,
                 subtitle = subtitle,
                 contentKey = contentKey,

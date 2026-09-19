@@ -10,6 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.dskja.betterstreamflix.R
@@ -38,16 +40,21 @@ internal object SettingsListStyler {
         val recyclerView = findRecyclerView(root) ?: return
         if (recyclerView.getTag(R.id.settings_list_styler_tag) == true) return
 
-        val backgroundColor = resolveThemeColor(root, R.attr.app_background_color, 0xFF181818.toInt())
+        val experimental = UserPreferences.experimentalNewAppDesign
+        val backgroundColor = if (experimental) {
+            ContextCompat.getColor(root.context, R.color.support_bg)
+        } else {
+            resolveThemeColor(root, R.attr.app_background_color, 0xFF181818.toInt())
+        }
         root.setBackgroundColor(backgroundColor)
         recyclerView.setTag(R.id.settings_list_styler_tag, true)
         recyclerView.clipToPadding = false
         recyclerView.setBackgroundColor(backgroundColor)
         recyclerView.setPadding(
             0,
-            recyclerView.context.dp(if (isTv) 18 else 10),
+            recyclerView.context.dp(if (isTv) 18 else if (experimental) 14 else 10),
             0,
-            recyclerView.context.dp(if (isTv) 28 else 18),
+            recyclerView.context.dp(if (isTv) 28 else if (experimental) 32 else 18),
         )
 
         recyclerView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
@@ -85,6 +92,97 @@ internal object SettingsListStyler {
     }
 
     private fun styleRow(view: View, isTv: Boolean) {
+        if (UserPreferences.experimentalNewAppDesign) {
+            styleExperimentalRow(view, isTv)
+        } else {
+            styleClassicRow(view, isTv)
+        }
+    }
+
+    private fun styleExperimentalRow(view: View, isTv: Boolean) {
+        val title = view.findViewById<TextView>(android.R.id.title) ?: return
+        val summary = view.findViewById<TextView>(android.R.id.summary)
+        val icon = view.findViewById<ImageView>(android.R.id.icon)
+        val layoutParams = view.layoutParams as? ViewGroup.MarginLayoutParams
+        val context = view.context
+        val manrope = ResourcesCompat.getFont(context, R.font.manrope)
+            ?: Typeface.create("sans-serif-medium", Typeface.NORMAL)
+
+        val hasChevron = view.findViewById<View>(R.id.settings_chevron) != null
+        val widgetFrame = view.findViewById<ViewGroup>(android.R.id.widget_frame)
+        val isCategory = !hasChevron &&
+            summary?.text.isNullOrBlank() &&
+            (widgetFrame?.childCount ?: 0) == 0 &&
+            icon?.drawable == null
+
+        if (isCategory) {
+            layoutParams?.setMargins(
+                context.dp(if (isTv) 28 else 20),
+                context.dp(if (isTv) 22 else 18),
+                context.dp(if (isTv) 28 else 20),
+                context.dp(4),
+            )
+            view.layoutParams = layoutParams
+            view.background = null
+            view.minimumHeight = 0
+            view.setPadding(0, context.dp(4), 0, context.dp(2))
+            title.typeface = manrope
+            title.setTextColor(ContextCompat.getColor(context, R.color.support_text_primary))
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isTv) 18f else 15f)
+            title.letterSpacing = 0.02f
+            summary?.visibility = View.GONE
+            return
+        }
+
+        val surface = ContextCompat.getColor(context, R.color.support_card_bg)
+        val border = ContextCompat.getColor(context, R.color.support_card_border)
+        val accent = ContextCompat.getColor(context, R.color.support_accent)
+        val highlight = ColorUtils.blendARGB(surface, accent, 0.16f)
+        val highlightBorder = ContextCompat.getColor(context, R.color.support_card_border_focus)
+
+        layoutParams?.setMargins(
+            context.dp(if (isTv) 28 else 16),
+            context.dp(if (isTv) 8 else 5),
+            context.dp(if (isTv) 28 else 16),
+            context.dp(if (isTv) 8 else 5),
+        )
+        view.layoutParams = layoutParams
+        view.background = createRowBackground(
+            view = view,
+            isTv = isTv,
+            defaultColor = surface,
+            defaultStrokeColor = border,
+            activeColor = highlight,
+            activeStrokeColor = highlightBorder,
+            radiusDp = if (isTv) 18 else 14,
+        )
+        view.minimumHeight = context.dp(if (isTv) 84 else 68)
+        view.setPadding(
+            context.dp(if (isTv) 24 else 16),
+            context.dp(if (isTv) 16 else 14),
+            context.dp(if (isTv) 24 else 16),
+            context.dp(if (isTv) 16 else 14),
+        )
+
+        title.typeface = manrope
+        title.setTextColor(ContextCompat.getColor(context, R.color.support_text_primary))
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isTv) 18f else 15f)
+        title.letterSpacing = -0.01f
+
+        summary?.apply {
+            typeface = manrope
+            setTextColor(ContextCompat.getColor(context, R.color.support_text_secondary))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isTv) 14f else 12.5f)
+            maxLines = 3
+            visibility = if (text.isNullOrBlank()) View.GONE else View.VISIBLE
+        }
+
+        icon?.drawable?.let {
+            icon.imageTintList = ColorStateList.valueOf(accent)
+        }
+    }
+
+    private fun styleClassicRow(view: View, isTv: Boolean) {
         val title = view.findViewById<TextView>(android.R.id.title) ?: return
         val summary = view.findViewById<TextView>(android.R.id.summary)
         val icon = view.findViewById<ImageView>(android.R.id.icon)
@@ -108,7 +206,6 @@ internal object SettingsListStyler {
         ).also {
             view.setTag(R.id.settings_row_defaults, it)
         }
-        val titleText = title.text?.toString().orEmpty()
         val hasChevron = view.findViewById<View>(R.id.settings_chevron) != null
         if (!hasChevron) {
             layoutParams?.setMargins(
@@ -197,8 +294,8 @@ internal object SettingsListStyler {
         defaultStrokeColor: Int,
         activeColor: Int,
         activeStrokeColor: Int,
+        radiusDp: Int = if (isTv) 22 else 18,
     ): Drawable {
-        val radiusDp = if (isTv) 22 else 18
         val defaultStrokeDp = 1
         val activeStrokeDp = if (isTv) 2 else 1
 
@@ -249,7 +346,7 @@ internal object SettingsListStyler {
                 continue
             }
             return if (typedValue.resourceId != 0) {
-                androidx.core.content.ContextCompat.getColor(view.context, typedValue.resourceId)
+                ContextCompat.getColor(view.context, typedValue.resourceId)
             } else {
                 typedValue.data
             }

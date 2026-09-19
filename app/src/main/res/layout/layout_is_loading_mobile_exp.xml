@@ -109,6 +109,7 @@
 
     <TextView
         android:id="@+id/tv_is_loading_error"
+        android:fontFamily="@font/manrope"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:drawableTop="@drawable/ic_exp_error"

@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
     android:foreground="?attr/selectableItemBackground">
 
     <ImageView
@@ -30,6 +29,7 @@
 
     <TextView
         android:id="@+id/tv_swiper_title"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -38,7 +38,7 @@
         android:gravity="start"
         android:letterSpacing="-0.02"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="40sp"
+        android:textSize="28sp"
         app:layout_constraintBottom_toTopOf="@id/barrier1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

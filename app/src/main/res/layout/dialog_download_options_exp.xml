@@ -13,6 +13,7 @@
 
         <TextView
             android:id="@+id/tv_download_options_title"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:letterSpacing="-0.01"
@@ -22,6 +23,7 @@
 
         <TextView
             android:id="@+id/tv_download_options_subtitle"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
@@ -30,6 +32,7 @@
 
         <TextView
             android:id="@+id/tv_download_options_storage"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -37,6 +40,7 @@
             android:textSize="13sp" />
 
         <TextView
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
@@ -57,6 +61,7 @@
             android:paddingEnd="10dp" />
 
         <TextView
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -87,6 +92,7 @@
 
         <TextView
             android:id="@+id/tv_download_options_hint"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"

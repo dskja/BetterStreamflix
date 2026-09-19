@@ -12,10 +12,10 @@ import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.tanasi.retrofit_jsoup.converter.JsoupConverterFactory
 import okhttp3.Cookie
-import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.ResponseBody
+import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import retrofit2.Retrofit
@@ -32,8 +32,10 @@ import MyCookieJar
 import android.util.Base64
 import com.dskja.betterstreamflix.utils.TmdbUtils
 import com.dskja.betterstreamflix.utils.UserPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlin.text.Charsets
 
 object MEGAKinoProvider : Provider, ProviderConfigUrl {
@@ -50,16 +52,17 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
     override val language = "de"
     override val changeUrlMutex = Mutex()
 
-    private const val DEFAULT_AGENT = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
+    private const val BROWSER_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
+    private const val DEFAULT_AGENT = "User-Agent: $BROWSER_UA"
+    private val KNOWN_MIRROR_HOSTS = listOf("megakino.me", "megakino19.com", "www.megakino.me", "www.megakino19.com")
+
+    private val cookieJar = MyCookieJar()
 
     private interface MEGAKinoService {
         @Headers(DEFAULT_AGENT)
         @GET(".")
         suspend fun getHome(): Document
-
-        @Headers(DEFAULT_AGENT)
-        @GET("index.php?yg=token")
-        suspend fun getToken(): ResponseBody
 
         @Headers(DEFAULT_AGENT)
         @GET
@@ -90,9 +93,9 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
         ): Document
 
         companion object {
-            fun build(baseUrl: String): MEGAKinoService {
+            fun build(baseUrl: String, jar: MyCookieJar): MEGAKinoService {
                 val client = OkHttpClient.Builder()
-                    .cookieJar(MyCookieJar())
+                    .cookieJar(jar)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .build()
@@ -108,7 +111,7 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
     }
 
     @Volatile
-    private var service = MEGAKinoService.build(defaultBaseUrl)
+    private var service = MEGAKinoService.build(defaultBaseUrl, cookieJar)
     @Volatile
     private var serviceBaseUrl: String = defaultBaseUrl
 
@@ -129,7 +132,7 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
         if (serviceBaseUrl == currentBase) return cached
         synchronized(this) {
             if (serviceBaseUrl == currentBase) return service
-            return MEGAKinoService.build(currentBase).also {
+            return MEGAKinoService.build(currentBase, cookieJar).also {
                 service = it
                 serviceBaseUrl = currentBase
                 lastTokenTime = 0L
@@ -140,44 +143,133 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
     override suspend fun onChangeUrl(forceRefresh: Boolean): String {
         changeUrlMutex.withLock {
             val currentBase = normalizedBaseUrl()
-            service = MEGAKinoService.build(currentBase)
+            service = MEGAKinoService.build(currentBase, cookieJar)
             serviceBaseUrl = currentBase
             lastTokenTime = 0L
         }
         return normalizedBaseUrl()
     }
 
-    private suspend fun ensureToken() {
-        if (System.currentTimeMillis() - lastTokenTime > 10 * 60 * 1000) {
-            try {
-                getService().getToken()
-                lastTokenTime = System.currentTimeMillis()
-            } catch (e: Exception) {
+    private fun injectCookiesForHosts(
+        sourceUrl: HttpUrl,
+        setCookieHeaders: List<String>,
+        extraHosts: Collection<String>,
+    ) {
+        val parsed = setCookieHeaders.mapNotNull { Cookie.parse(sourceUrl, it) }
+        if (parsed.isEmpty()) return
+
+        cookieJar.saveFromResponse(sourceUrl, parsed)
+
+        val hosts = (extraHosts + sourceUrl.host)
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+            .distinct()
+
+        for (host in hosts) {
+            if (host.equals(sourceUrl.host, ignoreCase = true)) continue
+            val hostUrl = sourceUrl.newBuilder().host(host).build()
+            val remapped = parsed.mapNotNull { cookie ->
+                runCatching {
+                    Cookie.Builder()
+                        .name(cookie.name)
+                        .value(cookie.value)
+                        .domain(host)
+                        .path(cookie.path.ifBlank { "/" })
+                        .apply {
+                            if (cookie.expiresAt != Long.MAX_VALUE) expiresAt(cookie.expiresAt)
+                            if (cookie.secure) secure()
+                            if (cookie.httpOnly) httpOnly()
+                        }
+                        .build()
+                }.getOrNull()
+            }
+            if (remapped.isNotEmpty()) {
+                cookieJar.saveFromResponse(hostUrl, remapped)
             }
         }
     }
 
-    private fun parseContentItems(element: Element): List<AppAdapter.Item> {
-        return element.select("div#dle-content a.poster.grid-item").mapNotNull { el ->
-            val href = el.attr("href")
-            val title = el.select("h3.poster__title").text().trim()
-            val posterPath = el.select("div.poster__img img").attr("data-src")
-            val posterUrl = absoluteUrl(posterPath)
-            
-            if (href.contains("/serials/")) {
-                TvShow(
-                    id = href,
-                    title = title,
-                    poster = posterUrl
-                )
-            } else {
-                Movie(
-                    id = href,
-                    title = title,
-                    poster = posterUrl
-                )
+    private suspend fun ensureToken() {
+        if (System.currentTimeMillis() - lastTokenTime <= 10 * 60 * 1000) return
+        try {
+            withContext(Dispatchers.IO) {
+                val noRedirectClient = OkHttpClient.Builder()
+                    .cookieJar(cookieJar)
+                    .followRedirects(false)
+                    .followSslRedirects(false)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .build()
+
+                // megakino.me token → 301 megakino19.com → 204 + Set-Cookie.
+                // Do not let OkHttp auto-follow cross-host redirects (that leaves
+                // yg_token only on the mirror). Walk hops manually and mirror cookies.
+                var currentUrl = absoluteUrl("index.php?yg=token").toHttpUrl()
+                repeat(5) {
+                    val request = Request.Builder()
+                        .url(currentUrl)
+                        .header("User-Agent", BROWSER_UA)
+                        .get()
+                        .build()
+                    val nextUrl = noRedirectClient.newCall(request).execute().use { response ->
+                        val setCookies = response.headers("Set-Cookie")
+                        val redirectHost = response.header("Location")
+                            ?.let { response.request.url.resolve(it)?.host }
+                            .orEmpty()
+                        val extraHosts = buildList {
+                            addAll(KNOWN_MIRROR_HOSTS)
+                            add(response.request.url.host)
+                            if (redirectHost.isNotBlank()) add(redirectHost)
+                        }
+                        if (setCookies.isNotEmpty()) {
+                            injectCookiesForHosts(
+                                sourceUrl = response.request.url,
+                                setCookieHeaders = setCookies,
+                                extraHosts = extraHosts,
+                            )
+                        }
+                        if (!response.isRedirect) return@withContext
+                        val location = response.header("Location") ?: return@withContext
+                        response.request.url.resolve(location) ?: return@withContext
+                    }
+                    currentUrl = nextUrl
+                }
             }
+            lastTokenTime = System.currentTimeMillis()
+        } catch (_: Exception) {
         }
+    }
+
+    private fun posterUrl(el: Element): String {
+        val img = el.selectFirst("div.poster__img img, img")
+        val path = img?.attr("data-src")?.trim().orEmpty()
+            .ifBlank { img?.attr("src")?.trim().orEmpty() }
+        return absoluteUrl(path)
+    }
+
+    private fun parsePosterItem(el: Element): AppAdapter.Item? {
+        val href = el.attr("href").trim()
+        val title = el.select("h3.poster__title").text().trim()
+            .ifBlank { el.selectFirst("img")?.attr("alt")?.trim().orEmpty() }
+        if (href.isBlank() || title.isBlank()) return null
+        val posterUrl = posterUrl(el)
+        return if (href.contains("/serials/")) {
+            TvShow(id = href, title = title, poster = posterUrl)
+        } else {
+            Movie(id = href, title = title, poster = posterUrl)
+        }
+    }
+
+    private fun parseContentItems(element: Element): List<AppAdapter.Item> {
+        return element.select("div#dle-content a.poster.grid-item, a.poster.grid-item")
+            .mapNotNull { parsePosterItem(it) }
+            .distinctBy {
+                when (it) {
+                    is Movie -> it.id
+                    is TvShow -> it.id
+                    else -> it.hashCode().toString()
+                }
+            }
     }
 
     override suspend fun getHome(): List<Category> {
@@ -188,8 +280,10 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
         val sections = document.select("section.sect").filter {
             it.select("a.poster.grid-item").isNotEmpty()
         }
-        val primary = sections.find {
-            it.select("h2.sect__title").text().contains("Topaktuelle Neuheiten", ignoreCase = true)
+        val primary = sections.find { section ->
+            val title = section.select("h2.sect__title").text()
+            title.contains("Topaktuelle Neuheiten", ignoreCase = true) ||
+                title.contains("Neuigkeiten", ignoreCase = true)
         } ?: sections.firstOrNull()
 
         if (primary != null) {
@@ -205,9 +299,24 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
                 val items = parseHomeSectionItems(section)
                 if (items.isEmpty()) return@forEach
                 val title = section.select("h2.sect__title").text().trim()
-                    .ifBlank { return@forEach }
+                    .ifBlank { "Mehr" }
                 categories.add(Category(name = title, list = items))
             }
+
+        if (categories.isEmpty()) {
+            val fallback = document.select("#dle-content a.poster.grid-item")
+                .mapNotNull { parsePosterItem(it) }
+                .distinctBy {
+                    when (it) {
+                        is Movie -> it.id
+                        is TvShow -> it.id
+                        else -> it.hashCode().toString()
+                    }
+                }
+            if (fallback.isNotEmpty()) {
+                categories.add(Category(name = Category.FEATURED, list = fallback))
+            }
+        }
 
         return categories
     }
@@ -215,16 +324,7 @@ object MEGAKinoProvider : Provider, ProviderConfigUrl {
     private fun parseHomeSectionItems(section: Element): List<AppAdapter.Item> {
         val fromContent = parseContentItems(section)
         if (fromContent.isNotEmpty()) return fromContent
-        return section.select("a.poster.grid-item").mapNotNull { el ->
-            val href = el.attr("href")
-            val title = el.select("h3.poster__title").text().trim()
-            val posterPath = el.select("div.poster__img img").attr("data-src")
-                .ifBlank { el.select("div.poster__img img").attr("src") }
-            val posterUrl = absoluteUrl(posterPath)
-            if (href.isBlank() || title.isBlank()) null
-            else if (href.contains("/serials/")) TvShow(id = href, title = title, poster = posterUrl)
-            else Movie(id = href, title = title, poster = posterUrl)
-        }
+        return section.select("a.poster.grid-item").mapNotNull { parsePosterItem(it) }
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {

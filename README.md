@@ -3,7 +3,7 @@
 <p align="center">
   <img src="./branding/ic_launcher-512.png" height="120px" alt="BetterStreamflix" />
   <br />
-  <strong>v1.1.0</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
+  <strong>v1.1.1</strong> · Maintained by <a href="https://github.com/dskja">dskja</a>
   <br />
   An actively maintained fork of Streamflix with extra fixes, providers and UX improvements for Android TV and mobile.
   <br />
@@ -69,7 +69,10 @@ This app provides a user interface for accessing publicly available streaming co
 - No account required for the app interface
 - Educational and personal use only
 - Optimized UI &amp; UX for mobile and Android TV
-- Multiple providers
+- Multiple providers (incl. SerienStream via [serien.domains](https://serien.domains) proxy)
+- Offline downloads with configurable storage location
+- Chromecast queue + subtitles
+- Optional Experimental UI (Lumina) and platform Integrations hub (Trakt VIP-gated, Jellyfin, Plex, …)
 - Resume from last playback position
 - In-app update from this repository’s releases
 

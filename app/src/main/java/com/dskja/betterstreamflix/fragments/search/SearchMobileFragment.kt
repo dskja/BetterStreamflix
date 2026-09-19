@@ -76,6 +76,14 @@ class SearchMobileFragment : Fragment() {
         ExpNavAutoHide.attach(binding.root)
         ExpMotion.enterScreen(binding.root)
         ExpMotion.staggerFirstFill(binding.rvSearch)
+        if (ExperimentalMobileDesign.enabled()) {
+            ExpMotion.revealHeader(
+                binding.root.findViewById(R.id.tv_search_eyebrow),
+                binding.root.findViewById(R.id.tv_search_brand),
+                binding.root.findViewById(R.id.tv_search_tagline),
+                binding.root.findViewById(R.id.v_search_rule),
+            )
+        }
 
         initializeSearch()
 

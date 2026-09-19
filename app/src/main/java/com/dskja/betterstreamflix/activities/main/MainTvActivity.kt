@@ -33,6 +33,7 @@ import com.dskja.betterstreamflix.providers.GuardaSerieProvider
 import com.dskja.betterstreamflix.providers.RidomoviesProvider
 import com.dskja.betterstreamflix.providers.SoloLatinoProvider
 import com.dskja.betterstreamflix.providers.ZaluknijProvider
+import com.dskja.betterstreamflix.cast.CastPlaybackHub
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -57,6 +58,10 @@ class MainTvActivity : FragmentActivity() {
         setTheme(ThemeManager.tvThemeRes(UserPreferences.selectedTheme))
         
         super.onCreate(savedInstanceState)
+
+        if (UserPreferences.castEnabled) {
+            CastPlaybackHub.ensureCastContext(this)
+        }
         
         // Defer heavy provider native/WebView setup — eager Cronet/WebView on Fire Stick
         // 4K (1st gen / Fire OS 6) was killing the process right after the splash overlay.
@@ -72,7 +77,8 @@ class MainTvActivity : FragmentActivity() {
             }
 
         val navHostFragment = this.supportFragmentManager
-            .findFragmentById(binding.navMainFragment.id) as NavHostFragment
+            .findFragmentById(binding.navMainFragment.id) as? NavHostFragment
+            ?: return
         val navController = navHostFragment.navController
         com.dskja.betterstreamflix.utils.SentryBootstrap.trackNavigation(navController)
 

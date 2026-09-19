@@ -47,6 +47,45 @@
         <item>smarttube_beta</item>
     </string-array>
 
+    <string-array name="player_backend_names">
+        <item>@string/platform_player_backend_exo</item>
+        <item>@string/platform_player_backend_mpv</item>
+    </string-array>
+    <string-array name="player_backend_values">
+        <item>exo</item>
+        <item>mpv</item>
+    </string-array>
+
+    <string-array name="debrid_provider_names">
+        <item>Real-Debrid</item>
+        <item>Premiumize</item>
+        <item>AllDebrid</item>
+        <item>TorBox</item>
+    </string-array>
+    <string-array name="debrid_provider_values">
+        <item>realdebrid</item>
+        <item>premiumize</item>
+        <item>alldebrid</item>
+        <item>torbox</item>
+    </string-array>
+
+    <string-array name="selfhost_interval_names">
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>15 seconds</item>
+        <item>20 seconds</item>
+        <item>30 seconds</item>
+        <item>60 seconds</item>
+    </string-array>
+    <string-array name="selfhost_interval_values">
+        <item>5000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+        <item>30000</item>
+        <item>60000</item>
+    </string-array>
+
     <string-array name="parental_control_age_entries">
         <item>@string/settings_parental_max_age_disabled</item>
         <item>0+</item>

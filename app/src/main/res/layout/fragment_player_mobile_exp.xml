@@ -80,6 +80,7 @@
 
             <TextView
                 android:id="@+id/tv_next_episode_meta"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
@@ -90,6 +91,7 @@
 
             <TextView
                 android:id="@+id/tv_next_episode_title"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
@@ -101,6 +103,7 @@
 
             <TextView
                 android:id="@+id/tv_next_episode_countdown"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
@@ -111,6 +114,7 @@
 
             <TextView
                 android:id="@+id/btn_next_episode_action"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="9dp"
@@ -128,6 +132,7 @@
 
             <TextView
                 android:id="@+id/btn_next_episode_dismiss"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="7dp"
@@ -168,6 +173,7 @@
 
         <TextView
             android:id="@+id/tv_player_error_title"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
@@ -177,6 +183,7 @@
 
         <TextView
             android:id="@+id/tv_player_error_message"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -214,6 +221,7 @@
 
         <TextView
             android:id="@+id/tv_brightness_percentage"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFeatureSettings="tnum"
@@ -261,6 +269,7 @@
 
         <TextView
             android:id="@+id/tv_volume_percentage"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFeatureSettings="tnum"

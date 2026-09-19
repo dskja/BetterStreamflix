@@ -47,16 +47,14 @@ import java.util.concurrent.TimeUnit
 object SerienStreamProvider : Provider {
 
     private const val TAG = "SerienStreamProvider"
-    private const val DEFAULT_DOMAIN = "serienstream.to"
 
     /**
-     * Working mirrors from serien.domains (July 2026+). Dead hosts (s.to, serienstream.sx)
-     * are intentionally excluded — .sx presents an invalid certificate.
+     * Official CUII bypass proxy from [serien.domains](https://serien.domains)
+     * (HTTP only — no TLS on the IP). Prefer this over DNS-sinkholed hostnames.
      */
-    private val FALLBACK_DOMAINS = listOf(
-        "serienstream.to",
-        "serienstream.cx",
-    )
+    const val PROXY_HOST = SerienStreamEndpoints.PROXY_HOST
+
+    private const val DEFAULT_DOMAIN = SerienStreamEndpoints.DEFAULT_HOST
 
     override val baseUrl: String
         get() = currentBaseUrl()
@@ -98,16 +96,10 @@ object SerienStreamProvider : Provider {
         usingUnsafeSsl = false
     }
 
-    private fun normalizeDomain(raw: String): String {
-        return raw.trim()
-            .removePrefix("https://")
-            .removePrefix("http://")
-            .substringBefore("/")
-            .removePrefix("www.")
-            .trimEnd('.')
-            .lowercase()
-            .ifBlank { DEFAULT_DOMAIN }
-    }
+    private fun normalizeDomain(raw: String): String = SerienStreamEndpoints.normalizeHost(raw)
+
+    /** True for IPv4 hosts (serien.domains proxy) — these speak HTTP only. */
+    fun isProxyHost(host: String?): Boolean = SerienStreamEndpoints.isProxyHost(host)
 
     private fun currentDomain(): String {
         return normalizeDomain(
@@ -115,15 +107,15 @@ object SerienStreamProvider : Provider {
         )
     }
 
-    /** Ordered unique domains to try: configured first, then known-good mirrors. */
+    /** Ordered unique domains to try: configured first, then known-good mirrors / proxy. */
     internal fun candidateDomains(configured: String = currentDomain()): List<String> {
-        val preferred = normalizeDomain(configured)
-        return linkedSetOf(preferred).apply {
-            addAll(FALLBACK_DOMAINS)
-        }.toList()
+        return SerienStreamEndpoints.candidateHosts(configured)
     }
 
-    /** True when [hostOrUrl] is the configured SerienStream domain (or Cloudflare challenge). */
+    /** Absolute origin for [domain], e.g. `http://186.2.175.5/` or `https://serienstream.to/`. */
+    fun originFor(domain: String): String = SerienStreamEndpoints.originFor(domain)
+
+    /** True when [hostOrUrl] is a SerienStream host / proxy IP (or Cloudflare challenge). */
     fun isSerienStreamHost(hostOrUrl: String?): Boolean {
         if (hostOrUrl.isNullOrBlank()) return false
         val host = runCatching {
@@ -138,16 +130,18 @@ object SerienStreamProvider : Provider {
             .orEmpty()
         if (host.isBlank()) return false
         if (host == "challenges.cloudflare.com") return true
+        if (SerienStreamEndpoints.isProxyHost(host)) return true
         val known = candidateDomains().toSet()
         return known.any { host == it || host.endsWith(".$it") }
     }
 
-    private fun currentBaseUrl(): String {
-        val domain = currentDomain()
-        return "https://$domain/"
-    }
+    private fun currentBaseUrl(): String = originFor(currentDomain())
 
-    private fun baseUrlFor(domain: String): String = "https://${normalizeDomain(domain)}/"
+    private fun baseUrlFor(domain: String): String = originFor(domain)
+
+    private fun isCopyrightBlockDocument(document: Document): Boolean {
+        return com.dskja.betterstreamflix.utils.WebViewDohBridge.isCopyrightBlockPage(document.html())
+    }
 
     private fun isSslFailure(error: Throwable): Boolean {
         var current: Throwable? = error
@@ -173,6 +167,10 @@ object SerienStreamProvider : Provider {
 
     private fun isRetryableDomainFailure(error: Throwable): Boolean {
         if (isSslFailure(error)) return true
+        val httpCode = (error as? retrofit2.HttpException)?.code()
+        if (httpCode == 403 || httpCode == 502 || httpCode == 503 || httpCode == 521 || httpCode == 522 || httpCode == 523) {
+            return true
+        }
         var current: Throwable? = error
         while (current != null) {
             when (current) {
@@ -187,7 +185,9 @@ object SerienStreamProvider : Provider {
                 message.contains("failed to connect") ||
                 message.contains("timeout") ||
                 message.contains("unable to resolve") ||
-                message.contains("cancelled")
+                message.contains("cancelled") ||
+                message.contains("cloudflare") ||
+                message.contains("just a moment")
             ) {
                 return true
             }
@@ -236,8 +236,9 @@ object SerienStreamProvider : Provider {
     }
 
     /**
-     * Run [block] against the configured domain, falling back to known-good mirrors and
-     * permissive TLS when the primary host is dead, blocked, or has certificate issues.
+     * Run [block] against the configured domain, falling back to the serien.domains proxy IP,
+     * known-good mirrors, and permissive TLS when the primary host is dead, CUII-blocked,
+     * or has certificate issues.
      */
     private suspend fun <T> withDomainAndSslFallback(block: suspend (SerienStreamService) -> T): T {
         val tried = linkedSetOf<String>()
@@ -250,17 +251,24 @@ object SerienStreamProvider : Provider {
                     rebuildService(domain, unsafe = false)
                 }
                 val result = block(svc)
+                if (result is Document && isCopyrightBlockDocument(result)) {
+                    throw java.io.IOException("CUII copyright block page on $domain")
+                }
                 persistWorkingDomain(domain)
                 return result
             } catch (e: Exception) {
                 lastError = e
-                if (isSslFailure(e)) {
+                // Proxy IP is cleartext HTTP — skip useless TLS retries.
+                if (isSslFailure(e) && !isProxyHost(domain)) {
                     try {
                         Log.w(TAG, "SSL failure on $domain; retrying with permissive TLS", e)
                         val unsafeSvc = synchronized(this) {
                             rebuildService(domain, unsafe = true)
                         }
                         val result = block(unsafeSvc)
+                        if (result is Document && isCopyrightBlockDocument(result)) {
+                            throw java.io.IOException("CUII copyright block page on $domain")
+                        }
                         persistWorkingDomain(domain)
                         return result
                     } catch (sslRetry: Exception) {
@@ -283,94 +291,144 @@ object SerienStreamProvider : Provider {
 
 
     private fun getTvShowIdFromLink(link: String): String {
-        return link.pathSegments().firstOrNull().orEmpty()
+        return normalizeShowId(link.pathSegments().firstOrNull().orEmpty())
     }
 
     private fun getSeasonIdFromLink(link: String): String {
         val segments = link.pathSegments()
-        val justTvShowId = segments.getOrNull(0).orEmpty()
-        val justTvShowSeason = segments.getOrNull(1).orEmpty()
+        val justTvShowId = normalizeShowId(segments.getOrNull(0).orEmpty())
+        val justTvShowSeason = normalizeSeasonSegment(segments.getOrNull(1).orEmpty())
         return listOf(justTvShowId, justTvShowSeason).filter { it.isNotBlank() }.joinToString("/")
     }
 
     private fun getEpisodeIdFromLink(link: String): String {
-        return link.pathSegments().take(3).joinToString("/")
+        val segments = link.pathSegments().toMutableList()
+        if (segments.isEmpty()) return ""
+        segments[0] = normalizeShowId(segments[0])
+        if (segments.size > 1) segments[1] = normalizeSeasonSegment(segments[1])
+        if (segments.size > 2) segments[2] = normalizeEpisodeSegment(segments[2])
+        return segments.take(3).joinToString("/")
+    }
+
+    /** Drop legacy `stream/` prefix and dead path junk that caused 404s. */
+    private fun normalizeShowId(raw: String): String {
+        return raw.trim()
+            .removePrefix("stream/")
+            .removePrefix("serie/")
+            .substringAfterLast('/')
+            .trim()
+    }
+
+    private fun normalizeSeasonSegment(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return ""
+        if (trimmed.startsWith("staffel-", ignoreCase = true)) return trimmed.lowercase()
+        val num = Regex("""\d+""").find(trimmed)?.value ?: return trimmed
+        return "staffel-$num"
+    }
+
+    private fun normalizeEpisodeSegment(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return ""
+        if (trimmed.startsWith("episode-", ignoreCase = true)) return trimmed.lowercase()
+        val num = Regex("""\d+""").find(trimmed)?.value ?: return trimmed
+        return "episode-$num"
     }
 
     override suspend fun getHome(): List<Category> {
         val document = withDomainAndSslFallback { it.getHome() }
         val categories = mutableListOf<Category>()
+
+        fun tvFrom(href: String?, title: String?, poster: String?): TvShow? {
+            val id = getTvShowIdFromLink(href.orEmpty())
+            val name = title?.trim().orEmpty()
+            if (id.isBlank() || name.isBlank()) return null
+            return TvShow(id = id, title = name, poster = normalizeImageUrl(poster))
+        }
+
         categories.add(
-            Category(name = Category.FEATURED,
-                list = document.select(".home-hero-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a.home-hero-cta")?.attr("href") ?: ""),
-                        title = it.selectFirst("h2.home-hero-title")?.text() ?: "",
-                        banner = normalizeImageUrl(
-                            it.select("picture.home-hero-bg img")
-                                .flatMap { img -> img.attr("srcset").split(",") }
-                                .find { url -> url.contains("hero-2x-desktop") }
-                                ?.trim()?.split(" ")?.firstOrNull()
-
-                                ?: it.select("picture.home-hero-bg source[type='image/webp']")
-                                    .flatMap { s -> s.attr("srcset").split(",") }
-                                    .find { url -> url.contains("hero-2x-desktop") }
-                                    ?.trim()?.split(" ")?.firstOrNull()
-
-                                ?: it.select("picture.home-hero-bg source[type='image/avif']")
-                                    .flatMap { s -> s.attr("srcset").split(",") }
-                                    .find { url -> url.contains("hero-2x-desktop") }
-                                    ?.trim()?.split(" ")?.firstOrNull()
-                        )
-
+            Category(
+                name = Category.FEATURED,
+                list = document.select(".home-hero-slide").mapNotNull {
+                    tvFrom(
+                        it.selectFirst("a.home-hero-cta, a[href^=/serie/]")?.attr("href"),
+                        it.selectFirst("h2.home-hero-title, .home-hero-title")?.text(),
+                        it.select("picture.home-hero-bg img, picture.home-hero-bg source")
+                            .flatMap { img ->
+                                (img.attr("srcset").ifBlank { img.attr("data-srcset") })
+                                    .split(",")
+                            }
+                            .map { it.trim() }
+                            .find { url -> url.contains("hero-2x-desktop") }
+                            ?.substringBefore(" ")
+                            ?: it.extractPoster(),
                     )
-                })
+                },
+            ),
         )
         categories.add(
-            Category(name = "Angesagt",
-                list = document.select(".trending-widget .swiper-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("h3.trend-title a")?.attr("href") ?: ""),
-                        title = it.selectFirst("h3.trend-title a")?.text()?.trim() ?: "",
-                        poster = normalizeImageUrl(it.extractPoster()))
-                })
+            Category(
+                name = "Angesagt",
+                list = document.select(".trending-widget .swiper-slide, .trend-card").mapNotNull {
+                    tvFrom(
+                        it.selectFirst("h3.trend-title a, .trend-title a, a[href^=/serie/]")?.attr("href"),
+                        it.selectFirst("h3.trend-title a, .trend-title")?.text(),
+                        it.extractPoster(),
+                    )
+                },
+            ),
         )
         categories.add(
-            Category(name = "Neu auf S.to",
-                list = document.select("section.continue-widget.new-shows-slider .swiper-slide").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(
-                            it.selectFirst("a.continue-cover, h3.continue-title a")?.attr("href") ?: ""
-                        ),
-                        title = it.selectFirst("h3.continue-title a")?.text()?.trim() ?: "",
-                        poster = normalizeImageUrl(it.extractPoster()))
-                })
+            Category(
+                name = "Neu auf SerienStream",
+                list = document.select("section.continue-widget.new-shows-slider .swiper-slide, .continue-card")
+                    .mapNotNull {
+                        tvFrom(
+                            it.selectFirst("a.continue-cover, h3.continue-title a, a[href^=/serie/]")?.attr("href"),
+                            it.selectFirst("h3.continue-title a, .continue-title")?.text(),
+                            it.extractPoster(),
+                        )
+                    },
+            ),
         )
         document.select("#discover-blocks .col").forEach { column ->
-            val categoryName = column.selectFirst("h4")?.text()?.trim() ?: ""
-            if (categoryName.isNotEmpty()) {
-                categories.add(
-                    Category(name = categoryName,
-                        list = column.select("li").map {
-                            TvShow(
-                                id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                                title = it.selectFirst("span.h6")?.text()?.trim() ?: "",
-                                poster = normalizeImageUrl(it.extractPoster()))
-                        })
+            val categoryName = column.selectFirst("h4")?.text()?.trim().orEmpty()
+            if (categoryName.isEmpty()) return@forEach
+            val shows = column.select("li").mapNotNull {
+                tvFrom(
+                    it.selectFirst("a")?.attr("href"),
+                    it.selectFirst("span.h6, .h6, a")?.text(),
+                    it.extractPoster(),
                 )
             }
+            if (shows.isNotEmpty()) {
+                categories.add(Category(name = categoryName, list = shows))
+            }
+        }
+        val topShows = document.select(".top-show-item a[href^=/serie/], .top-shows a[href^=/serie/]")
+            .mapNotNull {
+                tvFrom(it.attr("href"), it.text().ifBlank { it.selectFirst(".trend-title, h3, span")?.text() }, it.extractPoster())
+            }
+            .distinctBy { it.id }
+        if (topShows.isNotEmpty()) {
+            categories.add(Category(name = "Top Serien", list = topShows))
         }
         categories.add(
-            Category(name = "Derzeit beliebte Serien",
-                list = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem").map {
-                    TvShow(
-                        id = getTvShowIdFromLink(it.selectFirst("a")?.attr("href") ?: ""),
-                        title = it.selectFirst("a h3")?.text() ?: "",
-                        poster = normalizeImageUrl(it.extractPoster())
-                    )
-                })
+            Category(
+                name = "Derzeit beliebte Serien",
+                list = document.select("div.carousel:contains(Derzeit beliebt) div.coverListItem, .card-mini a[href^=/serie/]")
+                    .mapNotNull {
+                        val link = if (it.tagName() == "a") it else it.selectFirst("a")
+                        tvFrom(
+                            link?.attr("href"),
+                            it.selectFirst("a h3, h3, h6, .show-title")?.text() ?: link?.text(),
+                            it.extractPoster(),
+                        )
+                    }
+                    .distinctBy { it.id },
+            ),
         )
-        return categories
+        return categories.filter { it.list.isNotEmpty() }
     }
 
     override suspend fun search(query: String, page: Int): List<AppAdapter.Item> {
@@ -426,10 +484,14 @@ object SerienStreamProvider : Provider {
     }
 
     override suspend fun getTvShow(id: String): TvShow {
-        val document = withDomainAndSslFallback { it.getTvShow(id) }
+        val showId = normalizeShowId(id)
+        val document = withDomainAndSslFallback { it.getTvShow(showId) }
         val title = document.selectFirst("h1")?.text()?.trim() ?: ""
+        val year = Regex("""\((19|20)\d{2}\)""").find(title)?.groupValues?.getOrNull(0)
+            ?.trim('(', ')')?.toIntOrNull()
+            ?: document.selectFirst("a.small.text-muted")?.text()?.let { Regex("""(19|20)\d{2}""").find(it)?.value?.toIntOrNull() }
         
-        val tmdbTvShow = TmdbUtils.getTvShow(title, language = language)
+        val tmdbTvShow = TmdbUtils.getTvShow(title, year = year, language = language)
         
         val localRating = if (tmdbTvShow?.rating == null) {
             val imdbTitleUrl = document.selectFirst("a[href*='imdb.com']")?.attr("href") ?: ""
@@ -450,7 +512,7 @@ object SerienStreamProvider : Provider {
             )
         }
         
-        return TvShow(id = id,
+        return TvShow(id = showId,
             title = title,
             overview = tmdbTvShow?.overview ?: document.selectFirst("span.description-text")?.text() ?: document.selectFirst("div.series-description p")?.text(),
             released = tmdbTvShow?.released?.let { "${it.get(java.util.Calendar.YEAR)}" } 
@@ -491,8 +553,8 @@ object SerienStreamProvider : Provider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         val linkWithSplitData = seasonId.split("/")
-        val showName = linkWithSplitData[0]
-        val seasonNumberStr = linkWithSplitData.getOrNull(1) ?: return emptyList()
+        val showName = normalizeShowId(linkWithSplitData[0])
+        val seasonNumberStr = normalizeSeasonSegment(linkWithSplitData.getOrNull(1) ?: return emptyList())
         val seasonNumber = Regex("""\d+""").find(seasonNumberStr)?.value?.toIntOrNull() ?: 0
 
         val document = withDomainAndSslFallback { it.getTvShowEpisodes(showName, seasonNumberStr) }
@@ -564,9 +626,9 @@ object SerienStreamProvider : Provider {
         val servers = mutableListOf<Video.Server>()
         val linkWithSplitData = id.split("/")
         if (linkWithSplitData.size < 3) return emptyList()
-        val showName = linkWithSplitData[0]
-        val seasonNumber = linkWithSplitData[1]
-        val episodeNumber = linkWithSplitData[2]
+        val showName = normalizeShowId(linkWithSplitData[0])
+        val seasonNumber = normalizeSeasonSegment(linkWithSplitData[1])
+        val episodeNumber = normalizeEpisodeSegment(linkWithSplitData[2])
         val document = withDomainAndSslFallback { it.getTvShowEpisodeServers(showName, seasonNumber, episodeNumber) }
 
         val elements = document.select("button.link-box")
@@ -617,8 +679,24 @@ object SerienStreamProvider : Provider {
             } catch (_: Exception) {
                 SerienStreamService.buildUnsafe(currentBaseUrl()).getRedirectLink(playUrl)
             }
-            val finalUrl = (response.raw() as okhttp3.Response).request.url.toString()
-            finalUrl
+            val raw = response.raw() as okhttp3.Response
+            val finalUrl = raw.request.url.toString()
+            if (!isSerienStreamHost(finalUrl) && !finalUrl.contains("/r?", ignoreCase = true)) {
+                return finalUrl
+            }
+            // CF/ALTCHA gate often returns HTML with an iframe instead of an HTTP redirect.
+            val body = runCatching { response.body()?.string().orEmpty() }.getOrDefault("")
+            val fromIframe = Regex(
+                """(?:src|data-src)\s*=\s*["'](https?://[^"']+)["']""",
+                RegexOption.IGNORE_CASE,
+            ).findAll(body)
+                .map { it.groupValues[1] }
+                .firstOrNull { candidate ->
+                    !isSerienStreamHost(candidate) &&
+                        !candidate.contains("cloudflare", ignoreCase = true) &&
+                        !candidate.contains("youtube", ignoreCase = true)
+                }
+            fromIframe ?: finalUrl
         } catch (e: Exception) {
             Log.w("SerienStreamProvider", "resolvePlayUrl failed for $playUrl: ${e.message}")
             playUrl

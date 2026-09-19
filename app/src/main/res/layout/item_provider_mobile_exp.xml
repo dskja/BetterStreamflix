@@ -54,6 +54,7 @@
 
     <TextView
         android:id="@+id/tv_provider_name"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
@@ -68,6 +69,7 @@
 
     <TextView
         android:id="@+id/tv_provider_language"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"

@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material You static dark scheme (blue seed) — used below API 31 and as
-         fallback wherever a raw color is needed. Layouts should prefer
-         ?attr/color* tokens so DynamicColors can take over on Android 12+. -->
-    <color name="m3_primary">#AAC7FF</color>
-    <color name="m3_on_primary">#002F65</color>
-    <color name="m3_primary_container">#2E4A77</color>
-    <color name="m3_on_primary_container">#D6E3FF</color>
-    <color name="m3_secondary">#BBC7DB</color>
-    <color name="m3_on_secondary">#253140</color>
-    <color name="m3_secondary_container">#3B4858</color>
-    <color name="m3_on_secondary_container">#D7E3F7</color>
-    <color name="m3_tertiary">#D5BEE4</color>
-    <color name="m3_on_tertiary">#3B2948</color>
-    <color name="m3_tertiary_container">#523F61</color>
-    <color name="m3_on_tertiary_container">#F1DAFF</color>
+    <!--
+      Lumina cinematic dark scheme — aligned with Support/Settings hub.
+      Deeper blacks + restrained crimson accent. DynamicColors may still
+      tint on Android 12+; this is the intentional static identity.
+    -->
+    <color name="m3_primary">#E85A5A</color>
+    <color name="m3_on_primary">#FFFFFF</color>
+    <color name="m3_primary_container">#5C1A1A</color>
+    <color name="m3_on_primary_container">#FFDAD6</color>
+    <color name="m3_secondary">#C9B8B6</color>
+    <color name="m3_on_secondary">#2A1F1E</color>
+    <color name="m3_secondary_container">#413433</color>
+    <color name="m3_on_secondary_container">#E6D4D2</color>
+    <color name="m3_tertiary">#D4C0A0</color>
+    <color name="m3_on_tertiary">#2C2416</color>
+    <color name="m3_tertiary_container">#453828</color>
+    <color name="m3_on_tertiary_container">#F1E0C4</color>
     <color name="m3_error">#FFB4AB</color>
     <color name="m3_on_error">#690005</color>
     <color name="m3_error_container">#93000A</color>
     <color name="m3_on_error_container">#FFDAD6</color>
-    <color name="m3_surface">#101318</color>
-    <color name="m3_on_surface">#E1E2E9</color>
-    <color name="m3_on_surface_variant">#C3C6CF</color>
-    <color name="m3_surface_dim">#101318</color>
-    <color name="m3_surface_bright">#363941</color>
-    <color name="m3_surface_container_lowest">#0B0E13</color>
-    <color name="m3_surface_container_low">#191B21</color>
-    <color name="m3_surface_container">#1D1F25</color>
-    <color name="m3_surface_container_high">#27292F</color>
-    <color name="m3_surface_container_highest">#32353C</color>
-    <color name="m3_surface_variant">#43474E</color>
-    <color name="m3_outline">#8D9199</color>
-    <color name="m3_outline_variant">#43474E</color>
+    <color name="m3_surface">#0A0A0A</color>
+    <color name="m3_on_surface">#F5F5F5</color>
+    <color name="m3_on_surface_variant">#A3A3A3</color>
+    <color name="m3_surface_dim">#0A0A0A</color>
+    <color name="m3_surface_bright">#2A2A2A</color>
+    <color name="m3_surface_container_lowest">#050505</color>
+    <color name="m3_surface_container_low">#121212</color>
+    <color name="m3_surface_container">#161616</color>
+    <color name="m3_surface_container_high">#1A1A1A</color>
+    <color name="m3_surface_container_highest">#222222</color>
+    <color name="m3_surface_variant">#2A2A2A</color>
+    <color name="m3_outline">#737373</color>
+    <color name="m3_outline_variant">#2A2A2A</color>
     <color name="m3_surface_tint">@color/m3_primary</color>
-    <color name="m3_inverse_surface">#E1E2E9</color>
-    <color name="m3_inverse_on_surface">#2E3035</color>
-    <color name="m3_inverse_primary">#3D5F90</color>
+    <color name="m3_inverse_surface">#F5F5F5</color>
+    <color name="m3_inverse_on_surface">#1A1A1A</color>
+    <color name="m3_inverse_primary">#B20710</color>
     <color name="m3_scrim">#000000</color>
 
-    <!-- exp_* compatibility tokens still referenced by the exp button styles.
-         Everything else resolves straight to ?attr/color* tokens. -->
     <color name="exp_on_media">@color/m3_on_surface</color>
     <color name="exp_on_accent">@color/m3_on_primary</color>
 </resources>

@@ -56,6 +56,9 @@ import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.cast.CastMediaFactory
+import com.dskja.betterstreamflix.cast.CastPlaybackHub
+import com.dskja.betterstreamflix.cast.CastQueueCoordinator
 import com.dskja.betterstreamflix.player.PlaybackFailover
 import com.dskja.betterstreamflix.player.PlayerBuilderFactory
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
@@ -93,6 +96,9 @@ import com.dskja.betterstreamflix.utils.setMediaServers
 import com.dskja.betterstreamflix.utils.toSubtitleMimeType
 import com.dskja.betterstreamflix.utils.subtitleConfigurationsForPlayback
 import com.dskja.betterstreamflix.utils.viewModelsFactory
+import androidx.media3.cast.CastPlayer
+import androidx.media3.cast.SessionAvailabilityListener
+import com.google.android.gms.cast.framework.CastButtonFactory
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.internal.userAgent
@@ -145,6 +151,10 @@ class PlayerTvFragment : Fragment() {
     private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
 
     private lateinit var player: ExoPlayer
+    private var castPlayer: CastPlayer? = null
+    private var isCasting = false
+    private var lastCastHeaders: Map<String, String> = emptyMap()
+    private var castNextQueueJob: Job? = null
     private lateinit var httpDataSource: HttpDataSource.Factory
     private lateinit var dataSourceFactory: DataSource.Factory
     private lateinit var mediaSession: MediaSession
@@ -166,6 +176,10 @@ class PlayerTvFragment : Fragment() {
     private var nextEpisodePrefetchTargetId: String? = null
     private var nextEpisodePrefetchJob: Job? = null
     private var nextEpisodeOverlayDismissed = false
+
+    private fun activePlayer(): Player =
+        if (isCasting || CastPlaybackHub.isCasting) castPlayer ?: CastPlaybackHub.playerOrNull() ?: player
+        else player
     private val chooserReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
@@ -279,6 +293,7 @@ class PlayerTvFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initializePlayer(false)
+        setupCastControls()
         initializeVideo()
         binding.pvPlayer.onMediaPreviousClicked = ::handleMediaPrevious
         binding.pvPlayer.onMediaNextClicked = ::handleMediaNext
@@ -483,6 +498,9 @@ class PlayerTvFragment : Fragment() {
                                     playbackAlreadyStarted = false,
                                     softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
                                     allowMidPlaybackFailover = false,
+                                    externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
+                                        com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
+                                    externalPlayerAlreadyTried = currentExternalPlayerTried,
                                 )
                             ) {
                                 is PlaybackFailover.Action.TryNextServer -> {
@@ -498,17 +516,25 @@ class PlayerTvFragment : Fragment() {
                                     ).show()
                                     viewModel.getVideo(state.server)
                                 }
+                                PlaybackFailover.Action.TryExternalPlayer -> {
+                                    currentExternalPlayerTried = true
+                                    val video = currentVideo
+                                    if (video != null) {
+                                        com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                                            requireContext(),
+                                            video.source,
+                                            video.headers.orEmpty(),
+                                        )
+                                    } else {
+                                        viewModel.getVideo(state.server)
+                                    }
+                                }
                                 PlaybackFailover.Action.GiveUp -> {
                                     val providerName = UserPreferences.currentProvider?.name ?: ""
-                                    val isTmdbDe = providerName.contains("TMDb", ignoreCase = true) &&
-                                        (providerName.contains("(de)", ignoreCase = true) ||
-                                            providerName.contains("Deutsch", ignoreCase = true))
                                     val isTmdb = providerName.contains("TMDb", ignoreCase = true)
                                     val isAD = providerName.contains("AfterDark", ignoreCase = true)
 
-                                    val message = if (isTmdbDe) {
-                                        getString(R.string.player_tmdb_de_try_serienstream)
-                                    } else if (isTmdb || isAD) {
+                                    val message = if (isTmdb || isAD) {
                                         val langCode =
                                             providerName.substringAfter("(").substringBefore(")")
                                         val locale = Locale.forLanguageTag(langCode)
@@ -730,7 +756,8 @@ class PlayerTvFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        if (::player.isInitialized) {
+        // Keep local Exo paused only when we are not casting — otherwise Cast owns playback.
+        if (::player.isInitialized && !isCasting && !CastPlaybackHub.isCasting) {
             try {
                 player.pause()
             } catch (e: Exception) {
@@ -741,9 +768,15 @@ class PlayerTvFragment : Fragment() {
 
         override fun onDestroyView() {
             super.onDestroyView()
+            runCatching {
+                com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.resetSession()
+            }
+            castNextQueueJob?.cancel()
             nextEpisodePrefetchJob?.cancel()
             clearBypassSession(dismissDialog = true)
             releasePlayer()
+            CastPlaybackHub.detachUi(requireContext().applicationContext)
+            castPlayer = CastPlaybackHub.playerOrNull()
             try {
                 requireContext().unregisterReceiver(chooserReceiver)
             } catch (ignored: Exception) {
@@ -1174,6 +1207,18 @@ class PlayerTvFragment : Fragment() {
             currentVideo = video
             currentServer = server
             updatePlayerHeader()
+            if (com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal()) {
+                currentExternalPlayerTried = true
+                val pos = runCatching { player.currentPosition }.getOrDefault(0L)
+                com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                    requireContext(),
+                    video.source,
+                    video.headers.orEmpty(),
+                    positionMs = pos,
+                    title = resolvePlayerTitle(),
+                )
+                return
+            }
             val extraBuffering = PlayerSettingsView.Settings.ExtraBuffering.isEnabled
             val softwareDecoder = PlayerSettingsView.Settings.SoftwareDecoder.isEnabled
             val needsReinit =
@@ -1193,10 +1238,16 @@ class PlayerTvFragment : Fragment() {
 
             val currentPosition = startPositionMs ?: player.currentPosition
 
-            httpDataSource.setDefaultRequestProperties(
-                mapOf(
-                    "User-Agent" to userAgent,
-                ) + (video.headers ?: emptyMap())
+            lastCastHeaders = mapOf(
+                "User-Agent" to userAgent,
+            ) + (video.headers ?: emptyMap())
+
+            httpDataSource.setDefaultRequestProperties(lastCastHeaders)
+            val mediaMetadata = CastMediaFactory.buildMetadata(
+                title = resolvePlayerTitle(),
+                subtitle = resolvePlayerSubtitle(),
+                videoType = args.videoType,
+                serverId = server.id,
             )
             val mediaItemBuilder = MediaItem.Builder()
                 .setUri(video.source.toUri())
@@ -1220,13 +1271,13 @@ class PlayerTvFragment : Fragment() {
                             serverSubtitles = video.subtitles,
                         )
                     )
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setMediaServerId(server.id)
-                            .build()
-                    )
+                    .setMediaMetadata(mediaMetadata)
                     .build()
             )
+
+            if (isCasting || CastPlaybackHub.isCasting) {
+                pushMediaToCast(video, server, mediaMetadata, startPosition = currentPosition)
+            }
 
             binding.pvPlayer.controller.binding.btnExoExternalPlayer.setOnClickListener {
                 val videoTitle = when {
@@ -1407,6 +1458,18 @@ class PlayerTvFragment : Fragment() {
                             }
                         }
 
+                        com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.report(
+                            videoType = videoType,
+                            positionMs = player.currentPosition,
+                            durationMs = player.duration,
+                            isPlaying = false,
+                            provider = UserPreferences.currentProvider,
+                            itemId = when (videoType) {
+                                is Video.Type.Movie -> videoType.id
+                                is Video.Type.Episode -> videoType.id
+                            },
+                        )
+
                         when (videoType) {
                             is Video.Type.Movie -> {
                                 val provider = UserPreferences.currentProvider ?: return
@@ -1481,6 +1544,9 @@ class PlayerTvFragment : Fragment() {
                             playbackAlreadyStarted = ::player.isInitialized && player.hasStarted(),
                             softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
                             allowMidPlaybackFailover = false,
+                            externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
+                                com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
+                            externalPlayerAlreadyTried = currentExternalPlayerTried,
                         )
                     ) {
                         is PlaybackFailover.Action.TryNextServer -> {
@@ -1501,6 +1567,17 @@ class PlayerTvFragment : Fragment() {
                                     Toast.LENGTH_SHORT,
                                 ).show()
                                 displayVideo(video, server)
+                            }
+                        }
+                        PlaybackFailover.Action.TryExternalPlayer -> {
+                            currentExternalPlayerTried = true
+                            val video = currentVideo
+                            if (video != null) {
+                                com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
+                                    requireContext(),
+                                    video.source,
+                                    video.headers.orEmpty(),
+                                )
                             }
                         }
                         PlaybackFailover.Action.GiveUp -> {
@@ -1649,6 +1726,9 @@ class PlayerTvFragment : Fragment() {
             controller.tvTimeSeparator.isVisible = !live
             controller.exoDuration.isVisible = !live
             controller.tvLiveIndicator.isVisible = live
+            runCatching {
+                controller.mediaRouteButton.isVisible = !live && UserPreferences.castEnabled
+            }
             if (live) {
                 controller.tvLiveIndicator.text = getString(R.string.player_live_badge)
             }
@@ -1733,6 +1813,17 @@ class PlayerTvFragment : Fragment() {
                         val show = player.currentPosition in 3000..120000
                         showSkipIntroButton(show)
                         updateNextEpisodeOverlay()
+                        com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.report(
+                            videoType = args.videoType,
+                            positionMs = player.currentPosition,
+                            durationMs = player.duration,
+                            isPlaying = true,
+                            provider = UserPreferences.currentProvider,
+                            itemId = when (val t = args.videoType) {
+                                is Video.Type.Movie -> t.id
+                                is Video.Type.Episode -> t.id
+                            },
+                        )
                     } else {
                         showSkipIntroButton(false)
                         hideNextEpisodeOverlay()
@@ -1754,11 +1845,12 @@ class PlayerTvFragment : Fragment() {
                 hideNextEpisodeOverlay()
                 return
             }
-            val duration = player.duration.takeIf { it > 0 } ?: run {
+            val active = runCatching { activePlayer() }.getOrNull() ?: player
+            val duration = active.duration.takeIf { it > 0 } ?: run {
                 hideNextEpisodeOverlay()
                 return
             }
-            val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
+            val remainingMs = (duration - active.currentPosition).coerceAtLeast(0L)
 
             if (nextEpisodeOverlayDismissed) {
                 hideNextEpisodeOverlay()
@@ -1767,6 +1859,9 @@ class PlayerTvFragment : Fragment() {
 
             if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
                 ensureNextEpisodePrepared(currentEpisode)
+                if (isCasting || CastPlaybackHub.isCasting) {
+                    scheduleCastNextEpisodeQueue()
+                }
             }
 
             val nextEpisode = EpisodeManager.peekNextEpisode()
@@ -1922,6 +2017,7 @@ class PlayerTvFragment : Fragment() {
 
         private var currentExtraBuffering = false
         private var currentSoftwareDecoder = false
+        private var currentExternalPlayerTried = false
 
         private fun buildPlayer(extraBuffering: Boolean): ExoPlayer {
             return PlayerBuilderFactory.build(
@@ -1974,12 +2070,204 @@ class PlayerTvFragment : Fragment() {
                     .build()
             }
 
-            binding.pvPlayer.player = player
-            binding.settings.player = player
+            SubtitleOffset.restore(requireContext(), subtitleOffsetKey())
+
+            if (isCasting) {
+                binding.pvPlayer.player = castPlayer
+                binding.settings.player = player
+            } else {
+                binding.pvPlayer.player = player
+                binding.settings.player = player
+            }
             binding.settings.subtitleView = binding.pvPlayer.subtitleView
             binding.settings.onSubtitlesClicked = {
                 viewModel.getSubtitles(args.videoType)
             }
+        }
+
+        private fun setupCastControls() {
+            val routeButton = runCatching {
+                binding.pvPlayer.controller.binding.mediaRouteButton
+            }.getOrNull() ?: return
+
+            if (!UserPreferences.castEnabled || isLiveTvPlayback()) {
+                routeButton.isGone = true
+                return
+            }
+
+            runCatching {
+                CastPlaybackHub.ensureCastContext(requireContext())
+                CastButtonFactory.setUpMediaRouteButton(requireContext(), routeButton)
+                routeButton.isVisible = true
+
+                castPlayer = CastPlaybackHub.obtainPlayer(requireContext())
+                CastPlaybackHub.setSessionAvailabilityListener(object : SessionAvailabilityListener {
+                    override fun onCastSessionAvailable() {
+                        if (view == null) return
+                        switchPlaybackToCast()
+                    }
+
+                    override fun onCastSessionUnavailable() {
+                        if (view == null) {
+                            CastPlaybackHub.markCasting(false)
+                            isCasting = false
+                            return
+                        }
+                        switchPlaybackToLocal()
+                    }
+                })
+                castPlayer?.addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState != Player.STATE_ENDED) return
+                        if (!isAdded || view == null) return
+                        if (CastPlaybackHub.queuedCount() > 0) return
+                        if (UserPreferences.autoplay) {
+                            playNextEpisodeAcrossSeasons(autoplay = true)
+                        }
+                    }
+                })
+
+                if (CastPlaybackHub.isCasting || castPlayer?.isCastSessionAvailable == true) {
+                    switchPlaybackToCast()
+                }
+            }.onFailure {
+                Log.w("PlayerCast", "Cast unavailable on TV: ${it.message}")
+                routeButton.isGone = true
+                castPlayer = null
+            }
+        }
+
+        private fun pushMediaToCast(
+            video: Video,
+            server: Video.Server,
+            metadata: MediaMetadata = CastMediaFactory.buildMetadata(
+                title = resolvePlayerTitle(),
+                subtitle = resolvePlayerSubtitle(),
+                videoType = args.videoType,
+                serverId = server.id,
+            ),
+            startPosition: Long = player.currentPosition,
+            playWhenReady: Boolean = true,
+        ) {
+            val cp = castPlayer ?: CastPlaybackHub.obtainPlayer(requireContext()) ?: return
+            castPlayer = cp
+
+            val extracted = if (video.source.startsWith("data:application/vnd.apple.mpegurl;base64,")) {
+                decodeBase64Uri(video.source)?.let { extractUrlFromPlaylist(it) }
+            } else {
+                null
+            }
+
+            if (video.source.startsWith("data:", ignoreCase = true) && extracted.isNullOrBlank()) {
+                Toast.makeText(requireContext(), R.string.player_cast_unsupported_stream, Toast.LENGTH_LONG).show()
+                return
+            }
+
+            val castItem = CastMediaFactory.mediaItemForCast(
+                source = video.source,
+                mimeType = video.type,
+                headers = lastCastHeaders,
+                metadata = metadata,
+                subtitleConfigurations = subtitleConfigurationsForPlayback(
+                    context = requireContext(),
+                    videoType = args.videoType,
+                    serverSubtitles = video.subtitles,
+                ),
+                extractedFallback = extracted,
+                live = isLiveTvPlayback(),
+            )
+            cp.setMediaItem(castItem, startPosition)
+            cp.prepare()
+            cp.playWhenReady = playWhenReady
+            scheduleCastNextEpisodeQueue()
+        }
+
+        private fun scheduleCastNextEpisodeQueue() {
+            if (!isCasting && !CastPlaybackHub.isCasting) return
+            if (args.videoType !is Video.Type.Episode) return
+            if (CastPlaybackHub.queuedCount() > 0) return
+            if (castNextQueueJob?.isActive == true) return
+            castNextQueueJob = lifecycleScope.launch {
+                val prepared = withContext(Dispatchers.IO) {
+                    CastQueueCoordinator.prepareNextEpisodeQueue(
+                        provider = UserPreferences.currentProvider,
+                        currentVideoType = args.videoType,
+                        subtitleConfigurations = emptyList(),
+                        headers = lastCastHeaders,
+                    )
+                }
+                if (prepared != null && isAdded) {
+                    CastQueueCoordinator.enqueueExclusive(prepared.mediaItem)
+                }
+            }
+        }
+
+        private fun switchPlaybackToCast() {
+            val cp = castPlayer ?: CastPlaybackHub.obtainPlayer(requireContext()) ?: return
+            castPlayer = cp
+            if (!::player.isInitialized) return
+            val position = player.currentPosition
+            val playWhenReady = player.playWhenReady
+            player.playWhenReady = false
+
+            val video = currentVideo
+            val server = currentServer
+            if (video != null && server != null) {
+                pushMediaToCast(video, server, startPosition = position, playWhenReady = playWhenReady)
+            } else {
+                val mediaItem = player.currentMediaItem
+                if (mediaItem != null) {
+                    val headers = lastCastHeaders
+                    val uri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+                    val castUri = CastPlaybackHub.wrapForCast(uri, headers)
+                    val castItem = mediaItem.buildUpon()
+                        .setUri(castUri.toUri())
+                        .setMediaMetadata(
+                            CastMediaFactory.buildMetadata(
+                                title = resolvePlayerTitle(),
+                                subtitle = resolvePlayerSubtitle(),
+                                videoType = args.videoType,
+                                serverId = currentServer?.id,
+                            )
+                        )
+                        .build()
+                    cp.setMediaItem(castItem, position)
+                    cp.prepare()
+                    cp.playWhenReady = playWhenReady
+                }
+            }
+
+            if (_binding != null) {
+                binding.pvPlayer.player = cp
+            }
+            isCasting = true
+            CastPlaybackHub.markCasting(true)
+            if (UserPreferences.castKeepScreenAwake) {
+                activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+
+        private fun switchPlaybackToLocal() {
+            val cp = castPlayer ?: CastPlaybackHub.playerOrNull()
+            if (!::player.isInitialized) {
+                CastPlaybackHub.markCasting(false)
+                isCasting = false
+                return
+            }
+            val position = cp?.currentPosition ?: player.currentPosition
+            val playWhenReady = cp?.playWhenReady ?: true
+            runCatching { cp?.stop() }
+            if (player.currentMediaItem != null) {
+                player.seekTo(position)
+                player.playWhenReady = playWhenReady
+            }
+            if (_binding != null) {
+                binding.pvPlayer.player = player
+                binding.settings.player = player
+            }
+            isCasting = false
+            CastPlaybackHub.markCasting(false)
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
         private fun releasePlayer() {
@@ -2213,7 +2501,7 @@ class PlayerTvFragment : Fragment() {
         clearBypassSession(dismissDialog = true)
         applyBypassCookies(session.serverUrl, cookies)
         if (!cookies.isNullOrBlank()) {
-            UserPreferences.serienStreamSessionCookies = cookies.trim()
+            SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
         }
 
         lifecycleScope.launch {

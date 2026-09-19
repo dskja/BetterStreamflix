@@ -34,6 +34,7 @@ import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.WebViewDohBridge
 import com.dskja.betterstreamflix.watchlist.WatchlistImporter
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ class WatchlistImportActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SOURCE = "extra_source"
+        const val EXTRA_SAVE_SESSION_ONLY = "extra_save_session_only"
         const val SOURCE_SERIENSTREAM = "serienstream"
         const val SOURCE_ANIWORLD = "aniworld"
         private const val TAG = "WatchlistImport"
@@ -72,6 +74,11 @@ class WatchlistImportActivity : AppCompatActivity() {
     private var importing = false
     private var pageFinishedCallback: ((String?) -> Unit)? = null
     private var lastLoadError: String? = null
+    private var warmDomainIndex: Int = 0
+
+    private val saveSessionOnly: Boolean by lazy {
+        intent.getBooleanExtra(EXTRA_SAVE_SESSION_ONLY, false)
+    }
 
     private val source: WatchlistImporter.Source by lazy {
         when (intent.getStringExtra(EXTRA_SOURCE)) {
@@ -118,14 +125,30 @@ class WatchlistImportActivity : AppCompatActivity() {
         cancelButton = findViewById(R.id.watchlist_cancel)
 
         statusView.setText(R.string.watchlist_import_login_hint)
-        title = getString(R.string.settings_watchlist_import_title)
-        importButton.setText(R.string.watchlist_import_action)
+        title = if (saveSessionOnly) {
+            getString(R.string.settings_serienstream_session_login)
+        } else {
+            getString(R.string.settings_watchlist_import_title)
+        }
+        importButton.setText(
+            if (saveSessionOnly) {
+                R.string.settings_serienstream_session_login
+            } else {
+                R.string.watchlist_import_action
+            },
+        )
 
         cancelButton.setOnClickListener {
             if (importing) return@setOnClickListener
             finish()
         }
-        importButton.setOnClickListener { runImport() }
+        importButton.setOnClickListener {
+            if (saveSessionOnly) {
+                saveSessionAndFinish()
+            } else {
+                runImport()
+            }
+        }
 
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
@@ -146,24 +169,25 @@ class WatchlistImportActivity : AppCompatActivity() {
     private fun warmAndOpenLogin(domainIndex: Int = 0) {
         val candidates = when (source) {
             WatchlistImporter.Source.SERIENSTREAM -> {
-                val preferred = SerienStreamProvider.baseUrl.trimEnd('/')
-                    .removePrefix("https://").removePrefix("http://")
-                (listOf(preferred) + SerienStreamProvider.candidateDomains())
-                    .map { it.trim().lowercase() }
-                    .distinct()
+                SerienStreamProvider.candidateDomains()
             }
             WatchlistImporter.Source.ANIWORLD -> listOf(
                 AniWorldProvider.baseUrl.trimEnd('/').removePrefix("https://").removePrefix("http://")
                     .ifBlank { "aniworld.to" },
                 "aniworld.to",
-            ).distinct()
-        }
+            )
+        }.map { it.trim().lowercase().removePrefix("www.") }.distinct()
         if (domainIndex >= candidates.size) {
             statusView.setText(R.string.watchlist_import_login_hint)
             webView.loadUrl(startUrl)
             return
         }
-        hostBase = "https://${candidates[domainIndex]}"
+        warmDomainIndex = domainIndex
+        hostBase = if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            SerienStreamProvider.originFor(candidates[domainIndex]).trimEnd('/')
+        } else {
+            "https://${candidates[domainIndex]}"
+        }
         lastLoadError = null
         webView.loadUrl(hostBase)
         mainHandler.postDelayed({
@@ -172,7 +196,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             if (lastLoadError != null && domainIndex + 1 < candidates.size) {
                 Log.w(TAG, "Warm failed on ${candidates[domainIndex]} ($lastLoadError) — trying next")
                 warmAndOpenLogin(domainIndex + 1)
-            } else {
+            } else if (lastLoadError == null) {
                 webView.loadUrl(startUrl)
             }
         }, 1_400L)
@@ -182,7 +206,10 @@ class WatchlistImportActivity : AppCompatActivity() {
         return when (source) {
             WatchlistImporter.Source.SERIENSTREAM -> {
                 val preferred = SerienStreamProvider.baseUrl.trimEnd('/')
-                preferred.ifBlank { "https://${SerienStreamProvider.candidateDomains().first()}" }
+                preferred.ifBlank {
+                    SerienStreamProvider.originFor(SerienStreamProvider.candidateDomains().first())
+                        .trimEnd('/')
+                }
             }
             WatchlistImporter.Source.ANIWORLD ->
                 AniWorldProvider.baseUrl.trimEnd('/').ifBlank { "https://aniworld.to" }
@@ -223,6 +250,18 @@ class WatchlistImportActivity : AppCompatActivity() {
                 request: WebResourceRequest?,
             ): Boolean = false
 
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?,
+            ): android.webkit.WebResourceResponse? {
+                val bridged = WebViewDohBridge.interceptMainDocument(
+                    request,
+                    webView.settings.userAgentString ?: NetworkClient.USER_AGENT,
+                )
+                if (bridged != null) return bridged
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 lastLoadError = null
             }
@@ -230,8 +269,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 CookieManager.getInstance().flush()
-                updateLoginState(url)
-                pageFinishedCallback?.invoke(url)
+                detectCopyrightBlockThenContinue(url)
             }
 
             override fun onReceivedError(
@@ -259,6 +297,41 @@ class WatchlistImportActivity : AppCompatActivity() {
                 Log.w(TAG, "SSL warning on ${error?.url}: ${error?.primaryError}")
                 handler?.proceed()
             }
+        }
+    }
+
+    private fun detectCopyrightBlockThenContinue(url: String?) {
+        webView.evaluateJavascript(
+            "(function(){try{return document.documentElement.outerHTML||'';}catch(e){return ''}})();"
+        ) { raw ->
+            val html = raw
+                ?.removePrefix("\"")
+                ?.removeSuffix("\"")
+                ?.replace("\\n", "\n")
+                ?.replace("\\\"", "\"")
+                ?.replace("\\u003C", "<")
+            if (WebViewDohBridge.isCopyrightBlockPage(html)) {
+                lastLoadError = "isp_dns_block"
+                statusView.setText(R.string.watchlist_import_isp_block)
+                importButton.isEnabled = false
+                Toast.makeText(
+                    this,
+                    R.string.watchlist_import_isp_block_toast,
+                    Toast.LENGTH_LONG,
+                ).show()
+                // Prefer the serien.domains proxy (or next mirror) over a sinkholed hostname.
+                if (source == WatchlistImporter.Source.SERIENSTREAM) {
+                    val next = warmDomainIndex + 1
+                    if (next < SerienStreamProvider.candidateDomains().size) {
+                        Log.w(TAG, "CUII block on $hostBase — trying next SerienStream endpoint")
+                        warmAndOpenLogin(next)
+                        return@evaluateJavascript
+                    }
+                }
+                return@evaluateJavascript
+            }
+            updateLoginState(url)
+            pageFinishedCallback?.invoke(url)
         }
     }
 
@@ -350,6 +423,22 @@ class WatchlistImportActivity : AppCompatActivity() {
         return merged.values.joinToString("; ")
     }
 
+    private fun saveSessionAndFinish() {
+        val cookies = cookieHeader()
+        if (cookies.isBlank()) {
+            Toast.makeText(this, R.string.watchlist_import_login_hint, Toast.LENGTH_LONG).show()
+            return
+        }
+        SerienStreamBypassHelper.applyCookies("$hostBase/", cookies)
+        val saved = SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
+        if (!saved) {
+            Toast.makeText(this, R.string.watchlist_import_not_logged_in, Toast.LENGTH_LONG).show()
+            return
+        }
+        Toast.makeText(this, R.string.settings_serienstream_session_login_saved, Toast.LENGTH_LONG).show()
+        finish()
+    }
+
     private fun runImport() {
         if (importing) return
         val cookies = cookieHeader()
@@ -363,9 +452,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             webView.url?.takeIf { it.isNotBlank() }?.let {
                 SerienStreamBypassHelper.applyCookies(it, cookies)
             }
-            if (looksLoggedIn(cookies) || SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
-                UserPreferences.serienStreamSessionCookies = cookies
-            }
+            SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
         }
 
         importing = true
