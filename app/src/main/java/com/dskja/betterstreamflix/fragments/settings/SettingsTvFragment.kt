@@ -72,6 +72,7 @@ import com.dskja.betterstreamflix.utils.BypassWebSocketEndpointHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.ui.UserDataNotifier
 import com.dskja.betterstreamflix.utils.QrUtils
@@ -111,6 +112,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     private lateinit var seasonDao: SeasonDao
     private lateinit var backupRestoreManager: BackupRestoreManager
     private var backupLoadingDialog: AlertDialog? = null
+    private var settingsHubController: SettingsHubController? = null
 
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -207,13 +209,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         if (preference is PreferenceScreen && !preference.key.isNullOrBlank()) {
-            screenBackStack.addLast(currentScreenState)
-            currentScreenState = SettingsScreenState(
-                rootKey = preference.key,
-                title = preference.title?.toString(),
+            openNestedSettingsScreen(
+                key = preference.key!!,
+                title = preference.title?.toString()
+                    ?: getString(R.string.player_settings_title),
             )
-            settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
-            renderCurrentScreen()
             return true
         }
         return super.onPreferenceTreeClick(preference)
@@ -230,19 +230,59 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         activity?.title = currentScreenState.title ?: getString(R.string.player_settings_title)
     }
 
+    private fun openNestedSettingsScreen(key: String, title: String) {
+        screenBackStack.addLast(currentScreenState)
+        currentScreenState = SettingsScreenState(rootKey = key, title = title)
+        settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+        renderCurrentScreen()
+    }
+
+    private fun ensureSettingsHub(view: View) {
+        if (!ExperimentalMobileDesign.enabled()) {
+            settingsHubController?.detach()
+            settingsHubController = null
+            return
+        }
+        val controller = settingsHubController ?: SettingsHubController(
+            fragment = this,
+            isAtRoot = { currentScreenState.rootKey == null },
+            onOpenPreferenceScreen = { key, title -> openNestedSettingsScreen(key, title) },
+            onOpenSupport = {
+                runCatching { findNavController().navigate(R.id.support) }
+            },
+            onOpenAbout = {
+                runCatching { findNavController().navigate(R.id.support) }
+            },
+        ).also { settingsHubController = it }
+        controller.attach(view)
+    }
+
     private fun renderCurrentScreen() {
         setPreferencesFromResource(R.xml.settings_tv, currentScreenState.rootKey)
         if (::backupRestoreManager.isInitialized) {
             displaySettings()
         }
         applyScreenTitle()
-        view?.post { listView?.requestFocus() }
+        view?.let { ensureSettingsHub(it) }
+        settingsHubController?.updateVisibility()
+        if (currentScreenState.rootKey != null || !ExperimentalMobileDesign.enabled()) {
+            view?.post { listView?.requestFocus() }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         SettingsListStyler.attach(view, isTv = true)
-        view.post { listView?.requestFocus() }
+        ensureSettingsHub(view)
+        if (currentScreenState.rootKey != null || !ExperimentalMobileDesign.enabled()) {
+            view.post { listView?.requestFocus() }
+        }
+    }
+
+    override fun onDestroyView() {
+        settingsHubController?.detach()
+        settingsHubController = null
+        super.onDestroyView()
     }
 
     private fun displaySettings() {

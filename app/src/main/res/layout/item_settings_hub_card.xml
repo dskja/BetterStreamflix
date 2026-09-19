@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/settings_hub_card_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/support_card_spacing"
+    android:background="@drawable/bg_support_card_focusable"
+    android:focusable="true"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <FrameLayout
+        android:layout_width="@dimen/support_icon_chip"
+        android:layout_height="@dimen/support_icon_chip"
+        android:background="@drawable/bg_support_icon_chip">
+
+        <ImageView
+            android:id="@+id/iv_settings_hub_card_icon"
+            android:layout_width="@dimen/support_icon_size"
+            android:layout_height="@dimen/support_icon_size"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_support_heart"
+            tools:ignore="ContentDescription" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_settings_hub_card_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/manrope"
+            android:textColor="@color/support_text_primary"
+            android:textSize="@dimen/support_text_card_title"
+            android:textStyle="bold"
+            tools:text="Playback" />
+
+        <TextView
+            android:id="@+id/tv_settings_hub_card_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/manrope"
+            android:lineSpacingExtra="1dp"
+            android:textColor="@color/support_text_secondary"
+            android:textSize="@dimen/support_text_secondary"
+            tools:text="Autoplay, buffering and player behavior" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="8dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_support_back"
+        android:rotation="180"
+        android:tint="@color/support_text_tertiary"
+        tools:ignore="ContentDescription,UseAppTint" />
+</LinearLayout>
