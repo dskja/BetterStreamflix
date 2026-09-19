@@ -116,6 +116,8 @@ class MovieMobileFragment : Fragment() {
     }
 
 
+    private var detailScrollOffset = 0
+
     private fun initializeMovie() {
         binding.rvMovie.apply {
             adapter = appAdapter.apply {
@@ -124,6 +126,16 @@ class MovieMobileFragment : Fragment() {
             addItemDecoration(
                 SpacingItemDecoration(20.dp(requireContext()))
             )
+            if (ExperimentalMobileDesign.enabled()) {
+                addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                        detailScrollOffset += dy
+                        val parallax = (detailScrollOffset * 0.42f).coerceIn(0f, 720f)
+                        binding.ivMovieBanner.translationY = -parallax
+                        binding.ivMovieBanner.alpha = (1f - parallax / 900f).coerceIn(0.55f, 1f)
+                    }
+                })
+            }
         }
     }
 

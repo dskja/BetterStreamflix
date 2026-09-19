@@ -47,6 +47,10 @@ class Movie(
     var favoritedAtMillis: Long? = null
     var lastPlayedAtMillis: Long? = null
 
+    /** TMDb / provider content rating chip (e.g. PG-13, TV-MA). Not persisted. */
+    @Ignore
+    var contentRating: String? = null
+
     override var isWatched: Boolean = false
     override var watchedDate: Calendar? = null
 
@@ -117,6 +121,7 @@ class Movie(
         isFavorite,
     ).apply {
         lastPlayedAtMillis = this@Movie.lastPlayedAtMillis
+        contentRating = this@Movie.contentRating
     }
 
     override fun equals(other: Any?): Boolean {

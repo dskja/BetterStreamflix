@@ -68,6 +68,12 @@
     <string name="home_favorite_tv_shows">Favorite TV shows</string>
     <string name="home_catalog_warning_tap_retry">Tap to retry catalog</string>
     <string name="home_catalog_unavailable">Catalog unavailable — library still shown</string>
+    <string name="trailer_player_in_app">In-app trailer</string>
+    <string name="trailer_player_unavailable">No app found to play this trailer</string>
+    <string name="detail_share">Share</string>
+    <string name="detail_overview_more">Show more</string>
+    <string name="detail_overview_less">Show less</string>
+    <string name="detail_download_season">Download season</string>
     <string name="favorites_empty">You have no favorites yet</string>
     <string name="favorites_reorder_categories">Sort favorites</string>
     <string name="favorites_sort_title">Sort favorites</string>

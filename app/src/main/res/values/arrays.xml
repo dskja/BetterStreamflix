@@ -36,12 +36,14 @@
 
     <string-array name="trailer_player_names">
         <item>@string/settings_trailer_player_ask</item>
+        <item>@string/trailer_player_in_app</item>
         <item>@string/youtube</item>
         <item>@string/smarttube_stable</item>
         <item>@string/smarttube_beta</item>
     </string-array>
     <string-array name="trailer_player_values">
         <item>ask</item>
+        <item>in_app</item>
         <item>youtube</item>
         <item>smarttube_stable</item>
         <item>smarttube_beta</item>

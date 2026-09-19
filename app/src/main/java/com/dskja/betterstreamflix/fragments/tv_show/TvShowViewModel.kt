@@ -228,10 +228,13 @@ class TvShowViewModel(
 
         try {
             val tvShow = UserPreferences.currentProvider!!.getTvShow(id)
-            val enriched = runCatching {
+            val pluginEnriched = runCatching {
                 com.dskja.betterstreamflix.platform.plugins.PluginManager
                     .enrichTvShow(UserPreferences.currentProvider!!, tvShow)
             }.getOrDefault(tvShow)
+            val enriched = runCatching {
+                com.dskja.betterstreamflix.utils.TmdbUtils.enrichTvShowDetail(pluginEnriched)
+            }.getOrDefault(pluginEnriched)
 
             if (!ArtworkRepair.isRemoteArtworkUrl(enriched.poster) && ArtworkRepair.isRemoteArtworkUrl(fallbackPoster)) {
                 enriched.poster = fallbackPoster

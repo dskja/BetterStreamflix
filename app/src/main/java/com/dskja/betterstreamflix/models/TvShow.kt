@@ -53,6 +53,10 @@ class TvShow(
     var lastPlayedAtMillis: Long? = null
     var lastPlayedEpisodeId: String? = null
 
+    /** TMDb / provider content rating chip (e.g. TV-MA). Not persisted. */
+    @Ignore
+    var contentRating: String? = null
+
     @Ignore
     var lastPlayedEpisode: Episode? = null
 
@@ -152,6 +156,7 @@ class TvShow(
         lastPlayedAtMillis = this@TvShow.lastPlayedAtMillis
         lastPlayedEpisodeId = this@TvShow.lastPlayedEpisodeId
         lastPlayedEpisode = this@TvShow.lastPlayedEpisode
+        contentRating = this@TvShow.contentRating
     }
 
     override fun equals(other: Any?): Boolean {
