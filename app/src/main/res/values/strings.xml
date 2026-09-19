@@ -319,7 +319,7 @@
     <string name="settings_streamingcommunity_domain_blocked">Blocked domain detected, restored to default</string>
     <string name="settings_category_serienstream">SerienStream settings</string>
     <string name="settings_category_serienstream_domain">SerienStream domain name</string>
-    <string name="settings_serienstream_domain_summary">Active domain (default serienstream.to is correct). Alternatives: serienstream.cx — see serien.domains</string>
+    <string name="settings_serienstream_domain_summary">Active endpoint (default: serien.domains proxy 186.2.175.5). Alternatives: serienstream.to, serienstream.cx</string>
     <string name="settings_serienstream_domain_reset">Reset domain</string>
     <string name="settings_serienstream_domain_reset_summary">Restore the default domain name</string>
     <string name="settings_serienstream_domain_reset_done">Domain restored to default</string>
@@ -636,8 +636,8 @@
     <string name="watchlist_import_done">Imported %1$d titles into Favorites</string>
     <string name="watchlist_import_failed">Watchlist import failed: %1$s</string>
     <string name="watchlist_import_login_hint">Log in on the site, then tap Import. Cookies stay on this device.</string>
-    <string name="watchlist_import_isp_block">This site is blocked by your ISP DNS (copyright sinkhole). Enable Private DNS (one.one.one.one or dns.google) or a VPN, then try again.</string>
-    <string name="watchlist_import_isp_block_toast">ISP DNS block detected — use Private DNS / VPN</string>
+    <string name="watchlist_import_isp_block">This site is blocked by your ISP DNS (copyright sinkhole). The app will try the serien.domains proxy (186.2.175.5). You can also enable Private DNS (one.one.one.one) or a VPN.</string>
+    <string name="watchlist_import_isp_block_toast">ISP DNS block — switching to serien.domains proxy</string>
     <string name="watchlist_import_not_logged_in">Not logged in — please sign in first</string>
     <string name="watchlist_import_challenge">Bot check still active — wait for the page to finish, then try again</string>
     <string name="watchlist_import_empty">No watchlist titles found on your account</string>

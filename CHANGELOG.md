@@ -92,6 +92,7 @@ covers everything done on top of that upstream baseline.
 - Public rebrand to **BetterStreamflix** (maintainer **dskja**): app name, deep links `betterstreamflix://`, in-app updater repo, Telegram `@BetterStreamflix`, About / README credits (`#77`)
 - Mass-rename package / namespace to `com.dskja.betterstreamflix` (`StreamFlixApp` → `BetterStreamflixApp`), BS / brand icons (`#78`)
 - SerienStream default domain: dead `s.to` → `serienstream.to` ([serien.domains](https://serien.domains))
+- SerienStream CUII bypass: default endpoint is now the official [serien.domains](https://serien.domains) proxy `http://186.2.175.5/` (HTTP), with `.to` / `.cx` as fallbacks
 - SerienStream bypass Continue gated on clearance cookies (or resolved hoster URL); TV captcha QR usable from phones (`#32`)
 - TV/mobile playback: decoder fallback + software-decoder retry; safer mid-play failover on TV
 - Release APK layout split via `APP_LAYOUT` (universal / mobile / tv), matching upstream

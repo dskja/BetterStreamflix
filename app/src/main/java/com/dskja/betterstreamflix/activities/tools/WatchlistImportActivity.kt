@@ -74,6 +74,7 @@ class WatchlistImportActivity : AppCompatActivity() {
     private var importing = false
     private var pageFinishedCallback: ((String?) -> Unit)? = null
     private var lastLoadError: String? = null
+    private var warmDomainIndex: Int = 0
 
     private val saveSessionOnly: Boolean by lazy {
         intent.getBooleanExtra(EXTRA_SAVE_SESSION_ONLY, false)
@@ -168,11 +169,7 @@ class WatchlistImportActivity : AppCompatActivity() {
     private fun warmAndOpenLogin(domainIndex: Int = 0) {
         val candidates = when (source) {
             WatchlistImporter.Source.SERIENSTREAM -> {
-                // Never use dead s.to / .sx — only current mirrors.
-                listOf("serienstream.to", "serienstream.cx") +
-                    SerienStreamProvider.candidateDomains()
-                        .map { it.trim().lowercase() }
-                        .filter { it.endsWith("serienstream.to") || it.endsWith("serienstream.cx") }
+                SerienStreamProvider.candidateDomains()
             }
             WatchlistImporter.Source.ANIWORLD -> listOf(
                 AniWorldProvider.baseUrl.trimEnd('/').removePrefix("https://").removePrefix("http://")
@@ -185,7 +182,12 @@ class WatchlistImportActivity : AppCompatActivity() {
             webView.loadUrl(startUrl)
             return
         }
-        hostBase = "https://${candidates[domainIndex]}"
+        warmDomainIndex = domainIndex
+        hostBase = if (source == WatchlistImporter.Source.SERIENSTREAM) {
+            SerienStreamProvider.originFor(candidates[domainIndex]).trimEnd('/')
+        } else {
+            "https://${candidates[domainIndex]}"
+        }
         lastLoadError = null
         webView.loadUrl(hostBase)
         mainHandler.postDelayed({
@@ -194,7 +196,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             if (lastLoadError != null && domainIndex + 1 < candidates.size) {
                 Log.w(TAG, "Warm failed on ${candidates[domainIndex]} ($lastLoadError) — trying next")
                 warmAndOpenLogin(domainIndex + 1)
-            } else {
+            } else if (lastLoadError == null) {
                 webView.loadUrl(startUrl)
             }
         }, 1_400L)
@@ -204,7 +206,10 @@ class WatchlistImportActivity : AppCompatActivity() {
         return when (source) {
             WatchlistImporter.Source.SERIENSTREAM -> {
                 val preferred = SerienStreamProvider.baseUrl.trimEnd('/')
-                preferred.ifBlank { "https://${SerienStreamProvider.candidateDomains().first()}" }
+                preferred.ifBlank {
+                    SerienStreamProvider.originFor(SerienStreamProvider.candidateDomains().first())
+                        .trimEnd('/')
+                }
             }
             WatchlistImporter.Source.ANIWORLD ->
                 AniWorldProvider.baseUrl.trimEnd('/').ifBlank { "https://aniworld.to" }
@@ -314,6 +319,15 @@ class WatchlistImportActivity : AppCompatActivity() {
                     R.string.watchlist_import_isp_block_toast,
                     Toast.LENGTH_LONG,
                 ).show()
+                // Prefer the serien.domains proxy (or next mirror) over a sinkholed hostname.
+                if (source == WatchlistImporter.Source.SERIENSTREAM) {
+                    val next = warmDomainIndex + 1
+                    if (next < SerienStreamProvider.candidateDomains().size) {
+                        Log.w(TAG, "CUII block on $hostBase — trying next SerienStream endpoint")
+                        warmAndOpenLogin(next)
+                        return@evaluateJavascript
+                    }
+                }
                 return@evaluateJavascript
             }
             updateLoginState(url)

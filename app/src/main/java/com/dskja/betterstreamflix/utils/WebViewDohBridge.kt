@@ -11,13 +11,15 @@ import java.util.Locale
  * Bridges app DoH (OkHttp [NetworkClient]) into WebView main-document loads.
  *
  * German ISP DNS (CUII) sinkholes SerienStream/AniWorld to a copyright block page
- * while Cloudflare DoH still reaches the real origin. WebView uses OS DNS by
- * default — this interceptor fetches the main HTML via OkHttp so login/import work.
+ * while Cloudflare DoH still reaches the real origin. Prefer the serien.domains
+ * proxy IP (`186.2.175.5`, HTTP) when available — this interceptor also covers
+ * hostname mirrors so login/import work behind sinkholed DNS.
  */
 object WebViewDohBridge {
     private const val TAG = "WebViewDohBridge"
 
     private val bridgedHosts = setOf(
+        "186.2.175.5", // serien.domains CUII proxy (HTTP)
         "serienstream.to",
         "serienstream.cx",
         "aniworld.to",

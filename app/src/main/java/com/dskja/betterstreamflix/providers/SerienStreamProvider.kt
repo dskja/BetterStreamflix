@@ -47,16 +47,14 @@ import java.util.concurrent.TimeUnit
 object SerienStreamProvider : Provider {
 
     private const val TAG = "SerienStreamProvider"
-    private const val DEFAULT_DOMAIN = "serienstream.to"
 
     /**
-     * Working mirrors from serien.domains (July 2026+). Dead hosts (s.to, serienstream.sx)
-     * are intentionally excluded — .sx presents an invalid certificate.
+     * Official CUII bypass proxy from [serien.domains](https://serien.domains)
+     * (HTTP only — no TLS on the IP). Prefer this over DNS-sinkholed hostnames.
      */
-    private val FALLBACK_DOMAINS = listOf(
-        "serienstream.to",
-        "serienstream.cx",
-    )
+    const val PROXY_HOST = SerienStreamEndpoints.PROXY_HOST
+
+    private const val DEFAULT_DOMAIN = SerienStreamEndpoints.DEFAULT_HOST
 
     override val baseUrl: String
         get() = currentBaseUrl()
@@ -98,16 +96,10 @@ object SerienStreamProvider : Provider {
         usingUnsafeSsl = false
     }
 
-    private fun normalizeDomain(raw: String): String {
-        return raw.trim()
-            .removePrefix("https://")
-            .removePrefix("http://")
-            .substringBefore("/")
-            .removePrefix("www.")
-            .trimEnd('.')
-            .lowercase()
-            .ifBlank { DEFAULT_DOMAIN }
-    }
+    private fun normalizeDomain(raw: String): String = SerienStreamEndpoints.normalizeHost(raw)
+
+    /** True for IPv4 hosts (serien.domains proxy) — these speak HTTP only. */
+    fun isProxyHost(host: String?): Boolean = SerienStreamEndpoints.isProxyHost(host)
 
     private fun currentDomain(): String {
         return normalizeDomain(
@@ -115,15 +107,15 @@ object SerienStreamProvider : Provider {
         )
     }
 
-    /** Ordered unique domains to try: configured first, then known-good mirrors. */
+    /** Ordered unique domains to try: configured first, then known-good mirrors / proxy. */
     internal fun candidateDomains(configured: String = currentDomain()): List<String> {
-        val preferred = normalizeDomain(configured)
-        return linkedSetOf(preferred).apply {
-            addAll(FALLBACK_DOMAINS)
-        }.toList()
+        return SerienStreamEndpoints.candidateHosts(configured)
     }
 
-    /** True when [hostOrUrl] is the configured SerienStream domain (or Cloudflare challenge). */
+    /** Absolute origin for [domain], e.g. `http://186.2.175.5/` or `https://serienstream.to/`. */
+    fun originFor(domain: String): String = SerienStreamEndpoints.originFor(domain)
+
+    /** True when [hostOrUrl] is a SerienStream host / proxy IP (or Cloudflare challenge). */
     fun isSerienStreamHost(hostOrUrl: String?): Boolean {
         if (hostOrUrl.isNullOrBlank()) return false
         val host = runCatching {
@@ -138,16 +130,18 @@ object SerienStreamProvider : Provider {
             .orEmpty()
         if (host.isBlank()) return false
         if (host == "challenges.cloudflare.com") return true
+        if (SerienStreamEndpoints.isProxyHost(host)) return true
         val known = candidateDomains().toSet()
         return known.any { host == it || host.endsWith(".$it") }
     }
 
-    private fun currentBaseUrl(): String {
-        val domain = currentDomain()
-        return "https://$domain/"
-    }
+    private fun currentBaseUrl(): String = originFor(currentDomain())
 
-    private fun baseUrlFor(domain: String): String = "https://${normalizeDomain(domain)}/"
+    private fun baseUrlFor(domain: String): String = originFor(domain)
+
+    private fun isCopyrightBlockDocument(document: Document): Boolean {
+        return com.dskja.betterstreamflix.utils.WebViewDohBridge.isCopyrightBlockPage(document.html())
+    }
 
     private fun isSslFailure(error: Throwable): Boolean {
         var current: Throwable? = error
@@ -242,8 +236,9 @@ object SerienStreamProvider : Provider {
     }
 
     /**
-     * Run [block] against the configured domain, falling back to known-good mirrors and
-     * permissive TLS when the primary host is dead, blocked, or has certificate issues.
+     * Run [block] against the configured domain, falling back to the serien.domains proxy IP,
+     * known-good mirrors, and permissive TLS when the primary host is dead, CUII-blocked,
+     * or has certificate issues.
      */
     private suspend fun <T> withDomainAndSslFallback(block: suspend (SerienStreamService) -> T): T {
         val tried = linkedSetOf<String>()
@@ -256,17 +251,24 @@ object SerienStreamProvider : Provider {
                     rebuildService(domain, unsafe = false)
                 }
                 val result = block(svc)
+                if (result is Document && isCopyrightBlockDocument(result)) {
+                    throw java.io.IOException("CUII copyright block page on $domain")
+                }
                 persistWorkingDomain(domain)
                 return result
             } catch (e: Exception) {
                 lastError = e
-                if (isSslFailure(e)) {
+                // Proxy IP is cleartext HTTP — skip useless TLS retries.
+                if (isSslFailure(e) && !isProxyHost(domain)) {
                     try {
                         Log.w(TAG, "SSL failure on $domain; retrying with permissive TLS", e)
                         val unsafeSvc = synchronized(this) {
                             rebuildService(domain, unsafe = true)
                         }
                         val result = block(unsafeSvc)
+                        if (result is Document && isCopyrightBlockDocument(result)) {
+                            throw java.io.IOException("CUII copyright block page on $domain")
+                        }
                         persistWorkingDomain(domain)
                         return result
                     } catch (sslRetry: Exception) {

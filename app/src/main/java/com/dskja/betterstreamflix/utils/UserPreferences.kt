@@ -28,12 +28,12 @@ object UserPreferences {
     // Default DoH Provider URL (Cloudflare)
     private const val DEFAULT_DOH_PROVIDER_URL = "https://cloudflare-dns.com/dns-query"
     const val DOH_DISABLED_VALUE = "" // Value to represent DoH being disabled
-    private const val DEFAULT_SERIENSTREAM_DOMAIN = "serienstream.to"
+    private const val DEFAULT_SERIENSTREAM_DOMAIN = "186.2.175.5"
     private val DEPRECATED_SERIENSTREAM_DOMAINS = setOf(
         "s.to",
         "www.s.to",
         "serien.stream",
-        // Invalid TLS / parking as of 2026 — prefer serienstream.to / .cx (serien.domains).
+        // Invalid TLS / parking as of 2026 — prefer serien.domains proxy / .to / .cx.
         "serienstream.sx",
         "www.serienstream.sx",
     )
@@ -755,7 +755,7 @@ object UserPreferences {
                 ?.removePrefix("http://")
                 ?.trimEnd('/')
             if (storedValue.isNullOrEmpty()) return DEFAULT_SERIENSTREAM_DOMAIN
-            // s.to is dead (serien.domains, July 2026); migrate to the current main domain.
+            // s.to is dead (serien.domains); migrate to the official CUII proxy IP.
             if (storedValue.lowercase() in DEPRECATED_SERIENSTREAM_DOMAINS) {
                 with(prefs.edit()) {
                     putString(Key.SERIENSTREAM_DOMAIN.name, DEFAULT_SERIENSTREAM_DOMAIN)
