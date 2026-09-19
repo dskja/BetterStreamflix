@@ -12,6 +12,7 @@ import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.WatchItem
+import com.dskja.betterstreamflix.profiles.ProfileManager
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.sync.CloudSyncHooks
 import com.dskja.betterstreamflix.ui.UserDataNotifier
@@ -41,18 +42,39 @@ object UserDataCache {
     // CACHE FILE
     // -------------------------
 
-    private fun cacheKey(provider: Provider): String {
+    private fun cacheKey(
+        provider: Provider,
+        profileId: String = ProfileManager.activeProfileId,
+    ): String {
         val baseUrlKey = provider.baseUrl.trim().trimEnd('/')
-        return listOf(provider.name, baseUrlKey)
+        val providerKey = listOf(provider.name, baseUrlKey)
             .filter { it.isNotEmpty() }
             .joinToString("__")
+        return if (profileId == ProfileManager.DEFAULT_PROFILE_ID) {
+            providerKey
+        } else {
+            "${profileId}__$providerKey"
+        }
     }
 
-    private fun cacheFile(context: Context, cacheKey: String): File {
+    private fun cacheFile(
+        context: Context,
+        cacheKey: String,
+        profileId: String = ProfileManager.activeProfileId,
+    ): File {
         val safeName = cacheKey.replace(Regex("[^a-zA-Z0-9._-]+"), "_")
-        val file = File(context.filesDir, "user-data-cache/$safeName.json")
+        val cacheDir = if (profileId == ProfileManager.DEFAULT_PROFILE_ID) {
+            File(context.filesDir, "user-data-cache")
+        } else {
+            File(context.filesDir, "user-data-cache/$profileId")
+        }
+        val file = File(cacheDir, "$safeName.json")
         Log.d("CACHE_PATH", file.absolutePath)
         return file
+    }
+
+    fun clearMemory() {
+        memoryCache.clear()
     }
 
     // -------------------------
@@ -60,11 +82,12 @@ object UserDataCache {
     // -------------------------
 
     fun read(context: Context, provider: Provider): UserData? {
-        val key = cacheKey(provider)
+        val profileId = ProfileManager.activeProfileId
+        val key = cacheKey(provider, profileId)
 
         memoryCache[key]?.let { return it }
 
-        val file = cacheFile(context, key)
+        val file = cacheFile(context, key, profileId)
         if (!file.exists()) return null
 
         return runCatching {
@@ -75,7 +98,8 @@ object UserDataCache {
     }
 
     fun write(context: Context, provider: Provider, newData: UserData) {
-        val key = cacheKey(provider)
+        val profileId = ProfileManager.activeProfileId
+        val key = cacheKey(provider, profileId)
         val normalizedData = newData.normalized()
         val oldData = memoryCache[key]
 
@@ -85,7 +109,7 @@ object UserDataCache {
         memoryCache[key] = normalizedData
 
         runCatching {
-            cacheFile(context, key).apply {
+            cacheFile(context, key, profileId).apply {
                 parentFile?.mkdirs()
                 writeText(gson.toJson(normalizedData))
             }
@@ -95,9 +119,10 @@ object UserDataCache {
     }
 
     fun clear(context: Context, provider: Provider) {
-        val key = cacheKey(provider)
+        val profileId = ProfileManager.activeProfileId
+        val key = cacheKey(provider, profileId)
         memoryCache.remove(key)
-        cacheFile(context, key).delete()
+        cacheFile(context, key, profileId).delete()
     }
 
     fun clearAll(context: Context) {

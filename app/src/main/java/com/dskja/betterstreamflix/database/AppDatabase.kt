@@ -15,6 +15,7 @@ import com.dskja.betterstreamflix.models.Episode
 import com.dskja.betterstreamflix.models.Movie
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
+import com.dskja.betterstreamflix.profiles.ProfileManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 
 @Database(
@@ -44,6 +45,8 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
         @Volatile
         private var currentProviderName: String? = null
+        @Volatile
+        private var currentProfileId: String? = null
 
         private fun sanitizeProviderName(name: String): String {
             // Rimuove caratteri non validi per i nomi dei file DB, 
@@ -54,8 +57,17 @@ abstract class AppDatabase : RoomDatabase() {
                 .trim('_') // Rimuove underscore iniziale/finale
         }
 
-        fun databaseNameFor(providerName: String): String =
-            "${sanitizeProviderName(providerName)}.db"
+        fun databaseNameFor(
+            providerName: String,
+            profileId: String = ProfileManager.activeProfileId,
+        ): String {
+            val sanitized = sanitizeProviderName(providerName)
+            return if (profileId == ProfileManager.DEFAULT_PROFILE_ID) {
+                "$sanitized.db"
+            } else {
+                "${profileId}__${sanitized}.db"
+            }
+        }
 
         fun setup(context: Context) {
             if (UserPreferences.currentProvider == null) return
@@ -67,13 +79,19 @@ abstract class AppDatabase : RoomDatabase() {
             val providerName = UserPreferences.currentProvider?.name
                 ?: currentProviderName
                 ?: throw IllegalStateException("Current provider is not set")
+            val profileId = ProfileManager.activeProfileId
 
-            return INSTANCE?.takeIf { currentProviderName == providerName } ?: synchronized(this) {
-                INSTANCE?.takeIf { currentProviderName == providerName } ?: run {
+            return INSTANCE?.takeIf {
+                currentProviderName == providerName && currentProfileId == profileId
+            } ?: synchronized(this) {
+                INSTANCE?.takeIf {
+                    currentProviderName == providerName && currentProfileId == profileId
+                } ?: run {
                     INSTANCE?.close()
-                    buildDatabase(providerName, context).also { instance ->
+                    buildDatabase(providerName, profileId, context).also { instance ->
                         INSTANCE = instance
                         currentProviderName = providerName
+                        currentProfileId = profileId
                     }
                 }
             }
@@ -85,19 +103,27 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE?.close()
                 INSTANCE = null
                 currentProviderName = null
+                currentProfileId = null
             }
         }
 
-        fun getInstanceForProvider(providerName: String, context: Context): AppDatabase {
-            return buildDatabase(providerName, context)
+        fun getInstanceForProvider(
+            providerName: String,
+            context: Context,
+            profileId: String = ProfileManager.activeProfileId,
+        ): AppDatabase {
+            return buildDatabase(providerName, profileId, context)
         }
 
-        private fun buildDatabase(providerName: String, context: Context): AppDatabase {
-            val sanitizedName = sanitizeProviderName(providerName)
+        private fun buildDatabase(
+            providerName: String,
+            profileId: String,
+            context: Context,
+        ): AppDatabase {
             return Room.databaseBuilder(
                 context = context.applicationContext,
                 klass = AppDatabase::class.java,
-                name = "$sanitizedName.db"
+                name = databaseNameFor(providerName, profileId),
             )
                 .allowMainThreadQueries()
                 .addMigrations(MIGRATION_1_2)
