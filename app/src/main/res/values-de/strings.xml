@@ -446,7 +446,9 @@
     <string name="settings_experimental_new_design_summary">Die nächste BetterStreamflix-Oberfläche ausprobieren. Startet die App neu. Standardmäßig aus.</string>
     <string name="settings_hub_eyebrow">Einstellungen</string>
     <string name="settings_hub_title">Kontrollzentrum</string>
-    <string name="settings_hub_subtitle">Integrationen, Wiedergabe, Konto und Projekt — alles in einem cinematic Hub.</string>
+    <string name="settings_hub_subtitle">Integrationen, Wiedergabe, Konto und Projekt — klare Bereiche, ein Tipp entfernt.</string>
+    <string name="platform_hub_subtitle">Verbinde Trakt, Jellyfin, Plex, Debrid und mehr. Jeder Dienst hat einen eigenen Bildschirm.</string>
+    <string name="platform_hub_section_services">Dienste</string>
     <string name="settings_hub_featured_badge">Neu</string>
     <string name="settings_hub_featured_cta">Integrationen öffnen</string>
     <string name="settings_hub_section_app">App</string>
@@ -498,6 +500,8 @@
     <string name="watchlist_import_done">%1$d Titel in Favoriten importiert</string>
     <string name="watchlist_import_failed">Watchlist-Import fehlgeschlagen: %1$s</string>
     <string name="watchlist_import_login_hint">Melde dich auf der Seite an und tippe dann auf Importieren. Cookies bleiben auf diesem Gerät.</string>
+    <string name="watchlist_import_isp_block">Diese Seite wird von deinem Anbieter-DNS blockiert (Urheberrechts-Sinkhole). Aktiviere Privates DNS (one.one.one.one oder dns.google) oder ein VPN und versuche es erneut.</string>
+    <string name="watchlist_import_isp_block_toast">ISP-DNS-Sperre erkannt — Privates DNS / VPN nutzen</string>
     <string name="watchlist_import_not_logged_in">Nicht angemeldet — bitte zuerst einloggen</string>
     <string name="watchlist_import_challenge">Bot-Check noch aktiv — warte bis die Seite fertig ist und versuche es erneut</string>
     <string name="watchlist_import_empty">Keine Watchlist-Titel auf dem Account gefunden</string>

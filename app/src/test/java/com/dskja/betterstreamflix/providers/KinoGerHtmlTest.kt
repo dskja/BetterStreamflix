@@ -40,6 +40,29 @@ class KinoGerHtmlTest {
     }
 
     @Test
+    fun shortsUseRealPostersNotPostinfoIcon() {
+        val doc = load("home.html")
+        val shorts = KinoGerHtml.parseShorts(doc, abs)
+        assertTrue(shorts.isNotEmpty())
+        shorts.forEach { item ->
+            val poster = when (item) {
+                is Movie -> item.poster
+                is TvShow -> item.poster
+                else -> null
+            }
+            assertTrue("missing poster for $item", !poster.isNullOrBlank())
+            assertTrue(
+                "junk poster icon leaked: $poster",
+                !poster!!.contains("postinfo-icon", ignoreCase = true),
+            )
+            assertTrue(
+                "favicon leaked: $poster",
+                !poster.contains("favicon", ignoreCase = true),
+            )
+        }
+    }
+
+    @Test
     fun tvListMarksSeriesCards() {
         val doc = load("tvlist.html")
         val items = KinoGerHtml.parseShorts(doc, abs)

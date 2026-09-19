@@ -214,6 +214,18 @@ class BypassWebViewActivity : AppCompatActivity() {
                 return true
             }
 
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?,
+            ): android.webkit.WebResourceResponse? {
+                val bridged = com.dskja.betterstreamflix.utils.WebViewDohBridge.interceptMainDocument(
+                    request,
+                    webView.settings.userAgentString ?: MODERN_UA,
+                )
+                if (bridged != null) return bridged
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 if (isCleaningUp) return
                 progressBar.visibility = View.VISIBLE

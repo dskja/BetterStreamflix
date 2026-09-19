@@ -238,7 +238,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
         val controller = settingsHubController ?: SettingsHubController(
             fragment = this,
-            isAtRoot = { currentScreenState.rootKey == null },
+            currentRootKey = { currentScreenState.rootKey },
             onOpenPreferenceScreen = { key, title -> openNestedSettingsScreen(key, title) },
             onOpenSupport = {
                 runCatching { findNavController().navigate(R.id.support) }

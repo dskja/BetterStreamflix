@@ -55,15 +55,55 @@ internal object KinoGerHtml {
             el.selectFirst(".title")?.text()?.trim().orEmpty()
         }
         if (titleRaw.isBlank()) return null
-        val posterPath = el.selectFirst(".content_text img, img")?.attr("src").orEmpty()
-        val poster = absoluteUrl(posterPath)
+        val poster = extractPosterUrl(el, absoluteUrl)
         val title = cleanTitle(titleRaw)
 
         return if (isSeriesCard(el, titleRaw)) {
-            TvShow(id = absoluteUrl(href), title = title, poster = poster)
+            TvShow(
+                id = absoluteUrl(href),
+                title = title,
+                poster = poster,
+                banner = poster, // list cards only have portrait art
+            )
         } else {
-            Movie(id = absoluteUrl(href), title = title, poster = poster)
+            Movie(
+                id = absoluteUrl(href),
+                title = title,
+                poster = poster,
+                banner = poster,
+            )
         }
+    }
+
+    /**
+     * Prefer the real poster inside `.content_text`. Never use the title-row
+     * `postinfo-icon` / favicon chrome images (comma CSS selectors match those first).
+     */
+    fun extractPosterUrl(el: Element, absoluteUrl: (String) -> String): String? {
+        val candidates = listOfNotNull(
+            el.selectFirst(".content_text img[src], .content_text img[data-src]"),
+            el.selectFirst("img[src]:not(.img), img[data-src]:not(.img)"),
+        )
+        for (img in candidates) {
+            val raw = img.attr("data-src").ifBlank { img.attr("src") }.trim()
+            if (raw.isBlank()) continue
+            if (isJunkPoster(raw)) continue
+            val resolved = absoluteUrl(raw).ifBlank {
+                runCatching { img.absUrl("src") }.getOrNull().orEmpty()
+            }
+            if (resolved.isNotBlank() && !isJunkPoster(resolved)) return resolved
+        }
+        return null
+    }
+
+    private fun isJunkPoster(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains("postinfo-icon") ||
+            lower.contains("favicon") ||
+            (
+                lower.contains("/templates/kinoger/images/") &&
+                    (lower.endsWith(".png") || lower.endsWith(".ico") || lower.endsWith(".svg"))
+                )
     }
 
     fun parseShorts(document: Document, absoluteUrl: (String) -> String): List<AppAdapter.Item> =
@@ -78,12 +118,26 @@ internal object KinoGerHtml {
                     a.selectFirst("span")?.text().orEmpty()
                 }.ifBlank { a.text() }.trim()
                 if (titleRaw.isBlank()) return@mapNotNull null
-                val poster = a.selectFirst("img")?.attr("src").orEmpty()
+                val posterRaw = a.selectFirst("img")?.let { img ->
+                    img.attr("data-src").ifBlank { img.attr("src") }
+                }.orEmpty()
+                if (isJunkPoster(posterRaw)) return@mapNotNull null
+                val poster = absoluteUrl(posterRaw).takeIf { it.isNotBlank() && !isJunkPoster(it) }
                 val title = cleanTitle(titleRaw)
                 if (isSeriesCard(a.parent() ?: a, titleRaw) || titleRaw.contains("Staffel", true)) {
-                    TvShow(id = absoluteUrl(href), title = title, poster = absoluteUrl(poster))
+                    TvShow(
+                        id = absoluteUrl(href),
+                        title = title,
+                        poster = poster,
+                        banner = poster,
+                    )
                 } else {
-                    Movie(id = absoluteUrl(href), title = title, poster = absoluteUrl(poster))
+                    Movie(
+                        id = absoluteUrl(href),
+                        title = title,
+                        poster = poster,
+                        banner = poster,
+                    )
                 }
             }
             .distinctBy {
@@ -103,11 +157,16 @@ internal object KinoGerHtml {
                     .ifBlank { a.attr("title").trim() }
                     .ifBlank { a.text().trim() }
                 if (titleRaw.isBlank()) return@mapNotNull null
-                val poster = a.selectFirst("img")?.attr("src").orEmpty()
+                val posterRaw = a.selectFirst("img")?.let { img ->
+                    img.attr("data-src").ifBlank { img.attr("src") }
+                }.orEmpty()
+                if (isJunkPoster(posterRaw)) return@mapNotNull null
+                val poster = absoluteUrl(posterRaw).takeIf { it.isNotBlank() && !isJunkPoster(it) }
                 Movie(
                     id = absoluteUrl(href),
                     title = cleanTitle(titleRaw),
-                    poster = absoluteUrl(poster),
+                    poster = poster,
+                    banner = poster,
                 )
             }
             .distinctBy { it.id }

@@ -425,15 +425,23 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         val year = extractYear(titleRaw)
         val tmdbMovie = TmdbUtils.getMovie(title, year = year, language = language)
 
-        val posterPath = document.selectFirst(".content_text img, .full-text img, img[itemprop=image]")
+        val posterPath = document.selectFirst(".content_text img[src], .full-text img[src], img[itemprop=image]")
             ?.attr("src").orEmpty()
+            .takeUnless { it.contains("postinfo-icon", true) || it.contains("favicon", true) }
+            .orEmpty()
+        val ogPoster = document.selectFirst("meta[property=og:image]")?.attr("content").orEmpty()
+        val scrapedPoster = listOf(posterPath, ogPoster)
+            .map { it.trim() }
+            .firstOrNull { it.isNotBlank() }
+            ?.let { absoluteUrl(it) }
+            ?.takeIf { it.isNotBlank() && !it.endsWith("kinoger.fun/") && !it.endsWith("kinoger.fun") }
         val overview = document.selectFirst(".full-text, .content_text")?.text()?.trim()
 
         return Movie(
             id = id,
             title = title,
-            poster = tmdbMovie?.poster ?: absoluteUrl(posterPath),
-            banner = tmdbMovie?.banner,
+            poster = tmdbMovie?.poster ?: scrapedPoster,
+            banner = tmdbMovie?.banner ?: scrapedPoster,
             overview = tmdbMovie?.overview ?: overview,
             released = tmdbMovie?.released?.let { "${it.get(Calendar.YEAR)}" } ?: year?.toString(),
             rating = tmdbMovie?.rating,
@@ -455,8 +463,16 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         val year = extractYear(titleRaw)
         val tmdbTvShow = TmdbUtils.getTvShow(titleForTmdb, year = year, language = language)
 
-        val posterPath = document.selectFirst(".content_text img, .full-text img, img[itemprop=image]")
+        val posterPath = document.selectFirst(".content_text img[src], .full-text img[src], img[itemprop=image]")
             ?.attr("src").orEmpty()
+            .takeUnless { it.contains("postinfo-icon", true) || it.contains("favicon", true) }
+            .orEmpty()
+        val ogPoster = document.selectFirst("meta[property=og:image]")?.attr("content").orEmpty()
+        val scrapedPoster = listOf(posterPath, ogPoster)
+            .map { it.trim() }
+            .firstOrNull { it.isNotBlank() }
+            ?.let { absoluteUrl(it) }
+            ?.takeIf { it.isNotBlank() && !it.endsWith("kinoger.fun/") && !it.endsWith("kinoger.fun") }
         val overview = document.selectFirst(".full-text, .content_text")?.text()?.trim()
 
         val episodes = KinoGerHtml.parseEpisodes(absoluteUrl(id), seasonNumber, document, emptyList())
@@ -473,8 +489,8 @@ object KinoGerProvider : Provider, ProviderConfigUrl {
         return TvShow(
             id = id,
             title = cleanTitle(titleRaw),
-            poster = tmdbTvShow?.poster ?: absoluteUrl(posterPath),
-            banner = tmdbTvShow?.banner,
+            poster = tmdbTvShow?.poster ?: scrapedPoster,
+            banner = tmdbTvShow?.banner ?: scrapedPoster,
             overview = tmdbTvShow?.overview ?: overview,
             released = tmdbTvShow?.released?.let { "${it.get(Calendar.YEAR)}" } ?: year?.toString(),
             rating = tmdbTvShow?.rating,

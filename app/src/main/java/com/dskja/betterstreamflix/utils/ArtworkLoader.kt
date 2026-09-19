@@ -169,9 +169,9 @@ fun ImageView.loadMovieBanner(
     movie: Movie,
     configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
 ) {
-    loadRecoverableArtwork(movie.banner, configure) { staleUrl, onUpdated ->
+    loadRecoverableArtwork(movie.banner ?: movie.poster, configure) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairMovieArtwork(this, movie, staleUrl) { refreshedMovie ->
-            val refreshedUrl = refreshedMovie.banner
+            val refreshedUrl = refreshedMovie.banner ?: refreshedMovie.poster
             if (!refreshedUrl.isNullOrBlank() && refreshedUrl != staleUrl) {
                 onUpdated(refreshedUrl)
             }
@@ -198,9 +198,9 @@ fun ImageView.loadTvShowBanner(
     tvShow: TvShow,
     configure: RequestBuilder<Drawable>.() -> RequestBuilder<Drawable> = { this },
 ) {
-    loadRecoverableArtwork(tvShow.banner, configure) { staleUrl, onUpdated ->
+    loadRecoverableArtwork(tvShow.banner ?: tvShow.poster, configure) { staleUrl, onUpdated ->
         ArtworkRepairCoordinator.repairTvShowArtwork(this, tvShow, staleUrl) { refreshedTvShow ->
-            val refreshedUrl = refreshedTvShow.banner
+            val refreshedUrl = refreshedTvShow.banner ?: refreshedTvShow.poster
             if (!refreshedUrl.isNullOrBlank() && refreshedUrl != staleUrl) {
                 onUpdated(refreshedUrl)
             }

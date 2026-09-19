@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/settings_hub_root"
     android:layout_width="match_parent"
@@ -17,71 +16,71 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingBottom="56dp"
+        android:paddingBottom="72dp"
         android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="@dimen/support_page_padding"
-            android:paddingTop="@dimen/support_page_padding_top"
-            android:paddingEnd="@dimen/support_page_padding">
+            android:paddingStart="20dp"
+            android:paddingTop="28dp"
+            android:paddingEnd="20dp">
 
             <TextView
                 android:id="@+id/tv_settings_hub_eyebrow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/manrope"
-                android:letterSpacing="0.12"
+                android:letterSpacing="0.14"
                 android:text="@string/settings_hub_eyebrow"
                 android:textAllCaps="true"
                 android:textColor="@color/support_accent"
-                android:textSize="@dimen/support_text_caption"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_settings_hub_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="8dp"
                 android:fontFamily="@font/manrope"
                 android:letterSpacing="-0.03"
                 android:text="@string/settings_hub_title"
                 android:textColor="@color/support_text_primary"
-                android:textSize="@dimen/support_text_hero"
+                android:textSize="32sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_settings_hub_subtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="8dp"
                 android:fontFamily="@font/manrope"
-                android:lineSpacingExtra="3dp"
+                android:lineSpacingExtra="2dp"
                 android:text="@string/settings_hub_subtitle"
                 android:textColor="@color/support_text_secondary"
-                android:textSize="@dimen/support_text_body" />
+                android:textSize="14sp" />
 
-            <!-- Featured integrations card -->
+            <!-- Featured integrations -->
             <LinearLayout
                 android:id="@+id/card_settings_featured"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/support_section_spacing"
+                android:layout_marginTop="28dp"
                 android:background="@drawable/bg_support_hero_cinematic"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_support_icon_chip"
                     android:fontFamily="@font/manrope"
-                    android:letterSpacing="0.06"
+                    android:letterSpacing="0.08"
                     android:paddingStart="10dp"
                     android:paddingTop="4dp"
                     android:paddingEnd="10dp"
@@ -89,92 +88,97 @@
                     android:text="@string/settings_hub_featured_badge"
                     android:textAllCaps="true"
                     android:textColor="@color/support_accent"
-                    android:textSize="@dimen/support_text_caption"
+                    android:textSize="10sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="14dp"
                     android:fontFamily="@font/manrope"
                     android:letterSpacing="-0.02"
                     android:text="@string/platform_settings_title"
                     android:textColor="@color/support_text_primary"
-                    android:textSize="@dimen/support_text_section"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="6dp"
                     android:fontFamily="@font/manrope"
-                    android:lineSpacingExtra="2dp"
                     android:text="@string/platform_settings_summary"
                     android:textColor="@color/support_text_secondary"
-                    android:textSize="@dimen/support_text_secondary" />
+                    android:textSize="13sp" />
 
                 <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/support_button_height"
-                    android:layout_marginTop="18dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/bg_support_btn_primary"
                     android:focusable="false"
                     android:gravity="center"
                     android:text="@string/settings_hub_featured_cta"
                     android:textColor="@color/support_on_accent"
-                    android:textSize="@dimen/support_text_cta"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/support_section_spacing"
+                android:layout_marginTop="32dp"
                 android:fontFamily="@font/manrope"
+                android:letterSpacing="0.04"
                 android:text="@string/settings_hub_section_app"
-                android:textColor="@color/support_text_primary"
-                android:textSize="@dimen/support_text_section"
+                android:textAllCaps="true"
+                android:textColor="@color/support_text_tertiary"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/ll_settings_hub_app"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:orientation="vertical" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/support_section_spacing"
+                android:layout_marginTop="28dp"
                 android:fontFamily="@font/manrope"
+                android:letterSpacing="0.04"
                 android:text="@string/settings_hub_section_account"
-                android:textColor="@color/support_text_primary"
-                android:textSize="@dimen/support_text_section"
+                android:textAllCaps="true"
+                android:textColor="@color/support_text_tertiary"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/ll_settings_hub_account"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:orientation="vertical" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/support_section_spacing"
+                android:layout_marginTop="28dp"
                 android:fontFamily="@font/manrope"
+                android:letterSpacing="0.04"
                 android:text="@string/settings_hub_section_project"
-                android:textColor="@color/support_text_primary"
-                android:textSize="@dimen/support_text_section"
+                android:textAllCaps="true"
+                android:textColor="@color/support_text_tertiary"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/ll_settings_hub_project"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:orientation="vertical" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

@@ -4,21 +4,26 @@
     android:id="@+id/settings_hub_card_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/support_card_spacing"
+    android:layout_marginBottom="8dp"
     android:background="@drawable/bg_support_card_focusable"
     android:focusable="true"
+    android:minHeight="72dp"
     android:orientation="horizontal"
-    android:padding="16dp">
+    android:paddingStart="14dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="14dp">
 
     <FrameLayout
-        android:layout_width="@dimen/support_icon_chip"
-        android:layout_height="@dimen/support_icon_chip"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_vertical"
         android:background="@drawable/bg_support_icon_chip">
 
         <ImageView
             android:id="@+id/iv_settings_hub_card_icon"
-            android:layout_width="@dimen/support_icon_size"
-            android:layout_height="@dimen/support_icon_size"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_support_heart"
@@ -28,7 +33,8 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="12dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -38,7 +44,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/manrope"
             android:textColor="@color/support_text_primary"
-            android:textSize="@dimen/support_text_card_title"
+            android:textSize="15sp"
             android:textStyle="bold"
             tools:text="Playback" />
 
@@ -46,22 +52,23 @@
             android:id="@+id/tv_settings_hub_card_summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
+            android:ellipsize="end"
             android:fontFamily="@font/manrope"
-            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
             android:textColor="@color/support_text_secondary"
-            android:textSize="@dimen/support_text_secondary"
+            android:textSize="12sp"
             tools:text="Autoplay, buffering and player behavior" />
     </LinearLayout>
 
     <ImageView
-        android:layout_width="20dp"
-        android:layout_height="20dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:layout_gravity="center_vertical"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="6dp"
         android:importantForAccessibility="no"
-        android:src="@drawable/ic_support_back"
         android:rotation="180"
+        android:src="@drawable/ic_support_back"
         android:tint="@color/support_text_tertiary"
         tools:ignore="ContentDescription,UseAppTint" />
 </LinearLayout>

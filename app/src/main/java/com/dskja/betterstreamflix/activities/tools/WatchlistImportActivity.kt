@@ -34,6 +34,7 @@ import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
+import com.dskja.betterstreamflix.utils.WebViewDohBridge
 import com.dskja.betterstreamflix.watchlist.WatchlistImporter
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.Dispatchers
@@ -244,6 +245,18 @@ class WatchlistImportActivity : AppCompatActivity() {
                 request: WebResourceRequest?,
             ): Boolean = false
 
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?,
+            ): android.webkit.WebResourceResponse? {
+                val bridged = WebViewDohBridge.interceptMainDocument(
+                    request,
+                    webView.settings.userAgentString ?: NetworkClient.USER_AGENT,
+                )
+                if (bridged != null) return bridged
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 lastLoadError = null
             }
@@ -251,8 +264,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 CookieManager.getInstance().flush()
-                updateLoginState(url)
-                pageFinishedCallback?.invoke(url)
+                detectCopyrightBlockThenContinue(url)
             }
 
             override fun onReceivedError(
@@ -280,6 +292,32 @@ class WatchlistImportActivity : AppCompatActivity() {
                 Log.w(TAG, "SSL warning on ${error?.url}: ${error?.primaryError}")
                 handler?.proceed()
             }
+        }
+    }
+
+    private fun detectCopyrightBlockThenContinue(url: String?) {
+        webView.evaluateJavascript(
+            "(function(){try{return document.documentElement.outerHTML||'';}catch(e){return ''}})();"
+        ) { raw ->
+            val html = raw
+                ?.removePrefix("\"")
+                ?.removeSuffix("\"")
+                ?.replace("\\n", "\n")
+                ?.replace("\\\"", "\"")
+                ?.replace("\\u003C", "<")
+            if (WebViewDohBridge.isCopyrightBlockPage(html)) {
+                lastLoadError = "isp_dns_block"
+                statusView.setText(R.string.watchlist_import_isp_block)
+                importButton.isEnabled = false
+                Toast.makeText(
+                    this,
+                    R.string.watchlist_import_isp_block_toast,
+                    Toast.LENGTH_LONG,
+                ).show()
+                return@evaluateJavascript
+            }
+            updateLoginState(url)
+            pageFinishedCallback?.invoke(url)
         }
     }
 
