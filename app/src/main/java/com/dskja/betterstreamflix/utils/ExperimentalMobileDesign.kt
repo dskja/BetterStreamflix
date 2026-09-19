@@ -28,6 +28,12 @@ object ExperimentalMobileDesign {
 
     fun enabled(): Boolean = isAvailable() && UserPreferences.experimentalNewAppDesign
 
+    /** Call once at app start to clear stale Lumina prefs in release builds. */
+    fun enforceAvailabilityGate() {
+        if (!isAvailable() && UserPreferences.experimentalNewAppDesign) {
+            UserPreferences.experimentalNewAppDesign = false
+        }
+    }
     fun layout(defaultRes: Int, experimentalRes: Int): Int =
         if (enabled()) experimentalRes else defaultRes
 

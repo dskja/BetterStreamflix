@@ -191,112 +191,106 @@ class TmdbProvider(override val language: String) : Provider {
         }
 
         val popularAnimeDeferred = async {
-            awaitAll(
-                async {
-                    TMDb3.Discover.movie(
+            run {
+                val movies = async { TMDb3.Discover.movie(
                         language = language,
                         withKeywords = TMDb3.Params.WithBuilder(TMDb3.Keyword.KeywordId.ANIME)
                             .or(TMDb3.Keyword.KeywordId.BASED_ON_ANIME),
-                    )
-                },
-                async {
-                    TMDb3.Discover.tv(
+                    ).results }
+                val shows = async { TMDb3.Discover.tv(
                         language = language,
                         withKeywords = TMDb3.Params.WithBuilder(TMDb3.Keyword.KeywordId.ANIME)
                             .or(TMDb3.Keyword.KeywordId.BASED_ON_ANIME),
-                    )
-                },
-            ).flatMap { it.results }
+                    ).results }
+                val movieItems: List<TMDb3.MultiItem> = movies.await()
+                val showItems: List<TMDb3.MultiItem> = shows.await()
+                movieItems + showItems
+            }
         }
 
         val netflixDeferred = async {
-            awaitAll(
-                async {
-                    TMDb3.Discover.movie(
+            run {
+                val movies = async { TMDb3.Discover.movie(
                         language = language,
                         watchRegion = watchRegion,
                         withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.NETFLIX),
-                    )
-                },
-                async {
-                    TMDb3.Discover.tv(
+                    ).results }
+                val shows = async { TMDb3.Discover.tv(
                         language = language,
                         withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.NETFLIX),
-                    )
-                },
-            ).flatMap { it.results }
+                    ).results }
+                val movieItems: List<TMDb3.MultiItem> = movies.await()
+                val showItems: List<TMDb3.MultiItem> = shows.await()
+                movieItems + showItems
+            }
         }
 
         val amazonDeferred = async {
-            awaitAll(
-                async {
-                    TMDb3.Discover.movie(
+            run {
+                val movies = async { TMDb3.Discover.movie(
                         language = language,
                         watchRegion = watchRegion,
                         withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.AMAZON_VIDEO),
-                    )
-                },
-                async {
-                    TMDb3.Discover.tv(
+                    ).results }
+                val shows = async { TMDb3.Discover.tv(
                         language = language,
                         withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.AMAZON),
-                    )
-                },
-            ).flatMap { it.results }
+                    ).results }
+                val movieItems: List<TMDb3.MultiItem> = movies.await()
+                val showItems: List<TMDb3.MultiItem> = shows.await()
+                movieItems + showItems
+            }
         }
 
         val disneyDeferred = async {
-            awaitAll(
-                async {
-                    TMDb3.Discover.movie(
+            run {
+                val movies = async { TMDb3.Discover.movie(
                         language = language,
                         watchRegion = watchRegion,
                         withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.DISNEY_PLUS),
-                    )
-                },
-                async {
-                    TMDb3.Discover.tv(
+                    ).results }
+                val shows = async { TMDb3.Discover.tv(
                         language = language,
                         withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.DISNEY_PLUS),
-                    )
-                },
-            ).flatMap { it.results }
+                    ).results }
+                val movieItems: List<TMDb3.MultiItem> = movies.await()
+                val showItems: List<TMDb3.MultiItem> = shows.await()
+                movieItems + showItems
+            }
         }
 
         val huluDeferred = async {
-            awaitAll(
-                async {
-                    TMDb3.Discover.movie(
+            run {
+                val movies = async { TMDb3.Discover.movie(
                         language = language,
                         watchRegion = watchRegion,
                         withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.HULU),
-                    )
-                },
-                async {
-                    TMDb3.Discover.tv(
+                    ).results }
+                val shows = async { TMDb3.Discover.tv(
                         language = language,
                         withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.HULU),
-                    )
-                },
-            ).flatMap { it.results }
+                    ).results }
+                val movieItems: List<TMDb3.MultiItem> = movies.await()
+                val showItems: List<TMDb3.MultiItem> = shows.await()
+                movieItems + showItems
+            }
         }
 
         val appleDeferred = async {
-            awaitAll(
-                async {
-                    TMDb3.Discover.movie(
+            run {
+                val movies = async { TMDb3.Discover.movie(
                         language = language,
                         watchRegion = watchRegion,
                         withWatchProviders = TMDb3.Params.WithBuilder(TMDb3.Provider.WatchProviderId.APPLE_TV_PLUS),
-                    )
-                },
-                async {
-                    TMDb3.Discover.tv(
+                    ).results }
+                val shows = async { TMDb3.Discover.tv(
                         language = language,
                         withNetworks = TMDb3.Params.WithBuilder(TMDb3.Network.NetworkId.APPLE_TV),
-                    )
-                },
-            ).flatMap { it.results }
+                    ).results }
+                val movieItems: List<TMDb3.MultiItem> = movies.await()
+                val showItems: List<TMDb3.MultiItem> = shows.await()
+                movieItems + showItems
+            }
         }
 
         val hboDeferred = async {
