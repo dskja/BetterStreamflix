@@ -31,6 +31,9 @@ class TvShow(
     var imdbId: String? = null,
 
     @Ignore
+    var tmdbId: String? = null,
+
+    @Ignore
     var providerName: String? = null,
     @Ignore
     val seasons: List<Season> = listOf(),
@@ -137,6 +140,7 @@ class TvShow(
         poster,
         banner,
         imdbId,
+        tmdbId,
         providerName,
         seasons,
         genres,

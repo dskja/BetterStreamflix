@@ -481,6 +481,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         SerienStreamAuthSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        TmdbSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
+        }
         findPreference<Preference>("p_serienstream_account_open")?.setOnPreferenceClickListener {
             openNestedSettingsScreen(
                 "screen_serienstream_auth",
@@ -502,6 +505,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     getString(R.string.settings_tmdb_api_key_success)
                 }
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                TmdbSettingsController.bind(this@SettingsTvFragment, lifecycleScope) { key ->
+                    findPreference(key)
+                }
                 true
             }
         }

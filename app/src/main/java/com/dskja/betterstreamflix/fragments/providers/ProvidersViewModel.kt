@@ -55,7 +55,7 @@ class ProvidersViewModel : ViewModel() {
                 .sortedBy { it.name }
                 .toMutableList()
 
-            if (language == null || isFavoritesFilter) {
+            if (UserPreferences.enableTmdb && (language == null || isFavoritesFilter)) {
                 val availableLanguages = Provider.allProviders().keys.map { it.language }.distinct()
                 availableLanguages.forEach { lang ->
                     if (lang != "pl") {
@@ -65,10 +65,8 @@ class ProvidersViewModel : ViewModel() {
                         }
                     }
                 }
-            } else {
-                if (language != "pl") {
-                    providers.add(TmdbProvider(language))
-                }
+            } else if (UserPreferences.enableTmdb && language != null && language != "pl") {
+                providers.add(TmdbProvider(language))
             }
 
             val modelProviders = providers.map {

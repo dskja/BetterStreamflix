@@ -444,6 +444,19 @@
     <string name="settings_tmdb_api_key_summary">Déjalo vacío para usar la clave API predeterminada proporcionada con la aplicación</string>
     <string name="settings_tmdb_api_key_success">Clave API actualizada correctamente</string>
     <string name="settings_tmdb_api_key_reset">Usar clave API de TMDB predeterminada</string>
+    <string name="settings_tmdb_status_title">Estado de TMDb</string>
+    <string name="settings_tmdb_status_ready">Clave API configurada — enriquecimiento y proveedor TMDb listos</string>
+    <string name="settings_tmdb_status_no_key">Sin clave API — añádela arriba o usa la predeterminada</string>
+    <string name="settings_tmdb_status_disabled">TMDb está desactivado</string>
+    <string name="settings_tmdb_test_title">Probar conexión TMDb</string>
+    <string name="settings_tmdb_test_summary">Hacer ping a themoviedb.org con la clave activa</string>
+    <string name="settings_tmdb_test_running">Probando…</string>
+    <string name="settings_tmdb_test_success">Conexión TMDb OK</string>
+    <string name="settings_tmdb_test_failed">Falló la conexión TMDb — revisa la clave y la red</string>
+    <string name="settings_tmdb_test_disabled">Activa TMDb primero</string>
+    <string name="settings_tmdb_clear_cache_title">Vaciar caché TMDb</string>
+    <string name="settings_tmdb_clear_cache_summary">Eliminar detalles, búsquedas IMDb y coincidencias en caché</string>
+    <string name="settings_tmdb_cache_cleared">Caché TMDb vaciada</string>
 
     <string name="settings_category_subdl">Ajustes de SubDL</string>
     <string name="settings_subdl_api_key">Clave API de SubDL</string>

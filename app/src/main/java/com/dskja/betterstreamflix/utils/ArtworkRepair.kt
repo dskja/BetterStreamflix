@@ -155,10 +155,7 @@ object ArtworkRepair {
     ) {
         if (hasUsableArtwork(currentMovie.poster, currentMovie.banner)) return
 
-        val lookupTitle = currentMovie.title.ifBlank { fallbackTitle.orEmpty() }
-        if (lookupTitle.isBlank()) return
-
-        val tmdbMovie = TmdbUtils.getMovie(lookupTitle, language = providerLanguage) ?: return
+        val tmdbMovie = resolveTmdbMovie(currentMovie, fallbackTitle, providerLanguage) ?: return
         if (!isRemoteArtworkUrl(currentMovie.poster) && isRemoteArtworkUrl(tmdbMovie.poster)) {
             currentMovie.poster = tmdbMovie.poster
         }
@@ -167,6 +164,9 @@ object ArtworkRepair {
         }
         if (currentMovie.imdbId.isNullOrBlank()) {
             currentMovie.imdbId = tmdbMovie.imdbId
+        }
+        if (currentMovie.tmdbId.isNullOrBlank()) {
+            currentMovie.tmdbId = tmdbMovie.tmdbId
         }
     }
 
@@ -177,10 +177,7 @@ object ArtworkRepair {
     ) {
         if (hasUsableArtwork(currentTvShow.poster, currentTvShow.banner)) return
 
-        val lookupTitle = currentTvShow.title.ifBlank { fallbackTitle.orEmpty() }
-        if (lookupTitle.isBlank()) return
-
-        val tmdbTvShow = TmdbUtils.getTvShow(lookupTitle, language = providerLanguage) ?: return
+        val tmdbTvShow = resolveTmdbTvShow(currentTvShow, fallbackTitle, providerLanguage) ?: return
         if (!isRemoteArtworkUrl(currentTvShow.poster) && isRemoteArtworkUrl(tmdbTvShow.poster)) {
             currentTvShow.poster = tmdbTvShow.poster
         }
@@ -190,6 +187,41 @@ object ArtworkRepair {
         if (currentTvShow.imdbId.isNullOrBlank()) {
             currentTvShow.imdbId = tmdbTvShow.imdbId
         }
+        if (currentTvShow.tmdbId.isNullOrBlank()) {
+            currentTvShow.tmdbId = tmdbTvShow.tmdbId
+        }
+    }
+
+    private suspend fun resolveTmdbMovie(
+        currentMovie: Movie,
+        fallbackTitle: String?,
+        providerLanguage: String?,
+    ): Movie? {
+        currentMovie.tmdbId?.toIntOrNull()?.let { id ->
+            TmdbUtils.getMovieById(id, providerLanguage)?.let { return it }
+        }
+        currentMovie.imdbId?.takeIf { it.isNotBlank() }?.let { imdb ->
+            TmdbUtils.getMovieByImdbId(imdb, providerLanguage)?.let { return it }
+        }
+        val lookupTitle = currentMovie.title.ifBlank { fallbackTitle.orEmpty() }
+        if (lookupTitle.isBlank()) return null
+        return TmdbUtils.getMovie(lookupTitle, language = providerLanguage)
+    }
+
+    private suspend fun resolveTmdbTvShow(
+        currentTvShow: TvShow,
+        fallbackTitle: String?,
+        providerLanguage: String?,
+    ): TvShow? {
+        currentTvShow.tmdbId?.toIntOrNull()?.let { id ->
+            TmdbUtils.getTvShowById(id, providerLanguage)?.let { return it }
+        }
+        currentTvShow.imdbId?.takeIf { it.isNotBlank() }?.let { imdb ->
+            TmdbUtils.getTvShowByImdbId(imdb, providerLanguage)?.let { return it }
+        }
+        val lookupTitle = currentTvShow.title.ifBlank { fallbackTitle.orEmpty() }
+        if (lookupTitle.isBlank()) return null
+        return TmdbUtils.getTvShow(lookupTitle, language = providerLanguage)
     }
 
     private fun containsFileNotFound(error: GlideException?): Boolean {

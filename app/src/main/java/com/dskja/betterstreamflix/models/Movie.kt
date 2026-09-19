@@ -27,6 +27,9 @@ class Movie(
     var imdbId: String? = null,
 
     @Ignore
+    var tmdbId: String? = null,
+
+    @Ignore
     var providerName: String? = null,
 
     @Ignore
@@ -105,6 +108,7 @@ class Movie(
         poster,
         banner,
         imdbId,
+        tmdbId,
         providerName,
         genres,
         directors,
