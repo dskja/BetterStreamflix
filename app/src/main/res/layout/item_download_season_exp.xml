@@ -12,6 +12,7 @@
 
     <TextView
         android:id="@+id/tv_download_season_title"
+        android:fontFamily="@font/manrope"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="?attr/colorOnSurface"
@@ -21,6 +22,7 @@
 
     <TextView
         android:id="@+id/tv_download_season_subtitle"
+        android:fontFamily="@font/manrope"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"

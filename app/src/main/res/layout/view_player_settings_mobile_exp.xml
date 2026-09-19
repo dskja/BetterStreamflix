@@ -27,6 +27,7 @@
 
     <TextView
         android:id="@+id/tv_settings_header"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"

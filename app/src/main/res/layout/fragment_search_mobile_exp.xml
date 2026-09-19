@@ -8,42 +8,75 @@
     tools:context=".fragments.search.SearchMobileFragment">
 
     <TextView
-        android:id="@+id/tv_search_brand"
+        android:id="@+id/tv_search_eyebrow"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="26dp"
         android:layout_marginEnd="22dp"
-        android:letterSpacing="-0.02"
-        android:text="@string/main_menu_search"
-        android:textColor="?attr/colorOnSurface"
-        android:textSize="34sp"
-        
+        android:fontFamily="@font/manrope"
+        android:letterSpacing="0.12"
+        android:text="@string/exp_catalog_eyebrow"
+        android:textAllCaps="true"
+        android:textAppearance="@style/TextAppearance.Lumina.Eyebrow"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="11sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" 
-        android:textAppearance="?attr/textAppearanceTitleLarge"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <View
-        android:layout_width="40dp"
-        android:layout_height="3dp"
-        android:layout_marginTop="11dp"
-        android:background="@drawable/bg_exp_accent_rule"
+    <TextView
+        android:id="@+id/tv_search_brand"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:fontFamily="@font/manrope"
+        android:letterSpacing="-0.03"
+        android:text="@string/main_menu_search"
+        android:textAppearance="@style/TextAppearance.Lumina.Hero"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="@id/tv_search_eyebrow"
+        app:layout_constraintStart_toStartOf="@id/tv_search_eyebrow"
+        app:layout_constraintTop_toBottomOf="@id/tv_search_eyebrow" />
+
+    <TextView
+        android:id="@+id/tv_search_tagline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="@font/manrope"
+        android:text="@string/exp_search_tagline"
+        android:textAppearance="@style/TextAppearance.Lumina.Body"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="@id/tv_search_brand"
         app:layout_constraintStart_toStartOf="@id/tv_search_brand"
         app:layout_constraintTop_toBottomOf="@id/tv_search_brand" />
+
+    <View
+        android:id="@+id/v_search_rule"
+        android:layout_width="40dp"
+        android:layout_height="3dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_exp_accent_rule"
+        app:layout_constraintStart_toStartOf="@id/tv_search_brand"
+        app:layout_constraintTop_toBottomOf="@id/tv_search_tagline" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cl_search"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="22dp"
         android:background="@drawable/bg_exp_search_field"
         android:elevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_search_brand">
+        app:layout_constraintTop_toBottomOf="@id/v_search_rule">
 
         <ImageView
             android:id="@+id/ic_search"
@@ -63,6 +96,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
+            android:fontFamily="@font/manrope"
             android:gravity="center_vertical"
             android:hint="@string/search_input_hint"
             android:imeOptions="actionSearch"
@@ -141,6 +175,7 @@
 
     <TextView
         android:id="@+id/tv_search_empty"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:drawableTop="@drawable/ic_search"

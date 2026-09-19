@@ -139,4 +139,30 @@ object ExpMotion {
         if (!ExperimentalMobileDesign.enabled()) return
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
+
+    /**
+     * Cascading reveal for catalog headers (eyebrow → title → tagline → rule).
+     * Matches the Settings hub / Support stagger language.
+     */
+    fun revealHeader(vararg views: View?) {
+        val visible = views.filterNotNull()
+        if (visible.isEmpty()) return
+        val context = visible.first().context
+        if (!ExperimentalMobileDesign.enabled() || reduceMotion(context)) {
+            visible.forEach { it.alpha = 1f; it.translationY = 0f }
+            return
+        }
+        visible.forEachIndexed { index, view ->
+            view.animate().cancel()
+            view.alpha = 0f
+            view.translationY = 14f * view.resources.displayMetrics.density
+            view.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setStartDelay(48L * index)
+                .setDuration(280L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+    }
 }

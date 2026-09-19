@@ -31,6 +31,7 @@
 
     <TextView
         android:id="@+id/tv_people_name"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -48,6 +49,7 @@
 
     <TextView
         android:id="@+id/tv_people_birthday_label"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -84,6 +86,7 @@
 
     <TextView
         android:id="@+id/tv_people_deathday_label"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -120,6 +123,7 @@
 
     <TextView
         android:id="@+id/tv_people_birthplace_label"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -156,6 +160,7 @@
 
     <TextView
         android:id="@+id/tv_people_biography_label"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"
@@ -170,6 +175,7 @@
 
     <TextView
         android:id="@+id/tv_people_biography"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="22dp"

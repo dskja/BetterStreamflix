@@ -590,6 +590,13 @@
     <string name="settings_hub_section_project">Project</string>
     <string name="settings_hub_more_summary">Updates, community links, help and diagnostics</string>
     <string name="exp_home_tagline">Your movies, in your colors</string>
+    <string name="exp_catalog_eyebrow">Discover</string>
+    <string name="exp_movies_tagline">Fresh titles across every provider</string>
+    <string name="exp_tv_shows_tagline">Series worth bingeing tonight</string>
+    <string name="exp_search_tagline">Find anything across your library</string>
+    <string name="exp_favorites_tagline">Your personal watchlist</string>
+    <string name="exp_downloads_tagline">Offline and ready when you are</string>
+    <string name="exp_providers_eyebrow">Sources</string>
     <string name="exp_back">Back</string>
     <string name="exp_swiper_page">Featured: %1$s</string>
     <string name="exp_cd_prev_episode">Previous episode</string>

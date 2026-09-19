@@ -49,6 +49,7 @@
 
     <TextView
         android:id="@+id/tv_setting_main_text"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
@@ -66,6 +67,7 @@
 
     <TextView
         android:id="@+id/tv_setting_sub_text"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"

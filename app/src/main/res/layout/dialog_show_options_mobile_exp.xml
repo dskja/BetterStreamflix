@@ -38,6 +38,7 @@
 
     <TextView
         android:id="@+id/tv_options_show_title"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="18dp"
@@ -53,6 +54,7 @@
 
     <TextView
         android:id="@+id/tv_show_subtitle"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="18dp"
@@ -79,6 +81,7 @@
 
         <TextView
             android:id="@+id/btn_option_episode_open_tv_show"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -94,6 +97,7 @@
 
         <TextView
             android:id="@+id/btn_option_show_favorite"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -109,6 +113,7 @@
 
         <TextView
             android:id="@+id/btn_option_show_watched"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -124,6 +129,7 @@
 
         <TextView
             android:id="@+id/btn_option_show_download"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -139,6 +145,7 @@
 
         <TextView
             android:id="@+id/btn_option_episode_mark_all_previous_watched"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -154,6 +161,7 @@
 
         <TextView
             android:id="@+id/btn_option_program_clear"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -169,6 +177,7 @@
 
         <TextView
             android:id="@+id/btn_option_recently_watched_clear"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
@@ -185,6 +194,7 @@
 
         <TextView
             android:id="@+id/btn_option_cancel"
+        android:fontFamily="@font/manrope"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"

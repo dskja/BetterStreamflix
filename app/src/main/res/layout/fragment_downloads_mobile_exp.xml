@@ -4,31 +4,52 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@drawable/bg_exp_canvas_atmosphere"
     android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/tv_downloads_eyebrow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingStart="22dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="8dp"
+        android:fontFamily="@font/manrope"
+        android:letterSpacing="0.12"
+        android:text="@string/exp_catalog_eyebrow"
+        android:textAllCaps="true"
+        android:textAppearance="@style/TextAppearance.Lumina.Eyebrow"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/btn_downloads_menu"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_downloads_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingStart="22dp"
-        android:paddingTop="20dp"
+        android:paddingTop="6dp"
         android:paddingEnd="8dp"
-        android:letterSpacing="-0.02"
+        android:fontFamily="@font/manrope"
+        android:letterSpacing="-0.03"
         android:text="@string/downloads_title"
+        android:textAppearance="@style/TextAppearance.Lumina.Hero"
         android:textColor="?attr/colorOnSurface"
         android:textSize="30sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/btn_downloads_menu"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" 
-        android:textAppearance="?attr/textAppearanceTitleLarge"
+        app:layout_constraintTop_toBottomOf="@id/tv_downloads_eyebrow"
         tools:text="Beispieltext" />
 
     <ImageButton
         android:id="@+id/btn_downloads_menu"
         android:layout_width="46dp"
         android:layout_height="46dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="18dp"
         android:layout_marginEnd="16dp"
         android:background="@drawable/bg_exp_icon_chip"
         android:contentDescription="@string/downloads_action_settings"
@@ -39,13 +60,14 @@
         app:tint="?attr/colorOnSurface" />
 
     <TextView
-        android:id="@+id/tv_downloads_storage"
+        android:id="@+id/tv_downloads_tagline"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingStart="22dp"
         android:paddingTop="4dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="8dp"
+        android:fontFamily="@font/manrope"
+        android:text="@string/exp_downloads_tagline"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -53,7 +75,23 @@
         app:layout_constraintTop_toBottomOf="@id/tv_downloads_title" />
 
     <TextView
+        android:id="@+id/tv_downloads_storage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingStart="22dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:fontFamily="@font/manrope"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_downloads_tagline" />
+
+    <TextView
         android:id="@+id/tv_downloads_banner"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingStart="22dp"
@@ -87,6 +125,7 @@
 
             <TextView
                 android:id="@+id/chip_filter_all"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
@@ -101,6 +140,7 @@
 
             <TextView
                 android:id="@+id/chip_filter_downloading"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
@@ -115,6 +155,7 @@
 
             <TextView
                 android:id="@+id/chip_filter_completed"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
@@ -129,6 +170,7 @@
 
             <TextView
                 android:id="@+id/chip_filter_failed"
+        android:fontFamily="@font/manrope"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
@@ -158,6 +200,7 @@
 
     <TextView
         android:id="@+id/tv_downloads_empty"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:drawableTop="@drawable/ic_menu_downloads"

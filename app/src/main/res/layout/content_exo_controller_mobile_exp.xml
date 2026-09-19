@@ -34,6 +34,7 @@
 
     <TextView
         android:id="@+id/tv_exo_title"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
@@ -49,6 +50,7 @@
 
     <TextView
         android:id="@+id/tv_exo_subtitle"
+        android:fontFamily="@font/manrope"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
@@ -205,6 +207,7 @@
 
         <TextView
             android:id="@+id/tv_live_indicator"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_live_indicator"
@@ -225,6 +228,7 @@
 
         <TextView
             android:id="@+id/exo_position"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFeatureSettings="tnum"
@@ -238,6 +242,7 @@
 
         <TextView
             android:id="@+id/tv_time_separator"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingStart="8dp"
@@ -252,6 +257,7 @@
 
         <TextView
             android:id="@+id/exo_duration"
+        android:fontFamily="@font/manrope"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFeatureSettings="tnum"
@@ -321,6 +327,7 @@
 
     <TextView
         android:id="@+id/btn_skip_intro"
+        android:fontFamily="@font/manrope"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="20dp"

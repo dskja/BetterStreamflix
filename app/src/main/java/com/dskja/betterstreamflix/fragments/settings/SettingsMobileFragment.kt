@@ -57,6 +57,7 @@ import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
+import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.ui.UserDataNotifier
 import com.dskja.betterstreamflix.utils.ThemeManager
@@ -275,6 +276,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         applyScreenTitle()
         view?.let { ensureSettingsHub(it) }
         settingsHubController?.updateVisibility()
+        if (ExperimentalMobileDesign.enabled() && currentScreenState.rootKey != null) {
+            listView?.let { ExpMotion.startAnimation(it, R.anim.support_fade_slide_up) }
+        }
     }
 
     private fun displaySettings() {

@@ -60,6 +60,12 @@ class MoviesMobileFragment : Fragment() {
         ExpMotion.staggerFirstFill(binding.rvMovies)
         if (ExperimentalMobileDesign.enabled()) {
             ExpMotion.startAnimation(binding.rvMovies, R.anim.exp_fade_slide_in)
+            ExpMotion.revealHeader(
+                binding.root.findViewById(R.id.tv_movies_eyebrow),
+                binding.root.findViewById(R.id.tv_movies_brand),
+                binding.root.findViewById(R.id.tv_movies_tagline),
+                binding.root.findViewById(R.id.v_movies_rule),
+            )
         }
 
         initializeMovies()

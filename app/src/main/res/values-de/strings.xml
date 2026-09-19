@@ -454,6 +454,13 @@
     <string name="settings_hub_section_project">Projekt</string>
     <string name="settings_hub_more_summary">Updates, Community-Links, Hilfe und Diagnose</string>
     <string name="exp_home_tagline">Dein Kino, in deinen Farben</string>
+    <string name="exp_catalog_eyebrow">Entdecken</string>
+    <string name="exp_movies_tagline">Frische Titel über alle Anbieter</string>
+    <string name="exp_tv_shows_tagline">Serien, die heute Abend lohnen</string>
+    <string name="exp_search_tagline">Finde alles in deiner Bibliothek</string>
+    <string name="exp_favorites_tagline">Deine persönliche Watchlist</string>
+    <string name="exp_downloads_tagline">Offline und bereit, wenn du es bist</string>
+    <string name="exp_providers_eyebrow">Quellen</string>
     <string name="exp_back">Zurück</string>
     <string name="exp_swiper_page">Empfohlen: %1$s</string>
     <string name="exp_cd_prev_episode">Vorherige Episode</string>

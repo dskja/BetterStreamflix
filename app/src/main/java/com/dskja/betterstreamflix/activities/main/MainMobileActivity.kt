@@ -49,7 +49,6 @@ import com.dskja.betterstreamflix.utils.ThemeManager
 import com.dskja.betterstreamflix.utils.UserPreferences
 import com.dskja.betterstreamflix.utils.getCurrentFragment
 import com.google.android.gms.cast.framework.CastContext
-import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,10 +115,6 @@ class MainMobileActivity : FragmentActivity() {
                 ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
             }
         )
-        if (ExperimentalMobileDesign.enabled()) {
-            DynamicColors.applyToActivityIfAvailable(this)
-        }
-
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -666,8 +661,6 @@ class MainMobileActivity : FragmentActivity() {
     }
 
     private fun applyExperimentalNavigationChrome() {
-        // Material You: M3 styles the nav items; tint system bars with the
-        // (possibly dynamic) surface colors and clip the floating pill.
         binding.root.findViewById<View>(R.id.bv_main_nav)?.clipToOutline = true
         val surface = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorSurface, "exp surface",
@@ -675,6 +668,21 @@ class MainMobileActivity : FragmentActivity() {
         val navSurface = MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorSurfaceContainer, "exp nav",
         )
+        val primary = MaterialColors.getColor(
+            this, androidx.appcompat.R.attr.colorPrimary, 0xFFE85A5A.toInt(),
+        )
+        val onVariant = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFFA3A3A3.toInt(),
+        )
+        val navColors = ColorStateList(
+            arrayOf(
+                intArrayOf(android.R.attr.state_checked),
+                intArrayOf(),
+            ),
+            intArrayOf(primary, onVariant),
+        )
+        binding.bnvMain.itemIconTintList = navColors
+        binding.bnvMain.itemTextColor = navColors
         @Suppress("DEPRECATION")
         run {
             window.statusBarColor = surface

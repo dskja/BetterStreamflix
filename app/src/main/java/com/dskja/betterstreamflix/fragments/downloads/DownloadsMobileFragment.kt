@@ -77,6 +77,13 @@ class DownloadsMobileFragment : Fragment() {
         ExpNavAutoHide.attach(binding.root)
         ExpMotion.enterScreen(binding.root)
         ExpMotion.staggerFirstFill(binding.rvDownloads)
+        if (ExperimentalMobileDesign.enabled()) {
+            ExpMotion.revealHeader(
+                binding.root.findViewById(R.id.tv_downloads_eyebrow),
+                binding.tvDownloadsTitle,
+                binding.root.findViewById(R.id.tv_downloads_tagline),
+            )
+        }
         binding.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
         binding.rvDownloads.itemAnimator = null
         binding.rvDownloads.adapter = adapter
