@@ -34,24 +34,28 @@ object PlatformSettingsController {
                     pref.isChecked = get()
                     pref.setOnPreferenceChangeListener { _, v ->
                         set(v as Boolean)
-                        true
+                        false
                     }
                 }
                 is SwitchPreference -> {
                     pref.isChecked = get()
                     pref.setOnPreferenceChangeListener { _, v ->
                         set(v as Boolean)
-                        true
+                        false
                     }
                 }
             }
         }
+
+        fun isHttpUrl(value: String): Boolean =
+            value.isBlank() || value.startsWith("http://") || value.startsWith("https://")
 
         fun bindText(
             key: String,
             get: () -> String,
             set: (String) -> Unit,
             mask: Boolean = false,
+            validateUrl: Boolean = false,
         ) {
             val pref = findPreference(key) as? EditTextPreference ?: return
             val value = get()
@@ -62,7 +66,11 @@ object PlatformSettingsController {
                 else -> value
             }
             pref.setOnPreferenceChangeListener { preference, newValue ->
-                val typed = newValue.toString().trim()
+                var typed = newValue.toString().trim().trimEnd('/')
+                if (validateUrl && !isHttpUrl(typed)) {
+                    Toast.makeText(context, R.string.platform_url_invalid, Toast.LENGTH_LONG).show()
+                    return@setOnPreferenceChangeListener false
+                }
                 set(typed)
                 preference.summary = when {
                     typed.isBlank() -> preference.context.getString(defaultSummaryRes(key))
@@ -70,7 +78,6 @@ object PlatformSettingsController {
                     else -> typed
                 }
                 Toast.makeText(context, R.string.platform_settings_saved, Toast.LENGTH_SHORT).show()
-                // Refresh plugin visibility for self-host providers after config changes.
                 runCatching {
                     PluginRegistry.clear()
                     PluginRegistry.bootstrapBuiltins()
@@ -105,6 +112,7 @@ object PlatformSettingsController {
             key = "JELLYFIN_BASE_URL",
             get = { UserPreferences.jellyfinBaseUrl },
             set = { UserPreferences.jellyfinBaseUrl = it },
+            validateUrl = true,
         )
         bindText(
             key = "JELLYFIN_USER_ID",
@@ -121,6 +129,7 @@ object PlatformSettingsController {
             key = "PLEX_BASE_URL",
             get = { UserPreferences.plexBaseUrl },
             set = { UserPreferences.plexBaseUrl = it },
+            validateUrl = true,
         )
         bindText(
             key = "PLEX_TOKEN",
@@ -184,6 +193,10 @@ object PlatformSettingsController {
         }
 
         findPreference("trakt_device_auth_start")?.setOnPreferenceClickListener {
+            if (UserPreferences.traktClientId.isBlank() || UserPreferences.traktClientSecret.isBlank()) {
+                Toast.makeText(context, R.string.platform_trakt_device_auth_failed, Toast.LENGTH_LONG).show()
+                return@setOnPreferenceClickListener true
+            }
             scope.launch {
                 val code = TraktClient.requestDeviceCode()
                 if (code == null) {
@@ -228,8 +241,10 @@ object PlatformSettingsController {
         }
 
         findPreference("jellyfin_login_submit")?.setOnPreferenceClickListener {
-            val user = (findPreference("jellyfin_login_user") as? EditTextPreference)?.text.orEmpty()
-            val pass = (findPreference("jellyfin_login_password") as? EditTextPreference)?.text.orEmpty()
+            val userPref = findPreference("jellyfin_login_user") as? EditTextPreference
+            val passPref = findPreference("jellyfin_login_password") as? EditTextPreference
+            val user = userPref?.text.orEmpty()
+            val pass = passPref?.text.orEmpty()
             if (UserPreferences.jellyfinBaseUrl.isBlank() || user.isBlank() || pass.isBlank()) {
                 Toast.makeText(context, R.string.platform_jellyfin_login_missing, Toast.LENGTH_LONG).show()
                 return@setOnPreferenceClickListener true
@@ -243,11 +258,74 @@ object PlatformSettingsController {
                     Toast.LENGTH_LONG,
                 ).show()
                 if (ok) {
+                    passPref?.text = ""
+                    bindText(
+                        key = "JELLYFIN_USER_ID",
+                        get = { UserPreferences.jellyfinUserId },
+                        set = { UserPreferences.jellyfinUserId = it },
+                    )
+                    bindText(
+                        key = "JELLYFIN_ACCESS_TOKEN",
+                        get = { UserPreferences.jellyfinAccessToken },
+                        set = { UserPreferences.jellyfinAccessToken = it },
+                        mask = true,
+                    )
                     runCatching {
                         PluginRegistry.clear()
                         PluginRegistry.bootstrapBuiltins()
                     }
                 }
+            }
+            true
+        }
+
+        bindSwitch(
+            key = "plugin_disable_jellyfin",
+            get = { UserPreferences.isPluginDisabled("builtin:Jellyfin") },
+            set = {
+                UserPreferences.setPluginDisabled("builtin:Jellyfin", it)
+                runCatching {
+                    PluginRegistry.clear()
+                    PluginRegistry.bootstrapBuiltins()
+                }
+            },
+        )
+        bindSwitch(
+            key = "plugin_disable_plex",
+            get = { UserPreferences.isPluginDisabled("builtin:Plex") },
+            set = {
+                UserPreferences.setPluginDisabled("builtin:Plex", it)
+                runCatching {
+                    PluginRegistry.clear()
+                    PluginRegistry.bootstrapBuiltins()
+                }
+            },
+        )
+
+        findPreference("platform_test_jellyfin")?.setOnPreferenceClickListener {
+            scope.launch {
+                val ok = runCatching {
+                    JellyfinApi().configured() && JellyfinApi().resumeItems(1).length() >= 0
+                }.getOrDefault(false)
+                Toast.makeText(
+                    context,
+                    if (ok) R.string.platform_test_ok else R.string.platform_test_fail,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            true
+        }
+        findPreference("platform_test_plex")?.setOnPreferenceClickListener {
+            scope.launch {
+                val ok = runCatching {
+                    val api = com.dskja.betterstreamflix.platform.plex.PlexApi()
+                    api.configured() && api.librarySections().length() >= 0
+                }.getOrDefault(false)
+                Toast.makeText(
+                    context,
+                    if (ok) R.string.platform_test_ok else R.string.platform_test_fail,
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
             true
         }

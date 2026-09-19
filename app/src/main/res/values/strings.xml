@@ -966,8 +966,8 @@
     <string name="platform_plex_token_title">Plex token</string>
     <string name="platform_plex_token_summary">X-Plex-Token</string>
     <string name="platform_debrid_category">Debrid</string>
-    <string name="platform_debrid_enabled_title">Enable Real-Debrid</string>
-    <string name="platform_debrid_enabled_summary">Unrestrict hoster links and magnets via RD</string>
+    <string name="platform_debrid_enabled_title">Enable debrid</string>
+    <string name="platform_debrid_enabled_summary">Unlock hoster links and magnets via the selected provider</string>
     <string name="platform_rd_token_title">Real-Debrid API token</string>
     <string name="platform_rd_token_summary">Token from real-debrid.com/apitoken</string>
     <string name="platform_trakt_client_secret_title">Trakt client secret</string>
@@ -993,4 +993,16 @@
     <string name="platform_alldebrid_key_title">AllDebrid API key</string>
     <string name="platform_alldebrid_key_summary">From alldebrid.com</string>
     <string name="platform_mpv_not_installed">No MPV/VLC player found. Install MPV or choose ExoPlayer.</string>
+    <string name="platform_plugins_category">Sources</string>
+    <string name="platform_plugin_hide_jellyfin_title">Hide Jellyfin provider</string>
+    <string name="platform_plugin_hide_jellyfin_summary">Force-hide even when configured</string>
+    <string name="platform_plugin_hide_plex_title">Hide Plex provider</string>
+    <string name="platform_plugin_hide_plex_summary">Force-hide even when configured</string>
+    <string name="platform_test_jellyfin_title">Test Jellyfin connection</string>
+    <string name="platform_test_jellyfin_summary">Fetch resume items to verify credentials</string>
+    <string name="platform_test_plex_title">Test Plex connection</string>
+    <string name="platform_test_plex_summary">Fetch library sections to verify token</string>
+    <string name="platform_test_ok">Connection OK</string>
+    <string name="platform_test_fail">Connection failed</string>
+    <string name="platform_url_invalid">Enter a valid http(s) URL</string>
 </resources>

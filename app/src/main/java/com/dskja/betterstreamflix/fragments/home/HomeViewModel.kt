@@ -65,6 +65,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
     private val _userDataCache = MutableStateFlow<UserDataCache.UserData?>(null)
     private val libraryRefresh = MutableStateFlow(0)
+    private val traktContinueWatching = MutableStateFlow<List<AppAdapter.Item>>(emptyList())
     private var currentProvider: Provider? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -90,6 +91,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     val state: Flow<State> = combine(
         _state,
         homeHistory,
+        traktContinueWatching,
 
         // MOVIES DB (current provider catalog merge)
         _state.transformLatest { state ->
@@ -125,7 +127,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }.flowOn(Dispatchers.IO),
 
-        ) { state, history, moviesDb, tvShowsDb ->
+        ) { state, history, traktCw, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -160,7 +162,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                             )
                         },
 
-                    // CONTINUE WATCHING (local + optional Trakt / self-host extras merged once)
+                    // CONTINUE WATCHING (local + Trakt + self-host extras merged once)
                     Category(
                         name = Category.CONTINUE_WATCHING,
                         list = com.dskja.betterstreamflix.platform.ContinueWatchingMerger.merge(
@@ -190,7 +192,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                                     com.dskja.betterstreamflix.platform.ContinueWatchingMerger
                                         .isProviderContinueWatching(it.name)
                                 }
-                                .flatMap { it.list },
+                                .flatMap { it.list } + traktCw,
                         ),
                     ).takeIf { UserPreferences.showContinueWatching },
 
@@ -358,6 +360,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         loadUserDataCache(provider)
         libraryRefresh.value += 1
+        viewModelScope.launch(Dispatchers.IO) {
+            traktContinueWatching.value =
+                com.dskja.betterstreamflix.platform.trakt.TraktContinueWatching.load()
+        }
 
         try {
             val categories = ProviderSmoke.withProviderTimeout(

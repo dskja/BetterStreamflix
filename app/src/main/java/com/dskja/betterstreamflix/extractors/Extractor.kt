@@ -152,7 +152,10 @@ abstract class Extractor {
                         return Video(source = debrid.url, headers = debrid.headers.ifEmpty { null })
                     }
                     is com.dskja.betterstreamflix.platform.debrid.DebridResult.Pending -> {
-                        // Soft-fail: magnets still downloading should not abort hoster extractors.
+                        // Soft-fail for hosters; for magnets surface a clear message.
+                        if (finalLink.startsWith("magnet:", ignoreCase = true)) {
+                            throw Exception("Debrid still caching torrent (${debrid.id}). Try again shortly.")
+                        }
                         Log.i("Extractor", "Debrid pending (${debrid.id}): ${debrid.message}")
                     }
                     is com.dskja.betterstreamflix.platform.debrid.DebridResult.Failure -> {

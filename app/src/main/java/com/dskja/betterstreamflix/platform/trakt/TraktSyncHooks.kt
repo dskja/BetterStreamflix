@@ -19,8 +19,7 @@ object TraktSyncHooks {
     private const val TAG = "TraktSyncHooks"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val startedKeys = ConcurrentHashMap.newKeySet<String>()
-    @Volatile
-    private var lastProgressAt = 0L
+    private val lastProgressAt = ConcurrentHashMap<String, Long>()
 
     fun movieWatched(context: Context, movie: Movie) {
         if (!TraktConfig.configured()) return
@@ -59,10 +58,14 @@ object TraktSyncHooks {
     ) {
         if (!TraktConfig.configured() || durationMs <= 0L) return
         val progress = (positionMs.toDouble() / durationMs.toDouble()) * 100.0
+        val keyHint = mediaKey.ifBlank { imdbId.orEmpty() }
         val now = System.currentTimeMillis()
-        // Throttle start heartbeats; always allow pause/stop decisions.
-        if (isPlaying && progress < 80.0 && now - lastProgressAt < 25_000L) return
-        lastProgressAt = now
+        // Throttle start heartbeats per title; always allow pause/stop decisions.
+        if (isPlaying && progress < 80.0) {
+            val last = lastProgressAt[keyHint] ?: 0L
+            if (now - last < 25_000L) return
+        }
+        lastProgressAt[keyHint] = now
         scope.launch {
             if (episodeRef != null) {
                 val key = mediaKey.ifBlank {
@@ -77,8 +80,13 @@ object TraktSyncHooks {
     }
 
     fun resetSession(mediaKey: String? = null) {
-        if (mediaKey == null) startedKeys.clear()
-        else startedKeys.remove(mediaKey)
+        if (mediaKey == null) {
+            startedKeys.clear()
+            lastProgressAt.clear()
+        } else {
+            startedKeys.remove(mediaKey)
+            lastProgressAt.remove(mediaKey)
+        }
     }
 
     private suspend fun dispatchMovie(

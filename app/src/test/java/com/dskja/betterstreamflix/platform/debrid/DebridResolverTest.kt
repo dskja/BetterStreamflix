@@ -6,15 +6,9 @@ import org.junit.Test
 
 class DebridResolverTest {
     @Test
-    fun detectsMagnets() {
-        assertTrue(DebridResolver.looksLikeHosterOrMagnet("magnet:?xt=urn:btih:abc"))
-    }
-
-    @Test
-    fun detectsCommonHostersWhenEnabled() {
-        // Heuristic still matches known hosts even if prefs default debridEnabled=false —
-        // magnets always match; hosters require enabled flag.
-        assertTrue(DebridResolver.looksLikeHosterOrMagnet("magnet:?xt=urn:btih:xyz"))
+    fun magnetsRequireConfiguredDebrid() {
+        // Without UserPreferences setup, magnets must not be claimed.
+        assertFalse(DebridResolver.looksLikeHosterOrMagnet("magnet:?xt=urn:btih:abc"))
     }
 
     @Test

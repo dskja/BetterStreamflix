@@ -1702,36 +1702,17 @@ class PlayerMobileFragment : Fragment() {
         durationMs: Long,
         isPlaying: Boolean,
     ) {
-        if (durationMs <= 0L) return
-        when (videoType) {
-            is Video.Type.Movie -> {
-                com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.onPlaybackProgress(
-                    imdbId = videoType.imdbId,
-                    positionMs = positionMs,
-                    durationMs = durationMs,
-                    isPlaying = isPlaying,
-                    mediaKey = "movie:${videoType.imdbId ?: videoType.id}",
-                )
-            }
-            is Video.Type.Episode -> {
-                val showImdb = videoType.tvShow.imdbId
-                val ref = if (!showImdb.isNullOrBlank()) {
-                    com.dskja.betterstreamflix.platform.trakt.TraktEpisodeRef(
-                        showIds = com.dskja.betterstreamflix.platform.trakt.TraktIds(imdb = showImdb),
-                        season = videoType.season.number,
-                        number = videoType.number,
-                    )
-                } else null
-                com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.onPlaybackProgress(
-                    imdbId = showImdb,
-                    positionMs = positionMs,
-                    durationMs = durationMs,
-                    isPlaying = isPlaying,
-                    mediaKey = "ep:${showImdb ?: videoType.id}:S${videoType.season.number}E${videoType.number}",
-                    episodeRef = ref,
-                )
-            }
-        }
+        com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.report(
+            videoType = videoType,
+            positionMs = positionMs,
+            durationMs = durationMs,
+            isPlaying = isPlaying,
+            provider = UserPreferences.currentProvider,
+            itemId = when (videoType) {
+                is Video.Type.Movie -> videoType.id
+                is Video.Type.Episode -> videoType.id
+            },
+        )
     }
 
     private fun stopProgressHandler() {
@@ -1863,6 +1844,14 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        if (::player.isInitialized && !isLiveTvPlayback()) {
+            reportTraktProgress(
+                videoType = args.videoType,
+                positionMs = player.currentPosition,
+                durationMs = player.duration,
+                isPlaying = false,
+            )
+        }
         stopProgressHandler()
         hideNextEpisodeOverlay()
     }

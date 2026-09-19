@@ -16,6 +16,8 @@ import org.json.JSONObject
 object TraktClient {
     private const val TAG = "TraktClient"
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
+    @Volatile
+    private var refreshing = false
 
     fun warm(context: Context) {
         if (!TraktConfig.configured()) {
@@ -43,7 +45,6 @@ object TraktClient {
     suspend fun scrobbleEpisodeStop(ref: TraktEpisodeRef, progress: Double): Boolean =
         scrobbleEpisode("stop", ref, progress)
 
-    /** Backward-compatible movie scrobble by IMDb id. */
     suspend fun scrobbleStart(imdbId: String?, progress: Double): Boolean =
         scrobbleMovieStart(TraktIds(imdb = imdbId), progress)
 
@@ -65,14 +66,26 @@ object TraktClient {
             post("/sync/watchlist", body)
         }
 
+    suspend fun removeFromWatchlist(imdbId: String?, mediaType: String): Boolean =
+        withContext(Dispatchers.IO) {
+            if (!TraktConfig.configured() || imdbId.isNullOrBlank()) return@withContext false
+            val body = JSONObject()
+                .put(
+                    if (mediaType == "show") "shows" else "movies",
+                    JSONArray().put(JSONObject().put("ids", JSONObject().put("imdb", imdbId))),
+                )
+                .toString()
+            post("/sync/watchlist/remove", body)
+        }
+
     suspend fun fetchPlayback(): JSONArray = withContext(Dispatchers.IO) {
         if (!TraktConfig.configured()) return@withContext JSONArray()
-        getJson("/sync/playback?extended=full").optJSONArray("items")
-            ?: runCatching {
-                // /sync/playback returns a bare array
-                val raw = getRaw("/sync/playback")
-                if (raw.trimStart().startsWith("[")) JSONArray(raw) else JSONArray()
-            }.getOrDefault(JSONArray())
+        val raw = getRaw("/sync/playback?extended=full")
+        when {
+            raw.isBlank() -> JSONArray()
+            raw.trimStart().startsWith("[") -> JSONArray(raw)
+            else -> JSONObject(raw).optJSONArray("items") ?: JSONArray()
+        }
     }
 
     data class DeviceCode(
@@ -109,15 +122,11 @@ object TraktClient {
         }.getOrNull()
     }
 
-    /**
-     * Polls until the user authorizes the device code, then stores tokens.
-     * Returns true on success.
-     */
     suspend fun pollDeviceToken(deviceCode: String, intervalSeconds: Int, expiresInSeconds: Int): Boolean =
         withContext(Dispatchers.IO) {
             val clientId = TraktConfig.clientId()
             val clientSecret = UserPreferences.traktClientSecret.trim()
-            if (clientId.isBlank()) return@withContext false
+            if (clientId.isBlank() || clientSecret.isBlank()) return@withContext false
             val deadline = System.currentTimeMillis() + expiresInSeconds * 1000L
             val interval = intervalSeconds.coerceAtLeast(1) * 1000L
             while (System.currentTimeMillis() < deadline) {
@@ -137,18 +146,12 @@ object TraktClient {
                         val raw = response.body?.string().orEmpty()
                         when (response.code) {
                             200 -> {
-                                val json = JSONObject(raw)
-                                UserPreferences.traktAccessToken = json.optString("access_token")
-                                UserPreferences.traktRefreshToken = json.optString("refresh_token")
-                                UserPreferences.traktEnabled = true
+                                storeTokens(JSONObject(raw))
                                 true
                             }
-                            400 -> {
-                                // pending / slow_down — keep polling
-                                false
-                            }
+                            400 -> false
                             else -> {
-                                Log.w(TAG, "device token HTTP ${response.code}: ${raw.take(80)}")
+                                Log.w(TAG, "device token HTTP ${response.code}")
                                 null
                             }
                         }
@@ -162,6 +165,56 @@ object TraktClient {
             }
             false
         }
+
+    fun refreshAccessToken(): Boolean {
+        if (refreshing) return false
+        val refresh = UserPreferences.traktRefreshToken.trim()
+        val clientId = TraktConfig.clientId()
+        val clientSecret = UserPreferences.traktClientSecret.trim()
+        if (refresh.isBlank() || clientId.isBlank() || clientSecret.isBlank()) return false
+        refreshing = true
+        return try {
+            val body = JSONObject()
+                .put("refresh_token", refresh)
+                .put("client_id", clientId)
+                .put("client_secret", clientSecret)
+                .put("grant_type", "refresh_token")
+                .toString()
+            val request = Request.Builder()
+                .url("${TraktConfig.API_BASE}/oauth/token")
+                .post(body.toRequestBody(jsonMedia))
+                .header("Content-Type", "application/json")
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "refresh failed HTTP ${response.code}")
+                    if (response.code == 401 || response.code == 403) clearAuth()
+                    return false
+                }
+                storeTokens(JSONObject(raw))
+                true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "refresh failed: ${e.message}")
+            false
+        } finally {
+            refreshing = false
+        }
+    }
+
+    private fun storeTokens(json: JSONObject) {
+        UserPreferences.traktAccessToken = json.optString("access_token")
+        val refresh = json.optString("refresh_token")
+        if (refresh.isNotBlank()) UserPreferences.traktRefreshToken = refresh
+        UserPreferences.traktEnabled = true
+    }
+
+    private fun clearAuth() {
+        UserPreferences.traktAccessToken = ""
+        UserPreferences.traktRefreshToken = ""
+        UserPreferences.traktEnabled = false
+    }
 
     private suspend fun scrobbleMovie(action: String, ids: TraktIds, progress: Double): Boolean =
         withContext(Dispatchers.IO) {
@@ -191,7 +244,7 @@ object TraktClient {
             post("/scrobble/$action", body)
         }
 
-    private fun post(path: String, jsonBody: String): Boolean {
+    private fun post(path: String, jsonBody: String, retried: Boolean = false): Boolean {
         return runCatching {
             val request = Request.Builder()
                 .url(TraktConfig.API_BASE + path)
@@ -199,9 +252,15 @@ object TraktClient {
                 .apply { TraktConfig.authHeaders().forEach { (k, v) -> header(k, v) } }
                 .build()
             NetworkClient.default.newCall(request).execute().use { response ->
-                val ok = response.isSuccessful
-                if (!ok) Log.w(TAG, "Trakt $path → ${response.code}")
-                ok
+                when {
+                    response.isSuccessful -> true
+                    response.code == 401 && !retried && refreshAccessToken() ->
+                        post(path, jsonBody, retried = true)
+                    else -> {
+                        Log.w(TAG, "Trakt $path → ${response.code}")
+                        false
+                    }
+                }
             }
         }.getOrElse {
             Log.w(TAG, "Trakt $path failed: ${it.message}")
@@ -209,21 +268,22 @@ object TraktClient {
         }
     }
 
-    private fun getRaw(path: String): String {
+    private fun getRaw(path: String, retried: Boolean = false): String {
         val request = Request.Builder()
             .url(TraktConfig.API_BASE + path)
             .get()
             .apply { TraktConfig.authHeaders().forEach { (k, v) -> header(k, v) } }
             .build()
-        return NetworkClient.default.newCall(request).execute().use { it.body?.string().orEmpty() }
-    }
-
-    private fun getJson(path: String): JSONObject {
-        val raw = getRaw(path)
-        return if (raw.trimStart().startsWith("[")) {
-            JSONObject().put("items", JSONArray(raw))
-        } else {
-            runCatching { JSONObject(raw) }.getOrDefault(JSONObject())
+        return NetworkClient.default.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (response.code == 401 && !retried && refreshAccessToken()) {
+                return getRaw(path, retried = true)
+            }
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Trakt GET $path → ${response.code}")
+                return ""
+            }
+            raw
         }
     }
 }

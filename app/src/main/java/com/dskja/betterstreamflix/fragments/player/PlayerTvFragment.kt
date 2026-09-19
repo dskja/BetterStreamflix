@@ -1429,6 +1429,18 @@ class PlayerTvFragment : Fragment() {
                             }
                         }
 
+                        com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.report(
+                            videoType = videoType,
+                            positionMs = player.currentPosition,
+                            durationMs = player.duration,
+                            isPlaying = false,
+                            provider = UserPreferences.currentProvider,
+                            itemId = when (videoType) {
+                                is Video.Type.Movie -> videoType.id
+                                is Video.Type.Episode -> videoType.id
+                            },
+                        )
+
                         when (videoType) {
                             is Video.Type.Movie -> {
                                 val provider = UserPreferences.currentProvider ?: return
@@ -1769,6 +1781,17 @@ class PlayerTvFragment : Fragment() {
                         val show = player.currentPosition in 3000..120000
                         showSkipIntroButton(show)
                         updateNextEpisodeOverlay()
+                        com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.report(
+                            videoType = args.videoType,
+                            positionMs = player.currentPosition,
+                            durationMs = player.duration,
+                            isPlaying = true,
+                            provider = UserPreferences.currentProvider,
+                            itemId = when (val t = args.videoType) {
+                                is Video.Type.Movie -> t.id
+                                is Video.Type.Episode -> t.id
+                            },
+                        )
                     } else {
                         showSkipIntroButton(false)
                         hideNextEpisodeOverlay()

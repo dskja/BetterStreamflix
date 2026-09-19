@@ -35,19 +35,25 @@ object DebridResolver {
         "clicknupload",
         "katfile.com",
         "mexa.sh",
+        "voe.sx", "voe-unblock",
+        "streamtape.com",
+        "dood.watch", "doodstream",
     )
 
     fun activeService(): DebridService? {
-        if (!UserPreferences.debridEnabled) return null
-        return when (DebridProviderId.fromId(UserPreferences.debridProvider)) {
+        if (!runCatching { UserPreferences.debridEnabled }.getOrDefault(false)) return null
+        return when (DebridProviderId.fromId(runCatching { UserPreferences.debridProvider }.getOrNull())) {
             DebridProviderId.REAL_DEBRID -> {
-                if (UserPreferences.realDebridToken.isBlank()) null else RealDebridClient()
+                val token = runCatching { UserPreferences.realDebridToken }.getOrDefault("")
+                if (token.isBlank()) null else RealDebridClient()
             }
             DebridProviderId.PREMIUMIZE -> {
-                if (UserPreferences.premiumizeApiKey.isBlank()) null else PremiumizeClient()
+                val key = runCatching { UserPreferences.premiumizeApiKey }.getOrDefault("")
+                if (key.isBlank()) null else PremiumizeClient()
             }
             DebridProviderId.ALLDEBRID -> {
-                if (UserPreferences.allDebridApiKey.isBlank()) null else AllDebridClient()
+                val key = runCatching { UserPreferences.allDebridApiKey }.getOrDefault("")
+                if (key.isBlank()) null else AllDebridClient()
             }
         }
     }
@@ -62,11 +68,14 @@ object DebridResolver {
         }
     }
 
-    fun looksLikeHosterOrMagnet(link: String): Boolean {
-        if (link.startsWith("magnet:", ignoreCase = true)) return true
-        val enabled = runCatching { UserPreferences.debridEnabled }.getOrDefault(false)
-        if (!enabled) return false
-        val host = runCatching { java.net.URI(link).host?.lowercase() }.getOrNull() ?: return false
-        return KNOWN_HOSTERS.any { host == it || host.endsWith(".$it") || host.contains(it) }
-    }
+    fun looksLikeHosterOrMagnet(link: String): Boolean = runCatching {
+        val enabled = UserPreferences.debridEnabled
+        val configured = activeService() != null
+        if (link.startsWith("magnet:", ignoreCase = true)) {
+            return@runCatching enabled && configured
+        }
+        if (!enabled || !configured) return@runCatching false
+        val host = java.net.URI(link).host?.lowercase() ?: return@runCatching false
+        KNOWN_HOSTERS.any { host == it || host.endsWith(".$it") || host.contains(it) }
+    }.getOrDefault(false)
 }

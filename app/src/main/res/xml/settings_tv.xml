@@ -610,6 +610,29 @@
                 android:summary="@string/platform_alldebrid_key_summary"
                 android:inputType="textPassword" />
         </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_plugins"
+            android:title="@string/platform_plugins_category">
+            <SwitchPreference
+                android:key="plugin_disable_jellyfin"
+                android:title="@string/platform_plugin_hide_jellyfin_title"
+                android:summary="@string/platform_plugin_hide_jellyfin_summary"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="plugin_disable_plex"
+                android:title="@string/platform_plugin_hide_plex_title"
+                android:summary="@string/platform_plugin_hide_plex_summary"
+                android:defaultValue="false" />
+            <Preference
+                android:key="platform_test_jellyfin"
+                android:title="@string/platform_test_jellyfin_title"
+                android:summary="@string/platform_test_jellyfin_summary" />
+            <Preference
+                android:key="platform_test_plex"
+                android:title="@string/platform_test_plex_title"
+                android:summary="@string/platform_test_plex_summary" />
+        </PreferenceCategory>
     </PreferenceScreen>
 
     <PreferenceScreen

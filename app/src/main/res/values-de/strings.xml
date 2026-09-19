@@ -860,8 +860,8 @@
     <string name="platform_plex_token_title">Plex-Token</string>
     <string name="platform_plex_token_summary">X-Plex-Token</string>
     <string name="platform_debrid_category">Debrid</string>
-    <string name="platform_debrid_enabled_title">Real-Debrid aktivieren</string>
-    <string name="platform_debrid_enabled_summary">Hoster-Links und Magnete über RD entsperren</string>
+    <string name="platform_debrid_enabled_title">Debrid aktivieren</string>
+    <string name="platform_debrid_enabled_summary">Hoster-Links und Magnete über den gewählten Anbieter entsperren</string>
     <string name="platform_rd_token_title">Real-Debrid API-Token</string>
     <string name="platform_rd_token_summary">Token von real-debrid.com/apitoken</string>
     <string name="platform_trakt_client_secret_title">Trakt Client-Secret</string>
@@ -887,4 +887,16 @@
     <string name="platform_alldebrid_key_title">AllDebrid API-Key</string>
     <string name="platform_alldebrid_key_summary">Von alldebrid.com</string>
     <string name="platform_mpv_not_installed">Kein MPV/VLC gefunden. MPV installieren oder ExoPlayer wählen.</string>
+    <string name="platform_plugins_category">Quellen</string>
+    <string name="platform_plugin_hide_jellyfin_title">Jellyfin-Provider ausblenden</string>
+    <string name="platform_plugin_hide_jellyfin_summary">Auch bei Konfiguration ausblenden</string>
+    <string name="platform_plugin_hide_plex_title">Plex-Provider ausblenden</string>
+    <string name="platform_plugin_hide_plex_summary">Auch bei Konfiguration ausblenden</string>
+    <string name="platform_test_jellyfin_title">Jellyfin-Verbindung testen</string>
+    <string name="platform_test_jellyfin_summary">Resume-Items abrufen zur Prüfung</string>
+    <string name="platform_test_plex_title">Plex-Verbindung testen</string>
+    <string name="platform_test_plex_summary">Bibliotheken abrufen zur Token-Prüfung</string>
+    <string name="platform_test_ok">Verbindung OK</string>
+    <string name="platform_test_fail">Verbindung fehlgeschlagen</string>
+    <string name="platform_url_invalid">Gültige http(s)-URL eingeben</string>
 </resources>
