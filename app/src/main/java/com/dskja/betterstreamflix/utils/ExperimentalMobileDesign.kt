@@ -2,6 +2,7 @@ package com.dskja.betterstreamflix.utils
 
 import android.app.Activity
 import android.content.Context
+import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.R
 import com.google.android.material.color.DynamicColors
 
@@ -23,8 +24,16 @@ object ExperimentalMobileDesign {
         }
     }
 
-    fun enabled(): Boolean = UserPreferences.experimentalNewAppDesign
+    fun isAvailable(): Boolean = BuildConfig.DEBUG
 
+    fun enabled(): Boolean = isAvailable() && UserPreferences.experimentalNewAppDesign
+
+    /** Call once at app start to clear stale Lumina prefs in release builds. */
+    fun enforceAvailabilityGate() {
+        if (!isAvailable() && UserPreferences.experimentalNewAppDesign) {
+            UserPreferences.experimentalNewAppDesign = false
+        }
+    }
     fun layout(defaultRes: Int, experimentalRes: Int): Int =
         if (enabled()) experimentalRes else defaultRes
 
@@ -65,6 +74,9 @@ object ExperimentalMobileDesign {
     }
 
     fun summary(context: Context): String {
+        if (!isAvailable()) {
+            return context.getString(R.string.settings_experimental_broken_summary)
+        }
         if (!enabled()) {
             return context.getString(R.string.settings_experimental_new_design_summary)
         }

@@ -16,6 +16,7 @@ import com.dskja.betterstreamflix.providers.Provider.Companion.providers
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import androidx.core.content.edit
 import com.dskja.betterstreamflix.database.AppDatabase
+import com.dskja.betterstreamflix.profiles.ProfileManager
 import org.json.JSONObject
 import org.json.JSONArray
 
@@ -547,16 +548,16 @@ object UserPreferences {
 
     /** When false, Home hides the Continue Watching row. */
     var showContinueWatching: Boolean
-        get() = Key.SHOW_CONTINUE_WATCHING.getBoolean() ?: true
+        get() = profileScopedBoolean(Key.SHOW_CONTINUE_WATCHING) ?: true
         set(value) {
-            Key.SHOW_CONTINUE_WATCHING.setBoolean(value)
+            setProfileScopedBoolean(Key.SHOW_CONTINUE_WATCHING, value)
         }
 
     /** When false, Home hides the Recently Watched row. */
     var showRecentlyWatched: Boolean
-        get() = Key.SHOW_RECENTLY_WATCHED.getBoolean() ?: true
+        get() = profileScopedBoolean(Key.SHOW_RECENTLY_WATCHED) ?: true
         set(value) {
-            Key.SHOW_RECENTLY_WATCHED.setBoolean(value)
+            setProfileScopedBoolean(Key.SHOW_RECENTLY_WATCHED, value)
         }
 
     /** When true, chronically brittle providers appear in the provider picker. */
@@ -579,48 +580,48 @@ object UserPreferences {
     }
 
     var libraryScope: LibraryScope
-        get() = LibraryScope.fromKey(Key.LIBRARY_SCOPE.getString())
+        get() = LibraryScope.fromKey(profileScopedString(Key.LIBRARY_SCOPE))
         set(value) {
-            Key.LIBRARY_SCOPE.setString(value.key)
+            setProfileScopedString(Key.LIBRARY_SCOPE, value.key)
         }
 
     val isCrossProviderLibrary: Boolean
         get() = libraryScope == LibraryScope.CROSS_PROVIDER
 
     var parentalControlPin: String
-        get() = Key.PARENTAL_CONTROL_PIN.getString() ?: ""
+        get() = profileScopedString(Key.PARENTAL_CONTROL_PIN) ?: ""
         set(value) {
-            Key.PARENTAL_CONTROL_PIN.setString(value.trim())
+            setProfileScopedString(Key.PARENTAL_CONTROL_PIN, value.trim())
         }
 
     var parentalControlAdminPin: String
-        get() = Key.PARENTAL_CONTROL_ADMIN_PIN.getString() ?: ""
+        get() = profileScopedString(Key.PARENTAL_CONTROL_ADMIN_PIN) ?: ""
         set(value) {
-            Key.PARENTAL_CONTROL_ADMIN_PIN.setString(value.trim())
+            setProfileScopedString(Key.PARENTAL_CONTROL_ADMIN_PIN, value.trim())
         }
 
     var parentalControlMaxAge: Int?
-        get() = Key.PARENTAL_CONTROL_MAX_AGE.getInt()
+        get() = profileScopedInt(Key.PARENTAL_CONTROL_MAX_AGE)
         set(value) {
-            Key.PARENTAL_CONTROL_MAX_AGE.setInt(value)
+            setProfileScopedInt(Key.PARENTAL_CONTROL_MAX_AGE, value)
         }
 
     var parentalControlFailedAttempts: Int
-        get() = Key.PARENTAL_CONTROL_FAILED_ATTEMPTS.getInt() ?: 0
+        get() = profileScopedInt(Key.PARENTAL_CONTROL_FAILED_ATTEMPTS) ?: 0
         set(value) {
-            Key.PARENTAL_CONTROL_FAILED_ATTEMPTS.setInt(value)
+            setProfileScopedInt(Key.PARENTAL_CONTROL_FAILED_ATTEMPTS, value)
         }
 
     var parentalControlLockedUntilMillis: Long
-        get() = Key.PARENTAL_CONTROL_LOCKED_UNTIL.getLong() ?: 0L
+        get() = profileScopedLong(Key.PARENTAL_CONTROL_LOCKED_UNTIL) ?: 0L
         set(value) {
-            Key.PARENTAL_CONTROL_LOCKED_UNTIL.setLong(value)
+            setProfileScopedLong(Key.PARENTAL_CONTROL_LOCKED_UNTIL, value)
         }
 
     var parentalControlHardLocked: Boolean
-        get() = Key.PARENTAL_CONTROL_HARD_LOCKED.getBoolean() ?: false
+        get() = profileScopedBoolean(Key.PARENTAL_CONTROL_HARD_LOCKED) ?: false
         set(value) {
-            Key.PARENTAL_CONTROL_HARD_LOCKED.setBoolean(value)
+            setProfileScopedBoolean(Key.PARENTAL_CONTROL_HARD_LOCKED, value)
         }
 
     val isParentalControlActive: Boolean
@@ -995,6 +996,61 @@ object UserPreferences {
 
     fun setFavoriteSortMode(providerName: String, mode: String) {
         prefs.edit { putString("FAVORITE_SORT_MODE_$providerName", mode) }
+    }
+
+    private fun profileScopedBoolean(key: Key): Boolean? {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        return when {
+            prefs.contains(scoped) -> prefs.getBoolean(scoped, false)
+            scoped != key.name && prefs.contains(key.name) -> prefs.getBoolean(key.name, false)
+            else -> null
+        }
+    }
+
+    private fun setProfileScopedBoolean(key: Key, value: Boolean) {
+        prefs.edit { putBoolean(ProfileManager.scopedPrefKey(key.name), value) }
+    }
+
+    private fun profileScopedString(key: Key): String? {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        return when {
+            prefs.contains(scoped) -> prefs.getString(scoped, null)
+            scoped != key.name && prefs.contains(key.name) -> prefs.getString(key.name, null)
+            else -> null
+        }
+    }
+
+    private fun setProfileScopedString(key: Key, value: String) {
+        prefs.edit { putString(ProfileManager.scopedPrefKey(key.name), value) }
+    }
+
+    private fun profileScopedInt(key: Key): Int? {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        return when {
+            prefs.contains(scoped) -> prefs.getInt(scoped, 0)
+            scoped != key.name && prefs.contains(key.name) -> prefs.getInt(key.name, 0)
+            else -> null
+        }
+    }
+
+    private fun setProfileScopedInt(key: Key, value: Int?) {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        prefs.edit {
+            if (value == null) remove(scoped) else putInt(scoped, value)
+        }
+    }
+
+    private fun profileScopedLong(key: Key): Long? {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        return when {
+            prefs.contains(scoped) -> prefs.getLong(scoped, 0L)
+            scoped != key.name && prefs.contains(key.name) -> prefs.getLong(key.name, 0L)
+            else -> null
+        }
+    }
+
+    private fun setProfileScopedLong(key: Key, value: Long) {
+        prefs.edit { putLong(ProfileManager.scopedPrefKey(key.name), value) }
     }
 
     private enum class Key {

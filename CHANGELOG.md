@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Profiles (Beta): multi-profile system with isolated Room DBs / UserDataCache, profile PIN, kids mode, avatar styles, per-profile library/parental prefs and integration toggles; new Settings → Profiles hub (Library + Parental moved out of TMDb/Content)
 - Massive Connection & Services upgrade: shared `ConnectionServicesController` + `ConnectionDiagnostics` (DNS/DoH/HTTP/provider/SubDL/integration sweep), live status rows (network, validated path, DoH, active provider, last probe), full/service/provider/SubDL probes with copy-to-clipboard reports, Integrations shortcuts (Trakt/Debrid/Jellyfin/Plex/TMDb/OpenSubtitles), TV bypass host in XML, cache/cookie clear, Mobile QR scanner wiring
 - Massive Downloads + Settings polish: shared `DownloadsSettingsController`, live queue/storage summaries, soft-limit clamp (0–500 GB), retry-failed with full server re-resolve, clear-failed action, richer storage chip (used/free/limit), localized quality labels, stronger error classification (429/5xx)
 - Massive experimental detail pages: in-app YouTube trailer player (`TrailerPlaybackController`), TMDb detail enrichment (`enrichMovieDetail`/`enrichTvShowDetail` for directors/cast/similar/cert/trailer), certification chips, share + watched CTAs, TV download CTA, genre-chip navigation, expandable overviews, hero banner parallax on Movie/TV details
@@ -22,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Massive plugin/addon system: `PluginManager` lifecycle, host facade, home/search/metadata/playback/extractor/subtitle/settings extension hooks, `LoadedPluginFacade` for LOCAL APKs, Demo Addon v1.1, manage/enable/uninstall UI, soft reload, diagnostics event ring
 
 ### Fixed
+- SerienStream / AniWorld sign-in & watchlist import crash (BETTERSTREAMFLIX-T): WebView UA no longer read off the interceptor thread
+- Movie/TV detail open InflateException (BETTERSTREAMFLIX-W): M3 theme attrs removed from default detail content layouts
+- Continue-watching movie tap no longer double-navigates with wrong Directions; provider/`episodeToWatch` null paths hardened
+- TMDb home shelves mixing Discover movie+TV in one `awaitAll` (BETTERSTREAMFLIX-Q ClassCast risk)
+- Lumina Experimental UI gated as Broken in release builds (still available in debug APKs)
 - Jellyfin/Plex “Test connection” lived under Plugins and almost always reported OK; probes now live on their own screens and verify real identity endpoints
 - Debrid `isAuthenticated()` now hits provider account APIs instead of only checking non-empty keys
 - Settings → Miscellaneous hardened against BETTERSTREAMFLIX-K recurrence: dependency sanitizer on nested PreferenceScreens + regression tests that `screen_more` never keeps cross-screen `android:dependency`

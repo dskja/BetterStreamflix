@@ -308,6 +308,17 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         PlatformSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        ProfilesSettingsController.bind(
+            fragment = this,
+            scope = lifecycleScope,
+            findPreference = { key -> findPreference(key) },
+            onProfileSwitched = {
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainTvActivity::class.java))
+                }
+            },
+        )
         ConnectionServicesController.bind(
             fragment = this,
             scope = lifecycleScope,
@@ -694,49 +705,9 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
-        findPreference<androidx.preference.SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
-            isChecked = UserPreferences.experimentalNewAppDesign
-            summary = ExperimentalMobileDesign.summary(requireContext())
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.experimentalNewAppDesign = newValue as Boolean
-                requireActivity().apply {
-                    finish()
-                    startActivity(Intent(this, com.dskja.betterstreamflix.activities.main.MainTvActivity::class.java))
-                }
-                true
-            }
-        }
-        findPreference<Preference>("screen_lumina_options")?.isVisible =
-            UserPreferences.experimentalNewAppDesign
-        (findPreference("EXPERIMENTAL_LUMINA_ACCENT") as? androidx.preference.ListPreference)?.apply {
-            value = UserPreferences.experimentalLuminaAccent
-            summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.experimentalLuminaAccent = newValue.toString()
-                true
-            }
-        }
-        listOf(
-            "EXPERIMENTAL_LUMINA_PURE_BLACK" to { v: Boolean -> UserPreferences.experimentalLuminaPureBlack = v },
-            "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS" to { v: Boolean -> UserPreferences.experimentalLuminaDynamicColors = v },
-            "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE" to { v: Boolean -> UserPreferences.experimentalLuminaNavAutoHide = v },
-            "EXPERIMENTAL_LUMINA_HERO_PARALLAX" to { v: Boolean -> UserPreferences.experimentalLuminaHeroParallax = v },
-            "EXPERIMENTAL_LUMINA_REDUCED_GLASS" to { v: Boolean -> UserPreferences.experimentalLuminaReducedGlass = v },
-        ).forEach { (key, setter) ->
-            findPreference<androidx.preference.SwitchPreference>(key)?.apply {
-                isChecked = when (key) {
-                    "EXPERIMENTAL_LUMINA_PURE_BLACK" -> UserPreferences.experimentalLuminaPureBlack
-                    "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS" -> UserPreferences.experimentalLuminaDynamicColors
-                    "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE" -> UserPreferences.experimentalLuminaNavAutoHide
-                    "EXPERIMENTAL_LUMINA_HERO_PARALLAX" -> UserPreferences.experimentalLuminaHeroParallax
-                    else -> UserPreferences.experimentalLuminaReducedGlass
-                }
-                setOnPreferenceChangeListener { _, newValue ->
-                    setter(newValue as Boolean)
-                    true
-                }
-            }
-        }
+        bindExperimentalDesignGate()
+        bindExperimentalDesignPreference()
+        bindLuminaOptions()
 
         findPreference<Preference>("p_settings_about")?.apply {
             val palette = ThemeManager.palette(UserPreferences.selectedTheme)
@@ -2154,12 +2125,78 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         return ((millis + 60_000L - 1L) / 60_000L).toInt().coerceAtLeast(1)
     }
 
+    private fun bindExperimentalDesignGate() {
+        if (!ExperimentalMobileDesign.isAvailable() && UserPreferences.experimentalNewAppDesign) {
+            UserPreferences.experimentalNewAppDesign = false
+        }
+        findPreference<Preference>("screen_lumina_options")?.isVisible = ExperimentalMobileDesign.isAvailable()
+    }
+
+    private fun bindExperimentalDesignPreference() {
+        findPreference<androidx.preference.SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
+            val available = ExperimentalMobileDesign.isAvailable()
+            isEnabled = available
+            isChecked = available && UserPreferences.experimentalNewAppDesign
+            summary = ExperimentalMobileDesign.summary(requireContext())
+            setOnPreferenceChangeListener { _, newValue ->
+                if (!available) return@setOnPreferenceChangeListener false
+                UserPreferences.experimentalNewAppDesign = newValue as Boolean
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainTvActivity::class.java))
+                }
+                true
+            }
+        }
+    }
+
+    private fun bindLuminaOptions() {
+        val luminaOn = ExperimentalMobileDesign.enabled()
+        findPreference<Preference>("screen_lumina_options")?.isVisible =
+            ExperimentalMobileDesign.isAvailable() && luminaOn
+        (findPreference("EXPERIMENTAL_LUMINA_ACCENT") as? androidx.preference.ListPreference)?.apply {
+            value = UserPreferences.experimentalLuminaAccent
+            summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
+            isEnabled = luminaOn
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.experimentalLuminaAccent = newValue.toString()
+                true
+            }
+        }
+        listOf(
+            "EXPERIMENTAL_LUMINA_PURE_BLACK" to { v: Boolean -> UserPreferences.experimentalLuminaPureBlack = v },
+            "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS" to { v: Boolean -> UserPreferences.experimentalLuminaDynamicColors = v },
+            "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE" to { v: Boolean -> UserPreferences.experimentalLuminaNavAutoHide = v },
+            "EXPERIMENTAL_LUMINA_HERO_PARALLAX" to { v: Boolean -> UserPreferences.experimentalLuminaHeroParallax = v },
+            "EXPERIMENTAL_LUMINA_REDUCED_GLASS" to { v: Boolean -> UserPreferences.experimentalLuminaReducedGlass = v },
+        ).forEach { (key, setter) ->
+            findPreference<androidx.preference.SwitchPreference>(key)?.apply {
+                isChecked = when (key) {
+                    "EXPERIMENTAL_LUMINA_PURE_BLACK" -> UserPreferences.experimentalLuminaPureBlack
+                    "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS" -> UserPreferences.experimentalLuminaDynamicColors
+                    "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE" -> UserPreferences.experimentalLuminaNavAutoHide
+                    "EXPERIMENTAL_LUMINA_HERO_PARALLAX" -> UserPreferences.experimentalLuminaHeroParallax
+                    else -> UserPreferences.experimentalLuminaReducedGlass
+                }
+                isEnabled = luminaOn
+                setOnPreferenceChangeListener { _, newValue ->
+                    setter(newValue as Boolean)
+                    true
+                }
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         applyScreenTitle()
         updateOverviewLabels()
         updateProviderVisibilityState()
         PlatformSettingsController.refresh(this) { key -> findPreference(key) }
+        ProfilesSettingsController.refresh(
+            findPreference = { key -> findPreference(key) },
+            context = requireContext(),
+        )
         ConnectionServicesController.refresh(
             findPreference = { key -> findPreference(key) },
             context = requireContext(),

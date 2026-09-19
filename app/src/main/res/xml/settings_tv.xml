@@ -46,10 +46,73 @@
                 android:title="@string/settings_tmdb_clear_cache_title"
                 android:summary="@string/settings_tmdb_clear_cache_summary" />
         </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:key="screen_profiles"
+        android:title="@string/settings_screen_profiles_title"
+        android:summary="@string/settings_screen_profiles_summary"
+        android:widgetLayout="@layout/preference_widget_chevron">
 
         <PreferenceCategory
-            android:key="pc_library_settings"
-            android:title="@string/settings_category_library">
+            android:key="pc_profile_active"
+            android:title="@string/profile_section_active">
+
+            <Preference
+                android:key="PROFILE_ACTIVE"
+                android:title="@string/profile_active_title"
+                android:selectable="false" />
+
+            <Preference
+                android:key="PROFILE_SWITCH"
+                android:title="@string/profile_switch_title" />
+
+            <Preference
+                android:key="PROFILE_CREATE"
+                android:title="@string/profile_create_title"
+                android:summary="@string/profile_create_summary" />
+
+            <Preference
+                android:key="PROFILE_RENAME"
+                android:title="@string/profile_rename_title" />
+
+            <Preference
+                android:key="PROFILE_DELETE"
+                android:title="@string/profile_delete_title"
+                android:summary="@string/profile_delete_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_profile_persona"
+            android:title="@string/profile_section_manage">
+
+            <ListPreference
+                android:key="PROFILE_AVATAR"
+                android:title="@string/profile_avatar_title"
+                android:entries="@array/profile_avatar_names"
+                android:entryValues="@array/profile_avatar_values"
+                android:defaultValue="crimson" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_KIDS"
+                android:title="@string/profile_kids_title"
+                android:summary="@string/profile_kids_summary"
+                android:defaultValue="false" />
+
+            <EditTextPreference
+                android:key="PROFILE_PIN"
+                android:title="@string/profile_pin_title"
+                android:summary="@string/profile_pin_summary"
+                android:inputType="numberPassword" />
+
+            <Preference
+                android:key="PROFILE_PIN_CLEAR"
+                android:title="@string/profile_pin_clear_title" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_profile_library"
+            android:title="@string/profile_section_library">
 
             <ListPreference
                 android:key="LIBRARY_SCOPE"
@@ -78,8 +141,8 @@
         </PreferenceCategory>
 
         <PreferenceCategory
-            android:key="pc_parental_control_settings"
-            android:title="@string/settings_category_parental_control">
+            android:key="pc_profile_parental"
+            android:title="@string/profile_section_parental">
 
             <EditTextPreference
                 android:key="PARENTAL_CONTROL_PIN"
@@ -115,6 +178,53 @@
                 android:key="PARENTAL_CONTROL_UNLOCK"
                 android:title="@string/settings_parental_unlock_title"
                 android:summary="@string/settings_parental_unlock_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_profile_integrations"
+            android:title="@string/profile_section_integrations">
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_TRAKT"
+                android:title="@string/profile_integration_trakt"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_JELLYFIN"
+                android:title="@string/profile_integration_jellyfin"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_PLEX"
+                android:title="@string/profile_integration_plex"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_DEBRID"
+                android:title="@string/profile_integration_debrid"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_SIMKL"
+                android:title="@string/profile_integration_simkl"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_OPENSUBTITLES"
+                android:title="@string/profile_integration_opensubtitles"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
+
+            <SwitchPreferenceCompat
+                android:key="PROFILE_INT_TMDB"
+                android:title="@string/profile_integration_tmdb"
+                android:summary="@string/profile_integration_summary"
+                android:defaultValue="true" />
         </PreferenceCategory>
     </PreferenceScreen>
 

@@ -8,6 +8,7 @@ import android.os.Bundle
 import java.security.Security
 import org.conscrypt.Conscrypt
 import com.dskja.betterstreamflix.database.AppDatabase
+import com.dskja.betterstreamflix.profiles.ProfileManager
 import com.dskja.betterstreamflix.providers.AniWorldProvider
 import com.dskja.betterstreamflix.providers.KinoGerProvider
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
@@ -20,6 +21,7 @@ import com.dskja.betterstreamflix.utils.CacheUtils
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.DeviceCapabilities
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.IsrgRootTrustProvider
 import com.dskja.betterstreamflix.providers.ProviderSmoke
 import com.dskja.betterstreamflix.utils.SentryBootstrap
@@ -91,6 +93,8 @@ class BetterStreamflixApp : Application() {
 
         // 2. Inizializzazione preferenze (con applicationContext)
         UserPreferences.setup(this)
+        ProfileManager.init(this)
+        ExperimentalMobileDesign.enforceAvailabilityGate()
         CrashReporter.install(this)
         runCatching {
             com.dskja.betterstreamflix.platform.PlatformBootstrap.start(this)
