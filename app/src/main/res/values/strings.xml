@@ -296,7 +296,7 @@
     <string name="settings_serienstream_session_cookies_clear_title">Clear SerienStream cookies?</string>
     <string name="settings_serienstream_session_cookies_cleared">SerienStream cookies cleared</string>
     <string name="settings_serienstream_session_login">Sign in to SerienStream</string>
-    <string name="settings_serienstream_session_login_summary">Open login, sign in once — cookies are saved automatically</string>
+    <string name="settings_serienstream_session_login_summary">Open login, sign in once — cookies are saved automatically (works with VPN; no QR / same Wi‑Fi needed)</string>
     <string name="settings_serienstream_session_login_saved">SerienStream login saved</string>
     <string name="player_subtitle_needs_playback">Start playback before adding subtitles</string>
     <string name="player_server_unavailable">That server is no longer available</string>
@@ -341,7 +341,7 @@
     <string name="settings_scan_resolver_qr_title">Scan TV bypass QR</string>
     <string name="settings_scan_resolver_qr_summary">Use this BetterStreamflix scanner for the QR on TV — a normal phone camera often opens Google instead of the app</string>
     <string name="player_bypass_qr_title">Solve captcha on phone</string>
-    <string name="player_bypass_qr_instructions">1. Open BetterStreamflix on your phone (same Wi‑Fi as the TV).\n2. Go to Settings → Scan TV bypass QR (do not rely on the stock camera alone).\n3. Solve the captcha, then tap Continue. This dialog closes automatically.</string>
+    <string name="player_bypass_qr_instructions">1. Open BetterStreamflix on your phone (same Wi‑Fi as the TV).\n2. Go to Settings → Scan TV bypass QR (do not rely on the stock camera alone).\n3. Solve the captcha, then tap Continue. This dialog closes automatically.\n\nNo shared Wi‑Fi / VPN? On the phone: Settings → SerienStream → Sign in to SerienStream (saves cookies). On the TV you can also paste session cookies under the same settings — then playback skips the QR step.</string>
     <string name="player_bypass_qr_endpoint">TV endpoint: %1$s</string>
     <string name="player_bypass_qr_emulator_note">Emulator detected: set “Bypass advertised host” in TV settings to your PC LAN IP so the phone can reach this device.</string>
     <string name="player_bypass_retry_needed">Captcha is still required for this title. Scan the QR again with BetterStreamflix.</string>

@@ -246,7 +246,7 @@
     <string name="settings_serienstream_session_cookies_clear_title">SerienStream-Cookies löschen?</string>
     <string name="settings_serienstream_session_cookies_cleared">SerienStream-Cookies gelöscht</string>
     <string name="settings_serienstream_session_login">Bei SerienStream anmelden</string>
-    <string name="settings_serienstream_session_login_summary">Login öffnen, einmal anmelden — Cookies werden automatisch gespeichert</string>
+    <string name="settings_serienstream_session_login_summary">Login öffnen, einmal anmelden — Cookies werden automatisch gespeichert (funktioniert mit VPN; kein QR / gleiches WLAN nötig)</string>
     <string name="settings_serienstream_session_login_saved">SerienStream-Login gespeichert</string>
     <string name="player_subtitle_needs_playback">Wiedergabe starten, bevor Untertitel hinzugefügt werden</string>
     <string name="player_server_unavailable">Dieser Server ist nicht mehr verfügbar</string>
@@ -415,7 +415,7 @@
     <string name="settings_scan_resolver_qr_title">TV-Bypass-QR scannen</string>
     <string name="settings_scan_resolver_qr_summary">Nutze diesen BetterStreamflix-Scanner für den QR auf dem TV — die normale Handykamera öffnet oft Google statt der App</string>
     <string name="player_bypass_qr_title">Captcha am Handy lösen</string>
-    <string name="player_bypass_qr_instructions">1. Öffne BetterStreamflix am Handy (gleiches WLAN wie der TV).\n2. Einstellungen → TV-Bypass-QR scannen (nicht nur die Systemkamera).\n3. Captcha lösen, dann Weiter tippen. Dieser Dialog schließt sich automatisch.</string>
+    <string name="player_bypass_qr_instructions">1. Öffne BetterStreamflix am Handy (gleiches WLAN wie der TV).\n2. Einstellungen → TV-Bypass-QR scannen (nicht nur die Systemkamera).\n3. Captcha lösen, dann Weiter tippen. Dieser Dialog schließt sich automatisch.\n\nKein gemeinsames WLAN / VPN? Am Handy: Einstellungen → SerienStream → Bei SerienStream anmelden (Cookies speichern). Am TV kannst du unter denselben Einstellungen auch Session-Cookies einfügen — dann entfällt der QR-Schritt.</string>
     <string name="player_bypass_qr_endpoint">TV-Endpunkt: %1$s</string>
     <string name="player_bypass_qr_emulator_note">Emulator erkannt: Setze unter TV-Einstellungen „Bypass advertised host“ auf die LAN-IP deines PCs, damit das Handy dieses Gerät erreicht.</string>
     <string name="player_bypass_retry_needed">Für diesen Titel ist weiterhin ein Captcha nötig. Scanne den QR erneut mit BetterStreamflix.</string>

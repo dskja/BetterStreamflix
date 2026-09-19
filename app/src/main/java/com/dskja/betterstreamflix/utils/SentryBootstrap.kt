@@ -18,7 +18,9 @@ import io.sentry.ProfileLifecycle
  * Central Sentry wiring for BetterStreamflix: init, release/environment,
  * scrubbing, navigation breadcrumbs, and cloud-user identity.
  *
- * Capture policy: send everything (100% sample rates). Only sensitive
+ * Capture policy: debug builds send everything (100% sample rates).
+ * Production dials traces/profiles/replay down to control cost/noise;
+ * errors and error-triggered replays stay fully sampled. Sensitive
  * headers/cookies are scrubbed — no error-type filtering.
  */
 object SentryBootstrap {
@@ -50,12 +52,19 @@ object SentryBootstrap {
             options.isEnableAutoSessionTracking = true
             options.isAnrEnabled = true
             options.isCollectAdditionalContext = true
-            // Full capture — every error, every trace, every replay session.
-            options.tracesSampleRate = 1.0
-            options.profileSessionSampleRate = 1.0
+            // Production: balanced capture. Debug: full capture for local diagnosis.
+            if (BuildConfig.DEBUG) {
+                options.tracesSampleRate = 1.0
+                options.profileSessionSampleRate = 1.0
+                options.sessionReplay.sessionSampleRate = 1.0
+                options.sessionReplay.onErrorSampleRate = 1.0
+            } else {
+                options.tracesSampleRate = 0.2
+                options.profileSessionSampleRate = 0.1
+                options.sessionReplay.sessionSampleRate = 0.05
+                options.sessionReplay.onErrorSampleRate = 1.0
+            }
             options.profileLifecycle = ProfileLifecycle.TRACE
-            options.sessionReplay.sessionSampleRate = 1.0
-            options.sessionReplay.onErrorSampleRate = 1.0
             options.logs.isEnabled = true
 
             options.beforeSend =

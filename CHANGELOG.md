@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Full Platform integrations: Trakt (VIP app credentials gated), Jellyfin, Plex, Debrid, Simkl, OpenSubtitles v1, MPV handoff, plugin hooks
-- Full Sentry Android SDK (init, user, nav breadcrumbs, feedback, high sample rates in debug)
+- Full Sentry Android SDK (init, user, nav breadcrumbs, feedback; full sample rates in debug, dialed-down traces/replay in production)
 - Settings Integrations hub near the top of classic Settings; experimental Support-style Settings hub (Mobile + TV, gated by Experimental UI)
 - Lumina experimental design unified with Support visual language (Manrope + crimson tokens; off by default)
 - Nested PreferenceScreens for platform / content / playback / downloads / appearance / network / provider / cloud / backup
@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Backup import now refuses backups written by a newer app version instead of parsing them with stale field mappings
 - DoH bootstrap/client diagnostics no longer log in release builds
 - KinoGer wrong poster selector (KG logos) and Featured banner blank shell
+- TV SerienStream bypass instructions document cookie/session path when QR / same Wi‑Fi is unavailable (#112, #117)
 
 ## [1.1.0] - 2026-09-09
 
