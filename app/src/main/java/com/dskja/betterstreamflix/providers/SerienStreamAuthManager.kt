@@ -153,6 +153,11 @@ object SerienStreamAuthManager {
                                     "Chrome/124.0.0.0 Mobile Safari/537.36",
                             )
                             .header("Accept", "text/html,application/xhtml+xml")
+                            .apply {
+                                if (snap.cookies.isNotBlank()) {
+                                    header("Cookie", snap.cookies)
+                                }
+                            }
                             .get()
                             .build(),
                     ).execute()

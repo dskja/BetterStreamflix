@@ -74,8 +74,11 @@ object SerienStreamAuthSettingsController {
             progress.show()
             scope.launch {
                 val result = SerienStreamAuthManager.validateSession()
-                progress.dismiss()
+                if (fragment.isAdded && progress.isShowing) {
+                    progress.dismiss()
+                }
                 refresh()
+                if (!fragment.isAdded) return@launch
                 val message = when {
                     result.ok && !result.displayName.isNullOrBlank() ->
                         fragment.getString(

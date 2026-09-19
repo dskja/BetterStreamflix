@@ -146,11 +146,24 @@ class VideasyExtractor : Extractor() {
             .build()
 
         val decResponse = client.newCall(decRequest).execute()
-        val decBody = decResponse.body?.string() ?: "{}"
-        val decJson = JSONObject(decBody)
-        val result = decJson.optString("result")
+        val decBody = decResponse.body?.string().orEmpty()
+        if (!decResponse.isSuccessful) {
+            throw Exception("Videasy decrypt failed HTTP ${decResponse.code}")
+        }
+        if (decBody.isBlank()) {
+            throw Exception("Videasy decrypt returned empty body")
+        }
+        val decJson = runCatching { JSONObject(decBody) }.getOrElse {
+            throw Exception("Videasy decrypt returned invalid JSON")
+        }
+        val result = decJson.optString("result").trim()
+        if (result.isBlank()) {
+            throw Exception("Videasy decrypt returned empty result")
+        }
 
-        val resultJson = JSONObject(result)
+        val resultJson = runCatching { JSONObject(result) }.getOrElse {
+            throw Exception("Videasy decrypt result is not JSON")
+        }
         val sources = resultJson.optJSONArray("sources")
         val subtitles = mutableListOf<Video.Subtitle>()
 

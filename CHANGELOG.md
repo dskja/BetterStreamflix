@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SerienStream account system: status, WebView sign-in, session validate, paste/copy cookies, full logout (prefs + CookieManager), startup cookie seed, Settings hub card (`screen_serienstream_auth`)
 
 ### Fixed
+- Home featured swiper crash after leave (BETTERSTREAMFLIX-1): clear ViewPager auto-advance on recycle
+- Videasy decrypt empty/`JSONObject("")` crash (BETTERSTREAMFLIX-4)
+- TMDb trending ClassCastException on incomplete MultiItem JSON (BETTERSTREAMFLIX-Q)
+- AnyMovie SSL trust-anchor failures use NetworkClient.trustAll (BETTERSTREAMFLIX-R)
+- Nekostream null Gson body no longer NPEs mid-candidate loop
 - Settings crash opening “More”: Preference dependency `EXPERIMENTAL_NEW_APP_DESIGN` was resolved across nested PreferenceScreens (Sentry BETTERSTREAMFLIX-K)
 - Settings: Support UI Preview lives next to Experimental Design under Appearance (same PreferenceScreen); TV Experimental Design also under Appearance; nested screen inflate failures fall back to Settings root
 - TV bypass QR / deep-link: accept `betterstreamflix://resolve` and HTTP landing QR in the in-app scanner and MainMobileActivity

@@ -54,12 +54,6 @@ object MeinecloudEmbedHelper {
     }
 
     private fun fetchHtml(url: String, referer: String?): String {
-        val client = NetworkClient.default.newBuilder()
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(25, TimeUnit.SECONDS)
-            .build()
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", NetworkClient.USER_AGENT)
@@ -69,11 +63,30 @@ object MeinecloudEmbedHelper {
                 if (!referer.isNullOrBlank()) header("Referer", referer)
             }
             .build()
-        return client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw Exception("HTTP ${response.code} fetching embed")
+
+        fun execute(clientBase: okhttp3.OkHttpClient): String {
+            val client = clientBase.newBuilder()
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(25, TimeUnit.SECONDS)
+                .build()
+            return client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw Exception("HTTP ${response.code} fetching embed")
+                }
+                response.body?.string().orEmpty()
             }
-            response.body?.string().orEmpty()
+        }
+
+        return try {
+            execute(NetworkClient.default)
+        } catch (e: javax.net.ssl.SSLHandshakeException) {
+            Log.w(TAG, "SSL failure for embed, retrying with trustAll: ${e.message}")
+            execute(NetworkClient.trustAll)
+        } catch (e: javax.net.ssl.SSLException) {
+            Log.w(TAG, "SSL failure for embed, retrying with trustAll: ${e.message}")
+            execute(NetworkClient.trustAll)
         }
     }
 
