@@ -42,4 +42,20 @@
 
     <color name="exp_on_media">@color/m3_on_surface</color>
     <color name="exp_on_accent">@color/m3_on_primary</color>
+
+    <!-- Accent presets (Lumina) -->
+    <color name="exp_ember_primary">#F07A4A</color>
+    <color name="exp_ember_on_primary">#1A0A04</color>
+    <color name="exp_ember_primary_container">#5C2A14</color>
+    <color name="exp_ember_on_primary_container">#FFDBCF</color>
+
+    <color name="exp_aurora_primary">#4DB6A8</color>
+    <color name="exp_aurora_on_primary">#003730</color>
+    <color name="exp_aurora_primary_container">#0F4A42</color>
+    <color name="exp_aurora_on_primary_container">#B8F0E6</color>
+
+    <color name="exp_slate_primary">#B0BEC5</color>
+    <color name="exp_slate_on_primary">#1A2226</color>
+    <color name="exp_slate_primary_container">#37474F</color>
+    <color name="exp_slate_on_primary_container">#E0E8EC</color>
 </resources>

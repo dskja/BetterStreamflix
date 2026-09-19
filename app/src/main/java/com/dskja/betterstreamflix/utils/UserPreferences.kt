@@ -445,6 +445,31 @@ object UserPreferences {
         get() = Key.EXPERIMENTAL_NEW_APP_DESIGN.getBoolean() ?: false
         set(value) = Key.EXPERIMENTAL_NEW_APP_DESIGN.setBoolean(value)
 
+    /** Lumina accent palette: crimson | ember | aurora | slate */
+    var experimentalLuminaAccent: String
+        get() = Key.EXPERIMENTAL_LUMINA_ACCENT.getString() ?: "crimson"
+        set(value) = Key.EXPERIMENTAL_LUMINA_ACCENT.setString(value)
+
+    var experimentalLuminaPureBlack: Boolean
+        get() = Key.EXPERIMENTAL_LUMINA_PURE_BLACK.getBoolean() ?: false
+        set(value) = Key.EXPERIMENTAL_LUMINA_PURE_BLACK.setBoolean(value)
+
+    var experimentalLuminaDynamicColors: Boolean
+        get() = Key.EXPERIMENTAL_LUMINA_DYNAMIC_COLORS.getBoolean() ?: false
+        set(value) = Key.EXPERIMENTAL_LUMINA_DYNAMIC_COLORS.setBoolean(value)
+
+    var experimentalLuminaNavAutoHide: Boolean
+        get() = Key.EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE.getBoolean() ?: true
+        set(value) = Key.EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE.setBoolean(value)
+
+    var experimentalLuminaHeroParallax: Boolean
+        get() = Key.EXPERIMENTAL_LUMINA_HERO_PARALLAX.getBoolean() ?: true
+        set(value) = Key.EXPERIMENTAL_LUMINA_HERO_PARALLAX.setBoolean(value)
+
+    var experimentalLuminaReducedGlass: Boolean
+        get() = Key.EXPERIMENTAL_LUMINA_REDUCED_GLASS.getBoolean() ?: false
+        set(value) = Key.EXPERIMENTAL_LUMINA_REDUCED_GLASS.setBoolean(value)
+
     /**
      * When true, the startup support presentation is never shown.
      * Default false → show once until the user opts out.
@@ -992,6 +1017,12 @@ object UserPreferences {
         PARENTAL_CONTROL_HARD_LOCKED,
         SELECTED_THEME,
         EXPERIMENTAL_NEW_APP_DESIGN,
+        EXPERIMENTAL_LUMINA_ACCENT,
+        EXPERIMENTAL_LUMINA_PURE_BLACK,
+        EXPERIMENTAL_LUMINA_DYNAMIC_COLORS,
+        EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE,
+        EXPERIMENTAL_LUMINA_HERO_PARALLAX,
+        EXPERIMENTAL_LUMINA_REDUCED_GLASS,
         NEVER_SHOW_SUPPORT_ON_START,
         HOME_SUPPORT_CARD_DISMISSED,
         CATALOG_SORT_MODE,

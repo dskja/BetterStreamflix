@@ -69,6 +69,7 @@ class FavoritesMobileFragment : Fragment() {
                 binding.root.findViewById(R.id.tv_favorites_tagline),
                 binding.root.findViewById(R.id.v_favorites_rule),
             )
+            ExpMotion.pulseAccentRule(binding.root.findViewById(R.id.v_favorites_rule))
         }
         val columnCount = maxOf(3, resources.configuration.screenWidthDp / 120)
         val gridLayoutManager = GridLayoutManager(requireContext(), columnCount).apply {

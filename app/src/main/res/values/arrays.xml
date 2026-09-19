@@ -169,4 +169,18 @@
         <item>APP_EXTERNAL</item>
         <item>PUBLIC_MOVIES</item>
     </string-array>
+
+    <string-array name="lumina_accent_names">
+        <item>@string/exp_accent_crimson</item>
+        <item>@string/exp_accent_ember</item>
+        <item>@string/exp_accent_aurora</item>
+        <item>@string/exp_accent_slate</item>
+    </string-array>
+    <string-array name="lumina_accent_values">
+        <item>crimson</item>
+        <item>ember</item>
+        <item>aurora</item>
+        <item>slate</item>
+    </string-array>
+
 </resources>

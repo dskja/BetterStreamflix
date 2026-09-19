@@ -682,6 +682,7 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         findPreference<androidx.preference.SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
             isChecked = UserPreferences.experimentalNewAppDesign
+            summary = ExperimentalMobileDesign.summary(requireContext())
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.experimentalNewAppDesign = newValue as Boolean
                 requireActivity().apply {
@@ -689,6 +690,37 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     startActivity(Intent(this, com.dskja.betterstreamflix.activities.main.MainTvActivity::class.java))
                 }
                 true
+            }
+        }
+        findPreference<Preference>("screen_lumina_options")?.isVisible =
+            UserPreferences.experimentalNewAppDesign
+        (findPreference("EXPERIMENTAL_LUMINA_ACCENT") as? androidx.preference.ListPreference)?.apply {
+            value = UserPreferences.experimentalLuminaAccent
+            summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.experimentalLuminaAccent = newValue.toString()
+                true
+            }
+        }
+        listOf(
+            "EXPERIMENTAL_LUMINA_PURE_BLACK" to { v: Boolean -> UserPreferences.experimentalLuminaPureBlack = v },
+            "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS" to { v: Boolean -> UserPreferences.experimentalLuminaDynamicColors = v },
+            "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE" to { v: Boolean -> UserPreferences.experimentalLuminaNavAutoHide = v },
+            "EXPERIMENTAL_LUMINA_HERO_PARALLAX" to { v: Boolean -> UserPreferences.experimentalLuminaHeroParallax = v },
+            "EXPERIMENTAL_LUMINA_REDUCED_GLASS" to { v: Boolean -> UserPreferences.experimentalLuminaReducedGlass = v },
+        ).forEach { (key, setter) ->
+            findPreference<androidx.preference.SwitchPreference>(key)?.apply {
+                isChecked = when (key) {
+                    "EXPERIMENTAL_LUMINA_PURE_BLACK" -> UserPreferences.experimentalLuminaPureBlack
+                    "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS" -> UserPreferences.experimentalLuminaDynamicColors
+                    "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE" -> UserPreferences.experimentalLuminaNavAutoHide
+                    "EXPERIMENTAL_LUMINA_HERO_PARALLAX" -> UserPreferences.experimentalLuminaHeroParallax
+                    else -> UserPreferences.experimentalLuminaReducedGlass
+                }
+                setOnPreferenceChangeListener { _, newValue ->
+                    setter(newValue as Boolean)
+                    true
+                }
             }
         }
 

@@ -166,8 +166,17 @@ class HomeMobileFragment : Fragment() {
             if (ExperimentalMobileDesign.enabled()) View.VISIBLE else View.GONE
 
         if (ExperimentalMobileDesign.enabled()) {
-            applyExperimentalParallax()
+            if (ExperimentalMobileDesign.heroParallax()) {
+                applyExperimentalParallax()
+            }
             ExpNavAutoHide.attach(binding.root)
+            refreshProviderChip()
+            ExpMotion.brandReveal(
+                binding.ivProviderLogo,
+                binding.root.findViewById(R.id.tv_home_brand),
+                binding.root.findViewById(R.id.tv_home_tagline),
+                binding.root.findViewById(R.id.v_home_brand_rule),
+            )
         }
     }
 
@@ -180,6 +189,20 @@ class HomeMobileFragment : Fragment() {
             .error(R.drawable.ic_provider_default_logo)
             .fitCenter()
             .into(logoView)
+        refreshProviderChip()
+    }
+
+    private fun refreshProviderChip() {
+        if (!ExperimentalMobileDesign.enabled()) return
+        val chip = _binding?.root?.findViewById<android.widget.TextView>(R.id.tv_home_provider_chip)
+            ?: return
+        val name = UserPreferences.currentProvider?.name
+        if (name.isNullOrBlank()) {
+            chip.visibility = View.GONE
+        } else {
+            chip.visibility = View.VISIBLE
+            chip.text = getString(R.string.exp_home_provider_chip, name)
+        }
     }
 
     private var heroScrollOffset = 0
@@ -200,6 +223,10 @@ class HomeMobileFragment : Fragment() {
                     alpha = brandAlpha
                 }
                 binding.root.findViewById<View>(R.id.tv_home_tagline)?.apply {
+                    translationY = brandDrift
+                    alpha = brandAlpha
+                }
+                binding.root.findViewById<View>(R.id.tv_home_provider_chip)?.apply {
                     translationY = brandDrift
                     alpha = brandAlpha
                 }
@@ -317,9 +344,7 @@ class HomeMobileFragment : Fragment() {
         if (ExperimentalMobileDesign.enabled()) {
             // One-shot enter only — skip continuous kenburns on the hero (expensive on mid devices).
             ExpMotion.startAnimation(binding.rvHome, R.anim.exp_fade_slide_up)
-            binding.root.findViewById<View>(R.id.tv_home_brand)?.let {
-                ExpMotion.startAnimation(it, R.anim.exp_brand_reveal)
-            }
+            ExpMotion.pulseAccentRule(binding.root.findViewById(R.id.v_home_brand_rule))
         }
     }
 

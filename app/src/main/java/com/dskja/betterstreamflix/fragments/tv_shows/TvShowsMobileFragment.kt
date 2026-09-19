@@ -66,6 +66,7 @@ class TvShowsMobileFragment : Fragment() {
                 binding.root.findViewById(R.id.tv_tv_shows_tagline),
                 binding.root.findViewById(R.id.v_tv_shows_rule),
             )
+            ExpMotion.pulseAccentRule(binding.root.findViewById(R.id.v_tv_shows_rule))
         }
 
         initializeTvShows()

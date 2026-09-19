@@ -66,6 +66,7 @@ class MoviesMobileFragment : Fragment() {
                 binding.root.findViewById(R.id.tv_movies_tagline),
                 binding.root.findViewById(R.id.v_movies_rule),
             )
+            ExpMotion.pulseAccentRule(binding.root.findViewById(R.id.v_movies_rule))
         }
 
         initializeMovies()
