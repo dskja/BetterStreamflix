@@ -93,13 +93,12 @@ class HomeMobileFragment : Fragment() {
                         ExpMotion.fadeInAndShow(root)
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
+                        hideCatalogWarning()
                     }
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
                         ExpMotion.fadeOutAndHide(binding.isLoading.root)
-                        state.providerWarning?.takeIf { it.isNotBlank() }?.let { warning ->
-                            Toast.makeText(requireContext(), warning, Toast.LENGTH_LONG).show()
-                        }
+                        showCatalogWarning(state.providerWarning)
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         if (http409Guard.handle(requireContext(), state.error) { viewModel.getHome() }) {
@@ -236,6 +235,28 @@ class HomeMobileFragment : Fragment() {
                 }
             }
         })
+    }
+
+    private fun showCatalogWarning(warning: String?) {
+        val banner = _binding?.root?.findViewById<android.widget.TextView>(R.id.tv_home_catalog_warning)
+            ?: return
+        val text = warning?.takeIf { it.isNotBlank() }
+        if (text == null) {
+            banner.visibility = View.GONE
+            banner.setOnClickListener(null)
+            return
+        }
+        banner.visibility = View.VISIBLE
+        banner.text = text
+        banner.contentDescription = getString(R.string.home_catalog_warning_tap_retry)
+        banner.setOnClickListener { viewModel.getHome() }
+    }
+
+    private fun hideCatalogWarning() {
+        _binding?.root?.findViewById<android.widget.TextView>(R.id.tv_home_catalog_warning)?.apply {
+            visibility = View.GONE
+            setOnClickListener(null)
+        }
     }
 
     private fun displayHome(categories: List<Category>) {

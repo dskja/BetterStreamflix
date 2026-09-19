@@ -88,14 +88,13 @@ class HomeTvFragment : Fragment() {
                         root.visibility = View.VISIBLE
                         pbIsLoading.visibility = View.VISIBLE
                         gIsLoadingRetry.visibility = View.GONE
+                        hideCatalogWarning()
                     }
                     is HomeViewModel.State.SuccessLoading -> {
                         displayHome(state.categories)
                         binding.vgvHome.visibility = View.VISIBLE
                         binding.isLoading.root.visibility = View.GONE
-                        state.providerWarning?.takeIf { it.isNotBlank() }?.let { warning ->
-                            Toast.makeText(requireContext(), warning, Toast.LENGTH_LONG).show()
-                        }
+                        showCatalogWarning(state.providerWarning)
                     }
                     is HomeViewModel.State.FailedLoading -> {
                         if (http409Guard.handle(requireContext(), state.error) { viewModel.getHome() }) {
@@ -148,6 +147,26 @@ class HomeTvFragment : Fragment() {
         _binding = null
     }
 
+    private fun showCatalogWarning(warning: String?) {
+        val banner = _binding?.tvHomeCatalogWarning ?: return
+        val text = warning?.takeIf { it.isNotBlank() }
+        if (text == null) {
+            banner.visibility = View.GONE
+            banner.setOnClickListener(null)
+            return
+        }
+        banner.visibility = View.VISIBLE
+        banner.text = text
+        banner.contentDescription = getString(R.string.home_catalog_warning_tap_retry)
+        banner.setOnClickListener { viewModel.getHome() }
+    }
+
+    private fun hideCatalogWarning() {
+        _binding?.tvHomeCatalogWarning?.apply {
+            visibility = View.GONE
+            setOnClickListener(null)
+        }
+    }
 
     private var swiperHasLastFocus: Boolean = false
     fun updateBackground(uri: String?, swiperHasFocus: Boolean? = false) {

@@ -66,6 +66,8 @@
     <string name="home_recently_watched">Recently Watched</string>
     <string name="home_favorite_movies">Favorite movies</string>
     <string name="home_favorite_tv_shows">Favorite TV shows</string>
+    <string name="home_catalog_warning_tap_retry">Tap to retry catalog</string>
+    <string name="home_catalog_unavailable">Catalog unavailable — library still shown</string>
     <string name="favorites_empty">You have no favorites yet</string>
     <string name="favorites_reorder_categories">Sort favorites</string>
     <string name="favorites_sort_title">Sort favorites</string>

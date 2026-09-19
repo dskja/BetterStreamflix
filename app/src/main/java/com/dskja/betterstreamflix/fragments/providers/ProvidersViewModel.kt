@@ -84,6 +84,8 @@ class ProvidersViewModel : ViewModel() {
                 )
             }.sortedWith(
                 compareBy<ModelProvider> { it.provider is TmdbProvider }
+                    .thenByDescending { it.isFavorite }
+                    .thenBy { ProviderHealth.pickerRank(it.name) }
                     .thenBy { it.name.lowercase(Locale.ROOT) }
             )
 
