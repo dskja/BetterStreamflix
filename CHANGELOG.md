@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Massive plugin/addon system: `PluginManager` lifecycle, host facade, home/search/metadata/playback/extractor/subtitle/settings extension hooks, `LoadedPluginFacade` for LOCAL APKs, Demo Addon v1.1, manage/enable/uninstall UI, soft reload, diagnostics event ring
 
 ### Fixed
+- Settings → Miscellaneous hardened against BETTERSTREAMFLIX-K recurrence: dependency sanitizer on nested PreferenceScreens + regression tests that `screen_more` never keeps cross-screen `android:dependency`
 - Home featured swiper crash after leave (BETTERSTREAMFLIX-1): clear ViewPager auto-advance on recycle
 - Videasy decrypt empty/`JSONObject("")` crash (BETTERSTREAMFLIX-4)
 - TMDb trending ClassCastException on incomplete MultiItem JSON (BETTERSTREAMFLIX-Q)

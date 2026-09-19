@@ -282,6 +282,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
             setPreferencesFromResource(R.xml.settings_mobile, null)
         }
+        // BETTERSTREAMFLIX-K: nested screens must not keep cross-screen dependencies.
+        SettingsPreferenceSanitizer.clearBrokenDependencies(preferenceScreen)
         if (::backupRestoreManager.isInitialized) {
             displaySettings()
         }

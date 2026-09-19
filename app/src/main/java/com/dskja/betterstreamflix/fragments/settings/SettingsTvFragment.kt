@@ -272,6 +272,8 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
             setPreferencesFromResource(R.xml.settings_tv, null)
         }
+        // BETTERSTREAMFLIX-K: nested screens must not keep cross-screen dependencies.
+        SettingsPreferenceSanitizer.clearBrokenDependencies(preferenceScreen)
         if (::backupRestoreManager.isInitialized) {
             displaySettings()
         }
