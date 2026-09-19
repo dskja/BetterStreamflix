@@ -8,7 +8,8 @@ import java.io.File
 
 /**
  * Loads plugin catalog manifests from assets (`plugins/catalog.json`) and app-private files.
- * Remote APK classloading is intentionally not implemented yet — catalog only.
+ * LOCAL APKs are verified (SHA-256 + apiVersion) then loaded via [PluginApkLoader].
+ * Remote APK auto-download/install remains intentionally unsupported.
  */
 object PluginCatalog {
     private const val TAG = "PluginCatalog"
@@ -25,6 +26,7 @@ object PluginCatalog {
         val downloadUrl: String = "",
         val sha256: String = "",
         val apiVersion: Int = 1,
+        val entryClass: String = "",
     )
 
     fun catalogFile(context: Context): File =
@@ -79,7 +81,8 @@ object PluginCatalog {
                     )
                     .put("downloadUrl", e.downloadUrl)
                     .put("sha256", e.sha256)
-                    .put("apiVersion", e.apiVersion),
+                    .put("apiVersion", e.apiVersion)
+                    .put("entryClass", e.entryClass),
             )
         }
         root.put("plugins", arr)
@@ -115,6 +118,7 @@ object PluginCatalog {
                         downloadUrl = o.optString("downloadUrl"),
                         sha256 = o.optString("sha256"),
                         apiVersion = o.optInt("apiVersion", 1),
+                        entryClass = o.optString("entryClass"),
                     ),
                 )
             }
@@ -123,7 +127,10 @@ object PluginCatalog {
 
     fun summaryLine(entry: Entry, disabled: Boolean): String {
         val src = entry.source.name.lowercase()
-        val state = if (disabled) "hidden" else "listed"
+        val loaded = PluginRegistry.get(entry.id)?.let { plugin ->
+            if (plugin.isEnabled()) "active" else "registered"
+        } ?: "listed"
+        val state = if (disabled) "hidden" else loaded
         return "${entry.name} · v${entry.version} · $src · $state"
     }
 
@@ -135,7 +142,15 @@ object PluginCatalog {
                     it.source == PluginManifest.Source.REMOTE
             }
             .forEach { entry ->
-                if (PluginRegistry.get(entry.id) != null) return@forEach
+                // Do not overwrite a successfully loaded APK plugin.
+                val existing = PluginRegistry.get(entry.id)
+                if (existing != null && existing.manifest.source == PluginManifest.Source.LOCAL) {
+                    val canCreate = runCatching { existing.createProvider(); true }.getOrDefault(false)
+                    if (canCreate) return@forEach
+                }
+                if (existing != null && existing.manifest.source == PluginManifest.Source.BUILTIN) {
+                    return@forEach
+                }
                 PluginRegistry.register(
                     object : SourcePlugin {
                         override val manifest = PluginManifest(
@@ -159,7 +174,8 @@ object PluginCatalog {
     }
 
     fun reload(context: Context) {
-        // Keep builtins; re-register stubs from catalogs.
+        // Keep builtins; re-register stubs from catalogs; load verified local APKs.
         registerLocalStubs(context)
+        PluginApkLoader.loadInstalled(context)
     }
 }

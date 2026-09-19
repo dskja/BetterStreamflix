@@ -95,6 +95,7 @@ object UserPreferences {
                 return TmdbProvider(lang)
             }
             return Provider.providers.keys.find { it.name == providerName }
+                ?: Provider.findByName(providerName)
         }
         set(value) {
             // CRITICO: Resetta l'istanza del database prima di cambiare provider

@@ -150,6 +150,22 @@
                 android:key="preferred_player_reset"
                 android:title="@string/settings_trailer_player_reset"
                 android:summary="@string/settings_trailer_player_reset_summary" />
+
+            <SwitchPreference
+                android:key="CAST_ENABLED"
+                android:title="@string/settings_cast_enabled_title"
+                android:summary="@string/settings_cast_enabled_summary"
+                android:defaultValue="true" />
+            <SwitchPreference
+                android:key="CAST_SUBTITLES_ENABLED"
+                android:title="@string/settings_cast_subtitles"
+                android:summary="@string/settings_cast_subtitles_summary"
+                android:defaultValue="true" />
+            <SwitchPreference
+                android:key="CAST_KEEP_SCREEN_AWAKE"
+                android:title="@string/settings_cast_keep_screen_awake"
+                android:summary="@string/settings_cast_keep_screen_awake_summary"
+                android:defaultValue="false" />
         </PreferenceCategory>
 
         <PreferenceCategory
@@ -684,6 +700,14 @@
                 android:key="platform_plugin_catalog"
                 android:title="@string/platform_plugin_catalog_title"
                 android:summary="@string/platform_plugin_catalog_summary" />
+            <Preference
+                android:key="platform_plugin_install_local"
+                android:title="@string/platform_plugin_install_local_title"
+                android:summary="@string/platform_plugin_install_local_summary" />
+            <Preference
+                android:key="platform_plugin_reload"
+                android:title="@string/platform_plugin_reload_title"
+                android:summary="@string/platform_plugin_reload_summary" />
             <Preference
                 android:key="platform_test_jellyfin"
                 android:title="@string/platform_test_jellyfin_title"

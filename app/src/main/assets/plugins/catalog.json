@@ -6,9 +6,11 @@
       "id": "local:example",
       "name": "Example Local Plugin",
       "version": 1,
-      "description": "Scaffold entry for future local/remote source plugins",
+      "description": "Scaffold entry for local SourcePlugin APKs (requires sha256 + entryClass + APK under files/plugins/apks/)",
       "source": "local",
-      "apiVersion": 1
+      "apiVersion": 1,
+      "entryClass": "",
+      "sha256": ""
     }
   ]
 }

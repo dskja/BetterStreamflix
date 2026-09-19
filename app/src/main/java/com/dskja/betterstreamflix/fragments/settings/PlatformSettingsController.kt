@@ -423,6 +423,81 @@ object PlatformSettingsController {
             true
         }
 
+        findPreference("platform_plugin_reload")?.setOnPreferenceClickListener {
+            val results = runCatching {
+                com.dskja.betterstreamflix.platform.plugins.PluginCatalog.reload(context)
+                com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.loadInstalled(context)
+            }.getOrElse { emptyList() }
+            val ok = results.count { it.success }
+            Toast.makeText(
+                context,
+                context.getString(R.string.platform_plugin_reload_ok, ok),
+                Toast.LENGTH_SHORT,
+            ).show()
+            runCatching {
+                com.dskja.betterstreamflix.utils.ProviderChangeNotifier.notifyProviderChanged()
+            }
+            true
+        }
+
+        findPreference("platform_plugin_install_local")?.setOnPreferenceClickListener {
+            val entries = com.dskja.betterstreamflix.platform.plugins.PluginCatalog.loadMerged(context)
+                .filter {
+                    it.source == com.dskja.betterstreamflix.platform.plugins.PluginManifest.Source.LOCAL &&
+                        it.sha256.isNotBlank() &&
+                        it.entryClass.isNotBlank()
+                }
+            if (entries.isEmpty()) {
+                val hint = com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.apksDir(context)
+                    .absolutePath
+                Toast.makeText(
+                    context,
+                    context.getString(
+                        R.string.platform_plugin_install_fail,
+                        "catalog needs sha256+entryClass; APK path: $hint",
+                    ),
+                    Toast.LENGTH_LONG,
+                ).show()
+                return@setOnPreferenceClickListener true
+            }
+            val labels = entries.map { "${it.name} (${it.id})" }.toTypedArray()
+            AlertDialog.Builder(context)
+                .setTitle(R.string.platform_plugin_install_local_title)
+                .setItems(labels) { _, which ->
+                    val entry = entries[which]
+                    val apk = com.dskja.betterstreamflix.platform.plugins.PluginApkLoader
+                        .apkFileFor(context, entry.id)
+                    val result = if (!apk.isFile) {
+                        com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.LoadResult(
+                            entry.id,
+                            entry.name,
+                            false,
+                            apk.absolutePath,
+                        )
+                    } else {
+                        com.dskja.betterstreamflix.platform.plugins.PluginApkLoader
+                            .loadVerified(context, apk, entry)
+                    }
+                    Toast.makeText(
+                        context,
+                        if (result.success) {
+                            context.getString(R.string.platform_plugin_install_ok, result.name)
+                        } else {
+                            context.getString(R.string.platform_plugin_install_fail, result.message)
+                        },
+                        Toast.LENGTH_LONG,
+                    ).show()
+                    if (result.success) {
+                        runCatching {
+                            com.dskja.betterstreamflix.utils.ProviderChangeNotifier.notifyProviderChanged()
+                        }
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            true
+        }
+
         findPreference("platform_test_jellyfin")?.setOnPreferenceClickListener {
             scope.launch {
                 val ok = runCatching {

@@ -57,6 +57,12 @@
             android:value="com.dskja.betterstreamflix.cast.CastOptionsProvider" />
 
         <activity
+            android:name=".cast.CastExpandedControllerActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <activity
             android:name=".activities.main.MainTvActivity"
             android:exported="true"
             android:theme="@style/AppTheme.Tv">

@@ -914,6 +914,13 @@
     <string name="platform_plugin_catalog_summary">Geladene lokale/remote Plugin-Manifeste anzeigen</string>
     <string name="platform_plugin_catalog_empty">Keine Katalog-Plugins gefunden</string>
     <string name="platform_plugin_catalog_title_dialog">Plugin-Katalog</string>
+    <string name="platform_plugin_install_local_title">Lokales Plugin-APK installieren</string>
+    <string name="platform_plugin_install_local_summary">SHA-256 prüfen und SourcePlugin-APK aus dem Speicher laden (kein Auto-Download)</string>
+    <string name="platform_plugin_reload_title">Lokale Plugins neu laden</string>
+    <string name="platform_plugin_reload_summary">App-privates plugins/-Verzeichnis erneut scannen und verifizierte APKs registrieren</string>
+    <string name="platform_plugin_install_ok">Plugin geladen: %1$s</string>
+    <string name="platform_plugin_install_fail">Plugin-Laden fehlgeschlagen: %1$s</string>
+    <string name="platform_plugin_reload_ok">%1$d lokales/lokale Plugin(s) geladen</string>
     <string name="platform_mpv_not_installed">Kein MPV/VLC gefunden. MPV installieren oder ExoPlayer wählen.</string>
     <string name="platform_plugins_category">Quellen</string>
     <string name="platform_plugin_hide_jellyfin_title">Jellyfin-Provider ausblenden</string>

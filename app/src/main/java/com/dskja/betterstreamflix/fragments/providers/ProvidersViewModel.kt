@@ -36,7 +36,7 @@ class ProvidersViewModel : ViewModel() {
             val isFavoritesFilter = language == "favorites"
             val favorites = UserPreferences.favoriteProviders
 
-            val providers = Provider.providers.keys
+            val providers = Provider.allProviders().keys
                 .filter {
                     if (!com.dskja.betterstreamflix.platform.plugins.PluginRegistry.isProviderVisible(it)) {
                         return@filter false
@@ -56,7 +56,7 @@ class ProvidersViewModel : ViewModel() {
                 .toMutableList()
 
             if (language == null || isFavoritesFilter) {
-                val availableLanguages = Provider.providers.keys.map { it.language }.distinct()
+                val availableLanguages = Provider.allProviders().keys.map { it.language }.distinct()
                 availableLanguages.forEach { lang ->
                     if (lang != "pl") {
                         val tmdbName = "TMDb (${getLanguageDisplayName(lang)})"

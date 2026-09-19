@@ -894,6 +894,16 @@
                 android:summary="@string/platform_plugin_catalog_summary"
                 app:iconSpaceReserved="false" />
             <Preference
+                android:key="platform_plugin_install_local"
+                android:title="@string/platform_plugin_install_local_title"
+                android:summary="@string/platform_plugin_install_local_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="platform_plugin_reload"
+                android:title="@string/platform_plugin_reload_title"
+                android:summary="@string/platform_plugin_reload_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
                 android:key="platform_test_jellyfin"
                 android:title="@string/platform_test_jellyfin_title"
                 android:summary="@string/platform_test_jellyfin_summary"

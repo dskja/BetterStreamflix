@@ -24,6 +24,9 @@ object PlatformBootstrap {
         runCatching {
             com.dskja.betterstreamflix.platform.plugins.PluginCatalog.registerLocalStubs(app)
         }.onFailure { Log.w(TAG, "Plugin catalog: ${it.message}") }
+        runCatching {
+            com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.loadInstalled(app)
+        }.onFailure { Log.w(TAG, "Plugin APK load: ${it.message}") }
         runCatching { TraktClient.warm(app) }
             .onFailure { Log.w(TAG, "Trakt warm: ${it.message}") }
         runCatching { com.dskja.betterstreamflix.platform.simkl.SimklClient.warm() }

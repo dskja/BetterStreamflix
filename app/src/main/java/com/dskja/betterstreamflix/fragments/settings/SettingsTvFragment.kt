@@ -1196,6 +1196,33 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
+        findPreference<SwitchPreference>("CAST_ENABLED")?.apply {
+            isChecked = UserPreferences.castEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castEnabled = newValue as Boolean
+                if (UserPreferences.castEnabled) {
+                    runCatching {
+                        com.dskja.betterstreamflix.cast.CastPlaybackHub.ensureCastContext(requireContext())
+                    }
+                }
+                true
+            }
+        }
+        findPreference<SwitchPreference>("CAST_SUBTITLES_ENABLED")?.apply {
+            isChecked = UserPreferences.castSubtitlesEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castSubtitlesEnabled = newValue as Boolean
+                true
+            }
+        }
+        findPreference<SwitchPreference>("CAST_KEEP_SCREEN_AWAKE")?.apply {
+            isChecked = UserPreferences.castKeepScreenAwake
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.castKeepScreenAwake = newValue as Boolean
+                true
+            }
+        }
+
         findPreference<Preference>("preferred_player_reset")?.setOnPreferenceClickListener {
             PreferenceManager.getDefaultSharedPreferences(requireContext())
                 .edit()
