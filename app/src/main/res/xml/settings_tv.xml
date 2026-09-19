@@ -103,6 +103,232 @@
     </PreferenceScreen>
 
     <PreferenceScreen
+        android:key="screen_platform"
+        android:title="@string/platform_settings_title"
+        android:summary="@string/platform_settings_summary"
+        android:widgetLayout="@layout/preference_widget_chevron">
+
+        <PreferenceCategory
+            android:key="pc_platform_player"
+            android:title="@string/platform_player_category">
+            <ListPreference
+                android:key="PLAYER_BACKEND"
+                android:title="@string/platform_player_backend_title"
+                android:summary="@string/platform_player_backend_summary"
+                android:entries="@array/player_backend_names"
+                android:entryValues="@array/player_backend_values"
+                android:defaultValue="exo" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_trakt"
+            android:title="@string/platform_trakt_category">
+            <Preference
+                android:key="trakt_status_notice"
+                android:title="@string/platform_trakt_unavailable_title"
+                android:summary="@string/platform_trakt_unavailable_summary" />
+            <Preference
+                android:key="trakt_support_cta"
+                android:title="@string/platform_trakt_support_title"
+                android:summary="@string/platform_trakt_support_summary"
+                android:icon="@drawable/ic_support_heart" />
+            <SwitchPreference
+                android:key="TRAKT_ENABLED"
+                android:title="@string/platform_trakt_enabled_title"
+                android:summary="@string/platform_trakt_enabled_summary"
+                android:defaultValue="false" />
+            <Preference
+                android:key="trakt_oauth_login"
+                android:title="@string/platform_trakt_oauth_login_title"
+                android:summary="@string/platform_trakt_oauth_login_summary" />
+            <Preference
+                android:key="trakt_oauth_logout"
+                android:title="@string/platform_trakt_oauth_logout_title"
+                android:summary="@string/platform_trakt_oauth_logout_summary" />
+            <Preference
+                android:key="trakt_device_auth_start"
+                android:title="@string/platform_trakt_device_auth_title"
+                android:summary="@string/platform_trakt_device_auth_summary" />
+            <Preference
+                android:key="trakt_device_auth_help"
+                android:title="@string/platform_trakt_auth_help_title"
+                android:summary="@string/platform_trakt_auth_help_summary" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_jellyfin"
+            android:title="@string/platform_jellyfin_category">
+            <EditTextPreference
+                android:key="JELLYFIN_BASE_URL"
+                android:title="@string/platform_jellyfin_url_title"
+                android:summary="@string/platform_jellyfin_url_summary"
+                android:inputType="textUri" />
+            <EditTextPreference
+                android:key="JELLYFIN_USER_ID"
+                android:title="@string/platform_jellyfin_user_id_title"
+                android:summary="@string/platform_jellyfin_user_id_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="JELLYFIN_ACCESS_TOKEN"
+                android:title="@string/platform_jellyfin_token_title"
+                android:summary="@string/platform_jellyfin_token_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="jellyfin_login_user"
+                android:title="@string/platform_jellyfin_login_user_title"
+                android:summary="@string/platform_jellyfin_login_user_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="jellyfin_login_password"
+                android:title="@string/platform_jellyfin_login_password_title"
+                android:summary="@string/platform_jellyfin_login_password_summary"
+                android:inputType="textPassword" />
+            <Preference
+                android:key="jellyfin_login_submit"
+                android:title="@string/platform_jellyfin_login_submit_title"
+                android:summary="@string/platform_jellyfin_login_submit_summary" />
+            <Preference
+                android:key="jellyfin_quick_connect"
+                android:title="@string/platform_jellyfin_qc_title"
+                android:summary="@string/platform_jellyfin_qc_summary" />
+            <ListPreference
+                android:key="SELF_HOST_PROGRESS_INTERVAL"
+                android:title="@string/platform_selfhost_interval_title"
+                android:summary="@string/platform_selfhost_interval_summary"
+                android:entries="@array/selfhost_interval_names"
+                android:entryValues="@array/selfhost_interval_values"
+                android:defaultValue="15000" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_plex"
+            android:title="@string/platform_plex_category">
+            <EditTextPreference
+                android:key="PLEX_BASE_URL"
+                android:title="@string/platform_plex_url_title"
+                android:summary="@string/platform_plex_url_summary"
+                android:inputType="textUri" />
+            <EditTextPreference
+                android:key="PLEX_TOKEN"
+                android:title="@string/platform_plex_token_title"
+                android:summary="@string/platform_plex_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_simkl"
+            android:title="@string/platform_simkl_category">
+            <SwitchPreference
+                android:key="SIMKL_ENABLED"
+                android:title="@string/platform_simkl_enabled_title"
+                android:summary="@string/platform_simkl_enabled_summary"
+                android:defaultValue="false" />
+            <EditTextPreference
+                android:key="SIMKL_CLIENT_ID"
+                android:title="@string/platform_simkl_client_id_title"
+                android:summary="@string/platform_simkl_client_id_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="SIMKL_ACCESS_TOKEN"
+                android:title="@string/platform_simkl_token_title"
+                android:summary="@string/platform_simkl_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_subtitles"
+            android:title="@string/platform_opensubtitles_category">
+            <EditTextPreference
+                android:key="OPENSUBTITLES_API_KEY"
+                android:title="@string/platform_opensubtitles_key_title"
+                android:summary="@string/platform_opensubtitles_key_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="OPENSUBTITLES_LANGUAGES"
+                android:title="@string/platform_opensubtitles_langs_title"
+                android:summary="@string/platform_opensubtitles_langs_summary"
+                android:inputType="text" />
+            <SwitchPreference
+                android:key="CAST_QUEUE_NEXT_EPISODE"
+                android:title="@string/platform_cast_queue_title"
+                android:summary="@string/platform_cast_queue_summary"
+                android:defaultValue="true" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_debrid"
+            android:title="@string/platform_debrid_category">
+            <SwitchPreference
+                android:key="DEBRID_ENABLED"
+                android:title="@string/platform_debrid_enabled_title"
+                android:summary="@string/platform_debrid_enabled_summary"
+                android:defaultValue="false" />
+            <ListPreference
+                android:key="DEBRID_PROVIDER"
+                android:title="@string/platform_debrid_provider_title"
+                android:summary="@string/platform_debrid_provider_summary"
+                android:entries="@array/debrid_provider_names"
+                android:entryValues="@array/debrid_provider_values"
+                android:defaultValue="realdebrid" />
+            <EditTextPreference
+                android:key="REAL_DEBRID_TOKEN"
+                android:title="@string/platform_rd_token_title"
+                android:summary="@string/platform_rd_token_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="PREMIUMIZE_API_KEY"
+                android:title="@string/platform_premiumize_key_title"
+                android:summary="@string/platform_premiumize_key_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="ALLDEBRID_API_KEY"
+                android:title="@string/platform_alldebrid_key_title"
+                android:summary="@string/platform_alldebrid_key_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="TORBOX_API_KEY"
+                android:title="@string/platform_torbox_key_title"
+                android:summary="@string/platform_torbox_key_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_plugins"
+            android:title="@string/platform_plugins_category">
+            <SwitchPreference
+                android:key="plugin_disable_jellyfin"
+                android:title="@string/platform_plugin_hide_jellyfin_title"
+                android:summary="@string/platform_plugin_hide_jellyfin_summary"
+                android:defaultValue="false" />
+            <SwitchPreference
+                android:key="plugin_disable_plex"
+                android:title="@string/platform_plugin_hide_plex_title"
+                android:summary="@string/platform_plugin_hide_plex_summary"
+                android:defaultValue="false" />
+            <Preference
+                android:key="platform_plugin_catalog"
+                android:title="@string/platform_plugin_catalog_title"
+                android:summary="@string/platform_plugin_catalog_summary" />
+            <Preference
+                android:key="platform_plugin_install_local"
+                android:title="@string/platform_plugin_install_local_title"
+                android:summary="@string/platform_plugin_install_local_summary" />
+            <Preference
+                android:key="platform_plugin_reload"
+                android:title="@string/platform_plugin_reload_title"
+                android:summary="@string/platform_plugin_reload_summary" />
+            <Preference
+                android:key="platform_test_jellyfin"
+                android:title="@string/platform_test_jellyfin_title"
+                android:summary="@string/platform_test_jellyfin_summary" />
+            <Preference
+                android:key="platform_test_plex"
+                android:title="@string/platform_test_plex_title"
+                android:summary="@string/platform_test_plex_summary" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
         android:key="screen_playback"
         android:title="@string/player_settings"
         android:summary="@string/settings_screen_playback_summary"
@@ -492,232 +718,6 @@
                 android:key="provider_no_options"
                 android:title="@string/settings_provider_no_options_title"
                 android:summary="@string/settings_provider_no_options_summary" />
-        </PreferenceCategory>
-    </PreferenceScreen>
-
-    <PreferenceScreen
-        android:key="screen_platform"
-        android:title="@string/platform_settings_title"
-        android:summary="@string/platform_settings_summary"
-        android:widgetLayout="@layout/preference_widget_chevron">
-
-        <PreferenceCategory
-            android:key="pc_platform_player"
-            android:title="@string/platform_player_category">
-            <ListPreference
-                android:key="PLAYER_BACKEND"
-                android:title="@string/platform_player_backend_title"
-                android:summary="@string/platform_player_backend_summary"
-                android:entries="@array/player_backend_names"
-                android:entryValues="@array/player_backend_values"
-                android:defaultValue="exo" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_trakt"
-            android:title="@string/platform_trakt_category">
-            <Preference
-                android:key="trakt_status_notice"
-                android:title="@string/platform_trakt_unavailable_title"
-                android:summary="@string/platform_trakt_unavailable_summary" />
-            <Preference
-                android:key="trakt_support_cta"
-                android:title="@string/platform_trakt_support_title"
-                android:summary="@string/platform_trakt_support_summary"
-                android:icon="@drawable/ic_support_heart" />
-            <SwitchPreference
-                android:key="TRAKT_ENABLED"
-                android:title="@string/platform_trakt_enabled_title"
-                android:summary="@string/platform_trakt_enabled_summary"
-                android:defaultValue="false" />
-            <Preference
-                android:key="trakt_oauth_login"
-                android:title="@string/platform_trakt_oauth_login_title"
-                android:summary="@string/platform_trakt_oauth_login_summary" />
-            <Preference
-                android:key="trakt_oauth_logout"
-                android:title="@string/platform_trakt_oauth_logout_title"
-                android:summary="@string/platform_trakt_oauth_logout_summary" />
-            <Preference
-                android:key="trakt_device_auth_start"
-                android:title="@string/platform_trakt_device_auth_title"
-                android:summary="@string/platform_trakt_device_auth_summary" />
-            <Preference
-                android:key="trakt_device_auth_help"
-                android:title="@string/platform_trakt_auth_help_title"
-                android:summary="@string/platform_trakt_auth_help_summary" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_jellyfin"
-            android:title="@string/platform_jellyfin_category">
-            <EditTextPreference
-                android:key="JELLYFIN_BASE_URL"
-                android:title="@string/platform_jellyfin_url_title"
-                android:summary="@string/platform_jellyfin_url_summary"
-                android:inputType="textUri" />
-            <EditTextPreference
-                android:key="JELLYFIN_USER_ID"
-                android:title="@string/platform_jellyfin_user_id_title"
-                android:summary="@string/platform_jellyfin_user_id_summary"
-                android:inputType="text" />
-            <EditTextPreference
-                android:key="JELLYFIN_ACCESS_TOKEN"
-                android:title="@string/platform_jellyfin_token_title"
-                android:summary="@string/platform_jellyfin_token_summary"
-                android:inputType="textPassword" />
-            <EditTextPreference
-                android:key="jellyfin_login_user"
-                android:title="@string/platform_jellyfin_login_user_title"
-                android:summary="@string/platform_jellyfin_login_user_summary"
-                android:inputType="text" />
-            <EditTextPreference
-                android:key="jellyfin_login_password"
-                android:title="@string/platform_jellyfin_login_password_title"
-                android:summary="@string/platform_jellyfin_login_password_summary"
-                android:inputType="textPassword" />
-            <Preference
-                android:key="jellyfin_login_submit"
-                android:title="@string/platform_jellyfin_login_submit_title"
-                android:summary="@string/platform_jellyfin_login_submit_summary" />
-            <Preference
-                android:key="jellyfin_quick_connect"
-                android:title="@string/platform_jellyfin_qc_title"
-                android:summary="@string/platform_jellyfin_qc_summary" />
-            <ListPreference
-                android:key="SELF_HOST_PROGRESS_INTERVAL"
-                android:title="@string/platform_selfhost_interval_title"
-                android:summary="@string/platform_selfhost_interval_summary"
-                android:entries="@array/selfhost_interval_names"
-                android:entryValues="@array/selfhost_interval_values"
-                android:defaultValue="15000" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_plex"
-            android:title="@string/platform_plex_category">
-            <EditTextPreference
-                android:key="PLEX_BASE_URL"
-                android:title="@string/platform_plex_url_title"
-                android:summary="@string/platform_plex_url_summary"
-                android:inputType="textUri" />
-            <EditTextPreference
-                android:key="PLEX_TOKEN"
-                android:title="@string/platform_plex_token_title"
-                android:summary="@string/platform_plex_token_summary"
-                android:inputType="textPassword" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_simkl"
-            android:title="@string/platform_simkl_category">
-            <SwitchPreference
-                android:key="SIMKL_ENABLED"
-                android:title="@string/platform_simkl_enabled_title"
-                android:summary="@string/platform_simkl_enabled_summary"
-                android:defaultValue="false" />
-            <EditTextPreference
-                android:key="SIMKL_CLIENT_ID"
-                android:title="@string/platform_simkl_client_id_title"
-                android:summary="@string/platform_simkl_client_id_summary"
-                android:inputType="text" />
-            <EditTextPreference
-                android:key="SIMKL_ACCESS_TOKEN"
-                android:title="@string/platform_simkl_token_title"
-                android:summary="@string/platform_simkl_token_summary"
-                android:inputType="textPassword" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_subtitles"
-            android:title="@string/platform_opensubtitles_category">
-            <EditTextPreference
-                android:key="OPENSUBTITLES_API_KEY"
-                android:title="@string/platform_opensubtitles_key_title"
-                android:summary="@string/platform_opensubtitles_key_summary"
-                android:inputType="textPassword" />
-            <EditTextPreference
-                android:key="OPENSUBTITLES_LANGUAGES"
-                android:title="@string/platform_opensubtitles_langs_title"
-                android:summary="@string/platform_opensubtitles_langs_summary"
-                android:inputType="text" />
-            <SwitchPreference
-                android:key="CAST_QUEUE_NEXT_EPISODE"
-                android:title="@string/platform_cast_queue_title"
-                android:summary="@string/platform_cast_queue_summary"
-                android:defaultValue="true" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_debrid"
-            android:title="@string/platform_debrid_category">
-            <SwitchPreference
-                android:key="DEBRID_ENABLED"
-                android:title="@string/platform_debrid_enabled_title"
-                android:summary="@string/platform_debrid_enabled_summary"
-                android:defaultValue="false" />
-            <ListPreference
-                android:key="DEBRID_PROVIDER"
-                android:title="@string/platform_debrid_provider_title"
-                android:summary="@string/platform_debrid_provider_summary"
-                android:entries="@array/debrid_provider_names"
-                android:entryValues="@array/debrid_provider_values"
-                android:defaultValue="realdebrid" />
-            <EditTextPreference
-                android:key="REAL_DEBRID_TOKEN"
-                android:title="@string/platform_rd_token_title"
-                android:summary="@string/platform_rd_token_summary"
-                android:inputType="textPassword" />
-            <EditTextPreference
-                android:key="PREMIUMIZE_API_KEY"
-                android:title="@string/platform_premiumize_key_title"
-                android:summary="@string/platform_premiumize_key_summary"
-                android:inputType="textPassword" />
-            <EditTextPreference
-                android:key="ALLDEBRID_API_KEY"
-                android:title="@string/platform_alldebrid_key_title"
-                android:summary="@string/platform_alldebrid_key_summary"
-                android:inputType="textPassword" />
-            <EditTextPreference
-                android:key="TORBOX_API_KEY"
-                android:title="@string/platform_torbox_key_title"
-                android:summary="@string/platform_torbox_key_summary"
-                android:inputType="textPassword" />
-        </PreferenceCategory>
-
-        <PreferenceCategory
-            android:key="pc_platform_plugins"
-            android:title="@string/platform_plugins_category">
-            <SwitchPreference
-                android:key="plugin_disable_jellyfin"
-                android:title="@string/platform_plugin_hide_jellyfin_title"
-                android:summary="@string/platform_plugin_hide_jellyfin_summary"
-                android:defaultValue="false" />
-            <SwitchPreference
-                android:key="plugin_disable_plex"
-                android:title="@string/platform_plugin_hide_plex_title"
-                android:summary="@string/platform_plugin_hide_plex_summary"
-                android:defaultValue="false" />
-            <Preference
-                android:key="platform_plugin_catalog"
-                android:title="@string/platform_plugin_catalog_title"
-                android:summary="@string/platform_plugin_catalog_summary" />
-            <Preference
-                android:key="platform_plugin_install_local"
-                android:title="@string/platform_plugin_install_local_title"
-                android:summary="@string/platform_plugin_install_local_summary" />
-            <Preference
-                android:key="platform_plugin_reload"
-                android:title="@string/platform_plugin_reload_title"
-                android:summary="@string/platform_plugin_reload_summary" />
-            <Preference
-                android:key="platform_test_jellyfin"
-                android:title="@string/platform_test_jellyfin_title"
-                android:summary="@string/platform_test_jellyfin_summary" />
-            <Preference
-                android:key="platform_test_plex"
-                android:title="@string/platform_test_plex_title"
-                android:summary="@string/platform_test_plex_summary" />
         </PreferenceCategory>
     </PreferenceScreen>
 

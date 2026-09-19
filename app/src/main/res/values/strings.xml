@@ -936,8 +936,8 @@
     <string name="about_links_heading">Links &amp; community</string>
 
     <!-- Full Platform -->
-    <string name="platform_settings_title">Platform</string>
-    <string name="platform_settings_summary">Trakt, Jellyfin, Plex, Debrid and player backend</string>
+    <string name="platform_settings_title">Integrations (Trakt, Jellyfin…)</string>
+    <string name="platform_settings_summary">Trakt, Jellyfin, Plex, Debrid, plugins and external player</string>
     <string name="platform_settings_saved">Platform setting saved</string>
     <string name="platform_player_category">Player backend</string>
     <string name="platform_player_backend_title">Playback engine</string>
