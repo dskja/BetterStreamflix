@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Massive Downloads + Settings polish: shared `DownloadsSettingsController`, live queue/storage summaries, soft-limit clamp (0–500 GB), retry-failed with full server re-resolve, clear-failed action, richer storage chip (used/free/limit), localized quality labels, stronger error classification (429/5xx)
 - Massive experimental detail pages: in-app YouTube trailer player (`TrailerPlaybackController`), TMDb detail enrichment (`enrichMovieDetail`/`enrichTvShowDetail` for directors/cast/similar/cert/trailer), certification chips, share + watched CTAs, TV download CTA, genre-chip navigation, expandable overviews, hero banner parallax on Movie/TV details
 - Massive Integrations upgrade: shared `IntegrationStatus` + `IntegrationProbes`, live hub card summaries (“N of M connected”), per-service status rows, hardened Jellyfin/Plex/Debrid/Simkl/OpenSubtitles connection tests, OpenSubtitles login/JWT UI, Debrid credential visibility by provider, Cast queue moved to Player, Plex/Simkl help links, MPV install status, Settings onResume refresh after OAuth
 - Massive providers + home upgrade: shared `HomeCatalogPipeline` (FEATURED synthesis, providerName stamp, absolute artwork URLs, empty-shelf drop, dedupe), home circuit breaker in `ProviderSmoke`, persistent catalog warning banner (Mobile/TV, tap to retry), `ProviderDefaults` stubs, healthier provider picker ranking, expanded quarantine/smoke lists

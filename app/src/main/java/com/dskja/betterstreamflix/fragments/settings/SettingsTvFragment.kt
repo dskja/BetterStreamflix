@@ -797,128 +797,8 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             true
         }
 
-        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.apply {
-            value = UserPreferences.downloadStorageLocation.name
-            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-            setOnPreferenceChangeListener { _, newValue ->
-                val location = DownloadStorageLocation.fromKey(newValue as String)
-                if (location != UserPreferences.downloadStorageLocation) {
-                    UserPreferences.downloadStorageLocation = location
-                    StreamflixDownloadManager.release()
-                    findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
-                        DownloadStorage.absolutePathSummary(requireContext())
-                    findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
-                        DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_download_storage_changed,
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-                true
-            }
-        }
-        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
-            DownloadStorage.absolutePathSummary(requireContext())
-
-        findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.apply {
-            isChecked = UserPreferences.downloadWifiOnly
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadWifiOnly = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<ListPreference>("DOWNLOAD_QUALITY_PRESET")?.apply {
-            value = UserPreferences.downloadQualityPreset.name
-            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadQualityPreset =
-                    DownloadQualityPreset.fromKey(newValue as String)
-                true
-            }
-        }
-
-        findPreference<ListPreference>("DOWNLOAD_MAX_CONCURRENT")?.apply {
-            value = UserPreferences.downloadMaxConcurrent.toString()
-            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-            setOnPreferenceChangeListener { _, newValue ->
-                val max = (newValue as String).toIntOrNull() ?: 2
-                UserPreferences.downloadMaxConcurrent = max
-                StreamflixDownloadManager.setMaxParallel(requireContext(), max)
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("DOWNLOAD_NOTIFY_COMPLETE")?.apply {
-            isChecked = UserPreferences.downloadNotifyComplete
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadNotifyComplete = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("DOWNLOAD_FILTER_CURRENT_PROVIDER")?.apply {
-            isChecked = UserPreferences.downloadFilterCurrentProvider
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadFilterCurrentProvider = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<EditTextPreference>("DOWNLOAD_SOFT_LIMIT_GB")?.apply {
-            text = UserPreferences.downloadSoftLimitGb.toString()
-            summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
-                "${pref.text ?: UserPreferences.downloadSoftLimitGb} GB"
-            }
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadSoftLimitGb =
-                    (newValue as String).toIntOrNull() ?: 20
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("DOWNLOAD_SMART_ENABLED")?.apply {
-            isChecked = UserPreferences.downloadSmartEnabled
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadSmartEnabled = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<SwitchPreference>("DOWNLOAD_AUTO_DELETE_WATCHED")?.apply {
-            isChecked = UserPreferences.downloadAutoDeleteWatched
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.downloadAutoDeleteWatched = newValue as Boolean
-                true
-            }
-        }
-
-        findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
-            DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
-
-        findPreference<Preference>("DOWNLOAD_CLEAR_COMPLETED")?.setOnPreferenceClickListener {
-            lifecycleScope.launch {
-                DownloadRepository.get(requireContext()).clearCompleted()
-                findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
-                    DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
-            }
-            true
-        }
-
-        findPreference<Preference>("DOWNLOAD_CLEAR_ALL")?.setOnPreferenceClickListener {
-            android.app.AlertDialog.Builder(requireContext())
-                .setMessage(R.string.settings_download_clear_all_confirm)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    lifecycleScope.launch {
-                        DownloadRepository.get(requireContext()).clearAll()
-                        findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
-                            DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
-                    }
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            true
+        DownloadsSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
         }
 
         findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.apply {
@@ -2398,24 +2278,11 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         findPreference<SwitchPreference>("AUTOPLAY")?.isChecked = UserPreferences.autoplay
         findPreference<SwitchPreference>("FORCE_EXTRA_BUFFERING")?.isChecked = UserPreferences.forceExtraBuffering
         findPreference<SwitchPreference>("SERVER_AUTO_SUBTITLES_DISABLED")?.isChecked = UserPreferences.serverAutoSubtitlesDisabled
-        findPreference<SwitchPreference>("DOWNLOAD_WIFI_ONLY")?.isChecked = UserPreferences.downloadWifiOnly
-        findPreference<SwitchPreference>("DOWNLOAD_SMART_ENABLED")?.isChecked = UserPreferences.downloadSmartEnabled
-        findPreference<SwitchPreference>("DOWNLOAD_AUTO_DELETE_WATCHED")?.isChecked = UserPreferences.downloadAutoDeleteWatched
-        findPreference<SwitchPreference>("DOWNLOAD_NOTIFY_COMPLETE")?.isChecked = UserPreferences.downloadNotifyComplete
-        findPreference<SwitchPreference>("DOWNLOAD_FILTER_CURRENT_PROVIDER")?.isChecked =
-            UserPreferences.downloadFilterCurrentProvider
-        findPreference<ListPreference>("DOWNLOAD_QUALITY_PRESET")?.value =
-            UserPreferences.downloadQualityPreset.name
-        findPreference<ListPreference>("DOWNLOAD_MAX_CONCURRENT")?.value =
-            UserPreferences.downloadMaxConcurrent.toString()
-        findPreference<EditTextPreference>("DOWNLOAD_SOFT_LIMIT_GB")?.text =
-            UserPreferences.downloadSoftLimitGb.toString()
-        findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
-            DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
-        findPreference<Preference>("DOWNLOAD_STORAGE_PATH")?.summary =
-            DownloadStorage.absolutePathSummary(requireContext())
-        findPreference<ListPreference>("DOWNLOAD_STORAGE_LOCATION")?.value =
-            UserPreferences.downloadStorageLocation.name
+        DownloadsSettingsController.refresh(
+            findPreference = { key -> findPreference(key) },
+            context = requireContext(),
+            scope = lifecycleScope,
+        )
         
         val bufferPref: EditTextPreference? = findPreference("p_settings_autoplay_buffer") 
         bufferPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->

@@ -34,6 +34,10 @@ object DownloadErrorClassifier {
                     "cloudflare" !in hay) -> DownloadErrorCode.EXPIRED
             "ssl" in hay || "certificate" in hay || "handshake" in hay ->
                 DownloadErrorCode.NETWORK
+            "429" in hay || "rate limit" in hay || "too many requests" in hay ->
+                DownloadErrorCode.NETWORK
+            "503" in hay || "502" in hay || "504" in hay || "bad gateway" in hay ||
+                "service unavailable" in hay -> DownloadErrorCode.NETWORK
             "unable to resolve host" in hay || "timeout" in hay ||
                 "unknownhost" in hay || "sockettimeout" in hay ||
                 "failed to connect" in hay -> DownloadErrorCode.NETWORK
