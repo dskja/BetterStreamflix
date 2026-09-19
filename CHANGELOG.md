@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- SerienStream account system: status, WebView sign-in, session validate, paste/copy cookies, full logout (prefs + CookieManager), startup cookie seed, Settings hub card (`screen_serienstream_auth`)
+
 ### Fixed
 - Settings crash opening “More”: Preference dependency `EXPERIMENTAL_NEW_APP_DESIGN` was resolved across nested PreferenceScreens (Sentry BETTERSTREAMFLIX-K)
 - Settings: Support UI Preview lives next to Experimental Design under Appearance (same PreferenceScreen); TV Experimental Design also under Appearance; nested screen inflate failures fall back to Settings root
+- TV bypass QR / deep-link: accept `betterstreamflix://resolve` and HTTP landing QR in the in-app scanner and MainMobileActivity
 - Download resume no longer fatals when Android blocks background service starts (Sentry BETTERSTREAMFLIX-J / -M)
 - Player ExoPlayer listeners no longer stack on every `displayVideo` (TV + mobile)
 - Mobile player server-select `!!` NPE on blank SerienStream bypass fallthrough

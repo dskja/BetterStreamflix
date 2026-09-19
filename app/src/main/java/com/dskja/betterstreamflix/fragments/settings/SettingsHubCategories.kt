@@ -79,6 +79,13 @@ internal object SettingsHubCategories {
             target = SettingsHubTarget.PreferenceScreen("screen_cloud_sync"),
         ),
         SettingsHubCard(
+            id = "serienstream_auth",
+            titleRes = R.string.serienstream_auth_category_title,
+            summaryRes = R.string.settings_serienstream_session_login_summary,
+            iconRes = R.drawable.ic_providers_language,
+            target = SettingsHubTarget.PreferenceScreen("screen_serienstream_auth"),
+        ),
+        SettingsHubCard(
             id = "watchlist",
             titleRes = R.string.settings_watchlist_import_title,
             summaryRes = R.string.settings_watchlist_import_summary,

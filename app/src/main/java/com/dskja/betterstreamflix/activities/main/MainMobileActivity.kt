@@ -565,13 +565,13 @@ class MainMobileActivity : FragmentActivity() {
 
         val data = intent.data ?: return false
 
-        if (data.scheme == "streamflix" && data.host == "resolve") {
-            val ws = data.getQueryParameter("ws") ?: return false
-            val token = data.getQueryParameter("token") ?: return false
-
-            Log.d("ResolverWS", "WS: $ws")
-
-            resolve(ws, token)
+        if ((data.scheme == "streamflix" || data.scheme == "betterstreamflix") &&
+            data.host.equals("resolve", ignoreCase = true)
+        ) {
+            val target = com.dskja.betterstreamflix.providers.SerienStreamResolveLink.parse(data.toString())
+                ?: return false
+            Log.d("ResolverWS", "WS: ${target.ws}")
+            resolve(target.ws, target.token)
             return true
         }
 
@@ -601,8 +601,8 @@ class MainMobileActivity : FragmentActivity() {
 
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.app_name)
-            .setMessage("Unable to reach the TV bypass websocket. Retry?")
-            .setPositiveButton("Retry") { _, _ ->
+            .setMessage(R.string.settings_resolver_connection_error)
+            .setPositiveButton(R.string.settings_resolver_retry) { _, _ ->
                 resolve(ws, token)
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
@@ -619,11 +619,11 @@ class MainMobileActivity : FragmentActivity() {
 
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.app_name)
-            .setMessage("Bypass completed. Do you want to close the app?")
-            .setPositiveButton("Close app") { _, _ ->
+            .setMessage(R.string.settings_resolver_bypass_done)
+            .setPositiveButton(R.string.settings_resolver_close_app) { _, _ ->
                 closeTask()
             }
-            .setNegativeButton("Keep open", null)
+            .setNegativeButton(R.string.settings_resolver_keep_open, null)
             .setOnCancelListener(null)
             .show()
     }

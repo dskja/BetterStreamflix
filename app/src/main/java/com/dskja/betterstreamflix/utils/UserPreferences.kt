@@ -644,6 +644,20 @@ object UserPreferences {
             Key.SERIENSTREAM_SESSION_COOKIES.setString(cleaned)
         }
 
+    /** Optional display name scraped from SerienStream `/account` after validation. */
+    var serienStreamSessionDisplayName: String
+        get() = Key.SERIENSTREAM_SESSION_DISPLAY_NAME.getString() ?: ""
+        set(value) = Key.SERIENSTREAM_SESSION_DISPLAY_NAME.setString(value.trim())
+
+    /** Epoch millis of the last SerienStream session validation probe (0 = never). */
+    var serienStreamSessionValidatedAtMs: Long
+        get() = Key.SERIENSTREAM_SESSION_VALIDATED_AT.getLong() ?: 0L
+        set(value) = Key.SERIENSTREAM_SESSION_VALIDATED_AT.setLong(value.coerceAtLeast(0L))
+
+    var serienStreamSessionValidatedOk: Boolean
+        get() = Key.SERIENSTREAM_SESSION_VALIDATED_OK.getBoolean() ?: false
+        set(value) = Key.SERIENSTREAM_SESSION_VALIDATED_OK.setBoolean(value)
+
     enum class PlayerResize(
         val stringRes: Int,
         val resizeMode: Int,
@@ -986,6 +1000,9 @@ object UserPreferences {
         CAST_KEEP_SCREEN_AWAKE,
         BYPASS_WS_ADVERTISED_HOST,
         SERIENSTREAM_SESSION_COOKIES,
+        SERIENSTREAM_SESSION_DISPLAY_NAME,
+        SERIENSTREAM_SESSION_VALIDATED_AT,
+        SERIENSTREAM_SESSION_VALIDATED_OK,
         UPDATE_CHECK_ENABLED,
         PROVIDER_LANGUAGE,
         FAVORITE_PROVIDERS,

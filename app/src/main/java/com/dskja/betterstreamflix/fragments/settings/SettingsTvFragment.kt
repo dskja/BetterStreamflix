@@ -478,6 +478,16 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         GuardaFlixAuthSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        SerienStreamAuthSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
+        }
+        findPreference<Preference>("p_serienstream_account_open")?.setOnPreferenceClickListener {
+            openNestedSettingsScreen(
+                "screen_serienstream_auth",
+                getString(R.string.serienstream_auth_category_title),
+            )
+            true
+        }
 
         findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
             summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
@@ -1111,96 +1121,6 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                     }
                 }
                 networkSettingsCategory.addPreference(hostPreference)
-            }
-
-            if (findPreference<Preference>("SERIENSTREAM_SESSION_LOGIN") == null) {
-                val loginPreference = Preference(requireContext()).apply {
-                    key = "SERIENSTREAM_SESSION_LOGIN"
-                    title = getString(R.string.settings_serienstream_session_login)
-                    summary = getString(R.string.settings_serienstream_session_login_summary)
-                    setOnPreferenceClickListener {
-                        startActivity(
-                            android.content.Intent(
-                                requireContext(),
-                                com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity::class.java,
-                            )
-                                .putExtra(
-                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SOURCE,
-                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.SOURCE_SERIENSTREAM,
-                                )
-                                .putExtra(
-                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY,
-                                    true,
-                                ),
-                        )
-                        true
-                    }
-                }
-                networkSettingsCategory.addPreference(loginPreference)
-            }
-
-            if (findPreference<Preference>("SERIENSTREAM_SESSION_COOKIES") == null) {
-                val cookiePreference = Preference(requireContext()).apply {
-                    key = "SERIENSTREAM_SESSION_COOKIES"
-                    title = getString(R.string.settings_serienstream_session_cookies)
-                    fun refreshSummary() {
-                        val raw = UserPreferences.serienStreamSessionCookies
-                        val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(raw)
-                        if (cookies != raw) {
-                            UserPreferences.serienStreamSessionCookies = cookies
-                        }
-                        summary = if (cookies.isBlank() || !SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
-                            if (cookies.isNotBlank()) {
-                                UserPreferences.serienStreamSessionCookies = ""
-                            }
-                            getString(R.string.settings_serienstream_session_cookies_empty)
-                        } else {
-                            getString(
-                                R.string.settings_serienstream_session_cookies_set,
-                                cookies.length,
-                            )
-                        }
-                    }
-                    refreshSummary()
-                    setOnPreferenceClickListener {
-                        val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(
-                            UserPreferences.serienStreamSessionCookies,
-                        )
-                        if (cookies.isBlank()) {
-                            startActivity(
-                                android.content.Intent(
-                                    requireContext(),
-                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity::class.java,
-                                )
-                                    .putExtra(
-                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SOURCE,
-                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.SOURCE_SERIENSTREAM,
-                                    )
-                                    .putExtra(
-                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY,
-                                        true,
-                                    ),
-                            )
-                        } else {
-                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                                .setTitle(R.string.settings_serienstream_session_cookies_clear_title)
-                                .setMessage(cookies.take(240))
-                                .setPositiveButton(android.R.string.ok) { _, _ ->
-                                    SerienStreamBypassHelper.clearStoredSessionCookies()
-                                    refreshSummary()
-                                    Toast.makeText(
-                                        requireContext(),
-                                        R.string.settings_serienstream_session_cookies_cleared,
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                }
-                                .setNegativeButton(android.R.string.cancel, null)
-                                .show()
-                        }
-                        true
-                    }
-                }
-                networkSettingsCategory.addPreference(cookiePreference)
             }
 
             if (BuildConfig.DEBUG && findPreference<Preference>("test_websocket_bypass") == null) {

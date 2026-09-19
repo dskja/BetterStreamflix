@@ -153,7 +153,8 @@ object SerienStreamBypassHelper {
     }
 
     fun clearStoredSessionCookies() {
-        UserPreferences.serienStreamSessionCookies = ""
+        // Full logout: prefs + CookieManager across SerienStream / proxy origins.
+        com.dskja.betterstreamflix.providers.SerienStreamAuthManager.logout()
     }
 
     private fun seedCookieHeader(url: String, cookieHeader: String) {

@@ -51,6 +51,7 @@ import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.player.PlaybackFailover
 import com.dskja.betterstreamflix.player.PlayerBuilderFactory
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
+import com.dskja.betterstreamflix.providers.SerienStreamAuthManager
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
@@ -202,7 +203,7 @@ class PlayerMobileFragment : Fragment() {
                 ?: buildSerienStreamBypassUrl()
             if (!bypassUrl.isNullOrBlank() && !cookies.isNullOrBlank()) {
                 applyBypassCookies(bypassUrl, cookies)
-                SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
+                SerienStreamAuthManager.persist(cookies)
             }
             waitingForBypass = false
             bypassDone = true

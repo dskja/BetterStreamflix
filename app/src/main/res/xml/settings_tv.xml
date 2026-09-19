@@ -566,6 +566,55 @@
     </PreferenceScreen>
 
     <PreferenceScreen
+        android:key="screen_serienstream_auth"
+        android:title="@string/serienstream_auth_category_title"
+        android:summary="@string/settings_serienstream_session_login_summary"
+        android:widgetLayout="@layout/preference_widget_chevron">
+
+        <PreferenceCategory
+            android:key="pc_serienstream_auth"
+            android:title="@string/serienstream_auth_category_title">
+
+            <Preference
+                android:key="SERIENSTREAM_AUTH_STATUS"
+                android:title="@string/serienstream_auth_status_title"
+                android:summary="@string/serienstream_auth_status_signed_out" />
+
+            <Preference
+                android:key="SERIENSTREAM_SESSION_LOGIN"
+                android:title="@string/settings_serienstream_session_login"
+                android:summary="@string/settings_serienstream_session_login_summary" />
+
+            <Preference
+                android:key="SERIENSTREAM_SESSION_VALIDATE"
+                android:title="@string/serienstream_auth_validate"
+                android:summary="@string/serienstream_auth_validate_summary" />
+
+            <Preference
+                android:key="SERIENSTREAM_SESSION_PASTE"
+                android:title="@string/serienstream_auth_paste_title"
+                android:summary="@string/serienstream_auth_paste_summary" />
+
+            <Preference
+                android:key="SERIENSTREAM_SESSION_COPY"
+                android:title="@string/serienstream_auth_copy"
+                android:summary="@string/serienstream_auth_copy_summary" />
+
+            <Preference
+                android:key="SERIENSTREAM_SESSION_LOGOUT"
+                android:title="@string/serienstream_auth_sign_out"
+                android:summary="@string/serienstream_auth_sign_out_summary" />
+
+            <Preference
+                android:key="SERIENSTREAM_SESSION_COOKIES"
+                android:title="@string/settings_serienstream_session_cookies"
+                android:summary="@string/settings_serienstream_session_cookies_summary"
+                android:selectable="false"
+                app:isPreferenceVisible="false" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
         android:key="screen_network"
         android:title="@string/settings_category_network_title"
         android:summary="@string/settings_screen_network_summary"
@@ -654,6 +703,12 @@
         <PreferenceCategory
             android:key="pc_serienstream_settings"
             android:title="@string/settings_category_serienstream">
+
+            <Preference
+                android:key="p_serienstream_account_open"
+                android:title="@string/serienstream_auth_category_title"
+                android:summary="@string/settings_serienstream_session_login_summary"
+                android:widgetLayout="@layout/preference_widget_chevron" />
 
             <EditTextPreference
                 android:key="provider_serienstream_domain"

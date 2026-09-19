@@ -62,6 +62,7 @@ import com.dskja.betterstreamflix.cast.CastQueueCoordinator
 import com.dskja.betterstreamflix.player.PlaybackFailover
 import com.dskja.betterstreamflix.player.PlayerBuilderFactory
 import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
+import com.dskja.betterstreamflix.providers.SerienStreamAuthManager
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.fragments.player.settings.PlayerSettingsView
 import com.dskja.betterstreamflix.database.AppDatabase
@@ -2507,7 +2508,7 @@ class PlayerTvFragment : Fragment() {
         clearBypassSession(dismissDialog = true)
         applyBypassCookies(session.serverUrl, cookies)
         if (!cookies.isNullOrBlank()) {
-            SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
+            SerienStreamAuthManager.persist(cookies)
         }
 
         lifecycleScope.launch {

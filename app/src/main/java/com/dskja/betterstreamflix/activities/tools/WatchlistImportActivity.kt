@@ -430,7 +430,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             return
         }
         SerienStreamBypassHelper.applyCookies("$hostBase/", cookies)
-        val saved = SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
+        val saved = com.dskja.betterstreamflix.providers.SerienStreamAuthManager.persist(cookies)
         if (!saved) {
             Toast.makeText(this, R.string.watchlist_import_not_logged_in, Toast.LENGTH_LONG).show()
             return
@@ -452,7 +452,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             webView.url?.takeIf { it.isNotBlank() }?.let {
                 SerienStreamBypassHelper.applyCookies(it, cookies)
             }
-            SerienStreamBypassHelper.persistSessionCookiesIfValid(cookies)
+            com.dskja.betterstreamflix.providers.SerienStreamAuthManager.persist(cookies)
         }
 
         importing = true
