@@ -516,6 +516,15 @@
         <PreferenceCategory
             android:key="pc_platform_trakt"
             android:title="@string/platform_trakt_category">
+            <Preference
+                android:key="trakt_status_notice"
+                android:title="@string/platform_trakt_unavailable_title"
+                android:summary="@string/platform_trakt_unavailable_summary" />
+            <Preference
+                android:key="trakt_support_cta"
+                android:title="@string/platform_trakt_support_title"
+                android:summary="@string/platform_trakt_support_summary"
+                android:icon="@drawable/ic_support_heart" />
             <SwitchPreference
                 android:key="TRAKT_ENABLED"
                 android:title="@string/platform_trakt_enabled_title"

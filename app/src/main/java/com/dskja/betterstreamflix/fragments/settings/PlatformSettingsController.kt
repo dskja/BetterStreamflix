@@ -91,18 +91,59 @@ object PlatformSettingsController {
             get = { UserPreferences.traktEnabled },
             set = { UserPreferences.traktEnabled = it },
         )
-        fun refreshTraktLoginSummary() {
-            findPreference("trakt_oauth_login")?.summary = when {
-                !TraktConfig.hasAppCredentials() ->
-                    context.getString(R.string.platform_trakt_oauth_app_not_configured)
-                TraktConfig.isSignedIn() ->
-                    context.getString(R.string.platform_trakt_oauth_signed_in_summary)
-                else ->
-                    context.getString(R.string.platform_trakt_oauth_login_summary)
+        fun openSupportHub() {
+            runCatching {
+                androidx.navigation.fragment.NavHostFragment.findNavController(fragment)
+                    .navigate(R.id.support)
+            }.onFailure {
+                Toast.makeText(context, R.string.support_unable_to_open_link, Toast.LENGTH_SHORT).show()
             }
-            findPreference("trakt_oauth_logout")?.isEnabled = TraktConfig.isSignedIn()
+        }
+
+        fun showTraktUnavailableDialog() {
+            AlertDialog.Builder(context)
+                .setTitle(R.string.platform_trakt_unavailable_dialog_title)
+                .setMessage(R.string.platform_trakt_unavailable_dialog_message)
+                .setPositiveButton(R.string.platform_trakt_unavailable_dialog_support) { _, _ ->
+                    openSupportHub()
+                }
+                .setNegativeButton(android.R.string.ok, null)
+                .show()
+        }
+
+        fun refreshTraktLoginSummary() {
+            val available = TraktConfig.hasAppCredentials()
+            findPreference("trakt_status_notice")?.isVisible = !available
+            findPreference("trakt_support_cta")?.isVisible = !available
+            findPreference("TRAKT_ENABLED")?.isEnabled = available
+            findPreference("trakt_oauth_login")?.apply {
+                isEnabled = available
+                summary = when {
+                    !available -> context.getString(R.string.platform_trakt_oauth_login_unavailable_summary)
+                    TraktConfig.isSignedIn() -> context.getString(R.string.platform_trakt_oauth_signed_in_summary)
+                    else -> context.getString(R.string.platform_trakt_oauth_login_summary)
+                }
+            }
+            findPreference("trakt_oauth_logout")?.isEnabled = available && TraktConfig.isSignedIn()
+            findPreference("trakt_device_auth_start")?.isEnabled = available
+            findPreference("trakt_device_auth_help")?.isEnabled = available
+            findPreference("pc_platform_trakt")?.summary = if (available) {
+                null
+            } else {
+                context.getString(R.string.platform_trakt_unavailable_title)
+            }
         }
         refreshTraktLoginSummary()
+
+        findPreference("trakt_status_notice")?.setOnPreferenceClickListener {
+            showTraktUnavailableDialog()
+            true
+        }
+        findPreference("trakt_support_cta")?.setOnPreferenceClickListener {
+            openSupportHub()
+            true
+        }
+
         bindText(
             key = "JELLYFIN_BASE_URL",
             get = { UserPreferences.jellyfinBaseUrl },
@@ -232,6 +273,10 @@ object PlatformSettingsController {
         }
 
         findPreference("trakt_device_auth_help")?.setOnPreferenceClickListener {
+            if (!TraktConfig.hasAppCredentials()) {
+                showTraktUnavailableDialog()
+                return@setOnPreferenceClickListener true
+            }
             context.startActivity(
                 Intent(Intent.ACTION_VIEW, Uri.parse(TraktConfig.authorizeHelpUrl(context))),
             )
@@ -240,12 +285,12 @@ object PlatformSettingsController {
 
         findPreference("trakt_oauth_login")?.setOnPreferenceClickListener {
             if (!TraktConfig.hasAppCredentials()) {
-                Toast.makeText(context, R.string.platform_trakt_oauth_app_not_configured, Toast.LENGTH_LONG).show()
+                showTraktUnavailableDialog()
                 return@setOnPreferenceClickListener true
             }
             val intent = com.dskja.betterstreamflix.platform.trakt.TraktOAuth.authorizeIntent(context)
             if (intent == null) {
-                Toast.makeText(context, R.string.platform_trakt_oauth_app_not_configured, Toast.LENGTH_LONG).show()
+                showTraktUnavailableDialog()
                 return@setOnPreferenceClickListener true
             }
             runCatching { context.startActivity(intent) }
@@ -260,6 +305,10 @@ object PlatformSettingsController {
         }
 
         findPreference("trakt_oauth_logout")?.setOnPreferenceClickListener {
+            if (!TraktConfig.hasAppCredentials()) {
+                showTraktUnavailableDialog()
+                return@setOnPreferenceClickListener true
+            }
             TraktClient.logout()
             refreshTraktLoginSummary()
             Toast.makeText(context, R.string.platform_trakt_oauth_logged_out, Toast.LENGTH_SHORT).show()
@@ -268,7 +317,7 @@ object PlatformSettingsController {
 
         findPreference("trakt_device_auth_start")?.setOnPreferenceClickListener {
             if (!TraktConfig.hasAppCredentials()) {
-                Toast.makeText(context, R.string.platform_trakt_oauth_app_not_configured, Toast.LENGTH_LONG).show()
+                showTraktUnavailableDialog()
                 return@setOnPreferenceClickListener true
             }
             scope.launch {
