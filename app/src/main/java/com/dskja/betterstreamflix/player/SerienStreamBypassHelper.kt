@@ -3,6 +3,7 @@ package com.dskja.betterstreamflix.player
 import android.net.Uri
 import android.webkit.CookieManager
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.providers.SerienStreamEndpoints
 import com.dskja.betterstreamflix.providers.SerienStreamProvider
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import com.dskja.betterstreamflix.utils.UserPreferences
@@ -21,20 +22,19 @@ object SerienStreamBypassHelper {
     )
 
     /** Cookie names that indicate a real SerienStream / CF / session pass. */
-    private val AUTH_COOKIE_MARKERS = listOf(
+    private val AUTH_COOKIE_NAME_EXACT = setOf(
         "cf_clearance",
         "ddos_token",
-        "remember",
-        "login",
-        "session",
         "phpsessid",
-        "xsrf",
-        "laravel",
+        "laravel_session",
+        "xsrf-token",
         "altcha",
-        "serien",
-        "auth",
-        "token",
-        "sso",
+    )
+    private val AUTH_COOKIE_NAME_PREFIXES = listOf(
+        "remember_",
+        "remember-",
+        "serien_",
+        "login_",
     )
 
     fun isSerienStreamHost(url: String): Boolean {
@@ -130,8 +130,15 @@ object SerienStreamBypassHelper {
     fun looksLikeBypassSolved(cookieHeader: String): Boolean {
         val cleaned = sanitizeSessionCookies(cookieHeader)
         if (cleaned.isBlank()) return false
-        val lower = cleaned.lowercase(Locale.US)
-        return AUTH_COOKIE_MARKERS.any { lower.contains(it) }
+        val names = cleaned.split(";")
+            .map { it.trim() }
+            .filter { it.contains("=") }
+            .map { it.substringBefore("=").trim().lowercase(Locale.US) }
+            .filter { it.isNotBlank() }
+        return names.any { name ->
+            name in AUTH_COOKIE_NAME_EXACT ||
+                AUTH_COOKIE_NAME_PREFIXES.any { name.startsWith(it) }
+        }
     }
 
     /** Persist sanitized cookies only when they look like a real session. */
@@ -162,11 +169,13 @@ object SerienStreamBypassHelper {
             add("https://serienstream.to/")
             add("https://serienstream.cx/")
             SerienStreamProvider.candidateDomains().forEach { domain ->
-                add("https://$domain/")
+                add(SerienStreamEndpoints.originFor(domain))
             }
             runCatching {
                 add(SerienStreamProvider.baseUrl.trimEnd('/') + "/")
             }
+            // Always seed the official proxy origin (HTTP) alongside hostname mirrors.
+            add(SerienStreamEndpoints.originFor(SerienStreamEndpoints.PROXY_HOST))
         }
         val cookieManager = CookieManager.getInstance()
         val byName = linkedMapOf<String, String>()

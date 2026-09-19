@@ -140,6 +140,7 @@ class PlayerMobileFragment : Fragment() {
     private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
 
     private lateinit var player: ExoPlayer
+    private var playbackListener: Player.Listener? = null
     private var castPlayer: CastPlayer? = null
     private var isCasting = false
     private var lastCastHeaders: Map<String, String> = emptyMap()
@@ -395,7 +396,16 @@ class PlayerMobileFragment : Fragment() {
                                     })
                                     .build()
                                 binding.settings.setOnServerSelectedListener { server ->
-                                    viewModel.getVideo(state.servers.find { server.id == it.id }!!)
+                                    val selected = state.servers.find { server.id == it.id }
+                                    if (selected == null) {
+                                        Toast.makeText(
+                                            requireContext(),
+                                            R.string.player_server_unavailable,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                        return@setOnServerSelectedListener
+                                    }
+                                    viewModel.getVideo(selected)
                                 }
                                 val preferredServer = state.servers.firstOrNull {
                                     it.name.equals(args.preferredServerName, ignoreCase = true)
@@ -1279,7 +1289,8 @@ class PlayerMobileFragment : Fragment() {
                 startActivity(Intent.createChooser(intent, getString(R.string.player_external_player_title)))
             }
         }
-        player.addListener(object : Player.Listener {
+        playbackListener?.let { runCatching { player.removeListener(it) } }
+        val playbackListenerLocal = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
                 binding.pvPlayer.keepScreenOn = isPlaying || UserPreferences.keepScreenOnWhenPaused
@@ -1451,7 +1462,9 @@ class PlayerMobileFragment : Fragment() {
                     }
                 }
             }
-        })
+        }
+        playbackListener = playbackListenerLocal
+        player.addListener(playbackListenerLocal)
 
         if (currentPosition == 0L) {
             if (isLiveTvPlayback()) {
@@ -2134,6 +2147,8 @@ class PlayerMobileFragment : Fragment() {
         binding.settings.player = null
         binding.settings.subtitleView = null
         if (::player.isInitialized) {
+            playbackListener?.let { runCatching { player.removeListener(it) } }
+            playbackListener = null
             player.release()
         }
         if (::mediaSession.isInitialized) {

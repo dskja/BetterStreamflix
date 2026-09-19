@@ -151,6 +151,7 @@ class PlayerTvFragment : Fragment() {
     private val viewModel by viewModelsFactory { PlayerViewModel(args.videoType, args.id) }
 
     private lateinit var player: ExoPlayer
+    private var playbackListener: Player.Listener? = null
     private var castPlayer: CastPlayer? = null
     private var isCasting = false
     private var lastCastHeaders: Map<String, String> = emptyMap()
@@ -497,7 +498,7 @@ class PlayerTvFragment : Fragment() {
                                     serverCount = servers.size,
                                     playbackAlreadyStarted = false,
                                     softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
-                                    allowMidPlaybackFailover = false,
+                                    allowMidPlaybackFailover = true,
                                     externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
                                         com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
                                     externalPlayerAlreadyTried = currentExternalPlayerTried,
@@ -1384,7 +1385,8 @@ class PlayerTvFragment : Fragment() {
                 }
             }
 
-            player.addListener(object : Player.Listener {
+            playbackListener?.let { runCatching { player.removeListener(it) } }
+            val playbackListenerLocal = object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     super.onPlaybackStateChanged(playbackState)
 
@@ -1543,7 +1545,7 @@ class PlayerTvFragment : Fragment() {
                             serverCount = servers.size,
                             playbackAlreadyStarted = ::player.isInitialized && player.hasStarted(),
                             softwareDecoderAlreadyEnabled = currentSoftwareDecoder,
-                            allowMidPlaybackFailover = false,
+                            allowMidPlaybackFailover = true,
                             externalPlayerAvailable = com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.canResolve(requireContext()) ||
                                 com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal(),
                             externalPlayerAlreadyTried = currentExternalPlayerTried,
@@ -1589,7 +1591,9 @@ class PlayerTvFragment : Fragment() {
                         }
                     }
                 }
-            })
+            }
+            playbackListener = playbackListenerLocal
+            player.addListener(playbackListenerLocal)
 
             if (startPositionMs != null) {
                 player.seekTo(startPositionMs)
@@ -2276,6 +2280,8 @@ class PlayerTvFragment : Fragment() {
             binding.settings.player = null
             binding.settings.subtitleView = null
             if (::player.isInitialized) {
+                playbackListener?.let { runCatching { player.removeListener(it) } }
+                playbackListener = null
                 player.release()
             }
             if (::mediaSession.isInitialized) {

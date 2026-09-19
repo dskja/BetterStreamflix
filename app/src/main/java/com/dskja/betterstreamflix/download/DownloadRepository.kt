@@ -2,6 +2,7 @@ package com.dskja.betterstreamflix.download
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.StreamKey
 import androidx.media3.exoplayer.offline.Download
@@ -246,11 +247,33 @@ class DownloadRepository private constructor(
 
     suspend fun resumeAll() {
         if (UserPreferences.downloadWifiOnly && DownloadConnectivityMonitor.isMetered(context)) return
-        DownloadService.sendResumeDownloads(
-            context,
-            StreamflixDownloadService::class.java,
-            false,
-        )
+        // Connectivity watcher can fire while the app is backgrounded (Android 12+),
+        // which throws BackgroundServiceStartNotAllowedException / IllegalStateException.
+        // Prefer a foreground start; if that is still blocked, skip silently until next
+        // foreground resume (notification action / Downloads tab).
+        val started = runCatching {
+            DownloadService.sendResumeDownloads(
+                context,
+                StreamflixDownloadService::class.java,
+                /* foreground= */ true,
+            )
+            true
+        }.recoverCatching { first ->
+            Log.w(TAG, "Foreground resume blocked (${first.message}); retrying foreground service start")
+            runCatching {
+                StreamflixDownloadService.start(context)
+                DownloadService.sendResumeDownloads(
+                    context,
+                    StreamflixDownloadService::class.java,
+                    /* foreground= */ true,
+                )
+                true
+            }.getOrElse { second ->
+                Log.w(TAG, "Skipping resumeAll while backgrounded: ${second.message}")
+                false
+            }
+        }.getOrDefault(false)
+        if (!started) return
         // Only resume paused rows. Hard failures (DRM/network/etc.) stay failed until manual retry.
         getAllOnce()
             .filter {
@@ -359,6 +382,8 @@ class DownloadRepository private constructor(
     }
 
     companion object {
+        private const val TAG = "DownloadRepository"
+
         @Volatile
         private var instance: DownloadRepository? = null
 

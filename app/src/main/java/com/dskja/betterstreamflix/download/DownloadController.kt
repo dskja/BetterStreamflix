@@ -574,29 +574,8 @@ object DownloadController {
         source.contains("drm", ignoreCase = true) && source.contains("license", ignoreCase = true)
 
     private fun classifyFailure(e: Exception): DownloadEnqueueOutcome.Failed {
+        val code = DownloadErrorClassifier.classify(e)
         val msg = e.message.orEmpty()
-        val chain = generateSequence(e as Throwable?) { it.cause }
-            .mapNotNull { it.message }
-            .joinToString(" ")
-        val hay = "$msg $chain"
-        val code = when {
-            hay.contains("end of input", true) ||
-                hay.contains("End of input", true) ||
-                (hay.contains("character 0", true) && hay.contains("input", true)) ||
-                hay.contains("Unexpected end", true) ||
-                hay.contains("empty response", true) ||
-                hay.contains("Empty body", true) -> DownloadErrorCode.EMPTY_RESPONSE
-            hay.contains("cloudflare", true) || hay.contains("captcha", true) ||
-                hay.contains("Just a moment", true) -> DownloadErrorCode.CLOUDFLARE
-            hay.contains("403") || hay.contains("401") -> DownloadErrorCode.CLOUDFLARE
-            hay.contains("DRM", true) || hay.contains("Widevine", true) -> DownloadErrorCode.DRM
-            hay.contains("Unable to resolve host", true) || hay.contains("timeout", true) ||
-                hay.contains("UnknownHost", true) || hay.contains("SocketTimeout", true) ->
-                DownloadErrorCode.NETWORK
-            hay.contains("No servers", true) || hay.contains("servers found", true) ->
-                DownloadErrorCode.NO_SERVERS
-            else -> DownloadErrorCode.UNKNOWN
-        }
         val display = when (code) {
             DownloadErrorCode.EMPTY_RESPONSE -> "Empty response"
             DownloadErrorCode.NO_SERVERS -> "No servers found"

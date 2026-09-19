@@ -375,6 +375,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             HomeCacheStore.write(appContext, provider, categories)
             _state.emit(State.SuccessLoading(categories))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("HomeViewModel", "getHome: ", e)
             ProviderSmoke.noteHomeFailure(provider.name)
             CrashReporter.logNonFatal("HomeViewModel", "getHome failed for ${provider.name}", e)
