@@ -697,6 +697,16 @@
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
             <Preference
+                android:key="trakt_oauth_login"
+                android:title="@string/platform_trakt_oauth_login_title"
+                android:summary="@string/platform_trakt_oauth_login_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="trakt_oauth_logout"
+                android:title="@string/platform_trakt_oauth_logout_title"
+                android:summary="@string/platform_trakt_oauth_logout_summary"
+                app:iconSpaceReserved="false" />
+            <Preference
                 android:key="trakt_device_auth_start"
                 android:title="@string/platform_trakt_device_auth_title"
                 android:summary="@string/platform_trakt_device_auth_summary"

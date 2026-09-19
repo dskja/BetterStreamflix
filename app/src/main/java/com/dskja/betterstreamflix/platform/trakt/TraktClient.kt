@@ -96,6 +96,42 @@ object TraktClient {
         val expiresInSeconds: Int,
     )
 
+    suspend fun exchangeAuthorizationCode(code: String): Boolean = withContext(Dispatchers.IO) {
+        val clientId = TraktConfig.clientId()
+        val clientSecret = UserPreferences.traktClientSecret.trim()
+        if (clientId.isBlank() || clientSecret.isBlank() || code.isBlank()) return@withContext false
+        val body = JSONObject()
+            .put("code", code)
+            .put("client_id", clientId)
+            .put("client_secret", clientSecret)
+            .put("redirect_uri", TraktConfig.OAUTH_REDIRECT_URI)
+            .put("grant_type", "authorization_code")
+            .toString()
+        runCatching {
+            val request = Request.Builder()
+                .url("${TraktConfig.API_BASE}/oauth/token")
+                .post(body.toRequestBody(jsonMedia))
+                .header("Content-Type", "application/json")
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "oauth exchange HTTP ${response.code}: $raw")
+                    return@use false
+                }
+                storeTokens(JSONObject(raw))
+                true
+            }
+        }.getOrElse {
+            Log.w(TAG, "oauth exchange failed: ${it.message}")
+            false
+        }
+    }
+
+    fun logout() {
+        clearAuth()
+    }
+
     suspend fun requestDeviceCode(): DeviceCode? = withContext(Dispatchers.IO) {
         val clientId = TraktConfig.clientId()
         if (clientId.isBlank()) return@withContext null

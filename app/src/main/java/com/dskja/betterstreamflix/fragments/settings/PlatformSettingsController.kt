@@ -243,6 +243,39 @@ object PlatformSettingsController {
             true
         }
 
+        findPreference("trakt_oauth_login")?.setOnPreferenceClickListener {
+            if (UserPreferences.traktClientId.isBlank() || UserPreferences.traktClientSecret.isBlank()) {
+                Toast.makeText(context, R.string.platform_trakt_oauth_missing_credentials, Toast.LENGTH_LONG).show()
+                return@setOnPreferenceClickListener true
+            }
+            val intent = com.dskja.betterstreamflix.platform.trakt.TraktOAuth.authorizeIntent(context)
+            if (intent == null) {
+                Toast.makeText(context, R.string.platform_trakt_oauth_missing_credentials, Toast.LENGTH_LONG).show()
+                return@setOnPreferenceClickListener true
+            }
+            runCatching { context.startActivity(intent) }
+                .onFailure {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.platform_trakt_oauth_failed, it.message ?: "browser"),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            true
+        }
+
+        findPreference("trakt_oauth_logout")?.setOnPreferenceClickListener {
+            TraktClient.logout()
+            bindText(
+                key = "TRAKT_ACCESS_TOKEN",
+                get = { UserPreferences.traktAccessToken },
+                set = { UserPreferences.traktAccessToken = it },
+                mask = true,
+            )
+            Toast.makeText(context, R.string.platform_trakt_oauth_logout_title, Toast.LENGTH_SHORT).show()
+            true
+        }
+
         findPreference("trakt_device_auth_start")?.setOnPreferenceClickListener {
             if (UserPreferences.traktClientId.isBlank() || UserPreferences.traktClientSecret.isBlank()) {
                 Toast.makeText(context, R.string.platform_trakt_device_auth_failed, Toast.LENGTH_LONG).show()
