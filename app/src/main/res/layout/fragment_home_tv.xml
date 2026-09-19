@@ -35,6 +35,33 @@
         tools:itemCount="1"
         tools:listitem="@layout/content_category_swiper_tv" />
 
+    <TextView
+        android:id="@+id/tv_home_catalog_warning"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="48dp"
+        android:background="@drawable/bg_home_catalog_warning"
+        android:clickable="true"
+        android:elevation="12dp"
+        android:ellipsize="end"
+        android:focusable="true"
+        android:fontFamily="@font/manrope"
+        android:maxLines="2"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="10dp"
+        android:textColor="#F5E6D3"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Catalog unavailable — showing cache"
+        tools:visibility="visible" />
+
     <include
         android:id="@+id/is_loading"
         layout="@layout/layout_is_loading_tv"

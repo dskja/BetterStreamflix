@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Massive providers + home upgrade: shared `HomeCatalogPipeline` (FEATURED synthesis, providerName stamp, absolute artwork URLs, empty-shelf drop, dedupe), home circuit breaker in `ProviderSmoke`, persistent catalog warning banner (Mobile/TV, tap to retry), `ProviderDefaults` stubs, healthier provider picker ranking, expanded quarantine/smoke lists
+- Home cache now persists `providerName` so stale-while-revalidate shelves keep ownership across process death
 - Massive IPTV live player: channel guide session with prev/next zapping, Go Live edge seek, pulsing LIVE badge, channel meta chrome, live-tuned ExoPlayer buffers + Media3 LiveConfiguration, IPTV-Org/Spain channel list overrides
 - Massive TMDb upgrade: in-memory detail/IMDb/search cache, Find-by-IMDb enrichment, home shelves (Now Playing / Upcoming / On The Air / Airing Today / Top Rated), `tmdbId` on models, provider enable gate, Settings status + connection test + cache clear
 - Massive Support system expansion: smart startup cooldown (5 days / max 8), durable appreciation thanks across process death, Impact goals + FAQ on Mobile/TV hubs, Issues/Releases links, Details Telegram + impact, Preview wires hero/impact/FAQ, Thanks → Discord
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Settings → Miscellaneous hardened against BETTERSTREAMFLIX-K recurrence: dependency sanitizer on nested PreferenceScreens + regression tests that `screen_more` never keeps cross-screen `android:dependency`
+- Home soft-fail no longer relies on Toast-only warnings — catalog issues stay visible until retry succeeds
 - Home featured swiper crash after leave (BETTERSTREAMFLIX-1): clear ViewPager auto-advance on recycle
 - Videasy decrypt empty/`JSONObject("")` crash (BETTERSTREAMFLIX-4)
 - TMDb trending ClassCastException on incomplete MultiItem JSON (BETTERSTREAMFLIX-Q)

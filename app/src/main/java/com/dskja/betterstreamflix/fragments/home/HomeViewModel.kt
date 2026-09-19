@@ -17,6 +17,7 @@ import com.dskja.betterstreamflix.ui.UserDataNotifier
 import com.dskja.betterstreamflix.utils.CrashReporter
 import com.dskja.betterstreamflix.utils.CrossProviderLibrary
 import com.dskja.betterstreamflix.utils.HomeCacheStore
+import com.dskja.betterstreamflix.utils.HomeCatalogPipeline
 import com.dskja.betterstreamflix.utils.ParentalControlUtils
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.utils.UserDataCache
@@ -347,7 +348,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         currentProvider = provider
         val appContext = BetterStreamflixApp.instance.applicationContext
-        val cachedCategories = HomeCacheStore.read(appContext, provider)
+        val rawCached = HomeCacheStore.read(appContext, provider)
+        val cachedCategories = rawCached?.let {
+            HomeCatalogPipeline.process(provider, it).categories
+        }
         val deferCachedHomeForClearance =
                 provider === AnimeOnlineNinjaProvider &&
                         !AnimeOnlineNinjaProvider.hasCurrentClearanceCookie()
@@ -365,6 +369,16 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 com.dskja.betterstreamflix.platform.trakt.TraktContinueWatching.load()
         }
 
+        // Circuit breaker: prefer cache over hammering a dead origin.
+        if (ProviderSmoke.isHomeCircuitOpen(provider.name) &&
+            !cachedCategories.isNullOrEmpty() &&
+            !deferCachedHomeForClearance
+        ) {
+            val hint = ProviderSmoke.circuitHint(provider.name)
+            _state.emit(State.SuccessLoading(cachedCategories, providerWarning = hint))
+            return@launch
+        }
+
         try {
             val categories = ProviderSmoke.withProviderTimeout(
                 timeoutMs = ProviderSmoke.HOME_TIMEOUT_MS,
@@ -376,16 +390,27 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                 com.dskja.betterstreamflix.platform.plugins.PluginManager
                     .collectHomeCategories(provider)
             }.getOrDefault(emptyList())
-            val merged = categories + addonRows
-            HomeCacheStore.write(appContext, provider, merged)
-            _state.emit(State.SuccessLoading(merged))
+            val processed = HomeCatalogPipeline.process(provider, categories, addonRows)
+            HomeCacheStore.write(appContext, provider, processed.categories)
+            ProviderSmoke.noteHomeSuccess(provider.name)
+            _state.emit(
+                State.SuccessLoading(
+                    processed.categories,
+                    providerWarning = processed.warningText,
+                )
+            )
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("HomeViewModel", "getHome: ", e)
             ProviderSmoke.noteHomeFailure(provider.name)
             CrashReporter.logNonFatal("HomeViewModel", "getHome failed for ${provider.name}", e)
-            val warning = e.message?.takeIf { it.isNotBlank() }
-                ?: "Catalog unavailable for ${provider.name}"
+            val warning = buildString {
+                append(e.message?.takeIf { it.isNotBlank() }
+                    ?: "Catalog unavailable for ${provider.name}")
+                if (ProviderSmoke.isHomeCircuitOpen(provider.name)) {
+                    append(" · paused after repeated failures")
+                }
+            }
             if (!cachedCategories.isNullOrEmpty()) {
                 // Keep serving cache on failure / timeout (including deferred clearance case).
                 _state.emit(State.SuccessLoading(cachedCategories, providerWarning = warning))

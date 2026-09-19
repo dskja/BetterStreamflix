@@ -18,6 +18,9 @@ object ProviderHealth {
         "FrenchManga",
         "Poseidonhd2",
         "SeriesFlix",
+        "MKissa",
+        "FrenchAnime",
+        "Doramasflix",
     )
 
     /** High-traffic providers that smoke harnesses should prioritize. */
@@ -34,6 +37,10 @@ object ProviderHealth {
         "Cine24h",
         "SoloLatino",
         "MEGAKino",
+        "Filmpalast",
+        "KinoGer",
+        "AnyMovie",
+        "HiAnime",
     )
 
     fun isQuarantined(provider: Provider): Boolean =
@@ -51,5 +58,16 @@ object ProviderHealth {
     fun smokeTargets(includeQuarantined: Boolean = false): List<Provider> {
         val active = activeProviders(includeQuarantined).associateBy { it.name }
         return topSmokeNames.mapNotNull { active[it] }
+    }
+
+    /**
+     * Sort key for the provider picker: recently healthy homes rise, open circuits sink.
+     * Lower is better.
+     */
+    fun pickerRank(providerName: String): Int {
+        if (isQuarantinedName(providerName)) return 1_000
+        if (ProviderSmoke.isHomeCircuitOpen(providerName)) return 500
+        val failures = ProviderSmoke.failureCount(providerName)
+        return failures.coerceAtMost(50)
     }
 }

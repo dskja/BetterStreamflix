@@ -133,6 +133,7 @@ object HomeCacheStore {
         val rating: Double? = null,
         val poster: String? = null,
         val banner: String? = null,
+        val providerName: String? = null,
         val episodeNumber: Int? = null,
         val tvShowId: String? = null,
         val tvShowTitle: String? = null,
@@ -172,6 +173,7 @@ object HomeCacheStore {
                     rating = rating,
                     poster = poster,
                     banner = banner,
+                    providerName = providerName,
                 ).apply {
                     this.watchHistory = watchHistory
                 }
@@ -187,6 +189,7 @@ object HomeCacheStore {
                     rating = rating,
                     poster = poster,
                     banner = banner,
+                    providerName = providerName,
                 )
 
                 "episode" -> Episode(
@@ -202,6 +205,7 @@ object HomeCacheStore {
                             title = tvShowTitle.orEmpty(),
                             poster = tvShowPoster,
                             banner = tvShowBanner,
+                            providerName = providerName,
                         )
                     },
                     season = seasonId?.let {
@@ -235,6 +239,7 @@ object HomeCacheStore {
                         rating = item.rating,
                         poster = item.poster,
                         banner = item.banner,
+                        providerName = item.providerName,
                         lastPlaybackPositionMillis = item.watchHistory?.lastPlaybackPositionMillis,
                         durationMillis = item.watchHistory?.durationMillis,
                         lastEngagementTimeUtcMillis = item.watchHistory?.lastEngagementTimeUtcMillis,
@@ -252,6 +257,7 @@ object HomeCacheStore {
                         rating = item.rating,
                         poster = item.poster,
                         banner = item.banner,
+                        providerName = item.providerName,
                     )
 
                     is Episode -> CachedItem(
@@ -261,6 +267,7 @@ object HomeCacheStore {
                         overview = item.overview,
                         released = item.released?.format("yyyy-MM-dd"),
                         poster = item.poster,
+                        providerName = item.tvShow?.providerName,
                         episodeNumber = item.number,
                         tvShowId = item.tvShow?.id,
                         tvShowTitle = item.tvShow?.title,
