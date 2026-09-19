@@ -88,6 +88,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
     private lateinit var backupRestoreManager: BackupRestoreManager
     private var backupLoadingDialog: AlertDialog? = null
+    private var settingsHubController: SettingsHubController? = null
 
     private val exportBackupLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -207,20 +208,52 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         SettingsListStyler.attach(view, isTv = false)
+        ensureSettingsHub(view)
+    }
+
+    override fun onDestroyView() {
+        settingsHubController?.detach()
+        settingsHubController = null
+        super.onDestroyView()
     }
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         if (preference is PreferenceScreen && !preference.key.isNullOrBlank()) {
-            screenBackStack.addLast(currentScreenState)
-            currentScreenState = SettingsScreenState(
-                rootKey = preference.key,
-                title = preference.title?.toString(),
+            openNestedSettingsScreen(
+                key = preference.key!!,
+                title = preference.title?.toString()
+                    ?: getString(R.string.player_settings_title),
             )
-            settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
-            renderCurrentScreen()
             return true
         }
         return super.onPreferenceTreeClick(preference)
+    }
+
+    private fun ensureSettingsHub(view: View) {
+        if (!ExperimentalMobileDesign.enabled()) {
+            settingsHubController?.detach()
+            settingsHubController = null
+            return
+        }
+        val controller = settingsHubController ?: SettingsHubController(
+            fragment = this,
+            isAtRoot = { currentScreenState.rootKey == null },
+            onOpenPreferenceScreen = { key, title -> openNestedSettingsScreen(key, title) },
+            onOpenSupport = {
+                runCatching { findNavController().navigate(R.id.support) }
+            },
+            onOpenAbout = {
+                runCatching { findNavController().navigate(R.id.settings_about) }
+            },
+        ).also { settingsHubController = it }
+        controller.attach(view)
+    }
+
+    private fun openNestedSettingsScreen(key: String, title: String) {
+        screenBackStack.addLast(currentScreenState)
+        currentScreenState = SettingsScreenState(rootKey = key, title = title)
+        settingsBackCallback.isEnabled = screenBackStack.isNotEmpty()
+        renderCurrentScreen()
     }
 
     override fun onDisplayPreferenceDialog(preference: Preference) {
@@ -240,6 +273,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             displaySettings()
         }
         applyScreenTitle()
+        view?.let { ensureSettingsHub(it) }
+        settingsHubController?.updateVisibility()
     }
 
     private fun displaySettings() {

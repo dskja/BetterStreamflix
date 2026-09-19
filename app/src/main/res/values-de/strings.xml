@@ -301,6 +301,8 @@
     <string name="voice_error_no_result">Keine Spracheingabe erkannt.</string>
     <string name="voice_prompt">Jetzt sprechen</string>
     <string name="backup_category_title">Backup und Wiederherstellung</string>
+    <string name="cloud_sync_title">Konto und Sync</string>
+    <string name="cloud_sync_screen_summary">Favoriten und Verlauf zwischen Geräten synchronisieren</string>
     <string name="backup_export_title">Benutzerdaten exportieren</string>
     <string name="backup_export_summary">Sichern Sie Ihre Daten (Favoriten, Verlauf) in einer Datei.</string>
     <string name="backup_import_title">Benutzerdaten importieren</string>
@@ -442,6 +444,15 @@
     <string name="settings_immersive_mode_off">Aus (Leisten sichtbar)</string>
     <string name="settings_experimental_new_design_title">Experimentelle UI</string>
     <string name="settings_experimental_new_design_summary">Die nächste BetterStreamflix-Oberfläche ausprobieren. Startet die App neu. Standardmäßig aus.</string>
+    <string name="settings_hub_eyebrow">Einstellungen</string>
+    <string name="settings_hub_title">Kontrollzentrum</string>
+    <string name="settings_hub_subtitle">Integrationen, Wiedergabe, Konto und Projekt — alles in einem cinematic Hub.</string>
+    <string name="settings_hub_featured_badge">Neu</string>
+    <string name="settings_hub_featured_cta">Integrationen öffnen</string>
+    <string name="settings_hub_section_app">App</string>
+    <string name="settings_hub_section_account">Konto</string>
+    <string name="settings_hub_section_project">Projekt</string>
+    <string name="settings_hub_more_summary">Updates, Community-Links, Hilfe und Diagnose</string>
     <string name="exp_home_tagline">Dein Kino, in deinen Farben</string>
     <string name="exp_back">Zurück</string>
     <string name="exp_swiper_page">Empfohlen: %1$s</string>

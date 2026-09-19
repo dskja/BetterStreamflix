@@ -799,69 +799,76 @@
         </PreferenceCategory>
     </PreferenceScreen>
 
-    <PreferenceCategory
-        android:title="@string/miscelaneous_title">
+    <Preference
+        android:icon="@drawable/ic_support_heart"
+        android:key="p_settings_support"
+        android:title="@string/support_settings_entry_title"
+        android:summary="@string/support_settings_entry_summary"
+        android:widgetLayout="@layout/preference_widget_chevron" />
 
-        <Preference
-            android:icon="@drawable/ic_support_heart"
-            android:key="p_settings_support"
-            android:title="@string/support_settings_entry_title"
-            android:summary="@string/support_settings_entry_summary" />
+    <PreferenceScreen
+        android:key="screen_more"
+        android:title="@string/miscelaneous_title"
+        android:summary="@string/settings_hub_more_summary"
+        android:widgetLayout="@layout/preference_widget_chevron">
 
-        <SwitchPreference
-            android:key="UPDATE_CHECK_ENABLED"
-            android:title="@string/settings_update_check"
-            android:summary="@string/settings_update_check_summary"
-            android:defaultValue="true" />
+        <PreferenceCategory android:title="@string/miscelaneous_title">
 
-        <SwitchPreference
-            android:key="EXPERIMENTAL_NEW_APP_DESIGN"
-            android:title="@string/settings_experimental_new_design_title"
-            android:summary="@string/settings_experimental_new_design_summary"
-            android:defaultValue="false" />
+            <SwitchPreference
+                android:key="UPDATE_CHECK_ENABLED"
+                android:title="@string/settings_update_check"
+                android:summary="@string/settings_update_check_summary"
+                android:defaultValue="true" />
 
-        <Preference
-            android:icon="@drawable/ic_telegram"
-            android:key="p_settings_telegram"
-            android:title="@string/settings_telegram" />
+            <SwitchPreference
+                android:key="EXPERIMENTAL_NEW_APP_DESIGN"
+                android:title="@string/settings_experimental_new_design_title"
+                android:summary="@string/settings_experimental_new_design_summary"
+                android:defaultValue="false" />
 
-        <Preference
-            android:icon="@drawable/ic_patreon"
-            android:key="p_settings_patreon"
-            android:title="@string/settings_patreon"
-            android:summary="@string/settings_patreon_summary" />
+            <Preference
+                android:icon="@drawable/ic_telegram"
+                android:key="p_settings_telegram"
+                android:title="@string/settings_telegram" />
 
-        <Preference
-            android:icon="@drawable/ic_buy_me_a_coffee"
-            android:key="p_settings_buy_me_a_coffee"
-            android:title="@string/settings_buy_me_a_coffee"
-            android:summary="@string/settings_buy_me_a_coffee_summary" />
+            <Preference
+                android:icon="@drawable/ic_patreon"
+                android:key="p_settings_patreon"
+                android:title="@string/settings_patreon"
+                android:summary="@string/settings_patreon_summary" />
 
-        <Preference
-            android:icon="@drawable/ic_discord"
-            android:key="p_settings_discord"
-            android:title="@string/settings_discord"
-            android:summary="@string/settings_discord_summary" />
+            <Preference
+                android:icon="@drawable/ic_buy_me_a_coffee"
+                android:key="p_settings_buy_me_a_coffee"
+                android:title="@string/settings_buy_me_a_coffee"
+                android:summary="@string/settings_buy_me_a_coffee_summary" />
 
-        <Preference
-            android:key="VIEW_CRASH_LOG"
-            android:title="@string/settings_view_crash_log_title"
-            android:summary="@string/settings_view_crash_log_summary" />
+            <Preference
+                android:icon="@drawable/ic_discord"
+                android:key="p_settings_discord"
+                android:title="@string/settings_discord"
+                android:summary="@string/settings_discord_summary" />
 
-        <Preference
-            android:key="SEND_SENTRY_FEEDBACK"
-            android:title="@string/settings_send_sentry_feedback_title"
-            android:summary="@string/settings_send_sentry_feedback_summary" />
+            <Preference
+                android:key="VIEW_CRASH_LOG"
+                android:title="@string/settings_view_crash_log_title"
+                android:summary="@string/settings_view_crash_log_summary" />
 
-        <Preference
-            android:icon="@drawable/ic_settings_about"
-            android:key="p_settings_about"
-            android:title="@string/settings_about" />
+            <Preference
+                android:key="SEND_SENTRY_FEEDBACK"
+                android:title="@string/settings_send_sentry_feedback_title"
+                android:summary="@string/settings_send_sentry_feedback_summary" />
 
-        <Preference
-            android:icon="@drawable/ic_settings_help"
-            android:key="p_settings_help"
-            android:title="@string/settings_help" />
-    </PreferenceCategory>
+            <Preference
+                android:icon="@drawable/ic_settings_about"
+                android:key="p_settings_about"
+                android:title="@string/settings_about" />
+
+            <Preference
+                android:icon="@drawable/ic_settings_help"
+                android:key="p_settings_help"
+                android:title="@string/settings_help" />
+        </PreferenceCategory>
+    </PreferenceScreen>
 
 </androidx.preference.PreferenceScreen>

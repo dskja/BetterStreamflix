@@ -38,7 +38,12 @@ internal object SettingsListStyler {
         val recyclerView = findRecyclerView(root) ?: return
         if (recyclerView.getTag(R.id.settings_list_styler_tag) == true) return
 
-        val backgroundColor = resolveThemeColor(root, R.attr.app_background_color, 0xFF181818.toInt())
+        val experimental = UserPreferences.experimentalNewAppDesign
+        val backgroundColor = if (experimental) {
+            androidx.core.content.ContextCompat.getColor(root.context, R.color.support_bg)
+        } else {
+            resolveThemeColor(root, R.attr.app_background_color, 0xFF181818.toInt())
+        }
         root.setBackgroundColor(backgroundColor)
         recyclerView.setTag(R.id.settings_list_styler_tag, true)
         recyclerView.clipToPadding = false
