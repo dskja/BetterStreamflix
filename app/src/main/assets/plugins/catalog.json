@@ -3,14 +3,35 @@
   "manifestVersion": 1,
   "plugins": [
     {
+      "id": "builtin:demo-addon",
+      "name": "Demo Addon",
+      "version": "1.1.0",
+      "description": "Ships with the app — home tip, search hint, metadata tag, playback hooks and settings actions. Toggle under Sources & Addons.",
+      "source": "builtin",
+      "apiVersion": 1,
+      "author": "BetterStreamflix",
+      "capabilities": ["home", "search", "metadata", "playback", "settings"]
+    },
+    {
       "id": "local:example",
       "name": "Example Local Plugin",
-      "version": 1,
-      "description": "Scaffold entry for local SourcePlugin APKs (requires sha256 + entryClass + APK under files/plugins/apks/)",
+      "version": "1",
+      "description": "Scaffold for LOCAL SourcePlugin APKs. Requires sha256 + entryClass + APK under files/plugins/apks/{id}.apk. May implement Home/Search/Metadata/Playback/Extractor/Subtitle/Settings extensions.",
       "source": "local",
       "apiVersion": 1,
       "entryClass": "",
-      "sha256": ""
+      "sha256": "",
+      "capabilities": ["source", "home", "search", "playback"]
+    },
+    {
+      "id": "remote:community-catalog",
+      "name": "Community catalog (stub)",
+      "version": "1",
+      "description": "Remote auto-install stays disabled. List metadata only until signed catalogs land.",
+      "source": "remote",
+      "apiVersion": 1,
+      "downloadUrl": "",
+      "capabilities": ["source"]
     }
   ]
 }

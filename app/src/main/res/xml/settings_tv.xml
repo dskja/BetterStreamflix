@@ -329,10 +329,23 @@
                 android:title="@string/platform_plugin_hide_plex_title"
                 android:summary="@string/platform_plugin_hide_plex_summary"
                 android:defaultValue="false" />
+            <SwitchPreference
+                android:key="plugin_disable_demo"
+                android:title="@string/platform_plugin_hide_demo_title"
+                android:summary="@string/platform_plugin_hide_demo_summary"
+                android:defaultValue="false" />
             <Preference
                 android:key="platform_plugin_catalog"
                 android:title="@string/platform_plugin_catalog_title"
                 android:summary="@string/platform_plugin_catalog_summary" />
+            <Preference
+                android:key="platform_plugin_manage"
+                android:title="@string/platform_plugin_manage_title"
+                android:summary="@string/platform_plugin_manage_summary" />
+            <Preference
+                android:key="platform_plugin_extensions"
+                android:title="@string/platform_plugin_extensions_title"
+                android:summary="@string/platform_plugin_extensions_summary" />
             <Preference
                 android:key="platform_plugin_install_local"
                 android:title="@string/platform_plugin_install_local_title"

@@ -2,6 +2,7 @@ package com.dskja.betterstreamflix.platform
 
 import android.content.Context
 import android.util.Log
+import com.dskja.betterstreamflix.platform.plugins.PluginManager
 import com.dskja.betterstreamflix.platform.plugins.PluginRegistry
 import com.dskja.betterstreamflix.platform.trakt.TraktClient
 
@@ -19,14 +20,8 @@ object PlatformBootstrap {
         if (started) return
         started = true
         val app = context.applicationContext
-        runCatching { PluginRegistry.bootstrapBuiltins() }
-            .onFailure { Log.w(TAG, "Plugin registry: ${it.message}") }
-        runCatching {
-            com.dskja.betterstreamflix.platform.plugins.PluginCatalog.registerLocalStubs(app)
-        }.onFailure { Log.w(TAG, "Plugin catalog: ${it.message}") }
-        runCatching {
-            com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.loadInstalled(app)
-        }.onFailure { Log.w(TAG, "Plugin APK load: ${it.message}") }
+        runCatching { PluginManager.start(app) }
+            .onFailure { Log.w(TAG, "Plugin manager: ${it.message}") }
         runCatching { TraktClient.warm(app) }
             .onFailure { Log.w(TAG, "Trakt warm: ${it.message}") }
         runCatching { com.dskja.betterstreamflix.platform.simkl.SimklClient.warm() }

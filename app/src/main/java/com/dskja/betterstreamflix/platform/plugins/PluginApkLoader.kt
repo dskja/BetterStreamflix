@@ -3,7 +3,6 @@ package com.dskja.betterstreamflix.platform.plugins
 import android.content.Context
 import android.util.Log
 import com.dskja.betterstreamflix.providers.Provider
-import com.dskja.betterstreamflix.utils.UserPreferences
 import dalvik.system.DexClassLoader
 import java.io.File
 
@@ -96,19 +95,24 @@ object PluginApkLoader {
             val clazz = Class.forName(entry.entryClass, true, loader)
             val instance = instantiatePlugin(clazz)
                 ?: error("entryClass must implement SourcePlugin with a no-arg constructor")
-            val wrapped = wrapLoaded(entry, instance)
+            val wrapped = LoadedPluginFacade(entry, instance)
             PluginRegistry.register(wrapped)
-            Provider.registerDynamic(
-                wrapped.createProvider(),
-                Provider.Companion.ProviderSupport(
-                    movies = wrapped.manifest.capabilities.movies,
-                    tvShows = wrapped.manifest.capabilities.tvShows,
-                ),
-            )
+            // Hook-only plugins may throw from createProvider — register Provider only when possible.
+            runCatching {
+                Provider.registerDynamic(
+                    wrapped.createProvider(),
+                    Provider.Companion.ProviderSupport(
+                        movies = wrapped.manifest.capabilities.movies,
+                        tvShows = wrapped.manifest.capabilities.tvShows,
+                    ),
+                )
+            }
+            PluginEvents.record(entry.id, "apk_loaded", entry.name)
             Log.i(TAG, "Loaded plugin ${entry.id} (${entry.name})")
             LoadResult(entry.id, entry.name, true, "ok")
         }.getOrElse {
             Log.w(TAG, "Load failed ${entry.id}: ${it.message}")
+            PluginEvents.record(entry.id, "apk_load_failed", it.message.orEmpty())
             LoadResult(entry.id, entry.name, false, it.message ?: "load failed")
         }
     }
@@ -133,22 +137,5 @@ object PluginApkLoader {
         if (!SourcePlugin::class.java.isAssignableFrom(clazz)) return null
         val ctor = clazz.getDeclaredConstructor().also { it.isAccessible = true }
         return ctor.newInstance() as SourcePlugin
-    }
-
-    private fun wrapLoaded(entry: PluginCatalog.Entry, loaded: SourcePlugin): SourcePlugin {
-        return object : SourcePlugin {
-            override val manifest = loaded.manifest.copy(
-                id = entry.id.ifBlank { loaded.manifest.id },
-                name = entry.name.ifBlank { loaded.manifest.name },
-                version = entry.version.ifBlank { loaded.manifest.version },
-                description = entry.description.ifBlank { loaded.manifest.description },
-                source = PluginManifest.Source.LOCAL,
-            )
-
-            override fun createProvider(): Provider = loaded.createProvider()
-
-            override fun isEnabled(): Boolean =
-                !UserPreferences.isPluginDisabled(manifest.id) && loaded.isEnabled()
-        }
     }
 }
