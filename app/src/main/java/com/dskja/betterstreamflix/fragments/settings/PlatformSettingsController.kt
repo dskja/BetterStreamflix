@@ -188,6 +188,16 @@ object PlatformSettingsController {
             set = { UserPreferences.openSubtitlesApiKey = it },
             mask = true,
         )
+        bindText(
+            key = "OPENSUBTITLES_LANGUAGES",
+            get = { UserPreferences.openSubtitlesLanguages },
+            set = { UserPreferences.openSubtitlesLanguages = it },
+        )
+        bindSwitch(
+            key = "CAST_QUEUE_NEXT_EPISODE",
+            get = { UserPreferences.castQueueNextEpisode },
+            set = { UserPreferences.castQueueNextEpisode = it },
+        )
 
         (findPreference("PLAYER_BACKEND") as? ListPreference)?.apply {
             value = UserPreferences.playerBackend
@@ -390,6 +400,29 @@ object PlatformSettingsController {
             },
         )
 
+        findPreference("platform_plugin_catalog")?.setOnPreferenceClickListener {
+            runCatching {
+                com.dskja.betterstreamflix.platform.plugins.PluginCatalog.reload(context)
+            }
+            val entries = com.dskja.betterstreamflix.platform.plugins.PluginCatalog.loadMerged(context)
+            val lines = if (entries.isEmpty()) {
+                listOf(context.getString(R.string.platform_plugin_catalog_empty))
+            } else {
+                entries.map { entry ->
+                    com.dskja.betterstreamflix.platform.plugins.PluginCatalog.summaryLine(
+                        entry,
+                        UserPreferences.isPluginDisabled(entry.id),
+                    )
+                }
+            }
+            AlertDialog.Builder(context)
+                .setTitle(R.string.platform_plugin_catalog_title_dialog)
+                .setItems(lines.toTypedArray(), null)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            true
+        }
+
         findPreference("platform_test_jellyfin")?.setOnPreferenceClickListener {
             scope.launch {
                 val ok = runCatching {
@@ -435,6 +468,7 @@ object PlatformSettingsController {
         "SIMKL_CLIENT_ID" -> R.string.platform_simkl_client_id_summary
         "SIMKL_ACCESS_TOKEN" -> R.string.platform_simkl_token_summary
         "OPENSUBTITLES_API_KEY" -> R.string.platform_opensubtitles_key_summary
+        "OPENSUBTITLES_LANGUAGES" -> R.string.platform_opensubtitles_langs_summary
         else -> R.string.platform_settings_summary
     }
 }

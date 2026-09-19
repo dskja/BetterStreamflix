@@ -143,11 +143,32 @@ object JellyfinProvider : Provider {
         }
         val latestMovies = mapMovies(api.latestMovies())
         val latestShows = mapShows(api.latestSeries())
+        val genreRows = runCatching {
+            val genres = api.genres()
+            buildList {
+                for (i in 0 until minOf(genres.length(), 6)) {
+                    val g = genres.getJSONObject(i)
+                    val name = g.optString("Name").ifBlank { continue }
+                    val items = api.libraryItems("Movie,Series", 0, 16, genres = name)
+                    val shows = buildList {
+                        for (j in 0 until items.length()) {
+                            val item = items.getJSONObject(j)
+                            when (item.optString("Type")) {
+                                "Movie" -> add(toMovie(item))
+                                "Series" -> add(toTvShow(item))
+                            }
+                        }
+                    }
+                    if (shows.isNotEmpty()) add(Category("Jellyfin · $name", shows))
+                }
+            }
+        }.getOrDefault(emptyList())
         return buildList {
             // Named distinctly so HomeViewModel can merge without duplicating local CW.
             if (resume.isNotEmpty()) add(Category("Jellyfin · Continue", resume))
             if (latestMovies.isNotEmpty()) add(Category("Jellyfin · Movies", latestMovies))
             if (latestShows.isNotEmpty()) add(Category("Jellyfin · Series", latestShows))
+            addAll(genreRows)
         }
     }
 
@@ -222,9 +243,50 @@ object JellyfinProvider : Provider {
         }
     }
 
-    override suspend fun getGenre(id: String, page: Int): Genre = Genre(id = id, name = id)
+    override suspend fun getGenre(id: String, page: Int): Genre {
+        requireConfigured()
+        val limit = 40
+        val start = (page - 1).coerceAtLeast(0) * limit
+        val movies = mapMovies(
+            api.libraryItems("Movie", start, limit, genres = id),
+        )
+        val shows = mapShows(
+            api.libraryItems("Series", start, limit, genres = id),
+        )
+        return Genre(
+            id = id,
+            name = id,
+            shows = movies + shows,
+        )
+    }
 
-    override suspend fun getPeople(id: String, page: Int): People = People(id = id, name = id)
+    override suspend fun getPeople(id: String, page: Int): People {
+        requireConfigured()
+        val person = runCatching { api.person(id) }.getOrNull()
+        val limit = 40
+        val start = (page - 1).coerceAtLeast(0) * limit
+        val items = api.itemsByPerson(id, start, limit)
+        val filmography = buildList {
+            for (i in 0 until items.length()) {
+                val item = items.getJSONObject(i)
+                when (item.optString("Type")) {
+                    "Movie" -> add(toMovie(item))
+                    "Series" -> add(toTvShow(item))
+                }
+            }
+        }
+        val imageTags = person?.optJSONObject("ImageTags")
+        val primary = imageTags?.optString("Primary")
+        return People(
+            id = id,
+            name = person?.optString("Name")?.ifBlank { id } ?: id,
+            image = person?.let { imageUrl(it.optString("Id").ifBlank { id }, primary) },
+            biography = person?.optString("Overview")?.ifBlank { null },
+            placeOfBirth = null,
+            birthday = person?.optString("PremiereDate")?.take(10)?.ifBlank { null },
+            filmography = filmography,
+        )
+    }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         requireConfigured()

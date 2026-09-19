@@ -4,14 +4,17 @@ import android.content.Context
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 /**
- * Loads plugin catalog manifests from assets (`plugins/catalog.json`) or app files.
+ * Loads plugin catalog manifests from assets (`plugins/catalog.json`) and app-private files.
  * Remote APK classloading is intentionally not implemented yet — catalog only.
  */
 object PluginCatalog {
     private const val TAG = "PluginCatalog"
     private const val ASSET_PATH = "plugins/catalog.json"
+    private const val FILES_DIR = "plugins"
+    private const val FILES_NAME = "catalog.json"
 
     data class Entry(
         val id: String,
@@ -24,6 +27,9 @@ object PluginCatalog {
         val apiVersion: Int = 1,
     )
 
+    fun catalogFile(context: Context): File =
+        File(File(context.filesDir, FILES_DIR).also { it.mkdirs() }, FILES_NAME)
+
     fun loadFromAssets(context: Context): List<Entry> = runCatching {
         context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
             .let { parse(it) }
@@ -32,7 +38,53 @@ object PluginCatalog {
         emptyList()
     }
 
+    fun loadFromFiles(context: Context): List<Entry> = runCatching {
+        val file = catalogFile(context)
+        if (!file.exists()) return emptyList()
+        parse(file.readText())
+    }.getOrElse {
+        Log.d(TAG, "No file catalog: ${it.message}")
+        emptyList()
+    }
+
+    /** Merge assets + files (files override same id). */
+    fun loadMerged(context: Context): List<Entry> {
+        val map = linkedMapOf<String, Entry>()
+        loadFromAssets(context).forEach { map[it.id] = it }
+        loadFromFiles(context).forEach { map[it.id] = it }
+        return map.values.toList()
+    }
+
     fun loadFromJson(raw: String): List<Entry> = parse(raw)
+
+    fun writeFilesCatalog(context: Context, entries: List<Entry>) {
+        val root = JSONObject()
+            .put("name", "BetterStreamflix local catalog")
+            .put("manifestVersion", 1)
+        val arr = JSONArray()
+        entries.forEach { e ->
+            arr.put(
+                JSONObject()
+                    .put("id", e.id)
+                    .put("name", e.name)
+                    .put("version", e.version)
+                    .put("description", e.description)
+                    .put(
+                        "source",
+                        when (e.source) {
+                            PluginManifest.Source.LOCAL -> "local"
+                            PluginManifest.Source.REMOTE -> "remote"
+                            PluginManifest.Source.BUILTIN -> "builtin"
+                        },
+                    )
+                    .put("downloadUrl", e.downloadUrl)
+                    .put("sha256", e.sha256)
+                    .put("apiVersion", e.apiVersion),
+            )
+        }
+        root.put("plugins", arr)
+        catalogFile(context).writeText(root.toString(2))
+    }
 
     fun parse(raw: String): List<Entry> {
         val root = JSONObject(raw)
@@ -69,27 +121,45 @@ object PluginCatalog {
         }
     }
 
-    /** Register catalog LOCAL entries as disabled-by-default stubs in the registry. */
+    fun summaryLine(entry: Entry, disabled: Boolean): String {
+        val src = entry.source.name.lowercase()
+        val state = if (disabled) "hidden" else "listed"
+        return "${entry.name} · v${entry.version} · $src · $state"
+    }
+
+    /** Register catalog LOCAL/REMOTE entries as disabled-by-default stubs in the registry. */
     fun registerLocalStubs(context: Context) {
-        loadFromAssets(context).filter { it.source == PluginManifest.Source.LOCAL }.forEach { entry ->
-            if (PluginRegistry.get(entry.id) != null) return@forEach
-            PluginRegistry.register(
-                object : SourcePlugin {
-                    override val manifest = PluginManifest(
-                        id = entry.id,
-                        name = entry.name,
-                        version = entry.version,
-                        language = "en",
-                        description = entry.description,
-                        source = PluginManifest.Source.LOCAL,
-                        capabilities = PluginManifest.Capabilities(),
-                    )
-                    override fun createProvider(): com.dskja.betterstreamflix.providers.Provider {
-                        error("Local plugin ${entry.id} has no provider implementation yet")
-                    }
-                    override fun isEnabled(): Boolean = false
-                },
-            )
-        }
+        loadMerged(context)
+            .filter {
+                it.source == PluginManifest.Source.LOCAL ||
+                    it.source == PluginManifest.Source.REMOTE
+            }
+            .forEach { entry ->
+                if (PluginRegistry.get(entry.id) != null) return@forEach
+                PluginRegistry.register(
+                    object : SourcePlugin {
+                        override val manifest = PluginManifest(
+                            id = entry.id,
+                            name = entry.name,
+                            version = entry.version,
+                            language = "en",
+                            description = entry.description,
+                            source = entry.source,
+                            capabilities = PluginManifest.Capabilities(),
+                        )
+                        override fun createProvider(): com.dskja.betterstreamflix.providers.Provider {
+                            error("Plugin ${entry.id} has no provider implementation yet")
+                        }
+                        override fun isEnabled(): Boolean =
+                            !com.dskja.betterstreamflix.utils.UserPreferences.isPluginDisabled(entry.id) &&
+                                false // stubs never activate providers
+                    },
+                )
+            }
+    }
+
+    fun reload(context: Context) {
+        // Keep builtins; re-register stubs from catalogs.
+        registerLocalStubs(context)
     }
 }

@@ -906,6 +906,14 @@
     <string name="platform_opensubtitles_category">OpenSubtitles.com</string>
     <string name="platform_opensubtitles_key_title">OpenSubtitles API-Key</string>
     <string name="platform_opensubtitles_key_summary">Von opensubtitles.com Consumer-API</string>
+    <string name="platform_opensubtitles_langs_title">Untertitel-Sprachen</string>
+    <string name="platform_opensubtitles_langs_summary">Kommagetrennte ISO-Codes (z. B. en,de)</string>
+    <string name="platform_cast_queue_title">Cast-Nächste-Folge-Warteschlange</string>
+    <string name="platform_cast_queue_summary">Nächste Folge während Cast vorladen</string>
+    <string name="platform_plugin_catalog_title">Plugin-Katalog</string>
+    <string name="platform_plugin_catalog_summary">Geladene lokale/remote Plugin-Manifeste anzeigen</string>
+    <string name="platform_plugin_catalog_empty">Keine Katalog-Plugins gefunden</string>
+    <string name="platform_plugin_catalog_title_dialog">Plugin-Katalog</string>
     <string name="platform_mpv_not_installed">Kein MPV/VLC gefunden. MPV installieren oder ExoPlayer wählen.</string>
     <string name="platform_plugins_category">Quellen</string>
     <string name="platform_plugin_hide_jellyfin_title">Jellyfin-Provider ausblenden</string>

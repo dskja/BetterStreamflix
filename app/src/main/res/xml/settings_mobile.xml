@@ -814,6 +814,18 @@
                 android:summary="@string/platform_opensubtitles_key_summary"
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
+            <EditTextPreference
+                android:key="OPENSUBTITLES_LANGUAGES"
+                android:title="@string/platform_opensubtitles_langs_title"
+                android:summary="@string/platform_opensubtitles_langs_summary"
+                android:inputType="text"
+                app:iconSpaceReserved="false" />
+            <SwitchPreferenceCompat
+                android:key="CAST_QUEUE_NEXT_EPISODE"
+                android:title="@string/platform_cast_queue_title"
+                android:summary="@string/platform_cast_queue_summary"
+                android:defaultValue="true"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
 
         <PreferenceCategory
@@ -875,6 +887,11 @@
                 android:title="@string/platform_plugin_hide_plex_title"
                 android:summary="@string/platform_plugin_hide_plex_summary"
                 android:defaultValue="false"
+                app:iconSpaceReserved="false" />
+            <Preference
+                android:key="platform_plugin_catalog"
+                android:title="@string/platform_plugin_catalog_title"
+                android:summary="@string/platform_plugin_catalog_summary"
                 app:iconSpaceReserved="false" />
             <Preference
                 android:key="platform_test_jellyfin"

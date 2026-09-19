@@ -77,6 +77,7 @@ import com.dskja.betterstreamflix.utils.UserPreferences
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.dskja.betterstreamflix.cast.CastMediaFactory
 import com.dskja.betterstreamflix.cast.CastPlaybackHub
+import com.dskja.betterstreamflix.cast.CastQueueCoordinator
 import com.dskja.betterstreamflix.utils.UserDataCache
 import com.dskja.betterstreamflix.utils.ProviderAudioLanguage
 import com.dskja.betterstreamflix.utils.dp
@@ -737,6 +738,7 @@ class PlayerMobileFragment : Fragment() {
         runCatching {
             com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.resetSession()
         }
+        castNextQueueJob?.cancel()
         nextEpisodePrefetchJob?.cancel()
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -1679,15 +1681,18 @@ class PlayerMobileFragment : Fragment() {
     private fun startProgressHandler() {
         progressHandler = android.os.Handler(android.os.Looper.getMainLooper())
         progressRunnable = Runnable {
-            if (player.isPlaying) {
+            val active = runCatching { activePlayer() }.getOrNull() ?: return@Runnable
+            if (active.isPlaying) {
                 if (!isLiveTvPlayback()) {
-                    val show = player.currentPosition in 3000..120000
+                    val pos = active.currentPosition
+                    val dur = active.duration
+                    val show = pos in 3000..120000
                     showSkipIntroButton(show)
                     updateNextEpisodeOverlay()
                     reportTraktProgress(
                         videoType = args.videoType,
-                        positionMs = player.currentPosition,
-                        durationMs = player.duration,
+                        positionMs = pos,
+                        durationMs = dur,
                         isPlaying = true,
                     )
                 } else {
@@ -1730,11 +1735,12 @@ class PlayerMobileFragment : Fragment() {
             hideNextEpisodeOverlay()
             return
         }
-        val duration = player.duration.takeIf { it > 0 } ?: run {
+        val active = runCatching { activePlayer() }.getOrNull() ?: player
+        val duration = active.duration.takeIf { it > 0 } ?: run {
             hideNextEpisodeOverlay()
             return
         }
-        val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
+        val remainingMs = (duration - active.currentPosition).coerceAtLeast(0L)
 
         if (nextEpisodeOverlayDismissed) {
             hideNextEpisodeOverlay()
@@ -1743,6 +1749,9 @@ class PlayerMobileFragment : Fragment() {
 
         if (remainingMs <= NEXT_EPISODE_PREFETCH_THRESHOLD_MS) {
             ensureNextEpisodePrepared(currentEpisode)
+            if (isCasting || CastPlaybackHub.isCasting) {
+                scheduleCastNextEpisodeQueue()
+            }
         }
 
         val nextEpisode = EpisodeManager.peekNextEpisode()
@@ -1961,6 +1970,17 @@ class PlayerMobileFragment : Fragment() {
                     switchPlaybackToLocal()
                 }
             })
+            castPlayer?.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState != Player.STATE_ENDED) return
+                    if (!isAdded || view == null) return
+                    // Hub auto-advances queued items; if empty, fall back to local next-episode flow.
+                    if (CastPlaybackHub.queuedCount() > 0) return
+                    if (UserPreferences.autoplay) {
+                        playNextEpisodeAcrossSeasons(autoplay = true)
+                    }
+                }
+            })
 
             // Re-attach if a session is already active (e.g. returning from browse).
             if (CastPlaybackHub.isCasting || castPlayer?.isCastSessionAvailable == true) {
@@ -2015,6 +2035,29 @@ class PlayerMobileFragment : Fragment() {
         cp.setMediaItem(castItem, startPosition)
         cp.prepare()
         cp.playWhenReady = playWhenReady
+        scheduleCastNextEpisodeQueue()
+    }
+
+    private var castNextQueueJob: Job? = null
+
+    private fun scheduleCastNextEpisodeQueue() {
+        if (!isCasting && !CastPlaybackHub.isCasting) return
+        if (args.videoType !is Video.Type.Episode) return
+        if (CastPlaybackHub.queuedCount() > 0) return
+        if (castNextQueueJob?.isActive == true) return
+        castNextQueueJob = lifecycleScope.launch {
+            val prepared = withContext(Dispatchers.IO) {
+                CastQueueCoordinator.prepareNextEpisodeQueue(
+                    provider = UserPreferences.currentProvider,
+                    currentVideoType = args.videoType,
+                    subtitleConfigurations = emptyList(),
+                    headers = lastCastHeaders,
+                )
+            }
+            if (prepared != null && isAdded) {
+                CastQueueCoordinator.enqueueExclusive(prepared.mediaItem)
+            }
+        }
     }
 
     private fun switchPlaybackToCast() {

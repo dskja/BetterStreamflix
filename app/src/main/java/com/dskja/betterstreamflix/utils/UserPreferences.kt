@@ -368,6 +368,20 @@ object UserPreferences {
             Key.OPENSUBTITLES_USER_AGENT.setString(value.ifBlank { null })
         }
 
+    /** Comma-separated ISO language codes for OpenSubtitles.com (e.g. en,de). */
+    var openSubtitlesLanguages: String
+        get() = Key.OPENSUBTITLES_LANGUAGES.getString() ?: "en,de"
+        set(value) {
+            Key.OPENSUBTITLES_LANGUAGES.setString(value.ifBlank { "en,de" })
+        }
+
+    /** Prefetch next episode onto Chromecast queue while casting. */
+    var castQueueNextEpisode: Boolean
+        get() = Key.CAST_QUEUE_NEXT_EPISODE.getBoolean() ?: true
+        set(value) {
+            Key.CAST_QUEUE_NEXT_EPISODE.setBoolean(value)
+        }
+
     /** Progress report interval for Jellyfin/Plex (ms). Clamped 5s–60s at use site. */
     var selfHostProgressIntervalMs: Long
         get() = Key.SELF_HOST_PROGRESS_INTERVAL_MS.getLong() ?: 15_000L
@@ -1009,6 +1023,8 @@ object UserPreferences {
         OPENSUBTITLES_API_KEY,
         OPENSUBTITLES_JWT,
         OPENSUBTITLES_USER_AGENT,
+        OPENSUBTITLES_LANGUAGES,
+        CAST_QUEUE_NEXT_EPISODE,
         SELF_HOST_PROGRESS_INTERVAL_MS;
 
         fun getStringSet(): Set<String>? = when {

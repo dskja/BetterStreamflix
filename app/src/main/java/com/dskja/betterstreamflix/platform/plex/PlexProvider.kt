@@ -238,9 +238,46 @@ object PlexProvider : Provider {
         }
     }
 
-    override suspend fun getGenre(id: String, page: Int): Genre = Genre(id = id, name = id)
+    override suspend fun getGenre(id: String, page: Int): Genre {
+        requireConfigured()
+        val size = 40
+        val start = (page - 1).coerceAtLeast(0) * size
+        val items = api.itemsByGenre(id, start, size)
+        val shows = buildList {
+            for (i in 0 until items.length()) {
+                val meta = items.getJSONObject(i)
+                when (meta.optString("type")) {
+                    "movie" -> add(toMovie(meta))
+                    "show" -> add(toTvShow(meta))
+                }
+            }
+        }
+        return Genre(id = id, name = id, shows = shows)
+    }
 
-    override suspend fun getPeople(id: String, page: Int): People = People(id = id, name = id)
+    override suspend fun getPeople(id: String, page: Int): People {
+        requireConfigured()
+        val person = runCatching { api.person(id) }.getOrDefault(org.json.JSONObject())
+        val size = 40
+        val start = (page - 1).coerceAtLeast(0) * size
+        val media = api.personMedia(id, start, size)
+        val filmography = buildList {
+            for (i in 0 until media.length()) {
+                val meta = media.getJSONObject(i)
+                when (meta.optString("type")) {
+                    "movie" -> add(toMovie(meta))
+                    "show" -> add(toTvShow(meta))
+                }
+            }
+        }
+        return People(
+            id = id,
+            name = person.optString("title").ifBlank { person.optString("tag").ifBlank { id } },
+            image = api.thumbUrl(person.optString("thumb").ifBlank { null }),
+            biography = person.optString("summary").ifBlank { null },
+            filmography = filmography,
+        )
+    }
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         requireConfigured()

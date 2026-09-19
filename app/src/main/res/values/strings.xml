@@ -1012,6 +1012,14 @@
     <string name="platform_opensubtitles_category">OpenSubtitles.com</string>
     <string name="platform_opensubtitles_key_title">OpenSubtitles API key</string>
     <string name="platform_opensubtitles_key_summary">From opensubtitles.com consumer API</string>
+    <string name="platform_opensubtitles_langs_title">Subtitle languages</string>
+    <string name="platform_opensubtitles_langs_summary">Comma-separated ISO codes (e.g. en,de)</string>
+    <string name="platform_cast_queue_title">Cast next-episode queue</string>
+    <string name="platform_cast_queue_summary">Prefetch the next episode onto Chromecast while casting</string>
+    <string name="platform_plugin_catalog_title">Plugin catalog</string>
+    <string name="platform_plugin_catalog_summary">Show loaded local/remote plugin manifests</string>
+    <string name="platform_plugin_catalog_empty">No catalog plugins found</string>
+    <string name="platform_plugin_catalog_title_dialog">Plugin catalog</string>
     <string name="platform_mpv_not_installed">No MPV/VLC player found. Install MPV or choose ExoPlayer.</string>
     <string name="platform_plugins_category">Sources</string>
     <string name="platform_plugin_hide_jellyfin_title">Hide Jellyfin provider</string>

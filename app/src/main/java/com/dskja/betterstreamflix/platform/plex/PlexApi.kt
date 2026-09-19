@@ -72,6 +72,51 @@ class PlexApi(
             ?.optJSONArray("Metadata") ?: JSONArray()
     }
 
+    /** Items matching a genre name across all movie/show sections. */
+    suspend fun itemsByGenre(genre: String, start: Int = 0, size: Int = 40): JSONArray =
+        withContext(Dispatchers.IO) {
+            val enc = java.net.URLEncoder.encode(genre, Charsets.UTF_8.name())
+            val sections = librarySections()
+            val out = JSONArray()
+            for (i in 0 until sections.length()) {
+                val section = sections.optJSONObject(i) ?: continue
+                val type = section.optString("type")
+                if (type != "movie" && type != "show") continue
+                val key = section.optString("key")
+                if (key.isBlank()) continue
+                val items = getJson(
+                    "/library/sections/$key/all?genre=$enc" +
+                        "&X-Plex-Container-Start=$start&X-Plex-Container-Size=$size",
+                ).optJSONObject("MediaContainer")?.optJSONArray("Metadata") ?: continue
+                for (j in 0 until items.length()) {
+                    out.put(items.getJSONObject(j))
+                }
+            }
+            out
+        }
+
+    suspend fun person(ratingKey: String): JSONObject = withContext(Dispatchers.IO) {
+        getJson("/library/people/$ratingKey")
+            .optJSONObject("MediaContainer")
+            ?.optJSONArray("Metadata")
+            ?.optJSONObject(0)
+            ?: getJson("/library/metadata/$ratingKey")
+                .optJSONObject("MediaContainer")
+                ?.optJSONArray("Metadata")
+                ?.optJSONObject(0)
+            ?: JSONObject()
+    }
+
+    suspend fun personMedia(ratingKey: String, start: Int = 0, size: Int = 40): JSONArray =
+        withContext(Dispatchers.IO) {
+            getJson(
+                "/library/people/$ratingKey/media" +
+                    "?X-Plex-Container-Start=$start&X-Plex-Container-Size=$size",
+            ).optJSONObject("MediaContainer")
+                ?.optJSONArray("Metadata")
+                ?: JSONArray()
+        }
+
     fun streamUrl(partKey: String): String {
         val key = if (partKey.startsWith("/")) partKey else "/library/parts/$partKey"
         val sep = if (key.contains("?")) "&" else "?"

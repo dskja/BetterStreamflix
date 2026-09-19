@@ -215,13 +215,41 @@ class JellyfinApi(
         includeTypes: String,
         startIndex: Int,
         limit: Int,
+        genres: String? = null,
+        personIds: String? = null,
     ): JSONArray = withContext(Dispatchers.IO) {
+        val genreQ = genres?.takeIf { it.isNotBlank() }?.let {
+            "&Genres=${java.net.URLEncoder.encode(it, Charsets.UTF_8.name())}"
+        }.orEmpty()
+        val personQ = personIds?.takeIf { it.isNotBlank() }?.let {
+            "&PersonIds=${java.net.URLEncoder.encode(it, Charsets.UTF_8.name())}"
+        }.orEmpty()
         getJson(
             "/Users/${userIdProvider()}/Items?IncludeItemTypes=$includeTypes" +
-                "&Recursive=true&SortBy=DateCreated&SortOrder=Descending" +
-                "&StartIndex=$startIndex&Limit=$limit",
+                "&Recursive=true&SortBy=SortName&SortOrder=Ascending" +
+                "&StartIndex=$startIndex&Limit=$limit$genreQ$personQ",
         ).optJSONArray("Items") ?: JSONArray()
     }
+
+    suspend fun genres(includeTypes: String = "Movie,Series"): JSONArray =
+        withContext(Dispatchers.IO) {
+            getJson(
+                "/Genres?UserId=${userIdProvider()}&IncludeItemTypes=$includeTypes" +
+                    "&Recursive=true&SortBy=SortName",
+            ).optJSONArray("Items") ?: JSONArray()
+        }
+
+    suspend fun person(id: String): JSONObject = withContext(Dispatchers.IO) {
+        getJson("/Persons/$id?UserId=${userIdProvider()}")
+    }
+
+    suspend fun itemsByPerson(personId: String, startIndex: Int, limit: Int): JSONArray =
+        libraryItems(
+            includeTypes = "Movie,Series",
+            startIndex = startIndex,
+            limit = limit,
+            personIds = personId,
+        )
 
     suspend fun search(query: String, limit: Int = 30): JSONArray = withContext(Dispatchers.IO) {
         val q = java.net.URLEncoder.encode(query, Charsets.UTF_8.name())
