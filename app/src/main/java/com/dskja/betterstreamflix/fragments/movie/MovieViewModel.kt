@@ -98,10 +98,13 @@ class MovieViewModel(id: String, private val database: AppDatabase) : ViewModel(
 
         try {
             val movie = UserPreferences.currentProvider!!.getMovie(id)
-            val enriched = runCatching {
+            val pluginEnriched = runCatching {
                 com.dskja.betterstreamflix.platform.plugins.PluginManager
                     .enrichMovie(UserPreferences.currentProvider!!, movie)
             }.getOrDefault(movie)
+            val enriched = runCatching {
+                com.dskja.betterstreamflix.utils.TmdbUtils.enrichMovieDetail(pluginEnriched)
+            }.getOrDefault(pluginEnriched)
 
             database.movieDao().getById(id)?.let { movieDb ->
                 enriched.merge(movieDb)

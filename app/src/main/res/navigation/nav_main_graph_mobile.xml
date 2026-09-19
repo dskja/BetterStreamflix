@@ -121,6 +121,9 @@
         <action
             android:id="@+id/action_movie_to_tv_show"
             app:destination="@id/tv_show" />
+        <action
+            android:id="@+id/action_movie_to_genre"
+            app:destination="@id/genre" />
     </fragment>
     <fragment
         android:id="@+id/tv_show"
@@ -153,6 +156,9 @@
         <action
             android:id="@+id/action_tv_show_to_player"
             app:destination="@id/player" />
+        <action
+            android:id="@+id/action_tv_show_to_genre"
+            app:destination="@id/genre" />
     </fragment>
     <fragment
         android:id="@+id/season"

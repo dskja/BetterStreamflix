@@ -28,8 +28,11 @@ object TmdbCache {
         val poster: String?,
         val banner: String?,
         val imdbId: String?,
+        val contentRating: String? = null,
         val genres: List<Pair<String, String>>,
         val cast: List<Triple<String, String, String?>>,
+        val directors: List<Triple<String, String, String?>> = emptyList(),
+        val recommendations: List<CachedShowRef> = emptyList(),
     )
 
     data class CachedTv(
@@ -42,9 +45,23 @@ object TmdbCache {
         val poster: String?,
         val banner: String?,
         val imdbId: String?,
+        val contentRating: String? = null,
         val seasons: List<SeasonCache>,
         val genres: List<Pair<String, String>>,
         val cast: List<Triple<String, String, String?>>,
+        val directors: List<Triple<String, String, String?>> = emptyList(),
+        val recommendations: List<CachedShowRef> = emptyList(),
+    )
+
+    data class CachedShowRef(
+        val id: Int,
+        val isTv: Boolean,
+        val title: String,
+        val overview: String?,
+        val released: String?,
+        val rating: Double?,
+        val poster: String?,
+        val banner: String?,
     )
 
     data class SeasonCache(

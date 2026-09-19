@@ -856,9 +856,39 @@ class MovieViewHolder(
                 movie.genres.isEmpty() -> View.GONE
                 else -> View.VISIBLE
             }
+            if (movie.genres.isNotEmpty()) {
+                setOnClickListener {
+                    val genre = movie.genres.first()
+                    checkProviderAndRun {
+                        if (context.toActivity()?.getCurrentFragment() is MovieMobileFragment) {
+                            findNavController().navigate(
+                                MovieMobileFragmentDirections.actionMovieToGenre(
+                                    id = genre.id,
+                                    name = genre.name,
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                setOnClickListener(null)
+            }
         }
 
-        binding.tvMovieOverview.text = movie.overview
+        binding.tvMovieOverview.apply {
+            text = movie.overview
+            if (com.dskja.betterstreamflix.utils.ExperimentalMobileDesign.enabled() &&
+                !movie.overview.isNullOrBlank()
+            ) {
+                maxLines = 5
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                var expanded = false
+                setOnClickListener {
+                    expanded = !expanded
+                    maxLines = if (expanded) Integer.MAX_VALUE else 5
+                }
+            }
+        }
 
         binding.btnMovieWatchNow.apply {
             val contentKey = movieDownloadContentKey()
@@ -898,7 +928,14 @@ class MovieViewHolder(
         binding.btnMovieTrailer.apply {
             val trailer = movie.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer, "MovieMobile")
+                if (trailer != null) {
+                    val fragment = context.toActivity()?.getCurrentFragment() as? Fragment
+                    if (fragment != null) {
+                        com.dskja.betterstreamflix.ui.TrailerPlaybackController.play(fragment, trailer)
+                    } else {
+                        handleTrailerClick(trailer, "MovieMobile")
+                    }
+                }
             }
             visibility = if (trailer != null) View.VISIBLE else View.GONE
         }
@@ -908,6 +945,59 @@ class MovieViewHolder(
                 checkProviderAndRun {
                     val fragment = context.toActivity()?.getCurrentFragment() as? Fragment ?: return@checkProviderAndRun
                     DownloadOptionsController.enqueueMovie(fragment, movie)
+                }
+            }
+        }
+
+        binding.root.findViewById<android.widget.TextView>(R.id.tv_movie_certification)?.apply {
+            val cert = movie.contentRating
+            text = cert
+            visibility = if (cert.isNullOrBlank()) View.GONE else View.VISIBLE
+        }
+
+        binding.root.findViewById<android.widget.TextView>(R.id.btn_movie_share)?.setOnClickListener {
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, movie.title)
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    buildString {
+                        append(movie.title)
+                        movie.released?.format("yyyy")?.let { append(" ($it)") }
+                        movie.overview?.takeIf { it.isNotBlank() }?.let { append("\n\n").append(it.take(280)) }
+                        movie.trailer?.let { append("\n").append(it) }
+                    },
+                )
+            }
+            context.startActivity(Intent.createChooser(share, context.getString(R.string.detail_share)))
+        }
+
+        binding.root.findViewById<android.widget.TextView>(R.id.btn_movie_watched)?.apply {
+            text = if (movie.isWatched) {
+                context.getString(R.string.option_show_unwatched)
+            } else {
+                context.getString(R.string.option_show_watched)
+            }
+            setOnClickListener {
+                checkProviderAndRun {
+                    itemView.findViewTreeLifecycleOwner()?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val dao = database.movieDao()
+                        val current = dao.getById(movie.id)
+                        val target = !(current?.isWatched ?: movie.isWatched)
+                        val updated = (current ?: movie).copy().apply {
+                            isWatched = target
+                            watchedDate = if (target) java.util.Calendar.getInstance() else null
+                        }
+                        dao.save(updated)
+                        withContext(Dispatchers.Main) {
+                            movie.isWatched = target
+                            text = if (target) {
+                                context.getString(R.string.option_show_unwatched)
+                            } else {
+                                context.getString(R.string.option_show_watched)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1044,7 +1134,14 @@ class MovieViewHolder(
         binding.btnMovieTrailer.apply {
             val trailer = movie.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer, "MovieTv")
+                if (trailer != null) {
+                    val fragment = context.toActivity()?.getCurrentFragment() as? Fragment
+                    if (fragment != null) {
+                        com.dskja.betterstreamflix.ui.TrailerPlaybackController.play(fragment, trailer)
+                    } else {
+                        handleTrailerClick(trailer, "MovieTv")
+                    }
+                }
             }
             visibility = if (trailer != null) View.VISIBLE else View.GONE
         }

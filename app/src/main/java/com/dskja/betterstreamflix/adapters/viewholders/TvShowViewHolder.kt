@@ -38,9 +38,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.fragment.app.Fragment
+import com.dskja.betterstreamflix.download.ui.DownloadOptionsController
 import com.dskja.betterstreamflix.fragments.movie.MovieMobileFragmentDirections
+import com.dskja.betterstreamflix.fragments.tv_show.TvShowMobileFragment
 import com.dskja.betterstreamflix.fragments.tv_show.TvShowMobileFragmentDirections
 import com.dskja.betterstreamflix.fragments.tv_show.TvShowTvFragmentDirections
+import com.dskja.betterstreamflix.ui.TrailerPlaybackController
 import com.dskja.betterstreamflix.fragments.movies.MoviesMobileFragmentDirections
 import com.dskja.betterstreamflix.fragments.movies.MoviesTvFragmentDirections
 import com.dskja.betterstreamflix.fragments.search.SearchMobileFragmentDirections
@@ -689,9 +693,37 @@ class TvShowViewHolder(
         binding.tvTvShowGenres.apply {
             text = tvShow.genres.joinToString(", ") { it.name }
             isVisible = tvShow.genres.isNotEmpty()
+            if (tvShow.genres.isNotEmpty()) {
+                setOnClickListener {
+                    val genre = tvShow.genres.first()
+                    checkProviderAndRun {
+                        if (context.toActivity()?.getCurrentFragment() is TvShowMobileFragment) {
+                            findNavController().navigate(
+                                TvShowMobileFragmentDirections.actionTvShowToGenre(
+                                    id = genre.id,
+                                    name = genre.name,
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                setOnClickListener(null)
+            }
         }
 
-        binding.tvTvShowOverview.text = tvShow.overview
+        binding.tvTvShowOverview.apply {
+            text = tvShow.overview
+            if (ExperimentalMobileDesign.enabled() && !tvShow.overview.isNullOrBlank()) {
+                maxLines = 5
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                var expanded = false
+                setOnClickListener {
+                    expanded = !expanded
+                    maxLines = if (expanded) Integer.MAX_VALUE else 5
+                }
+            }
+        }
         val episodeToWatch = tvShow.episodeToWatch
         val episodeSeason = resolveEpisodeSeason(episodeToWatch)
         binding.btnTvShowWatchNow.apply {
@@ -744,9 +776,66 @@ class TvShowViewHolder(
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer)
+                if (trailer != null) {
+                    val fragment = context.toActivity()?.getCurrentFragment() as? Fragment
+                    if (fragment != null) {
+                        TrailerPlaybackController.play(fragment, trailer)
+                    } else {
+                        handleTrailerClick(trailer)
+                    }
+                }
             }
             isVisible = trailer != null
+        }
+
+        binding.root.findViewById<android.widget.TextView>(R.id.btn_tv_show_download)?.setOnClickListener {
+            ExpMotion.hapticTap(it)
+            checkProviderAndRun {
+                val fragment = context.toActivity()?.getCurrentFragment() as? Fragment ?: return@checkProviderAndRun
+                when {
+                    episodeToWatch != null -> DownloadOptionsController.enqueueEpisode(fragment, episodeToWatch)
+                    else -> {
+                        val season = tvShow.seasons.firstOrNull { it.episodes.isNotEmpty() }
+                        if (season != null) {
+                            DownloadOptionsController.enqueueSeason(
+                                fragment,
+                                tvShow,
+                                season.number,
+                                season.episodes,
+                            )
+                        } else {
+                            Toast.makeText(
+                                context,
+                                R.string.detail_download_season,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }
+                }
+            }
+        }
+
+        binding.root.findViewById<android.widget.TextView>(R.id.tv_tv_show_certification)?.apply {
+            val cert = tvShow.contentRating
+            text = cert
+            visibility = if (cert.isNullOrBlank()) View.GONE else View.VISIBLE
+        }
+
+        binding.root.findViewById<android.widget.TextView>(R.id.btn_tv_show_share)?.setOnClickListener {
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, tvShow.title)
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    buildString {
+                        append(tvShow.title)
+                        tvShow.released?.format("yyyy")?.let { append(" ($it)") }
+                        tvShow.overview?.takeIf { it.isNotBlank() }?.let { append("\n\n").append(it.take(280)) }
+                        tvShow.trailer?.let { append("\n").append(it) }
+                    },
+                )
+            }
+            context.startActivity(Intent.createChooser(share, context.getString(R.string.detail_share)))
         }
 
         binding.btnTvShowFavorite.apply {
@@ -881,7 +970,14 @@ class TvShowViewHolder(
         binding.btnTvShowTrailer.apply {
             val trailer = tvShow.trailer
             setOnClickListener {
-                if (trailer != null) handleTrailerClick(trailer)
+                if (trailer != null) {
+                    val fragment = context.toActivity()?.getCurrentFragment() as? Fragment
+                    if (fragment != null) {
+                        TrailerPlaybackController.play(fragment, trailer)
+                    } else {
+                        handleTrailerClick(trailer)
+                    }
+                }
             }
             isVisible = trailer != null
         }
