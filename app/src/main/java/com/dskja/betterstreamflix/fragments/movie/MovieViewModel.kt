@@ -98,13 +98,17 @@ class MovieViewModel(id: String, private val database: AppDatabase) : ViewModel(
 
         try {
             val movie = UserPreferences.currentProvider!!.getMovie(id)
+            val enriched = runCatching {
+                com.dskja.betterstreamflix.platform.plugins.PluginManager
+                    .enrichMovie(UserPreferences.currentProvider!!, movie)
+            }.getOrDefault(movie)
 
             database.movieDao().getById(id)?.let { movieDb ->
-                movie.merge(movieDb)
+                enriched.merge(movieDb)
             }
-            database.movieDao().insert(movie)
+            database.movieDao().insert(enriched)
 
-            _state.emit(State.SuccessLoading(movie))
+            _state.emit(State.SuccessLoading(enriched))
         } catch (e: Exception) {
             Log.e("MovieViewModel", "getMovie: ", e)
             _state.emit(State.FailedLoading(e))

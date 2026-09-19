@@ -372,8 +372,13 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             ) {
                 provider.getHome()
             }
-            HomeCacheStore.write(appContext, provider, categories)
-            _state.emit(State.SuccessLoading(categories))
+            val addonRows = runCatching {
+                com.dskja.betterstreamflix.platform.plugins.PluginManager
+                    .collectHomeCategories(provider)
+            }.getOrDefault(emptyList())
+            val merged = categories + addonRows
+            HomeCacheStore.write(appContext, provider, merged)
+            _state.emit(State.SuccessLoading(merged))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("HomeViewModel", "getHome: ", e)

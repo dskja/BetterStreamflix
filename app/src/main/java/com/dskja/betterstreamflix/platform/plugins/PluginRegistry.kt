@@ -61,13 +61,22 @@ object PluginRegistry {
     fun all(): List<SourcePlugin> = plugins.values.sortedBy { it.manifest.name.lowercase() }
 
     fun enabledProviders(): List<Provider> =
-        all().filter { it.isEnabled() }.map { it.createProvider() }
+        all().filter { it.isEnabled() }.mapNotNull { plugin ->
+            runCatching { plugin.createProvider() }.getOrNull()
+        }
 
     fun findByProviderName(name: String): SourcePlugin? =
-        plugins.values.firstOrNull { it.manifest.name == name }
+        plugins.values.firstOrNull { plugin ->
+            runCatching { plugin.createProvider().name == name }.getOrDefault(false)
+        }
 
     fun isProviderVisible(provider: Provider): Boolean {
         val plugin = findByProviderName(provider.name) ?: return true
         return plugin.isEnabled()
+    }
+
+    /** Soft re-bootstrap: re-add builtins without wiping LOCAL APK plugins. */
+    fun ensureBuiltins() {
+        bootstrapBuiltins()
     }
 }

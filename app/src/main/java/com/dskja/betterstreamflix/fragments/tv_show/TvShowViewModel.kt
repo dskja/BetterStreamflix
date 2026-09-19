@@ -228,22 +228,26 @@ class TvShowViewModel(
 
         try {
             val tvShow = UserPreferences.currentProvider!!.getTvShow(id)
+            val enriched = runCatching {
+                com.dskja.betterstreamflix.platform.plugins.PluginManager
+                    .enrichTvShow(UserPreferences.currentProvider!!, tvShow)
+            }.getOrDefault(tvShow)
 
-            if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.poster) && ArtworkRepair.isRemoteArtworkUrl(fallbackPoster)) {
-                tvShow.poster = fallbackPoster
+            if (!ArtworkRepair.isRemoteArtworkUrl(enriched.poster) && ArtworkRepair.isRemoteArtworkUrl(fallbackPoster)) {
+                enriched.poster = fallbackPoster
             }
-            if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.banner) && ArtworkRepair.isRemoteArtworkUrl(fallbackBanner)) {
-                tvShow.banner = fallbackBanner
+            if (!ArtworkRepair.isRemoteArtworkUrl(enriched.banner) && ArtworkRepair.isRemoteArtworkUrl(fallbackBanner)) {
+                enriched.banner = fallbackBanner
             }
-            if (!ArtworkRepair.isRemoteArtworkUrl(tvShow.banner) && ArtworkRepair.isRemoteArtworkUrl(tvShow.poster)) {
-                tvShow.banner = tvShow.poster
+            if (!ArtworkRepair.isRemoteArtworkUrl(enriched.banner) && ArtworkRepair.isRemoteArtworkUrl(enriched.poster)) {
+                enriched.banner = enriched.poster
             }
 
-            database.tvShowDao().getById(tvShow.id)?.let { tvShowDb ->
-                tvShow.merge(tvShowDb)
+            database.tvShowDao().getById(enriched.id)?.let { tvShowDb ->
+                enriched.merge(tvShowDb)
             }
-            val orderedSeasons = tvShow.seasons.sortedWith(::compareSeasonsForDisplay)
-            val orderedTvShow = tvShow.copy(seasons = orderedSeasons)
+            val orderedSeasons = enriched.seasons.sortedWith(::compareSeasonsForDisplay)
+            val orderedTvShow = enriched.copy(seasons = orderedSeasons)
 
             database.tvShowDao().insert(orderedTvShow)
 

@@ -1209,6 +1209,12 @@ class PlayerTvFragment : Fragment() {
             currentVideo = video
             currentServer = server
             updatePlayerHeader()
+            runCatching {
+                com.dskja.betterstreamflix.platform.plugins.PluginManager
+                    .dispatchServerResolved(server)
+                com.dskja.betterstreamflix.platform.plugins.PluginManager
+                    .dispatchPlaybackStarted(args.videoType, server.name)
+            }
             if (com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal()) {
                 currentExternalPlayerTried = true
                 val pos = runCatching { player.currentPosition }.getOrDefault(0L)

@@ -125,9 +125,14 @@ class SearchViewModel(database: AppDatabase) : ViewModel() {
 
             try {
                 val results = ParentalControlUtils.filterItems(UserPreferences.currentProvider!!.search(query))
+                val addonHits = runCatching {
+                    com.dskja.betterstreamflix.platform.plugins.PluginManager
+                        .collectSearchResults(UserPreferences.currentProvider!!, query, page = 1)
+                }.getOrDefault(emptyList())
+                val merged = (results + addonHits).distinctBy { it.searchIdentityKey() }
                 this@SearchViewModel.query = query
                 page = 1
-                _state.emit(State.SuccessSearching(results, results.isNotEmpty()))
+                _state.emit(State.SuccessSearching(merged, merged.isNotEmpty()))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

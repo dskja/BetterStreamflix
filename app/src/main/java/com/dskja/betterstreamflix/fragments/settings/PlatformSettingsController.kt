@@ -13,6 +13,7 @@ import androidx.preference.SwitchPreference
 import androidx.preference.SwitchPreferenceCompat
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.platform.jellyfin.JellyfinApi
+import com.dskja.betterstreamflix.platform.plugins.PluginManager
 import com.dskja.betterstreamflix.platform.plugins.PluginRegistry
 import com.dskja.betterstreamflix.platform.trakt.TraktClient
 import com.dskja.betterstreamflix.platform.trakt.TraktConfig
@@ -78,10 +79,7 @@ object PlatformSettingsController {
                     else -> typed
                 }
                 Toast.makeText(context, R.string.platform_settings_saved, Toast.LENGTH_SHORT).show()
-                runCatching {
-                    PluginRegistry.clear()
-                    PluginRegistry.bootstrapBuiltins()
-                }
+                runCatching { PluginManager.reload(context) }
                 false
             }
         }
@@ -388,10 +386,7 @@ object PlatformSettingsController {
                         set = { UserPreferences.jellyfinAccessToken = it },
                         mask = true,
                     )
-                    runCatching {
-                        PluginRegistry.clear()
-                        PluginRegistry.bootstrapBuiltins()
-                    }
+                    runCatching { com.dskja.betterstreamflix.platform.plugins.PluginManager.reload(context) }
                 }
             }
             true
@@ -435,137 +430,15 @@ object PlatformSettingsController {
                         set = { UserPreferences.jellyfinAccessToken = it },
                         mask = true,
                     )
-                    runCatching {
-                        PluginRegistry.clear()
-                        PluginRegistry.bootstrapBuiltins()
-                    }
+                    runCatching { com.dskja.betterstreamflix.platform.plugins.PluginManager.reload(context) }
                 }
             }
             true
         }
 
-        bindSwitch(
-            key = "plugin_disable_jellyfin",
-            get = { UserPreferences.isPluginDisabled("builtin:Jellyfin") },
-            set = {
-                UserPreferences.setPluginDisabled("builtin:Jellyfin", it)
-                runCatching {
-                    PluginRegistry.clear()
-                    PluginRegistry.bootstrapBuiltins()
-                }
-            },
-        )
-        bindSwitch(
-            key = "plugin_disable_plex",
-            get = { UserPreferences.isPluginDisabled("builtin:Plex") },
-            set = {
-                UserPreferences.setPluginDisabled("builtin:Plex", it)
-                runCatching {
-                    PluginRegistry.clear()
-                    PluginRegistry.bootstrapBuiltins()
-                }
-            },
-        )
+        PluginSettingsController.bind(fragment, scope, findPreference)
 
-        findPreference("platform_plugin_catalog")?.setOnPreferenceClickListener {
-            runCatching {
-                com.dskja.betterstreamflix.platform.plugins.PluginCatalog.reload(context)
-            }
-            val entries = com.dskja.betterstreamflix.platform.plugins.PluginCatalog.loadMerged(context)
-            val lines = if (entries.isEmpty()) {
-                listOf(context.getString(R.string.platform_plugin_catalog_empty))
-            } else {
-                entries.map { entry ->
-                    com.dskja.betterstreamflix.platform.plugins.PluginCatalog.summaryLine(
-                        entry,
-                        UserPreferences.isPluginDisabled(entry.id),
-                    )
-                }
-            }
-            AlertDialog.Builder(context)
-                .setTitle(R.string.platform_plugin_catalog_title_dialog)
-                .setItems(lines.toTypedArray(), null)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
-            true
-        }
-
-        findPreference("platform_plugin_reload")?.setOnPreferenceClickListener {
-            val results = runCatching {
-                com.dskja.betterstreamflix.platform.plugins.PluginCatalog.reload(context)
-                com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.loadInstalled(context)
-            }.getOrElse { emptyList() }
-            val ok = results.count { it.success }
-            Toast.makeText(
-                context,
-                context.getString(R.string.platform_plugin_reload_ok, ok),
-                Toast.LENGTH_SHORT,
-            ).show()
-            runCatching {
-                com.dskja.betterstreamflix.utils.ProviderChangeNotifier.notifyProviderChanged()
-            }
-            true
-        }
-
-        findPreference("platform_plugin_install_local")?.setOnPreferenceClickListener {
-            val entries = com.dskja.betterstreamflix.platform.plugins.PluginCatalog.loadMerged(context)
-                .filter {
-                    it.source == com.dskja.betterstreamflix.platform.plugins.PluginManifest.Source.LOCAL &&
-                        it.sha256.isNotBlank() &&
-                        it.entryClass.isNotBlank()
-                }
-            if (entries.isEmpty()) {
-                val hint = com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.apksDir(context)
-                    .absolutePath
-                Toast.makeText(
-                    context,
-                    context.getString(
-                        R.string.platform_plugin_install_fail,
-                        "catalog needs sha256+entryClass; APK path: $hint",
-                    ),
-                    Toast.LENGTH_LONG,
-                ).show()
-                return@setOnPreferenceClickListener true
-            }
-            val labels = entries.map { "${it.name} (${it.id})" }.toTypedArray()
-            AlertDialog.Builder(context)
-                .setTitle(R.string.platform_plugin_install_local_title)
-                .setItems(labels) { _, which ->
-                    val entry = entries[which]
-                    val apk = com.dskja.betterstreamflix.platform.plugins.PluginApkLoader
-                        .apkFileFor(context, entry.id)
-                    val result = if (!apk.isFile) {
-                        com.dskja.betterstreamflix.platform.plugins.PluginApkLoader.LoadResult(
-                            entry.id,
-                            entry.name,
-                            false,
-                            apk.absolutePath,
-                        )
-                    } else {
-                        com.dskja.betterstreamflix.platform.plugins.PluginApkLoader
-                            .loadVerified(context, apk, entry)
-                    }
-                    Toast.makeText(
-                        context,
-                        if (result.success) {
-                            context.getString(R.string.platform_plugin_install_ok, result.name)
-                        } else {
-                            context.getString(R.string.platform_plugin_install_fail, result.message)
-                        },
-                        Toast.LENGTH_LONG,
-                    ).show()
-                    if (result.success) {
-                        runCatching {
-                            com.dskja.betterstreamflix.utils.ProviderChangeNotifier.notifyProviderChanged()
-                        }
-                    }
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            true
-        }
-
-        findPreference("platform_test_jellyfin")?.setOnPreferenceClickListener {
+                findPreference("platform_test_jellyfin")?.setOnPreferenceClickListener {
             scope.launch {
                 val ok = runCatching {
                     JellyfinApi().configured() && JellyfinApi().resumeItems(1).length() >= 0

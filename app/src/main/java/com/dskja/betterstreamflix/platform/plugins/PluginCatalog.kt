@@ -27,6 +27,8 @@ object PluginCatalog {
         val sha256: String = "",
         val apiVersion: Int = 1,
         val entryClass: String = "",
+        val capabilities: PluginManifest.Capabilities? = null,
+        val author: String = "",
     )
 
     fun catalogFile(context: Context): File =
@@ -82,7 +84,14 @@ object PluginCatalog {
                     .put("downloadUrl", e.downloadUrl)
                     .put("sha256", e.sha256)
                     .put("apiVersion", e.apiVersion)
-                    .put("entryClass", e.entryClass),
+                    .put("entryClass", e.entryClass)
+                    .put("author", e.author)
+                    .also { obj ->
+                        val caps = e.capabilities?.labels().orEmpty()
+                        if (caps.isNotEmpty()) {
+                            obj.put("capabilities", JSONArray(caps))
+                        }
+                    },
             )
         }
         root.put("plugins", arr)
@@ -108,6 +117,15 @@ object PluginCatalog {
                     is String -> versionValue.ifBlank { "1" }
                     else -> "1"
                 }
+                val capLabels = buildList {
+                    val arr = o.optJSONArray("capabilities")
+                    if (arr != null) {
+                        for (j in 0 until arr.length()) {
+                            val label = arr.optString(j)
+                            if (label.isNotBlank()) add(label)
+                        }
+                    }
+                }
                 add(
                     Entry(
                         id = id,
@@ -119,6 +137,9 @@ object PluginCatalog {
                         sha256 = o.optString("sha256"),
                         apiVersion = o.optInt("apiVersion", 1),
                         entryClass = o.optString("entryClass"),
+                        capabilities = if (capLabels.isEmpty()) null
+                        else PluginManifest.capabilitiesFromLabels(capLabels),
+                        author = o.optString("author"),
                     ),
                 )
             }
@@ -158,9 +179,14 @@ object PluginCatalog {
                             name = entry.name,
                             version = entry.version,
                             language = "en",
+                            author = entry.author.ifBlank { "Community" },
                             description = entry.description,
                             source = entry.source,
-                            capabilities = PluginManifest.Capabilities(),
+                            capabilities = entry.capabilities ?: PluginManifest.Capabilities(
+                                movies = false,
+                                tvShows = false,
+                            ),
+                            minApiVersion = entry.apiVersion,
                         )
                         override fun createProvider(): com.dskja.betterstreamflix.providers.Provider {
                             error("Plugin ${entry.id} has no provider implementation yet")
