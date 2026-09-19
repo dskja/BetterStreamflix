@@ -38,6 +38,55 @@ object OpenSubtitlesV1Client {
     fun configured(): Boolean =
         runCatching { UserPreferences.openSubtitlesApiKey.isNotBlank() }.getOrDefault(false)
 
+    fun signedIn(): Boolean =
+        configured() && runCatching { UserPreferences.openSubtitlesJwt.isNotBlank() }.getOrDefault(false)
+
+    fun clearSession() {
+        UserPreferences.openSubtitlesJwt = ""
+    }
+
+    /**
+     * Validates the API key (and optional JWT). Returns a short status string or null.
+     */
+    suspend fun ping(): String? = withContext(Dispatchers.IO) {
+        val key = UserPreferences.openSubtitlesApiKey.trim()
+        if (key.isBlank()) return@withContext null
+        runCatching {
+            val path = if (UserPreferences.openSubtitlesJwt.isNotBlank()) {
+                "$API/infos/user"
+            } else {
+                "$API/infos"
+            }
+            val request = Request.Builder()
+                .url(path)
+                .get()
+                .apply { applyAuthHeaders(this, key) }
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "ping HTTP ${response.code}")
+                    return@use null
+                }
+                val json = JSONObject(raw).optJSONObject("data") ?: JSONObject(raw)
+                val remaining = json.optJSONObject("remaining_downloads")
+                    ?: json.opt("remaining_downloads")
+                when {
+                    remaining is JSONObject -> {
+                        val vip = remaining.optInt("vip", -1)
+                        val user = remaining.optInt("user", -1)
+                        "OpenSubtitles OK · downloads left vip=$vip user=$user"
+                    }
+                    remaining != null -> "OpenSubtitles OK · remaining=$remaining"
+                    else -> "OpenSubtitles OK"
+                }
+            }
+        }.getOrElse {
+            Log.w(TAG, "ping failed: ${it.message}")
+            null
+        }
+    }
+
     fun userAgent(): String {
         val version = runCatching { UserPreferences.openSubtitlesUserAgent }.getOrDefault("")
             .ifBlank { "BetterStreamflix v1.1.0" }

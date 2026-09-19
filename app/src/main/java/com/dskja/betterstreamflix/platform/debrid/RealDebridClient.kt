@@ -30,8 +30,18 @@ class RealDebridClient(
         )
     }
 
-    override suspend fun isAuthenticated(): Boolean =
-        tokenProvider().trim().isNotEmpty()
+    override suspend fun isAuthenticated(): Boolean = withContext(Dispatchers.IO) {
+        val token = tokenProvider().trim()
+        if (token.isEmpty()) return@withContext false
+        runCatching {
+            val request = Request.Builder()
+                .url("$API/user")
+                .get()
+                .header("Authorization", "Bearer $token")
+                .build()
+            NetworkClient.default.newCall(request).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
+    }
 
     override suspend fun unrestrict(link: String): DebridResult = withContext(Dispatchers.IO) {
         val token = tokenProvider().trim()

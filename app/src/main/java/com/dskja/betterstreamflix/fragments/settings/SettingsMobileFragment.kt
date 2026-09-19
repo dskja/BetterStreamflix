@@ -1893,6 +1893,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         applyScreenTitle()
         updateOverviewLabels()
         updateProviderVisibilityState()
+        PlatformSettingsController.refresh(this) { key -> findPreference(key) }
+        settingsHubController?.updateVisibility()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain

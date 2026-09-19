@@ -1,8 +1,10 @@
 package com.dskja.betterstreamflix.fragments.settings
 
+import android.content.Context
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.dskja.betterstreamflix.R
+import com.dskja.betterstreamflix.platform.IntegrationStatus
 
 /** Cards for the experimental Integrations hub (screen_platform root). */
 internal object PlatformHubCategories {
@@ -64,4 +66,14 @@ internal object PlatformHubCategories {
             iconRes = R.drawable.ic_providers_language,
         ),
     )
+
+    fun liveSummary(context: Context, screenKey: String): String =
+        IntegrationStatus.label(context, IntegrationStatus.forScreen(screenKey, context))
+
+    fun hubSubtitle(context: Context): String {
+        val connected = cards()
+            .map { IntegrationStatus.forScreen(it.screenKey, context) }
+            .count { it.isHealthy }
+        return context.getString(R.string.platform_hub_overview, connected, cards().size)
+    }
 }

@@ -263,6 +263,18 @@ class JellyfinApi(
         getJson("/Users/${userIdProvider()}/Items/$id")
     }
 
+    /**
+     * Live identity probe: fetch the authenticated user profile.
+     * Returns a display name / id on success, null on failure.
+     */
+    suspend fun ping(): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val user = getJson("/Users/${userIdProvider()}")
+            val name = user.optString("Name").ifBlank { user.optString("Id") }
+            name.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
     suspend fun seasons(seriesId: String): JSONArray = withContext(Dispatchers.IO) {
         getJson("/Shows/$seriesId/Seasons?userId=${userIdProvider()}")
             .optJSONArray("Items") ?: JSONArray()

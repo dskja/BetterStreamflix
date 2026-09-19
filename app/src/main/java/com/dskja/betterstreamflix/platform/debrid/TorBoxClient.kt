@@ -31,7 +31,18 @@ class TorBoxClient(
         )
     }
 
-    override suspend fun isAuthenticated(): Boolean = keyProvider().trim().isNotEmpty()
+    override suspend fun isAuthenticated(): Boolean = withContext(Dispatchers.IO) {
+        val key = keyProvider().trim()
+        if (key.isEmpty()) return@withContext false
+        runCatching {
+            val request = Request.Builder()
+                .url("$API/user/me")
+                .get()
+                .header("Authorization", "Bearer $key")
+                .build()
+            NetworkClient.default.newCall(request).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
+    }
 
     override suspend fun unrestrict(link: String): DebridResult = withContext(Dispatchers.IO) {
         val key = keyProvider().trim()
