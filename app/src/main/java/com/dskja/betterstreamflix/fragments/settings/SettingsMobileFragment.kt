@@ -269,7 +269,20 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
     }
 
     private fun renderCurrentScreen() {
-        setPreferencesFromResource(R.xml.settings_mobile, currentScreenState.rootKey)
+        val requestedKey = currentScreenState.rootKey
+        try {
+            setPreferencesFromResource(R.xml.settings_mobile, requestedKey)
+        } catch (e: Exception) {
+            Log.e("SettingsMobile", "Failed to inflate settings screen key=$requestedKey", e)
+            if (requestedKey == null) throw e
+            // Stale/missing nested key — recover to root instead of crashing Settings.
+            currentScreenState = SettingsScreenState(rootKey = null, title = null)
+            screenBackStack.clear()
+            if (::settingsBackCallback.isInitialized) {
+                settingsBackCallback.isEnabled = false
+            }
+            setPreferencesFromResource(R.xml.settings_mobile, null)
+        }
         if (::backupRestoreManager.isInitialized) {
             displaySettings()
         }
@@ -515,6 +528,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("p_settings_support_preview")?.apply {
+            // Same PreferenceScreen as EXPERIMENTAL_NEW_APP_DESIGN (Appearance) —
+            // never use android:dependency across nested screens (BETTERSTREAMFLIX-K).
             isVisible = UserPreferences.experimentalNewAppDesign
             setOnPreferenceClickListener {
                 runCatching {

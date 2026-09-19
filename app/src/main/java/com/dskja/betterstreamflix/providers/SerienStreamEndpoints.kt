@@ -21,8 +21,6 @@ object SerienStreamEndpoints {
         "serienstream.cx",
     )
 
-    private val ipv4Pattern = Regex("""^\d{1,3}(?:\.\d{1,3}){3}$""")
-
     fun normalizeHost(raw: String): String {
         return raw.trim()
             .removePrefix("https://")
@@ -36,8 +34,9 @@ object SerienStreamEndpoints {
 
     fun isProxyHost(host: String?): Boolean {
         val h = host?.lowercase(Locale.ROOT)?.removePrefix("www.") ?: return false
-        if (h == PROXY_HOST) return true
-        return ipv4Pattern.matches(h)
+        // Only the official serien.domains CUII proxy is cleartext HTTP.
+        // Other IPv4 hosts (if any) should keep HTTPS.
+        return h == PROXY_HOST
     }
 
     fun schemeFor(host: String): String =

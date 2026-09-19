@@ -12,6 +12,9 @@ class SerienStreamProxyTest {
         assertTrue(SerienStreamEndpoints.isProxyHost(SerienStreamEndpoints.PROXY_HOST))
         assertTrue(SerienStreamEndpoints.isProxyHost("186.2.175.5"))
         assertFalse(SerienStreamEndpoints.isProxyHost("serienstream.to"))
+        // Non-proxy IPv4 must keep HTTPS (not forced cleartext).
+        assertFalse(SerienStreamEndpoints.isProxyHost("8.8.8.8"))
+        assertEquals("https://8.8.8.8/", SerienStreamEndpoints.originFor("8.8.8.8"))
     }
 
     @Test

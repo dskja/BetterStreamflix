@@ -642,6 +642,12 @@
                 android:defaultValue="false"
                 app:iconSpaceReserved="false" />
 
+            <Preference
+                android:key="p_settings_support_preview"
+                android:title="@string/support_preview_title"
+                android:summary="@string/support_preview_summary"
+                app:iconSpaceReserved="false" />
+
             <ListPreference
                 android:key="CATALOG_SORT_MODE"
                 android:title="@string/settings_catalog_sort_title"
@@ -1123,13 +1129,6 @@
                 android:key="SEND_SENTRY_FEEDBACK"
                 android:title="@string/settings_send_sentry_feedback_title"
                 android:summary="@string/settings_send_sentry_feedback_summary"
-                app:iconSpaceReserved="false" />
-
-            <Preference
-                android:key="p_settings_support_preview"
-                android:title="@string/support_preview_title"
-                android:summary="@string/support_preview_summary"
-                android:dependency="EXPERIMENTAL_NEW_APP_DESIGN"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>

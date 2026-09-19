@@ -93,62 +93,75 @@ class CastStreamProxyServer(
         }
 
         val upstream = httpClient.newCall(requestBuilder.build()).execute()
-        val body = upstream.body
-        val contentType = body?.contentType()?.toString()
-            ?: upstream.header("Content-Type")
-            ?: "application/octet-stream"
+        var transferOwnershipToPump = false
+        try {
+            val body = upstream.body
+            val contentType = body?.contentType()?.toString()
+                ?: upstream.header("Content-Type")
+                ?: "application/octet-stream"
 
-        if (!upstream.isSuccessful && body == null) {
-            return newFixedLengthResponse(
-                Response.Status.lookup(upstream.code) ?: Response.Status.INTERNAL_ERROR,
-                MIME_PLAINTEXT,
-                "upstream ${upstream.code}",
-            )
-        }
+            if (!upstream.isSuccessful && body == null) {
+                return newFixedLengthResponse(
+                    Response.Status.lookup(upstream.code) ?: Response.Status.INTERNAL_ERROR,
+                    MIME_PLAINTEXT,
+                    "upstream ${upstream.code}",
+                )
+            }
 
-        val looksLikePlaylist = contentType.contains("mpegurl", ignoreCase = true) ||
-            contentType.contains("m3u8", ignoreCase = true) ||
-            target.substringBefore('?').endsWith(".m3u8", ignoreCase = true)
+            val looksLikePlaylist = contentType.contains("mpegurl", ignoreCase = true) ||
+                contentType.contains("m3u8", ignoreCase = true) ||
+                target.substringBefore('?').endsWith(".m3u8", ignoreCase = true)
 
-        if (looksLikePlaylist) {
-            val bytes = body?.bytes() ?: ByteArray(0)
-            val rewritten = maybeRewritePlaylist(target, contentType, bytes)
+            if (looksLikePlaylist) {
+                val bytes = body?.bytes() ?: ByteArray(0)
+                val rewritten = maybeRewritePlaylist(target, contentType, bytes)
+                val response = newFixedLengthResponse(
+                    Response.Status.lookup(upstream.code) ?: Response.Status.OK,
+                    contentType,
+                    rewritten.inputStream(),
+                    rewritten.size.toLong(),
+                )
+                decorate(response, upstream)
+                return response
+            }
+
+            // Stream large media so Chromecast can start sooner and we avoid OOM.
+            val contentLength = body?.contentLength() ?: upstream.header("Content-Length")?.toLongOrNull() ?: -1L
+            val pipedIn = PipedInputStream(256 * 1024)
+            val pipedOut = PipedOutputStream(pipedIn)
+            transferOwnershipToPump = true
+            pumpExecutor.execute {
+                try {
+                    upstream.body?.byteStream()?.use { input ->
+                        input.copyTo(pipedOut, 64 * 1024)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Cast proxy stream pump ended: ${e.message}")
+                } finally {
+                    runCatching { pipedOut.close() }
+                    runCatching { upstream.close() }
+                }
+            }
+
             val response = newFixedLengthResponse(
                 Response.Status.lookup(upstream.code) ?: Response.Status.OK,
                 contentType,
-                rewritten.inputStream(),
-                rewritten.size.toLong(),
+                pipedIn,
+                contentLength,
             )
             decorate(response, upstream)
+            response.setChunkedTransfer(contentLength < 0)
             return response
-        }
-
-        // Stream large media so Chromecast can start sooner and we avoid OOM.
-        val contentLength = body?.contentLength() ?: upstream.header("Content-Length")?.toLongOrNull() ?: -1L
-        val pipedIn = PipedInputStream(256 * 1024)
-        val pipedOut = PipedOutputStream(pipedIn)
-        pumpExecutor.execute {
-            try {
-                body?.byteStream()?.use { input ->
-                    input.copyTo(pipedOut, 64 * 1024)
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Cast proxy stream pump ended: ${e.message}")
-            } finally {
-                runCatching { pipedOut.close() }
+        } catch (e: Exception) {
+            if (!transferOwnershipToPump) {
+                runCatching { upstream.close() }
+            }
+            throw e
+        } finally {
+            if (!transferOwnershipToPump) {
                 runCatching { upstream.close() }
             }
         }
-
-        val response = newFixedLengthResponse(
-            Response.Status.lookup(upstream.code) ?: Response.Status.OK,
-            contentType,
-            pipedIn,
-            contentLength,
-        )
-        decorate(response, upstream)
-        response.setChunkedTransfer(contentLength < 0)
-        return response
     }
 
     private fun decorate(response: Response, upstream: okhttp3.Response) {

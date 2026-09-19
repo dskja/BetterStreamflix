@@ -45,7 +45,7 @@ object SentryBootstrap {
             options.environment = if (BuildConfig.DEBUG) "debug" else "production"
             options.dist = BuildConfig.VERSION_CODE.toString()
             options.isDebug = BuildConfig.DEBUG
-            options.isSendDefaultPii = true
+            options.isSendDefaultPii = false
             options.isEnableUserInteractionTracing = true
             options.isAttachScreenshot = true
             options.isAttachViewHierarchy = true
@@ -69,6 +69,18 @@ object SentryBootstrap {
 
             options.beforeSend =
                 SentryOptions.BeforeSendCallback { event: SentryEvent, _: Hint ->
+                    // Drop coroutine cancellation noise (JobCancellationException).
+                    val values = event.exceptions.orEmpty()
+                    if (values.any { ex ->
+                            val type = ex.type.orEmpty()
+                            val value = ex.value.orEmpty()
+                            type.contains("CancellationException", ignoreCase = true) ||
+                                value.contains("Job was cancelled", ignoreCase = true) ||
+                                value.contains("StandaloneCoroutine was cancelled", ignoreCase = true)
+                        }
+                    ) {
+                        return@BeforeSendCallback null
+                    }
                     scrubEvent(event)
                     event
                 }

@@ -166,24 +166,8 @@ object DownloadEventBridge : DownloadManager.Listener {
         entity.seasonPackId?.let { repo.refreshSeasonPack(it) }
     }
 
-    private fun classifyFailure(e: Exception?): DownloadErrorCode {
-        val msg = e?.message?.lowercase().orEmpty()
-        val chain = generateSequence(e as Throwable?) { it.cause }
-            .mapNotNull { it.message?.lowercase() }
-            .joinToString(" ")
-        val hay = "$msg $chain"
-        return when {
-            "end of input" in hay || "character 0" in hay || "empty response" in hay ->
-                DownloadErrorCode.EMPTY_RESPONSE
-            "no space" in hay || "enospc" in hay || "space left" in hay ->
-                DownloadErrorCode.NOSPACE
-            "403" in hay || "410" in hay || "expired" in hay || "forbidden" in hay ->
-                DownloadErrorCode.EXPIRED
-            "cleartext" in hay || "ssl" in hay || "certificate" in hay ->
-                DownloadErrorCode.UNSUPPORTED
-            else -> DownloadErrorCode.NETWORK
-        }
-    }
+    private fun classifyFailure(e: Exception?): DownloadErrorCode =
+        DownloadErrorClassifier.classify(e)
 
     private fun refreshAggregateNotification(context: Context, downloadManager: DownloadManager) {
         val active = downloadManager.currentDownloads.filter {
