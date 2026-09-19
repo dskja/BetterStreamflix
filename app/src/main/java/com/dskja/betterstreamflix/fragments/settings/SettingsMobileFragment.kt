@@ -55,7 +55,6 @@ import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CatalogSortMode
 import com.dskja.betterstreamflix.utils.CrashReporter
-import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ExpMotion
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
@@ -304,6 +303,36 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         PlatformSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        ConnectionServicesController.bind(
+            fragment = this,
+            scope = lifecycleScope,
+            findPreference = { key -> findPreference(key) },
+            openScreen = { key ->
+                val title = findPreference<Preference>(key)?.title?.toString()
+                    ?: getString(R.string.settings_category_network_title)
+                openNestedSettingsScreen(key, title)
+            },
+            onScanResolverQr = {
+                runCatching {
+                    scanResolverQrLauncher.launch(Intent(requireContext(), QrScannerActivity::class.java))
+                }.onFailure {
+                    Toast.makeText(requireContext(), R.string.settings_scan_resolver_failed, Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDohChanged = {
+                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
+                    }
+                } else {
+                    Toast.makeText(requireContext(), R.string.doh_provider_updated, Toast.LENGTH_LONG).show()
+                }
+            },
+        )
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
@@ -510,23 +539,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
-            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
-            text = UserPreferences.subdlApiKey
-            setOnPreferenceChangeListener { _, newValue ->
-                val newKey = (newValue as String).trim()
-                UserPreferences.subdlApiKey = newKey
-                summary = if (newKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else newKey
-                val message = if (newKey.isEmpty()) {
-                    getString(R.string.settings_subdl_api_key_reset)
-                } else {
-                    getString(R.string.settings_subdl_api_key_success)
-                }
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                true
-            }
-        }
-
         findPreference<Preference>("p_settings_support")?.apply {
             val titleStr = getString(R.string.support_settings_entry_title)
             val spannableTitle = SpannableString(titleStr)
@@ -614,11 +626,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 requireContext(),
                 com.dskja.betterstreamflix.support.SupportProvider.DISCORD,
             )
-            true
-        }
-
-        findPreference<Preference>("p_scan_resolver_qr")?.setOnPreferenceClickListener {
-            scanResolverQrLauncher.launch(Intent(requireContext(), QrScannerActivity::class.java))
             true
         }
 
@@ -787,36 +794,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     }
                     true
                 }
-            }
-        }
-
-        findPreference<ListPreference>("p_doh_provider_url")?.apply {
-            value = UserPreferences.dohProviderUrl
-            summary = entry
-            setOnPreferenceChangeListener { preference, newValue ->
-                val newUrl = newValue as String
-                UserPreferences.dohProviderUrl = newUrl
-                DnsResolver.setDnsUrl(newUrl)
-                if (preference is ListPreference) {
-                    val index = preference.findIndexOfValue(newUrl)
-                    if (index >= 0 && preference.entries != null && index < preference.entries.size) {
-                        preference.summary = preference.entries[index]
-                    } else {
-                        preference.summary = null
-                    }
-                }
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
-                        requireActivity().apply {
-                            finish()
-                            startActivity(Intent(this, this::class.java))
-                        }
-                    }
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.doh_provider_updated), Toast.LENGTH_LONG).show()
-                }
-                true
             }
         }
 
@@ -1774,6 +1751,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         updateOverviewLabels()
         updateProviderVisibilityState()
         PlatformSettingsController.refresh(this) { key -> findPreference(key) }
+        ConnectionServicesController.refresh(
+            findPreference = { key -> findPreference(key) },
+            context = requireContext(),
+        )
         settingsHubController?.updateVisibility()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
@@ -1789,15 +1770,6 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<EditTextPreference>("TMDB_API_KEY")?.apply {
             summary = if (UserPreferences.tmdbApiKey.isEmpty()) getString(R.string.settings_tmdb_api_key_summary) else UserPreferences.tmdbApiKey
             text = UserPreferences.tmdbApiKey
-        }
-
-        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
-            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
-            text = UserPreferences.subdlApiKey
-        }
-
-        findPreference<ListPreference>("p_doh_provider_url")?.apply {
-            summary = entry
         }
 
         findPreference<ListPreference>("APP_LANGUAGE")?.value =

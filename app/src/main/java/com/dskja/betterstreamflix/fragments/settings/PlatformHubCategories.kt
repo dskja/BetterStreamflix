@@ -70,10 +70,6 @@ internal object PlatformHubCategories {
     fun liveSummary(context: Context, screenKey: String): String =
         IntegrationStatus.label(context, IntegrationStatus.forScreen(screenKey, context))
 
-    fun hubSubtitle(context: Context): String {
-        val connected = cards()
-            .map { IntegrationStatus.forScreen(it.screenKey, context) }
-            .count { it.isHealthy }
-        return context.getString(R.string.platform_hub_overview, connected, cards().size)
-    }
+    fun hubSubtitle(context: Context): String =
+        IntegrationStatus.hubOverview(context)
 }

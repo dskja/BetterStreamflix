@@ -573,6 +573,25 @@ object PlatformSettingsController {
         bindProbe("platform_test_simkl") { IntegrationProbes.simkl() }
         bindProbe("platform_test_opensubtitles") { IntegrationProbes.openSubtitles() }
 
+        findPreference("platform_test_all")?.setOnPreferenceClickListener { pref ->
+            pref.isEnabled = false
+            pref.summary = context.getString(R.string.platform_test_running)
+            scope.launch {
+                val report = withContext(Dispatchers.IO) {
+                    com.dskja.betterstreamflix.platform.ConnectionDiagnostics.probeAllIntegrations()
+                }
+                pref.isEnabled = true
+                pref.summary = report.title
+                refreshIntegrationSummaries()
+                AlertDialog.Builder(context)
+                    .setTitle(report.title)
+                    .setMessage(report.lines.joinToString("\n"))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+            true
+        }
+
         PluginSettingsController.bind(fragment, scope, findPreference)
         refreshIntegrationSummaries()
     }
@@ -654,17 +673,8 @@ object PlatformSettingsController {
             UserPreferences.simklAccessToken.isNotBlank()
     }
 
-    private fun hubOverview(context: android.content.Context): String {
-        val connected = listOf(
-            IntegrationStatus.trakt(),
-            IntegrationStatus.jellyfin(),
-            IntegrationStatus.plex(),
-            IntegrationStatus.debrid(),
-            IntegrationStatus.simkl(),
-            IntegrationStatus.openSubtitles(),
-        ).count { it.isHealthy }
-        return context.getString(R.string.platform_hub_overview, connected, 6)
-    }
+    private fun hubOverview(context: android.content.Context): String =
+        IntegrationStatus.hubOverview(context)
 
     private fun defaultSummaryRes(key: String): Int = when (key) {
         "TRAKT_CLIENT_ID" -> R.string.platform_trakt_client_id_summary
