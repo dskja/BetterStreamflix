@@ -87,6 +87,87 @@
         <item name="category_swiper_gradient_drawable">@drawable/fg_category_swiper_exp</item>
     </style>
 
+    <!-- Lumina accent: Ember (warm copper) -->
+    <style name="AppTheme.Mobile.Experimental.Ember" parent="AppTheme.Mobile.Experimental">
+        <item name="colorPrimary">@color/exp_ember_primary</item>
+        <item name="colorOnPrimary">@color/exp_ember_on_primary</item>
+        <item name="colorPrimaryContainer">@color/exp_ember_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/exp_ember_on_primary_container</item>
+        <item name="colorAccent">@color/exp_ember_primary</item>
+        <item name="colorControlActivated">@color/exp_ember_primary</item>
+        <item name="colorControlHighlight">@color/exp_ember_primary_container</item>
+    </style>
+
+    <!-- Lumina accent: Aurora (cool teal) -->
+    <style name="AppTheme.Mobile.Experimental.Aurora" parent="AppTheme.Mobile.Experimental">
+        <item name="colorPrimary">@color/exp_aurora_primary</item>
+        <item name="colorOnPrimary">@color/exp_aurora_on_primary</item>
+        <item name="colorPrimaryContainer">@color/exp_aurora_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/exp_aurora_on_primary_container</item>
+        <item name="colorAccent">@color/exp_aurora_primary</item>
+        <item name="colorControlActivated">@color/exp_aurora_primary</item>
+        <item name="colorControlHighlight">@color/exp_aurora_primary_container</item>
+    </style>
+
+    <!-- Lumina accent: Slate (cool silver) -->
+    <style name="AppTheme.Mobile.Experimental.Slate" parent="AppTheme.Mobile.Experimental">
+        <item name="colorPrimary">@color/exp_slate_primary</item>
+        <item name="colorOnPrimary">@color/exp_slate_on_primary</item>
+        <item name="colorPrimaryContainer">@color/exp_slate_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/exp_slate_on_primary_container</item>
+        <item name="colorAccent">@color/exp_slate_primary</item>
+        <item name="colorControlActivated">@color/exp_slate_primary</item>
+        <item name="colorControlHighlight">@color/exp_slate_primary_container</item>
+    </style>
+
+    <style name="AppTheme.Mobile.Experimental.PureBlack" parent="AppTheme.Mobile.Experimental">
+        <item name="colorSurface">#000000</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="app_background_color">#000000</item>
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorSurfaceContainerLow">#0A0A0A</item>
+        <item name="colorSurfaceContainer">#101010</item>
+        <item name="colorSurfaceContainerHigh">#161616</item>
+        <item name="colorSurfaceContainerHighest">#1C1C1C</item>
+    </style>
+
+    <style name="AppTheme.Mobile.Experimental.Ember.PureBlack" parent="AppTheme.Mobile.Experimental.Ember">
+        <item name="colorSurface">#000000</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="app_background_color">#000000</item>
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorSurfaceContainerLow">#0A0A0A</item>
+        <item name="colorSurfaceContainer">#101010</item>
+        <item name="colorSurfaceContainerHigh">#161616</item>
+        <item name="colorSurfaceContainerHighest">#1C1C1C</item>
+    </style>
+
+    <style name="AppTheme.Mobile.Experimental.Aurora.PureBlack" parent="AppTheme.Mobile.Experimental.Aurora">
+        <item name="colorSurface">#000000</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="app_background_color">#000000</item>
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorSurfaceContainerLow">#0A0A0A</item>
+        <item name="colorSurfaceContainer">#101010</item>
+        <item name="colorSurfaceContainerHigh">#161616</item>
+        <item name="colorSurfaceContainerHighest">#1C1C1C</item>
+    </style>
+
+    <style name="AppTheme.Mobile.Experimental.Slate.PureBlack" parent="AppTheme.Mobile.Experimental.Slate">
+        <item name="colorSurface">#000000</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="app_background_color">#000000</item>
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorSurfaceContainerLow">#0A0A0A</item>
+        <item name="colorSurfaceContainer">#101010</item>
+        <item name="colorSurfaceContainerHigh">#161616</item>
+        <item name="colorSurfaceContainerHighest">#1C1C1C</item>
+    </style>
+
     <style name="PreferenceThemeOverlay.Exp" parent="PreferenceThemeOverlay">
         <item name="android:windowBackground">@color/support_bg</item>
         <item name="android:colorBackground">@color/support_bg</item>

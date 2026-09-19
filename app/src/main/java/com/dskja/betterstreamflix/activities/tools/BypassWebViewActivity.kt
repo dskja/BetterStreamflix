@@ -74,7 +74,7 @@ class BypassWebViewActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(
             if (ExperimentalMobileDesign.enabled()) {
-                R.style.AppTheme_Mobile_Experimental
+                ExperimentalMobileDesign.themeRes()
             } else {
                 ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
             }

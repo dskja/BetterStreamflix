@@ -16,6 +16,7 @@ object ExpNavAutoHide {
 
     fun attach(root: View) {
         if (!ExperimentalMobileDesign.enabled()) return
+        if (!ExperimentalMobileDesign.navAutoHide()) return
         if (root.getTag(R.id.exp_nav_autohide_tag) == true) return
         root.setTag(R.id.exp_nav_autohide_tag, true)
         findRecyclerView(root)?.let { attachRecyclerView(it) }

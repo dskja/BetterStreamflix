@@ -548,6 +548,8 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 true
             }
         }
+        findPreference<Preference>("screen_lumina_options")?.isVisible =
+            UserPreferences.experimentalNewAppDesign
 
         findPreference<Preference>("p_settings_about")?.apply {
             val palette = ThemeManager.palette(UserPreferences.selectedTheme)
@@ -1006,6 +1008,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
 
         findPreference<SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
             isChecked = UserPreferences.experimentalNewAppDesign
+            summary = ExperimentalMobileDesign.summary(requireContext())
             setOnPreferenceChangeListener { _, newValue ->
                 UserPreferences.experimentalNewAppDesign = newValue as Boolean
                 requireActivity().apply {
@@ -1015,6 +1018,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 true
             }
         }
+        bindLuminaOptions()
 
         findPreference<ListPreference>("CATALOG_SORT_MODE")?.apply {
             value = UserPreferences.catalogSortMode.name
@@ -1933,5 +1937,71 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<Preference>("DOWNLOAD_STORAGE_USED")?.summary =
             DownloadStorage.formatBytes(DownloadStorage.usedBytes(requireContext()))
         updateParentalControlPreferenceState()
+    }
+
+    private fun bindLuminaOptions() {
+        val luminaOn = UserPreferences.experimentalNewAppDesign
+        findPreference<Preference>("screen_lumina_options")?.isVisible = luminaOn
+
+        fun restartShell() {
+            requireActivity().apply {
+                finish()
+                startActivity(Intent(this, MainMobileActivity::class.java))
+            }
+        }
+
+        (findPreference("EXPERIMENTAL_LUMINA_ACCENT") as? ListPreference)?.apply {
+            value = UserPreferences.experimentalLuminaAccent
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            isEnabled = luminaOn
+            setOnPreferenceChangeListener { _, newValue ->
+                UserPreferences.experimentalLuminaAccent = newValue.toString()
+                restartShell()
+                true
+            }
+        }
+
+        fun bindToggle(key: String, get: () -> Boolean, set: (Boolean) -> Unit, restart: Boolean) {
+            (findPreference(key) as? SwitchPreference)?.apply {
+                isChecked = get()
+                isEnabled = luminaOn
+                setOnPreferenceChangeListener { _, newValue ->
+                    set(newValue as Boolean)
+                    if (restart) restartShell()
+                    true
+                }
+            }
+        }
+
+        bindToggle(
+            "EXPERIMENTAL_LUMINA_PURE_BLACK",
+            { UserPreferences.experimentalLuminaPureBlack },
+            { UserPreferences.experimentalLuminaPureBlack = it },
+            restart = true,
+        )
+        bindToggle(
+            "EXPERIMENTAL_LUMINA_DYNAMIC_COLORS",
+            { UserPreferences.experimentalLuminaDynamicColors },
+            { UserPreferences.experimentalLuminaDynamicColors = it },
+            restart = true,
+        )
+        bindToggle(
+            "EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE",
+            { UserPreferences.experimentalLuminaNavAutoHide },
+            { UserPreferences.experimentalLuminaNavAutoHide = it },
+            restart = false,
+        )
+        bindToggle(
+            "EXPERIMENTAL_LUMINA_HERO_PARALLAX",
+            { UserPreferences.experimentalLuminaHeroParallax },
+            { UserPreferences.experimentalLuminaHeroParallax = it },
+            restart = false,
+        )
+        bindToggle(
+            "EXPERIMENTAL_LUMINA_REDUCED_GLASS",
+            { UserPreferences.experimentalLuminaReducedGlass },
+            { UserPreferences.experimentalLuminaReducedGlass = it },
+            restart = true,
+        )
     }
 }

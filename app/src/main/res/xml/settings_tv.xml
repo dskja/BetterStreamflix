@@ -555,6 +555,47 @@
                 android:title="@string/settings_experimental_new_design_title"
                 android:summary="@string/settings_experimental_new_design_summary"
                 android:defaultValue="false" />
+
+            <PreferenceScreen
+                android:key="screen_lumina_options"
+                android:title="@string/settings_lumina_options_title"
+                android:summary="@string/settings_lumina_options_summary">
+
+                <PreferenceCategory android:title="@string/settings_lumina_options_title">
+                    <ListPreference
+                        android:key="EXPERIMENTAL_LUMINA_ACCENT"
+                        android:title="@string/settings_lumina_accent_title"
+                        android:summary="%s"
+                        android:entries="@array/lumina_accent_names"
+                        android:entryValues="@array/lumina_accent_values"
+                        android:defaultValue="crimson" />
+                    <SwitchPreference
+                        android:key="EXPERIMENTAL_LUMINA_PURE_BLACK"
+                        android:title="@string/settings_lumina_pure_black_title"
+                        android:summary="@string/settings_lumina_pure_black_summary"
+                        android:defaultValue="false" />
+                    <SwitchPreference
+                        android:key="EXPERIMENTAL_LUMINA_DYNAMIC_COLORS"
+                        android:title="@string/settings_lumina_dynamic_title"
+                        android:summary="@string/settings_lumina_dynamic_summary"
+                        android:defaultValue="false" />
+                    <SwitchPreference
+                        android:key="EXPERIMENTAL_LUMINA_NAV_AUTO_HIDE"
+                        android:title="@string/settings_lumina_nav_autohide_title"
+                        android:summary="@string/settings_lumina_nav_autohide_summary"
+                        android:defaultValue="true" />
+                    <SwitchPreference
+                        android:key="EXPERIMENTAL_LUMINA_HERO_PARALLAX"
+                        android:title="@string/settings_lumina_parallax_title"
+                        android:summary="@string/settings_lumina_parallax_summary"
+                        android:defaultValue="true" />
+                    <SwitchPreference
+                        android:key="EXPERIMENTAL_LUMINA_REDUCED_GLASS"
+                        android:title="@string/settings_lumina_reduced_glass_title"
+                        android:summary="@string/settings_lumina_reduced_glass_summary"
+                        android:defaultValue="false" />
+                </PreferenceCategory>
+            </PreferenceScreen>
         </PreferenceCategory>
 
         <PreferenceCategory

@@ -165,4 +165,26 @@ object ExpMotion {
                 .start()
         }
     }
+
+    /** Soft pulse on the accent rule under brand / catalog headers. */
+    fun pulseAccentRule(view: View?) {
+        view ?: return
+        if (!view.motionAllowed()) return
+        view.animate().cancel()
+        view.scaleX = 0.35f
+        view.alpha = 0.35f
+        view.pivotX = 0f
+        view.animate()
+            .scaleX(1f)
+            .alpha(1f)
+            .setDuration(520L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+    }
+
+    /** Brand-first home entrance: logo → brand → tagline → rule. */
+    fun brandReveal(logo: View?, brand: View?, tagline: View?, rule: View?) {
+        revealHeader(logo, brand, tagline, rule)
+        pulseAccentRule(rule)
+    }
 }

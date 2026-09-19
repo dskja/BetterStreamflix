@@ -110,12 +110,13 @@ class MainMobileActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(
             if (ExperimentalMobileDesign.enabled()) {
-                R.style.AppTheme_Mobile_Experimental
+                ExperimentalMobileDesign.themeRes()
             } else {
                 ThemeManager.mobileThemeRes(UserPreferences.selectedTheme)
             }
         )
         super.onCreate(savedInstanceState)
+        ExperimentalMobileDesign.applyDynamicColors(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         applySystemBarColors()
@@ -133,6 +134,10 @@ class MainMobileActivity : FragmentActivity() {
         setContentView(binding.root)
         if (ExperimentalMobileDesign.enabled()) {
             applyExperimentalNavigationChrome()
+            if (ExperimentalMobileDesign.reducedGlass()) {
+                binding.root.findViewById<View>(R.id.bv_main_nav)
+                    ?.setBackgroundResource(R.drawable.bg_exp_nav_pill_flat)
+            }
         } else {
             applyThemeNavigationChrome()
         }

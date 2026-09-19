@@ -83,6 +83,7 @@ class SearchMobileFragment : Fragment() {
                 binding.root.findViewById(R.id.tv_search_tagline),
                 binding.root.findViewById(R.id.v_search_rule),
             )
+            ExpMotion.pulseAccentRule(binding.root.findViewById(R.id.v_search_rule))
         }
 
         initializeSearch()
