@@ -483,6 +483,32 @@ object UserPreferences {
         get() = Key.HOME_SUPPORT_CARD_DISMISSED.getBoolean() ?: false
         set(value) = Key.HOME_SUPPORT_CARD_DISMISSED.setBoolean(value)
 
+    /** Epoch ms of last Support startup soft-prompt (0 = never). */
+    var supportStartupLastShownAtMs: Long
+        get() = Key.SUPPORT_STARTUP_LAST_SHOWN_AT_MS.getLong() ?: 0L
+        set(value) = Key.SUPPORT_STARTUP_LAST_SHOWN_AT_MS.setLong(value)
+
+    var supportStartupShowCount: Int
+        get() = Key.SUPPORT_STARTUP_SHOW_COUNT.getInt() ?: 0
+        set(value) = Key.SUPPORT_STARTUP_SHOW_COUNT.setInt(value)
+
+    var supportHubLastVisitedAtMs: Long
+        get() = Key.SUPPORT_HUB_LAST_VISITED_AT_MS.getLong() ?: 0L
+        set(value) = Key.SUPPORT_HUB_LAST_VISITED_AT_MS.setLong(value)
+
+    var supportHubVisitCount: Int
+        get() = Key.SUPPORT_HUB_VISIT_COUNT.getInt() ?: 0
+        set(value) = Key.SUPPORT_HUB_VISIT_COUNT.setInt(value)
+
+    /** Persisted soft thanks pending flag (survives process death). */
+    var supportAppreciationPending: Boolean
+        get() = Key.SUPPORT_APPRECIATION_PENDING.getBoolean() ?: false
+        set(value) = Key.SUPPORT_APPRECIATION_PENDING.setBoolean(value)
+
+    var supportAppreciationPendingAtMs: Long
+        get() = Key.SUPPORT_APPRECIATION_PENDING_AT_MS.getLong() ?: 0L
+        set(value) = Key.SUPPORT_APPRECIATION_PENDING_AT_MS.setLong(value)
+
     var catalogSortMode: CatalogSortMode
         get() = CatalogSortMode.fromKey(Key.CATALOG_SORT_MODE.getString())
         set(value) = Key.CATALOG_SORT_MODE.setString(value.name)
@@ -1025,6 +1051,12 @@ object UserPreferences {
         EXPERIMENTAL_LUMINA_REDUCED_GLASS,
         NEVER_SHOW_SUPPORT_ON_START,
         HOME_SUPPORT_CARD_DISMISSED,
+        SUPPORT_STARTUP_LAST_SHOWN_AT_MS,
+        SUPPORT_STARTUP_SHOW_COUNT,
+        SUPPORT_HUB_LAST_VISITED_AT_MS,
+        SUPPORT_HUB_VISIT_COUNT,
+        SUPPORT_APPRECIATION_PENDING,
+        SUPPORT_APPRECIATION_PENDING_AT_MS,
         CATALOG_SORT_MODE,
         CAST_ENABLED,
         CAST_SUBTITLES_ENABLED,

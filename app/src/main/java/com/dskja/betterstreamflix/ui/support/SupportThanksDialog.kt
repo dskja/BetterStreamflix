@@ -38,7 +38,7 @@ class SupportThanksDialog(
 
         binding.btnSupportThanksBack.setOnClickListener { dismiss() }
         binding.btnSupportThanksCommunity.setOnClickListener {
-            SupportLinkOpener.openProvider(context, SupportProvider.TELEGRAM)
+            SupportLinkOpener.openProvider(context, SupportProvider.DISCORD)
             dismiss()
         }
         binding.btnSupportThanksBack.requestFocus()

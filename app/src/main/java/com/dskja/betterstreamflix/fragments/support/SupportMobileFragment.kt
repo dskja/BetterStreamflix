@@ -9,7 +9,9 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.databinding.FragmentSupportMobileBinding
+import com.dskja.betterstreamflix.support.SupportHubBinder
 import com.dskja.betterstreamflix.support.SupportLinkOpener
+import com.dskja.betterstreamflix.support.SupportPromptPolicy
 import com.dskja.betterstreamflix.support.SupportProvider
 import com.dskja.betterstreamflix.support.SupportUiBinder
 import com.dskja.betterstreamflix.ui.support.SupportThanksDialog
@@ -31,6 +33,7 @@ class SupportMobileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        SupportPromptPolicy.markHubVisited()
 
         binding.btnSupportBack.setOnClickListener {
             findNavController().navigateUp()
@@ -52,9 +55,17 @@ class SupportMobileFragment : Fragment() {
             horizontal = false,
             animate = ExperimentalMobileDesign.enabled(),
         )
+        SupportHubBinder.bindImpact(requireContext(), binding.llSupportImpact)
+        SupportHubBinder.bindFaq(requireContext(), binding.llSupportFaq)
 
         binding.tvSupportDetailsLink.setOnClickListener {
             runCatching { findNavController().navigate(R.id.support_details) }
+        }
+        binding.tvSupportIssues.setOnClickListener {
+            SupportLinkOpener.openIssues(requireContext())
+        }
+        binding.tvSupportReleases.setOnClickListener {
+            SupportLinkOpener.openReleases(requireContext())
         }
 
         if (ExperimentalMobileDesign.enabled()) {

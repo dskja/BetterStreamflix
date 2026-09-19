@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Massive Support system expansion: smart startup cooldown (5 days / max 8), durable appreciation thanks across process death, Impact goals + FAQ on Mobile/TV hubs, Issues/Releases links, Details Telegram + impact, Preview wires hero/impact/FAQ, Thanks → Discord
 - Lumina experimental design upgrade: accent palettes (Crimson/Ember/Aurora/Slate), pure-black OLED surfaces, optional Material You tint, nav auto-hide / hero parallax / reduced-glass toggles, stronger home brand reveal + provider chip
 - SerienStream account system: status, WebView sign-in, session validate, paste/copy cookies, full logout (prefs + CookieManager), startup cookie seed, Settings hub card (`screen_serienstream_auth`)
 - Massive plugin/addon system: `PluginManager` lifecycle, host facade, home/search/metadata/playback/extractor/subtitle/settings extension hooks, `LoadedPluginFacade` for LOCAL APKs, Demo Addon v1.1, manage/enable/uninstall UI, soft reload, diagnostics event ring

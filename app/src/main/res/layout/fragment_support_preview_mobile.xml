@@ -54,5 +54,39 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:orientation="vertical" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:fontFamily="@font/manrope"
+            android:text="@string/support_impact_title"
+            android:textColor="@color/support_text_primary"
+            android:textSize="@dimen/support_text_section"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/ll_preview_impact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:fontFamily="@font/manrope"
+            android:text="@string/support_faq_title"
+            android:textColor="@color/support_text_primary"
+            android:textSize="@dimen/support_text_section"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/ll_preview_faq"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

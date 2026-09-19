@@ -109,6 +109,23 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/support_section_spacing"
                 android:fontFamily="@font/manrope"
+                android:text="@string/support_impact_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_details_impact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
                 android:text="@string/support_details_ways_title"
                 android:textColor="@color/support_text_primary"
                 android:textSize="@dimen/support_text_section"
@@ -153,6 +170,16 @@
                 android:background="@drawable/bg_support_btn_secondary"
                 android:gravity="center"
                 android:text="@string/support_provider_discord_cta"
+                android:textColor="@color/support_text_primary" />
+
+            <TextView
+                android:id="@+id/btn_support_details_telegram"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/support_button_height"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_support_btn_secondary"
+                android:gravity="center"
+                android:text="@string/support_provider_telegram_cta"
                 android:textColor="@color/support_text_primary" />
         </LinearLayout>
     </ScrollView>
