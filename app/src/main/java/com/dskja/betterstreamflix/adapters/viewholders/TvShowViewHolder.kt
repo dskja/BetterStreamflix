@@ -205,6 +205,13 @@ class TvShowViewHolder(
             putString("subtitle", tvShow.title)
             putSerializable("videoType", videoType)
         }
+        if (isIptvProvider()) {
+            com.dskja.betterstreamflix.iptv.IptvLiveSession.rememberShows(
+                listOf(tvShow),
+                com.dskja.betterstreamflix.utils.UserPreferences.currentProvider,
+            )
+            com.dskja.betterstreamflix.iptv.IptvLiveSession.setCurrent(tvShow.id)
+        }
         navController.navigate(R.id.player, args)
     }
 

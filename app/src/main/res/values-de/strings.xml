@@ -703,6 +703,10 @@
     <string name="supabase_instructions_summary">Die ausführliche Anleitung zur Einrichtung von Supabase-Konto und Synchronisierung im Browser öffnen</string>
     <string name="player_live_badge">LIVE</string>
     <string name="player_live_channel">Live-Kanal</string>
+    <string name="player_go_live">Live</string>
+    <string name="player_live_channel_meta">CH %1$d · %2$s</string>
+    <string name="player_live_zapping">Wechsle Kanal…</string>
+    <string name="player_live_no_more_channels">Keine weiteren Kanäle in der Liste</string>
     <string name="settings_tmdb_api_key_missing">TMDb-API-Schlüssel fehlt. Trage ihn in den Einstellungen ein, um den TMDb-Provider zu nutzen.</string>
     <string name="player_retry_software_decoder">Erneuter Versuch mit Software-Decoder…</string>
     <string name="player_all_servers_failed">Alle Server konnten das Video nicht laden.</string>

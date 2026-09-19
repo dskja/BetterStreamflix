@@ -717,13 +717,18 @@ class PlayerTvFragment : Fragment() {
                         releasePlayer()
                         isSetupDone = false
 
+                        val live = UserPreferences.currentProvider is IptvProvider
                         val args = Bundle().apply {
                             putString("id", nextEpisode.id)
                             putSerializable("videoType", nextEpisode)
                             putString("title", nextEpisode.tvShow.title)
                             putString(
                                 "subtitle",
-                                "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
+                                if (live) {
+                                    getString(R.string.player_live_channel)
+                                } else {
+                                    "S${nextEpisode.season.number} E${nextEpisode.number}  •  ${nextEpisode.title}"
+                                },
                             )
                             putString("preferredServerName", currentServer?.name)
                         }
@@ -753,6 +758,7 @@ class PlayerTvFragment : Fragment() {
         // system focus flashes) are common on Android TV / Fire TV and were pausing
         // playback permanently because onResume never called play().
         stopProgressHandler()
+        stopLiveEdgeWatcher()
         hideNextEpisodeOverlay()
     }
 
@@ -1075,6 +1081,10 @@ class PlayerTvFragment : Fragment() {
         }
 
         fun setupEpisodeNavigationButtons() {
+            if (isLiveTvPlayback()) {
+                setupLiveChannelZapButtons()
+                return
+            }
             val btnPrevious = binding.pvPlayer.controller.binding.btnCustomPrev
             val btnNext = binding.pvPlayer.controller.binding.btnCustomNext
 
@@ -1262,9 +1272,7 @@ class PlayerTvFragment : Fragment() {
                 .setMimeType(video.type)
             if (isLiveTvPlayback()) {
                 mediaItemBuilder.setLiveConfiguration(
-                    MediaItem.LiveConfiguration.Builder()
-                        .setMaxPlaybackSpeed(1.02f)
-                        .build()
+                    com.dskja.betterstreamflix.iptv.IptvLivePlayback.liveConfiguration()
                 )
                 applyLiveControllerChrome(live = true)
             } else {
@@ -1742,6 +1750,119 @@ class PlayerTvFragment : Fragment() {
             }
             if (live) {
                 controller.tvLiveIndicator.text = getString(R.string.player_live_badge)
+                runCatching {
+                    controller.tvLiveIndicator.startAnimation(
+                        android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.live_badge_pulse),
+                    )
+                }
+                controller.btnGoLive.setOnClickListener {
+                    if (::player.isInitialized) {
+                        com.dskja.betterstreamflix.iptv.IptvLivePlayback.seekToLiveEdge(player)
+                        controller.btnGoLive.isVisible = false
+                    }
+                }
+                refreshLiveChannelMeta()
+                setupLiveChannelZapButtons()
+                ensureLiveChannelGuide()
+                startLiveEdgeWatcher()
+            } else {
+                controller.tvLiveIndicator.clearAnimation()
+                controller.btnGoLive.isVisible = false
+                controller.tvLiveChannelMeta.isVisible = false
+                stopLiveEdgeWatcher()
+            }
+        }
+
+        private var liveEdgeWatcher: Runnable? = null
+
+        private fun startLiveEdgeWatcher() {
+            stopLiveEdgeWatcher()
+            val handler = binding.pvPlayer.handler ?: return
+            val tick = object : Runnable {
+                override fun run() {
+                    if (!isAdded || !::player.isInitialized || !isLiveTvPlayback()) return
+                    val behind = com.dskja.betterstreamflix.iptv.IptvLivePlayback.isBehindLiveEdge(player)
+                    binding.pvPlayer.controller.binding.btnGoLive.isVisible = behind
+                    handler.postDelayed(this, 1_500L)
+                }
+            }
+            liveEdgeWatcher = tick
+            handler.post(tick)
+        }
+
+        private fun stopLiveEdgeWatcher() {
+            liveEdgeWatcher?.let { binding.pvPlayer.handler?.removeCallbacks(it) }
+            liveEdgeWatcher = null
+        }
+
+        private fun refreshLiveChannelMeta() {
+            val controller = binding.pvPlayer.controller.binding
+            val idx = com.dskja.betterstreamflix.iptv.IptvLiveSession.currentIndex()
+            val channel = com.dskja.betterstreamflix.iptv.IptvLiveSession.current()
+                ?: run {
+                    val id = when (val t = args.videoType) {
+                        is Video.Type.Episode -> t.tvShow.id
+                        is Video.Type.Movie -> t.id
+                    }
+                    com.dskja.betterstreamflix.iptv.IptvLiveSession.Channel(
+                        id = id,
+                        name = resolvePlayerTitle(),
+                    )
+                }
+            if (idx >= 0) {
+                controller.tvLiveChannelMeta.text = getString(
+                    R.string.player_live_channel_meta,
+                    idx + 1,
+                    channel.name,
+                )
+            } else {
+                controller.tvLiveChannelMeta.text = channel.name
+            }
+            controller.tvLiveChannelMeta.isVisible = true
+        }
+
+        private fun ensureLiveChannelGuide() {
+            val provider = UserPreferences.currentProvider ?: return
+            val aroundId = when (val t = args.videoType) {
+                is Video.Type.Episode -> t.tvShow.id.ifBlank { t.id }
+                is Video.Type.Movie -> t.id
+            }
+            com.dskja.betterstreamflix.iptv.IptvLiveSession.setCurrent(aroundId)
+            lifecycleScope.launch(Dispatchers.IO) {
+                com.dskja.betterstreamflix.iptv.IptvLiveSession.ensureLoaded(provider, aroundId)
+                withContext(Dispatchers.Main) {
+                    if (!isAdded) return@withContext
+                    refreshLiveChannelMeta()
+                    setupLiveChannelZapButtons()
+                }
+            }
+        }
+
+        private fun setupLiveChannelZapButtons() {
+            if (!isLiveTvPlayback()) return
+            val btnPrevious = binding.pvPlayer.controller.binding.btnCustomPrev
+            val btnNext = binding.pvPlayer.controller.binding.btnCustomNext
+            val hasPrev = com.dskja.betterstreamflix.iptv.IptvLiveSession.hasPrevious()
+            val hasNext = com.dskja.betterstreamflix.iptv.IptvLiveSession.hasNext()
+            btnPrevious.isGone = !hasPrev
+            btnNext.isGone = !hasNext
+            btnPrevious.setOnClickListener {
+                val channel = com.dskja.betterstreamflix.iptv.IptvLiveSession.previous()
+                if (channel == null) {
+                    Toast.makeText(requireContext(), R.string.player_live_no_more_channels, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                Toast.makeText(requireContext(), R.string.player_live_zapping, Toast.LENGTH_SHORT).show()
+                viewModel.playLiveChannel(channel)
+            }
+            btnNext.setOnClickListener {
+                val channel = com.dskja.betterstreamflix.iptv.IptvLiveSession.next()
+                if (channel == null) {
+                    Toast.makeText(requireContext(), R.string.player_live_no_more_channels, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                Toast.makeText(requireContext(), R.string.player_live_zapping, Toast.LENGTH_SHORT).show()
+                viewModel.playLiveChannel(channel)
             }
         }
 
@@ -2035,10 +2156,11 @@ class PlayerTvFragment : Fragment() {
                 context = requireContext(),
                 dataSourceFactory = dataSourceFactory,
                 options = PlayerBuilderFactory.Options(
-                    extraBuffering = extraBuffering,
+                    extraBuffering = extraBuffering && !isLiveTvPlayback(),
                     softwareDecoder = currentSoftwareDecoder,
                     seekIncrementsMs = null,
                     preferStereoAudio = false,
+                    liveOptimized = isLiveTvPlayback(),
                 ),
             )
         }
@@ -2283,6 +2405,7 @@ class PlayerTvFragment : Fragment() {
 
         private fun releasePlayer() {
             stopProgressHandler()
+            stopLiveEdgeWatcher()
             binding.pvPlayer.player = null
             binding.settings.player = null
             binding.settings.subtitleView = null

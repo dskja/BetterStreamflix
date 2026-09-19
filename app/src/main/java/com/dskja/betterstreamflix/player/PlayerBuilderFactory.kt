@@ -28,6 +28,8 @@ object PlayerBuilderFactory {
         val softwareDecoder: Boolean = false,
         val seekIncrementsMs: Long? = 10_000L,
         val preferStereoAudio: Boolean = false,
+        /** Shorter buffers + quicker start for IPTV / live HLS. */
+        val liveOptimized: Boolean = false,
     )
 
     fun build(
@@ -37,18 +39,44 @@ object PlayerBuilderFactory {
     ): ExoPlayer {
         SubtitleOffset.reset()
         val constrained = DeviceCapabilities.shouldUseConstrainedPlayback(context)
-        val maxBufferMs = when {
-            options.extraBuffering && constrained -> 90_000
-            options.extraBuffering -> 300_000
-            else -> DefaultLoadControl.DEFAULT_MAX_BUFFER_MS
+        val minBufferMs: Int
+        val maxBufferMs: Int
+        val playbackMs: Int
+        val rebufferMs: Int
+        when {
+            options.liveOptimized && constrained -> {
+                minBufferMs = 2_000
+                maxBufferMs = 15_000
+                playbackMs = 1_000
+                rebufferMs = 2_000
+            }
+            options.liveOptimized -> {
+                minBufferMs = 3_000
+                maxBufferMs = 25_000
+                playbackMs = 1_250
+                rebufferMs = 2_500
+            }
+            options.extraBuffering && constrained -> {
+                minBufferMs = DefaultLoadControl.DEFAULT_MIN_BUFFER_MS
+                maxBufferMs = 90_000
+                playbackMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS
+                rebufferMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            }
+            options.extraBuffering -> {
+                minBufferMs = DefaultLoadControl.DEFAULT_MIN_BUFFER_MS
+                maxBufferMs = 300_000
+                playbackMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS
+                rebufferMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            }
+            else -> {
+                minBufferMs = DefaultLoadControl.DEFAULT_MIN_BUFFER_MS
+                maxBufferMs = DefaultLoadControl.DEFAULT_MAX_BUFFER_MS
+                playbackMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS
+                rebufferMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+            }
         }
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                maxBufferMs,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
-            )
+            .setBufferDurationsMs(minBufferMs, maxBufferMs, playbackMs, rebufferMs)
             .build()
 
         val renderersFactory = SubtitleOffsetRenderersFactory(context).apply {
