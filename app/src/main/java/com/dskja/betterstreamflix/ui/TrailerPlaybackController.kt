@@ -69,18 +69,24 @@ object TrailerPlaybackController {
     }
 
     fun youtubeVideoId(trailerUrl: String): String? {
-        val uri = runCatching { Uri.parse(trailerUrl) }.getOrNull() ?: return null
-        val host = uri.host.orEmpty().lowercase()
-        return when {
-            host.contains("youtu.be") -> uri.lastPathSegment?.takeIf { it.length >= 6 }
-            host.contains("youtube") -> uri.getQueryParameter("v")
-                ?: uri.pathSegments?.let { segs ->
-                    val idx = segs.indexOf("embed")
-                    if (idx >= 0 && idx + 1 < segs.size) segs[idx + 1] else null
-                }
-            else -> Regex("""(?:v=|youtu\.be/|embed/)([A-Za-z0-9_-]{6,})""")
-                .find(trailerUrl)?.groupValues?.getOrNull(1)
-        }
+        if (trailerUrl.isBlank()) return null
+        Regex("""(?:v=|youtu\.be/|embed/)([A-Za-z0-9_-]{6,})""")
+            .find(trailerUrl)?.groupValues?.getOrNull(1)
+            ?.let { return it }
+        // Fallback for short paths / odd hosts when Android Uri is available.
+        return runCatching {
+            val uri = Uri.parse(trailerUrl)
+            val host = uri.host.orEmpty().lowercase()
+            when {
+                host.contains("youtu.be") -> uri.lastPathSegment?.takeIf { it.length >= 6 }
+                host.contains("youtube") -> uri.getQueryParameter("v")
+                    ?: uri.pathSegments?.let { segs ->
+                        val idx = segs.indexOf("embed")
+                        if (idx >= 0 && idx + 1 < segs.size) segs[idx + 1] else null
+                    }
+                else -> null
+            }
+        }.getOrNull()
     }
 
     private fun showChooser(
