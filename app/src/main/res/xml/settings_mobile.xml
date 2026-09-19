@@ -678,24 +678,6 @@
                 android:summary="@string/platform_trakt_enabled_summary"
                 android:defaultValue="false"
                 app:iconSpaceReserved="false" />
-            <EditTextPreference
-                android:key="TRAKT_CLIENT_ID"
-                android:title="@string/platform_trakt_client_id_title"
-                android:summary="@string/platform_trakt_client_id_summary"
-                android:inputType="text"
-                app:iconSpaceReserved="false" />
-            <EditTextPreference
-                android:key="TRAKT_CLIENT_SECRET"
-                android:title="@string/platform_trakt_client_secret_title"
-                android:summary="@string/platform_trakt_client_secret_summary"
-                android:inputType="textPassword"
-                app:iconSpaceReserved="false" />
-            <EditTextPreference
-                android:key="TRAKT_ACCESS_TOKEN"
-                android:title="@string/platform_trakt_token_title"
-                android:summary="@string/platform_trakt_token_summary"
-                android:inputType="textPassword"
-                app:iconSpaceReserved="false" />
             <Preference
                 android:key="trakt_oauth_login"
                 android:title="@string/platform_trakt_oauth_login_title"

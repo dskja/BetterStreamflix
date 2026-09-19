@@ -98,7 +98,7 @@ object TraktClient {
 
     suspend fun exchangeAuthorizationCode(code: String): Boolean = withContext(Dispatchers.IO) {
         val clientId = TraktConfig.clientId()
-        val clientSecret = UserPreferences.traktClientSecret.trim()
+        val clientSecret = TraktConfig.clientSecret()
         if (clientId.isBlank() || clientSecret.isBlank() || code.isBlank()) return@withContext false
         val body = JSONObject()
             .put("code", code)
@@ -161,7 +161,7 @@ object TraktClient {
     suspend fun pollDeviceToken(deviceCode: String, intervalSeconds: Int, expiresInSeconds: Int): Boolean =
         withContext(Dispatchers.IO) {
             val clientId = TraktConfig.clientId()
-            val clientSecret = UserPreferences.traktClientSecret.trim()
+            val clientSecret = TraktConfig.clientSecret()
             if (clientId.isBlank() || clientSecret.isBlank()) return@withContext false
             val deadline = System.currentTimeMillis() + expiresInSeconds * 1000L
             val interval = intervalSeconds.coerceAtLeast(1) * 1000L
@@ -206,7 +206,7 @@ object TraktClient {
         if (refreshing) return false
         val refresh = UserPreferences.traktRefreshToken.trim()
         val clientId = TraktConfig.clientId()
-        val clientSecret = UserPreferences.traktClientSecret.trim()
+        val clientSecret = TraktConfig.clientSecret()
         if (refresh.isBlank() || clientId.isBlank() || clientSecret.isBlank()) return false
         refreshing = true
         return try {

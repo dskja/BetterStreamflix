@@ -91,23 +91,18 @@ object PlatformSettingsController {
             get = { UserPreferences.traktEnabled },
             set = { UserPreferences.traktEnabled = it },
         )
-        bindText(
-            key = "TRAKT_CLIENT_ID",
-            get = { UserPreferences.traktClientId },
-            set = { UserPreferences.traktClientId = it },
-        )
-        bindText(
-            key = "TRAKT_CLIENT_SECRET",
-            get = { UserPreferences.traktClientSecret },
-            set = { UserPreferences.traktClientSecret = it },
-            mask = true,
-        )
-        bindText(
-            key = "TRAKT_ACCESS_TOKEN",
-            get = { UserPreferences.traktAccessToken },
-            set = { UserPreferences.traktAccessToken = it },
-            mask = true,
-        )
+        fun refreshTraktLoginSummary() {
+            findPreference("trakt_oauth_login")?.summary = when {
+                !TraktConfig.hasAppCredentials() ->
+                    context.getString(R.string.platform_trakt_oauth_app_not_configured)
+                TraktConfig.isSignedIn() ->
+                    context.getString(R.string.platform_trakt_oauth_signed_in_summary)
+                else ->
+                    context.getString(R.string.platform_trakt_oauth_login_summary)
+            }
+            findPreference("trakt_oauth_logout")?.isEnabled = TraktConfig.isSignedIn()
+        }
+        refreshTraktLoginSummary()
         bindText(
             key = "JELLYFIN_BASE_URL",
             get = { UserPreferences.jellyfinBaseUrl },
@@ -244,13 +239,13 @@ object PlatformSettingsController {
         }
 
         findPreference("trakt_oauth_login")?.setOnPreferenceClickListener {
-            if (UserPreferences.traktClientId.isBlank() || UserPreferences.traktClientSecret.isBlank()) {
-                Toast.makeText(context, R.string.platform_trakt_oauth_missing_credentials, Toast.LENGTH_LONG).show()
+            if (!TraktConfig.hasAppCredentials()) {
+                Toast.makeText(context, R.string.platform_trakt_oauth_app_not_configured, Toast.LENGTH_LONG).show()
                 return@setOnPreferenceClickListener true
             }
             val intent = com.dskja.betterstreamflix.platform.trakt.TraktOAuth.authorizeIntent(context)
             if (intent == null) {
-                Toast.makeText(context, R.string.platform_trakt_oauth_missing_credentials, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, R.string.platform_trakt_oauth_app_not_configured, Toast.LENGTH_LONG).show()
                 return@setOnPreferenceClickListener true
             }
             runCatching { context.startActivity(intent) }
@@ -266,19 +261,14 @@ object PlatformSettingsController {
 
         findPreference("trakt_oauth_logout")?.setOnPreferenceClickListener {
             TraktClient.logout()
-            bindText(
-                key = "TRAKT_ACCESS_TOKEN",
-                get = { UserPreferences.traktAccessToken },
-                set = { UserPreferences.traktAccessToken = it },
-                mask = true,
-            )
-            Toast.makeText(context, R.string.platform_trakt_oauth_logout_title, Toast.LENGTH_SHORT).show()
+            refreshTraktLoginSummary()
+            Toast.makeText(context, R.string.platform_trakt_oauth_logged_out, Toast.LENGTH_SHORT).show()
             true
         }
 
         findPreference("trakt_device_auth_start")?.setOnPreferenceClickListener {
-            if (UserPreferences.traktClientId.isBlank() || UserPreferences.traktClientSecret.isBlank()) {
-                Toast.makeText(context, R.string.platform_trakt_device_auth_failed, Toast.LENGTH_LONG).show()
+            if (!TraktConfig.hasAppCredentials()) {
+                Toast.makeText(context, R.string.platform_trakt_oauth_app_not_configured, Toast.LENGTH_LONG).show()
                 return@setOnPreferenceClickListener true
             }
             scope.launch {
@@ -298,9 +288,11 @@ object PlatformSettingsController {
                     )
                     .setPositiveButton(android.R.string.ok, null)
                     .show()
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(code.verificationUrl)),
-                )
+                runCatching {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(code.verificationUrl)),
+                    )
+                }
                 val ok = TraktClient.pollDeviceToken(
                     deviceCode = code.deviceCode,
                     intervalSeconds = code.intervalSeconds,
@@ -312,14 +304,7 @@ object PlatformSettingsController {
                     else R.string.platform_trakt_device_auth_failed,
                     Toast.LENGTH_LONG,
                 ).show()
-                if (ok) {
-                    bindText(
-                        key = "TRAKT_ACCESS_TOKEN",
-                        get = { UserPreferences.traktAccessToken },
-                        set = { UserPreferences.traktAccessToken = it },
-                        mask = true,
-                    )
-                }
+                if (ok) refreshTraktLoginSummary()
             }
             true
         }

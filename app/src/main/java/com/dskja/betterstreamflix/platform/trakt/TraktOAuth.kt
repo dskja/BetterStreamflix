@@ -18,6 +18,7 @@ object TraktOAuth {
     private const val PREF_STATE = "trakt_oauth_pending_state"
 
     fun authorizeIntent(context: Context): Intent? {
+        if (!TraktConfig.hasAppCredentials()) return null
         val clientId = TraktConfig.clientId()
         if (clientId.isBlank()) return null
         val state = UUID.randomUUID().toString()

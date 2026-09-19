@@ -36,10 +36,14 @@ android {
         versionCode 10101
         versionName "1.1.1"
 
-        buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT")}\""
-        buildConfigField "String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\""
-        buildConfigField "String", "SUBDL_API_KEY", "\"${properties.getProperty("SUBDL_API_KEY")}\""
-        buildConfigField "String", "RABBITSTREAM_SOURCE_API", "\"${properties.getProperty("RABBITSTREAM_SOURCE_API")}\""
+        buildConfigField "String", "APP_LAYOUT", "\"${properties.getProperty("APP_LAYOUT", "")}\""
+        buildConfigField "String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY", "")}\""
+        buildConfigField "String", "SUBDL_API_KEY", "\"${properties.getProperty("SUBDL_API_KEY", "")}\""
+        buildConfigField "String", "RABBITSTREAM_SOURCE_API", "\"${properties.getProperty("RABBITSTREAM_SOURCE_API", "")}\""
+        // App-owned Trakt OAuth app — end users only tap Sign in (no per-user client id/secret).
+        buildConfigField "String", "TRAKT_CLIENT_ID", "\"${properties.getProperty("TRAKT_CLIENT_ID", "")}\""
+        buildConfigField "String", "TRAKT_CLIENT_SECRET", "\"${properties.getProperty("TRAKT_CLIENT_SECRET", "")}\""
+        buildConfigField "String", "SIMKL_CLIENT_ID", "\"${properties.getProperty("SIMKL_CLIENT_ID", "")}\""
 
         if (file("src/main/cpp/native-lib.cpp").exists()) {
             externalNativeBuild {

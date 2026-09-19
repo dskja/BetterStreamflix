@@ -2,6 +2,7 @@ package com.dskja.betterstreamflix.platform.trakt
 
 import android.content.Context
 import android.net.Uri
+import com.dskja.betterstreamflix.BuildConfig
 import com.dskja.betterstreamflix.utils.UserPreferences
 
 object TraktConfig {
@@ -10,15 +11,26 @@ object TraktConfig {
     const val OAUTH_SCHEME = "betterstreamflix"
     const val OAUTH_HOST = "trakt"
     const val OAUTH_PATH = "oauth"
-    /** Must be registered exactly in the Trakt API application settings. */
+    /** Must be registered exactly in the BetterStreamflix Trakt API application. */
     const val OAUTH_REDIRECT_URI = "$OAUTH_SCHEME://$OAUTH_HOST/$OAUTH_PATH"
     private const val AUTHORIZE_BASE = "https://trakt.tv/oauth/authorize"
 
     fun isEnabled(): Boolean = UserPreferences.traktEnabled
 
-    fun clientId(): String = UserPreferences.traktClientId.trim()
+    /**
+     * App-wide client id (BuildConfig). Optional prefs override is only for debug/power users.
+     */
+    fun clientId(): String =
+        UserPreferences.traktClientId.trim().ifBlank { BuildConfig.TRAKT_CLIENT_ID.trim() }
+
+    fun clientSecret(): String =
+        UserPreferences.traktClientSecret.trim().ifBlank { BuildConfig.TRAKT_CLIENT_SECRET.trim() }
 
     fun accessToken(): String = UserPreferences.traktAccessToken.trim()
+
+    fun hasAppCredentials(): Boolean = clientId().isNotEmpty() && clientSecret().isNotEmpty()
+
+    fun isSignedIn(): Boolean = accessToken().isNotEmpty()
 
     fun configured(): Boolean =
         isEnabled() && clientId().isNotEmpty() && accessToken().isNotEmpty()
