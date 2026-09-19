@@ -970,4 +970,27 @@
     <string name="platform_debrid_enabled_summary">Unrestrict hoster links and magnets via RD</string>
     <string name="platform_rd_token_title">Real-Debrid API token</string>
     <string name="platform_rd_token_summary">Token from real-debrid.com/apitoken</string>
+    <string name="platform_trakt_client_secret_title">Trakt client secret</string>
+    <string name="platform_trakt_client_secret_summary">Required for device-code OAuth</string>
+    <string name="platform_trakt_device_auth_title">Authorize with Trakt</string>
+    <string name="platform_trakt_device_auth_summary">Start device-code login and poll for token</string>
+    <string name="platform_trakt_device_auth_code_message">Enter code %1$s at %2$s</string>
+    <string name="platform_trakt_device_auth_success">Trakt authorized</string>
+    <string name="platform_trakt_device_auth_failed">Trakt authorization failed or timed out</string>
+    <string name="platform_jellyfin_login_user_title">Jellyfin username</string>
+    <string name="platform_jellyfin_login_user_summary">For password login</string>
+    <string name="platform_jellyfin_login_password_title">Jellyfin password</string>
+    <string name="platform_jellyfin_login_password_summary">Used once to fetch access token</string>
+    <string name="platform_jellyfin_login_submit_title">Sign in to Jellyfin</string>
+    <string name="platform_jellyfin_login_submit_summary">Exchange username/password for token</string>
+    <string name="platform_jellyfin_login_missing">Set Jellyfin URL, username and password first</string>
+    <string name="platform_jellyfin_login_success">Jellyfin signed in</string>
+    <string name="platform_jellyfin_login_failed">Jellyfin login failed</string>
+    <string name="platform_debrid_provider_title">Debrid provider</string>
+    <string name="platform_debrid_provider_summary">Real-Debrid, Premiumize or AllDebrid</string>
+    <string name="platform_premiumize_key_title">Premiumize API key</string>
+    <string name="platform_premiumize_key_summary">From premiumize.me account</string>
+    <string name="platform_alldebrid_key_title">AllDebrid API key</string>
+    <string name="platform_alldebrid_key_summary">From alldebrid.com</string>
+    <string name="platform_mpv_not_installed">No MPV/VLC player found. Install MPV or choose ExoPlayer.</string>
 </resources>

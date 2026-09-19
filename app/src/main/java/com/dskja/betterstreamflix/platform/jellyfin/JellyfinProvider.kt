@@ -9,8 +9,10 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.models.WatchItem
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.utils.UserPreferences
+import org.json.JSONArray
 import org.json.JSONObject
 
 object JellyfinProvider : Provider {
@@ -23,9 +25,11 @@ object JellyfinProvider : Provider {
 
     private val api = JellyfinApi()
 
+    fun isConfigured(): Boolean = api.configured()
+
     private fun requireConfigured() {
-        check(api.configured()) {
-            "Configure Jellyfin URL, user id and access token in Settings → Platform"
+        if (!api.configured()) {
+            error("Configure Jellyfin in Settings → Platform (URL, user, token)")
         }
     }
 
@@ -34,35 +38,95 @@ object JellyfinProvider : Provider {
         return "$baseUrl/Items/$itemId/Images/$type?tag=$tag&quality=90"
     }
 
+    private fun backdropTag(item: JSONObject): String? {
+        val tags = item.optJSONArray("BackdropImageTags") ?: return null
+        return tags.optString(0).takeIf { it.isNotBlank() }
+    }
+
+    private fun providerIds(item: JSONObject): Pair<String?, String?> {
+        val ids = item.optJSONObject("ProviderIds") ?: return null to null
+        val imdb = ids.optString("Imdb").ifBlank { ids.optString("IMDB") }.ifBlank { null }
+        val tmdb = ids.optString("Tmdb").ifBlank { ids.optString("TmdbId") }.ifBlank { null }
+        return imdb to tmdb
+    }
+
+    private fun applyUserData(item: JSONObject, watchItem: WatchItem) {
+        val userData = item.optJSONObject("UserData") ?: return
+        val ticks = userData.optLong("PlaybackPositionTicks", 0L)
+        val runtimeTicks = item.optLong("RunTimeTicks", 0L)
+        if (ticks > 0 && runtimeTicks > 0) {
+            watchItem.watchHistory = WatchItem.WatchHistory(
+                lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                lastPlaybackPositionMillis = ticks / 10_000L,
+                durationMillis = runtimeTicks / 10_000L,
+            )
+        }
+        if (userData.optBoolean("Played")) {
+            watchItem.isWatched = true
+        }
+    }
+
     private fun toMovie(item: JSONObject): Movie {
         val id = item.optString("Id")
         val imageTags = item.optJSONObject("ImageTags")
         val primary = imageTags?.optString("Primary")
+        val (imdb, _) = providerIds(item)
         return Movie(
             id = id,
             title = item.optString("Name"),
             overview = item.optString("Overview").ifBlank { null },
             released = item.optString("PremiereDate").take(10).ifBlank { null },
             poster = imageUrl(id, primary),
-            banner = imageUrl(id, item.optJSONObject("BackdropImageTags")?.optString("0"), "Backdrop")
-                ?: imageUrl(id, primary),
+            banner = imageUrl(id, backdropTag(item), "Backdrop") ?: imageUrl(id, primary),
             rating = item.optDouble("CommunityRating").takeIf { !it.isNaN() && it > 0 },
-        )
+            imdbId = imdb,
+            providerName = name,
+        ).also { applyUserData(item, it) }
     }
 
     private fun toTvShow(item: JSONObject): TvShow {
         val id = item.optString("Id")
         val imageTags = item.optJSONObject("ImageTags")
         val primary = imageTags?.optString("Primary")
+        val (imdb, _) = providerIds(item)
         return TvShow(
             id = id,
             title = item.optString("Name"),
             overview = item.optString("Overview").ifBlank { null },
             released = item.optString("PremiereDate").take(10).ifBlank { null },
             poster = imageUrl(id, primary),
-            banner = imageUrl(id, primary),
+            banner = imageUrl(id, backdropTag(item), "Backdrop") ?: imageUrl(id, primary),
             rating = item.optDouble("CommunityRating").takeIf { !it.isNaN() && it > 0 },
+            imdbId = imdb,
+            providerName = name,
         )
+    }
+
+    private fun toResumeEpisode(item: JSONObject): Episode {
+        val eid = item.optString("Id")
+        val seriesId = item.optString("SeriesId")
+        val (imdb, _) = providerIds(item)
+        val showImdb = item.optJSONObject("SeriesProviderIds")?.optString("Imdb")
+            ?: imdb
+        return Episode(
+            id = eid,
+            number = item.optInt("IndexNumber", 0),
+            title = item.optString("Name").ifBlank { null },
+            poster = imageUrl(eid, item.optJSONObject("ImageTags")?.optString("Primary"))
+                ?: imageUrl(seriesId, item.optJSONObject("ImageTags")?.optString("Primary")),
+            overview = item.optString("Overview").ifBlank { null },
+            tvShow = TvShow(
+                id = seriesId.ifBlank { eid },
+                title = item.optString("SeriesName").ifBlank { item.optString("Name") },
+                poster = imageUrl(seriesId, item.optString("SeriesPrimaryImageTag").ifBlank { null }),
+                imdbId = showImdb,
+                providerName = name,
+            ),
+            season = Season(
+                id = item.optString("SeasonId").ifBlank { "${seriesId}|${item.optInt("ParentIndexNumber")}" },
+                number = item.optInt("ParentIndexNumber", 1),
+            ),
+        ).also { applyUserData(item, it) }
     }
 
     override suspend fun getHome(): List<Category> {
@@ -73,40 +137,17 @@ object JellyfinProvider : Provider {
                 val item = items.getJSONObject(i)
                 when (item.optString("Type")) {
                     "Movie" -> add(toMovie(item))
-                    "Episode" -> {
-                        // Surface episode as part of continue via movie-like card of series if present
-                        val seriesId = item.optString("SeriesId")
-                        if (seriesId.isNotBlank()) {
-                            add(
-                                TvShow(
-                                    id = seriesId,
-                                    title = item.optString("SeriesName").ifBlank { item.optString("Name") },
-                                    poster = imageUrl(
-                                        seriesId,
-                                        item.optJSONObject("ImageTags")?.optString("Primary"),
-                                    ),
-                                ),
-                            )
-                        }
-                    }
+                    "Episode" -> add(toResumeEpisode(item))
                 }
             }
-        }.distinctBy {
-            when (it) {
-                is Movie -> it.id
-                is TvShow -> it.id
-                else -> it.hashCode().toString()
-            }
         }
-        val latest = buildList {
-            val items = api.latestMovies()
-            for (i in 0 until items.length()) {
-                add(toMovie(items.getJSONObject(i)))
-            }
-        }
+        val latestMovies = mapMovies(api.latestMovies())
+        val latestShows = mapShows(api.latestSeries())
         return buildList {
-            if (resume.isNotEmpty()) add(Category(Category.CONTINUE_WATCHING, resume))
-            if (latest.isNotEmpty()) add(Category("Latest on Jellyfin", latest))
+            // Named distinctly so HomeViewModel can merge without duplicating local CW.
+            if (resume.isNotEmpty()) add(Category("Jellyfin · Continue", resume))
+            if (latestMovies.isNotEmpty()) add(Category("Jellyfin · Movies", latestMovies))
+            if (latestShows.isNotEmpty()) add(Category("Jellyfin · Series", latestShows))
         }
     }
 
@@ -128,14 +169,15 @@ object JellyfinProvider : Provider {
 
     override suspend fun getMovies(page: Int): List<Movie> {
         requireConfigured()
-        if (page > 1) return emptyList()
-        val items = api.latestMovies(40)
-        return buildList {
-            for (i in 0 until items.length()) add(toMovie(items.getJSONObject(i)))
-        }
+        val start = ((page - 1).coerceAtLeast(0)) * 40
+        return mapMovies(api.libraryItems("Movie", start, 40))
     }
 
-    override suspend fun getTvShows(page: Int): List<TvShow> = emptyList()
+    override suspend fun getTvShows(page: Int): List<TvShow> {
+        requireConfigured()
+        val start = ((page - 1).coerceAtLeast(0)) * 40
+        return mapShows(api.libraryItems("Series", start, 40))
+    }
 
     override suspend fun getMovie(id: String): Movie {
         requireConfigured()
@@ -163,41 +205,26 @@ object JellyfinProvider : Provider {
 
     override suspend fun getEpisodesBySeason(seasonId: String): List<Episode> {
         requireConfigured()
-        // seasonId encodes "seriesId|seasonId" when needed; plain season id also works via parent.
         val parts = seasonId.split("|", limit = 2)
         val seriesId = parts.getOrNull(0).orEmpty()
         val realSeason = parts.getOrNull(1) ?: seasonId
         val items = if (seriesId.isNotBlank() && parts.size == 2) {
             api.episodesForSeries(seriesId, realSeason)
         } else {
-            // Fallback: treat seasonId as series and load season 1 via seasons list
             val seasons = api.seasons(seasonId)
             if (seasons.length() == 0) return emptyList()
-            val first = seasons.getJSONObject(0)
-            api.episodesForSeries(seasonId, first.optString("Id"))
+            api.episodesForSeries(seasonId, seasons.getJSONObject(0).optString("Id"))
         }
         return buildList {
             for (i in 0 until items.length()) {
-                val e = items.getJSONObject(i)
-                val eid = e.optString("Id")
-                add(
-                    Episode(
-                        id = eid,
-                        number = e.optInt("IndexNumber", i + 1),
-                        title = e.optString("Name").ifBlank { null },
-                        poster = imageUrl(eid, e.optJSONObject("ImageTags")?.optString("Primary")),
-                        overview = e.optString("Overview").ifBlank { null },
-                    ),
-                )
+                add(toResumeEpisode(items.getJSONObject(i)))
             }
         }
     }
 
-    override suspend fun getGenre(id: String, page: Int): Genre =
-        Genre(id = id, name = id)
+    override suspend fun getGenre(id: String, page: Int): Genre = Genre(id = id, name = id)
 
-    override suspend fun getPeople(id: String, page: Int): People =
-        People(id = id, name = id)
+    override suspend fun getPeople(id: String, page: Int): People = People(id = id, name = id)
 
     override suspend fun getServers(id: String, videoType: Video.Type): List<Video.Server> {
         requireConfigured()
@@ -210,9 +237,15 @@ object JellyfinProvider : Provider {
             ?: error("Jellyfin playback URL unavailable")
         return Video(
             source = url,
-            headers = mapOf(
-                "X-Emby-Token" to UserPreferences.jellyfinAccessToken,
-            ),
+            headers = mapOf("X-Emby-Token" to UserPreferences.jellyfinAccessToken),
         )
+    }
+
+    private fun mapMovies(items: JSONArray): List<Movie> = buildList {
+        for (i in 0 until items.length()) add(toMovie(items.getJSONObject(i)))
+    }
+
+    private fun mapShows(items: JSONArray): List<TvShow> = buildList {
+        for (i in 0 until items.length()) add(toTvShow(items.getJSONObject(i)))
     }
 }

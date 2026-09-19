@@ -1121,10 +1121,12 @@ class PlayerMobileFragment : Fragment() {
 
         if (com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal()) {
             currentExternalPlayerTried = true
+            val pos = runCatching { player.currentPosition }.getOrDefault(0L)
             com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
                 requireContext(),
                 video.source,
                 video.headers.orEmpty(),
+                positionMs = pos,
             )
             return
         }
@@ -1314,6 +1316,13 @@ class PlayerMobileFragment : Fragment() {
                             watchItem?.watchHistory = null
                         }
                     }
+
+                    reportTraktProgress(
+                        videoType = videoType,
+                        positionMs = player.currentPosition,
+                        durationMs = player.duration,
+                        isPlaying = false,
+                    )
 
                             when (videoType) {
                                 is Video.Type.Movie -> {
@@ -1671,6 +1680,12 @@ class PlayerMobileFragment : Fragment() {
                     val show = player.currentPosition in 3000..120000
                     showSkipIntroButton(show)
                     updateNextEpisodeOverlay()
+                    reportTraktProgress(
+                        videoType = args.videoType,
+                        positionMs = player.currentPosition,
+                        durationMs = player.duration,
+                        isPlaying = true,
+                    )
                 } else {
                     showSkipIntroButton(false)
                     hideNextEpisodeOverlay()
@@ -1679,6 +1694,44 @@ class PlayerMobileFragment : Fragment() {
             progressHandler.postDelayed(progressRunnable, 1000)
         }
         progressHandler.post(progressRunnable)
+    }
+
+    private fun reportTraktProgress(
+        videoType: Video.Type,
+        positionMs: Long,
+        durationMs: Long,
+        isPlaying: Boolean,
+    ) {
+        if (durationMs <= 0L) return
+        when (videoType) {
+            is Video.Type.Movie -> {
+                com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.onPlaybackProgress(
+                    imdbId = videoType.imdbId,
+                    positionMs = positionMs,
+                    durationMs = durationMs,
+                    isPlaying = isPlaying,
+                    mediaKey = "movie:${videoType.imdbId ?: videoType.id}",
+                )
+            }
+            is Video.Type.Episode -> {
+                val showImdb = videoType.tvShow.imdbId
+                val ref = if (!showImdb.isNullOrBlank()) {
+                    com.dskja.betterstreamflix.platform.trakt.TraktEpisodeRef(
+                        showIds = com.dskja.betterstreamflix.platform.trakt.TraktIds(imdb = showImdb),
+                        season = videoType.season.number,
+                        number = videoType.number,
+                    )
+                } else null
+                com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.onPlaybackProgress(
+                    imdbId = showImdb,
+                    positionMs = positionMs,
+                    durationMs = durationMs,
+                    isPlaying = isPlaying,
+                    mediaKey = "ep:${showImdb ?: videoType.id}:S${videoType.season.number}E${videoType.number}",
+                    episodeRef = ref,
+                )
+            }
+        }
     }
 
     private fun stopProgressHandler() {

@@ -1,6 +1,7 @@
 package com.dskja.betterstreamflix.platform.plugins
 
 import com.dskja.betterstreamflix.providers.Provider
+import com.dskja.betterstreamflix.utils.UserPreferences
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -15,7 +16,30 @@ object PluginRegistry {
 
     fun bootstrapBuiltins() {
         Provider.providers.forEach { (provider, support) ->
-            val plugin = BuiltinProviderPlugin(provider, support)
+            val selfHosted = provider.name == "Jellyfin" || provider.name == "Plex"
+            val plugin = object : SourcePlugin {
+                private val builtin = BuiltinProviderPlugin(provider, support)
+                override val manifest = builtin.manifest.copy(
+                    capabilities = builtin.manifest.capabilities.copy(
+                        selfHosted = selfHosted,
+                        requiresAuth = selfHosted,
+                        movies = support.movies,
+                        tvShows = support.tvShows,
+                    ),
+                )
+                override fun createProvider(): Provider = provider
+                override fun isEnabled(): Boolean {
+                    if (UserPreferences.isPluginDisabled(manifest.id)) return false
+                    if (selfHosted) {
+                        return when (provider.name) {
+                            "Jellyfin" -> com.dskja.betterstreamflix.platform.jellyfin.JellyfinProvider.isConfigured()
+                            "Plex" -> com.dskja.betterstreamflix.platform.plex.PlexProvider.isConfigured()
+                            else -> true
+                        }
+                    }
+                    return true
+                }
+            }
             plugins.putIfAbsent(plugin.manifest.id, plugin)
         }
     }
@@ -28,6 +52,10 @@ object PluginRegistry {
         plugins.remove(id)
     }
 
+    fun clear() {
+        plugins.clear()
+    }
+
     fun get(id: String): SourcePlugin? = plugins[id]
 
     fun all(): List<SourcePlugin> = plugins.values.sortedBy { it.manifest.name.lowercase() }
@@ -37,4 +65,9 @@ object PluginRegistry {
 
     fun findByProviderName(name: String): SourcePlugin? =
         plugins.values.firstOrNull { it.manifest.name == name }
+
+    fun isProviderVisible(provider: Provider): Boolean {
+        val plugin = findByProviderName(provider.name) ?: return true
+        return plugin.isEnabled()
+    }
 }

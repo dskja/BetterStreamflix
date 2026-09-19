@@ -511,10 +511,19 @@
                 android:summary="@string/platform_trakt_client_id_summary"
                 android:inputType="text" />
             <EditTextPreference
+                android:key="TRAKT_CLIENT_SECRET"
+                android:title="@string/platform_trakt_client_secret_title"
+                android:summary="@string/platform_trakt_client_secret_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
                 android:key="TRAKT_ACCESS_TOKEN"
                 android:title="@string/platform_trakt_token_title"
                 android:summary="@string/platform_trakt_token_summary"
                 android:inputType="textPassword" />
+            <Preference
+                android:key="trakt_device_auth_start"
+                android:title="@string/platform_trakt_device_auth_title"
+                android:summary="@string/platform_trakt_device_auth_summary" />
             <Preference
                 android:key="trakt_device_auth_help"
                 android:title="@string/platform_trakt_auth_help_title"
@@ -539,6 +548,20 @@
                 android:title="@string/platform_jellyfin_token_title"
                 android:summary="@string/platform_jellyfin_token_summary"
                 android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="jellyfin_login_user"
+                android:title="@string/platform_jellyfin_login_user_title"
+                android:summary="@string/platform_jellyfin_login_user_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="jellyfin_login_password"
+                android:title="@string/platform_jellyfin_login_password_title"
+                android:summary="@string/platform_jellyfin_login_password_summary"
+                android:inputType="textPassword" />
+            <Preference
+                android:key="jellyfin_login_submit"
+                android:title="@string/platform_jellyfin_login_submit_title"
+                android:summary="@string/platform_jellyfin_login_submit_summary" />
         </PreferenceCategory>
 
         <PreferenceCategory
@@ -564,10 +587,27 @@
                 android:title="@string/platform_debrid_enabled_title"
                 android:summary="@string/platform_debrid_enabled_summary"
                 android:defaultValue="false" />
+            <ListPreference
+                android:key="DEBRID_PROVIDER"
+                android:title="@string/platform_debrid_provider_title"
+                android:summary="@string/platform_debrid_provider_summary"
+                android:entries="@array/debrid_provider_names"
+                android:entryValues="@array/debrid_provider_values"
+                android:defaultValue="realdebrid" />
             <EditTextPreference
                 android:key="REAL_DEBRID_TOKEN"
                 android:title="@string/platform_rd_token_title"
                 android:summary="@string/platform_rd_token_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="PREMIUMIZE_API_KEY"
+                android:title="@string/platform_premiumize_key_title"
+                android:summary="@string/platform_premiumize_key_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="ALLDEBRID_API_KEY"
+                android:title="@string/platform_alldebrid_key_title"
+                android:summary="@string/platform_alldebrid_key_summary"
                 android:inputType="textPassword" />
         </PreferenceCategory>
     </PreferenceScreen>

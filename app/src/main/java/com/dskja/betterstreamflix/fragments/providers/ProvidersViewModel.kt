@@ -38,6 +38,9 @@ class ProvidersViewModel : ViewModel() {
 
             val providers = Provider.providers.keys
                 .filter {
+                    if (!com.dskja.betterstreamflix.platform.plugins.PluginRegistry.isProviderVisible(it)) {
+                        return@filter false
+                    }
                     if (!UserPreferences.showQuarantinedProviders &&
                         ProviderHealth.isQuarantined(it)
                     ) {

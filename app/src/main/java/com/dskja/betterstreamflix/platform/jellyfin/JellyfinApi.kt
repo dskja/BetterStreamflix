@@ -12,7 +12,7 @@ import org.json.JSONObject
 import java.util.UUID
 
 /**
- * Minimal Jellyfin REST client (Items + PlaybackInfo).
+ * Jellyfin REST client (Items + PlaybackInfo + Auth).
  */
 class JellyfinApi(
     private val baseUrlProvider: () -> String = { UserPreferences.jellyfinBaseUrl },
@@ -23,7 +23,9 @@ class JellyfinApi(
 
     fun configured(): Boolean {
         val base = baseUrlProvider().trim().trimEnd('/')
-        return base.startsWith("http") && tokenProvider().isNotBlank() && userIdProvider().isNotBlank()
+        return base.startsWith("http") &&
+            tokenProvider().isNotBlank() &&
+            userIdProvider().isNotBlank()
     }
 
     private fun base(): String = baseUrlProvider().trim().trimEnd('/')
@@ -42,6 +44,42 @@ class JellyfinApi(
         )
     }
 
+    /**
+     * Username/password login → stores userId + accessToken in UserPreferences.
+     */
+    suspend fun authenticateByName(username: String, password: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val deviceId = UserPreferences.jellyfinDeviceId.ifBlank {
+                UUID.randomUUID().toString().also { UserPreferences.jellyfinDeviceId = it }
+            }
+            val body = JSONObject()
+                .put("Username", username)
+                .put("Pw", password)
+                .toString()
+                .toRequestBody(jsonMedia)
+            val authHeader =
+                "MediaBrowser Client=\"BetterStreamflix\", Device=\"Android\", " +
+                    "DeviceId=\"$deviceId\", Version=\"1.0.0\""
+            val request = Request.Builder()
+                .url("${base()}/Users/AuthenticateByName")
+                .post(body)
+                .header("Authorization", authHeader)
+                .header("Content-Type", "application/json")
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) return@use false
+                val json = JSONObject(raw)
+                val token = json.optString("AccessToken")
+                val user = json.optJSONObject("User")
+                val userId = user?.optString("Id").orEmpty()
+                if (token.isBlank() || userId.isBlank()) return@use false
+                UserPreferences.jellyfinAccessToken = token
+                UserPreferences.jellyfinUserId = userId
+                true
+            }
+        }
+
     suspend fun resumeItems(limit: Int = 20): JSONArray = withContext(Dispatchers.IO) {
         getJson("/Users/${userIdProvider()}/Items/Resume?Limit=$limit&MediaTypes=Video")
             .optJSONArray("Items") ?: JSONArray()
@@ -50,6 +88,24 @@ class JellyfinApi(
     suspend fun latestMovies(limit: Int = 20): JSONArray = withContext(Dispatchers.IO) {
         getJson(
             "/Users/${userIdProvider()}/Items/Latest?Limit=$limit&IncludeItemTypes=Movie",
+        ).optJSONArray("Items") ?: JSONArray()
+    }
+
+    suspend fun latestSeries(limit: Int = 20): JSONArray = withContext(Dispatchers.IO) {
+        getJson(
+            "/Users/${userIdProvider()}/Items/Latest?Limit=$limit&IncludeItemTypes=Series",
+        ).optJSONArray("Items") ?: JSONArray()
+    }
+
+    suspend fun libraryItems(
+        includeTypes: String,
+        startIndex: Int,
+        limit: Int,
+    ): JSONArray = withContext(Dispatchers.IO) {
+        getJson(
+            "/Users/${userIdProvider()}/Items?IncludeItemTypes=$includeTypes" +
+                "&Recursive=true&SortBy=DateCreated&SortOrder=Descending" +
+                "&StartIndex=$startIndex&Limit=$limit",
         ).optJSONArray("Items") ?: JSONArray()
     }
 
@@ -78,8 +134,14 @@ class JellyfinApi(
         }
 
     suspend fun playbackUrl(itemId: String): String? = withContext(Dispatchers.IO) {
+        val profile = JSONObject()
+            .put("MaxStreamingBitrate", 120_000_000)
+            .put("DirectPlayProfiles", JSONArray().put(
+                JSONObject().put("Type", "Video"),
+            ))
+            .put("TranscodingProfiles", JSONArray())
         val body = JSONObject()
-            .put("DeviceProfile", JSONObject())
+            .put("DeviceProfile", profile)
             .toString()
             .toRequestBody(jsonMedia)
         val request = Request.Builder()
@@ -91,10 +153,9 @@ class JellyfinApi(
             val raw = response.body?.string().orEmpty()
             if (!response.isSuccessful) return@use null
             val media = JSONObject(raw).optJSONArray("MediaSources")?.optJSONObject(0)
-            val direct = media?.optString("Path").orEmpty()
-            if (direct.startsWith("http")) return@use direct
             val sourceId = media?.optString("Id").orEmpty()
             if (sourceId.isBlank()) return@use null
+            // Prefer authenticated stream endpoint over raw filesystem Path.
             "${base()}/Videos/$itemId/stream?static=true&MediaSourceId=$sourceId" +
                 "&api_key=${tokenProvider()}"
         }

@@ -34,6 +34,7 @@ class PluginRegistryTest {
 
     @Test
     fun registersAndFindsPlugin() {
+        PluginRegistry.clear()
         val plugin = BuiltinProviderPlugin(
             FakeProvider,
             Provider.Companion.ProviderSupport(movies = true, tvShows = false),

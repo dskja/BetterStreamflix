@@ -307,6 +307,52 @@ object UserPreferences {
             Key.REAL_DEBRID_TOKEN.setString(value.ifBlank { null })
         }
 
+    /** realdebrid | premiumize | alldebrid */
+    var debridProvider: String
+        get() = Key.DEBRID_PROVIDER.getString() ?: "realdebrid"
+        set(value) {
+            Key.DEBRID_PROVIDER.setString(value.ifBlank { "realdebrid" })
+        }
+
+    var premiumizeApiKey: String
+        get() = Key.PREMIUMIZE_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.PREMIUMIZE_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var allDebridApiKey: String
+        get() = Key.ALLDEBRID_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.ALLDEBRID_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var traktClientSecret: String
+        get() = Key.TRAKT_CLIENT_SECRET.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_CLIENT_SECRET.setString(value.ifBlank { null })
+        }
+
+    var traktRefreshToken: String
+        get() = Key.TRAKT_REFRESH_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.TRAKT_REFRESH_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var disabledPluginIds: Set<String>
+        get() = Key.DISABLED_PLUGIN_IDS.getStringSet() ?: emptySet()
+        set(value) {
+            Key.DISABLED_PLUGIN_IDS.setStringSet(value.ifEmpty { null })
+        }
+
+    fun isPluginDisabled(pluginId: String): Boolean =
+        disabledPluginIds.contains(pluginId)
+
+    fun setPluginDisabled(pluginId: String, disabled: Boolean) {
+        val next = disabledPluginIds.toMutableSet()
+        if (disabled) next.add(pluginId) else next.remove(pluginId)
+        disabledPluginIds = next
+    }
+
     /** exo | mpv */
     var playerBackend: String
         get() = Key.PLAYER_BACKEND.getString() ?: "exo"
@@ -900,6 +946,12 @@ object UserPreferences {
         PLEX_CLIENT_ID,
         DEBRID_ENABLED,
         REAL_DEBRID_TOKEN,
+        DEBRID_PROVIDER,
+        PREMIUMIZE_API_KEY,
+        ALLDEBRID_API_KEY,
+        TRAKT_CLIENT_SECRET,
+        TRAKT_REFRESH_TOKEN,
+        DISABLED_PLUGIN_IDS,
         PLAYER_BACKEND;
 
         fun getStringSet(): Set<String>? = when {

@@ -1,11 +1,14 @@
 package com.dskja.betterstreamflix.platform.playerbackend
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.player.PlayerBuilderFactory
 import com.dskja.betterstreamflix.utils.UserPreferences
 
@@ -22,7 +25,7 @@ object ExoPlayerBackend : PlayerBackend {
 
 /**
  * Secondary decoder path: hand off to an installed MPV-capable player.
- * Native libmpv embedding can replace this later without changing call sites.
+ * Forwards auth headers and resume position when the target supports them.
  */
 object ExternalMpvBackend : PlayerBackend {
     override val kind = PlayerBackendKind.EXTERNAL_MPV
@@ -43,37 +46,58 @@ object ExternalMpvBackend : PlayerBackend {
             }.getOrDefault(false)
         }
 
-    fun open(context: Context, url: String, headers: Map<String, String> = emptyMap()): Boolean {
+    fun open(
+        context: Context,
+        url: String,
+        headers: Map<String, String> = emptyMap(),
+        positionMs: Long = 0L,
+    ): Boolean {
         val uri = Uri.parse(url)
+        val headerArray = headers.flatMap { listOf(it.key, it.value) }.toTypedArray()
         for (pkg in CANDIDATE_PACKAGES) {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "video/*")
                 setPackage(pkg)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                headers["User-Agent"]?.let { putExtra("headers", arrayOf("User-Agent", it)) }
+                if (headerArray.isNotEmpty()) {
+                    putExtra("headers", headerArray)
+                    // MPV Android accepts a string of "Key: Value\r\n"
+                    putExtra(
+                        "http_header_list",
+                        headers.entries.joinToString("\r\n") { "${it.key}: ${it.value}" },
+                    )
+                }
+                if (positionMs > 0L) {
+                    putExtra("position", positionMs.toInt())
+                    putExtra("seek_position", positionMs)
+                }
             }
-            val resolved = intent.resolveActivity(context.packageManager) != null
-            if (resolved) {
-                return runCatching {
+            if (intent.resolveActivity(context.packageManager) != null) {
+                return try {
                     context.startActivity(intent)
                     true
-                }.getOrElse {
-                    Log.w(TAG, "MPV handoff failed for $pkg: ${it.message}")
+                } catch (e: ActivityNotFoundException) {
+                    Log.w(TAG, "MPV handoff failed for $pkg: ${e.message}")
                     false
                 }
             }
         }
-        // Generic video intent as last resort
-        return runCatching {
+        return try {
             context.startActivity(
                 Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, "video/*")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    if (headerArray.isNotEmpty()) putExtra("headers", headerArray)
                 },
             )
             true
-        }.getOrElse {
-            Log.w(TAG, "No external player: ${it.message}")
+        } catch (e: Exception) {
+            Log.w(TAG, "No external player: ${e.message}")
+            Toast.makeText(
+                context,
+                context.getString(R.string.platform_mpv_not_installed),
+                Toast.LENGTH_LONG,
+            ).show()
             false
         }
     }

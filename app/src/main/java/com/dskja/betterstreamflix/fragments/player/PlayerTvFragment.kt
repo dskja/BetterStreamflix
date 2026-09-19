@@ -1187,10 +1187,12 @@ class PlayerTvFragment : Fragment() {
             updatePlayerHeader()
             if (com.dskja.betterstreamflix.platform.playerbackend.PlayerBackendSelector.shouldHandoffToExternal()) {
                 currentExternalPlayerTried = true
+                val pos = runCatching { player.currentPosition }.getOrDefault(0L)
                 com.dskja.betterstreamflix.platform.playerbackend.ExternalMpvBackend.open(
                     requireContext(),
                     video.source,
                     video.headers.orEmpty(),
+                    positionMs = pos,
                 )
                 return
             }

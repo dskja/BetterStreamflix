@@ -864,4 +864,27 @@
     <string name="platform_debrid_enabled_summary">Hoster-Links und Magnete über RD entsperren</string>
     <string name="platform_rd_token_title">Real-Debrid API-Token</string>
     <string name="platform_rd_token_summary">Token von real-debrid.com/apitoken</string>
+    <string name="platform_trakt_client_secret_title">Trakt Client-Secret</string>
+    <string name="platform_trakt_client_secret_summary">Für Geräte-Code-OAuth erforderlich</string>
+    <string name="platform_trakt_device_auth_title">Mit Trakt autorisieren</string>
+    <string name="platform_trakt_device_auth_summary">Geräte-Login starten und Token abholen</string>
+    <string name="platform_trakt_device_auth_code_message">Code %1$s unter %2$s eingeben</string>
+    <string name="platform_trakt_device_auth_success">Trakt autorisiert</string>
+    <string name="platform_trakt_device_auth_failed">Trakt-Autorisierung fehlgeschlagen oder abgelaufen</string>
+    <string name="platform_jellyfin_login_user_title">Jellyfin Benutzername</string>
+    <string name="platform_jellyfin_login_user_summary">Für Passwort-Login</string>
+    <string name="platform_jellyfin_login_password_title">Jellyfin Passwort</string>
+    <string name="platform_jellyfin_login_password_summary">Einmalig zum Abrufen des Tokens</string>
+    <string name="platform_jellyfin_login_submit_title">Bei Jellyfin anmelden</string>
+    <string name="platform_jellyfin_login_submit_summary">Benutzername/Passwort gegen Token tauschen</string>
+    <string name="platform_jellyfin_login_missing">Zuerst Jellyfin-URL, Benutzer und Passwort setzen</string>
+    <string name="platform_jellyfin_login_success">Jellyfin angemeldet</string>
+    <string name="platform_jellyfin_login_failed">Jellyfin-Login fehlgeschlagen</string>
+    <string name="platform_debrid_provider_title">Debrid-Anbieter</string>
+    <string name="platform_debrid_provider_summary">Real-Debrid, Premiumize oder AllDebrid</string>
+    <string name="platform_premiumize_key_title">Premiumize API-Key</string>
+    <string name="platform_premiumize_key_summary">Aus dem Premiumize-Konto</string>
+    <string name="platform_alldebrid_key_title">AllDebrid API-Key</string>
+    <string name="platform_alldebrid_key_summary">Von alldebrid.com</string>
+    <string name="platform_mpv_not_installed">Kein MPV/VLC gefunden. MPV installieren oder ExoPlayer wählen.</string>
 </resources>

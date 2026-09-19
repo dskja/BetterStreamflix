@@ -9,6 +9,7 @@ import com.dskja.betterstreamflix.models.People
 import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
+import com.dskja.betterstreamflix.models.WatchItem
 import com.dskja.betterstreamflix.providers.Provider
 import com.dskja.betterstreamflix.utils.UserPreferences
 import org.json.JSONObject
@@ -22,9 +23,36 @@ object PlexProvider : Provider {
 
     private val api = PlexApi()
 
+    fun isConfigured(): Boolean = api.configured()
+
     private fun requireConfigured() {
-        check(api.configured()) {
-            "Configure Plex URL and token in Settings → Platform"
+        if (!api.configured()) {
+            error("Configure Plex in Settings → Platform (URL + token)")
+        }
+    }
+
+    private fun imdbFromGuid(meta: JSONObject): String? {
+        val guid = meta.optString("guid")
+        val match = Regex("""imdb://(tt\d+)""", RegexOption.IGNORE_CASE).find(guid)
+        if (match != null) return match.groupValues[1]
+        val guids = meta.optJSONArray("Guid") ?: return null
+        for (i in 0 until guids.length()) {
+            val id = guids.optJSONObject(i)?.optString("id").orEmpty()
+            val m = Regex("""imdb://(tt\d+)""", RegexOption.IGNORE_CASE).find(id)
+            if (m != null) return m.groupValues[1]
+        }
+        return null
+    }
+
+    private fun applyViewOffset(meta: JSONObject, watchItem: WatchItem) {
+        val offset = meta.optLong("viewOffset", 0L)
+        val duration = meta.optLong("duration", 0L)
+        if (offset > 0 && duration > 0) {
+            watchItem.watchHistory = WatchItem.WatchHistory(
+                lastEngagementTimeUtcMillis = System.currentTimeMillis(),
+                lastPlaybackPositionMillis = offset,
+                durationMillis = duration,
+            )
         }
     }
 
@@ -38,7 +66,9 @@ object PlexProvider : Provider {
             poster = api.thumbUrl(meta.optString("thumb").ifBlank { null }),
             banner = api.thumbUrl(meta.optString("art").ifBlank { null }),
             rating = meta.optDouble("rating").takeIf { !it.isNaN() && it > 0 },
-        )
+            imdbId = imdbFromGuid(meta),
+            providerName = name,
+        ).also { applyViewOffset(meta, it) }
     }
 
     private fun toTvShow(meta: JSONObject): TvShow {
@@ -51,13 +81,54 @@ object PlexProvider : Provider {
             poster = api.thumbUrl(meta.optString("thumb").ifBlank { null }),
             banner = api.thumbUrl(meta.optString("art").ifBlank { null }),
             rating = meta.optDouble("rating").takeIf { !it.isNaN() && it > 0 },
+            imdbId = imdbFromGuid(meta),
+            providerName = name,
         )
+    }
+
+    private fun toEpisode(meta: JSONObject): Episode {
+        val key = meta.optString("ratingKey")
+        val showKey = meta.optString("grandparentRatingKey").ifBlank {
+            meta.optString("parentRatingKey")
+        }
+        return Episode(
+            id = key,
+            number = meta.optInt("index", 0),
+            title = meta.optString("title").ifBlank { null },
+            poster = api.thumbUrl(meta.optString("thumb").ifBlank { null }),
+            overview = meta.optString("summary").ifBlank { null },
+            tvShow = TvShow(
+                id = showKey,
+                title = meta.optString("grandparentTitle").ifBlank { meta.optString("title") },
+                poster = api.thumbUrl(meta.optString("grandparentThumb").ifBlank { null }),
+                imdbId = imdbFromGuid(meta),
+                providerName = name,
+            ),
+            season = Season(
+                id = meta.optString("parentRatingKey"),
+                number = meta.optInt("parentIndex", 1),
+                title = meta.optString("parentTitle").ifBlank { null },
+            ),
+        ).also { applyViewOffset(meta, it) }
     }
 
     override suspend fun getHome(): List<Category> {
         requireConfigured()
-        val sections = api.librarySections()
         val categories = mutableListOf<Category>()
+        val onDeck = api.onDeck()
+        if (onDeck.length() > 0) {
+            val list = buildList<AppAdapter.Item> {
+                for (i in 0 until onDeck.length()) {
+                    val meta = onDeck.getJSONObject(i)
+                    when (meta.optString("type")) {
+                        "movie" -> add(toMovie(meta))
+                        "episode" -> add(toEpisode(meta))
+                    }
+                }
+            }
+            if (list.isNotEmpty()) categories.add(Category("Plex · On Deck", list))
+        }
+        val sections = api.librarySections()
         for (i in 0 until minOf(sections.length(), 4)) {
             val section = sections.getJSONObject(i)
             val key = section.optString("key")
@@ -77,7 +148,7 @@ object PlexProvider : Provider {
                     }
                 }
             }
-            if (list.isNotEmpty()) categories.add(Category(title, list))
+            if (list.isNotEmpty()) categories.add(Category("Plex · $title", list))
         }
         return categories
     }
@@ -103,13 +174,13 @@ object PlexProvider : Provider {
 
     override suspend fun getMovies(page: Int): List<Movie> {
         requireConfigured()
-        if (page > 1) return emptyList()
         val sections = api.librarySections()
         val movieSection = (0 until sections.length())
             .map { sections.getJSONObject(it) }
             .firstOrNull { it.optString("type") == "movie" }
             ?: return emptyList()
-        val items = api.sectionItems(movieSection.optString("key"))
+        val start = ((page - 1).coerceAtLeast(0)) * 40
+        val items = api.sectionItems(movieSection.optString("key"), start = start, size = 40)
         return buildList {
             for (i in 0 until items.length()) add(toMovie(items.getJSONObject(i)))
         }
@@ -117,13 +188,13 @@ object PlexProvider : Provider {
 
     override suspend fun getTvShows(page: Int): List<TvShow> {
         requireConfigured()
-        if (page > 1) return emptyList()
         val sections = api.librarySections()
         val showSection = (0 until sections.length())
             .map { sections.getJSONObject(it) }
             .firstOrNull { it.optString("type") == "show" }
             ?: return emptyList()
-        val items = api.sectionItems(showSection.optString("key"))
+        val start = ((page - 1).coerceAtLeast(0)) * 40
+        val items = api.sectionItems(showSection.optString("key"), start = start, size = 40)
         return buildList {
             for (i in 0 until items.length()) add(toTvShow(items.getJSONObject(i)))
         }
@@ -162,15 +233,7 @@ object PlexProvider : Provider {
             for (i in 0 until children.length()) {
                 val e = children.getJSONObject(i)
                 if (e.optString("type") != "episode") continue
-                add(
-                    Episode(
-                        id = e.optString("ratingKey"),
-                        number = e.optInt("index", i + 1),
-                        title = e.optString("title").ifBlank { null },
-                        poster = api.thumbUrl(e.optString("thumb").ifBlank { null }),
-                        overview = e.optString("summary").ifBlank { null },
-                    ),
-                )
+                add(toEpisode(e))
             }
         }
     }

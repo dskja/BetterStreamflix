@@ -9,52 +9,37 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Fire-and-forget Trakt hooks mirroring CloudSyncHooks call sites.
+ * Session state is keyed per media id to avoid cross-title races.
  */
 object TraktSyncHooks {
     private const val TAG = "TraktSyncHooks"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
+    private val startedKeys = ConcurrentHashMap.newKeySet<String>()
     @Volatile
-    private var scrobbleStarted = false
+    private var lastProgressAt = 0L
 
     fun movieWatched(context: Context, movie: Movie) {
         if (!TraktConfig.configured()) return
-        val imdb = movie.imdbId ?: return
+        val ids = TraktIds(imdb = movie.imdbId)
+        if (ids.isEmpty()) return
         val progress = progressOf(movie)
+        val key = "movie:${movie.imdbId ?: movie.id}"
         scope.launch {
-            val action = TraktScrobbler.decide(
-                previousProgress = 0.0,
-                currentProgress = progress,
-                isPlaying = false,
-                alreadyStarted = scrobbleStarted,
-            )
-            when (action) {
-                TraktScrobbler.Action.STOP -> {
-                    TraktClient.scrobbleStop(imdb, progress)
-                    scrobbleStarted = false
-                }
-                TraktScrobbler.Action.START -> {
-                    TraktClient.scrobbleStart(imdb, progress)
-                    scrobbleStarted = true
-                }
-                TraktScrobbler.Action.PAUSE -> TraktClient.scrobblePause(imdb, progress)
-                TraktScrobbler.Action.NONE -> Unit
-            }
-            Log.d(TAG, "movie ${movie.id} action=$action progress=$progress")
+            dispatchMovie(key, ids, progress, isPlaying = false)
         }
     }
 
     fun episodeWatched(context: Context, episode: Episode) {
         if (!TraktConfig.configured()) return
-        // Episodes often lack imdb on the leaf; stop/start still best-effort via movie path later.
+        val ref = episodeRef(episode) ?: return
         val progress = progressOf(episode)
+        val key = "ep:${ref.showIds.imdb ?: episode.id}:S${ref.season}E${ref.number}"
         scope.launch {
-            if (progress >= 80.0) {
-                Log.d(TAG, "episode ${episode.id} near-complete ($progress%) — stop queued")
-            }
+            dispatchEpisode(key, ref, progress, isPlaying = false)
         }
     }
 
@@ -69,34 +54,89 @@ object TraktSyncHooks {
         positionMs: Long,
         durationMs: Long,
         isPlaying: Boolean,
+        mediaKey: String = imdbId.orEmpty(),
+        episodeRef: TraktEpisodeRef? = null,
     ) {
-        if (!TraktConfig.configured() || imdbId.isNullOrBlank() || durationMs <= 0L) return
+        if (!TraktConfig.configured() || durationMs <= 0L) return
         val progress = (positionMs.toDouble() / durationMs.toDouble()) * 100.0
+        val now = System.currentTimeMillis()
+        // Throttle start heartbeats; always allow pause/stop decisions.
+        if (isPlaying && progress < 80.0 && now - lastProgressAt < 25_000L) return
+        lastProgressAt = now
         scope.launch {
-            when (
-                TraktScrobbler.decide(
-                    previousProgress = 0.0,
-                    currentProgress = progress,
-                    isPlaying = isPlaying,
-                    alreadyStarted = scrobbleStarted,
-                )
-            ) {
-                TraktScrobbler.Action.START -> {
-                    TraktClient.scrobbleStart(imdbId, progress)
-                    scrobbleStarted = true
+            if (episodeRef != null) {
+                val key = mediaKey.ifBlank {
+                    "ep:${episodeRef.showIds.imdb}:S${episodeRef.season}E${episodeRef.number}"
                 }
-                TraktScrobbler.Action.PAUSE -> TraktClient.scrobblePause(imdbId, progress)
-                TraktScrobbler.Action.STOP -> {
-                    TraktClient.scrobbleStop(imdbId, progress)
-                    scrobbleStarted = false
-                }
-                TraktScrobbler.Action.NONE -> Unit
+                dispatchEpisode(key, episodeRef, progress, isPlaying)
+            } else if (!imdbId.isNullOrBlank()) {
+                val key = mediaKey.ifBlank { "movie:$imdbId" }
+                dispatchMovie(key, TraktIds(imdb = imdbId), progress, isPlaying)
             }
         }
     }
 
-    fun resetSession() {
-        scrobbleStarted = false
+    fun resetSession(mediaKey: String? = null) {
+        if (mediaKey == null) startedKeys.clear()
+        else startedKeys.remove(mediaKey)
+    }
+
+    private suspend fun dispatchMovie(
+        key: String,
+        ids: TraktIds,
+        progress: Double,
+        isPlaying: Boolean,
+    ) {
+        val already = startedKeys.contains(key)
+        when (TraktScrobbler.decide(0.0, progress, isPlaying, already)) {
+            TraktScrobbler.Action.START -> {
+                TraktClient.scrobbleMovieStart(ids, progress)
+                startedKeys.add(key)
+            }
+            TraktScrobbler.Action.PAUSE -> TraktClient.scrobbleMoviePause(ids, progress)
+            TraktScrobbler.Action.STOP -> {
+                TraktClient.scrobbleMovieStop(ids, progress)
+                startedKeys.remove(key)
+            }
+            TraktScrobbler.Action.NONE -> Unit
+        }
+        Log.d(TAG, "movie $key progress=$progress playing=$isPlaying")
+    }
+
+    private suspend fun dispatchEpisode(
+        key: String,
+        ref: TraktEpisodeRef,
+        progress: Double,
+        isPlaying: Boolean,
+    ) {
+        val already = startedKeys.contains(key)
+        when (TraktScrobbler.decide(0.0, progress, isPlaying, already)) {
+            TraktScrobbler.Action.START -> {
+                TraktClient.scrobbleEpisodeStart(ref, progress)
+                startedKeys.add(key)
+            }
+            TraktScrobbler.Action.PAUSE -> TraktClient.scrobbleEpisodePause(ref, progress)
+            TraktScrobbler.Action.STOP -> {
+                TraktClient.scrobbleEpisodeStop(ref, progress)
+                startedKeys.remove(key)
+            }
+            TraktScrobbler.Action.NONE -> Unit
+        }
+        Log.d(TAG, "episode $key progress=$progress playing=$isPlaying")
+    }
+
+    private fun episodeRef(episode: Episode): TraktEpisodeRef? {
+        val showImdb = episode.tvShow?.imdbId
+        val season = episode.season?.number ?: return null
+        val number = episode.number
+        if (number <= 0) return null
+        // Prefer show IMDb; fall back to nothing usable.
+        if (showImdb.isNullOrBlank()) return null
+        return TraktEpisodeRef(
+            showIds = TraktIds(imdb = showImdb),
+            season = season,
+            number = number,
+        )
     }
 
     private fun progressOf(item: WatchItem): Double {

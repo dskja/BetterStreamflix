@@ -142,7 +142,7 @@ abstract class Extractor {
         private suspend fun extractOnce(link: String, server: Video.Server? = null): Video {
             var finalLink = link
 
-            // Optional Real-Debrid unrestrict for hoster / magnet links.
+            // Optional debrid unrestrict for known hoster / magnet links.
             if (com.dskja.betterstreamflix.platform.debrid.DebridResolver.looksLikeHosterOrMagnet(finalLink)) {
                 when (
                     val debrid = com.dskja.betterstreamflix.platform.debrid.DebridResolver.resolve(finalLink)
@@ -152,7 +152,8 @@ abstract class Extractor {
                         return Video(source = debrid.url, headers = debrid.headers.ifEmpty { null })
                     }
                     is com.dskja.betterstreamflix.platform.debrid.DebridResult.Pending -> {
-                        throw Exception("Debrid pending: ${debrid.message}")
+                        // Soft-fail: magnets still downloading should not abort hoster extractors.
+                        Log.i("Extractor", "Debrid pending (${debrid.id}): ${debrid.message}")
                     }
                     is com.dskja.betterstreamflix.platform.debrid.DebridResult.Failure -> {
                         Log.d("Extractor", "Debrid skip: ${debrid.reason}")

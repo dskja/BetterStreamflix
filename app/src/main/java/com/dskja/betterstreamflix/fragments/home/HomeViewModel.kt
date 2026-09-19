@@ -160,30 +160,38 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                             )
                         },
 
-                    // CONTINUE WATCHING
+                    // CONTINUE WATCHING (local + optional Trakt / self-host extras merged once)
                     Category(
                         name = Category.CONTINUE_WATCHING,
-                        list = history.continueWatching
-                            .sortedByDescending {
-                                when (it) {
-                                    is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
-                                        ?: it.watchedDate?.timeInMillis
-                                        ?: 0L
+                        list = com.dskja.betterstreamflix.platform.ContinueWatchingMerger.merge(
+                            local = history.continueWatching
+                                .sortedByDescending {
+                                    when (it) {
+                                        is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                            ?: it.watchedDate?.timeInMillis
+                                            ?: 0L
 
-                                    is Movie -> it.watchHistory?.lastEngagementTimeUtcMillis
-                                        ?: it.watchedDate?.timeInMillis
-                                        ?: 0L
+                                        is Movie -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                            ?: it.watchedDate?.timeInMillis
+                                            ?: 0L
 
-                                    else -> 0L
+                                        else -> 0L
+                                    }
                                 }
-                            }
-                            .distinctBy {
-                                when (it) {
-                                    is Episode -> it.tvShow?.id
-                                    is Movie -> it.id
-                                    else -> null
+                                .distinctBy {
+                                    when (it) {
+                                        is Episode -> it.tvShow?.id
+                                        is Movie -> it.id
+                                        else -> null
+                                    }
+                                },
+                            remoteExtras = state.categories
+                                .filter {
+                                    com.dskja.betterstreamflix.platform.ContinueWatchingMerger
+                                        .isProviderContinueWatching(it.name)
                                 }
-                            },
+                                .flatMap { it.list },
+                        ),
                     ).takeIf { UserPreferences.showContinueWatching },
 
                     Category(
@@ -201,7 +209,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         list = history.favoriteTvShows,
                     ),
                 ) + state.categories
-                    .filter { it.name != Category.FEATURED }
+                    .filter {
+                        it.name != Category.FEATURED &&
+                            !com.dskja.betterstreamflix.platform.ContinueWatchingMerger
+                                .isProviderContinueWatching(it.name)
+                    }
                     .map { category ->
                         category.copy(
                             list = category.list.map(::mergeItem)

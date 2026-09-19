@@ -4,23 +4,30 @@ import android.util.Log
 import com.dskja.betterstreamflix.utils.NetworkClient
 import com.dskja.betterstreamflix.utils.UserPreferences
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
  * Real-Debrid API client (token from settings).
- * https://api.real-debrid.com/
+ * Magnet path: addMagnet → selectFiles → poll → unrestrict largest video.
  */
 class RealDebridClient(
     private val tokenProvider: () -> String = { UserPreferences.realDebridToken },
+    private val maxPollAttempts: Int = 12,
+    private val pollDelayMs: Long = 1_500L,
 ) : DebridService {
     override val name: String = "Real-Debrid"
 
     companion object {
         private const val TAG = "RealDebrid"
         private const val API = "https://api.real-debrid.com/rest/1.0"
+        private val VIDEO_EXT = setOf(
+            "mkv", "mp4", "avi", "m4v", "mov", "wmv", "flv", "webm", "ts", "m2ts",
+        )
     }
 
     override suspend fun isAuthenticated(): Boolean =
@@ -29,7 +36,122 @@ class RealDebridClient(
     override suspend fun unrestrict(link: String): DebridResult = withContext(Dispatchers.IO) {
         val token = tokenProvider().trim()
         if (token.isEmpty()) return@withContext DebridResult.Failure("Real-Debrid token missing")
+        unrestrictInternal(token, link)
+    }
+
+    override suspend fun resolveMagnet(magnet: String): DebridResult = withContext(Dispatchers.IO) {
+        val token = tokenProvider().trim()
+        if (token.isEmpty()) return@withContext DebridResult.Failure("Real-Debrid token missing")
         runCatching {
+            val id = addMagnet(token, magnet)
+                ?: return@withContext DebridResult.Failure("No torrent id")
+            selectBestFiles(token, id)
+            val info = pollUntilReady(token, id)
+                ?: return@withContext DebridResult.Pending(id, "Torrent still downloading on RD")
+            val link = pickBestLink(info)
+                ?: return@withContext DebridResult.Failure("No streamable link in torrent")
+            unrestrictInternal(token, link)
+        }.getOrElse {
+            Log.w(TAG, "magnet resolve failed: ${it.message}")
+            DebridResult.Failure(it.message ?: "magnet resolve failed")
+        }
+    }
+
+    private fun addMagnet(token: String, magnet: String): String? {
+        val body = FormBody.Builder().add("magnet", magnet).build()
+        val request = Request.Builder()
+            .url("$API/torrents/addMagnet")
+            .header("Authorization", "Bearer $token")
+            .post(body)
+            .build()
+        return NetworkClient.default.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "addMagnet HTTP ${response.code}: ${raw.take(120)}")
+                return null
+            }
+            JSONObject(raw).optString("id").takeIf { it.isNotBlank() }
+        }
+    }
+
+    private fun selectBestFiles(token: String, id: String) {
+        val infoReq = Request.Builder()
+            .url("$API/torrents/info/$id")
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+        val files = NetworkClient.default.newCall(infoReq).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) return
+            JSONObject(raw).optJSONArray("files") ?: JSONArray()
+        }
+        val videoIds = buildList {
+            for (i in 0 until files.length()) {
+                val f = files.getJSONObject(i)
+                val path = f.optString("path").lowercase()
+                val ext = path.substringAfterLast('.', "")
+                if (ext in VIDEO_EXT || f.optInt("bytes", 0) > 50_000_000) {
+                    add(f.optInt("id").toString())
+                }
+            }
+        }
+        val filesParam = when {
+            videoIds.isNotEmpty() -> videoIds.joinToString(",")
+            else -> "all"
+        }
+        val body = FormBody.Builder().add("files", filesParam).build()
+        val selectReq = Request.Builder()
+            .url("$API/torrents/selectFiles/$id")
+            .header("Authorization", "Bearer $token")
+            .post(body)
+            .build()
+        NetworkClient.default.newCall(selectReq).execute().close()
+    }
+
+    private suspend fun pollUntilReady(token: String, id: String): JSONObject? {
+        repeat(maxPollAttempts) { attempt ->
+            val info = torrentInfo(token, id) ?: return null
+            val status = info.optString("status")
+            when (status) {
+                "downloaded" -> return info
+                "magnet_error", "error", "virus", "dead" -> {
+                    Log.w(TAG, "torrent $id status=$status")
+                    return null
+                }
+                else -> {
+                    Log.d(TAG, "torrent $id status=$status attempt=${attempt + 1}")
+                    delay(pollDelayMs)
+                }
+            }
+        }
+        return torrentInfo(token, id)?.takeIf { it.optString("status") == "downloaded" }
+    }
+
+    private fun torrentInfo(token: String, id: String): JSONObject? {
+        val request = Request.Builder()
+            .url("$API/torrents/info/$id")
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+        return NetworkClient.default.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) return null
+            JSONObject(raw)
+        }
+    }
+
+    private fun pickBestLink(info: JSONObject): String? {
+        val links = info.optJSONArray("links") ?: return null
+        // Prefer last link (often the largest selected file on RD).
+        for (i in links.length() - 1 downTo 0) {
+            val link = links.optString(i)
+            if (link.isNotBlank()) return link
+        }
+        return null
+    }
+
+    private fun unrestrictInternal(token: String, link: String): DebridResult {
+        return runCatching {
             val body = FormBody.Builder().add("link", link).build()
             val request = Request.Builder()
                 .url("$API/unrestrict/link")
@@ -50,32 +172,7 @@ class RealDebridClient(
                 }
             }
         }.getOrElse {
-            Log.w(TAG, "unrestrict failed: ${it.message}")
             DebridResult.Failure(it.message ?: "unrestrict failed")
-        }
-    }
-
-    override suspend fun resolveMagnet(magnet: String): DebridResult = withContext(Dispatchers.IO) {
-        val token = tokenProvider().trim()
-        if (token.isEmpty()) return@withContext DebridResult.Failure("Real-Debrid token missing")
-        runCatching {
-            val addBody = FormBody.Builder().add("magnet", magnet).build()
-            val addReq = Request.Builder()
-                .url("$API/torrents/addMagnet")
-                .header("Authorization", "Bearer $token")
-                .post(addBody)
-                .build()
-            val id = NetworkClient.default.newCall(addReq).execute().use { response ->
-                val raw = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    return@withContext DebridResult.Failure("addMagnet HTTP ${response.code}")
-                }
-                JSONObject(raw).optString("id")
-            }
-            if (id.isBlank()) return@withContext DebridResult.Failure("No torrent id")
-            DebridResult.Pending(id, "Magnet added — select files / wait for RD cache")
-        }.getOrElse {
-            DebridResult.Failure(it.message ?: "magnet resolve failed")
         }
     }
 }

@@ -39,10 +39,17 @@ class PlexApi(
 
     suspend fun sectionItems(sectionKey: String, start: Int = 0, size: Int = 40): JSONArray =
         withContext(Dispatchers.IO) {
-            getJson("/library/sections/$sectionKey/all?X-Plex-Container-Start=$start&X-Plex-Container-Size=$size")
-                .optJSONObject("MediaContainer")
+            getJson(
+                "/library/sections/$sectionKey/all" +
+                    "?X-Plex-Container-Start=$start&X-Plex-Container-Size=$size",
+            ).optJSONObject("MediaContainer")
                 ?.optJSONArray("Metadata") ?: JSONArray()
         }
+
+    suspend fun onDeck(): JSONArray = withContext(Dispatchers.IO) {
+        getJson("/library/onDeck").optJSONObject("MediaContainer")
+            ?.optJSONArray("Metadata") ?: JSONArray()
+    }
 
     suspend fun search(query: String): JSONArray = withContext(Dispatchers.IO) {
         val q = java.net.URLEncoder.encode(query, Charsets.UTF_8.name())
