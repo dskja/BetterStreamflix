@@ -68,8 +68,12 @@ class TmdbProvider(override val language: String) : Provider {
 
     
     private fun requireTmdbApiKey() {
-        val key = UserPreferences.tmdbApiKey.ifBlank { BuildConfig.TMDB_API_KEY }.trim()
-        if (key.isBlank() || key == "null") {
+        if (!UserPreferences.enableTmdb) {
+            throw Exception(
+                "TMDb metadata is disabled. Enable TMDb under Settings → Content, then try again.",
+            )
+        }
+        if (!TMDb3.hasApiKey()) {
             throw Exception(
                 "TMDb API key is missing. Open Settings → enter your TMDb API key " +
                     "(https://www.themoviedb.org/settings/api), then try again."
@@ -119,6 +123,7 @@ class TmdbProvider(override val language: String) : Provider {
                     rating = multi.voteAverage.toDouble(),
                     poster = multi.posterPath?.w500,
                     banner = multi.backdropPath?.original,
+                    tmdbId = multi.id.toString(),
                 )
 
                 is TMDb3.Tv -> TvShow(
@@ -129,10 +134,36 @@ class TmdbProvider(override val language: String) : Provider {
                     rating = multi.voteAverage.toDouble(),
                     poster = multi.posterPath?.w500,
                     banner = multi.backdropPath?.original,
+                    tmdbId = multi.id.toString(),
                 )
 
                 else -> null
             }
+        }
+
+        val mapMovie: (TMDb3.Movie) -> Movie = { m ->
+            Movie(
+                id = m.id.toString(),
+                title = m.title,
+                overview = m.overview,
+                released = m.releaseDate,
+                rating = m.voteAverage.toDouble(),
+                poster = m.posterPath?.w500,
+                banner = m.backdropPath?.original,
+                tmdbId = m.id.toString(),
+            )
+        }
+        val mapTv: (TMDb3.Tv) -> TvShow = { t ->
+            TvShow(
+                id = t.id.toString(),
+                title = t.name,
+                overview = t.overview,
+                released = t.firstAirDate,
+                rating = t.voteAverage.toDouble(),
+                poster = t.posterPath?.w500,
+                banner = t.backdropPath?.original,
+                tmdbId = t.id.toString(),
+            )
         }
 
         val trendingDeferred = async {
@@ -287,6 +318,25 @@ class TmdbProvider(override val language: String) : Provider {
             ).flatMap { it.results }
         }
 
+        val topRatedMoviesDeferred = async {
+            TMDb3.MovieLists.topRated(mapOf("language" to language, "page" to "1")).results
+        }
+        val topRatedTvDeferred = async {
+            TMDb3.TvSeriesLists.topRated(mapOf("language" to language, "page" to "1")).results
+        }
+        val nowPlayingDeferred = async {
+            TMDb3.MovieLists.nowPlaying(language = language, page = 1, region = watchRegion).results
+        }
+        val upcomingDeferred = async {
+            TMDb3.MovieLists.upcoming(language = language, page = 1, region = watchRegion).results
+        }
+        val airingTodayDeferred = async {
+            TMDb3.TvSeriesLists.airingToday(language = language, page = 1).results
+        }
+        val onTheAirDeferred = async {
+            TMDb3.TvSeriesLists.onTheAir(language = language, page = 1).results
+        }
+
         val trending = trendingDeferred.await()
         categories.add(
             Category(
@@ -304,6 +354,20 @@ class TmdbProvider(override val language: String) : Provider {
 
         categories.add(
             Category(
+                name = getTranslation("Now Playing"),
+                list = nowPlayingDeferred.await().map(mapMovie)
+            )
+        )
+
+        categories.add(
+            Category(
+                name = getTranslation("Airing Today"),
+                list = airingTodayDeferred.await().map(mapTv)
+            )
+        )
+
+        categories.add(
+            Category(
                 name = getTranslation("Popular Movies"),
                 list = popularMoviesDeferred.await().mapNotNull(mapMulti)
             )
@@ -313,6 +377,34 @@ class TmdbProvider(override val language: String) : Provider {
             Category(
                 name = getTranslation("Popular TV Shows"),
                 list = popularTvShowsDeferred.await().mapNotNull(mapMulti)
+            )
+        )
+
+        categories.add(
+            Category(
+                name = getTranslation("Top Rated Movies"),
+                list = topRatedMoviesDeferred.await().map(mapMovie)
+            )
+        )
+
+        categories.add(
+            Category(
+                name = getTranslation("Top Rated TV Shows"),
+                list = topRatedTvDeferred.await().map(mapTv)
+            )
+        )
+
+        categories.add(
+            Category(
+                name = getTranslation("On The Air"),
+                list = onTheAirDeferred.await().map(mapTv)
+            )
+        )
+
+        categories.add(
+            Category(
+                name = getTranslation("Upcoming"),
+                list = upcomingDeferred.await().map(mapMovie)
             )
         )
 
@@ -444,6 +536,7 @@ class TmdbProvider(override val language: String) : Provider {
                     rating = multi.voteAverage.toDouble(),
                     poster = multi.posterPath?.w500,
                     banner = multi.backdropPath?.original,
+                    tmdbId = multi.id.toString(),
                 )
 
                 is TMDb3.Tv -> TvShow(
@@ -454,6 +547,7 @@ class TmdbProvider(override val language: String) : Provider {
                     rating = multi.voteAverage.toDouble(),
                     poster = multi.posterPath?.w500,
                     banner = multi.backdropPath?.original,
+                    tmdbId = multi.id.toString(),
                 )
 
                 else -> null
@@ -482,6 +576,7 @@ class TmdbProvider(override val language: String) : Provider {
                 rating = movie.voteAverage.toDouble(),
                 poster = movie.posterPath?.w500,
                 banner = movie.backdropPath?.original,
+                tmdbId = movie.id.toString(),
             )
         }
 
@@ -507,6 +602,7 @@ class TmdbProvider(override val language: String) : Provider {
                 rating = tv.voteAverage.toDouble(),
                 poster = tv.posterPath?.w500,
                 banner = tv.backdropPath?.original,
+                tmdbId = tv.id.toString(),
             )
         }
 
@@ -538,6 +634,7 @@ class TmdbProvider(override val language: String) : Provider {
                 poster = movie.posterPath?.original,
                 banner = movie.backdropPath?.original,
                 imdbId = movie.externalIds?.imdbId,
+                tmdbId = movie.id.toString(),
 
                 genres = movie.genres.map { genre ->
                     Genre(
@@ -562,6 +659,7 @@ class TmdbProvider(override val language: String) : Provider {
                             rating = multi.voteAverage.toDouble(),
                             poster = multi.posterPath?.w500,
                             banner = multi.backdropPath?.original,
+                            tmdbId = multi.id.toString(),
                         )
 
                         is TMDb3.Tv -> TvShow(
@@ -572,6 +670,7 @@ class TmdbProvider(override val language: String) : Provider {
                             rating = multi.voteAverage.toDouble(),
                             poster = multi.posterPath?.w500,
                             banner = multi.backdropPath?.original,
+                            tmdbId = multi.id.toString(),
                         )
 
                         else -> null
@@ -607,6 +706,7 @@ class TmdbProvider(override val language: String) : Provider {
                 poster = tv.posterPath?.original,
                 banner = tv.backdropPath?.original,
                 imdbId = tv.externalIds?.imdbId,
+                tmdbId = tv.id.toString(),
 
                 seasons = tv.seasons.map { season ->
                     Season(
@@ -639,6 +739,7 @@ class TmdbProvider(override val language: String) : Provider {
                             rating = multi.voteAverage.toDouble(),
                             poster = multi.posterPath?.w500,
                             banner = multi.backdropPath?.original,
+                            tmdbId = multi.id.toString(),
                         )
 
                         is TMDb3.Tv -> TvShow(
@@ -649,6 +750,7 @@ class TmdbProvider(override val language: String) : Provider {
                             rating = multi.voteAverage.toDouble(),
                             poster = multi.posterPath?.w500,
                             banner = multi.backdropPath?.original,
+                            tmdbId = multi.id.toString(),
                         )
 
                         else -> null
@@ -1213,8 +1315,14 @@ class TmdbProvider(override val language: String) : Provider {
         return when (language) {
             "it" -> when (key) {
                 "Trending" -> "Di tendenza"
+                "Now Playing" -> "Ora al cinema"
+                "Airing Today" -> "In onda oggi"
                 "Popular Movies" -> "Film popolari"
                 "Popular TV Shows" -> "Serie TV popolari"
+                "Top Rated Movies" -> "Film più votati"
+                "Top Rated TV Shows" -> "Serie più votate"
+                "On The Air" -> "In onda"
+                "Upcoming" -> "Prossimamente"
                 "Popular Anime" -> "Anime popolari"
                 "Popular on Netflix" -> "Popolari su Netflix"
                 "Popular on Amazon" -> "Popolari su Amazon"
@@ -1226,8 +1334,14 @@ class TmdbProvider(override val language: String) : Provider {
             }
             "es" -> when (key) {
                 "Trending" -> "Tendencias"
+                "Now Playing" -> "En cartelera"
+                "Airing Today" -> "Se emite hoy"
                 "Popular Movies" -> "Películas populares"
                 "Popular TV Shows" -> "Series de TV populares"
+                "Top Rated Movies" -> "Películas mejor valoradas"
+                "Top Rated TV Shows" -> "Series mejor valoradas"
+                "On The Air" -> "En emisión"
+                "Upcoming" -> "Próximamente"
                 "Popular Anime" -> "Anime populares"
                 "Popular on Netflix" -> "Popular en Netflix"
                 "Popular on Amazon" -> "Popular en Amazon"
@@ -1239,8 +1353,14 @@ class TmdbProvider(override val language: String) : Provider {
             }
             "de" -> when (key) {
                 "Trending" -> "Trends"
+                "Now Playing" -> "Jetzt im Kino"
+                "Airing Today" -> "Heute im TV"
                 "Popular Movies" -> "Beliebte Filme"
                 "Popular TV Shows" -> "Beliebte Serien"
+                "Top Rated Movies" -> "Bestbewertete Filme"
+                "Top Rated TV Shows" -> "Bestbewertete Serien"
+                "On The Air" -> "Aktuell im TV"
+                "Upcoming" -> "Demnächst"
                 "Popular Anime" -> "Beliebte Anime"
                 "Popular on Netflix" -> "Beliebt bei Netflix"
                 "Popular on Amazon" -> "Beliebt bei Amazon"
@@ -1252,8 +1372,14 @@ class TmdbProvider(override val language: String) : Provider {
             }
             "fr" -> when (key) {
                 "Trending" -> "Tendances"
+                "Now Playing" -> "À l'affiche"
+                "Airing Today" -> "Diffusé aujourd'hui"
                 "Popular Movies" -> "Films populaires"
                 "Popular TV Shows" -> "Séries populaires"
+                "Top Rated Movies" -> "Films les mieux notés"
+                "Top Rated TV Shows" -> "Séries les mieux notées"
+                "On The Air" -> "En cours de diffusion"
+                "Upcoming" -> "À venir"
                 "Popular Anime" -> "Animes populaires"
                 "Popular on Netflix" -> "Populaire sur Netflix"
                 "Popular on Amazon" -> "Populaire sur Amazon"

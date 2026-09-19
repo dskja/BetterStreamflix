@@ -476,6 +476,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         SerienStreamAuthSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        TmdbSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
+        }
 
         findPreference<Preference>("p_serienstream_account_open")?.setOnPreferenceClickListener {
             openNestedSettingsScreen(
@@ -498,6 +501,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                     getString(R.string.settings_tmdb_api_key_success)
                 }
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                TmdbSettingsController.bind(this@SettingsMobileFragment, lifecycleScope) { key ->
+                    findPreference(key)
+                }
                 true
             }
         }

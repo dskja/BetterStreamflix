@@ -34,6 +34,25 @@
                 android:summary="@string/settings_tmdb_api_key_summary"
                 android:inputType="text"
                 app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="TMDB_STATUS"
+                android:title="@string/settings_tmdb_status_title"
+                android:summary="@string/settings_tmdb_status_ready"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="TMDB_TEST_CONNECTION"
+                android:title="@string/settings_tmdb_test_title"
+                android:summary="@string/settings_tmdb_test_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="TMDB_CLEAR_CACHE"
+                android:title="@string/settings_tmdb_clear_cache_title"
+                android:summary="@string/settings_tmdb_clear_cache_summary"
+                app:iconSpaceReserved="false" />
         </PreferenceCategory>
 
         <PreferenceCategory

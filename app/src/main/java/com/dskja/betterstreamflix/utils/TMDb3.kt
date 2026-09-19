@@ -25,6 +25,42 @@ object TMDb3 {
 
     fun rebuildService() {
         service = ApiService.build()
+        TmdbCache.clear()
+    }
+
+    /** Effective API key: user preference, else BuildConfig. */
+    fun effectiveApiKey(): String =
+        UserPreferences.tmdbApiKey.ifBlank { BuildConfig.TMDB_API_KEY }.trim()
+            .takeUnless { it.isBlank() || it == "null" }
+            .orEmpty()
+
+    fun hasApiKey(): Boolean = effectiveApiKey().isNotEmpty()
+
+    /** Lightweight connectivity check used by Settings. */
+    suspend fun ping(): Boolean = runCatching {
+        if (!hasApiKey()) return false
+        MovieLists.popular(page = 1, language = "en").results.isNotEmpty()
+    }.getOrDefault(false)
+
+    /** Non-null results for MultiItem pages (filters Gson nulls from bad media_type). */
+    fun <T : Any> PageResult<T?>.compactResults(): List<T> = results.filterNotNull()
+
+    object Find {
+        suspend fun byImdbId(
+            imdbId: String,
+            language: String? = null,
+        ): FindResult {
+            val clean = imdbId.trim()
+            if (clean.isBlank()) return FindResult()
+            val params = mapOf(
+                Params.Key.LANGUAGE to language,
+                Params.Key.EXTERNAL_SOURCE to "imdb_id",
+            )
+            return service.findByExternalId(
+                externalId = clean,
+                params = params.filterNotNullValues(),
+            )
+        }
     }
 
     object Discover {
@@ -371,6 +407,32 @@ object TMDb3 {
                 params = params.filterNotNullValues(),
             )
         }
+
+        suspend fun nowPlaying(
+            language: String? = null,
+            page: Int? = null,
+            region: String? = null,
+        ): PageResult<Movie> {
+            val params = mapOf(
+                Params.Key.LANGUAGE to language,
+                Params.Key.PAGE to page?.toString(),
+                Params.Key.REGION to region,
+            )
+            return service.getNowPlayingMovies(params = params.filterNotNullValues())
+        }
+
+        suspend fun upcoming(
+            language: String? = null,
+            page: Int? = null,
+            region: String? = null,
+        ): PageResult<Movie> {
+            val params = mapOf(
+                Params.Key.LANGUAGE to language,
+                Params.Key.PAGE to page?.toString(),
+                Params.Key.REGION to region,
+            )
+            return service.getUpcomingMovies(params = params.filterNotNullValues())
+        }
     }
 
     object Movies {
@@ -704,6 +766,17 @@ object TMDb3 {
                 params = params.filterNotNullValues(),
             )
         }
+
+        suspend fun onTheAir(
+            language: String? = null,
+            page: Int? = null,
+        ): PageResult<Tv> {
+            val params = mapOf(
+                Params.Key.LANGUAGE to language,
+                Params.Key.PAGE to page?.toString(),
+            )
+            return service.getOnTheAirTv(params = params.filterNotNullValues())
+        }
     }
 
     object TvSeries {
@@ -869,6 +942,7 @@ object TMDb3 {
             const val CERTIFICATION_COUNTRY = "certification_country"
             const val CERTIFICATION_GTE = "certification.gte"
             const val CERTIFICATION_LTE = "certification.lte"
+            const val EXTERNAL_SOURCE = "external_source"
             const val FIRST_AIR_DATE_GTE = "first_air_date.gte"
             const val FIRST_AIR_DATE_LTE = "first_air_date.lte"
             const val FIRST_AIR_DATE_YEAR = "first_air_date_year"
@@ -1067,12 +1141,29 @@ object TMDb3 {
             @QueryMap params: Map<String, String> = emptyMap(),
         ): PageResult<Movie>
 
+        @GET("movie/now_playing")
+        suspend fun getNowPlayingMovies(
+            @QueryMap params: Map<String, String> = emptyMap(),
+        ): PageResult<Movie>
+
+        @GET("movie/upcoming")
+        suspend fun getUpcomingMovies(
+            @QueryMap params: Map<String, String> = emptyMap(),
+        ): PageResult<Movie>
+
 
         @GET("movie/{movie_id}")
         suspend fun getMovieDetails(
             @Path("movie_id") movieId: Int,
             @QueryMap params: Map<String, String> = emptyMap(),
         ): Movie.Detail
+
+
+        @GET("find/{external_id}")
+        suspend fun findByExternalId(
+            @Path("external_id") externalId: String,
+            @QueryMap params: Map<String, String> = emptyMap(),
+        ): FindResult
 
 
         @GET("person/{person_id}")
@@ -1113,6 +1204,11 @@ object TMDb3 {
             @QueryMap params: Map<String, String> = emptyMap(),
         ): PageResult<Tv>
 
+        @GET("tv/on_the_air")
+        suspend fun getOnTheAirTv(
+            @QueryMap params: Map<String, String> = emptyMap(),
+        ): PageResult<Tv>
+
         @GET("tv/popular")
         suspend fun getPopularTv(
             @QueryMap params: Map<String, String> = emptyMap(),
@@ -1149,6 +1245,14 @@ object TMDb3 {
         @SerializedName("results") val results: List<T> = emptyList(),
         @SerializedName("total_pages") val totalPages: Int,
         @SerializedName("total_results") val totalResults: Int,
+    )
+
+    data class FindResult(
+        @SerializedName("movie_results") val movieResults: List<Movie> = emptyList(),
+        @SerializedName("tv_results") val tvResults: List<Tv> = emptyList(),
+        @SerializedName("person_results") val personResults: List<Person> = emptyList(),
+        @SerializedName("tv_episode_results") val tvEpisodeResults: List<JsonObject> = emptyList(),
+        @SerializedName("tv_season_results") val tvSeasonResults: List<JsonObject> = emptyList(),
     )
 
     data class GenresResponse(
