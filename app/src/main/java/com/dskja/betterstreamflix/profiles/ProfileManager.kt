@@ -127,6 +127,46 @@ object ProfileManager {
     fun clearPin(profileId: String): Boolean =
         updateProfile(profileId) { it.copy(pinHash = null) }
 
+    fun updateAvatar(profileId: String, avatarKey: String): Boolean {
+        require(avatarKey in avatarKeys) { "Unknown avatar key: $avatarKey" }
+        return updateProfile(profileId) { it.copy(avatarKey = avatarKey) }
+    }
+
+    fun updateKids(profileId: String, isKids: Boolean): Boolean =
+        updateProfile(profileId) {
+            it.copy(
+                isKids = isKids,
+                maxAgeRating = if (isKids) 12 else it.maxAgeRating,
+            )
+        }
+
+    /**
+     * Empty [UserProfile.enabledIntegrations] means all integrations are enabled (backward compatible).
+     * A non-empty set lists only the integrations enabled for that profile.
+     */
+    fun isIntegrationEnabled(profile: UserProfile, integration: String): Boolean =
+        profile.enabledIntegrations.isEmpty() || profile.enabledIntegrations.contains(integration)
+
+    fun setIntegrationEnabled(profileId: String, integration: String, enabled: Boolean): Boolean {
+        val profile = profiles().find { it.id == profileId } ?: return false
+        val current = if (profile.enabledIntegrations.isEmpty()) {
+            UserProfile.Integration.ALL
+        } else {
+            profile.enabledIntegrations
+        }
+        val updated = if (enabled) current + integration else current - integration
+        return setEnabledIntegrations(profileId, updated)
+    }
+
+    fun setEnabledIntegrations(profileId: String, enabled: Set<String>): Boolean {
+        val stored = if (enabled.containsAll(UserProfile.Integration.ALL)) {
+            emptySet()
+        } else {
+            enabled
+        }
+        return updateProfile(profileId) { it.copy(enabledIntegrations = stored) }
+    }
+
     fun verifyPin(profileId: String, pin: String): Boolean {
         val profile = profiles().find { it.id == profileId } ?: return false
         val stored = profile.pinHash ?: return false

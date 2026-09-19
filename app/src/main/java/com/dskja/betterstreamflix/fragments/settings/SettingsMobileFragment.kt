@@ -303,6 +303,17 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         PlatformSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        ProfilesSettingsController.bind(
+            fragment = this,
+            scope = lifecycleScope,
+            findPreference = { key -> findPreference(key) },
+            onProfileSwitched = {
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainMobileActivity::class.java))
+                }
+            },
+        )
         ConnectionServicesController.bind(
             fragment = this,
             scope = lifecycleScope,
@@ -560,7 +571,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         findPreference<Preference>("p_settings_support_preview")?.apply {
             // Same PreferenceScreen as EXPERIMENTAL_NEW_APP_DESIGN (Appearance) —
             // never use android:dependency across nested screens (BETTERSTREAMFLIX-K).
-            isVisible = UserPreferences.experimentalNewAppDesign
+            isVisible = ExperimentalMobileDesign.enabled()
             setOnPreferenceClickListener {
                 runCatching {
                     findNavController().navigate(R.id.support_preview)
@@ -568,8 +579,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
                 true
             }
         }
-        findPreference<Preference>("screen_lumina_options")?.isVisible =
-            UserPreferences.experimentalNewAppDesign
+        bindExperimentalDesignGate()
 
         findPreference<Preference>("p_settings_about")?.apply {
             val palette = ThemeManager.palette(UserPreferences.selectedTheme)
@@ -871,18 +881,7 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
-            isChecked = UserPreferences.experimentalNewAppDesign
-            summary = ExperimentalMobileDesign.summary(requireContext())
-            setOnPreferenceChangeListener { _, newValue ->
-                UserPreferences.experimentalNewAppDesign = newValue as Boolean
-                requireActivity().apply {
-                    finish()
-                    startActivity(Intent(this, MainMobileActivity::class.java))
-                }
-                true
-            }
-        }
+        bindExperimentalDesignPreference()
         bindLuminaOptions()
 
         findPreference<ListPreference>("CATALOG_SORT_MODE")?.apply {
@@ -1751,6 +1750,10 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         updateOverviewLabels()
         updateProviderVisibilityState()
         PlatformSettingsController.refresh(this) { key -> findPreference(key) }
+        ProfilesSettingsController.refresh(
+            findPreference = { key -> findPreference(key) },
+            context = requireContext(),
+        )
         ConnectionServicesController.refresh(
             findPreference = { key -> findPreference(key) },
             context = requireContext(),
@@ -1788,9 +1791,34 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         updateParentalControlPreferenceState()
     }
 
+    private fun bindExperimentalDesignGate() {
+        if (!ExperimentalMobileDesign.isAvailable() && UserPreferences.experimentalNewAppDesign) {
+            UserPreferences.experimentalNewAppDesign = false
+        }
+        findPreference<Preference>("screen_lumina_options")?.isVisible = ExperimentalMobileDesign.isAvailable()
+    }
+
+    private fun bindExperimentalDesignPreference() {
+        findPreference<SwitchPreference>("EXPERIMENTAL_NEW_APP_DESIGN")?.apply {
+            val available = ExperimentalMobileDesign.isAvailable()
+            isEnabled = available
+            isChecked = available && UserPreferences.experimentalNewAppDesign
+            summary = ExperimentalMobileDesign.summary(requireContext())
+            setOnPreferenceChangeListener { _, newValue ->
+                if (!available) return@setOnPreferenceChangeListener false
+                UserPreferences.experimentalNewAppDesign = newValue as Boolean
+                requireActivity().apply {
+                    finish()
+                    startActivity(Intent(this, MainMobileActivity::class.java))
+                }
+                true
+            }
+        }
+    }
+
     private fun bindLuminaOptions() {
-        val luminaOn = UserPreferences.experimentalNewAppDesign
-        findPreference<Preference>("screen_lumina_options")?.isVisible = luminaOn
+        val luminaOn = ExperimentalMobileDesign.enabled()
+        findPreference<Preference>("screen_lumina_options")?.isVisible = ExperimentalMobileDesign.isAvailable() && luminaOn
 
         fun restartShell() {
             requireActivity().apply {

@@ -72,6 +72,13 @@ internal object SettingsHubCategories {
 
     fun accountCards(): List<SettingsHubCard> = listOf(
         SettingsHubCard(
+            id = "profiles",
+            titleRes = R.string.settings_screen_profiles_title,
+            summaryRes = R.string.settings_screen_profiles_summary,
+            iconRes = R.drawable.ic_person_placeholder,
+            target = SettingsHubTarget.PreferenceScreen("screen_profiles"),
+        ),
+        SettingsHubCard(
             id = "cloud",
             titleRes = R.string.cloud_sync_title,
             summaryRes = R.string.cloud_sync_screen_summary,

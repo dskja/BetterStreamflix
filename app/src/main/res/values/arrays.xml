@@ -185,4 +185,25 @@
         <item>slate</item>
     </string-array>
 
+    <string-array name="profile_avatar_names">
+        <item>@string/exp_accent_crimson</item>
+        <item>@string/exp_accent_ember</item>
+        <item>@string/exp_accent_aurora</item>
+        <item>@string/exp_accent_slate</item>
+        <item>@string/profile_avatar_forest</item>
+        <item>@string/profile_avatar_ocean</item>
+        <item>@string/profile_avatar_gold</item>
+        <item>@string/profile_avatar_rose</item>
+    </string-array>
+    <string-array name="profile_avatar_values">
+        <item>crimson</item>
+        <item>ember</item>
+        <item>aurora</item>
+        <item>slate</item>
+        <item>forest</item>
+        <item>ocean</item>
+        <item>gold</item>
+        <item>rose</item>
+    </string-array>
+
 </resources>

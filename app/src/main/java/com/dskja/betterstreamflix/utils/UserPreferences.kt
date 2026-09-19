@@ -16,6 +16,7 @@ import com.dskja.betterstreamflix.providers.Provider.Companion.providers
 import com.dskja.betterstreamflix.providers.TmdbProvider
 import androidx.core.content.edit
 import com.dskja.betterstreamflix.database.AppDatabase
+import com.dskja.betterstreamflix.profiles.ProfileManager
 import org.json.JSONObject
 import org.json.JSONArray
 
@@ -547,16 +548,16 @@ object UserPreferences {
 
     /** When false, Home hides the Continue Watching row. */
     var showContinueWatching: Boolean
-        get() = Key.SHOW_CONTINUE_WATCHING.getBoolean() ?: true
+        get() = profileScopedBoolean(Key.SHOW_CONTINUE_WATCHING) ?: true
         set(value) {
-            Key.SHOW_CONTINUE_WATCHING.setBoolean(value)
+            setProfileScopedBoolean(Key.SHOW_CONTINUE_WATCHING, value)
         }
 
     /** When false, Home hides the Recently Watched row. */
     var showRecentlyWatched: Boolean
-        get() = Key.SHOW_RECENTLY_WATCHED.getBoolean() ?: true
+        get() = profileScopedBoolean(Key.SHOW_RECENTLY_WATCHED) ?: true
         set(value) {
-            Key.SHOW_RECENTLY_WATCHED.setBoolean(value)
+            setProfileScopedBoolean(Key.SHOW_RECENTLY_WATCHED, value)
         }
 
     /** When true, chronically brittle providers appear in the provider picker. */
@@ -579,9 +580,9 @@ object UserPreferences {
     }
 
     var libraryScope: LibraryScope
-        get() = LibraryScope.fromKey(Key.LIBRARY_SCOPE.getString())
+        get() = LibraryScope.fromKey(profileScopedString(Key.LIBRARY_SCOPE))
         set(value) {
-            Key.LIBRARY_SCOPE.setString(value.key)
+            setProfileScopedString(Key.LIBRARY_SCOPE, value.key)
         }
 
     val isCrossProviderLibrary: Boolean
@@ -995,6 +996,24 @@ object UserPreferences {
 
     fun setFavoriteSortMode(providerName: String, mode: String) {
         prefs.edit { putString("FAVORITE_SORT_MODE_$providerName", mode) }
+    }
+
+    private fun profileScopedBoolean(key: Key): Boolean? {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        return if (prefs.contains(scoped)) prefs.getBoolean(scoped, false) else null
+    }
+
+    private fun setProfileScopedBoolean(key: Key, value: Boolean) {
+        prefs.edit { putBoolean(ProfileManager.scopedPrefKey(key.name), value) }
+    }
+
+    private fun profileScopedString(key: Key): String? {
+        val scoped = ProfileManager.scopedPrefKey(key.name)
+        return if (prefs.contains(scoped)) prefs.getString(scoped, null) else null
+    }
+
+    private fun setProfileScopedString(key: Key, value: String) {
+        prefs.edit { putString(ProfileManager.scopedPrefKey(key.name), value) }
     }
 
     private enum class Key {
