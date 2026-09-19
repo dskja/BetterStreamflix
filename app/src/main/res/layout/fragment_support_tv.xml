@@ -145,6 +145,53 @@
                     android:textColor="@color/support_text_secondary"
                     android:textSize="@dimen/support_text_body" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_impact_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_impact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_faq_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_faq"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/tv_support_why"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:background="@drawable/bg_support_card"
+                android:fontFamily="@font/manrope"
+                android:lineSpacingExtra="3dp"
+                android:padding="16dp"
+                android:text="@string/support_details_body_extended"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_body" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

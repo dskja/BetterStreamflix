@@ -6,7 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.databinding.FragmentSupportDetailsMobileBinding
+import com.dskja.betterstreamflix.support.SupportHubBinder
 import com.dskja.betterstreamflix.support.SupportLinkOpener
 import com.dskja.betterstreamflix.support.SupportProvider
 
@@ -41,6 +43,10 @@ class SupportDetailsMobileFragment : Fragment() {
         binding.btnSupportDetailsDiscord.setOnClickListener {
             SupportLinkOpener.openProvider(requireContext(), SupportProvider.DISCORD)
         }
+        binding.btnSupportDetailsTelegram.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.TELEGRAM)
+        }
+        SupportHubBinder.bindImpact(requireContext(), binding.llSupportDetailsImpact)
     }
 
     override fun onDestroyView() {

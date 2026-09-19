@@ -175,10 +175,84 @@
             </LinearLayout>
 
             <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_impact_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_impact_subtitle"
+                android:textColor="@color/support_text_secondary"
+                android:textSize="@dimen/support_text_secondary" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_impact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:fontFamily="@font/manrope"
+                android:text="@string/support_faq_title"
+                android:textColor="@color/support_text_primary"
+                android:textSize="@dimen/support_text_section"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/ll_support_faq"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/support_section_spacing"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_support_issues"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/manrope"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:text="@string/support_link_issues"
+                    android:textColor="@color/support_accent"
+                    android:textSize="@dimen/support_text_body" />
+
+                <TextView
+                    android:id="@+id/tv_support_releases"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/manrope"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:text="@string/support_link_releases"
+                    android:textColor="@color/support_accent"
+                    android:textSize="@dimen/support_text_body" />
+            </LinearLayout>
+
+            <TextView
                 android:id="@+id/tv_support_details_link"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="8dp"
                 android:fontFamily="@font/manrope"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"

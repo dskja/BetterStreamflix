@@ -12,6 +12,8 @@ object SupportUrls {
     const val TELEGRAM_APP_URL = "tg://resolve?domain=BetterStreamflix"
     const val DISCORD_URL = "https://discord.gg/R4F72rMUZ8"
     const val GITHUB_REPOSITORY_URL = "https://github.com/dskja/BetterStreamflix"
+    const val GITHUB_ISSUES_URL = "https://github.com/dskja/BetterStreamflix/issues"
+    const val GITHUB_RELEASES_URL = "https://github.com/dskja/BetterStreamflix/releases"
     /** Upstream Streamflix Reborn — must remain available from About. */
     const val UPSTREAM_REPOSITORY_URL = "https://github.com/streamflix-reborn2/streamflix"
 }

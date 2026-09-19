@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_support_card_focusable"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tv_support_faq_question"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="8dp"
+        android:fontFamily="@font/manrope"
+        android:gravity="center_vertical"
+        android:textColor="@color/support_text_primary"
+        android:textSize="@dimen/support_text_body"
+        android:textStyle="bold"
+        tools:text="Is support required?" />
+
+    <TextView
+        android:id="@+id/tv_support_faq_answer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="@font/manrope"
+        android:lineSpacingExtra="2dp"
+        android:textColor="@color/support_text_secondary"
+        android:textSize="@dimen/support_text_secondary"
+        android:visibility="gone"
+        tools:text="No. Support is completely optional."
+        tools:visibility="visible" />
+</LinearLayout>

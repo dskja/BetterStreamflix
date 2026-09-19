@@ -6,7 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.dskja.betterstreamflix.R
 import com.dskja.betterstreamflix.databinding.FragmentSupportPreviewMobileBinding
+import com.dskja.betterstreamflix.databinding.IncludeSupportHeroBinding
+import com.dskja.betterstreamflix.support.SupportHubBinder
+import com.dskja.betterstreamflix.support.SupportLinkOpener
+import com.dskja.betterstreamflix.support.SupportProvider
 import com.dskja.betterstreamflix.support.SupportUiBinder
 
 /**
@@ -31,12 +36,21 @@ class SupportPreviewMobileFragment : Fragment() {
         binding.btnSupportPreviewBack.setOnClickListener {
             findNavController().navigateUp()
         }
+        val hero = IncludeSupportHeroBinding.bind(binding.previewHero.root)
+        hero.btnSupportHeroPrimary.setOnClickListener {
+            SupportLinkOpener.openProvider(requireContext(), SupportProvider.BUY_ME_A_COFFEE)
+        }
+        hero.btnSupportHeroSecondary.setOnClickListener {
+            runCatching { findNavController().navigate(R.id.support_details) }
+        }
         SupportUiBinder.bindProviderCards(
             requireContext(),
             binding.llPreviewProviders,
             horizontal = false,
             animate = true,
         )
+        SupportHubBinder.bindImpact(requireContext(), binding.llPreviewImpact)
+        SupportHubBinder.bindFaq(requireContext(), binding.llPreviewFaq)
     }
 
     override fun onDestroyView() {
