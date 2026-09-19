@@ -21,8 +21,13 @@ object PlatformBootstrap {
         val app = context.applicationContext
         runCatching { PluginRegistry.bootstrapBuiltins() }
             .onFailure { Log.w(TAG, "Plugin registry: ${it.message}") }
+        runCatching {
+            com.dskja.betterstreamflix.platform.plugins.PluginCatalog.registerLocalStubs(app)
+        }.onFailure { Log.w(TAG, "Plugin catalog: ${it.message}") }
         runCatching { TraktClient.warm(app) }
             .onFailure { Log.w(TAG, "Trakt warm: ${it.message}") }
+        runCatching { com.dskja.betterstreamflix.platform.simkl.SimklClient.warm() }
+            .onFailure { Log.w(TAG, "Simkl warm: ${it.message}") }
         Log.i(TAG, "Full Platform modules ready (plugins=${PluginRegistry.size})")
     }
 }

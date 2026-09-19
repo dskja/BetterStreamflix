@@ -80,6 +80,120 @@ class JellyfinApi(
             }
         }
 
+    data class QuickConnectState(
+        val secret: String,
+        val code: String,
+        val authenticated: Boolean,
+    )
+
+    /**
+     * Start Jellyfin Quick Connect — display [QuickConnectState.code] to the user.
+     */
+    suspend fun initiateQuickConnect(): QuickConnectState? = withContext(Dispatchers.IO) {
+        runCatching {
+            val deviceId = UserPreferences.jellyfinDeviceId.ifBlank {
+                UUID.randomUUID().toString().also { UserPreferences.jellyfinDeviceId = it }
+            }
+            val authHeader =
+                "MediaBrowser Client=\"BetterStreamflix\", Device=\"Android\", " +
+                    "DeviceId=\"$deviceId\", Version=\"1.0.0\""
+            val request = Request.Builder()
+                .url("${base()}/QuickConnect/Initiate")
+                .post("{}".toRequestBody(jsonMedia))
+                .header("Authorization", authHeader)
+                .header("Content-Type", "application/json")
+                .build()
+            NetworkClient.default.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) return@use null
+                parseQuickConnectState(raw)
+            }
+        }.getOrNull()
+    }
+
+    suspend fun getQuickConnectState(secret: String): QuickConnectState? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val deviceId = UserPreferences.jellyfinDeviceId.ifBlank {
+                    UUID.randomUUID().toString().also { UserPreferences.jellyfinDeviceId = it }
+                }
+                val authHeader =
+                    "MediaBrowser Client=\"BetterStreamflix\", Device=\"Android\", " +
+                        "DeviceId=\"$deviceId\", Version=\"1.0.0\""
+                val enc = java.net.URLEncoder.encode(secret, Charsets.UTF_8.name())
+                val request = Request.Builder()
+                    .url("${base()}/QuickConnect/Connect?Secret=$enc")
+                    .get()
+                    .header("Authorization", authHeader)
+                    .build()
+                NetworkClient.default.newCall(request).execute().use { response ->
+                    val raw = response.body?.string().orEmpty()
+                    if (!response.isSuccessful) return@use null
+                    parseQuickConnectState(raw)
+                }
+            }.getOrNull()
+        }
+
+    /**
+     * Exchange an authorized Quick Connect secret for access token + userId.
+     */
+    suspend fun authenticateWithQuickConnect(secret: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val deviceId = UserPreferences.jellyfinDeviceId.ifBlank {
+                    UUID.randomUUID().toString().also { UserPreferences.jellyfinDeviceId = it }
+                }
+                val body = JSONObject().put("Secret", secret).toString().toRequestBody(jsonMedia)
+                val authHeader =
+                    "MediaBrowser Client=\"BetterStreamflix\", Device=\"Android\", " +
+                        "DeviceId=\"$deviceId\", Version=\"1.0.0\""
+                val request = Request.Builder()
+                    .url("${base()}/Users/AuthenticateWithQuickConnect")
+                    .post(body)
+                    .header("Authorization", authHeader)
+                    .header("Content-Type", "application/json")
+                    .build()
+                NetworkClient.default.newCall(request).execute().use { response ->
+                    val raw = response.body?.string().orEmpty()
+                    if (!response.isSuccessful) return@use false
+                    val json = JSONObject(raw)
+                    val token = json.optString("AccessToken")
+                    val userId = json.optJSONObject("User")?.optString("Id").orEmpty()
+                    if (token.isBlank() || userId.isBlank()) return@use false
+                    UserPreferences.jellyfinAccessToken = token
+                    UserPreferences.jellyfinUserId = userId
+                    true
+                }
+            }.getOrDefault(false)
+        }
+
+    /**
+     * Poll Quick Connect until authorized or [maxAttempts] exhausted.
+     */
+    suspend fun pollQuickConnect(
+        secret: String,
+        maxAttempts: Int = 36,
+        intervalMs: Long = 5_000L,
+    ): Boolean {
+        repeat(maxAttempts) {
+            val state = getQuickConnectState(secret) ?: return false
+            if (state.authenticated) {
+                return authenticateWithQuickConnect(secret)
+            }
+            kotlinx.coroutines.delay(intervalMs)
+        }
+        return false
+    }
+
+    fun parseQuickConnectState(raw: String): QuickConnectState? {
+        val json = JSONObject(raw)
+        val secret = json.optString("Secret").ifBlank { json.optString("secret") }
+        val code = json.optString("Code").ifBlank { json.optString("code") }
+        if (secret.isBlank() || code.isBlank()) return null
+        val authenticated = json.optBoolean("Authenticated") || json.optBoolean("authenticated")
+        return QuickConnectState(secret = secret, code = code, authenticated = authenticated)
+    }
+
     suspend fun resumeItems(limit: Int = 20): JSONArray = withContext(Dispatchers.IO) {
         getJson("/Users/${userIdProvider()}/Items/Resume?Limit=$limit&MediaTypes=Video")
             .optJSONArray("Items") ?: JSONArray()

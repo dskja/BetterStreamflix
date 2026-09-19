@@ -160,6 +160,34 @@ object PlatformSettingsController {
             set = { UserPreferences.allDebridApiKey = it },
             mask = true,
         )
+        bindText(
+            key = "TORBOX_API_KEY",
+            get = { UserPreferences.torBoxApiKey },
+            set = { UserPreferences.torBoxApiKey = it },
+            mask = true,
+        )
+        bindSwitch(
+            key = "SIMKL_ENABLED",
+            get = { UserPreferences.simklEnabled },
+            set = { UserPreferences.simklEnabled = it },
+        )
+        bindText(
+            key = "SIMKL_CLIENT_ID",
+            get = { UserPreferences.simklClientId },
+            set = { UserPreferences.simklClientId = it },
+        )
+        bindText(
+            key = "SIMKL_ACCESS_TOKEN",
+            get = { UserPreferences.simklAccessToken },
+            set = { UserPreferences.simklAccessToken = it },
+            mask = true,
+        )
+        bindText(
+            key = "OPENSUBTITLES_API_KEY",
+            get = { UserPreferences.openSubtitlesApiKey },
+            set = { UserPreferences.openSubtitlesApiKey = it },
+            mask = true,
+        )
 
         (findPreference("PLAYER_BACKEND") as? ListPreference)?.apply {
             value = UserPreferences.playerBackend
@@ -178,6 +206,19 @@ object PlatformSettingsController {
             summary = entry
             setOnPreferenceChangeListener { preference, newValue ->
                 UserPreferences.debridProvider = newValue.toString()
+                val list = preference as ListPreference
+                val idx = list.entryValues.indexOf(newValue.toString()).coerceAtLeast(0)
+                list.summary = list.entries.getOrNull(idx)
+                true
+            }
+        }
+
+        (findPreference("SELF_HOST_PROGRESS_INTERVAL") as? ListPreference)?.apply {
+            value = UserPreferences.selfHostProgressIntervalMs.toString()
+            summary = entry
+            setOnPreferenceChangeListener { preference, newValue ->
+                UserPreferences.selfHostProgressIntervalMs =
+                    newValue.toString().toLongOrNull() ?: 15_000L
                 val list = preference as ListPreference
                 val idx = list.entryValues.indexOf(newValue.toString()).coerceAtLeast(0)
                 list.summary = list.entries.getOrNull(idx)
@@ -279,6 +320,53 @@ object PlatformSettingsController {
             true
         }
 
+        findPreference("jellyfin_quick_connect")?.setOnPreferenceClickListener {
+            if (UserPreferences.jellyfinBaseUrl.isBlank()) {
+                Toast.makeText(context, R.string.platform_jellyfin_qc_missing_url, Toast.LENGTH_LONG).show()
+                return@setOnPreferenceClickListener true
+            }
+            scope.launch {
+                val api = JellyfinApi()
+                val started = api.initiateQuickConnect()
+                if (started == null) {
+                    Toast.makeText(context, R.string.platform_jellyfin_qc_failed, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                AlertDialog.Builder(context)
+                    .setTitle(R.string.platform_jellyfin_qc_title)
+                    .setMessage(
+                        context.getString(R.string.platform_jellyfin_qc_code_message, started.code),
+                    )
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+                val ok = api.pollQuickConnect(started.secret)
+                Toast.makeText(
+                    context,
+                    if (ok) R.string.platform_jellyfin_qc_success
+                    else R.string.platform_jellyfin_qc_failed,
+                    Toast.LENGTH_LONG,
+                ).show()
+                if (ok) {
+                    bindText(
+                        key = "JELLYFIN_USER_ID",
+                        get = { UserPreferences.jellyfinUserId },
+                        set = { UserPreferences.jellyfinUserId = it },
+                    )
+                    bindText(
+                        key = "JELLYFIN_ACCESS_TOKEN",
+                        get = { UserPreferences.jellyfinAccessToken },
+                        set = { UserPreferences.jellyfinAccessToken = it },
+                        mask = true,
+                    )
+                    runCatching {
+                        PluginRegistry.clear()
+                        PluginRegistry.bootstrapBuiltins()
+                    }
+                }
+            }
+            true
+        }
+
         bindSwitch(
             key = "plugin_disable_jellyfin",
             get = { UserPreferences.isPluginDisabled("builtin:Jellyfin") },
@@ -343,6 +431,10 @@ object PlatformSettingsController {
         "REAL_DEBRID_TOKEN" -> R.string.platform_rd_token_summary
         "PREMIUMIZE_API_KEY" -> R.string.platform_premiumize_key_summary
         "ALLDEBRID_API_KEY" -> R.string.platform_alldebrid_key_summary
+        "TORBOX_API_KEY" -> R.string.platform_torbox_key_summary
+        "SIMKL_CLIENT_ID" -> R.string.platform_simkl_client_id_summary
+        "SIMKL_ACCESS_TOKEN" -> R.string.platform_simkl_token_summary
+        "OPENSUBTITLES_API_KEY" -> R.string.platform_opensubtitles_key_summary
         else -> R.string.platform_settings_summary
     }
 }

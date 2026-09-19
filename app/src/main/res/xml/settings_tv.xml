@@ -562,6 +562,17 @@
                 android:key="jellyfin_login_submit"
                 android:title="@string/platform_jellyfin_login_submit_title"
                 android:summary="@string/platform_jellyfin_login_submit_summary" />
+            <Preference
+                android:key="jellyfin_quick_connect"
+                android:title="@string/platform_jellyfin_qc_title"
+                android:summary="@string/platform_jellyfin_qc_summary" />
+            <ListPreference
+                android:key="SELF_HOST_PROGRESS_INTERVAL"
+                android:title="@string/platform_selfhost_interval_title"
+                android:summary="@string/platform_selfhost_interval_summary"
+                android:entries="@array/selfhost_interval_names"
+                android:entryValues="@array/selfhost_interval_values"
+                android:defaultValue="15000" />
         </PreferenceCategory>
 
         <PreferenceCategory
@@ -576,6 +587,36 @@
                 android:key="PLEX_TOKEN"
                 android:title="@string/platform_plex_token_title"
                 android:summary="@string/platform_plex_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_simkl"
+            android:title="@string/platform_simkl_category">
+            <SwitchPreference
+                android:key="SIMKL_ENABLED"
+                android:title="@string/platform_simkl_enabled_title"
+                android:summary="@string/platform_simkl_enabled_summary"
+                android:defaultValue="false" />
+            <EditTextPreference
+                android:key="SIMKL_CLIENT_ID"
+                android:title="@string/platform_simkl_client_id_title"
+                android:summary="@string/platform_simkl_client_id_summary"
+                android:inputType="text" />
+            <EditTextPreference
+                android:key="SIMKL_ACCESS_TOKEN"
+                android:title="@string/platform_simkl_token_title"
+                android:summary="@string/platform_simkl_token_summary"
+                android:inputType="textPassword" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_platform_subtitles"
+            android:title="@string/platform_opensubtitles_category">
+            <EditTextPreference
+                android:key="OPENSUBTITLES_API_KEY"
+                android:title="@string/platform_opensubtitles_key_title"
+                android:summary="@string/platform_opensubtitles_key_summary"
                 android:inputType="textPassword" />
         </PreferenceCategory>
 
@@ -608,6 +649,11 @@
                 android:key="ALLDEBRID_API_KEY"
                 android:title="@string/platform_alldebrid_key_title"
                 android:summary="@string/platform_alldebrid_key_summary"
+                android:inputType="textPassword" />
+            <EditTextPreference
+                android:key="TORBOX_API_KEY"
+                android:title="@string/platform_torbox_key_title"
+                android:summary="@string/platform_torbox_key_summary"
                 android:inputType="textPassword" />
         </PreferenceCategory>
 

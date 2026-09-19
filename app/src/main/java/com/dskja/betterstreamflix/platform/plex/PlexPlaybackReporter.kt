@@ -24,7 +24,8 @@ object PlexPlaybackReporter {
         val last = lastAt[ratingKey] ?: 0L
         val progress = positionMs.toDouble() / durationMs.toDouble()
         val force = !isPlaying || progress >= 0.95
-        if (!force && now - last < 15_000L) return
+        val interval = UserPreferences.selfHostProgressIntervalMs.coerceIn(5_000L, 60_000L)
+        if (!force && now - last < interval) return
         lastAt[ratingKey] = now
         scope.launch {
             runCatching {

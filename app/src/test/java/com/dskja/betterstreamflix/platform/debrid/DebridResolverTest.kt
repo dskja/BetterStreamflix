@@ -20,6 +20,8 @@ class DebridResolverTest {
     @Test
     fun providerIdParsing() {
         assertTrue(DebridProviderId.fromId("premiumize") == DebridProviderId.PREMIUMIZE)
+        assertTrue(DebridProviderId.fromId("torbox") == DebridProviderId.TORBOX)
+        assertTrue(DebridProviderId.fromId("alldebrid") == DebridProviderId.ALLDEBRID)
         assertTrue(DebridProviderId.fromId("unknown") == DebridProviderId.REAL_DEBRID)
     }
 }

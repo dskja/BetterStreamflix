@@ -752,6 +752,9 @@ class PlayerTvFragment : Fragment() {
 
         override fun onDestroyView() {
             super.onDestroyView()
+            runCatching {
+                com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.resetSession()
+            }
             nextEpisodePrefetchJob?.cancel()
             clearBypassSession(dismissDialog = true)
             releasePlayer()
@@ -1193,6 +1196,7 @@ class PlayerTvFragment : Fragment() {
                     video.source,
                     video.headers.orEmpty(),
                     positionMs = pos,
+                    title = resolvePlayerTitle(),
                 )
                 return
             }

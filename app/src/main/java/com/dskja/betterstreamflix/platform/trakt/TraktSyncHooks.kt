@@ -20,6 +20,7 @@ object TraktSyncHooks {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val startedKeys = ConcurrentHashMap.newKeySet<String>()
     private val lastProgressAt = ConcurrentHashMap<String, Long>()
+    private val lastProgressPct = ConcurrentHashMap<String, Double>()
 
     fun movieWatched(context: Context, movie: Movie) {
         if (!TraktConfig.configured()) return
@@ -83,9 +84,11 @@ object TraktSyncHooks {
         if (mediaKey == null) {
             startedKeys.clear()
             lastProgressAt.clear()
+            lastProgressPct.clear()
         } else {
             startedKeys.remove(mediaKey)
             lastProgressAt.remove(mediaKey)
+            lastProgressPct.remove(mediaKey)
         }
     }
 
@@ -96,7 +99,9 @@ object TraktSyncHooks {
         isPlaying: Boolean,
     ) {
         val already = startedKeys.contains(key)
-        when (TraktScrobbler.decide(0.0, progress, isPlaying, already)) {
+        val previous = lastProgressPct[key] ?: 0.0
+        lastProgressPct[key] = progress
+        when (TraktScrobbler.decide(previous, progress, isPlaying, already)) {
             TraktScrobbler.Action.START -> {
                 TraktClient.scrobbleMovieStart(ids, progress)
                 startedKeys.add(key)
@@ -118,7 +123,9 @@ object TraktSyncHooks {
         isPlaying: Boolean,
     ) {
         val already = startedKeys.contains(key)
-        when (TraktScrobbler.decide(0.0, progress, isPlaying, already)) {
+        val previous = lastProgressPct[key] ?: 0.0
+        lastProgressPct[key] = progress
+        when (TraktScrobbler.decide(previous, progress, isPlaying, already)) {
             TraktScrobbler.Action.START -> {
                 TraktClient.scrobbleEpisodeStart(ref, progress)
                 startedKeys.add(key)

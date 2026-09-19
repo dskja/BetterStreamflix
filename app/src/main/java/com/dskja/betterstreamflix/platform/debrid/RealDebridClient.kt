@@ -142,7 +142,40 @@ class RealDebridClient(
 
     private fun pickBestLink(info: JSONObject): String? {
         val links = info.optJSONArray("links") ?: return null
-        // Prefer last link (often the largest selected file on RD).
+        val files = info.optJSONArray("files")
+        // Match selected video files by size when RD returns parallel arrays.
+        if (files != null && files.length() > 0) {
+            var bestLink: String? = null
+            var bestBytes = -1L
+            val selectedVideos = mutableListOf<Pair<Int, Long>>()
+            for (i in 0 until files.length()) {
+                val f = files.optJSONObject(i) ?: continue
+                if (f.optInt("selected", 0) != 1) continue
+                val path = f.optString("path").lowercase()
+                val ext = path.substringAfterLast('.', "")
+                val bytes = f.optLong("bytes", 0L)
+                if (ext in VIDEO_EXT || bytes > 50_000_000L) {
+                    selectedVideos.add(f.optInt("id") to bytes)
+                }
+            }
+            selectedVideos.sortByDescending { it.second }
+            // links[] order roughly follows selected files; prefer largest by bytes.
+            if (selectedVideos.isNotEmpty() && links.length() > 0) {
+                for (i in 0 until links.length()) {
+                    val link = links.optString(i)
+                    if (link.isBlank()) continue
+                    val bytes = selectedVideos.getOrNull(i)?.second
+                        ?: selectedVideos.firstOrNull()?.second
+                        ?: 0L
+                    if (bytes >= bestBytes) {
+                        bestBytes = bytes
+                        bestLink = link
+                    }
+                }
+                if (!bestLink.isNullOrBlank()) return bestLink
+            }
+        }
+        // Fallback: last non-blank link (historically often the main video).
         for (i in links.length() - 1 downTo 0) {
             val link = links.optString(i)
             if (link.isNotBlank()) return link

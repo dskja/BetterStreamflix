@@ -1,9 +1,9 @@
-package com.dskja.betterstreamflix.platform.trakt
+package com.dskja.betterstreamflix.platform.simkl
 
 /**
- * Pure progress → scrobble action mapping (unit-testable without network).
+ * Pure progress → scrobble action mapping (mirrors Trakt; ≥80% = watched).
  */
-object TraktScrobbler {
+object SimklScrobbler {
     enum class Action { START, PAUSE, STOP, NONE }
 
     fun decide(
@@ -19,7 +19,7 @@ object TraktScrobbler {
             return if (alreadyStarted) Action.PAUSE else Action.NONE
         }
         if (!alreadyStarted && progress >= 1.0) return Action.START
-        // Significant seek while playing → re-assert start so Trakt stays accurate.
+        // Significant seek while playing → re-assert start so Simkl stays accurate.
         if (jumped && isPlaying) return Action.START
         return Action.NONE
     }

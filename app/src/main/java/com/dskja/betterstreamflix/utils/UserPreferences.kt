@@ -307,7 +307,7 @@ object UserPreferences {
             Key.REAL_DEBRID_TOKEN.setString(value.ifBlank { null })
         }
 
-    /** realdebrid | premiumize | alldebrid */
+    /** realdebrid | premiumize | alldebrid | torbox */
     var debridProvider: String
         get() = Key.DEBRID_PROVIDER.getString() ?: "realdebrid"
         set(value) {
@@ -324,6 +324,55 @@ object UserPreferences {
         get() = Key.ALLDEBRID_API_KEY.getString().orEmpty()
         set(value) {
             Key.ALLDEBRID_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var torBoxApiKey: String
+        get() = Key.TORBOX_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.TORBOX_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var simklEnabled: Boolean
+        get() = Key.SIMKL_ENABLED.getBoolean() ?: false
+        set(value) {
+            Key.SIMKL_ENABLED.setBoolean(value)
+        }
+
+    var simklClientId: String
+        get() = Key.SIMKL_CLIENT_ID.getString().orEmpty()
+        set(value) {
+            Key.SIMKL_CLIENT_ID.setString(value.ifBlank { null })
+        }
+
+    var simklAccessToken: String
+        get() = Key.SIMKL_ACCESS_TOKEN.getString().orEmpty()
+        set(value) {
+            Key.SIMKL_ACCESS_TOKEN.setString(value.ifBlank { null })
+        }
+
+    var openSubtitlesApiKey: String
+        get() = Key.OPENSUBTITLES_API_KEY.getString().orEmpty()
+        set(value) {
+            Key.OPENSUBTITLES_API_KEY.setString(value.ifBlank { null })
+        }
+
+    var openSubtitlesJwt: String
+        get() = Key.OPENSUBTITLES_JWT.getString().orEmpty()
+        set(value) {
+            Key.OPENSUBTITLES_JWT.setString(value.ifBlank { null })
+        }
+
+    var openSubtitlesUserAgent: String
+        get() = Key.OPENSUBTITLES_USER_AGENT.getString().orEmpty()
+        set(value) {
+            Key.OPENSUBTITLES_USER_AGENT.setString(value.ifBlank { null })
+        }
+
+    /** Progress report interval for Jellyfin/Plex (ms). Clamped 5s–60s at use site. */
+    var selfHostProgressIntervalMs: Long
+        get() = Key.SELF_HOST_PROGRESS_INTERVAL_MS.getLong() ?: 15_000L
+        set(value) {
+            Key.SELF_HOST_PROGRESS_INTERVAL_MS.setLong(value.coerceIn(5_000L, 60_000L))
         }
 
     var traktClientSecret: String
@@ -949,10 +998,18 @@ object UserPreferences {
         DEBRID_PROVIDER,
         PREMIUMIZE_API_KEY,
         ALLDEBRID_API_KEY,
+        TORBOX_API_KEY,
         TRAKT_CLIENT_SECRET,
         TRAKT_REFRESH_TOKEN,
         DISABLED_PLUGIN_IDS,
-        PLAYER_BACKEND;
+        PLAYER_BACKEND,
+        SIMKL_ENABLED,
+        SIMKL_CLIENT_ID,
+        SIMKL_ACCESS_TOKEN,
+        OPENSUBTITLES_API_KEY,
+        OPENSUBTITLES_JWT,
+        OPENSUBTITLES_USER_AGENT,
+        SELF_HOST_PROGRESS_INTERVAL_MS;
 
         fun getStringSet(): Set<String>? = when {
             prefs.contains(name) -> prefs.getStringSet(name, null)

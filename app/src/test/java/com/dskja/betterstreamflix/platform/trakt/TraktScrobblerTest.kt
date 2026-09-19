@@ -35,4 +35,12 @@ class TraktScrobblerTest {
             TraktScrobbler.decide(0.0, 0.0, isPlaying = false, alreadyStarted = false),
         )
     }
+
+    @Test
+    fun restartsAfterSignificantJump() {
+        assertEquals(
+            TraktScrobbler.Action.START,
+            TraktScrobbler.decide(10.0, 40.0, isPlaying = true, alreadyStarted = true),
+        )
+    }
 }

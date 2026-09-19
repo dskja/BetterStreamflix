@@ -734,6 +734,9 @@ class PlayerMobileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        runCatching {
+            com.dskja.betterstreamflix.platform.player.PlayerPlaybackReporter.resetSession()
+        }
         nextEpisodePrefetchJob?.cancel()
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -1127,6 +1130,7 @@ class PlayerMobileFragment : Fragment() {
                 video.source,
                 video.headers.orEmpty(),
                 positionMs = pos,
+                title = resolvePlayerTitle(),
             )
             return
         }

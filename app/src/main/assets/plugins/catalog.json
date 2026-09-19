@@ -1,0 +1,14 @@
+{
+  "name": "BetterStreamflix built-in catalog",
+  "manifestVersion": 1,
+  "plugins": [
+    {
+      "id": "local:example",
+      "name": "Example Local Plugin",
+      "version": 1,
+      "description": "Scaffold entry for future local/remote source plugins",
+      "source": "local",
+      "apiVersion": 1
+    }
+  ]
+}
