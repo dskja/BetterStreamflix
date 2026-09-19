@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-19
+
 ### Added
+- Full Platform integrations: Trakt (VIP app credentials gated), Jellyfin, Plex, Debrid, Simkl, OpenSubtitles v1, MPV handoff, plugin hooks
+- Full Sentry Android SDK (init, user, nav breadcrumbs, feedback, high sample rates in debug)
+- Settings Integrations hub near the top of classic Settings; experimental Support-style Settings hub (Mobile + TV, gated by Experimental UI)
+- Lumina experimental design unified with Support visual language (Manrope + crimson tokens; off by default)
+- Nested PreferenceScreens for platform / content / playback / downloads / appearance / network / provider / cloud / backup
+- SerienStream CUII bypass: official [serien.domains](https://serien.domains) proxy `http://186.2.175.5/` as default endpoint (HTTP), with `.to` / `.cx` fallbacks; WebView DoH bridge for hostname mirrors
+- KinoGer live DOM scrape + Cloudflare hardening + poster/Featured artwork fixes
 - Patreon support link: https://www.patreon.com/BetterStreamflix (Settings, About, README, GitHub FUNDING.yml)
 - Configurable download storage location (internal / app-external / public Movies)
 - Chromecast queue, subtitle toggle, keep-screen-awake option, richer cast metadata
@@ -29,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DownloadDatabase` migration 1→2 preserves existing downloads (adds `subtitleUrlsJson`, `smartEnqueued`); destructive fallback removed so the Media3 cache is never orphaned
 
 ### Changed
-- App version set to **1.1.1** (`versionCode` 10101) — no GitHub Release yet
+- App version set to **1.1.1** (`versionCode` 10101)
 - Centralized HTTP 409 cache-clear + one-shot retry in `Http409CacheGuard` across all 16 content fragments; skips the wipe while offline
 - `Accept-Language` header is now built from the app locale instead of a hardcoded `it-IT`; OkHttp gained explicit call/write timeouts, throttled cookie persistence and 429/5xx `Retry-After` backoff
 - Cloud sync worker retries are capped at 5 attempts with explicit exponential backoff
@@ -47,9 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Anime Online Ninja `ww3.` → `ver.animeonline.ninja`
 - AfterDark `afterdark.best` → `afterdark.rest`; portal now reads the topsitestreaming.club index (new `url:` field)
 - Artwork repair matches all `animeonline.ninja` hosts, not only `ww3.`
+- SerienStream default endpoint: `serienstream.to` → `186.2.175.5` proxy ([serien.domains](https://serien.domains))
 
 ### Fixed
-- SerienStream/AniWorld watchlist import: correct ID parsing, WebView HTML scrape, pagination, login/challenge detection
+- SerienStream/AniWorld watchlist import: correct ID parsing, WebView HTML scrape, pagination, login/challenge detection; CUII copyright-page failover to proxy
 - Hide floating search on Downloads/Settings so the downloads gear is usable
 - FilmPalast SSL fallback via NetworkClient; SerienStream domain failover across known mirrors (incl. `.cx`; deprecate dead `.sx`; bypass cookie seed uses live hosts only)
 - Player no longer installs an empty media URI while loading a server (fake 0:00/0:00 playing state)
@@ -59,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings screens showed outdated default domains for StreamingCommunity (`cuevana3.la` typo included) and Cuevana 3
 - Backup import now refuses backups written by a newer app version instead of parsing them with stale field mappings
 - DoH bootstrap/client diagnostics no longer log in release builds
+- KinoGer wrong poster selector (KG logos) and Featured banner blank shell
 
 ## [1.1.0] - 2026-09-09
 
@@ -92,7 +103,6 @@ covers everything done on top of that upstream baseline.
 - Public rebrand to **BetterStreamflix** (maintainer **dskja**): app name, deep links `betterstreamflix://`, in-app updater repo, Telegram `@BetterStreamflix`, About / README credits (`#77`)
 - Mass-rename package / namespace to `com.dskja.betterstreamflix` (`StreamFlixApp` → `BetterStreamflixApp`), BS / brand icons (`#78`)
 - SerienStream default domain: dead `s.to` → `serienstream.to` ([serien.domains](https://serien.domains))
-- SerienStream CUII bypass: default endpoint is now the official [serien.domains](https://serien.domains) proxy `http://186.2.175.5/` (HTTP), with `.to` / `.cx` as fallbacks
 - SerienStream bypass Continue gated on clearance cookies (or resolved hoster URL); TV captcha QR usable from phones (`#32`)
 - TV/mobile playback: decoder fallback + software-decoder retry; safer mid-play failover on TV
 - Release APK layout split via `APP_LAYOUT` (universal / mobile / tv), matching upstream
@@ -143,5 +153,6 @@ covers everything done on top of that upstream baseline.
 - Actor profile images and biography info not yet displaying
 - Episode and season images still showing generic series covers in some cases
 
+[1.1.1]: https://github.com/dskja/BetterStreamflix/releases/tag/v1.1.1
 [1.1.0]: https://github.com/dskja/BetterStreamflix/releases/tag/v1.1.0
 [1.0.0]: https://github.com/dskja/BetterStreamflix/releases/tag/v1.0.0
