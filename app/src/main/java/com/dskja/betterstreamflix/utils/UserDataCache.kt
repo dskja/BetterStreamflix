@@ -190,6 +190,7 @@ object UserDataCache {
                 .distinctBy { it.id }
         ))
         CloudSyncHooks.movie(context, provider, movie)
+        com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.movieWatched(context, movie)
         UserDataNotifier.notifyChanged()
     }
 
@@ -216,6 +217,7 @@ object UserDataCache {
         ))
         UserDataNotifier.notifyChanged()
         CloudSyncHooks.movie(context, provider, favoritedMovie)
+        com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.movieFavorite(context, favoritedMovie)
     }
 
     // -------------------------
@@ -241,6 +243,7 @@ object UserDataCache {
         ))
         UserDataNotifier.notifyChanged()
         CloudSyncHooks.episode(context, provider, episode)
+        com.dskja.betterstreamflix.platform.trakt.TraktSyncHooks.episodeWatched(context, episode)
     }
 
     // -------------------------

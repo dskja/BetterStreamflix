@@ -130,16 +130,44 @@ interface Provider {
             HiAnimeProvider to ProviderSupport(movies = true, tvShows = true),
             UnJourUnFilmProvider to ProviderSupport(movies = true, tvShows = true),
             AfterDarkProvider to ProviderSupport(movies = true, tvShows = true),
+            com.dskja.betterstreamflix.platform.jellyfin.JellyfinProvider to ProviderSupport(
+                movies = true,
+                tvShows = true,
+            ),
+            com.dskja.betterstreamflix.platform.plex.PlexProvider to ProviderSupport(
+                movies = true,
+                tvShows = true,
+            ),
         )
+
+        private val dynamicProviders =
+            java.util.concurrent.ConcurrentHashMap<Provider, ProviderSupport>()
+
+        /** Built-ins plus DexClassLoader plugins registered at runtime. */
+        fun allProviders(): Map<Provider, ProviderSupport> = providers + dynamicProviders
+
+        fun registerDynamic(provider: Provider, support: ProviderSupport) {
+            // Replace any prior instance with the same display name.
+            dynamicProviders.keys
+                .filter { it.name == provider.name }
+                .forEach { dynamicProviders.remove(it) }
+            dynamicProviders[provider] = support
+        }
+
+        fun unregisterDynamic(providerName: String) {
+            dynamicProviders.keys
+                .filter { it.name == providerName }
+                .forEach { dynamicProviders.remove(it) }
+        }
 
         // Helper functions to check support
         fun supportsMovies(provider: Provider): Boolean {
-            val support = providers[provider] ?: ProviderSupport(movies = true, tvShows = true)
+            val support = allProviders()[provider] ?: ProviderSupport(movies = true, tvShows = true)
             return support.movies
         }
 
         fun supportsTvShows(provider: Provider): Boolean {
-            val support = providers[provider] ?: ProviderSupport(movies = true, tvShows = true)
+            val support = allProviders()[provider] ?: ProviderSupport(movies = true, tvShows = true)
             return support.tvShows
         }
 
@@ -148,12 +176,12 @@ interface Provider {
                 val lang = name.substringAfter("TMDb (").substringBefore(")")
                 return TmdbProvider(lang)
             }
-            return providers.keys.find { it.name == name }
+            return allProviders().keys.find { it.name == name }
         }
 
         /** Streaming providers plus TMDb language variants used for local DBs / backups. */
         fun allKnown(): List<Provider> = (
-            providers.keys +
+            allProviders().keys +
                 listOf("it", "en", "es", "de", "fr").map(::TmdbProvider)
             ).distinctBy { it.name }
     }

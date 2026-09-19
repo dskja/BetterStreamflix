@@ -65,6 +65,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     private val continueWatchingSeasonEpisodesCache = ConcurrentHashMap<String, List<Episode>>()
     private val _userDataCache = MutableStateFlow<UserDataCache.UserData?>(null)
     private val libraryRefresh = MutableStateFlow(0)
+    private val traktContinueWatching = MutableStateFlow<List<AppAdapter.Item>>(emptyList())
     private var currentProvider: Provider? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -90,6 +91,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
     val state: Flow<State> = combine(
         _state,
         homeHistory,
+        traktContinueWatching,
 
         // MOVIES DB (current provider catalog merge)
         _state.transformLatest { state ->
@@ -125,7 +127,7 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
             }
         }.flowOn(Dispatchers.IO),
 
-        ) { state, history, moviesDb, tvShowsDb ->
+        ) { state, history, traktCw, moviesDb, tvShowsDb ->
 
         when (state) {
             is State.SuccessLoading -> {
@@ -160,30 +162,38 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                             )
                         },
 
-                    // CONTINUE WATCHING
+                    // CONTINUE WATCHING (local + Trakt + self-host extras merged once)
                     Category(
                         name = Category.CONTINUE_WATCHING,
-                        list = history.continueWatching
-                            .sortedByDescending {
-                                when (it) {
-                                    is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
-                                        ?: it.watchedDate?.timeInMillis
-                                        ?: 0L
+                        list = com.dskja.betterstreamflix.platform.ContinueWatchingMerger.merge(
+                            local = history.continueWatching
+                                .sortedByDescending {
+                                    when (it) {
+                                        is Episode -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                            ?: it.watchedDate?.timeInMillis
+                                            ?: 0L
 
-                                    is Movie -> it.watchHistory?.lastEngagementTimeUtcMillis
-                                        ?: it.watchedDate?.timeInMillis
-                                        ?: 0L
+                                        is Movie -> it.watchHistory?.lastEngagementTimeUtcMillis
+                                            ?: it.watchedDate?.timeInMillis
+                                            ?: 0L
 
-                                    else -> 0L
+                                        else -> 0L
+                                    }
                                 }
-                            }
-                            .distinctBy {
-                                when (it) {
-                                    is Episode -> it.tvShow?.id
-                                    is Movie -> it.id
-                                    else -> null
+                                .distinctBy {
+                                    when (it) {
+                                        is Episode -> it.tvShow?.id
+                                        is Movie -> it.id
+                                        else -> null
+                                    }
+                                },
+                            remoteExtras = state.categories
+                                .filter {
+                                    com.dskja.betterstreamflix.platform.ContinueWatchingMerger
+                                        .isProviderContinueWatching(it.name)
                                 }
-                            },
+                                .flatMap { it.list } + traktCw,
+                        ),
                     ).takeIf { UserPreferences.showContinueWatching },
 
                     Category(
@@ -201,7 +211,11 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
                         list = history.favoriteTvShows,
                     ),
                 ) + state.categories
-                    .filter { it.name != Category.FEATURED }
+                    .filter {
+                        it.name != Category.FEATURED &&
+                            !com.dskja.betterstreamflix.platform.ContinueWatchingMerger
+                                .isProviderContinueWatching(it.name)
+                    }
                     .map { category ->
                         category.copy(
                             list = category.list.map(::mergeItem)
@@ -346,6 +360,10 @@ class HomeViewModel(database: AppDatabase) : ViewModel() {
 
         loadUserDataCache(provider)
         libraryRefresh.value += 1
+        viewModelScope.launch(Dispatchers.IO) {
+            traktContinueWatching.value =
+                com.dskja.betterstreamflix.platform.trakt.TraktContinueWatching.load()
+        }
 
         try {
             val categories = ProviderSmoke.withProviderTimeout(

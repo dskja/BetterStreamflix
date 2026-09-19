@@ -248,6 +248,9 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
         SupabaseSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        PlatformSettingsController.bind(this, lifecycleScope) { key ->
+            findPreference(key)
+        }
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
