@@ -51,6 +51,7 @@ class BypassWebViewActivity : AppCompatActivity() {
     private lateinit var statusView: TextView
     private lateinit var continueButton: Button
     private lateinit var cancelButton: Button
+    private var webViewUserAgent: String = MODERN_UA
     private var isCleaningUp = false
     private var currentPageUrl: String? = null
     private var resolvedStreamUrl: String? = null
@@ -173,6 +174,7 @@ class BypassWebViewActivity : AppCompatActivity() {
             useWideViewPort = true
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             userAgentString = MODERN_UA
+            webViewUserAgent = MODERN_UA
             allowFileAccess = false
             allowContentAccess = false
             javaScriptCanOpenWindowsAutomatically = true
@@ -218,9 +220,10 @@ class BypassWebViewActivity : AppCompatActivity() {
                 view: WebView?,
                 request: WebResourceRequest?,
             ): android.webkit.WebResourceResponse? {
+                // Must not touch WebView APIs off the main thread.
                 val bridged = com.dskja.betterstreamflix.utils.WebViewDohBridge.interceptMainDocument(
                     request,
-                    webView.settings.userAgentString ?: MODERN_UA,
+                    webViewUserAgent,
                 )
                 if (bridged != null) return bridged
                 return super.shouldInterceptRequest(view, request)

@@ -227,10 +227,12 @@ class TvShowViewModel(
         _state.emit(State.Loading)
 
         try {
-            val tvShow = UserPreferences.currentProvider!!.getTvShow(id)
+            val provider = UserPreferences.currentProvider
+                ?: throw IllegalStateException("No provider selected")
+            val tvShow = provider.getTvShow(id)
             val pluginEnriched = runCatching {
                 com.dskja.betterstreamflix.platform.plugins.PluginManager
-                    .enrichTvShow(UserPreferences.currentProvider!!, tvShow)
+                    .enrichTvShow(provider, tvShow)
             }.getOrDefault(tvShow)
             val enriched = runCatching {
                 com.dskja.betterstreamflix.utils.TmdbUtils.enrichTvShowDetail(pluginEnriched)
@@ -271,7 +273,8 @@ class TvShowViewModel(
         _seasonState.emit(SeasonState.Loading)
 
         try {
-            val episodes = UserPreferences.currentProvider!!.getEpisodesBySeason(season.id)
+            val episodes = UserPreferences.currentProvider?.getEpisodesBySeason(season.id)
+                ?: throw IllegalStateException("No provider selected")
             val ids = episodes.map { it.id }
             val episodeMap = episodes.associateBy { it.id }
 

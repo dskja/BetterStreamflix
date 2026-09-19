@@ -97,10 +97,12 @@ class MovieViewModel(id: String, private val database: AppDatabase) : ViewModel(
         _state.emit(State.Loading)
 
         try {
-            val movie = UserPreferences.currentProvider!!.getMovie(id)
+            val provider = UserPreferences.currentProvider
+                ?: throw IllegalStateException("No provider selected")
+            val movie = provider.getMovie(id)
             val pluginEnriched = runCatching {
                 com.dskja.betterstreamflix.platform.plugins.PluginManager
-                    .enrichMovie(UserPreferences.currentProvider!!, movie)
+                    .enrichMovie(provider, movie)
             }.getOrDefault(movie)
             val enriched = runCatching {
                 com.dskja.betterstreamflix.utils.TmdbUtils.enrichMovieDetail(pluginEnriched)

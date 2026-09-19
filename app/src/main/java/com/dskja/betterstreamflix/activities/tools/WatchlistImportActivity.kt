@@ -65,6 +65,9 @@ class WatchlistImportActivity : AppCompatActivity() {
     }
 
     private lateinit var webView: WebView
+    /** Cached on main thread — never read WebView.settings from shouldInterceptRequest. */
+    private var webViewUserAgent: String = NetworkClient.USER_AGENT
+    private var isCleaningUp = false
     private lateinit var progressBar: ProgressBar
     private lateinit var statusView: TextView
     private lateinit var importButton: Button
@@ -229,6 +232,7 @@ class WatchlistImportActivity : AppCompatActivity() {
             // Desktop UA helps SerienStream CF challenges that blank mobile WebViews.
             userAgentString = WatchlistImporter.userAgentFor(source)
                 .ifBlank { NetworkClient.USER_AGENT }
+            webViewUserAgent = userAgentString ?: NetworkClient.USER_AGENT
             allowFileAccess = false
             allowContentAccess = false
             javaScriptCanOpenWindowsAutomatically = true
@@ -254,9 +258,10 @@ class WatchlistImportActivity : AppCompatActivity() {
                 view: WebView?,
                 request: WebResourceRequest?,
             ): android.webkit.WebResourceResponse? {
+                // Must not touch WebView APIs here (off main thread) — BETTERSTREAMFLIX-T.
                 val bridged = WebViewDohBridge.interceptMainDocument(
                     request,
-                    webView.settings.userAgentString ?: NetworkClient.USER_AGENT,
+                    webViewUserAgent,
                 )
                 if (bridged != null) return bridged
                 return super.shouldInterceptRequest(view, request)
@@ -694,10 +699,13 @@ class WatchlistImportActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        isCleaningUp = true
         pageFinishedCallback = null
         mainHandler.removeCallbacksAndMessages(null)
-        runCatching { webView.stopLoading() }
-        runCatching { webView.destroy() }
+        if (::webView.isInitialized) {
+            runCatching { webView.stopLoading() }
+            runCatching { webView.destroy() }
+        }
         super.onDestroy()
     }
 }

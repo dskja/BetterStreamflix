@@ -356,14 +356,29 @@ class MovieViewHolder(
                 checkProviderAndRun {
                     when (context.toActivity()?.getCurrentFragment()) {
                         is HomeMobileFragment -> {
-                            findNavController().navigate(HomeMobileFragmentDirections.actionHomeToMovie(id = movie.id))
                             if (movie.itemType == AppAdapter.Type.MOVIE_CONTINUE_WATCHING_MOBILE_ITEM) {
-                                findNavController().navigate(MovieMobileFragmentDirections.actionMovieToPlayer(
-                                    id = movie.id,
-                                    title = movie.title,
-                                    subtitle = movie.released?.format("yyyy") ?: "",
-                                    videoType = Video.Type.Movie(id = movie.id, title = movie.title, releaseDate = movie.released?.format("yyyy-MM-dd") ?: "", poster = movie.poster ?: "", imdbId = movie.imdbId),
-                                ))
+                                findNavController().navigate(
+                                    R.id.action_global_player,
+                                    Bundle().apply {
+                                        putString("id", movie.id)
+                                        putString("title", movie.title)
+                                        putString("subtitle", movie.released?.format("yyyy") ?: "")
+                                        putSerializable(
+                                            "videoType",
+                                            Video.Type.Movie(
+                                                id = movie.id,
+                                                title = movie.title,
+                                                releaseDate = movie.released?.format("yyyy-MM-dd") ?: "",
+                                                poster = movie.poster ?: "",
+                                                imdbId = movie.imdbId,
+                                            ),
+                                        )
+                                    },
+                                )
+                            } else {
+                                findNavController().navigate(
+                                    HomeMobileFragmentDirections.actionHomeToMovie(id = movie.id),
+                                )
                             }
                         }
                         is MovieMobileFragment -> findNavController().navigate(MovieMobileFragmentDirections.actionMovieToMovie(id = movie.id))
