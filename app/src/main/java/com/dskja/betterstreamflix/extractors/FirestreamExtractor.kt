@@ -14,4 +14,7 @@ class FirestreamExtractor : GenericPackedSourceExtractor() {
         "https://firestream.online",
         "https://firestream.live",
     )
+    override val rotatingDomain = listOf(
+        Regex("""(?i)(^|\.)firestream(\.|/)"""),
+    )
 }

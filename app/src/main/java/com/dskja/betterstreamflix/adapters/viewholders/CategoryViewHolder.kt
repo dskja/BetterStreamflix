@@ -52,6 +52,20 @@ class CategoryViewHolder(
     private var swiperHandler: Handler? = null
     private var swiperPageCallback: ViewPager2.OnPageChangeCallback? = null
 
+    /** Stop auto-advance + page callbacks so recycled holders cannot touch a torn-down NavHost. */
+    fun clearSwiper() {
+        val callback = swiperPageCallback
+        if (callback != null) {
+            val binding = _binding
+            if (binding is ContentCategorySwiperMobileBinding) {
+                runCatching { binding.vpCategorySwiper.unregisterOnPageChangeCallback(callback) }
+            }
+        }
+        swiperPageCallback = null
+        swiperHandler?.removeCallbacksAndMessages(null)
+        swiperHandler = null
+    }
+
     val childRecyclerView: RecyclerView?
         get() = when (_binding) {
             is ItemCategoryMobileBinding -> _binding.rvCategory
@@ -141,13 +155,12 @@ class CategoryViewHolder(
     ) {
         binding.tvCategoryTitle.text = category.name
 
-        swiperPageCallback?.let { binding.vpCategorySwiper.unregisterOnPageChangeCallback(it) }
-        swiperPageCallback = null
-        swiperHandler?.removeCallbacksAndMessages(null)
+        clearSwiper()
         val handler = Handler(Looper.getMainLooper())
         swiperHandler = handler
         handler.postDelayed(8_000) {
-            binding.vpCategorySwiper.currentItem += 1
+            if (bindingAdapterPosition == RecyclerView.NO_POSITION) return@postDelayed
+            runCatching { binding.vpCategorySwiper.currentItem += 1 }
         }
 
         val items = listOf(
@@ -215,8 +228,11 @@ class CategoryViewHolder(
                 if (exp) {
                     updateExpDots(binding, indicatorPosition)
                     (category.list.getOrNull(indicatorPosition) as? Show)?.let { show ->
-                        (context.toActivity()?.getCurrentFragment() as? HomeMobileFragment)
-                            ?.updateExperimentalHeroArt(show)
+                        val activity = context.toActivity()
+                        if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
+                            (activity.getCurrentFragment() as? HomeMobileFragment)
+                                ?.updateExperimentalHeroArt(show)
+                        }
                         val title = when (show) {
                             is Movie -> show.title
                             is TvShow -> show.title
@@ -236,7 +252,8 @@ class CategoryViewHolder(
 
                 handler.removeCallbacksAndMessages(null)
                 handler.postDelayed(8_000) {
-                    binding.vpCategorySwiper.currentItem += 1
+                    if (bindingAdapterPosition == RecyclerView.NO_POSITION) return@postDelayed
+                    runCatching { binding.vpCategorySwiper.currentItem += 1 }
                 }
             }
 

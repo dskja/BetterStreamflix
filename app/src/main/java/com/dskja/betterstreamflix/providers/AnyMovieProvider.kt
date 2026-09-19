@@ -17,6 +17,7 @@ import com.dskja.betterstreamflix.models.Season
 import com.dskja.betterstreamflix.models.TvShow
 import com.dskja.betterstreamflix.models.Video
 import com.dskja.betterstreamflix.utils.DnsResolver
+import com.dskja.betterstreamflix.utils.NetworkClient
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -988,7 +989,7 @@ object AnyMovieProvider : Provider, ProviderConfigUrl {
 
         companion object {
             fun build(): AllMoviesForYouService {
-                val client = OkHttpClient.Builder()
+                val client = NetworkClient.trustAll.newBuilder()
                     .dns(DnsResolver.doh)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .connectTimeout(30, TimeUnit.SECONDS)

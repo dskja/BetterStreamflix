@@ -1174,14 +1174,23 @@ object TMDb3 {
                 typeOfT: Type?,
                 context: JsonDeserializationContext?
             ): MultiItem? {
-                val jsonObject = json?.asJsonObject ?: JsonObject()
+                val jsonObject = json?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+                val mediaType = jsonObject.get("media_type")
+                    ?.takeIf { it.isJsonPrimitive }
+                    ?.asString
+                    .orEmpty()
 
-                return when (jsonObject.get("media_type")?.asString ?: "") {
-                    "movie" -> Gson().fromJson(json, Movie::class.java)
-                    "person" -> Gson().fromJson(json, Person::class.java)
-                    "tv" -> Gson().fromJson(json, Tv::class.java)
-                    else -> null
-                }
+                return runCatching {
+                    when (mediaType) {
+                        "movie" -> context?.deserialize(json, Movie::class.java)
+                            ?: Gson().fromJson(json, Movie::class.java)
+                        "person" -> context?.deserialize(json, Person::class.java)
+                            ?: Gson().fromJson(json, Person::class.java)
+                        "tv" -> context?.deserialize(json, Tv::class.java)
+                            ?: Gson().fromJson(json, Tv::class.java)
+                        else -> null
+                    }
+                }.getOrNull()
             }
         }
     }
@@ -1245,18 +1254,18 @@ object TMDb3 {
     data class Movie(
         @SerializedName("poster_path") val posterPath: String?,
         @SerializedName("adult") val adult: Boolean = false,
-        @SerializedName("overview") val overview: String,
+        @SerializedName("overview") val overview: String = "",
         @SerializedName("release_date") val releaseDate: String? = null,
-        @SerializedName("genre_ids") val genresIds: List<Int>,
+        @SerializedName("genre_ids") val genresIds: List<Int> = emptyList(),
         @SerializedName("id") val id: Int,
-        @SerializedName("original_title") val originalTitle: String,
-        @SerializedName("original_language") val originalLanguage: String,
-        @SerializedName("title") val title: String,
+        @SerializedName("original_title") val originalTitle: String = "",
+        @SerializedName("original_language") val originalLanguage: String = "",
+        @SerializedName("title") val title: String = "",
         @SerializedName("backdrop_path") val backdropPath: String?,
-        @SerializedName("popularity") val popularity: Float,
-        @SerializedName("vote_count") val voteCount: Int,
-        @SerializedName("video") val video: Boolean,
-        @SerializedName("vote_average") val voteAverage: Float,
+        @SerializedName("popularity") val popularity: Float = 0f,
+        @SerializedName("vote_count") val voteCount: Int = 0,
+        @SerializedName("video") val video: Boolean = false,
+        @SerializedName("vote_average") val voteAverage: Float = 0f,
     ) : MultiItem() {
 
         enum class ReleaseType(val value: Int) {
@@ -1352,19 +1361,19 @@ object TMDb3 {
 
     data class Tv(
         @SerializedName("poster_path") val posterPath: String?,
-        @SerializedName("popularity") val popularity: Float,
+        @SerializedName("popularity") val popularity: Float = 0f,
         @SerializedName("id") val id: Int,
         @SerializedName("adult") val adult: Boolean = false,
         @SerializedName("backdrop_path") val backdropPath: String?,
-        @SerializedName("vote_average") val voteAverage: Float,
-        @SerializedName("overview") val overview: String,
+        @SerializedName("vote_average") val voteAverage: Float = 0f,
+        @SerializedName("overview") val overview: String = "",
         @SerializedName("first_air_date") val firstAirDate: String? = null,
-        @SerializedName("origin_country") val originCountry: List<String>,
-        @SerializedName("genre_ids") val genresIds: List<Int>,
-        @SerializedName("original_language") val originalLanguage: String,
-        @SerializedName("vote_count") val voteCount: Int,
-        @SerializedName("name") val name: String,
-        @SerializedName("original_name") val originalName: String,
+        @SerializedName("origin_country") val originCountry: List<String> = emptyList(),
+        @SerializedName("genre_ids") val genresIds: List<Int> = emptyList(),
+        @SerializedName("original_language") val originalLanguage: String = "",
+        @SerializedName("vote_count") val voteCount: Int = 0,
+        @SerializedName("name") val name: String = "",
+        @SerializedName("original_name") val originalName: String = "",
     ) : MultiItem() {
 
         enum class Status(val value: String, val id: Int) {

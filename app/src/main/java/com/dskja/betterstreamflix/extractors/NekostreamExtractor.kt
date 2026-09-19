@@ -80,7 +80,9 @@ class NekostreamExtractor : Extractor() {
                     accept = "application/json, text/javascript, */*; q=0.01",
                     requestedWith = true,
                 )
-                val sources = Gson().fromJson(sourcesBody, SourcesResponse::class.java)
+                val sources = runCatching {
+                    Gson().fromJson(sourcesBody, SourcesResponse::class.java)
+                }.getOrNull() ?: continue
                 val source = sources.sources?.file
                     ?: sources.sources?.list?.firstOrNull { !it.file.isNullOrBlank() }?.file
                     ?: continue

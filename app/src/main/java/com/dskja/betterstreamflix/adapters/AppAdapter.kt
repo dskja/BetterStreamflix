@@ -812,6 +812,9 @@ class AppAdapter(
     }
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        if (holder is CategoryViewHolder) {
+            holder.clearSwiper()
+        }
         super.onViewRecycled(holder)
 
         val state = when (holder) {
