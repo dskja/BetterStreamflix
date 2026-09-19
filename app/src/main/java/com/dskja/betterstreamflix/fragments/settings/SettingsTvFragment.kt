@@ -258,7 +258,20 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
     }
 
     private fun renderCurrentScreen() {
-        setPreferencesFromResource(R.xml.settings_tv, currentScreenState.rootKey)
+        val requestedKey = currentScreenState.rootKey
+        try {
+            setPreferencesFromResource(R.xml.settings_tv, requestedKey)
+        } catch (e: Exception) {
+            Log.e("SettingsTv", "Failed to inflate settings screen key=$requestedKey", e)
+            if (requestedKey == null) throw e
+            // Stale/missing nested key — recover to root instead of crashing Settings.
+            currentScreenState = SettingsScreenState(rootKey = null, title = null)
+            screenBackStack.clear()
+            if (::settingsBackCallback.isInitialized) {
+                settingsBackCallback.isEnabled = false
+            }
+            setPreferencesFromResource(R.xml.settings_tv, null)
+        }
         if (::backupRestoreManager.isInitialized) {
             displaySettings()
         }
