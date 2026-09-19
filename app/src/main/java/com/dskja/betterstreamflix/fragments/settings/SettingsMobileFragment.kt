@@ -1006,30 +1006,64 @@ class SettingsMobileFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<EditTextPreference>("SERIENSTREAM_SESSION_COOKIES")?.apply {
+        findPreference<Preference>("SERIENSTREAM_SESSION_LOGIN")?.setOnPreferenceClickListener {
+            startActivity(
+                Intent(requireContext(), WatchlistImportActivity::class.java)
+                    .putExtra(
+                        WatchlistImportActivity.EXTRA_SOURCE,
+                        WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                    )
+                    .putExtra(WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY, true),
+            )
+            true
+        }
+
+        findPreference<Preference>("SERIENSTREAM_SESSION_COOKIES")?.apply {
             fun refreshSummary() {
-                val cookies = UserPreferences.serienStreamSessionCookies
-                summary = if (cookies.isBlank()) {
+                val raw = UserPreferences.serienStreamSessionCookies
+                val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(raw)
+                if (cookies != raw) {
+                    UserPreferences.serienStreamSessionCookies = cookies
+                }
+                summary = if (cookies.isBlank() || !SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
+                    if (cookies.isNotBlank()) {
+                        UserPreferences.serienStreamSessionCookies = ""
+                    }
                     getString(R.string.settings_serienstream_session_cookies_empty)
                 } else {
                     getString(R.string.settings_serienstream_session_cookies_set, cookies.length)
                 }
             }
-            text = UserPreferences.serienStreamSessionCookies
             refreshSummary()
-            setOnBindEditTextListener { editText ->
-                editText.minLines = 3
-                editText.hint = "cf_clearance=…; rememberLogin=…"
-                editText.setText(UserPreferences.serienStreamSessionCookies)
-                editText.setSelection(editText.text?.length ?: 0)
-            }
-            setOnPreferenceChangeListener { _, newValue ->
-                val value = (newValue as String).trim()
-                UserPreferences.serienStreamSessionCookies = value
-                if (value.isNotBlank()) {
-                    SerienStreamBypassHelper.applyStoredSessionCookies()
+            setOnPreferenceClickListener {
+                val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(
+                    UserPreferences.serienStreamSessionCookies,
+                )
+                if (cookies.isBlank()) {
+                    startActivity(
+                        Intent(requireContext(), WatchlistImportActivity::class.java)
+                            .putExtra(
+                                WatchlistImportActivity.EXTRA_SOURCE,
+                                WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                            )
+                            .putExtra(WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY, true),
+                    )
+                } else {
+                    androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.settings_serienstream_session_cookies_clear_title)
+                        .setMessage(cookies.take(240))
+                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                            SerienStreamBypassHelper.clearStoredSessionCookies()
+                            refreshSummary()
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.settings_serienstream_session_cookies_cleared,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
                 }
-                refreshSummary()
                 true
             }
         }

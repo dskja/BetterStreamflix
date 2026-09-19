@@ -1057,14 +1057,46 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                 networkSettingsCategory.addPreference(hostPreference)
             }
 
-            if (findPreference<EditTextPreference>("SERIENSTREAM_SESSION_COOKIES") == null) {
-                val cookiePreference = EditTextPreference(requireContext()).apply {
+            if (findPreference<Preference>("SERIENSTREAM_SESSION_LOGIN") == null) {
+                val loginPreference = Preference(requireContext()).apply {
+                    key = "SERIENSTREAM_SESSION_LOGIN"
+                    title = getString(R.string.settings_serienstream_session_login)
+                    summary = getString(R.string.settings_serienstream_session_login_summary)
+                    setOnPreferenceClickListener {
+                        startActivity(
+                            android.content.Intent(
+                                requireContext(),
+                                com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity::class.java,
+                            )
+                                .putExtra(
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SOURCE,
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                                )
+                                .putExtra(
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY,
+                                    true,
+                                ),
+                        )
+                        true
+                    }
+                }
+                networkSettingsCategory.addPreference(loginPreference)
+            }
+
+            if (findPreference<Preference>("SERIENSTREAM_SESSION_COOKIES") == null) {
+                val cookiePreference = Preference(requireContext()).apply {
                     key = "SERIENSTREAM_SESSION_COOKIES"
                     title = getString(R.string.settings_serienstream_session_cookies)
-                    dialogTitle = getString(R.string.settings_serienstream_session_cookies)
                     fun refreshSummary() {
-                        val cookies = UserPreferences.serienStreamSessionCookies
-                        summary = if (cookies.isBlank()) {
+                        val raw = UserPreferences.serienStreamSessionCookies
+                        val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(raw)
+                        if (cookies != raw) {
+                            UserPreferences.serienStreamSessionCookies = cookies
+                        }
+                        summary = if (cookies.isBlank() || !SerienStreamBypassHelper.looksLikeBypassSolved(cookies)) {
+                            if (cookies.isNotBlank()) {
+                                UserPreferences.serienStreamSessionCookies = ""
+                            }
                             getString(R.string.settings_serienstream_session_cookies_empty)
                         } else {
                             getString(
@@ -1074,20 +1106,41 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
                         }
                     }
                     refreshSummary()
-                    text = UserPreferences.serienStreamSessionCookies
-                    setOnBindEditTextListener { editText ->
-                        editText.minLines = 3
-                        editText.hint = "cf_clearance=…; rememberLogin=…"
-                        editText.setText(UserPreferences.serienStreamSessionCookies)
-                        editText.setSelection(editText.text?.length ?: 0)
-                    }
-                    setOnPreferenceChangeListener { _, newValue ->
-                        val value = (newValue as String).trim()
-                        UserPreferences.serienStreamSessionCookies = value
-                        if (value.isNotBlank()) {
-                            SerienStreamBypassHelper.applyStoredSessionCookies()
+                    setOnPreferenceClickListener {
+                        val cookies = SerienStreamBypassHelper.sanitizeSessionCookies(
+                            UserPreferences.serienStreamSessionCookies,
+                        )
+                        if (cookies.isBlank()) {
+                            startActivity(
+                                android.content.Intent(
+                                    requireContext(),
+                                    com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity::class.java,
+                                )
+                                    .putExtra(
+                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SOURCE,
+                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.SOURCE_SERIENSTREAM,
+                                    )
+                                    .putExtra(
+                                        com.dskja.betterstreamflix.activities.tools.WatchlistImportActivity.EXTRA_SAVE_SESSION_ONLY,
+                                        true,
+                                    ),
+                            )
+                        } else {
+                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.settings_serienstream_session_cookies_clear_title)
+                                .setMessage(cookies.take(240))
+                                .setPositiveButton(android.R.string.ok) { _, _ ->
+                                    SerienStreamBypassHelper.clearStoredSessionCookies()
+                                    refreshSummary()
+                                    Toast.makeText(
+                                        requireContext(),
+                                        R.string.settings_serienstream_session_cookies_cleared,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show()
                         }
-                        refreshSummary()
                         true
                     }
                 }

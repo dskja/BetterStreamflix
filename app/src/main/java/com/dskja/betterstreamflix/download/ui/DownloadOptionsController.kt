@@ -133,12 +133,16 @@ object DownloadOptionsController {
                         seasonNumber = seasonNumber,
                         episodes = episodes,
                     ) { prepared ->
+                        val serverIdx = prepared.selectedServerIndex.coerceIn(
+                            0,
+                            prepared.servers.lastIndex.coerceAtLeast(0),
+                        )
                         val trackIdx = when (UserPreferences.downloadQualityPreset) {
                             DownloadQualityPreset.DATA_SAVER ->
                                 prepared.trackOptions.lastIndex.coerceAtLeast(0)
                             else -> 0
-                        }
-                        0 to trackIdx
+                        }.coerceIn(0, prepared.trackOptions.lastIndex.coerceAtLeast(0))
+                        serverIdx to trackIdx
                     }
                 }
                 handleOutcome(fragment, outcome)

@@ -128,7 +128,7 @@ class DownloadsViewModel(
     fun currentFilter(): DownloadsFilter = filter.value
     fun currentSort(): DownloadsSort = sort.value
 
-    /** Poll Media3 while the Downloads screen is visible so progress stays live. */
+    /** Poll Media3 while the Downloads screen is resumed so progress/speed stay live. */
     fun startLiveProgress() {
         if (progressJob?.isActive == true) return
         // Warm the download manager / listener in this process.
@@ -190,6 +190,6 @@ class DownloadsViewModel(
     }
 
     companion object {
-        private const val PROGRESS_POLL_MS = 400L
+        private const val PROGRESS_POLL_MS = 500L
     }
 }

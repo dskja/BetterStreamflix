@@ -62,12 +62,7 @@ class TmdbProvider(override val language: String) : Provider {
             buildHomeCategories()
         } catch (e: Exception) {
             Log.e("TmdbProvider", "TMDB home failed: ${e.message}", e)
-            throw Exception(
-                "TMDB is unreachable (api.themoviedb.org). " +
-                    "Check your connection or switch DNS over HTTPS in Settings. " +
-                    "(${e.message})",
-                e
-            )
+            throw Exception(classifyTmdbFailure(e), e)
         }
     }
 
@@ -79,6 +74,34 @@ class TmdbProvider(override val language: String) : Provider {
                 "TMDb API key is missing. Open Settings → enter your TMDb API key " +
                     "(https://www.themoviedb.org/settings/api), then try again."
             )
+        }
+    }
+
+    private fun classifyTmdbFailure(e: Exception): String {
+        val message = e.message.orEmpty()
+        val httpCode = (e as? retrofit2.HttpException)?.code()
+        return when {
+            message.contains("API key", ignoreCase = true) ||
+                message.contains("Invalid API key", ignoreCase = true) ||
+                httpCode == 401 ->
+                "TMDb API key invalid or missing. Update it in Settings."
+            httpCode == 404 ->
+                "TMDb returned 404 for this request. Content may have been removed."
+            httpCode == 429 ->
+                "TMDb rate limit reached. Wait a moment and retry."
+            e is java.net.UnknownHostException ||
+                e is java.net.ConnectException ||
+                message.contains("Unable to resolve host", ignoreCase = true) ||
+                message.contains("failed to connect", ignoreCase = true) ->
+                "TMDB is unreachable (api.themoviedb.org). " +
+                    "Check your connection or switch DNS over HTTPS in Settings. (${e.message})"
+            e is java.net.SocketTimeoutException ||
+                message.contains("timeout", ignoreCase = true) ->
+                "TMDb timed out. Check your connection and retry. (${e.message})"
+            httpCode in 500..599 ->
+                "TMDb server error ($httpCode). Retry shortly."
+            else ->
+                "TMDb request failed: ${e.message ?: e.javaClass.simpleName}"
         }
     }
 

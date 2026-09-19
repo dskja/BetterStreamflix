@@ -71,4 +71,15 @@ class PlaybackFailoverTest {
         )
         assertTrue(action is PlaybackFailover.Action.TryNextServer)
     }
+
+    @Test
+    fun negativeIndexOfTreatedAsZeroThenAdvances() {
+        val action = PlaybackFailover.decide(
+            currentServerIndex = -1,
+            serverCount = 3,
+            playbackAlreadyStarted = false,
+            softwareDecoderAlreadyEnabled = false,
+        )
+        assertEquals(PlaybackFailover.Action.TryNextServer(1), action)
+    }
 }

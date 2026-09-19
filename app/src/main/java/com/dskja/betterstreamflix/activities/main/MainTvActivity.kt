@@ -72,7 +72,8 @@ class MainTvActivity : FragmentActivity() {
             }
 
         val navHostFragment = this.supportFragmentManager
-            .findFragmentById(binding.navMainFragment.id) as NavHostFragment
+            .findFragmentById(binding.navMainFragment.id) as? NavHostFragment
+            ?: return
         val navController = navHostFragment.navController
         com.dskja.betterstreamflix.utils.SentryBootstrap.trackNavigation(navController)
 

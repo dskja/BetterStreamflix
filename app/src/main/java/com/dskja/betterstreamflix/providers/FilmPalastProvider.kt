@@ -20,6 +20,7 @@ import kotlinx.coroutines.coroutineScope
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -81,59 +82,47 @@ object FilmPalastProvider : Provider {
         }
     }
 
-    override suspend fun getHome(): List<Category> {
-        val document = withSslFallback { it.getHome() }
-        val featured = coroutineScope {
-            document.select("div.headerslider ul#sliderDla li").map { li ->
-                async {
-                    val title = li.select("span.title.rb").text()
-                    val href = li.select("a.moviSliderPlay").attr("href")
-                    val id = href.substringAfterLast("/")
-                    val posterSrc = li.select("a img").attr("src")
-                    val fullPosterUrl = if (posterSrc.startsWith("/")) {
-                        "https://filmpalast.to$posterSrc"
-                    } else {
-                        posterSrc
-                    }
-                    val overview = li.select("div.moviedescription").text()
+    private val episodeCodeRegex = Regex("""S\d+E\d+""", RegexOption.IGNORE_CASE)
 
-                    val releaseYearText = li.select("span.releasedate b").text()
-
-                    val imdbRatingText =
-                        li.select("span.views b").lastOrNull()?.text()?.split("/")?.get(1)?.trim()
-                    val rating = imdbRatingText?.toDoubleOrNull() ?: 0.0
-
-                    val tmdbMovie = TmdbUtils.getMovie(title, language = language)
-
-                    Movie(
-                        id = id,
-                        title = title,
-                        overview = overview,
-                        released = releaseYearText,
-                        rating = rating,
-                        poster = fullPosterUrl,
-                        banner = tmdbMovie?.banner
-                    )
-                }
-            }.awaitAll()
+    private fun absolutePoster(posterSrc: String): String =
+        when {
+            posterSrc.startsWith("/") -> "https://filmpalast.to$posterSrc"
+            posterSrc.startsWith("//") -> "https:$posterSrc"
+            else -> posterSrc
         }
 
+    private fun isTvShowItem(title: String, href: String): Boolean =
+        episodeCodeRegex.containsMatchIn(title) ||
+            href.contains("/serien/", ignoreCase = true)
 
-        val main_content = document.select("div#content article").map { article ->
-            val href = article.selectFirst("h2 a")?.attr("href") ?: ""
-            val title = article.selectFirst("h2 a")?.text() ?: ""
-            val posterSrc = article.selectFirst("a img")?.attr("src") ?: ""
+    private fun parseArticleItem(article: Element): AppAdapter.Item? {
+        val headingLink = article.selectFirst("h2.h2-start a, h2 a")
+        val coverLink = article.selectFirst("a[href*=/stream/]")
+        val href = headingLink?.attr("href")?.trim().orEmpty()
+            .ifBlank { coverLink?.attr("href")?.trim().orEmpty() }
+        val title = headingLink?.text()?.trim().orEmpty()
+            .ifBlank { headingLink?.attr("title")?.trim().orEmpty() }
+            .ifBlank { coverLink?.attr("title")?.trim().orEmpty() }
+            .ifBlank { article.selectFirst("a[href*=/stream/] img, a img, img[alt]")?.attr("alt")?.trim().orEmpty() }
+        val id = href.substringAfterLast('/').trim()
+        if (title.isBlank() || id.isBlank()) return null
 
-            val fullPosterUrl = if (posterSrc.startsWith("/")) {
-                "https://filmpalast.to$posterSrc"
-            } else {
-                posterSrc
-            }
+        val posterSrc = article.selectFirst("a img")?.attr("src").orEmpty()
+        val fullPosterUrl = absolutePoster(posterSrc)
+        val info = article.select("*").toInfo()
 
-            val info = article.select("*").toInfo()
-
+        return if (isTvShowItem(title, href)) {
+            TvShow(
+                id = id,
+                title = title,
+                released = info.released,
+                quality = info.quality,
+                rating = info.rating ?: 0.0,
+                poster = fullPosterUrl
+            )
+        } else {
             Movie(
-                id = href.substringAfterLast("/"),
+                id = id,
                 title = title,
                 released = info.released,
                 quality = info.quality,
@@ -141,34 +130,75 @@ object FilmPalastProvider : Provider {
                 poster = fullPosterUrl
             )
         }
-        val tvShowsDocument = withSslFallback { it.getTvShowsHome() }
-        val tvShows = tvShowsDocument.select("div#content article").map { article ->
-            val href = article.selectFirst("h2 a")?.attr("href") ?: ""
-            val title = article.selectFirst("h2 a")?.text() ?: ""
-            val posterSrc = article.selectFirst("a img")?.attr("src") ?: ""
+    }
 
-            val fullPosterUrl = if (posterSrc.startsWith("/")) {
-                "https://filmpalast.to$posterSrc"
-            } else {
-                posterSrc
+    private fun parseArticles(document: Document): List<AppAdapter.Item> =
+        document.select("div#content article")
+            .mapNotNull { parseArticleItem(it) }
+            .distinctBy {
+                when (it) {
+                    is Movie -> it.id
+                    is TvShow -> it.id
+                    else -> it.hashCode().toString()
+                }
             }
 
-            val info = article.select("*").toInfo()                
-                TvShow(
-                id = href.substringAfterLast("/"),
-                    title = title,
-                    released = info.released,
-                    quality = info.quality,
-                    rating = info.rating ?: 0.0,
-                    poster = fullPosterUrl
-                )
+    override suspend fun getHome(): List<Category> {
+        val document = withSslFallback { it.getHome() }
+        val featured = coroutineScope {
+            document.select("ul#sliderDla li.slider-li, div.headerslider ul#sliderDla li").map { li ->
+                async {
+                    val playLink = li.selectFirst("a.moviSliderPlay, a[href*=/stream/]")
+                    val href = playLink?.attr("href").orEmpty()
+                    val id = href.substringAfterLast("/").trim()
+                    val title = li.selectFirst("span.title.rb")?.text()?.trim().orEmpty()
+                        .ifBlank { playLink?.attr("title")?.trim().orEmpty() }
+                        .ifBlank { li.selectFirst("a img")?.attr("alt")?.trim().orEmpty() }
+                    if (title.isBlank() || id.isBlank()) return@async null
+
+                    val posterSrc = li.selectFirst("a img")?.attr("src").orEmpty()
+                    val fullPosterUrl = absolutePoster(posterSrc)
+                    val overview = li.select("div.moviedescription").text()
+                    val releaseYearText = li.select("span.releasedate b").text()
+                    val imdbRatingText =
+                        li.select("span.views b").lastOrNull()?.text()?.split("/")?.getOrNull(1)?.trim()
+                    val rating = imdbRatingText?.toDoubleOrNull() ?: 0.0
+                    val tmdbMovie = TmdbUtils.getMovie(title, language = language)
+
+                    if (isTvShowItem(title, href)) {
+                        TvShow(
+                            id = id,
+                            title = title,
+                            overview = overview,
+                            released = releaseYearText,
+                            rating = rating,
+                            poster = fullPosterUrl,
+                            banner = tmdbMovie?.banner
+                        )
+                    } else {
+                        Movie(
+                            id = id,
+                            title = title,
+                            overview = overview,
+                            released = releaseYearText,
+                            rating = rating,
+                            poster = fullPosterUrl,
+                            banner = tmdbMovie?.banner
+                        )
+                    }
+                }
+            }.awaitAll().filterNotNull()
         }
 
-        return listOf(
-            Category(name = Category.FEATURED, list = featured),
-            Category(name = "Filme", list = main_content),
-            Category(name = "Serien", list = tvShows)
-        )
+        val mainContent = parseArticles(document)
+        val tvShowsDocument = withSslFallback { it.getTvShowsHome() }
+        val tvShows = parseArticles(tvShowsDocument)
+
+        return buildList {
+            if (featured.isNotEmpty()) add(Category(name = Category.FEATURED, list = featured))
+            if (mainContent.isNotEmpty()) add(Category(name = "Filme", list = mainContent))
+            if (tvShows.isNotEmpty()) add(Category(name = "Serien", list = tvShows))
+        }
     }
 
 
@@ -192,47 +222,7 @@ object FilmPalastProvider : Provider {
             }
         }
 
-        val results = document.select("div#content article").map { article ->
-            val href = article.selectFirst("h2 a")?.attr("href") ?: ""
-            val title = article.selectFirst("h2 a")?.text() ?: ""
-            val posterSrc = article.selectFirst("a img")?.attr("src") ?: ""
-
-            val fullPosterUrl = if (posterSrc.startsWith("/")) {
-                "https://filmpalast.to$posterSrc"
-            } else {
-                posterSrc
-            }
-
-            val info = article.select("*").toInfo()
-
-            // Determine if it's a movie or TV show based on season/episode info in title
-            val isTvShow = title.matches(Regex(".*S\\d+E\\d+.*"))
-            
-            if (isTvShow) {
-                TvShow(
-                    id = href.substringAfterLast("/"),
-                    title = title,
-                    released = info.released,
-                    quality = info.quality,
-                    rating = info.rating ?: 0.0,
-                    poster = fullPosterUrl
-                )
-            } else {
-            Movie(
-                id = href.substringAfterLast("/"),
-                title = title,
-                released = info.released,
-                quality = info.quality,
-                rating = info.rating ?: 0.0,
-                poster = fullPosterUrl
-            )
-            }
-        }.distinctBy { 
-            when (it) {
-                is Movie -> it.id
-                is TvShow -> it.id
-            }
-        }
+        val results = parseArticles(document)
 
         return results
 
