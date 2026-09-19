@@ -127,7 +127,7 @@ object PlatformSettingsController {
             findPreference("trakt_oauth_logout")?.isEnabled = available && TraktConfig.isSignedIn()
             findPreference("trakt_device_auth_start")?.isEnabled = available
             findPreference("trakt_device_auth_help")?.isEnabled = available
-            findPreference("pc_platform_trakt")?.summary = if (available) {
+            findPreference("screen_platform_trakt")?.summary = if (available) {
                 null
             } else {
                 context.getString(R.string.platform_trakt_unavailable_title)

@@ -126,9 +126,11 @@
         android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
-        <PreferenceCategory
-            android:key="pc_platform_player"
+        <PreferenceScreen
+            android:key="screen_platform_player"
             android:title="@string/platform_player_category"
+            android:summary="@string/platform_player_backend_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <ListPreference
                 android:key="PLAYER_BACKEND"
@@ -138,11 +140,13 @@
                 android:entryValues="@array/player_backend_values"
                 android:defaultValue="exo"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_trakt"
+        <PreferenceScreen
+            android:key="screen_platform_trakt"
             android:title="@string/platform_trakt_category"
+            android:summary="@string/platform_trakt_enabled_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <Preference
                 android:key="trakt_status_notice"
@@ -181,11 +185,13 @@
                 android:title="@string/platform_trakt_auth_help_title"
                 android:summary="@string/platform_trakt_auth_help_summary"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_jellyfin"
+        <PreferenceScreen
+            android:key="screen_platform_jellyfin"
             android:title="@string/platform_jellyfin_category"
+            android:summary="@string/platform_selfhost_interval_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <EditTextPreference
                 android:key="JELLYFIN_BASE_URL"
@@ -235,11 +241,13 @@
                 android:entryValues="@array/selfhost_interval_values"
                 android:defaultValue="15000"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_plex"
+        <PreferenceScreen
+            android:key="screen_platform_plex"
             android:title="@string/platform_plex_category"
+            android:summary="@string/platform_test_plex_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <EditTextPreference
                 android:key="PLEX_BASE_URL"
@@ -253,11 +261,13 @@
                 android:summary="@string/platform_plex_token_summary"
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_simkl"
+        <PreferenceScreen
+            android:key="screen_platform_simkl"
             android:title="@string/platform_simkl_category"
+            android:summary="@string/platform_simkl_enabled_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <SwitchPreferenceCompat
                 android:key="SIMKL_ENABLED"
@@ -277,11 +287,13 @@
                 android:summary="@string/platform_simkl_token_summary"
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_subtitles"
+        <PreferenceScreen
+            android:key="screen_platform_subtitles"
             android:title="@string/platform_opensubtitles_category"
+            android:summary="@string/platform_opensubtitles_langs_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <EditTextPreference
                 android:key="OPENSUBTITLES_API_KEY"
@@ -301,11 +313,13 @@
                 android:summary="@string/platform_cast_queue_summary"
                 android:defaultValue="true"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_debrid"
+        <PreferenceScreen
+            android:key="screen_platform_debrid"
             android:title="@string/platform_debrid_category"
+            android:summary="@string/platform_debrid_enabled_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <SwitchPreferenceCompat
                 android:key="DEBRID_ENABLED"
@@ -345,11 +359,13 @@
                 android:summary="@string/platform_torbox_key_summary"
                 android:inputType="textPassword"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
 
-        <PreferenceCategory
-            android:key="pc_platform_plugins"
+        <PreferenceScreen
+            android:key="screen_platform_plugins"
             android:title="@string/platform_plugins_category"
+            android:summary="@string/platform_plugin_catalog_summary"
+            android:widgetLayout="@layout/preference_widget_chevron"
             app:iconSpaceReserved="false">
             <SwitchPreferenceCompat
                 android:key="plugin_disable_jellyfin"
@@ -388,7 +404,7 @@
                 android:title="@string/platform_test_plex_title"
                 android:summary="@string/platform_test_plex_summary"
                 app:iconSpaceReserved="false" />
-        </PreferenceCategory>
+        </PreferenceScreen>
     </PreferenceScreen>
 
     <PreferenceScreen
