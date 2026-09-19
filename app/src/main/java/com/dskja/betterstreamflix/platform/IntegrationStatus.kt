@@ -103,6 +103,20 @@ object IntegrationStatus {
         else Snapshot(Level.NOT_CONFIGURED)
     }
 
+    fun tmdb(): Snapshot = when {
+        !UserPreferences.enableTmdb -> Snapshot(Level.DISABLED)
+        !com.dskja.betterstreamflix.utils.TMDb3.hasApiKey() -> Snapshot(Level.NOT_CONFIGURED)
+        else -> Snapshot(Level.READY)
+    }
+
+    fun hubOverview(context: Context): String {
+        val snapshots = listOf(
+            trakt(), jellyfin(), plex(), debrid(), simkl(), openSubtitles(), player(context), plugins(), tmdb(),
+        )
+        val connected = snapshots.count { it.isHealthy }
+        return context.getString(R.string.platform_hub_overview, connected, snapshots.size)
+    }
+
     fun label(context: Context, snapshot: Snapshot): String {
         val base = when (snapshot.level) {
             Level.UNAVAILABLE -> context.getString(R.string.platform_status_unavailable)

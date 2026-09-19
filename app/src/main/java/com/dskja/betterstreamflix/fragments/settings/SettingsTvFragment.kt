@@ -71,7 +71,6 @@ import com.dskja.betterstreamflix.player.SerienStreamBypassHelper
 import com.dskja.betterstreamflix.utils.BypassWebSocketEndpointHelper
 import com.dskja.betterstreamflix.utils.AppLanguageManager
 import com.dskja.betterstreamflix.utils.CrashReporter
-import com.dskja.betterstreamflix.utils.DnsResolver
 import com.dskja.betterstreamflix.utils.ExperimentalMobileDesign
 import com.dskja.betterstreamflix.utils.ProviderChangeNotifier
 import com.dskja.betterstreamflix.ui.UserDataNotifier
@@ -309,6 +308,30 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         PlatformSettingsController.bind(this, lifecycleScope) { key ->
             findPreference(key)
         }
+        ConnectionServicesController.bind(
+            fragment = this,
+            scope = lifecycleScope,
+            findPreference = { key -> findPreference(key) },
+            openScreen = { key ->
+                val title = findPreference<Preference>(key)?.title?.toString()
+                    ?: getString(R.string.settings_category_network_title)
+                openNestedSettingsScreen(key, title)
+            },
+            onDohChanged = {
+                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
+                        requireActivity().apply {
+                            finish()
+                            startActivity(Intent(this, this::class.java))
+                        }
+                    }
+                } else {
+                    Toast.makeText(requireContext(), R.string.doh_provider_updated, Toast.LENGTH_LONG).show()
+                }
+            },
+            onWebSocketBypassTest = { showWebSocketBypassTestDialog() },
+        )
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
             val currentValue = UserPreferences.streamingcommunityDomain
@@ -653,23 +676,6 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         setupParentalControlPreferences()
 
-        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
-            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
-            text = UserPreferences.subdlApiKey
-            setOnPreferenceChangeListener { _, newValue ->
-                val newKey = (newValue as String).trim()
-                UserPreferences.subdlApiKey = newKey
-                summary = if (newKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else newKey
-                val message = if (newKey.isEmpty()) {
-                    getString(R.string.settings_subdl_api_key_reset)
-                } else {
-                    getString(R.string.settings_subdl_api_key_success)
-                }
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                true
-            }
-        }
-
         findPreference<Preference>("p_settings_support")?.apply {
             val titleStr = getString(R.string.support_settings_entry_title)
             val spannableTitle = SpannableString(titleStr)
@@ -949,36 +955,6 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
 
-        findPreference<ListPreference>("p_doh_provider_url")?.apply {
-            value = UserPreferences.dohProviderUrl
-            summary = entry
-            setOnPreferenceChangeListener { preference, newValue ->
-                val newUrl = newValue as String
-                UserPreferences.dohProviderUrl = newUrl
-                DnsResolver.setDnsUrl(newUrl)
-                if (preference is ListPreference) {
-                    val index = preference.findIndexOfValue(newUrl)
-                    if (index >= 0 && preference.entries != null && index < preference.entries.size) {
-                        preference.summary = preference.entries[index]
-                    } else {
-                        preference.summary = null
-                    }
-                }
-                if (UserPreferences.currentProvider is StreamingCommunityProvider) {
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        (UserPreferences.currentProvider as StreamingCommunityProvider).rebuildService()
-                        requireActivity().apply {
-                            finish()
-                            startActivity(Intent(this, this::class.java))
-                        }
-                    }
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.doh_provider_updated), Toast.LENGTH_LONG).show()
-                }
-                true
-            }
-        }
-
         findPreference<SwitchPreference>("pc_frenchstream_new_interface")?.apply {
             isVisible = UserPreferences.currentProvider is FrenchStreamProvider
             if (isVisible) {
@@ -1002,58 +978,12 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
 
         val networkSettingsCategory = findPreference<PreferenceCategory>("pc_network_settings")
         if (networkSettingsCategory != null) {
-            val originalTitle = getString(R.string.settings_category_network_title)
+            val originalTitle = getString(R.string.connection_section_dns)
             val currentProviderName = UserPreferences.currentProvider?.name
             if (currentProviderName != null && currentProviderName.isNotEmpty()) {
-                networkSettingsCategory.title = "$originalTitle $currentProviderName"
+                networkSettingsCategory.title = "$originalTitle · $currentProviderName"
             } else {
                 networkSettingsCategory.title = originalTitle
-            }
-
-            // Available in release too: some TV sticks report a non-LAN IP (VPN/docker),
-            // so users need to set the phone-reachable address manually.
-            if (findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST") == null) {
-                val hostPreference = EditTextPreference(requireContext()).apply {
-                    key = "BYPASS_WS_ADVERTISED_HOST"
-                    title = getString(R.string.settings_bypass_advertised_host)
-                    dialogTitle = getString(R.string.settings_bypass_advertised_host)
-                    summary = if (UserPreferences.bypassWsAdvertisedHost.isBlank()) {
-                        getString(R.string.settings_bypass_advertised_host_auto)
-                    } else {
-                        UserPreferences.bypassWsAdvertisedHost
-                    }
-                    text = UserPreferences.bypassWsAdvertisedHost
-                    setOnBindEditTextListener { editText ->
-                        editText.setSingleLine()
-                        editText.hint = "192.168.1.50"
-                        editText.setText(UserPreferences.bypassWsAdvertisedHost)
-                        editText.setSelection(editText.text?.length ?: 0)
-                    }
-                    setOnPreferenceChangeListener { preference, newValue ->
-                        val value = (newValue as String).trim()
-                        UserPreferences.bypassWsAdvertisedHost = value
-                        preference.summary = if (value.isBlank()) {
-                            getString(R.string.settings_bypass_advertised_host_auto)
-                        } else {
-                            value
-                        }
-                        true
-                    }
-                }
-                networkSettingsCategory.addPreference(hostPreference)
-            }
-
-            if (BuildConfig.DEBUG && findPreference<Preference>("test_websocket_bypass") == null) {
-                val testPreference = Preference(requireContext()).apply {
-                    key = "test_websocket_bypass"
-                    title = "Test WebSocket bypass"
-                    summary = "Generate a QR code for the mobile resolver flow"
-                    setOnPreferenceClickListener {
-                        showWebSocketBypassTestDialog()
-                        true
-                    }
-                }
-                networkSettingsCategory.addPreference(testPreference)
             }
         }
 
@@ -2230,6 +2160,10 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
         updateOverviewLabels()
         updateProviderVisibilityState()
         PlatformSettingsController.refresh(this) { key -> findPreference(key) }
+        ConnectionServicesController.refresh(
+            findPreference = { key -> findPreference(key) },
+            context = requireContext(),
+        )
         settingsHubController?.updateVisibility()
 
         findPreference<EditTextPreference>("provider_streamingcommunity_domain")?.apply {
@@ -2247,30 +2181,15 @@ class SettingsTvFragment : LeanbackPreferenceFragmentCompat() {
             text = UserPreferences.tmdbApiKey
         }
 
-        findPreference<EditTextPreference>("SUBDL_API_KEY")?.apply {
-            summary = if (UserPreferences.subdlApiKey.isEmpty()) getString(R.string.settings_subdl_api_key_summary) else UserPreferences.subdlApiKey
-            text = UserPreferences.subdlApiKey
-        }
-
-        findPreference<EditTextPreference>("BYPASS_WS_ADVERTISED_HOST")?.apply {
-            val currentValue = UserPreferences.bypassWsAdvertisedHost
-            summary = if (currentValue.isBlank()) "Auto (device IP)" else currentValue
-            text = currentValue
-        }
-
-        findPreference<ListPreference>("p_doh_provider_url")?.apply {
-            summary = entry
-        }
-
         findPreference<ListPreference>("APP_LANGUAGE")?.value =
             AppLanguageManager.getSelectedLanguage(requireContext())
 
         val networkSettingsCategory = findPreference<PreferenceCategory>("pc_network_settings")
         if (networkSettingsCategory != null) {
-            val originalTitle = getString(R.string.settings_category_network_title)
+            val originalTitle = getString(R.string.connection_section_dns)
             val currentProviderName = UserPreferences.currentProvider?.name
             if (currentProviderName != null && currentProviderName.isNotEmpty()) {
-                networkSettingsCategory.title = "$originalTitle $currentProviderName"
+                networkSettingsCategory.title = "$originalTitle · $currentProviderName"
             } else {
                 networkSettingsCategory.title = originalTitle
             }

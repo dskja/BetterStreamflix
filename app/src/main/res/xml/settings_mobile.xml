@@ -145,6 +145,16 @@
         android:widgetLayout="@layout/preference_widget_chevron"
         app:iconSpaceReserved="false">
 
+        <PreferenceCategory
+            android:title="@string/platform_settings_title"
+            app:iconSpaceReserved="false">
+            <Preference
+                android:key="platform_test_all"
+                android:title="@string/platform_test_all_title"
+                android:summary="@string/platform_test_all_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
         <PreferenceScreen
             android:key="screen_platform_player"
             android:title="@string/platform_player_category"
@@ -972,8 +982,103 @@
         app:iconSpaceReserved="false">
 
         <PreferenceCategory
+            android:key="pc_connection_status"
+            android:title="@string/connection_section_status"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="NETWORK_STATUS"
+                android:title="@string/connection_status_title"
+                android:summary="@string/connection_probe_idle"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_VALIDATED"
+                android:title="@string/connection_validated_title"
+                android:summary="@string/connection_validated_no"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_DOH_STATUS"
+                android:title="@string/connection_doh_status_title"
+                android:summary="@string/connection_doh_off"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_PROVIDER_STATUS"
+                android:title="@string/connection_provider_title"
+                android:summary="@string/connection_provider_none"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_LAST_PROBE"
+                android:title="@string/connection_last_probe_title"
+                android:summary="@string/connection_probe_idle"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_REFRESH_STATUS"
+                android:title="@string/connection_refresh_status_title"
+                android:summary="@string/connection_refresh_status_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            android:key="pc_connection_diagnostics"
+            android:title="@string/connection_section_diagnostics"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="NETWORK_TEST_CONNECTION"
+                android:title="@string/connection_test_full_title"
+                android:summary="@string/connection_test_full_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_TEST_DOH"
+                android:title="@string/connection_test_doh_title"
+                android:summary="@string/connection_test_doh_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_TEST_PROVIDER"
+                android:title="@string/connection_test_provider_title"
+                android:summary="@string/connection_test_provider_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_TEST_SERVICES"
+                android:title="@string/connection_test_services_title"
+                android:summary="@string/connection_test_services_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_COPY_LAST_PROBE"
+                android:title="@string/connection_copy_last_title"
+                android:summary="@string/connection_copy_last_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_CLEAR_CACHE"
+                android:title="@string/connection_clear_cache_title"
+                android:summary="@string/connection_clear_cache_summary"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_CLEAR_COOKIES"
+                android:title="@string/connection_clear_cookies_title"
+                android:summary="@string/connection_clear_cookies_summary"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_network_settings"
-            android:title="@string/settings_category_network_title"
+            android:title="@string/connection_section_dns"
             app:iconSpaceReserved="false">
 
             <Preference
@@ -993,6 +1098,75 @@
         </PreferenceCategory>
 
         <PreferenceCategory
+            android:key="pc_connection_services"
+            android:title="@string/connection_section_services"
+            app:iconSpaceReserved="false">
+
+            <Preference
+                android:key="NETWORK_INTEGRATIONS_STATUS"
+                android:title="@string/platform_settings_title"
+                android:summary="@string/platform_settings_summary"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_INTEGRATIONS"
+                android:title="@string/connection_open_integrations"
+                android:summary="@string/connection_open_integrations_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_TMDB_STATUS"
+                android:title="@string/settings_category_tmdb"
+                android:summary="@string/platform_status_ready"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_TMDB"
+                android:title="@string/connection_open_tmdb"
+                android:summary="@string/connection_open_tmdb_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_TRAKT"
+                android:title="@string/platform_trakt_category"
+                android:summary="@string/connection_open_trakt_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_DEBRID"
+                android:title="@string/platform_debrid_category"
+                android:summary="@string/connection_open_debrid_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_JELLYFIN"
+                android:title="@string/platform_jellyfin_category"
+                android:summary="@string/connection_open_jellyfin_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_PLEX"
+                android:title="@string/platform_plex_category"
+                android:summary="@string/connection_open_plex_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_OPEN_OPENSUBTITLES"
+                android:title="@string/platform_opensubtitles_category"
+                android:summary="@string/connection_open_opensubtitles_summary"
+                android:widgetLayout="@layout/preference_widget_chevron"
+                app:iconSpaceReserved="false" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
             android:key="pc_subdl_settings"
             android:title="@string/settings_category_subdl"
             app:iconSpaceReserved="false">
@@ -1002,6 +1176,12 @@
                 android:title="@string/settings_subdl_api_key"
                 android:summary="@string/settings_subdl_api_key_summary"
                 android:inputType="text"
+                app:iconSpaceReserved="false" />
+
+            <Preference
+                android:key="NETWORK_TEST_SUBDL"
+                android:title="@string/connection_test_subdl_title"
+                android:summary="@string/connection_test_subdl_summary"
                 app:iconSpaceReserved="false" />
         </PreferenceCategory>
     </PreferenceScreen>
